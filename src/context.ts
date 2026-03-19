@@ -1,8 +1,10 @@
 import type { SeasonTotals, Tab } from './types';
+import { getSemanticContextForTab } from './semantic-layer';
 
 /**
  * Build a data context string to send to Claude based on the current tab and data.
- * We keep it concise to fit within token limits while giving Claude enough to be useful.
+ * Includes the semantic layer (column definitions) so Claude understands
+ * what each field means and can provide precise, accurate analysis.
  */
 export function buildDataContext(
   tab: Tab,
@@ -119,13 +121,25 @@ export function buildDataContext(
       break;
   }
 
+  // Add semantic layer - column definitions so Claude knows what each field means
+  const semanticContext = getSemanticContextForTab(tab);
+  if (semanticContext) {
+    parts.push(semanticContext);
+  }
+
   parts.push(
-    `\nYou have access to the full nflverse dataset including play-by-play (1999+), ` +
+    `\nYou are a data analyst for the StatHead NFL Fantasy Workbench. ` +
+    `You have access to the full nflverse dataset including play-by-play (1999+), ` +
     `snap counts (2012+), combine, draft picks (1980+), injuries (2009+), ` +
-    `advanced stats (2018+), and game schedules. Answer questions about NFL stats, ` +
-    `fantasy football, and provide analysis based on the data shown above. ` +
+    `advanced stats (2018+), and game schedules. ` +
+    `\n\nThe DATA DICTIONARY above defines every column in the current dataset. ` +
+    `Use these definitions to understand what metrics like EPA, WPA, CPOE, WOPR, ` +
+    `RACR, PACR, Dakota, target_share, air_yards_share, etc. mean. ` +
+    `Reference specific column definitions when explaining advanced metrics. ` +
+    `\n\nAnswer questions about NFL stats, fantasy football, and provide analysis ` +
+    `based on the data shown above. Be specific with numbers and cite the data. ` +
     `If the user asks about data not shown, let them know which tab to navigate to. ` +
-    `Be specific with numbers and cite the data. Format responses in markdown.`
+    `Format responses in markdown.`
   );
 
   return parts.join('\n');
