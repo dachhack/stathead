@@ -439,6 +439,136 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
       }
     ]
   },
+  "dictionary_ff_rankings": {
+    "name": "Fantasy Rankings (FantasyPros ECR/ADP)",
+    "columns": [
+      {
+        "field": "fp_page",
+        "description": "The relative url that the data was scraped from (add the prefix https://www.fantasypros.com/ to visit the page)",
+        "type": "character"
+      },
+      {
+        "field": "page_type",
+        "description": "Two word identifier separated by a dash identifying the type of fantasy ranking (best = bestball; dynasty; redraft) and what position it applies to",
+        "type": "character"
+      },
+      {
+        "field": "ecr_type",
+        "description": "A two letter identifier combining the ranking type (b = bestball; d = dynasty; r = redraft) and position type (o = overall; p = positional; sf = superflex; rk = rookie)",
+        "type": "character"
+      },
+      {
+        "field": "player",
+        "description": "Player name",
+        "type": "character"
+      },
+      {
+        "field": "id",
+        "description": "FantasyPros ID",
+        "type": "character"
+      },
+      {
+        "field": "pos",
+        "description": "Position as tracked by FP",
+        "type": "character"
+      },
+      {
+        "field": "team",
+        "description": "NFL team the player plays for",
+        "type": "character"
+      },
+      {
+        "field": "sportsdata_id",
+        "description": "ID - also known as sportradar_id (they are equivalent!)",
+        "type": "character"
+      },
+      {
+        "field": "player_filename",
+        "description": "base URL for this player on fantasypros.com",
+        "type": "character"
+      },
+      {
+        "field": "yahoo_id",
+        "description": "Yahoo ID",
+        "type": "character"
+      },
+      {
+        "field": "cbs_id",
+        "description": "CBS ID",
+        "type": "character"
+      },
+      {
+        "field": "player_image_url",
+        "description": "An image of the player",
+        "type": "character"
+      },
+      {
+        "field": "player_square_image_url",
+        "description": "An square image of the player",
+        "type": "character"
+      },
+      {
+        "field": "mergename",
+        "description": "Player name after being cleaned by dp_cleannames - generally strips punctuation and suffixes as well as performing common name substitutions.",
+        "type": "character"
+      },
+      {
+        "field": "tm",
+        "description": "Team ID as used on MyFantasyLeague.com",
+        "type": "character"
+      },
+      {
+        "field": "scrape_date",
+        "description": "Date this dataframe was last updated",
+        "type": "Date"
+      },
+      {
+        "field": "ecr",
+        "description": "Average (mean) expert ranking for this player",
+        "type": "numeric"
+      },
+      {
+        "field": "sd",
+        "description": "Standard deviation of expert rankings for this player",
+        "type": "numeric"
+      },
+      {
+        "field": "best",
+        "description": "The highest ranking given for this player by any one expert",
+        "type": "numeric"
+      },
+      {
+        "field": "worst",
+        "description": "The lowest ranking given for this player by any one expert",
+        "type": "numeric"
+      },
+      {
+        "field": "player_owned_avg",
+        "description": "The average percentage this player is rostered across ESPN and Yahoo",
+        "type": "numeric"
+      },
+      {
+        "field": "player_owned_espn",
+        "description": "The percentage that this player is rostered in ESPN leagues",
+        "type": "numeric"
+      },
+      {
+        "field": "player_owned_yahoo",
+        "description": "The percentage that this player is rostered in Yahoo leagues",
+        "type": "numeric"
+      },
+      {
+        "field": "rank_delta",
+        "description": "Change in ranks over a recent period",
+        "type": "numeric"
+      },
+      {
+        "field": "bye",
+        "description": "NFL bye week",
+        "type": "numeric"
+      }
+    ]
+  },
   "dictionary_ftn_charting": {
     "name": "FTN Charting",
     "columns": [
@@ -3707,6 +3837,7 @@ export function getSemanticContextForTab(tab: string): string {
     stats: ['dictionary_playerstats'],
     compare: ['dictionary_playerstats'],
     scoring: ['dictionary_playerstats'],
+    adp: ['dictionary_ff_rankings', 'dictionary_playerstats'],
     games: ['dictionary_schedules'],
     snaps: ['dictionary_snap_counts'],
     combine: ['dictionary_combine'],

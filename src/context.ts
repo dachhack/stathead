@@ -37,6 +37,22 @@ export function buildDataContext(
     case 'scoring':
       // Player data already included above
       break;
+    case 'adp':
+      if (extraData && extraData.length > 0) {
+        parts.push(
+          `\nFantasyPros ECR/ADP rankings (${extraData.length} entries, showing redraft overall sample):`,
+          formatAsTable(
+            (extraData as Record<string, unknown>[])
+              .filter((r) => r.page_type === 'redraft-overall' || r.page_type === 'best-overall')
+              .slice(0, 60),
+            [
+              'player', 'pos', 'team', 'ecr', 'sd', 'best', 'worst',
+              'player_owned_avg', 'bye', 'page_type', 'scrape_date',
+            ]
+          )
+        );
+      }
+      break;
     case 'games':
       if (extraData && extraData.length > 0) {
         parts.push(

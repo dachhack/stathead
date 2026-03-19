@@ -10,6 +10,7 @@ import { DraftView } from './components/DraftView';
 import { InjuriesView } from './components/InjuriesView';
 import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
+import { FantasyADPView } from './components/FantasyADPView';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import type { Tab } from './types';
@@ -20,6 +21,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'stats', label: 'Rankings' },
   { id: 'compare', label: 'Compare' },
   { id: 'scoring', label: 'Scoring' },
+  { id: 'adp', label: 'ADP' },
   { id: 'games', label: 'Games' },
   { id: 'snaps', label: 'Snaps' },
   { id: 'advanced', label: 'Advanced' },
@@ -90,6 +92,13 @@ function App() {
         )}
         {tab === 'scoring' && (
           <FantasyScoring players={seasonTotals} loading={loading} />
+        )}
+        {tab === 'adp' && (
+          <FantasyADPView
+            seasonTotals={seasonTotals}
+            loading={loading}
+            onDataLoaded={onDataLoaded}
+          />
         )}
         {tab === 'games' && <GamesView onDataLoaded={onDataLoaded} />}
         {tab === 'snaps' && (

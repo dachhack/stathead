@@ -9,6 +9,8 @@ import type {
   Injury,
   AdvancedStats,
   PlayByPlay,
+  FantasyRanking,
+  FantasySeasonResult,
 } from './types';
 
 const NFLVERSE =
@@ -194,4 +196,89 @@ export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
   return result.data.filter(
     (row) => row.play_type && row.play_type !== 'no_play'
   );
+}
+
+// --- Fantasy Rankings (FantasyPros ECR via dynastyprocess) ---
+const DYNASTYPROCESS =
+  'https://github.com/dynastyprocess/data/raw/master/files';
+
+export async function fetchFantasyRankings(): Promise<FantasyRanking[]> {
+  return fetchCsv<FantasyRanking>(`${DYNASTYPROCESS}/db_fpecr_latest.csv`);
+}
+
+// --- Fantasy Season Results: merge ADP with actual production ---
+export function buildSeasonResults(
+  seasonTotals: SeasonTotals[],
+  rankings: FantasyRanking[]
+): FantasySeasonResult[] {
+  // Filter to redraft-overall rankings for ADP comparison
+  const adpMap = new Map<string, FantasyRanking>();
+  const redraftOverall = rankings.filter(
+    (r) =>
+      r.page_type === 'redraft-overall' ||
+      r.page_type === 'best-overall'
+  );
+  for (const r of redraftOverall) {
+    // Match by normalized player name
+    const key = normalizeName(r.player);
+    if (!adpMap.has(key)) adpMap.set(key, r);
+  }
+
+  // Sort players by standard fantasy points for overall ranking
+  const sortedStd = [...seasonTotals].sort(
+    (a, b) => b.fantasy_points - a.fantasy_points
+  );
+  const sortedPpr = [...seasonTotals].sort(
+    (a, b) => b.fantasy_points_ppr - a.fantasy_points_ppr
+  );
+
+  // Build position ranks
+  const posRankStd = new Map<string, number>();
+  const posRankPpr = new Map<string, number>();
+  const posCountersStd: Record<string, number> = {};
+  const posCountersPpr: Record<string, number> = {};
+
+  for (const p of sortedStd) {
+    posCountersStd[p.position] = (posCountersStd[p.position] || 0) + 1;
+    posRankStd.set(p.player_id, posCountersStd[p.position]);
+  }
+  for (const p of sortedPpr) {
+    posCountersPpr[p.position] = (posCountersPpr[p.position] || 0) + 1;
+    posRankPpr.set(p.player_id, posCountersPpr[p.position]);
+  }
+
+  return sortedPpr.map((p, i) => {
+    const nameKey = normalizeName(p.player_display_name);
+    const adp = adpMap.get(nameKey);
+    const overallRankPpr = i + 1;
+    const overallRankStd =
+      sortedStd.findIndex((s) => s.player_id === p.player_id) + 1;
+
+    return {
+      player_display_name: p.player_display_name,
+      player_id: p.player_id,
+      position: p.position,
+      team: p.recent_team,
+      headshot_url: p.headshot_url,
+      games: p.games,
+      fantasy_points: p.fantasy_points,
+      fantasy_points_ppr: p.fantasy_points_ppr,
+      fantasy_points_half_ppr: p.fantasy_points_half_ppr,
+      overall_rank_std: overallRankStd,
+      overall_rank_ppr: overallRankPpr,
+      pos_rank_std: posRankStd.get(p.player_id) || 0,
+      pos_rank_ppr: posRankPpr.get(p.player_id) || 0,
+      adp_ecr: adp ? adp.ecr : null,
+      adp_pos: adp ? adp.pos : null,
+      adp_delta: adp ? adp.ecr - overallRankPpr : null,
+    };
+  });
+}
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

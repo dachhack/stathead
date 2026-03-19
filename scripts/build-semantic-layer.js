@@ -76,6 +76,7 @@ const DATASET_NAMES = {
   dictionary_depth_charts: 'Depth Charts',
   dictionary_ftn_charting: 'FTN Charting',
   dictionary_trades: 'Trades',
+  dictionary_ff_rankings: 'Fantasy Rankings (FantasyPros ECR/ADP)',
 };
 
 const datasets = {};
@@ -176,6 +177,7 @@ export function getSemanticContextForTab(tab: string): string {
     stats: ['dictionary_playerstats'],
     compare: ['dictionary_playerstats'],
     scoring: ['dictionary_playerstats'],
+    adp: ['dictionary_ff_rankings', 'dictionary_playerstats'],
     games: ['dictionary_schedules'],
     snaps: ['dictionary_snap_counts'],
     combine: ['dictionary_combine'],

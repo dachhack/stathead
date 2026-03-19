@@ -110,6 +110,7 @@ export type Tab =
   | 'stats'
   | 'compare'
   | 'scoring'
+  | 'adp'
   | 'games'
   | 'snaps'
   | 'combine'
@@ -117,6 +118,48 @@ export type Tab =
   | 'injuries'
   | 'advanced'
   | 'pbp';
+
+// --- Fantasy Rankings (FantasyPros ECR / ADP) ---
+export interface FantasyRanking {
+  page_type: string;
+  ecr_type: string;
+  player: string;
+  id: number;
+  pos: string;
+  team: string;
+  ecr: number;
+  sd: number;
+  best: number;
+  worst: number;
+  player_owned_avg: number;
+  player_owned_espn: number;
+  player_owned_yahoo: number;
+  bye: number;
+  scrape_date: string;
+}
+
+// --- Fantasy Season Results (ADP vs actual finish) ---
+export interface FantasySeasonResult {
+  player_display_name: string;
+  player_id: string;
+  position: string;
+  team: string;
+  headshot_url: string;
+  games: number;
+  fantasy_points: number;
+  fantasy_points_ppr: number;
+  fantasy_points_half_ppr: number;
+  // Ranks
+  overall_rank_std: number;
+  overall_rank_ppr: number;
+  pos_rank_std: number;
+  pos_rank_ppr: number;
+  // ADP
+  adp_ecr: number | null;
+  adp_pos: string | null;
+  // Value delta (positive = outperformed ADP, negative = busted)
+  adp_delta: number | null;
+}
 
 // --- Games / Schedules ---
 export interface Game {
