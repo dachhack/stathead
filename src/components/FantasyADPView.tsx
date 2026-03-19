@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { SeasonTotals, FantasyRanking, FantasySeasonResult, SortDirection } from '../types';
-import { fetchFantasyRankings, buildSeasonResults } from '../data';
+import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, SortDirection } from '../types';
+import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP } from '../data';
 
 type SortField = keyof FantasySeasonResult;
-type ViewMode = 'results' | 'adp';
+type ViewMode = 'results' | 'adp' | 'espn';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -24,6 +24,11 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [adpSearch, setAdpSearch] = useState('');
   const [adpPageType, setAdpPageType] = useState('redraft-overall');
+  const [espnPlayers, setEspnPlayers] = useState<EspnADPPlayer[]>([]);
+  const [espnLoading, setEspnLoading] = useState(false);
+  const [espnError, setEspnError] = useState<string | null>(null);
+  const [espnSearch, setEspnSearch] = useState('');
+  const [espnPosFilter, setEspnPosFilter] = useState('ALL');
 
   useEffect(() => {
     fetchFantasyRankings()
@@ -34,6 +39,17 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [onDataLoaded]);
+
+  // Fetch ESPN ADP when that tab is selected
+  useEffect(() => {
+    if (viewMode !== 'espn' || espnPlayers.length > 0) return;
+    setEspnLoading(true);
+    setEspnError(null);
+    fetchEspnADP(2025)
+      .then(setEspnPlayers)
+      .catch((e) => setEspnError(e instanceof Error ? e.message : 'Failed to load ESPN ADP'))
+      .finally(() => setEspnLoading(false));
+  }, [viewMode, espnPlayers.length]);
 
   const results = useMemo(
     () => buildSeasonResults(seasonTotals, rankings),
@@ -101,6 +117,19 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
     return data.sort((a, b) => (a.ecr || 999) - (b.ecr || 999)).slice(0, 300);
   }, [rankings, adpPageType, adpSearch]);
 
+  // Filtered ESPN ADP
+  const filteredEspn = useMemo(() => {
+    let data = [...espnPlayers];
+    if (espnPosFilter !== 'ALL') data = data.filter((p) => p.position === espnPosFilter);
+    if (espnSearch) {
+      const q = espnSearch.toLowerCase();
+      data = data.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }, [espnPlayers, espnPosFilter, espnSearch]);
+
   const isLoading = loading || parentLoading;
 
   if (isLoading)
@@ -145,9 +174,95 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
         >
           Pre-Season ADP / ECR
         </button>
+        <button
+          className={`format-tab ${viewMode === 'espn' ? 'active' : ''}`}
+          onClick={() => setViewMode('espn')}
+        >
+          ESPN ADP
+        </button>
       </div>
 
-      {viewMode === 'results' ? (
+      {viewMode === 'espn' ? (
+        <>
+          {espnLoading ? (
+            <div className="loading">
+              <div className="spinner" />
+              <div className="loading-text">Loading ESPN ADP data...</div>
+            </div>
+          ) : espnError ? (
+            <div className="empty-state">
+              <h3>Failed to load ESPN ADP</h3>
+              <p>{espnError}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+                ESPN&apos;s API may be blocked by CORS in some environments.
+                This works best when deployed to GitHub Pages.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="controls">
+                <input
+                  type="text"
+                  placeholder="Search players..."
+                  value={espnSearch}
+                  onChange={(e) => setEspnSearch(e.target.value)}
+                />
+                <div className="position-filters">
+                  {POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      className={`pos-filter ${espnPosFilter === pos ? 'active' : ''}`}
+                      onClick={() => setEspnPosFilter(pos)}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  {filteredEspn.length} players
+                </span>
+              </div>
+
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>PPR Rank</th>
+                      <th>Player</th>
+                      <th>Pos</th>
+                      <th>Team</th>
+                      <th>Std Rank</th>
+                      <th>ADP</th>
+                      <th>Owned %</th>
+                      <th>Auction (Std)</th>
+                      <th>Auction (PPR)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEspn.map((p) => (
+                      <tr key={p.espnId}>
+                        <td className="rank-cell">{p.draftRankPpr || '-'}</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>
+                          <span className={`pos-badge pos-${p.position}`}>
+                            {p.position}
+                          </span>
+                        </td>
+                        <td>{p.team}</td>
+                        <td>{p.draftRankStd || '-'}</td>
+                        <td>{p.adp > 0 ? p.adp.toFixed(1) : '-'}</td>
+                        <td>{p.percentOwned > 0 ? `${p.percentOwned.toFixed(1)}%` : '-'}</td>
+                        <td>{p.auctionValueStd > 0 ? `$${p.auctionValueStd}` : '-'}</td>
+                        <td>{p.auctionValuePpr > 0 ? `$${p.auctionValuePpr}` : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </>
+      ) : viewMode === 'results' ? (
         <>
           <div className="controls">
             <input

@@ -11,6 +11,7 @@ import type {
   PlayByPlay,
   FantasyRanking,
   FantasySeasonResult,
+  EspnADPPlayer,
 } from './types';
 
 const NFLVERSE =
@@ -281,4 +282,113 @@ function normalizeName(name: string): string {
     .replace(/[^a-z ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// --- ESPN Fantasy ADP (undocumented v3 API) ---
+
+const ESPN_POSITION_MAP: Record<number, string> = {
+  1: 'QB', 2: 'RB', 3: 'WR', 4: 'TE', 5: 'K', 16: 'DST',
+};
+
+const ESPN_TEAM_MAP: Record<number, string> = {
+  0: 'FA', 1: 'ATL', 2: 'BUF', 3: 'CHI', 4: 'CIN', 5: 'CLE',
+  6: 'DAL', 7: 'DEN', 8: 'DET', 9: 'GB', 10: 'TEN', 11: 'IND',
+  12: 'KC', 13: 'LV', 14: 'LAR', 15: 'MIA', 16: 'MIN', 17: 'NE',
+  18: 'NO', 19: 'NYG', 20: 'NYJ', 21: 'PHI', 22: 'ARI', 23: 'PIT',
+  24: 'LAC', 25: 'SF', 26: 'SEA', 27: 'TB', 28: 'WSH', 29: 'CAR',
+  30: 'JAX', 33: 'BAL', 34: 'HOU',
+};
+
+interface EspnPlayerRaw {
+  id: number;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  defaultPositionId: number;
+  proTeamId: number;
+  ownership?: {
+    averageDraftPosition?: number;
+    percentOwned?: number;
+  };
+  draftRanksByRankType?: {
+    STANDARD?: { rank: number; auctionValue: number };
+    PPR?: { rank: number; auctionValue: number };
+  };
+}
+
+interface EspnPlayersResponse {
+  players: Array<{
+    id: number;
+    player: EspnPlayerRaw;
+  }>;
+}
+
+const espnAdpCache = new Map<number, EspnADPPlayer[]>();
+
+export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
+  const cached = espnAdpCache.get(season);
+  if (cached) return cached;
+
+  // Use the league-free players endpoint with kona_player_info view
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=players_wl`;
+
+  const filter = {
+    players: {
+      limit: 500,
+      sortDraftRanks: {
+        sortPriority: 100,
+        sortAsc: true,
+        value: 'PPR',
+      },
+    },
+  };
+
+  const response = await fetch(url, {
+    headers: {
+      'x-fantasy-filter': JSON.stringify(filter),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`ESPN API returned ${response.status}`);
+  }
+
+  const raw = await response.json();
+
+  // The response can be either an array of player objects directly
+  // or an object with a `players` array
+  const playerEntries: Array<{ id: number; player?: EspnPlayerRaw } & EspnPlayerRaw> =
+    Array.isArray(raw) ? raw : (raw as EspnPlayersResponse).players || [];
+
+  const players: EspnADPPlayer[] = [];
+  for (const entry of playerEntries) {
+    const p = entry.player || entry;
+    const pos = ESPN_POSITION_MAP[p.defaultPositionId];
+    if (!pos) continue;
+
+    const name = p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+    if (!name) continue;
+
+    const stdRank = p.draftRanksByRankType?.STANDARD;
+    const pprRank = p.draftRanksByRankType?.PPR;
+
+    players.push({
+      espnId: p.id || entry.id,
+      name,
+      position: pos,
+      team: ESPN_TEAM_MAP[p.proTeamId] || 'FA',
+      adp: p.ownership?.averageDraftPosition || 0,
+      percentOwned: p.ownership?.percentOwned || 0,
+      draftRankStd: stdRank?.rank || 0,
+      draftRankPpr: pprRank?.rank || 0,
+      auctionValueStd: stdRank?.auctionValue || 0,
+      auctionValuePpr: pprRank?.auctionValue || 0,
+    });
+  }
+
+  // Sort by PPR draft rank
+  players.sort((a, b) => (a.draftRankPpr || 999) - (b.draftRankPpr || 999));
+
+  espnAdpCache.set(season, players);
+  return players;
 }

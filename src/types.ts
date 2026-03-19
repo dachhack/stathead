@@ -162,6 +162,20 @@ export interface FantasySeasonResult {
   adp_delta: number | null;
 }
 
+// --- ESPN ADP ---
+export interface EspnADPPlayer {
+  espnId: number;
+  name: string;
+  position: string;
+  team: string;
+  adp: number;          // averageDraftPosition from ownership
+  percentOwned: number;
+  draftRankStd: number; // ESPN's standard rank
+  draftRankPpr: number; // ESPN's PPR rank
+  auctionValueStd: number;
+  auctionValuePpr: number;
+}
+
 // --- Games / Schedules ---
 export interface Game {
   game_id: string;
