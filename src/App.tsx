@@ -11,6 +11,7 @@ import { InjuriesView } from './components/InjuriesView';
 import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
+import { RookieRBChart } from './components/RookieRBChart';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import type { Tab } from './types';
@@ -29,6 +30,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'injuries', label: 'Injuries' },
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
+  { id: 'charts', label: 'Charts' },
 ];
 
 function App() {
@@ -115,6 +117,7 @@ function App() {
         {tab === 'pbp' && (
           <PlayByPlayView season={season} onDataLoaded={onDataLoaded} />
         )}
+        {tab === 'charts' && <RookieRBChart />}
       </main>
 
       <button

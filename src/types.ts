@@ -117,7 +117,8 @@ export type Tab =
   | 'draft'
   | 'injuries'
   | 'advanced'
-  | 'pbp';
+  | 'pbp'
+  | 'charts';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
