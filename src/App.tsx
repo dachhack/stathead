@@ -3,9 +3,29 @@ import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
 import { FantasyScoring } from './components/FantasyScoring';
+import { GamesView } from './components/GamesView';
+import { SnapCountsView } from './components/SnapCountsView';
+import { CombineView } from './components/CombineView';
+import { DraftView } from './components/DraftView';
+import { InjuriesView } from './components/InjuriesView';
+import { AdvancedStatsView } from './components/AdvancedStatsView';
+import { PlayByPlayView } from './components/PlayByPlayView';
 import type { Tab } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2024 - i);
+
+const TABS: { id: Tab; label: string; needsSeason?: boolean }[] = [
+  { id: 'stats', label: 'Rankings', needsSeason: true },
+  { id: 'compare', label: 'Compare', needsSeason: true },
+  { id: 'scoring', label: 'Scoring', needsSeason: true },
+  { id: 'games', label: 'Games' },
+  { id: 'snaps', label: 'Snaps', needsSeason: true },
+  { id: 'advanced', label: 'Advanced', needsSeason: true },
+  { id: 'pbp', label: 'PBP', needsSeason: true },
+  { id: 'injuries', label: 'Injuries', needsSeason: true },
+  { id: 'combine', label: 'Combine' },
+  { id: 'draft', label: 'Draft' },
+];
 
 function App() {
   const [tab, setTab] = useState<Tab>('stats');
@@ -19,24 +39,15 @@ function App() {
           Stat<span>Head</span>
         </div>
         <nav className="nav-tabs">
-          <button
-            className={`nav-tab ${tab === 'stats' ? 'active' : ''}`}
-            onClick={() => setTab('stats')}
-          >
-            Rankings
-          </button>
-          <button
-            className={`nav-tab ${tab === 'compare' ? 'active' : ''}`}
-            onClick={() => setTab('compare')}
-          >
-            Compare
-          </button>
-          <button
-            className={`nav-tab ${tab === 'scoring' ? 'active' : ''}`}
-            onClick={() => setTab('scoring')}
-          >
-            Scoring
-          </button>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`nav-tab ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </nav>
         <div className="control-group" style={{ marginLeft: 'auto' }}>
           <label className="control-label">Season</label>
@@ -66,6 +77,13 @@ function App() {
         {tab === 'scoring' && (
           <FantasyScoring players={seasonTotals} loading={loading} />
         )}
+        {tab === 'games' && <GamesView />}
+        {tab === 'snaps' && <SnapCountsView season={season} />}
+        {tab === 'combine' && <CombineView />}
+        {tab === 'draft' && <DraftView />}
+        {tab === 'injuries' && <InjuriesView season={season} />}
+        {tab === 'advanced' && <AdvancedStatsView season={season} />}
+        {tab === 'pbp' && <PlayByPlayView season={season} />}
       </main>
     </>
   );

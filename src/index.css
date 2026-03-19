@@ -66,9 +66,16 @@ body {
 
 .nav-tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   height: 100%;
   align-items: stretch;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab {
@@ -77,12 +84,14 @@ body {
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
-  padding: 0 16px;
+  padding: 0 12px;
   cursor: pointer;
   position: relative;
   transition: color 0.2s;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tab:hover {
