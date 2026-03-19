@@ -162,6 +162,19 @@ export interface FantasySeasonResult {
   adp_delta: number | null;
 }
 
+// --- Fantasy Football Calculator ADP ---
+export interface FfcADPPlayer {
+  name: string;
+  position: string;
+  team: string;
+  adp: number;
+  high: number;
+  low: number;
+  stdev: number;
+  timesDrafted: number;
+  bye: number;
+}
+
 // --- ESPN ADP ---
 export interface EspnADPPlayer {
   espnId: number;

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, SortDirection } from '../types';
-import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP } from '../data';
+import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, FfcADPPlayer, SortDirection } from '../types';
+import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } from '../data';
 
 type SortField = keyof FantasySeasonResult;
-type ViewMode = 'results' | 'adp' | 'espn';
+type ViewMode = 'results' | 'adp' | 'espn' | 'ffc';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -29,6 +29,13 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
   const [espnError, setEspnError] = useState<string | null>(null);
   const [espnSearch, setEspnSearch] = useState('');
   const [espnPosFilter, setEspnPosFilter] = useState('ALL');
+  const [ffcPlayers, setFfcPlayers] = useState<FfcADPPlayer[]>([]);
+  const [ffcLoading, setFfcLoading] = useState(false);
+  const [ffcError, setFfcError] = useState<string | null>(null);
+  const [ffcSearch, setFfcSearch] = useState('');
+  const [ffcPosFilter, setFfcPosFilter] = useState('ALL');
+  const [ffcScoring, setFfcScoring] = useState<'ppr' | 'half-ppr' | 'standard'>('ppr');
+  const [ffcYear, setFfcYear] = useState(2024);
 
   useEffect(() => {
     fetchFantasyRankings()
@@ -50,6 +57,17 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
       .catch((e) => setEspnError(e instanceof Error ? e.message : 'Failed to load ESPN ADP'))
       .finally(() => setEspnLoading(false));
   }, [viewMode, espnPlayers.length]);
+
+  // Fetch FFC ADP when that tab is selected or params change
+  useEffect(() => {
+    if (viewMode !== 'ffc') return;
+    setFfcLoading(true);
+    setFfcError(null);
+    fetchFfcADP(ffcYear, ffcScoring)
+      .then(setFfcPlayers)
+      .catch((e) => setFfcError(e instanceof Error ? e.message : 'Failed to load FFC ADP'))
+      .finally(() => setFfcLoading(false));
+  }, [viewMode, ffcYear, ffcScoring]);
 
   const results = useMemo(
     () => buildSeasonResults(seasonTotals, rankings),
@@ -117,6 +135,19 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
     return data.sort((a, b) => (a.ecr || 999) - (b.ecr || 999)).slice(0, 300);
   }, [rankings, adpPageType, adpSearch]);
 
+  // Filtered FFC ADP
+  const filteredFfc = useMemo(() => {
+    let data = [...ffcPlayers];
+    if (ffcPosFilter !== 'ALL') data = data.filter((p) => p.position === ffcPosFilter);
+    if (ffcSearch) {
+      const q = ffcSearch.toLowerCase();
+      data = data.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }, [ffcPlayers, ffcPosFilter, ffcSearch]);
+
   // Filtered ESPN ADP
   const filteredEspn = useMemo(() => {
     let data = [...espnPlayers];
@@ -175,6 +206,12 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
           Pre-Season ADP / ECR
         </button>
         <button
+          className={`format-tab ${viewMode === 'ffc' ? 'active' : ''}`}
+          onClick={() => setViewMode('ffc')}
+        >
+          FFC ADP
+        </button>
+        <button
           className={`format-tab ${viewMode === 'espn' ? 'active' : ''}`}
           onClick={() => setViewMode('espn')}
         >
@@ -182,7 +219,124 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
         </button>
       </div>
 
-      {viewMode === 'espn' ? (
+      {viewMode === 'ffc' ? (
+        <>
+          {ffcLoading ? (
+            <div className="loading">
+              <div className="spinner" />
+              <div className="loading-text">Loading Fantasy Football Calculator ADP...</div>
+            </div>
+          ) : ffcError ? (
+            <div className="empty-state">
+              <h3>Failed to load FFC ADP</h3>
+              <p>{ffcError}</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+                This API may be blocked by CORS in some environments.
+                Works best when deployed to GitHub Pages.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="controls">
+                <input
+                  type="text"
+                  placeholder="Search players..."
+                  value={ffcSearch}
+                  onChange={(e) => setFfcSearch(e.target.value)}
+                />
+                <div className="position-filters">
+                  {POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      className={`pos-filter ${ffcPosFilter === pos ? 'active' : ''}`}
+                      onClick={() => setFfcPosFilter(pos)}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+                <div className="control-group">
+                  <label className="control-label">Scoring</label>
+                  <select
+                    value={ffcScoring}
+                    onChange={(e) => {
+                      setFfcScoring(e.target.value as typeof ffcScoring);
+                      setFfcPlayers([]);
+                    }}
+                  >
+                    <option value="ppr">PPR</option>
+                    <option value="half-ppr">Half PPR</option>
+                    <option value="standard">Standard</option>
+                  </select>
+                </div>
+                <div className="control-group">
+                  <label className="control-label">Year</label>
+                  <select
+                    value={ffcYear}
+                    onChange={(e) => {
+                      setFfcYear(Number(e.target.value));
+                      setFfcPlayers([]);
+                    }}
+                  >
+                    {Array.from({ length: 6 }, (_, i) => 2025 - i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  {filteredFfc.length} players
+                </span>
+              </div>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+                Data from{' '}
+                <a href="https://fantasyfootballcalculator.com/adp" target="_blank" rel="noopener noreferrer"
+                   style={{ color: 'var(--accent)' }}>
+                  Fantasy Football Calculator
+                </a>
+                . Human mock draft ADP only (computer picks excluded).
+              </p>
+
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ADP</th>
+                      <th>Player</th>
+                      <th>Pos</th>
+                      <th>Team</th>
+                      <th>High</th>
+                      <th>Low</th>
+                      <th>Std Dev</th>
+                      <th>Times Drafted</th>
+                      <th>Bye</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFfc.map((p, i) => (
+                      <tr key={`${p.name}-${i}`}>
+                        <td className="rank-cell">{p.adp > 0 ? p.adp.toFixed(1) : '-'}</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>
+                          <span className={`pos-badge pos-${p.position}`}>
+                            {p.position}
+                          </span>
+                        </td>
+                        <td>{p.team}</td>
+                        <td>{p.high || '-'}</td>
+                        <td>{p.low || '-'}</td>
+                        <td>{p.stdev > 0 ? p.stdev.toFixed(1) : '-'}</td>
+                        <td>{p.timesDrafted || '-'}</td>
+                        <td>{p.bye || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </>
+      ) : viewMode === 'espn' ? (
         <>
           {espnLoading ? (
             <div className="loading">

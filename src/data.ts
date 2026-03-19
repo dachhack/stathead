@@ -12,6 +12,7 @@ import type {
   FantasyRanking,
   FantasySeasonResult,
   EspnADPPlayer,
+  FfcADPPlayer,
 } from './types';
 
 const NFLVERSE =
@@ -282,6 +283,44 @@ function normalizeName(name: string): string {
     .replace(/[^a-z ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// --- Fantasy Football Calculator ADP (free REST API) ---
+
+const ffcAdpCache = new Map<string, FfcADPPlayer[]>();
+
+export async function fetchFfcADP(
+  season: number,
+  scoring: 'standard' | 'ppr' | 'half-ppr' | '2qb' = 'ppr',
+  teams: number = 12
+): Promise<FfcADPPlayer[]> {
+  const cacheKey = `${season}-${scoring}-${teams}`;
+  const cached = ffcAdpCache.get(cacheKey);
+  if (cached) return cached;
+
+  const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`FFC API returned ${response.status}`);
+  }
+
+  const json = await response.json();
+  const rawPlayers: Array<Record<string, unknown>> = json.players || [];
+
+  const players: FfcADPPlayer[] = rawPlayers.map((p) => ({
+    name: String(p.name || ''),
+    position: String(p.position || ''),
+    team: String(p.team || ''),
+    adp: Number(p.adp) || 0,
+    high: Number(p.high) || 0,
+    low: Number(p.low) || 0,
+    stdev: Number(p.stdev) || 0,
+    timesDrafted: Number(p.times_drafted) || 0,
+    bye: Number(p.bye) || 0,
+  }));
+
+  ffcAdpCache.set(cacheKey, players);
+  return players;
 }
 
 // --- ESPN Fantasy ADP (undocumented v3 API) ---
