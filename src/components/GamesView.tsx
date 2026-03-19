@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Game } from '../types';
 import { fetchGames } from '../data';
 
-export function GamesView() {
+export function GamesView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,10 +12,13 @@ export function GamesView() {
 
   useEffect(() => {
     fetchGames()
-      .then(setGames)
+      .then((data) => {
+        setGames(data);
+        onDataLoaded?.(data);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [onDataLoaded]);
 
   const seasons = useMemo(
     () => [...new Set(games.map((g) => g.season))].sort((a, b) => b - a),

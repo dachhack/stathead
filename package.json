@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@types/papaparse": "^5.5.2",
     "papaparse": "^5.5.3",
     "react": "^19.2.4",

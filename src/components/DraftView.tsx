@@ -4,7 +4,7 @@ import { fetchDraftPicks } from '../data';
 
 type SortField = keyof DraftPick;
 
-export function DraftView() {
+export function DraftView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
   const [data, setData] = useState<DraftPick[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,10 +16,13 @@ export function DraftView() {
 
   useEffect(() => {
     fetchDraftPicks()
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        onDataLoaded?.(d);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [onDataLoaded]);
 
   const years = useMemo(
     () =>

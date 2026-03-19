@@ -6,7 +6,7 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB', 'K'];
 
 type SortField = 'offense_snaps' | 'offense_pct' | 'defense_snaps' | 'defense_pct' | 'st_snaps' | 'st_pct' | 'player' | 'week';
 
-export function SnapCountsView({ season }: { season: number }) {
+export function SnapCountsView({ season, onDataLoaded }: { season: number; onDataLoaded?: (data: unknown[]) => void }) {
   const [snaps, setSnaps] = useState<SnapCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,10 +21,13 @@ export function SnapCountsView({ season }: { season: number }) {
     setLoading(true);
     setError(null);
     fetchSnapCounts(season)
-      .then(setSnaps)
+      .then((data) => {
+        setSnaps(data);
+        onDataLoaded?.(data);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [season]);
+  }, [season, onDataLoaded]);
 
   const teams = useMemo(
     () => ['ALL', ...new Set(snaps.map((s) => s.team).filter(Boolean))].sort(),

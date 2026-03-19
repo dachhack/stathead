@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -10,19 +10,21 @@ import { DraftView } from './components/DraftView';
 import { InjuriesView } from './components/InjuriesView';
 import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
+import { ChatDrawer } from './components/ChatDrawer';
+import { buildDataContext } from './context';
 import type { Tab } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2024 - i);
 
-const TABS: { id: Tab; label: string; needsSeason?: boolean }[] = [
-  { id: 'stats', label: 'Rankings', needsSeason: true },
-  { id: 'compare', label: 'Compare', needsSeason: true },
-  { id: 'scoring', label: 'Scoring', needsSeason: true },
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'stats', label: 'Rankings' },
+  { id: 'compare', label: 'Compare' },
+  { id: 'scoring', label: 'Scoring' },
   { id: 'games', label: 'Games' },
-  { id: 'snaps', label: 'Snaps', needsSeason: true },
-  { id: 'advanced', label: 'Advanced', needsSeason: true },
-  { id: 'pbp', label: 'PBP', needsSeason: true },
-  { id: 'injuries', label: 'Injuries', needsSeason: true },
+  { id: 'snaps', label: 'Snaps' },
+  { id: 'advanced', label: 'Advanced' },
+  { id: 'pbp', label: 'PBP' },
+  { id: 'injuries', label: 'Injuries' },
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
 ];
@@ -30,7 +32,16 @@ const TABS: { id: Tab; label: string; needsSeason?: boolean }[] = [
 function App() {
   const [tab, setTab] = useState<Tab>('stats');
   const [season, setSeason] = useState(2024);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [extraData, setExtraData] = useState<unknown[]>([]);
   const { seasonTotals, loading, error } = usePlayerData(season);
+
+  // Callback for child views to register their loaded data for chat context
+  const onDataLoaded = useCallback((data: unknown[]) => {
+    setExtraData(data);
+  }, []);
+
+  const dataContext = buildDataContext(tab, season, seasonTotals, extraData);
 
   return (
     <>
@@ -43,7 +54,10 @@ function App() {
             <button
               key={t.id}
               className={`nav-tab ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setTab(t.id);
+                setExtraData([]);
+              }}
             >
               {t.label}
             </button>
@@ -77,14 +91,36 @@ function App() {
         {tab === 'scoring' && (
           <FantasyScoring players={seasonTotals} loading={loading} />
         )}
-        {tab === 'games' && <GamesView />}
-        {tab === 'snaps' && <SnapCountsView season={season} />}
-        {tab === 'combine' && <CombineView />}
-        {tab === 'draft' && <DraftView />}
-        {tab === 'injuries' && <InjuriesView season={season} />}
-        {tab === 'advanced' && <AdvancedStatsView season={season} />}
-        {tab === 'pbp' && <PlayByPlayView season={season} />}
+        {tab === 'games' && <GamesView onDataLoaded={onDataLoaded} />}
+        {tab === 'snaps' && (
+          <SnapCountsView season={season} onDataLoaded={onDataLoaded} />
+        )}
+        {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
+        {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
+        {tab === 'injuries' && (
+          <InjuriesView season={season} onDataLoaded={onDataLoaded} />
+        )}
+        {tab === 'advanced' && (
+          <AdvancedStatsView season={season} onDataLoaded={onDataLoaded} />
+        )}
+        {tab === 'pbp' && (
+          <PlayByPlayView season={season} onDataLoaded={onDataLoaded} />
+        )}
       </main>
+
+      <button
+        className="chat-fab"
+        onClick={() => setChatOpen(true)}
+        title="Ask Claude"
+      >
+        C
+      </button>
+
+      <ChatDrawer
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        dataContext={dataContext}
+      />
     </>
   );
 }

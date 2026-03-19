@@ -12,7 +12,7 @@ const STAT_LABELS: Record<StatType, string> = {
   def: 'Defense',
 };
 
-export function AdvancedStatsView({ season }: { season: number }) {
+export function AdvancedStatsView({ season, onDataLoaded }: { season: number; onDataLoaded?: (data: unknown[]) => void }) {
   const [data, setData] = useState<AdvancedStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,10 +26,13 @@ export function AdvancedStatsView({ season }: { season: number }) {
     setLoading(true);
     setError(null);
     fetchAdvancedStats(season, statType)
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        onDataLoaded?.(d);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [season, statType]);
+  }, [season, statType, onDataLoaded]);
 
   const weeks = useMemo(
     () => [...new Set(data.map((d) => d.week))].sort((a, b) => a - b),

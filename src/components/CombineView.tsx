@@ -5,7 +5,7 @@ import { fetchCombine } from '../data';
 type SortField = keyof CombineResult;
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OT', 'OG', 'C', 'DE', 'DT', 'LB', 'CB', 'S', 'K', 'P'];
 
-export function CombineView() {
+export function CombineView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
   const [data, setData] = useState<CombineResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,10 +17,13 @@ export function CombineView() {
 
   useEffect(() => {
     fetchCombine()
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        onDataLoaded?.(d);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [onDataLoaded]);
 
   const years = useMemo(
     () => [...new Set(data.map((d) => d.season).filter(Boolean))].sort((a, b) => b - a),

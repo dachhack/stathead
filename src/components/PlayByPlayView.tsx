@@ -12,7 +12,7 @@ const PLAY_TYPES = [
   'extra_point',
 ];
 
-export function PlayByPlayView({ season }: { season: number }) {
+export function PlayByPlayView({ season, onDataLoaded }: { season: number; onDataLoaded?: (data: unknown[]) => void }) {
   const [data, setData] = useState<PlayByPlay[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +30,7 @@ export function PlayByPlayView({ season }: { season: number }) {
       .then((d) => {
         setData(d);
         setLoaded(true);
+        onDataLoaded?.(d);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));

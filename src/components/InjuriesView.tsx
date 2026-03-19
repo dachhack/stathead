@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Full Participation in Practice': 'stat-positive',
 };
 
-export function InjuriesView({ season }: { season: number }) {
+export function InjuriesView({ season, onDataLoaded }: { season: number; onDataLoaded?: (data: unknown[]) => void }) {
   const [data, setData] = useState<Injury[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +24,13 @@ export function InjuriesView({ season }: { season: number }) {
     setLoading(true);
     setError(null);
     fetchInjuries(season)
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        onDataLoaded?.(d);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [season]);
+  }, [season, onDataLoaded]);
 
   const teams = useMemo(
     () => ['ALL', ...[...new Set(data.map((d) => d.team).filter(Boolean))].sort()],
