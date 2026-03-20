@@ -5,9 +5,10 @@ import {
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
 import { KTCFactorAnalysis } from './KTCFactorAnalysis';
+import { KTCPredictiveModel } from './KTCPredictiveModel';
 
 type FormatMode = '1qb' | 'superflex';
-type ViewMode = 'rankings' | 'history' | 'factors';
+type ViewMode = 'rankings' | 'history' | 'factors' | 'model';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
 const CHART_COLORS = [
@@ -174,9 +175,17 @@ export function KTCView({ onDataLoaded }: Props) {
         >
           RB Factor Analysis
         </button>
+        <button
+          className={`format-tab ${viewMode === 'model' ? 'active' : ''}`}
+          onClick={() => setViewMode('model')}
+        >
+          Predictive Model
+        </button>
       </div>
 
-      {viewMode === 'factors' ? (
+      {viewMode === 'model' ? (
+        <KTCPredictiveModel />
+      ) : viewMode === 'factors' ? (
         <KTCFactorAnalysis />
       ) : viewMode === 'history' ? (
         <>
