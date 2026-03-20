@@ -158,6 +158,7 @@ export interface SleeperProjection {
 
 // --- KeepTradeCut ---
 export interface KTCPlayer {
+  playerID: number;
   playerName: string;
   position: string;
   positionRank: number;
@@ -167,6 +168,17 @@ export interface KTCPlayer {
   superflexValue: number;
   isRookie: boolean;
   slug: string;
+}
+
+export interface KTCHistoryPoint {
+  d: string; // date string
+  v: number; // value
+}
+
+export interface KTCPlayerHistory {
+  playerID: number;
+  oneQB: { valueHistory: KTCHistoryPoint[] };
+  superflex: { valueHistory: KTCHistoryPoint[] };
 }
 
 export type Tab =

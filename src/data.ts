@@ -18,6 +18,7 @@ import type {
   SleeperTrendingRow,
   SleeperProjection,
   KTCPlayer,
+  KTCPlayerHistory,
 } from './types';
 
 const NFLVERSE =
@@ -607,6 +608,7 @@ export async function fetchKTCRankings(
       const players: Array<Record<string, unknown>> = JSON.parse(match[1]);
       for (const p of players) {
         allPlayers.push({
+          playerID: Number(p.playerID) || 0,
           playerName: String(p.playerName || ''),
           position: String(p.position || ''),
           positionRank: Number(p.positionRank) || 0,
@@ -628,4 +630,45 @@ export async function fetchKTCRankings(
   allPlayers.sort((a, b) => b.value - a.value);
   ktcCache.set(format, allPlayers);
   return allPlayers;
+}
+
+// --- KTC Player History (POST endpoint) ---
+
+const ktcHistoryCache = new Map<number, KTCPlayerHistory>();
+
+export async function fetchKTCHistory(
+  playerIDs: number[]
+): Promise<KTCPlayerHistory[]> {
+  // Return cached entries where available, fetch the rest
+  const results: KTCPlayerHistory[] = [];
+  const toFetch: number[] = [];
+
+  for (const id of playerIDs) {
+    const cached = ktcHistoryCache.get(id);
+    if (cached) {
+      results.push(cached);
+    } else {
+      toFetch.push(id);
+    }
+  }
+
+  if (toFetch.length > 0) {
+    const response = await fetch('https://keeptradecut.com/dynasty-rankings/histories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toFetch),
+    });
+
+    if (!response.ok) {
+      throw new Error(`KTC history API returned ${response.status}`);
+    }
+
+    const data: KTCPlayerHistory[] = await response.json();
+    for (const entry of data) {
+      ktcHistoryCache.set(entry.playerID, entry);
+      results.push(entry);
+    }
+  }
+
+  return results;
 }
