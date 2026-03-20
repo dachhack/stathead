@@ -212,6 +212,15 @@ export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
   );
 }
 
+// --- PBP Participation (NGS-sourced per-play participation data) ---
+export async function fetchPbpParticipation(
+  season: number
+): Promise<import('./types').PbpParticipation[]> {
+  return fetchCsv<import('./types').PbpParticipation>(
+    `${NFLVERSE}/pbp_participation/pbp_participation_${season}.csv`
+  );
+}
+
 // --- Fantasy Rankings (FantasyPros ECR via dynastyprocess) ---
 const DYNASTYPROCESS =
   'https://github.com/dynastyprocess/data/raw/master/files';

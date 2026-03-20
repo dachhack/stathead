@@ -7,9 +7,9 @@ import {
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
-  fetchNextGenStats, fetchPlayByPlay,
+  fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation } from '../types';
 import { trainRidgeRegression, type TrainedModel } from '../lib/ridge';
 
 // ── Config ──
@@ -98,6 +98,15 @@ const FEATURES: FeatureDef[] = [
   { key: 'priorTimeToThrow', label: 'Prior Time to Throw', category: 'NGS', positions: ['QB'] },
   { key: 'priorAggressiveness', label: 'Prior Aggressiveness', category: 'NGS', positions: ['QB'] },
 
+  // Participation-derived (YPRR, personnel)
+  { key: 'priorYPRR', label: 'Prior YPRR', category: 'Route', positions: ['WR', 'TE'] },
+  { key: 'priorRoutesRun', label: 'Prior Routes Run', category: 'Route', positions: ['WR', 'TE'] },
+  { key: 'priorTargetsPerRoute', label: 'Prior Targets/Route', category: 'Route', positions: ['WR', 'TE'] },
+  { key: 'priorPct11Personnel', label: 'Prior % 11 Personnel', category: 'Route', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorPct12Personnel', label: 'Prior % 12 Personnel', category: 'Route', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorPassLocationLeft', label: 'Prior % Targets Left', category: 'Route', positions: ['WR', 'TE'] },
+  { key: 'priorPassLocationMiddle', label: 'Prior % Targets Middle', category: 'Route', positions: ['WR', 'TE'] },
+
   // Prior season — fantasy totals
   { key: 'priorPPR', label: 'Prior PPR Points', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'priorPPG', label: 'Prior PPG', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
@@ -126,6 +135,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Workload: '#3b82f6',
   Advanced: '#14b8a6',
   NGS: '#8b5cf6',
+  Route: '#06b6d4',
   Injury: '#f43f5e',
 };
 
@@ -206,7 +216,7 @@ export function ADPFactorAnalysis() {
             adpData, currentStats, priorStats, priorSnaps,
             priorInjuries, preseasonInjuries,
             priorNgsRec, priorNgsRush, priorNgsPass,
-            priorPbp,
+            priorPbp, priorParticipation,
           ] = await Promise.all([
             fetchFfcADP(season, 'ppr', 12).catch(() => []),
             fetchPlayerStats(season).catch(() => []),
@@ -218,6 +228,7 @@ export function ADPFactorAnalysis() {
             fetchNextGenStats(season - 1, 'rushing').catch(() => [] as NextGenStats[]),
             fetchNextGenStats(season - 1, 'passing').catch(() => [] as NextGenStats[]),
             fetchPlayByPlay(season - 1).catch(() => [] as PlayByPlay[]),
+            fetchPbpParticipation(season - 1).catch(() => [] as PbpParticipation[]),
           ]);
           if (cancelled) return;
 
@@ -335,6 +346,83 @@ export function ADPFactorAnalysis() {
               teamRZTargets.set(team, (teamRZTargets.get(team) || 0) + 1);
             }
             pbpByReceiver.set(recName, acc);
+          }
+
+          // Build GSIS ID → normalized name map from weekly stats
+          const gsisToName = new Map<string, string>();
+          for (const w of priorWeekly) {
+            if (w.player_id && w.player_display_name) {
+              gsisToName.set(w.player_id, normalizeName(w.player_display_name));
+            }
+          }
+
+          // Participation-derived: routes run, YPRR, personnel splits
+          // Join participation with PBP pass plays to count routes per player
+          interface RouteAgg {
+            routesRun: number;
+            snaps11: number; // 11 personnel (1 RB, 1 TE, 3 WR)
+            snaps12: number; // 12 personnel (1 RB, 2 TE, 2 WR)
+            totalSnaps: number;
+          }
+          const routesByName = new Map<string, RouteAgg>();
+
+          // Build a set of pass play keys for quick lookup
+          const passPlayKeys = new Set<string>();
+          for (const play of priorPbp) {
+            if (play.qb_dropback === 1 || play.play_type === 'pass') {
+              passPlayKeys.add(`${play.game_id}:${play.play_id}`);
+            }
+          }
+
+          // Parse personnel string to get grouping (e.g., "1 RB, 1 TE, 3 WR" → "11")
+          function parsePersonnel(personnel: string): string {
+            if (!personnel) return '';
+            const rbMatch = personnel.match(/(\d+)\s*RB/i);
+            const teMatch = personnel.match(/(\d+)\s*TE/i);
+            const rb = rbMatch ? rbMatch[1] : '0';
+            const te = teMatch ? teMatch[1] : '0';
+            return `${rb}${te}`;
+          }
+
+          for (const part of priorParticipation) {
+            if (!part.offense_players) continue;
+
+            const gamePlayKey = `${part.nflverse_game_id}:${part.play_id}`;
+            // Also check old_game_id format since PBP might use different ID
+            const altKey = `${part.old_game_id}:${part.play_id}`;
+            const isPassPlay = passPlayKeys.has(gamePlayKey) || passPlayKeys.has(altKey);
+
+            const personnel = parsePersonnel(part.offense_personnel || '');
+            const offenseIds = part.offense_players.split(';');
+
+            for (const gsisId of offenseIds) {
+              const id = gsisId.trim();
+              const name = gsisToName.get(id);
+              if (!name) continue;
+
+              const acc = routesByName.get(name) || {
+                routesRun: 0, snaps11: 0, snaps12: 0, totalSnaps: 0,
+              };
+              acc.totalSnaps += 1;
+              if (isPassPlay) acc.routesRun += 1;
+              if (personnel === '11') acc.snaps11 += 1;
+              else if (personnel === '12') acc.snaps12 += 1;
+              routesByName.set(name, acc);
+            }
+          }
+
+          // Pass location distribution per receiver from PBP
+          interface LocAgg { left: number; middle: number; right: number; total: number }
+          const locByReceiver = new Map<string, LocAgg>();
+          for (const play of priorPbp) {
+            if (play.play_type !== 'pass' || !play.receiver_player_name || !play.pass_location) continue;
+            const recName = normalizeName(play.receiver_player_name);
+            const acc = locByReceiver.get(recName) || { left: 0, middle: 0, right: 0, total: 0 };
+            acc.total += 1;
+            if (play.pass_location === 'left') acc.left += 1;
+            else if (play.pass_location === 'middle') acc.middle += 1;
+            else if (play.pass_location === 'right') acc.right += 1;
+            locByReceiver.set(recName, acc);
           }
 
           // Prior-season injury aggregation
@@ -493,6 +581,41 @@ export function ADPFactorAnalysis() {
               priorCPOE: ngsPass?.completion_percentage_above_expectation || 0,
               priorTimeToThrow: ngsPass?.avg_time_to_throw || 0,
               priorAggressiveness: ngsPass?.aggressiveness || 0,
+
+              // Participation-derived: YPRR, routes, personnel
+              priorYPRR: (() => {
+                const rt = routesByName.get(normalName);
+                return rt && rt.routesRun > 0
+                  ? Math.round(((prior?.receiving_yards || 0) / rt.routesRun) * 100) / 100
+                  : 0;
+              })(),
+              priorRoutesRun: routesByName.get(normalName)?.routesRun || 0,
+              priorTargetsPerRoute: (() => {
+                const rt = routesByName.get(normalName);
+                return rt && rt.routesRun > 0
+                  ? Math.round(((prior?.targets || 0) / rt.routesRun) * 1000) / 1000
+                  : 0;
+              })(),
+              priorPct11Personnel: (() => {
+                const rt = routesByName.get(normalName);
+                return rt && rt.totalSnaps > 0
+                  ? Math.round((rt.snaps11 / rt.totalSnaps) * 1000) / 1000
+                  : 0;
+              })(),
+              priorPct12Personnel: (() => {
+                const rt = routesByName.get(normalName);
+                return rt && rt.totalSnaps > 0
+                  ? Math.round((rt.snaps12 / rt.totalSnaps) * 1000) / 1000
+                  : 0;
+              })(),
+              priorPassLocationLeft: (() => {
+                const loc = locByReceiver.get(normalName);
+                return loc && loc.total > 0 ? Math.round((loc.left / loc.total) * 1000) / 1000 : 0;
+              })(),
+              priorPassLocationMiddle: (() => {
+                const loc = locByReceiver.get(normalName);
+                return loc && loc.total > 0 ? Math.round((loc.middle / loc.total) * 1000) / 1000 : 0;
+              })(),
 
               // Fantasy totals
               priorPPR: Math.round(priorPPR * 10) / 10,

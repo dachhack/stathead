@@ -484,6 +484,35 @@ export interface PlayByPlay {
   total_line: number;
   xpass: number;
   pass_oe: number;
+  // Formation/personnel (from PBP CSV, not always populated)
+  offense_formation: string;
+  offense_personnel: string;
+  defenders_in_box: number;
+  number_of_pass_rushers: number;
+}
+
+// --- PBP Participation (NGS-sourced per-play participation) ---
+export interface PbpParticipation {
+  nflverse_game_id: string;
+  old_game_id: string;
+  play_id: number;
+  possession_team: string;
+  offense_formation: string;
+  offense_personnel: string;
+  defenders_in_box: number;
+  defense_personnel: string;
+  number_of_pass_rushers: number;
+  players_on_play: string;
+  offense_players: string;
+  defense_players: string;
+  n_offense: number;
+  n_defense: number;
+  ngs_air_yards: number;
+  time_to_throw: number;
+  was_pressure: number;
+  route: string;
+  defense_man_zone_type: string;
+  defense_coverage_type: string;
 }
 
 // --- Next Gen Stats ---
