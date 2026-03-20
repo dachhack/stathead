@@ -2,7 +2,7 @@
 /**
  * MCP Server for StatHead NFL analytics tools.
  *
- * Exposes all NFL data tools (player stats, play-by-play, NGS, team metrics, etc.)
+ * Exposes all NFL data tools (player stats, play-by-play, NGS, FantasyCalc, team metrics, etc.)
  * as an MCP server that works with Claude Desktop, Claude Code, or any MCP client.
  *
  * Usage:

@@ -19,6 +19,7 @@ import type {
   SleeperProjection,
   KTCPlayer,
   KTCPlayerHistory,
+  FantasyCalcPlayer,
   NextGenStats,
   Roster,
   Contract,
@@ -686,6 +687,34 @@ export async function fetchKTCHistory(
   }
 
   return results;
+}
+
+// --- FantasyCalc API ---
+
+const fantasyCalcCache = new Map<string, FantasyCalcPlayer[]>();
+
+export async function fetchFantasyCalcValues(
+  isDynasty: boolean = true,
+  numQbs: 1 | 2 = 1,
+  numTeams: number = 12,
+  ppr: 0 | 0.5 | 1 = 1
+): Promise<FantasyCalcPlayer[]> {
+  const cacheKey = `${isDynasty}-${numQbs}-${numTeams}-${ppr}`;
+  const cached = fantasyCalcCache.get(cacheKey);
+  if (cached) return cached;
+
+  const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`FantasyCalc API returned ${response.status}`);
+  }
+
+  const data: FantasyCalcPlayer[] = await response.json();
+
+  // Sort by value descending
+  data.sort((a, b) => b.value - a.value);
+  fantasyCalcCache.set(cacheKey, data);
+  return data;
 }
 
 // --- Next Gen Stats ---

@@ -655,6 +655,35 @@ export interface FTNCharting {
   is_qb_fault_sack: boolean;
 }
 
+// --- FantasyCalc ---
+export interface FantasyCalcPlayer {
+  player: {
+    id: number;
+    name: string;
+    mflId: string;
+    sleeperId: string;
+    position: string;
+    maybeBirthday: string | null;
+    maybeHeight: number | null;
+    maybeWeight: number | null;
+    maybeCollege: string | null;
+    maybeTeam: string | null;
+    maybeAge: number | null;
+    maybeYoe: number | null;
+  };
+  value: number;
+  overallRank: number;
+  positionRank: number;
+  trend30Day: number;
+  redraftValue: number;
+  combinedValue: number;
+  redraftDynastyValueDifference: number;
+  redraftDynastyValuePercDifference: number;
+  displayTrend: string;
+  maybeMovingStandardDeviation: number | null;
+  starter: boolean;
+}
+
 // --- Trades ---
 export interface Trade {
   trade_id: number;
