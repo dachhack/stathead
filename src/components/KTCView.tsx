@@ -4,9 +4,10 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
+import { KTCFactorAnalysis } from './KTCFactorAnalysis';
 
 type FormatMode = '1qb' | 'superflex';
-type ViewMode = 'rankings' | 'history';
+type ViewMode = 'rankings' | 'history' | 'factors';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
 const CHART_COLORS = [
@@ -167,9 +168,17 @@ export function KTCView({ onDataLoaded }: Props) {
         >
           Value History
         </button>
+        <button
+          className={`format-tab ${viewMode === 'factors' ? 'active' : ''}`}
+          onClick={() => setViewMode('factors')}
+        >
+          RB Factor Analysis
+        </button>
       </div>
 
-      {viewMode === 'history' ? (
+      {viewMode === 'factors' ? (
+        <KTCFactorAnalysis />
+      ) : viewMode === 'history' ? (
         <>
           <div className="controls">
             <div style={{ position: 'relative', flex: 1 }}>
