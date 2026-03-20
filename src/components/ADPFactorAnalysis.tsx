@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
-  fetchCombine, fetchDraftPicks, fetchSnapCounts,
+  fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick } from '../types';
 import { trainRidgeRegression, type TrainedModel } from '../lib/ridge';
@@ -75,6 +75,14 @@ const FEATURES: FeatureDef[] = [
   // Workload
   { key: 'priorTotalTouches', label: 'Prior Total Touches', category: 'Workload', positions: ['RB'] },
   { key: 'priorSnapPct', label: 'Prior Snap %', category: 'Workload', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Injury history
+  { key: 'priorInjuryWeeks', label: 'Prior Injury Report Weeks', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorGamesOut', label: 'Prior Games Out/Doubtful', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'preseasonInjured', label: 'Preseason Injured', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'preseasonInjWeeks', label: 'Preseason Injury Weeks', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorSoftTissue', label: 'Prior Soft Tissue Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorKneeInjury', label: 'Prior Knee Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -84,6 +92,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Prior Stats': '#f59e0b',
   'Prior Fantasy': '#10b981',
   Workload: '#3b82f6',
+  Injury: '#f43f5e',
 };
 
 // ── Helpers ──
@@ -158,12 +167,14 @@ export function ADPFactorAnalysis() {
         for (const season of SEASONS) {
           setLoadingStatus(`Building features for ${season}...`);
 
-          // Fetch current + prior in parallel
-          const [adpData, currentStats, priorStats, priorSnaps] = await Promise.all([
+          // Fetch current + prior in parallel (including injuries)
+          const [adpData, currentStats, priorStats, priorSnaps, priorInjuries, preseasonInjuries] = await Promise.all([
             fetchFfcADP(season, 'ppr', 12).catch(() => []),
             fetchPlayerStats(season).catch(() => []),
             fetchPlayerStats(season - 1).catch(() => []),
             fetchSnapCounts(season - 1).catch(() => []),
+            fetchInjuries(season - 1).catch(() => []),
+            fetchInjuries(season).catch(() => []),
           ]);
           if (cancelled) return;
 
@@ -199,6 +210,40 @@ export function ADPFactorAnalysis() {
             acc.total += s.offense_pct || 0;
             acc.count += 1;
             snapAccum.set(name, acc);
+          }
+
+          // Prior-season injury aggregation
+          const SOFT_TISSUE = /hamstring|groin|calf|quad|hip|thigh|achilles|ankle|foot|toe/i;
+          const KNEE = /knee|acl|mcl|pcl|meniscus/i;
+
+          interface InjAgg { weeks: number; gamesOut: number; softTissue: boolean; knee: boolean }
+          const priorInjByName = new Map<string, InjAgg>();
+          for (const inj of priorInjuries) {
+            if (!POSITIONS.includes(inj.position)) continue;
+            const name = normalizeName(inj.full_name);
+            const acc = priorInjByName.get(name) || { weeks: 0, gamesOut: 0, softTissue: false, knee: false };
+            acc.weeks += 1;
+            if (inj.report_status === 'Out' || inj.report_status === 'Doubtful') acc.gamesOut += 1;
+            const allInjText = `${inj.report_primary_injury || ''} ${inj.report_secondary_injury || ''} ${inj.practice_primary_injury || ''} ${inj.practice_secondary_injury || ''}`;
+            if (SOFT_TISSUE.test(allInjText)) acc.softTissue = true;
+            if (KNEE.test(allInjText)) acc.knee = true;
+            priorInjByName.set(name, acc);
+          }
+
+          // Preseason injury status (game_type PRE or first 4 weeks of current season before REG)
+          const preseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
+          for (const inj of preseasonInjuries) {
+            if (!POSITIONS.includes(inj.position)) continue;
+            // Preseason reports: game_type PRE, or week <= 0, or early weeks before regular season
+            const isPre = inj.game_type === 'PRE' || inj.week <= 0;
+            if (!isPre) continue;
+            const name = normalizeName(inj.full_name);
+            const acc = preseasonInjByName.get(name) || { injured: false, weeks: 0 };
+            acc.weeks += 1;
+            if (inj.report_status === 'Out' || inj.report_status === 'Doubtful' || inj.report_status === 'Questionable') {
+              acc.injured = true;
+            }
+            preseasonInjByName.set(name, acc);
           }
 
           // Current stats lookup for position verification
@@ -274,6 +319,14 @@ export function ADPFactorAnalysis() {
               priorGamesMissed: prior ? Math.max(0, 17 - priorGames) : 0,
               priorTotalTouches: priorCarries + (prior?.receptions || 0),
               priorSnapPct: Math.round(snapPct * 10) / 10,
+
+              // Injury features
+              priorInjuryWeeks: priorInjByName.get(normalName)?.weeks || 0,
+              priorGamesOut: priorInjByName.get(normalName)?.gamesOut || 0,
+              preseasonInjured: preseasonInjByName.get(normalName)?.injured ? 1 : 0,
+              preseasonInjWeeks: preseasonInjByName.get(normalName)?.weeks || 0,
+              priorSoftTissue: priorInjByName.get(normalName)?.softTissue ? 1 : 0,
+              priorKneeInjury: priorInjByName.get(normalName)?.knee ? 1 : 0,
             };
 
             rows.push({
