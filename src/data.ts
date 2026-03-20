@@ -26,6 +26,12 @@ import type {
   DepthChart,
   FTNCharting,
   Trade,
+  QBRSeason,
+  QBRWeek,
+  DraftProspect,
+  DraftProfile,
+  CollegeStats,
+  CollegeQBR,
 } from './types';
 
 const NFLVERSE =
@@ -756,4 +762,32 @@ export async function fetchFTNCharting(season: number): Promise<FTNCharting[]> {
 // --- Trades ---
 export async function fetchTrades(): Promise<Trade[]> {
   return fetchCsv<Trade>(`${NFLVERSE}/trades/trades.csv`);
+}
+
+// --- ESPN QBR ---
+export async function fetchQBRSeason(): Promise<QBRSeason[]> {
+  return fetchCsv<QBRSeason>(`${NFLVERSE}/espn_data/qbr_season_level.csv`);
+}
+
+export async function fetchQBRWeek(): Promise<QBRWeek[]> {
+  return fetchCsv<QBRWeek>(`${NFLVERSE}/espn_data/qbr_week_level.csv`);
+}
+
+// --- Draft Prospect Data (JackLich10/nfl-draft-data) ---
+const DRAFT_DATA = 'https://raw.githubusercontent.com/JackLich10/nfl-draft-data/main';
+
+export async function fetchDraftProspects(): Promise<DraftProspect[]> {
+  return fetchCsv<DraftProspect>(`${DRAFT_DATA}/nfl_draft_prospects.csv`);
+}
+
+export async function fetchDraftProfiles(): Promise<DraftProfile[]> {
+  return fetchCsv<DraftProfile>(`${DRAFT_DATA}/nfl_draft_profiles.csv`);
+}
+
+export async function fetchCollegeStats(): Promise<CollegeStats[]> {
+  return fetchCsv<CollegeStats>(`${DRAFT_DATA}/college_statistics.csv`);
+}
+
+export async function fetchCollegeQBR(): Promise<CollegeQBR[]> {
+  return fetchCsv<CollegeQBR>(`${DRAFT_DATA}/college_qbr.csv`);
 }

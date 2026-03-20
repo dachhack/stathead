@@ -698,3 +698,134 @@ export interface Trade {
   pfr_id: string;
   pfr_name: string;
 }
+
+// --- ESPN QBR ---
+export interface QBRSeason {
+  season: number;
+  season_type: string;
+  game_week: string;
+  team_abb: string;
+  player_id: number;
+  name_short: string;
+  rank: number;
+  qbr_total: number;
+  pts_added: number;
+  qb_plays: number;
+  epa_total: number;
+  pass: number;
+  run: number;
+  exp_sack: number;
+  penalty: number;
+  qbr_raw: number;
+  sack: number;
+  name_first: string;
+  name_last: string;
+  name_display: string;
+  headshot_href: string;
+  team: string;
+  qualified: string;
+}
+
+export interface QBRWeek {
+  season: number;
+  season_type: string;
+  game_id: string;
+  game_week: string;
+  week_text: string;
+  team_abb: string;
+  player_id: number;
+  name_short: string;
+  rank: number;
+  qbr_total: number;
+  pts_added: number;
+  qb_plays: number;
+  epa_total: number;
+  pass: number;
+  run: number;
+  exp_sack: number;
+  penalty: number;
+  qbr_raw: number;
+  sack: number;
+  name_first: string;
+  name_last: string;
+  name_display: string;
+  headshot_href: string;
+  team: string;
+  opp_id: number;
+  opp_abb: string;
+  opp_team: string;
+  opp_name: string;
+  week_num: number;
+  qualified: string;
+}
+
+// --- Draft Prospect Data (JackLich10/nfl-draft-data) ---
+export interface DraftProspect {
+  draft_year: number;
+  player_id: number;
+  player_name: string;
+  position: string;
+  pos_abbr: string;
+  school: string;
+  school_name: string;
+  school_abbr: string;
+  pick: number;
+  overall: number;
+  round: number;
+  traded: string;
+  team: string;
+  team_abbr: string;
+  weight: number;
+  height: number;
+  pos_rk: number;
+  ovr_rk: number;
+  grade: number;
+}
+
+export interface DraftProfile {
+  player_id: number;
+  player_name: string;
+  position: string;
+  pos_abbr: string;
+  weight: number;
+  height: number;
+  school: string;
+  school_abbr: string;
+  school_name: string;
+  pos_rk: number;
+  ovr_rk: number;
+  grade: number;
+  text1: string;
+  text2: string;
+  text3: string;
+  text4: string;
+}
+
+export interface CollegeStats {
+  player_id: number;
+  alt_player_id: number;
+  player_name: string;
+  pos_abbr: string;
+  school: string;
+  school_abbr: string;
+  season: number;
+  statistic: string;
+  value: number;
+}
+
+export interface CollegeQBR {
+  season: number;
+  guid: string;
+  player_name: string;
+  age: number;
+  total_qbr: number;
+  points_added: number;
+  qb_plays: number;
+  total_epa: number;
+  pass: number;
+  run: number;
+  exp_sack: number;
+  penalty: number;
+  raw_qbr: number;
+  sack: number;
+}

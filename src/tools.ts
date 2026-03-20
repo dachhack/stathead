@@ -13,6 +13,9 @@ import {
   fetchNextGenStats, fetchRosters, fetchContracts,
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
   fetchPbpParticipation,
+  fetchQBRSeason, fetchQBRWeek,
+  fetchDraftProspects, fetchDraftProfiles,
+  fetchCollegeStats, fetchCollegeQBR,
 } from './data';
 import type { SeasonTotals } from './types';
 import {
@@ -437,6 +440,87 @@ export const NFL_TOOLS: Tool[] = [
         limit: { type: 'number', description: 'Max players to return (default 20)' },
       },
       required: ['season'],
+    },
+  },
+  {
+    name: 'get_qbr',
+    description:
+      'Get ESPN QBR (Total Quarterback Rating) — a comprehensive QB efficiency metric from ESPN. ' +
+      'Season-level or week-by-week data from 2006 onward. Includes QBR total, points added, ' +
+      'EPA breakdown (pass, run, expected sack, penalty), and raw QBR. ' +
+      'Use for QB evaluation, comparing efficiency across eras, weekly performance tracking.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'Filter to specific season (2006+)' },
+        level: {
+          type: 'string',
+          description: 'Season totals or week-by-week',
+          enum: ['season', 'weekly'],
+        },
+        player_name: { type: 'string', description: 'Filter by player name (case-insensitive partial match)' },
+        team: { type: 'string', description: 'Filter by team abbreviation' },
+        week: { type: 'number', description: 'Filter by week (weekly level only)' },
+        qualified: { type: 'boolean', description: 'Only show qualified QBs (default true)' },
+        sort_by: { type: 'string', description: 'Sort by column (descending). Common: qbr_total, pts_added, epa_total' },
+        limit: { type: 'number', description: 'Max rows (default 32)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
+    name: 'get_draft_prospect_data',
+    description:
+      'Get ESPN draft prospect rankings and scouting profiles. Includes ESPN grade, position rank, ' +
+      'overall rank, physical measurements, and scouting report text (strengths/weaknesses). ' +
+      'Data from 1967-present. Use for prospect evaluation, draft class comparisons, historical draft analysis.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        draft_year: { type: 'number', description: 'Filter to specific draft year' },
+        position: { type: 'string', description: 'Filter by position abbreviation (QB, RB, WR, TE, etc.)' },
+        player_name: { type: 'string', description: 'Filter by player name' },
+        school: { type: 'string', description: 'Filter by college/school name' },
+        include_scouting: { type: 'boolean', description: 'Include scouting report text from draft profiles (default false)' },
+        sort_by: { type: 'string', description: 'Sort by: grade, ovr_rk, pos_rk, overall (descending for grade, ascending for ranks)' },
+        limit: { type: 'number', description: 'Max rows (default 50)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_college_stats',
+    description:
+      'Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, ' +
+      'receiving, tackles, sacks, INTs, etc.) by season. Data is from ESPN. ' +
+      'Use for evaluating college production, dominator rating, market share analysis.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        player_name: { type: 'string', description: 'Filter by player name (required — dataset is large)' },
+        season: { type: 'number', description: 'Filter to specific college season' },
+        position: { type: 'string', description: 'Filter by position abbreviation' },
+        school: { type: 'string', description: 'Filter by school abbreviation' },
+        limit: { type: 'number', description: 'Max rows (default 100)' },
+      },
+      required: ['player_name'],
+    },
+  },
+  {
+    name: 'get_college_qbr',
+    description:
+      'Get ESPN college QBR ratings for quarterback prospects. Includes total QBR, points added, EPA, ' +
+      'and breakdown by pass/run/sack. Data from 2004 onward. ' +
+      'Use for evaluating college QB efficiency, comparing draft prospect QBs across classes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'Filter to specific college season (2004+)' },
+        player_name: { type: 'string', description: 'Filter by player name' },
+        sort_by: { type: 'string', description: 'Sort by: total_qbr, points_added, total_epa' },
+        limit: { type: 'number', description: 'Max rows (default 30)' },
+      },
+      required: [],
     },
   },
   {
@@ -1178,6 +1262,174 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const rows = sliced.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
       return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_qbr': {
+      const season = input.season as number;
+      const level = (input.level as string) || 'season';
+      const playerName = input.player_name as string | undefined;
+      const team = input.team as string | undefined;
+      const week = input.week as number | undefined;
+      const qualifiedOnly = input.qualified !== false;
+      const sortBy = (input.sort_by as string) || 'qbr_total';
+      const limit = clamp((input.limit as number) || 32, 1, 100);
+
+      if (level === 'weekly') {
+        let data = await fetchQBRWeek();
+        data = data.filter((d) => d.season === season);
+        if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
+        if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
+        if (week) data = data.filter((d) => d.week_num === week);
+        if (qualifiedOnly) data = data.filter((d) => d.qualified === 'TRUE');
+
+        const key = sortBy as keyof typeof data[0];
+        data.sort((a, b) => {
+          const va = typeof a[key] === 'number' ? (a[key] as number) : 0;
+          const vb = typeof b[key] === 'number' ? (b[key] as number) : 0;
+          return vb - va;
+        });
+        data = data.slice(0, limit);
+
+        const cols = ['name_display', 'team_abb', 'week_num', 'opp_abb', 'qbr_total', 'pts_added',
+          'qb_plays', 'epa_total', 'pass', 'run', 'sack', 'qbr_raw'];
+        const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
+        return `ESPN QBR weekly for ${season} (${data.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      } else {
+        let data = await fetchQBRSeason();
+        data = data.filter((d) => d.season === season && d.season_type === 'Regular');
+        if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
+        if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
+        if (qualifiedOnly) data = data.filter((d) => d.qualified === 'TRUE');
+
+        const key = sortBy as keyof typeof data[0];
+        data.sort((a, b) => {
+          const va = typeof a[key] === 'number' ? (a[key] as number) : 0;
+          const vb = typeof b[key] === 'number' ? (b[key] as number) : 0;
+          return vb - va;
+        });
+        data = data.slice(0, limit);
+
+        const cols = ['name_display', 'team_abb', 'rank', 'qbr_total', 'pts_added',
+          'qb_plays', 'epa_total', 'pass', 'run', 'sack', 'qbr_raw'];
+        const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
+        return `ESPN QBR season for ${season} (${data.length} QBs):\n\n${toMarkdownTable(rows, cols)}`;
+      }
+    }
+
+    case 'get_draft_prospect_data': {
+      const draftYear = input.draft_year as number | undefined;
+      const position = input.position as string | undefined;
+      const playerName = input.player_name as string | undefined;
+      const school = input.school as string | undefined;
+      const includeScouting = input.include_scouting as boolean || false;
+      const sortBy = input.sort_by as string | undefined;
+      const limit = clamp((input.limit as number) || 50, 1, 200);
+
+      if (includeScouting) {
+        // Use profiles dataset which includes scouting text
+        let data = await fetchDraftProfiles();
+        if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
+        if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
+        if (school) data = data.filter((d) => nameMatch(d.school, school));
+
+        if (sortBy === 'grade') {
+          data.sort((a, b) => (b.grade || 0) - (a.grade || 0));
+        } else if (sortBy === 'ovr_rk') {
+          data.sort((a, b) => (a.ovr_rk || 999) - (b.ovr_rk || 999));
+        } else if (sortBy === 'pos_rk') {
+          data.sort((a, b) => (a.pos_rk || 999) - (b.pos_rk || 999));
+        }
+        data = data.slice(0, limit);
+
+        const cols = ['player_name', 'pos_abbr', 'school', 'height', 'weight',
+          'ovr_rk', 'pos_rk', 'grade', 'text1', 'text2', 'text3', 'text4'];
+        const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
+        return `Draft profiles (${data.length} prospects):\n\n${toMarkdownTable(rows, cols)}`;
+      } else {
+        // Use prospects dataset (includes draft results)
+        let data = await fetchDraftProspects();
+        if (draftYear) data = data.filter((d) => d.draft_year === draftYear);
+        if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
+        if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
+        if (school) data = data.filter((d) => nameMatch(d.school, school));
+
+        if (sortBy === 'grade') {
+          data.sort((a, b) => (b.grade || 0) - (a.grade || 0));
+        } else if (sortBy === 'ovr_rk') {
+          data.sort((a, b) => (a.ovr_rk || 999) - (b.ovr_rk || 999));
+        } else if (sortBy === 'pos_rk') {
+          data.sort((a, b) => (a.pos_rk || 999) - (b.pos_rk || 999));
+        } else if (sortBy === 'overall') {
+          data.sort((a, b) => (a.overall || 999) - (b.overall || 999));
+        }
+        data = data.slice(0, limit);
+
+        const cols = ['draft_year', 'player_name', 'pos_abbr', 'school', 'round', 'overall',
+          'team_abbr', 'height', 'weight', 'ovr_rk', 'pos_rk', 'grade'];
+        const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
+        return `Draft prospects (${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      }
+    }
+
+    case 'get_college_stats': {
+      const playerName = input.player_name as string;
+      const season = input.season as number | undefined;
+      const position = input.position as string | undefined;
+      const school = input.school as string | undefined;
+      const limit = clamp((input.limit as number) || 100, 1, 500);
+
+      let data = await fetchCollegeStats();
+      data = data.filter((d) => nameMatch(d.player_name, playerName));
+      if (season) data = data.filter((d) => d.season === season);
+      if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
+      if (school) data = data.filter((d) => nameMatch(d.school_abbr, school) || nameMatch(d.school, school));
+      data = data.slice(0, limit);
+
+      if (data.length === 0) return `No college stats found for "${playerName}".`;
+
+      // Pivot: group by player + season, then list stats as columns
+      const pivoted = new Map<string, Record<string, unknown>>();
+      for (const row of data) {
+        const key = `${row.player_id}-${row.season}`;
+        if (!pivoted.has(key)) {
+          pivoted.set(key, {
+            player_name: row.player_name,
+            pos_abbr: row.pos_abbr,
+            school: row.school,
+            season: row.season,
+          });
+        }
+        const entry = pivoted.get(key)!;
+        entry[row.statistic] = row.value;
+      }
+
+      const rows = Array.from(pivoted.values());
+      rows.sort((a, b) => (a.season as number) - (b.season as number));
+      return `College stats for "${playerName}" (${rows.length} season-rows):\n\n${toMarkdownTable(rows)}`;
+    }
+
+    case 'get_college_qbr': {
+      const season = input.season as number | undefined;
+      const playerName = input.player_name as string | undefined;
+      const sortBy = (input.sort_by as string) || 'total_qbr';
+      const limit = clamp((input.limit as number) || 30, 1, 100);
+
+      let data = await fetchCollegeQBR();
+      if (season) data = data.filter((d) => d.season === season);
+      if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
+
+      const key = sortBy as keyof typeof data[0];
+      data.sort((a, b) => {
+        const va = typeof a[key] === 'number' ? (a[key] as number) : 0;
+        const vb = typeof b[key] === 'number' ? (b[key] as number) : 0;
+        return vb - va;
+      });
+      data = data.slice(0, limit);
+
+      const cols = ['season', 'player_name', 'age', 'total_qbr', 'points_added',
+        'qb_plays', 'total_epa', 'pass', 'run', 'sack', 'raw_qbr'];
+      const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
+      return `College QBR (${data.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
     }
 
     case 'get_team_metrics': {
