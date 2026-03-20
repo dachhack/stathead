@@ -14,6 +14,8 @@ import { FantasyADPView } from './components/FantasyADPView';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
+import { SportsDataIOView } from './components/SportsDataIOView';
+import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import type { Tab } from './types';
@@ -35,12 +37,15 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'charts', label: 'Charts' },
   { id: 'sleeper', label: 'Sleeper' },
   { id: 'ktc', label: 'KTC' },
+  { id: 'sportsdata', label: 'SportsData' },
 ];
 
 function App() {
   const [tab, setTab] = useState<Tab>('stats');
   const [season, setSeason] = useState(2024);
   const [chatOpen, setChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
@@ -83,6 +88,13 @@ function App() {
               </option>
             ))}
           </select>
+          <button
+            className="settings-gear"
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+          >
+            &#9881;
+          </button>
         </div>
       </header>
       <main className="main">
@@ -126,6 +138,13 @@ function App() {
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
+        {tab === 'sportsdata' && (
+          <SportsDataIOView
+            season={season}
+            onDataLoaded={onDataLoaded}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
       </main>
 
       <button
@@ -140,6 +159,12 @@ function App() {
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         systemPrompt={dataContext}
+      />
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onKeysChanged={() => setApiKeysVersion((v) => v + 1)}
       />
     </>
   );
