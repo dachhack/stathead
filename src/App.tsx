@@ -139,7 +139,7 @@ function App() {
       <ChatDrawer
         open={chatOpen}
         onClose={() => setChatOpen(false)}
-        dataContext={dataContext}
+        systemPrompt={dataContext}
       />
     </>
   );
