@@ -34,6 +34,12 @@ IMPORTANT INSTRUCTIONS:
 8. For dynasty questions, use the get_dynasty_values tool to get current KTC values.
 9. For waiver/trending analysis, use get_sleeper_trending.
 10. Available seasons for stats: 2015-2025. Combine/draft go back further.
+11. For Next Gen Stats (separation, CPOE, rush yards over expected), use get_next_gen_stats (2016+).
+12. For salary/contract analysis, use get_contracts.
+13. For depth chart / starter-backup info, use get_depth_charts.
+14. For play-level charting (play-action, RPO, motion, drops, blitz), use get_ftn_charting (2022+).
+15. For NFL trades (players + draft picks), use get_trades.
+16. For player biographical info (height, weight, college, experience), use get_rosters.
 
 When you cannot find data for what the user asked, explain what data is available and suggest a related query.`;
 
@@ -389,6 +395,12 @@ function formatToolLabel(name: string, input: Record<string, unknown>): string {
     get_sleeper_trending: 'Fetching Sleeper trending',
     get_sleeper_projections: 'Fetching Sleeper projections',
     get_dynasty_values: 'Fetching dynasty values',
+    get_next_gen_stats: 'Fetching Next Gen Stats',
+    get_rosters: 'Fetching roster data',
+    get_contracts: 'Fetching contract data',
+    get_depth_charts: 'Fetching depth charts',
+    get_ftn_charting: 'Fetching FTN charting data',
+    get_trades: 'Fetching trade history',
   };
 
   let label = labels[name] || `Running ${name}`;

@@ -19,6 +19,12 @@ import type {
   SleeperProjection,
   KTCPlayer,
   KTCPlayerHistory,
+  NextGenStats,
+  Roster,
+  Contract,
+  DepthChart,
+  FTNCharting,
+  Trade,
 } from './types';
 
 const NFLVERSE =
@@ -671,4 +677,45 @@ export async function fetchKTCHistory(
   }
 
   return results;
+}
+
+// --- Next Gen Stats ---
+export async function fetchNextGenStats(
+  season: number,
+  type: 'passing' | 'rushing' | 'receiving' = 'passing'
+): Promise<NextGenStats[]> {
+  return fetchCsv<NextGenStats>(
+    `${NFLVERSE}/nextgen_stats/ngs_${season}_${type}.csv`
+  );
+}
+
+// --- Rosters ---
+export async function fetchRosters(season: number): Promise<Roster[]> {
+  return fetchCsv<Roster>(
+    `${NFLVERSE}/rosters/roster_${season}.csv`
+  );
+}
+
+// --- Contracts ---
+export async function fetchContracts(): Promise<Contract[]> {
+  return fetchCsv<Contract>(`${NFLVERSE}/contracts/historical_contracts.csv`);
+}
+
+// --- Depth Charts ---
+export async function fetchDepthCharts(season: number): Promise<DepthChart[]> {
+  return fetchCsv<DepthChart>(
+    `${NFLVERSE}/depth_charts/depth_charts_${season}.csv`
+  );
+}
+
+// --- FTN Charting ---
+export async function fetchFTNCharting(season: number): Promise<FTNCharting[]> {
+  return fetchCsv<FTNCharting>(
+    `${NFLVERSE}/ftn_charting/ftn_charting_${season}.csv`
+  );
+}
+
+// --- Trades ---
+export async function fetchTrades(): Promise<Trade[]> {
+  return fetchCsv<Trade>(`${NFLVERSE}/trades/trades.csv`);
 }

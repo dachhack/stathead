@@ -485,3 +485,158 @@ export interface PlayByPlay {
   xpass: number;
   pass_oe: number;
 }
+
+// --- Next Gen Stats ---
+export interface NextGenStats {
+  season: number;
+  season_type: string;
+  week: number;
+  player_display_name: string;
+  player_position: string;
+  team_abbr: string;
+  player_gsis_id: string;
+  player_jersey_number: number;
+  // Passing
+  avg_time_to_throw: number;
+  avg_completed_air_yards: number;
+  avg_intended_air_yards: number;
+  avg_air_yards_differential: number;
+  aggressiveness: number;
+  max_completed_air_distance: number;
+  avg_air_yards_to_sticks: number;
+  attempts: number;
+  pass_yards: number;
+  pass_touchdowns: number;
+  interceptions: number;
+  passer_rating: number;
+  completions: number;
+  completion_percentage: number;
+  expected_completion_percentage: number;
+  completion_percentage_above_expectation: number;
+  // Receiving
+  avg_cushion: number;
+  avg_separation: number;
+  percent_share_of_intended_air_yards: number;
+  receptions: number;
+  targets: number;
+  catch_percentage: number;
+  yards: number;
+  rec_touchdowns: number;
+  avg_yac: number;
+  avg_expected_yac: number;
+  avg_yac_above_expectation: number;
+  // Rushing
+  efficiency: number;
+  percent_attempts_gte_eight_defenders: number;
+  avg_time_to_los: number;
+  rush_attempts: number;
+  rush_yards: number;
+  expected_rush_yards: number;
+  rush_yards_over_expected: number;
+  avg_rush_yards: number;
+  rush_yards_over_expected_per_att: number;
+  rush_pct_over_expected: number;
+  rush_touchdowns: number;
+}
+
+// --- Rosters ---
+export interface Roster {
+  season: number;
+  team: string;
+  position: string;
+  depth_chart_position: string;
+  jersey_number: number;
+  status: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  birth_date: string;
+  height: number;
+  weight: number;
+  college: string;
+  high_school: string;
+  gsis_id: string;
+  espn_id: number;
+  years_exp: number;
+  headshot_url: string;
+  week: number;
+  entry_year: number;
+  rookie_year: number;
+  draft_club: string;
+  draft_number: number;
+}
+
+// --- Contracts ---
+export interface Contract {
+  player: string;
+  position: string;
+  team: string;
+  is_active: boolean;
+  year_signed: number;
+  years: number;
+  value: number;
+  apy: number;
+  guaranteed: number;
+  apy_cap_pct: number;
+  inflated_value: number;
+  inflated_apy: number;
+  inflated_guaranteed: number;
+  otc_id: number;
+}
+
+// --- Depth Charts ---
+export interface DepthChart {
+  dt: string;
+  team: string;
+  player_name: string;
+  gsis_id: string;
+  pos_grp: string;
+  pos_name: string;
+  pos_abb: string;
+  pos_slot: number;
+  pos_rank: number;
+}
+
+// --- FTN Charting ---
+export interface FTNCharting {
+  nflverse_game_id: string;
+  season: number;
+  week: number;
+  nflverse_play_id: number;
+  starting_hash: string;
+  qb_location: string;
+  n_offense_backfield: number;
+  is_no_huddle: boolean;
+  is_motion: boolean;
+  is_play_action: boolean;
+  is_screen_pass: boolean;
+  is_rpo: boolean;
+  is_trick_play: boolean;
+  is_qb_out_of_pocket: boolean;
+  is_interception_worthy: boolean;
+  is_throw_away: boolean;
+  read_thrown: string;
+  is_catchable_ball: boolean;
+  is_contested_ball: boolean;
+  is_created_reception: boolean;
+  is_drop: boolean;
+  is_qb_sneak: boolean;
+  n_blitzers: number;
+  n_pass_rushers: number;
+  is_qb_fault_sack: boolean;
+}
+
+// --- Trades ---
+export interface Trade {
+  trade_id: number;
+  season: number;
+  trade_date: string;
+  gave: string;
+  received: string;
+  pick_season: number;
+  pick_round: number;
+  pick_number: number;
+  conditional: number;
+  pfr_id: string;
+  pfr_name: string;
+}

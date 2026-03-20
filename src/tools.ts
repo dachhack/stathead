@@ -10,6 +10,8 @@ import {
   fetchAdvancedStats, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
   fetchKTCRankings, fetchFfcADP, fetchEspnADP,
+  fetchNextGenStats, fetchRosters, fetchContracts,
+  fetchDepthCharts, fetchFTNCharting, fetchTrades,
 } from './data';
 import type { SeasonTotals } from './types';
 
@@ -265,6 +267,121 @@ export const NFL_TOOLS: Tool[] = [
         format: { type: 'string', description: 'Format', enum: ['1qb', 'superflex'] },
         position: { type: 'string', description: 'Filter by position' },
         player_name: { type: 'string', description: 'Filter by player name' },
+        limit: { type: 'number', description: 'Max rows (default 50)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_next_gen_stats',
+    description:
+      'Get NFL Next Gen Stats — advanced tracking data powered by AWS. ' +
+      'Passing: time to throw, air yards, aggressiveness, completion probability (CPOE). ' +
+      'Receiving: separation, cushion, YAC above expectation, target share. ' +
+      'Rushing: efficiency, rush yards over expected (RYOE), time to LOS, stacked box rate. ' +
+      'Use for elite efficiency analysis beyond box score stats.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year (2016+)' },
+        stat_type: {
+          type: 'string',
+          description: 'Type of NGS data',
+          enum: ['passing', 'rushing', 'receiving'],
+        },
+        player_name: { type: 'string', description: 'Filter by player name' },
+        team: { type: 'string', description: 'Filter by team abbreviation' },
+        week: { type: 'number', description: 'Filter by week (omit for all weeks)' },
+        limit: { type: 'number', description: 'Max rows (default 40)' },
+      },
+      required: ['season', 'stat_type'],
+    },
+  },
+  {
+    name: 'get_rosters',
+    description:
+      'Get NFL team rosters with player details: position, status, height, weight, college, ' +
+      'birth date, years of experience, draft info, headshot URL. ' +
+      'Use for player biographical info, roster composition, experience levels.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year' },
+        team: { type: 'string', description: 'Filter by team abbreviation' },
+        position: { type: 'string', description: 'Filter by position' },
+        player_name: { type: 'string', description: 'Filter by player name' },
+        status: { type: 'string', description: 'Filter by status (e.g., ACT, RES, PUP)' },
+        limit: { type: 'number', description: 'Max rows (default 53)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
+    name: 'get_contracts',
+    description:
+      'Get NFL player contract details from OverTheCap. Includes total value, APY, guaranteed money, ' +
+      'cap percentage, inflation-adjusted values. ' +
+      'Use for salary analysis, team cap situations, player investment vs production.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        player_name: { type: 'string', description: 'Filter by player name' },
+        position: { type: 'string', description: 'Filter by position' },
+        team: { type: 'string', description: 'Filter by team' },
+        active_only: { type: 'boolean', description: 'Only show active contracts (default true)' },
+        sort_by: { type: 'string', description: 'Sort by: value, apy, guaranteed, apy_cap_pct', enum: ['value', 'apy', 'guaranteed', 'apy_cap_pct'] },
+        limit: { type: 'number', description: 'Max rows (default 40)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_depth_charts',
+    description:
+      'Get NFL team depth charts showing starter/backup designations. ' +
+      'Shows position rank (1=starter, 2=backup, 3=third string). ' +
+      'Use for projecting snap shares, identifying handcuffs, roster battles.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year' },
+        team: { type: 'string', description: 'Filter by team abbreviation' },
+        position: { type: 'string', description: 'Filter by position abbreviation (e.g., RB, WR, QB)' },
+        player_name: { type: 'string', description: 'Filter by player name' },
+        limit: { type: 'number', description: 'Max rows (default 60)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
+    name: 'get_ftn_charting',
+    description:
+      'Get FTN play-level charting data (2022+). Includes play-action, RPO, screen pass, ' +
+      'motion, blitzers, pass rushers, drops, contested catches, QB pocket movement. ' +
+      'Use for scheme analysis, play-calling tendencies, process-over-results evaluation.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year (2022+)' },
+        week: { type: 'number', description: 'Filter by week' },
+        game_id: { type: 'string', description: 'Filter by nflverse game ID' },
+        limit: { type: 'number', description: 'Max rows (default 100)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
+    name: 'get_trades',
+    description:
+      'Get historical NFL trades. Shows which teams gave/received players and draft picks, ' +
+      'including pick round, number, and conditional status. ' +
+      'Use for trade history, draft capital analysis, team-building strategies.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'Filter to trades in this season' },
+        team: { type: 'string', description: 'Filter to trades involving this team (gave or received)' },
+        player_name: { type: 'string', description: 'Filter by traded player name' },
         limit: { type: 'number', description: 'Max rows (default 50)' },
       },
       required: [],
@@ -641,6 +758,155 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['playerName', 'position', 'positionRank', 'team', 'age', 'value', 'superflexValue', 'isRookie'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
       return `KTC dynasty values (${format}, ${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_next_gen_stats': {
+      const season = input.season as number;
+      const statType = input.stat_type as 'passing' | 'rushing' | 'receiving';
+      const playerName = input.player_name as string | undefined;
+      const team = input.team as string | undefined;
+      const week = input.week as number | undefined;
+      const limit = clamp((input.limit as number) || 40, 1, 100);
+
+      let stats = await fetchNextGenStats(season, statType);
+      if (playerName) stats = stats.filter((s) => nameMatch(s.player_display_name, playerName));
+      if (team) stats = stats.filter((s) => s.team_abbr === team.toUpperCase());
+      if (week) stats = stats.filter((s) => s.week === week);
+      stats = stats.slice(0, limit);
+
+      const baseCols = ['player_display_name', 'player_position', 'team_abbr', 'week'];
+      const typeCols: Record<string, string[]> = {
+        passing: ['avg_time_to_throw', 'avg_completed_air_yards', 'avg_intended_air_yards', 'aggressiveness',
+          'completion_percentage', 'expected_completion_percentage', 'completion_percentage_above_expectation',
+          'attempts', 'pass_yards', 'pass_touchdowns', 'interceptions', 'passer_rating'],
+        receiving: ['avg_cushion', 'avg_separation', 'percent_share_of_intended_air_yards',
+          'targets', 'receptions', 'catch_percentage', 'yards', 'rec_touchdowns',
+          'avg_yac', 'avg_expected_yac', 'avg_yac_above_expectation'],
+        rushing: ['efficiency', 'percent_attempts_gte_eight_defenders', 'avg_time_to_los',
+          'rush_attempts', 'rush_yards', 'expected_rush_yards', 'rush_yards_over_expected',
+          'rush_yards_over_expected_per_att', 'rush_touchdowns'],
+      };
+      const cols = [...baseCols, ...typeCols[statType]];
+      const rows = stats.map((s) => pickColumns(s as unknown as Record<string, unknown>, cols));
+      return `Next Gen Stats ${statType} for ${season} (${stats.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_rosters': {
+      const season = input.season as number;
+      const team = input.team as string | undefined;
+      const position = input.position as string | undefined;
+      const playerName = input.player_name as string | undefined;
+      const status = input.status as string | undefined;
+      const limit = clamp((input.limit as number) || 53, 1, 200);
+
+      let rosters = await fetchRosters(season);
+      if (team) rosters = rosters.filter((r) => r.team === team.toUpperCase());
+      if (position) rosters = rosters.filter((r) => r.position === position.toUpperCase());
+      if (playerName) rosters = rosters.filter((r) => nameMatch(r.full_name, playerName));
+      if (status) rosters = rosters.filter((r) => r.status === status.toUpperCase());
+      rosters = rosters.slice(0, limit);
+
+      const cols = ['full_name', 'position', 'team', 'jersey_number', 'status', 'height', 'weight',
+        'college', 'birth_date', 'years_exp', 'draft_club', 'draft_number'];
+      const rows = rosters.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
+      return `Rosters for ${season} (${rosters.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_contracts': {
+      const playerName = input.player_name as string | undefined;
+      const position = input.position as string | undefined;
+      const team = input.team as string | undefined;
+      const activeOnly = input.active_only !== false;
+      const sortBy = (input.sort_by as string) || 'apy';
+      const limit = clamp((input.limit as number) || 40, 1, 200);
+
+      let contracts = await fetchContracts();
+      if (activeOnly) contracts = contracts.filter((c) => c.is_active);
+      if (playerName) contracts = contracts.filter((c) => nameMatch(c.player, playerName));
+      if (position) contracts = contracts.filter((c) => c.position === position.toUpperCase());
+      if (team) contracts = contracts.filter((c) => c.team === team.toUpperCase());
+
+      const key = sortBy as keyof typeof contracts[0];
+      contracts.sort((a, b) => {
+        const va = typeof a[key] === 'number' ? (a[key] as number) : 0;
+        const vb = typeof b[key] === 'number' ? (b[key] as number) : 0;
+        return vb - va;
+      });
+      contracts = contracts.slice(0, limit);
+
+      const cols = ['player', 'position', 'team', 'year_signed', 'years', 'value', 'apy', 'guaranteed', 'apy_cap_pct', 'inflated_apy'];
+      const rows = contracts.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
+      return `Contracts (${contracts.length} entries, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_depth_charts': {
+      const season = input.season as number;
+      const team = input.team as string | undefined;
+      const position = input.position as string | undefined;
+      const playerName = input.player_name as string | undefined;
+      const limit = clamp((input.limit as number) || 60, 1, 200);
+
+      let charts = await fetchDepthCharts(season);
+      if (team) charts = charts.filter((c) => c.team === team.toUpperCase());
+      if (position) charts = charts.filter((c) => c.pos_abb === position.toUpperCase());
+      if (playerName) charts = charts.filter((c) => nameMatch(c.player_name, playerName));
+      // Get most recent snapshot per team
+      charts.sort((a, b) => b.dt.localeCompare(a.dt));
+      // Deduplicate: keep first occurrence per team/position/rank
+      const seen = new Set<string>();
+      charts = charts.filter((c) => {
+        const key = `${c.team}-${c.pos_abb}-${c.pos_rank}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      charts.sort((a, b) => a.pos_rank - b.pos_rank || a.team.localeCompare(b.team));
+      charts = charts.slice(0, limit);
+
+      const cols = ['team', 'player_name', 'pos_abb', 'pos_rank', 'pos_grp'];
+      const rows = charts.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
+      return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_ftn_charting': {
+      const season = input.season as number;
+      const week = input.week as number | undefined;
+      const gameId = input.game_id as string | undefined;
+      const limit = clamp((input.limit as number) || 100, 1, 500);
+
+      let plays = await fetchFTNCharting(season);
+      if (week) plays = plays.filter((p) => p.week === week);
+      if (gameId) plays = plays.filter((p) => p.nflverse_game_id === gameId);
+      plays = plays.slice(0, limit);
+
+      const cols = ['nflverse_game_id', 'week', 'nflverse_play_id',
+        'qb_location', 'n_offense_backfield', 'is_no_huddle', 'is_motion',
+        'is_play_action', 'is_screen_pass', 'is_rpo', 'is_trick_play',
+        'is_qb_out_of_pocket', 'is_interception_worthy', 'is_drop',
+        'n_blitzers', 'n_pass_rushers', 'is_qb_fault_sack'];
+      const rows = plays.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
+      return `FTN charting for ${season}${week ? ` week ${week}` : ''} (${plays.length} plays):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_trades': {
+      const season = input.season as number | undefined;
+      const team = input.team as string | undefined;
+      const playerName = input.player_name as string | undefined;
+      const limit = clamp((input.limit as number) || 50, 1, 200);
+
+      let trades = await fetchTrades();
+      if (season) trades = trades.filter((t) => t.season === season);
+      if (team) {
+        const t = team.toUpperCase();
+        trades = trades.filter((tr) => tr.gave === t || tr.received === t);
+      }
+      if (playerName) trades = trades.filter((t) => t.pfr_name && nameMatch(t.pfr_name, playerName));
+      trades.sort((a, b) => b.season - a.season);
+      trades = trades.slice(0, limit);
+
+      const cols = ['season', 'trade_date', 'gave', 'received', 'pfr_name', 'pick_season', 'pick_round', 'pick_number', 'conditional'];
+      const rows = trades.map((t) => pickColumns(t as unknown as Record<string, unknown>, cols));
+      return `Trades (${trades.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
     }
 
     default:
