@@ -7,8 +7,9 @@ import {
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
+  fetchNextGenStats, fetchPlayByPlay,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay } from '../types';
 import { trainRidgeRegression, type TrainedModel } from '../lib/ridge';
 
 // ── Config ──
@@ -63,8 +64,39 @@ const FEATURES: FeatureDef[] = [
   { key: 'priorReceptions', label: 'Prior Receptions', category: 'Prior Stats', positions: ['RB', 'WR', 'TE'] },
   { key: 'priorRecYards', label: 'Prior Rec Yards', category: 'Prior Stats', positions: ['RB', 'WR', 'TE'] },
   { key: 'priorRecTDs', label: 'Prior Rec TDs', category: 'Prior Stats', positions: ['WR', 'TE'] },
-  { key: 'priorTargetShare', label: 'Prior Target Share', category: 'Prior Stats', positions: ['WR', 'TE'] },
   { key: 'priorYPR', label: 'Prior Yards/Reception', category: 'Prior Stats', positions: ['WR', 'TE'] },
+
+  // Advanced receiving (from weekly stats)
+  { key: 'priorTargetShare', label: 'Prior Target Share', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorAirYardsShare', label: 'Prior Air Yards Share', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorWOPR', label: 'Prior WOPR', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorRACR', label: 'Prior RACR', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorYACperRec', label: 'Prior YAC/Reception', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorAirYardsPerTarget', label: 'Prior Air Yards/Target', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorRecEPA', label: 'Prior Receiving EPA', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorRushEPA', label: 'Prior Rushing EPA', category: 'Advanced', positions: ['QB', 'RB'] },
+
+  // PBP-derived (aDOT, deep targets, red zone)
+  { key: 'priorADOT', label: 'Prior aDOT', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorDeepTargetPct', label: 'Prior Deep Target %', category: 'Advanced', positions: ['WR', 'TE'] },
+  { key: 'priorRZTargetShare', label: 'Prior RZ Target Share', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
+
+  // Next Gen Stats — receiving
+  { key: 'priorSeparation', label: 'Prior Avg Separation', category: 'NGS', positions: ['WR', 'TE'] },
+  { key: 'priorCushion', label: 'Prior Avg Cushion', category: 'NGS', positions: ['WR', 'TE'] },
+  { key: 'priorYACAboveExp', label: 'Prior YAC Above Expected', category: 'NGS', positions: ['WR', 'TE'] },
+  { key: 'priorCatchPct', label: 'Prior Catch %', category: 'NGS', positions: ['WR', 'TE'] },
+  { key: 'priorIntendedAirYardShare', label: 'Prior Intended Air Yard Share', category: 'NGS', positions: ['WR', 'TE'] },
+
+  // Next Gen Stats — rushing
+  { key: 'priorRYOEperAtt', label: 'Prior RYOE/Attempt', category: 'NGS', positions: ['RB'] },
+  { key: 'priorRushEfficiency', label: 'Prior Rush Efficiency', category: 'NGS', positions: ['RB'] },
+  { key: 'priorPctVs8Defenders', label: 'Prior % vs 8+ Box', category: 'NGS', positions: ['RB'] },
+
+  // Next Gen Stats — passing
+  { key: 'priorCPOE', label: 'Prior CPOE', category: 'NGS', positions: ['QB'] },
+  { key: 'priorTimeToThrow', label: 'Prior Time to Throw', category: 'NGS', positions: ['QB'] },
+  { key: 'priorAggressiveness', label: 'Prior Aggressiveness', category: 'NGS', positions: ['QB'] },
 
   // Prior season — fantasy totals
   { key: 'priorPPR', label: 'Prior PPR Points', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
@@ -92,6 +124,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Prior Stats': '#f59e0b',
   'Prior Fantasy': '#10b981',
   Workload: '#3b82f6',
+  Advanced: '#14b8a6',
+  NGS: '#8b5cf6',
   Injury: '#f43f5e',
 };
 
@@ -167,14 +201,23 @@ export function ADPFactorAnalysis() {
         for (const season of SEASONS) {
           setLoadingStatus(`Building features for ${season}...`);
 
-          // Fetch current + prior in parallel (including injuries)
-          const [adpData, currentStats, priorStats, priorSnaps, priorInjuries, preseasonInjuries] = await Promise.all([
+          // Fetch current + prior in parallel (including injuries, NGS, PBP)
+          const [
+            adpData, currentStats, priorStats, priorSnaps,
+            priorInjuries, preseasonInjuries,
+            priorNgsRec, priorNgsRush, priorNgsPass,
+            priorPbp,
+          ] = await Promise.all([
             fetchFfcADP(season, 'ppr', 12).catch(() => []),
             fetchPlayerStats(season).catch(() => []),
             fetchPlayerStats(season - 1).catch(() => []),
             fetchSnapCounts(season - 1).catch(() => []),
             fetchInjuries(season - 1).catch(() => []),
             fetchInjuries(season).catch(() => []),
+            fetchNextGenStats(season - 1, 'receiving').catch(() => [] as NextGenStats[]),
+            fetchNextGenStats(season - 1, 'rushing').catch(() => [] as NextGenStats[]),
+            fetchNextGenStats(season - 1, 'passing').catch(() => [] as NextGenStats[]),
+            fetchPlayByPlay(season - 1).catch(() => [] as PlayByPlay[]),
           ]);
           if (cancelled) return;
 
@@ -210,6 +253,88 @@ export function ADPFactorAnalysis() {
             acc.total += s.offense_pct || 0;
             acc.count += 1;
             snapAccum.set(name, acc);
+          }
+
+          // Advanced weekly stats aggregation (target share, WOPR, RACR, air yards, YAC, EPA)
+          interface AdvAgg {
+            targetShare: number; airYardsShare: number; wopr: number;
+            racr: number; recAirYards: number; yac: number;
+            receptions: number; targets: number;
+            recEPA: number; rushEPA: number;
+            weeks: number;
+          }
+          const advByName = new Map<string, AdvAgg>();
+          const priorWeekly = priorStats.filter((s) => s.season_type === 'REG') as PlayerStats[];
+          for (const w of priorWeekly) {
+            if (!POSITIONS.includes(w.position)) continue;
+            const name = normalizeName(w.player_display_name);
+            const acc = advByName.get(name) || {
+              targetShare: 0, airYardsShare: 0, wopr: 0, racr: 0,
+              recAirYards: 0, yac: 0, receptions: 0, targets: 0,
+              recEPA: 0, rushEPA: 0, weeks: 0,
+            };
+            // Sum accumulating stats, average rates later
+            acc.targetShare += w.target_share || 0;
+            acc.airYardsShare += w.air_yards_share || 0;
+            acc.wopr += w.wopr || 0;
+            acc.recAirYards += w.receiving_air_yards || 0;
+            acc.yac += w.receiving_yards_after_catch || 0;
+            acc.receptions += w.receptions || 0;
+            acc.targets += w.targets || 0;
+            acc.recEPA += w.receiving_epa || 0;
+            acc.rushEPA += w.rushing_epa || 0;
+            // racr is a ratio, accumulate for averaging
+            if (w.racr && w.racr > 0) acc.racr += w.racr;
+            acc.weeks += 1;
+            advByName.set(name, acc);
+          }
+
+          // NGS season-level summaries (week 0 = full season)
+          const ngsRecByName = new Map<string, NextGenStats>();
+          for (const n of priorNgsRec) {
+            if (n.week === 0 && n.season_type === 'REG') {
+              ngsRecByName.set(normalizeName(n.player_display_name), n);
+            }
+          }
+          const ngsRushByName = new Map<string, NextGenStats>();
+          for (const n of priorNgsRush) {
+            if (n.week === 0 && n.season_type === 'REG') {
+              ngsRushByName.set(normalizeName(n.player_display_name), n);
+            }
+          }
+          const ngsPassByName = new Map<string, NextGenStats>();
+          for (const n of priorNgsPass) {
+            if (n.week === 0 && n.season_type === 'REG') {
+              ngsPassByName.set(normalizeName(n.player_display_name), n);
+            }
+          }
+
+          // PBP-derived: aDOT, deep target %, red zone target share
+          interface PbpAgg {
+            totalAirYards: number; targets: number;
+            deepTargets: number; rzTargets: number;
+          }
+          const pbpByReceiver = new Map<string, PbpAgg>();
+          // Count total RZ targets per team for share calculation
+          const teamRZTargets = new Map<string, number>();
+
+          for (const play of priorPbp) {
+            if (play.play_type !== 'pass' || !play.receiver_player_name) continue;
+            const recName = normalizeName(play.receiver_player_name);
+            const acc = pbpByReceiver.get(recName) || {
+              totalAirYards: 0, targets: 0, deepTargets: 0, rzTargets: 0,
+            };
+            acc.targets += 1;
+            if (typeof play.air_yards === 'number' && !isNaN(play.air_yards)) {
+              acc.totalAirYards += play.air_yards;
+              if (play.air_yards >= 15) acc.deepTargets += 1;
+            }
+            if (play.yardline_100 <= 20) {
+              acc.rzTargets += 1;
+              const team = play.posteam || '';
+              teamRZTargets.set(team, (teamRZTargets.get(team) || 0) + 1);
+            }
+            pbpByReceiver.set(recName, acc);
           }
 
           // Prior-season injury aggregation
@@ -286,6 +411,30 @@ export function ADPFactorAnalysis() {
             const draftYear = draft?.season || 0;
             const age = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 0;
 
+            // Advanced stats from weekly aggregation
+            const adv = advByName.get(normalName);
+            const advWeeks = adv?.weeks || 1;
+            const avgTargetShare = adv ? adv.targetShare / advWeeks : 0;
+            const avgAirYardsShare = adv ? adv.airYardsShare / advWeeks : 0;
+            const avgWOPR = adv ? adv.wopr / advWeeks : 0;
+            const avgRACR = adv && advWeeks > 0 ? adv.racr / advWeeks : 0;
+            const yacPerRec = adv && adv.receptions > 0 ? adv.yac / adv.receptions : 0;
+            const airYardsPerTarget = adv && adv.targets > 0 ? adv.recAirYards / adv.targets : 0;
+
+            // PBP-derived
+            const pbp = pbpByReceiver.get(normalName);
+            const adot = pbp && pbp.targets > 0 ? pbp.totalAirYards / pbp.targets : 0;
+            const deepPct = pbp && pbp.targets > 0 ? pbp.deepTargets / pbp.targets : 0;
+            // RZ target share: player RZ targets / team RZ targets (need team lookup)
+            const playerTeam = prior?.recent_team || '';
+            const teamRZ = teamRZTargets.get(playerTeam) || 1;
+            const rzTargetShare = pbp ? pbp.rzTargets / teamRZ : 0;
+
+            // NGS lookups
+            const ngsRec = ngsRecByName.get(normalName);
+            const ngsRush = ngsRushByName.get(normalName);
+            const ngsPass = ngsPassByName.get(normalName);
+
             const features: Record<string, number> = {
               adp: adpPlayer.adp,
               adpRound: Math.ceil(adpPlayer.adp / 12),
@@ -300,7 +449,7 @@ export function ADPFactorAnalysis() {
               priorPassTDs: prior?.passing_tds || 0,
               priorINTs: prior?.interceptions || 0,
               priorPassYPA: priorAttempts > 0 ? Math.round((prior?.passing_yards || 0) / priorAttempts * 10) / 10 : 0,
-              priorQBRating: 0, // not in SeasonTotals, use PPG as proxy
+              priorQBRating: 0,
               priorRushYards: prior?.rushing_yards || 0,
               priorRushTDs: prior?.rushing_tds || 0,
               priorYPC: priorCarries > 0 ? Math.round((prior?.rushing_yards || 0) / priorCarries * 10) / 10 : 0,
@@ -309,10 +458,43 @@ export function ADPFactorAnalysis() {
               priorReceptions: prior?.receptions || 0,
               priorRecYards: prior?.receiving_yards || 0,
               priorRecTDs: prior?.receiving_tds || 0,
-              priorTargetShare: 0, // not available in season totals; targets used instead
               priorYPR: (prior?.receptions || 0) > 0
                 ? Math.round((prior?.receiving_yards || 0) / (prior?.receptions || 1) * 10) / 10
                 : 0,
+
+              // Advanced weekly stats
+              priorTargetShare: Math.round(avgTargetShare * 1000) / 1000,
+              priorAirYardsShare: Math.round(avgAirYardsShare * 1000) / 1000,
+              priorWOPR: Math.round(avgWOPR * 1000) / 1000,
+              priorRACR: Math.round(avgRACR * 100) / 100,
+              priorYACperRec: Math.round(yacPerRec * 10) / 10,
+              priorAirYardsPerTarget: Math.round(airYardsPerTarget * 10) / 10,
+              priorRecEPA: Math.round((adv?.recEPA || 0) * 10) / 10,
+              priorRushEPA: Math.round((adv?.rushEPA || 0) * 10) / 10,
+
+              // PBP-derived
+              priorADOT: Math.round(adot * 10) / 10,
+              priorDeepTargetPct: Math.round(deepPct * 1000) / 1000,
+              priorRZTargetShare: Math.round(rzTargetShare * 1000) / 1000,
+
+              // Next Gen Stats — receiving
+              priorSeparation: ngsRec?.avg_separation || 0,
+              priorCushion: ngsRec?.avg_cushion || 0,
+              priorYACAboveExp: ngsRec?.avg_yac_above_expectation || 0,
+              priorCatchPct: ngsRec?.catch_percentage || 0,
+              priorIntendedAirYardShare: ngsRec?.percent_share_of_intended_air_yards || 0,
+
+              // Next Gen Stats — rushing
+              priorRYOEperAtt: ngsRush?.rush_yards_over_expected_per_att || 0,
+              priorRushEfficiency: ngsRush?.efficiency || 0,
+              priorPctVs8Defenders: ngsRush?.percent_attempts_gte_eight_defenders || 0,
+
+              // Next Gen Stats — passing
+              priorCPOE: ngsPass?.completion_percentage_above_expectation || 0,
+              priorTimeToThrow: ngsPass?.avg_time_to_throw || 0,
+              priorAggressiveness: ngsPass?.aggressiveness || 0,
+
+              // Fantasy totals
               priorPPR: Math.round(priorPPR * 10) / 10,
               priorPPG: priorGames > 0 ? Math.round(priorPPR / priorGames * 10) / 10 : 0,
               priorGames,
@@ -445,7 +627,7 @@ export function ADPFactorAnalysis() {
           {loadingStatus}
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Joining ADP + stats + combine + draft + snaps for {SEASONS.length} seasons
+            Joining ADP + stats + combine + draft + snaps + NGS + PBP for {SEASONS.length} seasons
           </span>
         </div>
       </div>
@@ -466,7 +648,7 @@ export function ADPFactorAnalysis() {
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         Ridge regression models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
         Predicts ADP Delta (positive = outperformed draft position).
-        Features from prior-season stats, combine, draft capital, and workload.
+        Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>
 
       {/* Controls */}
