@@ -12,8 +12,14 @@ import {
   fetchKTCRankings, fetchFfcADP, fetchEspnADP,
   fetchNextGenStats, fetchRosters, fetchContracts,
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
+  fetchPbpParticipation,
 } from './data';
 import type { SeasonTotals } from './types';
+import {
+  computeQBMetrics, computeSkillMetrics, computeAllTeamMetrics,
+  estimateRoutesRun, indexNGSByPlayer, groupByPlayer, groupSnapsByPlayer,
+  type QBMetrics, type SkillMetrics, type TeamMetrics,
+} from './lib/metrics';
 
 // ── Tool Definitions ──
 
@@ -385,6 +391,50 @@ export const NFL_TOOLS: Tool[] = [
         limit: { type: 'number', description: 'Max rows (default 50)' },
       },
       required: [],
+    },
+  },
+  {
+    name: 'get_player_metrics',
+    description:
+      'Get a comprehensive analytics profile for a player. Combines weekly stats, play-by-play, ' +
+      'NGS tracking data, PFR advanced stats, FTN charting, and snap counts into a single metrics object. ' +
+      'QB metrics: comp%, Y/A, AY/A, passer rating, EPA/dropback, CPOE, pressure rate, time to throw, ' +
+      'play-action rate, scramble rate, designed rush rate. ' +
+      'Skill (RB/WR/TE) metrics: YPC, catch rate, YPRR, target share, WOPR, separation, YAC above expected, ' +
+      'RYOE, snap%, opportunity rate, drop rate. ' +
+      'Use for in-depth player evaluation, cross-position comparisons, efficiency analysis. ' +
+      'Returns one row per player matching the query.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year (2016+ for NGS, 2022+ for FTN)' },
+        player_name: { type: 'string', description: 'Player name to search for (case-insensitive partial match)' },
+        position: { type: 'string', description: 'Filter by position', enum: ['QB', 'RB', 'WR', 'TE'] },
+        team: { type: 'string', description: 'Filter by team abbreviation' },
+        sort_by: { type: 'string', description: 'Sort by any metric column (descending). Common: fantasy_points_ppr, total_epa, yprr, epa_per_dropback' },
+        min_games: { type: 'number', description: 'Minimum games played (default 4)' },
+        limit: { type: 'number', description: 'Max players to return (default 20)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
+    name: 'get_team_metrics',
+    description:
+      'Get comprehensive team-level analytics for a season. Computed from play-by-play data. ' +
+      'Offense: pass rate, neutral-script pass rate, EPA/play (total/pass/rush), success rate, ' +
+      'yards/play, red zone TD rate, shotgun rate, deep pass rate, pace. ' +
+      'Defense: EPA/play allowed (total/pass/rush), defensive success rate. ' +
+      'Context: points scored/allowed, point differential, turnovers. ' +
+      'Returns one row per team (32 teams). Use for team evaluation, matchup analysis, scheme identification.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'NFL season year' },
+        team: { type: 'string', description: 'Filter to a specific team abbreviation' },
+        sort_by: { type: 'string', description: 'Sort by any metric (descending). Common: total_epa_per_play, ppg, success_rate, neutral_pass_rate, def_epa_per_play' },
+      },
+      required: ['season'],
     },
   },
 ];
@@ -907,6 +957,215 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['season', 'trade_date', 'gave', 'received', 'pfr_name', 'pick_season', 'pick_round', 'pick_number', 'conditional'];
       const rows = trades.map((t) => pickColumns(t as unknown as Record<string, unknown>, cols));
       return `Trades (${trades.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_player_metrics': {
+      const season = input.season as number;
+      const playerName = input.player_name as string | undefined;
+      const position = input.position as string | undefined;
+      const team = input.team as string | undefined;
+      const sortBy = (input.sort_by as string) || 'fantasy_points_ppr';
+      const minGames = (input.min_games as number) || 4;
+      const limit = clamp((input.limit as number) || 20, 1, 50);
+
+      // Fetch all data sources in parallel
+      const [raw, snaps, games, pbpData] = await Promise.all([
+        fetchPlayerStats(season),
+        fetchSnapCounts(season),
+        fetchGames(),
+        fetchPlayByPlay(season),
+      ]);
+
+      const regWeekly = raw.filter((s) => s.season_type === 'REG');
+      let totals = aggregateToSeasonTotals(regWeekly);
+      if (position) totals = totals.filter((p) => p.position === position);
+      if (team) totals = totals.filter((p) => p.recent_team === team.toUpperCase());
+      if (playerName) totals = totals.filter((p) => nameMatch(p.player_display_name, playerName));
+      totals = totals.filter((p) => p.games >= minGames);
+
+      // Determine if we're computing QB or skill metrics
+      const isQB = position === 'QB' || (!position && totals.every((p) => p.position === 'QB'));
+      const isSkill = position === 'RB' || position === 'WR' || position === 'TE';
+
+      // Index weekly stats by player
+      const weeklyByPlayer = groupByPlayer(regWeekly);
+      const snapsByPlayer = groupSnapsByPlayer(snaps);
+
+      // Fetch position-specific data
+      let ngsPassMap: Map<string, import('./types').NextGenStats> | undefined;
+      let ngsRecMap: Map<string, import('./types').NextGenStats> | undefined;
+      let ngsRushMap: Map<string, import('./types').NextGenStats> | undefined;
+      let pfrPassByPlayer: Map<string, import('./types').AdvancedStats[]> | undefined;
+      let pfrRecByPlayer: Map<string, import('./types').AdvancedStats[]> | undefined;
+      let ftnData: import('./types').FTNCharting[] | undefined;
+      let routeMap: Map<string, number> | undefined;
+
+      // Fetch NGS/PFR/FTN based on position mix
+      const fetches: Promise<void>[] = [];
+
+      if (isQB || !isSkill) {
+        fetches.push(
+          fetchNextGenStats(season, 'passing').then((d) => { ngsPassMap = indexNGSByPlayer(d); }),
+          fetchAdvancedStats(season, 'pass').then((d) => {
+            pfrPassByPlayer = new Map<string, import('./types').AdvancedStats[]>();
+            for (const row of d) {
+              const id = row.pfr_player_id;
+              if (!id) continue;
+              const arr = pfrPassByPlayer.get(id);
+              if (arr) arr.push(row); else pfrPassByPlayer.set(id, [row]);
+            }
+          }),
+        );
+        if (season >= 2022) {
+          fetches.push(fetchFTNCharting(season).then((d) => { ftnData = d; }));
+        }
+      }
+
+      if (isSkill || !isQB) {
+        fetches.push(
+          fetchNextGenStats(season, 'receiving').then((d) => { ngsRecMap = indexNGSByPlayer(d); }),
+          fetchNextGenStats(season, 'rushing').then((d) => { ngsRushMap = indexNGSByPlayer(d); }),
+          fetchAdvancedStats(season, 'rec').then((d) => {
+            pfrRecByPlayer = new Map<string, import('./types').AdvancedStats[]>();
+            for (const row of d) {
+              const id = row.pfr_player_id;
+              if (!id) continue;
+              const arr = pfrRecByPlayer.get(id);
+              if (arr) arr.push(row); else pfrRecByPlayer.set(id, [row]);
+            }
+          }),
+        );
+        // Estimate routes from participation
+        fetches.push(
+          fetchPbpParticipation(season).then((participation) => {
+            routeMap = estimateRoutesRun(participation, pbpData);
+          }).catch(() => { routeMap = undefined; }),
+        );
+      }
+
+      await Promise.all(fetches);
+
+      // Compute metrics per player
+      const results: Array<QBMetrics | SkillMetrics> = [];
+
+      for (const s of totals) {
+        const weekly = weeklyByPlayer.get(s.player_id) || [];
+        const playerSnaps = snapsByPlayer.get(s.player_id) || [];
+
+        if (s.position === 'QB') {
+          // Match FTN charting to this QB's plays via PBP
+          const qbName = s.player_display_name ?? s.player_name;
+          const qbPbp = pbpData.filter(
+            (p) => p.passer_player_name === qbName || p.rusher_player_name === qbName
+          );
+          const qbGameIds = new Set(qbPbp.map((p) => p.game_id));
+          const qbFtn = ftnData?.filter((f) => qbGameIds.has(f.nflverse_game_id));
+
+          results.push(computeQBMetrics({
+            seasonTotals: s,
+            weeklyStats: weekly,
+            pbp: pbpData,
+            ngsPass: ngsPassMap?.get(s.player_id),
+            pfrPass: pfrPassByPlayer?.get(s.player_id),
+            ftn: qbFtn,
+          }));
+        } else {
+          results.push(computeSkillMetrics({
+            seasonTotals: s,
+            weeklyStats: weekly,
+            snaps: playerSnaps,
+            ngsRec: ngsRecMap?.get(s.player_id),
+            ngsRush: ngsRushMap?.get(s.player_id),
+            pfrRec: pfrRecByPlayer?.get(s.player_id),
+            routesRun: routeMap?.get(s.player_id),
+          }));
+        }
+      }
+
+      // Sort
+      const sKey = sortBy as string;
+      results.sort((a, b) => {
+        const va = (a as unknown as Record<string, unknown>)[sKey];
+        const vb = (b as unknown as Record<string, unknown>)[sKey];
+        const na = typeof va === 'number' ? va : 0;
+        const nb = typeof vb === 'number' ? vb : 0;
+        return nb - na;
+      });
+
+      const sliced = results.slice(0, limit);
+
+      // Pick columns based on position
+      const qbCols = [
+        'player_name', 'team', 'games',
+        'completions', 'attempts', 'passing_yards', 'passing_tds', 'interceptions',
+        'comp_pct', 'yards_per_attempt', 'adj_yards_per_attempt', 'td_pct', 'int_pct', 'passer_rating',
+        'passing_epa', 'epa_per_dropback', 'cpoe',
+        'sack_rate', 'pressure_rate', 'avg_time_to_throw', 'aggressiveness',
+        'carries', 'rushing_yards', 'rushing_tds', 'scramble_rate', 'designed_rush_rate',
+        'play_action_rate', 'screen_rate',
+        'fantasy_points', 'fantasy_ppg',
+      ];
+      const skillCols = [
+        'player_name', 'position', 'team', 'games', 'snap_pct',
+        'carries', 'rushing_yards', 'rushing_tds', 'yards_per_carry', 'rushing_epa_per_att',
+        'rush_yards_over_expected_per_att',
+        'targets', 'receptions', 'receiving_yards', 'receiving_tds',
+        'catch_rate', 'yards_per_reception', 'yards_per_target', 'receiving_epa_per_target',
+        'target_share', 'air_yards_share', 'wopr', 'racr', 'yprr', 'routes_run',
+        'avg_separation', 'avg_cushion', 'avg_yac', 'avg_yac_above_expected',
+        'touches', 'opportunities_per_game', 'receiving_drop_rate',
+        'fantasy_points_ppr', 'fantasy_ppg_ppr',
+      ];
+
+      // If mixed positions, use skill cols but check if any QBs
+      const hasQBs = sliced.some((r) => 'passer_rating' in r);
+      const hasSkill = sliced.some((r) => 'yprr' in r);
+      let cols: string[];
+      if (hasQBs && !hasSkill) cols = qbCols;
+      else if (hasSkill && !hasQBs) cols = skillCols;
+      else cols = ['player_name', 'position', 'team', 'games', 'fantasy_points_ppr', 'total_epa'];
+
+      const rows = sliced.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
+      return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+    }
+
+    case 'get_team_metrics': {
+      const season = input.season as number;
+      const team = input.team as string | undefined;
+      const sortBy = (input.sort_by as string) || 'total_epa_per_play';
+
+      const [games, pbpData] = await Promise.all([
+        fetchGames(),
+        fetchPlayByPlay(season),
+      ]);
+
+      let metrics = computeAllTeamMetrics(season, games, pbpData);
+
+      if (team) {
+        metrics = metrics.filter((m) => m.team === team.toUpperCase());
+      }
+
+      const sKey = sortBy as string;
+      metrics.sort((a, b) => {
+        const va = (a as unknown as Record<string, unknown>)[sKey];
+        const vb = (b as unknown as Record<string, unknown>)[sKey];
+        const na = typeof va === 'number' ? va : 0;
+        const nb = typeof vb === 'number' ? vb : 0;
+        return nb - na;
+      });
+
+      const cols = [
+        'team', 'games', 'points_scored', 'points_allowed', 'point_diff', 'ppg',
+        'total_plays', 'pass_rate', 'neutral_pass_rate',
+        'yards_per_play', 'total_epa_per_play', 'pass_epa_per_play', 'rush_epa_per_play',
+        'success_rate', 'plays_per_game',
+        'turnovers', 'turnover_rate',
+        'rz_attempts', 'rz_td_rate',
+        'shotgun_rate', 'no_huddle_rate', 'deep_pass_rate', 'short_pass_rate',
+        'def_epa_per_play', 'def_pass_epa_per_play', 'def_rush_epa_per_play', 'def_success_rate',
+      ];
+      const rows = metrics.map((m) => pickColumns(m as unknown as Record<string, unknown>, cols));
+      return `Team metrics for ${season} (${metrics.length} teams, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
     }
 
     default:
