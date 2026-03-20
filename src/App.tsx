@@ -12,6 +12,8 @@ import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
 import { RookieRBChart } from './components/RookieRBChart';
+import { SleeperView } from './components/SleeperView';
+import { KTCView } from './components/KTCView';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import type { Tab } from './types';
@@ -31,6 +33,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
   { id: 'charts', label: 'Charts' },
+  { id: 'sleeper', label: 'Sleeper' },
+  { id: 'ktc', label: 'KTC' },
 ];
 
 function App() {
@@ -118,6 +122,10 @@ function App() {
           <PlayByPlayView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'charts' && <RookieRBChart />}
+        {tab === 'sleeper' && (
+          <SleeperView season={season} onDataLoaded={onDataLoaded} />
+        )}
+        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
       </main>
 
       <button

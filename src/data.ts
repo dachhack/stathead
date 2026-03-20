@@ -13,6 +13,11 @@ import type {
   FantasySeasonResult,
   EspnADPPlayer,
   FfcADPPlayer,
+  SleeperTrendingPlayer,
+  SleeperPlayer,
+  SleeperTrendingRow,
+  SleeperProjection,
+  KTCPlayer,
 } from './types';
 
 const NFLVERSE =
@@ -430,4 +435,197 @@ export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
 
   espnAdpCache.set(season, players);
   return players;
+}
+
+// --- Sleeper API ---
+
+const SLEEPER = 'https://api.sleeper.app/v1';
+
+let sleeperPlayersCache: Map<string, SleeperPlayer> | null = null;
+
+export async function fetchSleeperPlayers(): Promise<Map<string, SleeperPlayer>> {
+  if (sleeperPlayersCache) return sleeperPlayersCache;
+
+  const response = await fetch(`${SLEEPER}/players/nfl`);
+  if (!response.ok) throw new Error(`Sleeper players API returned ${response.status}`);
+
+  const raw: Record<string, Record<string, unknown>> = await response.json();
+  const map = new Map<string, SleeperPlayer>();
+
+  for (const [id, p] of Object.entries(raw)) {
+    if (!p.position || !p.full_name) continue;
+    map.set(id, {
+      player_id: id,
+      full_name: String(p.full_name || ''),
+      first_name: String(p.first_name || ''),
+      last_name: String(p.last_name || ''),
+      position: String(p.position || ''),
+      team: String(p.team || ''),
+      age: Number(p.age) || 0,
+      years_exp: Number(p.years_exp) || 0,
+      number: Number(p.number) || 0,
+      status: String(p.status || ''),
+      sport: String(p.sport || 'nfl'),
+      fantasy_positions: Array.isArray(p.fantasy_positions) ? p.fantasy_positions.map(String) : [],
+      depth_chart_order: p.depth_chart_order != null ? Number(p.depth_chart_order) : null,
+      search_rank: p.search_rank != null ? Number(p.search_rank) : null,
+    });
+  }
+
+  sleeperPlayersCache = map;
+  return map;
+}
+
+export async function fetchSleeperTrending(
+  type: 'add' | 'drop' = 'add',
+  hours: number = 24,
+  limit: number = 50
+): Promise<SleeperTrendingRow[]> {
+  const [trendingRes, players] = await Promise.all([
+    fetch(`${SLEEPER}/players/nfl/trending/${type}?lookback_hours=${hours}&limit=${limit}`),
+    fetchSleeperPlayers(),
+  ]);
+
+  if (!trendingRes.ok) throw new Error(`Sleeper trending API returned ${trendingRes.status}`);
+  const trending: SleeperTrendingPlayer[] = await trendingRes.json();
+
+  return trending
+    .map((t) => {
+      const p = players.get(t.player_id);
+      if (!p) return null;
+      return {
+        player_id: t.player_id,
+        full_name: p.full_name,
+        position: p.position,
+        team: p.team || 'FA',
+        age: p.age,
+        count: t.count,
+      };
+    })
+    .filter((r): r is SleeperTrendingRow => r !== null);
+}
+
+const sleeperProjectionCache = new Map<string, SleeperProjection[]>();
+
+export async function fetchSleeperProjections(
+  season: number,
+  week?: number
+): Promise<SleeperProjection[]> {
+  const cacheKey = `${season}-${week ?? 'full'}`;
+  const cached = sleeperProjectionCache.get(cacheKey);
+  if (cached) return cached;
+
+  const url = week
+    ? `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular`
+    : `${SLEEPER}/projections/nfl/${season}`;
+
+  const [projRes, players] = await Promise.all([
+    fetch(url),
+    fetchSleeperPlayers(),
+  ]);
+
+  if (!projRes.ok) throw new Error(`Sleeper projections API returned ${projRes.status}`);
+  const raw: Record<string, Record<string, number>> = await projRes.json();
+
+  const projections: SleeperProjection[] = [];
+  for (const [pid, stats] of Object.entries(raw)) {
+    const p = players.get(pid);
+    if (!p || !['QB', 'RB', 'WR', 'TE', 'K'].includes(p.position)) continue;
+
+    const passYd = stats.pass_yd || 0;
+    const passTd = stats.pass_td || 0;
+    const passInt = stats.pass_int || 0;
+    const rushYd = stats.rush_yd || 0;
+    const rushTd = stats.rush_td || 0;
+    const rec = stats.rec || 0;
+    const recYd = stats.rec_yd || 0;
+    const recTd = stats.rec_td || 0;
+    const fum = stats.fum_lost || 0;
+
+    // Calculate projected fantasy points
+    const ptsStd = passYd * 0.04 + passTd * 4 - passInt * 2 +
+      rushYd * 0.1 + rushTd * 6 + recYd * 0.1 + recTd * 6 - fum * 2;
+    const ptsPpr = ptsStd + rec;
+    const ptsHalfPpr = ptsStd + rec * 0.5;
+
+    projections.push({
+      player_id: pid,
+      full_name: p.full_name,
+      position: p.position,
+      team: p.team || 'FA',
+      pts_std: Math.round(ptsStd * 10) / 10,
+      pts_half_ppr: Math.round(ptsHalfPpr * 10) / 10,
+      pts_ppr: Math.round(ptsPpr * 10) / 10,
+      pass_yd: passYd,
+      pass_td: passTd,
+      pass_int: passInt,
+      rush_yd: rushYd,
+      rush_td: rushTd,
+      rec,
+      rec_yd: recYd,
+      rec_td: recTd,
+    });
+  }
+
+  projections.sort((a, b) => b.pts_ppr - a.pts_ppr);
+  sleeperProjectionCache.set(cacheKey, projections);
+  return projections;
+}
+
+// --- KeepTradeCut (scrapes embedded playersArray from HTML) ---
+
+const ktcCache = new Map<string, KTCPlayer[]>();
+
+export async function fetchKTCRankings(
+  format: '1qb' | 'superflex' = '1qb'
+): Promise<KTCPlayer[]> {
+  const cached = ktcCache.get(format);
+  if (cached) return cached;
+
+  const allPlayers: KTCPlayer[] = [];
+  const formatParam = format === '1qb' ? '1' : '0';
+
+  // KTC paginates across 10 pages
+  for (let page = 0; page < 10; page++) {
+    const url = `https://keeptradecut.com/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (page === 0) throw new Error(`KTC returned ${response.status}`);
+      break; // Later pages may not exist
+    }
+
+    const html = await response.text();
+
+    // Extract the playersArray variable embedded in the page's script tags
+    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
+    if (!match) {
+      if (page === 0) throw new Error('Could not find player data in KTC page');
+      break;
+    }
+
+    try {
+      const players: Array<Record<string, unknown>> = JSON.parse(match[1]);
+      for (const p of players) {
+        allPlayers.push({
+          playerName: String(p.playerName || ''),
+          position: String(p.position || ''),
+          positionRank: Number(p.positionRank) || 0,
+          team: String(p.team || ''),
+          age: Number(p.age) || 0,
+          value: Number(p.value) || 0,
+          superflexValue: Number(p.superflexValue) || 0,
+          isRookie: Boolean(p.isRookie),
+          slug: String(p.slug || ''),
+        });
+      }
+    } catch {
+      if (page === 0) throw new Error('Failed to parse KTC player data');
+      break;
+    }
+  }
+
+  // Sort by value descending
+  allPlayers.sort((a, b) => b.value - a.value);
+  ktcCache.set(format, allPlayers);
+  return allPlayers;
 }

@@ -135,6 +135,39 @@ export function buildDataContext(
         );
       }
       break;
+    case 'sleeper':
+      if (extraData && extraData.length > 0) {
+        // Could be trending or projections data
+        const first = extraData[0] as Record<string, unknown>;
+        if ('count' in first) {
+          parts.push(
+            `\nSleeper trending players (${extraData.length} entries):`,
+            formatAsTable(extraData.slice(0, 60), [
+              'full_name', 'position', 'team', 'age', 'count',
+            ])
+          );
+        } else if ('pts_ppr' in first) {
+          parts.push(
+            `\nSleeper projections (${extraData.length} players):`,
+            formatAsTable(extraData.slice(0, 60), [
+              'full_name', 'position', 'team', 'pts_std', 'pts_half_ppr', 'pts_ppr',
+              'pass_yd', 'pass_td', 'pass_int', 'rush_yd', 'rush_td', 'rec', 'rec_yd', 'rec_td',
+            ])
+          );
+        }
+      }
+      break;
+    case 'ktc':
+      if (extraData && extraData.length > 0) {
+        parts.push(
+          `\nKeepTradeCut dynasty values (${extraData.length} players):`,
+          formatAsTable(extraData.slice(0, 80), [
+            'playerName', 'position', 'positionRank', 'team', 'age',
+            'value', 'superflexValue', 'isRookie',
+          ])
+        );
+      }
+      break;
   }
 
   // Add semantic layer - column definitions so Claude knows what each field means

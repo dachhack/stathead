@@ -106,6 +106,69 @@ export interface ScoringSettings {
 
 export type SortDirection = 'asc' | 'desc';
 
+// --- Sleeper API ---
+export interface SleeperTrendingPlayer {
+  player_id: string;
+  count: number;
+}
+
+export interface SleeperPlayer {
+  player_id: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  position: string;
+  team: string;
+  age: number;
+  years_exp: number;
+  number: number;
+  status: string;
+  sport: string;
+  fantasy_positions: string[];
+  depth_chart_order: number | null;
+  search_rank: number | null;
+}
+
+export interface SleeperTrendingRow {
+  player_id: string;
+  full_name: string;
+  position: string;
+  team: string;
+  age: number;
+  count: number;
+}
+
+export interface SleeperProjection {
+  player_id: string;
+  full_name: string;
+  position: string;
+  team: string;
+  pts_std: number;
+  pts_half_ppr: number;
+  pts_ppr: number;
+  pass_yd: number;
+  pass_td: number;
+  pass_int: number;
+  rush_yd: number;
+  rush_td: number;
+  rec: number;
+  rec_yd: number;
+  rec_td: number;
+}
+
+// --- KeepTradeCut ---
+export interface KTCPlayer {
+  playerName: string;
+  position: string;
+  positionRank: number;
+  team: string;
+  age: number;
+  value: number;
+  superflexValue: number;
+  isRookie: boolean;
+  slug: string;
+}
+
 export type Tab =
   | 'stats'
   | 'compare'
@@ -118,7 +181,9 @@ export type Tab =
   | 'injuries'
   | 'advanced'
   | 'pbp'
-  | 'charts';
+  | 'charts'
+  | 'sleeper'
+  | 'ktc';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
