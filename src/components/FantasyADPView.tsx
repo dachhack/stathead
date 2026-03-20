@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, FfcADPPlayer, SortDirection } from '../types';
 import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } from '../data';
 import { ADPOutcomes } from './ADPOutcomes';
+import { ADPFactorAnalysis } from './ADPFactorAnalysis';
 
 type SortField = keyof FantasySeasonResult;
-type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes';
+type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes' | 'factors';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -224,9 +225,17 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
         >
           ADP Outcomes (6yr)
         </button>
+        <button
+          className={`format-tab ${viewMode === 'factors' ? 'active' : ''}`}
+          onClick={() => setViewMode('factors')}
+        >
+          Hit/Bust Factors
+        </button>
       </div>
 
-      {viewMode === 'outcomes' ? (
+      {viewMode === 'factors' ? (
+        <ADPFactorAnalysis />
+      ) : viewMode === 'outcomes' ? (
         <ADPOutcomes />
       ) : viewMode === 'ffc' ? (
         <>
