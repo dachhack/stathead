@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Label,
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory, PlayerStats } from '../types';
-import { fetchKTCRankings, fetchKTCHistory, fetchPlayerStats } from '../data';
+import { fetchKTCRankings, fetchKTCHistory, fetchPlayerStats, fetchCombine, fetchDraftPicks } from '../data';
 
 interface RBFactorRow {
   name: string;
@@ -35,6 +35,23 @@ interface RBFactorRow {
   fullSeasonGames: number;
   fullSeasonRushYards: number;
   fullSeasonFantasyPPR: number;
+  // Draft capital
+  draftRound: number;
+  draftPick: number;
+  draftAge: number;
+  yearsInLeague: number;
+  // Combine / physical traits
+  weight: number;
+  heightInches: number;
+  bmi: number;
+  forty: number;
+  bench: number;
+  vertical: number;
+  broadJump: number;
+  cone: number;
+  shuttle: number;
+  // Speed score (Bill Barnwell): (weight * 200) / (forty ^ 4)
+  speedScore: number;
 }
 
 interface CorrelationResult {
@@ -112,6 +129,22 @@ const FACTORS: { key: keyof RBFactorRow; label: string; desc: string }[] = [
   { key: 'earlyRecEPA', label: 'Early Rec EPA', desc: 'Receiving EPA weeks 1-4' },
   { key: 'earlyGames', label: 'Early Games', desc: 'Games played weeks 1-4' },
   { key: 'septValue', label: 'Sept KTC Value', desc: 'Starting dynasty value in September' },
+  // Draft capital
+  { key: 'draftRound', label: 'Draft Round', desc: 'NFL draft round (1-7, 8=UDFA)' },
+  { key: 'draftPick', label: 'Draft Pick', desc: 'Overall draft pick number' },
+  { key: 'draftAge', label: 'Draft Age', desc: 'Age when drafted' },
+  { key: 'yearsInLeague', label: 'Years in League', desc: 'NFL seasons since draft year' },
+  // Physical traits (Combine)
+  { key: 'weight', label: 'Weight (lbs)', desc: 'Combine weigh-in' },
+  { key: 'heightInches', label: 'Height (in)', desc: 'Combine height in inches' },
+  { key: 'bmi', label: 'BMI', desc: 'Body mass index (703 * wt / ht^2)' },
+  { key: 'forty', label: '40-Yard Dash', desc: 'Combine 40-yard dash time' },
+  { key: 'bench', label: 'Bench Press', desc: 'Bench press reps at 225 lbs' },
+  { key: 'vertical', label: 'Vertical Jump', desc: 'Combine vertical jump (inches)' },
+  { key: 'broadJump', label: 'Broad Jump', desc: 'Combine broad jump (inches)' },
+  { key: 'cone', label: '3-Cone Drill', desc: 'Combine 3-cone drill time' },
+  { key: 'shuttle', label: '20-Yard Shuttle', desc: 'Combine 20-yard shuttle time' },
+  { key: 'speedScore', label: 'Speed Score', desc: 'Barnwell Speed Score: (wt * 200) / (40^4)' },
 ];
 
 // Season to analyze — current KTC history likely covers 2023-2025
@@ -136,6 +169,24 @@ export function KTCFactorAnalysis() {
         const histories = await fetchKTCHistory(rbs.map((r) => r.playerID));
         const historyMap = new Map<number, KTCPlayerHistory>();
         for (const h of histories) historyMap.set(h.playerID, h);
+
+        // 3. Fetch combine + draft data
+        const [combineData, draftData] = await Promise.all([
+          fetchCombine(),
+          fetchDraftPicks(),
+        ]);
+
+        // Build combine lookup by normalized name (RBs only)
+        const combineByName = new Map<string, typeof combineData[0]>();
+        for (const c of combineData) {
+          if (c.pos === 'RB') combineByName.set(normalizeName(c.player_name), c);
+        }
+
+        // Build draft lookup by normalized name (RBs only)
+        const draftByName = new Map<string, typeof draftData[0]>();
+        for (const d of draftData) {
+          if (d.position === 'RB') draftByName.set(normalizeName(d.pfr_player_name), d);
+        }
 
         // Build a name → KTC player map for matching
         const ktcByName = new Map<string, KTCPlayer>();
@@ -191,6 +242,27 @@ export function KTCFactorAnalysis() {
             const earlyRushEPA = earlyWeeks.reduce((s, w) => s + (w.rushing_epa || 0), 0);
             const earlyRecEPA = earlyWeeks.reduce((s, w) => s + (w.receiving_epa || 0), 0);
 
+            // Lookup combine & draft data
+            const combine = combineByName.get(normalName);
+            const draft = draftByName.get(normalName);
+
+            // Parse height string (e.g. "5-10") to inches
+            let heightInches = 0;
+            if (combine?.ht) {
+              const parts = combine.ht.split('-');
+              if (parts.length === 2) {
+                heightInches = Number(parts[0]) * 12 + Number(parts[1]);
+              }
+            }
+            const weight = combine?.wt || 0;
+            const bmi = heightInches > 0 && weight > 0
+              ? Math.round((703 * weight) / (heightInches * heightInches) * 10) / 10
+              : 0;
+            const fortyTime = combine?.forty || 0;
+            const speedScore = fortyTime > 0 && weight > 0
+              ? Math.round((weight * 200) / Math.pow(fortyTime, 4) * 10) / 10
+              : 0;
+
             rows.push({
               name: weeks[0].player_display_name,
               team: weeks[0].recent_team,
@@ -217,6 +289,22 @@ export function KTCFactorAnalysis() {
               fullSeasonGames: fullSeason.length,
               fullSeasonRushYards: fullSeason.reduce((s, w) => s + (w.rushing_yards || 0), 0),
               fullSeasonFantasyPPR: Math.round(fullSeason.reduce((s, w) => s + (w.fantasy_points_ppr || 0), 0) * 10) / 10,
+              // Draft capital
+              draftRound: draft?.round || 8, // 8 = UDFA placeholder
+              draftPick: draft?.pick || 300,  // 300 = UDFA placeholder
+              draftAge: draft?.age || 0,
+              yearsInLeague: draft ? season - draft.season : 0,
+              // Combine / physical
+              weight,
+              heightInches,
+              bmi,
+              forty: fortyTime,
+              bench: combine?.bench || 0,
+              vertical: combine?.vertical || 0,
+              broadJump: combine?.broad_jump || 0,
+              cone: combine?.cone || 0,
+              shuttle: combine?.shuttle || 0,
+              speedScore,
             });
           }
         }
@@ -237,29 +325,49 @@ export function KTCFactorAnalysis() {
     return data.filter((d) => d.septValue >= minSeptValue);
   }, [data, minSeptValue]);
 
+  // Physical/draft factors where 0 means "no data" (exclude from correlation)
+  const ZERO_MEANS_MISSING = new Set<keyof RBFactorRow>([
+    'weight', 'heightInches', 'bmi', 'forty', 'bench', 'vertical',
+    'broadJump', 'cone', 'shuttle', 'speedScore', 'draftAge',
+  ]);
+
   // Compute correlations
   const correlations = useMemo((): CorrelationResult[] => {
     if (filteredData.length < 5) return [];
-    const deltas = filteredData.map((d) => d.valueDelta);
 
-    return FACTORS.map((f) => ({
-      factor: f.label,
-      key: f.key,
-      r: pearson(
-        filteredData.map((d) => Number(d[f.key]) || 0),
-        deltas
-      ),
-      desc: f.desc,
-    })).sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+    return FACTORS.map((f) => {
+      // For physical/draft factors, filter out rows where value is 0 (no data)
+      const skipZero = ZERO_MEANS_MISSING.has(f.key);
+      const validRows = skipZero
+        ? filteredData.filter((d) => Number(d[f.key]) > 0)
+        : filteredData;
+
+      if (validRows.length < 5) {
+        return { factor: f.label, key: f.key, r: 0, desc: `${f.desc} (n<5)` };
+      }
+
+      return {
+        factor: f.label,
+        key: f.key,
+        r: pearson(
+          validRows.map((d) => Number(d[f.key]) || 0),
+          validRows.map((d) => d.valueDelta)
+        ),
+        desc: `${f.desc} (n=${validRows.length})`,
+      };
+    }).sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
   }, [filteredData]);
 
-  // Scatter data
+  // Scatter data (filter out missing values for physical factors)
   const scatterData = useMemo(() => {
-    return filteredData.map((d) => ({
-      ...d,
-      x: Number(d[scatterFactor]) || 0,
-      y: d.valueDelta,
-    }));
+    const skipZero = ZERO_MEANS_MISSING.has(scatterFactor);
+    return filteredData
+      .filter((d) => !skipZero || Number(d[scatterFactor]) > 0)
+      .map((d) => ({
+        ...d,
+        x: Number(d[scatterFactor]) || 0,
+        y: d.valueDelta,
+      }));
   }, [filteredData, scatterFactor]);
 
   const selectedFactorLabel = FACTORS.find((f) => f.key === scatterFactor)?.label || scatterFactor;
@@ -269,10 +377,10 @@ export function KTCFactorAnalysis() {
       <div className="loading">
         <div className="spinner" />
         <div className="loading-text">
-          Analyzing KTC value changes vs early-season stats for RBs...
+          Analyzing KTC value changes vs performance, draft capital &amp; physical traits...
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Fetching KTC history + player stats for {ANALYSIS_SEASONS.join(', ')}
+            Fetching KTC history + player stats + combine + draft for {ANALYSIS_SEASONS.join(', ')}
           </span>
         </div>
       </div>
@@ -291,8 +399,9 @@ export function KTCFactorAnalysis() {
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        Correlates early-season RB performance (weeks 1-4) with dynasty value changes
-        from September to December. Data from {ANALYSIS_SEASONS.join(' & ')} seasons.
+        Correlates early-season RB performance (weeks 1-4), NFL draft capital, and
+        combine physical traits with dynasty value changes from September to December.
+        Data from {ANALYSIS_SEASONS.join(' & ')} seasons.
         Higher |r| = stronger predictor. Positive r = factor predicts value increase.
       </p>
 
@@ -461,6 +570,18 @@ export function KTCFactorAnalysis() {
                       <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                         Wk1-4: {d.earlyCarries} car, {d.earlyRushYards} rush, {d.earlyTargets} tgt, {d.earlyFantasyPPR} PPR
                       </span>
+                      {(d.draftRound < 8 || d.weight > 0) && (
+                        <>
+                          <br />
+                          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                            {d.draftRound < 8 && `Rd ${d.draftRound} Pick #${d.draftPick}`}
+                            {d.draftRound < 8 && d.weight > 0 && ' | '}
+                            {d.weight > 0 && `${d.weight}lbs`}
+                            {d.forty > 0 && ` | ${d.forty}s 40`}
+                            {d.speedScore > 0 && ` | SS: ${d.speedScore}`}
+                          </span>
+                        </>
+                      )}
                     </div>
                   );
                 }}
@@ -546,12 +667,16 @@ export function KTCFactorAnalysis() {
                 <th>Dec Val</th>
                 <th>Delta</th>
                 <th>Delta %</th>
+                <th>Draft</th>
+                <th>Yrs</th>
+                <th>Wt</th>
+                <th>40</th>
+                <th>SpdScr</th>
                 <th>Wk1-4 G</th>
                 <th>Wk1-4 Car</th>
                 <th>Wk1-4 Rush</th>
                 <th>Wk1-4 YPC</th>
                 <th>Wk1-4 Tgt</th>
-                <th>Wk1-4 Rec</th>
                 <th>Wk1-4 PPR</th>
                 <th>Wk1-4 PPG</th>
               </tr>
@@ -571,12 +696,16 @@ export function KTCFactorAnalysis() {
                     <td style={{ color: d.valueDeltaPct >= 0 ? '#10b981' : '#ef4444' }}>
                       {d.valueDeltaPct >= 0 ? '+' : ''}{d.valueDeltaPct.toFixed(1)}%
                     </td>
+                    <td>{d.draftRound < 8 ? `Rd ${d.draftRound}` : 'UDFA'}</td>
+                    <td>{d.yearsInLeague || '-'}</td>
+                    <td>{d.weight || '-'}</td>
+                    <td>{d.forty || '-'}</td>
+                    <td>{d.speedScore || '-'}</td>
                     <td>{d.earlyGames}</td>
                     <td>{d.earlyCarries}</td>
                     <td>{d.earlyRushYards}</td>
                     <td>{d.earlyYPC}</td>
                     <td>{d.earlyTargets}</td>
-                    <td>{d.earlyReceptions}</td>
                     <td>{d.earlyFantasyPPR}</td>
                     <td>{d.earlyPPG}</td>
                   </tr>
