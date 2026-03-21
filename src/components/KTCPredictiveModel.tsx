@@ -164,7 +164,6 @@ export function KTCPredictiveModel() {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [model, setModel] = useState<TrainedModel | null>(null);
-  const [allRows, setAllRows] = useState<ModelRow[]>([]);
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -211,7 +210,7 @@ export function KTCPredictiveModel() {
         }
 
         // ── 2. Build training rows for each season ──
-        const rows: RBModelRow[] = [];
+        const rows: ModelRow[] = [];
 
         for (const season of TRAIN_SEASONS) {
           setLoadingStatus(`Building features for ${season}...`);
@@ -434,8 +433,6 @@ export function KTCPredictiveModel() {
           setLoading(false);
           return;
         }
-
-        setAllRows(validRows);
 
         // ── 4. Build feature matrix ──
         setLoadingStatus('Training model...');
