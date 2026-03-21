@@ -37,6 +37,9 @@ export function KTCView({ onDataLoaded }: Props) {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
 
+  // Model factor view
+  const [modelPlayer, setModelPlayer] = useState<string | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -184,7 +187,7 @@ export function KTCView({ onDataLoaded }: Props) {
       </div>
 
       {viewMode === 'model' ? (
-        <KTCPredictiveModel />
+        <KTCPredictiveModel initialPlayer={modelPlayer} />
       ) : viewMode === 'factors' ? (
         <KTCFactorAnalysis />
       ) : viewMode === 'history' ? (
@@ -486,7 +489,16 @@ export function KTCView({ onDataLoaded }: Props) {
                   <tr key={p.slug || `${p.playerName}-${i}`}>
                     <td className="rank-cell">{i + 1}</td>
                     <td>
-                      <strong>{p.playerName}</strong>
+                      <strong
+                        style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }}
+                        title="View predicted factors"
+                        onClick={() => {
+                          setModelPlayer(p.playerName);
+                          setViewMode('model');
+                        }}
+                      >
+                        {p.playerName}
+                      </strong>
                       {p.isRookie && (
                         <span
                           style={{

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Label, ReferenceLine,
@@ -161,7 +161,11 @@ const TRAIN_SEASONS = [2025];
 
 // ── Component ──
 
-export function KTCPredictiveModel() {
+interface KTCPredictiveModelProps {
+  initialPlayer?: string | null;
+}
+
+export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [model, setModel] = useState<TrainedModel | null>(null);
@@ -172,7 +176,20 @@ export function KTCPredictiveModel() {
   const [lambda, setLambda] = useState(5);
   const [sortBy, setSortBy] = useState<'predictedDelta' | 'septValue' | 'name'>('predictedDelta');
   const [showCategory, setShowCategory] = useState<string>('all');
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(initialPlayer || null);
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  // Sync with external initialPlayer prop
+  useEffect(() => {
+    if (initialPlayer) setSelectedPlayer(initialPlayer);
+  }, [initialPlayer]);
+
+  // Scroll to detail panel when a player is selected
+  useEffect(() => {
+    if (selectedPlayer && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedPlayer]);
 
   useEffect(() => {
     let cancelled = false;
@@ -859,7 +876,7 @@ export function KTCPredictiveModel() {
 
       {/* Selected player detail panel */}
       {selectedPrediction && (
-        <div style={{
+        <div ref={detailRef} style={{
           background: 'var(--bg-secondary)',
           border: '2px solid #6366f1',
           borderRadius: 'var(--radius)',
