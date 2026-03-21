@@ -45,17 +45,21 @@ export default {
 
     const upstream = `${KTC_BASE}${path}`;
 
+    const upstreamHeaders: Record<string, string> = {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      Accept: request.headers.get('Accept') || '*/*',
+      Referer: 'https://keeptradecut.com/',
+      Origin: 'https://keeptradecut.com',
+    };
+
     const init: RequestInit = {
       method: request.method,
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; StatheadProxy/1.0)',
-        Accept: request.headers.get('Accept') || '*/*',
-      },
+      headers: upstreamHeaders,
     };
 
     if (request.method === 'POST') {
-      (init.headers as Record<string, string>)['Content-Type'] =
+      upstreamHeaders['Content-Type'] =
         request.headers.get('Content-Type') || 'application/json';
       init.body = await request.text();
     }
