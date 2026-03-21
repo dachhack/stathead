@@ -24,6 +24,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: bash scripts/download-data.sh
+      - run: bash scripts/download-api-data.sh
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

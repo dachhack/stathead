@@ -45,6 +45,18 @@ const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'l
 // Deploy workers/ktc-proxy/ and set this to your worker URL.
 const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 
+/** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
+async function tryPreFetched<T>(filename: string): Promise<T | null> {
+  if (!IS_PROD) return null;
+  try {
+    const resp = await fetch(`${import.meta.env.BASE_URL}data/${filename}`);
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
 /** Build a URL for an nflverse CSV file. In prod, serves from local /data/filename.csv */
 function nflUrl(releaseSubpath: string): string {
   if (IS_PROD) {
@@ -340,6 +352,24 @@ export async function fetchFfcADP(
   const cached = ffcAdpCache.get(cacheKey);
   if (cached) return cached;
 
+  // Try pre-fetched data
+  const preFetched = await tryPreFetched<{ players?: Array<Record<string, unknown>> }>(`ffc_adp_${scoring}_${season}.json`);
+  if (preFetched?.players && preFetched.players.length > 0) {
+    const players: FfcADPPlayer[] = preFetched.players.map((p) => ({
+      name: String(p.name || ''),
+      position: String(p.position || ''),
+      team: String(p.team || ''),
+      adp: Number(p.adp) || 0,
+      high: Number(p.high) || 0,
+      low: Number(p.low) || 0,
+      stdev: Number(p.stdev) || 0,
+      timesDrafted: Number(p.times_drafted) || 0,
+      bye: Number(p.bye) || 0,
+    }));
+    ffcAdpCache.set(cacheKey, players);
+    return players;
+  }
+
   const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
   const response = await fetch(url);
   if (!response.ok) {
@@ -404,40 +434,7 @@ interface EspnPlayersResponse {
   }>;
 }
 
-const espnAdpCache = new Map<number, EspnADPPlayer[]>();
-
-export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
-  const cached = espnAdpCache.get(season);
-  if (cached) return cached;
-
-  // Use the league-free players endpoint with kona_player_info view
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=players_wl`;
-
-  const filter = {
-    players: {
-      limit: 500,
-      sortDraftRanks: {
-        sortPriority: 100,
-        sortAsc: true,
-        value: 'PPR',
-      },
-    },
-  };
-
-  const response = await fetch(url, {
-    headers: {
-      'x-fantasy-filter': JSON.stringify(filter),
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`ESPN API returned ${response.status}`);
-  }
-
-  const raw = await response.json();
-
-  // The response can be either an array of player objects directly
-  // or an object with a `players` array
+function parseEspnResponse(raw: unknown): EspnADPPlayer[] {
   const playerEntries: Array<{ id: number; player?: EspnPlayerRaw } & EspnPlayerRaw> =
     Array.isArray(raw) ? raw : (raw as EspnPlayersResponse).players || [];
 
@@ -467,8 +464,52 @@ export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
     });
   }
 
-  // Sort by PPR draft rank
   players.sort((a, b) => (a.draftRankPpr || 999) - (b.draftRankPpr || 999));
+  return players;
+}
+
+const espnAdpCache = new Map<number, EspnADPPlayer[]>();
+
+export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
+  const cached = espnAdpCache.get(season);
+  if (cached) return cached;
+
+  // Try pre-fetched raw ESPN data
+  const preFetchedRaw = await tryPreFetched<unknown>(`espn_adp_${season}.json`);
+  if (preFetchedRaw) {
+    const players = parseEspnResponse(preFetchedRaw);
+    if (players.length > 0) {
+      espnAdpCache.set(season, players);
+      return players;
+    }
+  }
+
+  // Use the league-free players endpoint with kona_player_info view
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=players_wl`;
+
+  const filter = {
+    players: {
+      limit: 500,
+      sortDraftRanks: {
+        sortPriority: 100,
+        sortAsc: true,
+        value: 'PPR',
+      },
+    },
+  };
+
+  const response = await fetch(url, {
+    headers: {
+      'x-fantasy-filter': JSON.stringify(filter),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`ESPN API returned ${response.status}`);
+  }
+
+  const raw = await response.json();
+  const players = parseEspnResponse(raw);
 
   espnAdpCache.set(season, players);
   return players;
@@ -619,6 +660,14 @@ export async function fetchKTCRankings(
   const cached = ktcCache.get(format);
   if (cached) return cached;
 
+  // Try pre-fetched data first
+  const preFetched = await tryPreFetched<KTCPlayer[]>(`ktc_rankings_${format}.json`);
+  if (preFetched && preFetched.length > 0) {
+    preFetched.sort((a, b) => b.value - a.value);
+    ktcCache.set(format, preFetched);
+    return preFetched;
+  }
+
   const allPlayers: KTCPlayer[] = [];
   const formatParam = format === '1qb' ? '1' : '0';
 
@@ -678,6 +727,16 @@ const ktcHistoryCache = new Map<number, KTCPlayerHistory>();
 export async function fetchKTCHistory(
   playerIDs: number[]
 ): Promise<KTCPlayerHistory[]> {
+  // Try loading pre-fetched history (already parsed into {d,v} objects)
+  if (ktcHistoryCache.size === 0) {
+    const preFetched = await tryPreFetched<KTCPlayerHistory[]>('ktc_history.json');
+    if (preFetched) {
+      for (const entry of preFetched) {
+        ktcHistoryCache.set(entry.playerID, entry);
+      }
+    }
+  }
+
   // Return cached entries where available, fetch the rest
   const results: KTCPlayerHistory[] = [];
   const toFetch: number[] = [];
@@ -745,6 +804,17 @@ export async function fetchFantasyCalcValues(
   const cacheKey = `${isDynasty}-${numQbs}-${numTeams}-${ppr}`;
   const cached = fantasyCalcCache.get(cacheKey);
   if (cached) return cached;
+
+  // Try pre-fetched data
+  const sfx = isDynasty
+    ? (numQbs === 2 ? 'dynasty_sf' : 'dynasty_1qb')
+    : 'redraft_1qb';
+  const preFetched = await tryPreFetched<FantasyCalcPlayer[]>(`fantasycalc_${sfx}.json`);
+  if (preFetched && preFetched.length > 0) {
+    preFetched.sort((a, b) => b.value - a.value);
+    fantasyCalcCache.set(cacheKey, preFetched);
+    return preFetched;
+  }
 
   const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
   const response = await fetch(url);
