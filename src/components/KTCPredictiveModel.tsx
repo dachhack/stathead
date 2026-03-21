@@ -257,7 +257,7 @@ export function KTCPredictiveModel() {
           const dcRankByName = new Map<string, number>();
           const dcEntries = depthCharts
             .filter((d) => d.pos_abb === position)
-            .sort((a, b) => a.dt.localeCompare(b.dt)); // earliest first, later overwrites
+            .sort((a, b) => String(a.dt || '').localeCompare(String(b.dt || ''))); // earliest first, later overwrites
           for (const d of dcEntries) {
             dcRankByName.set(normalizeName(d.player_name), d.pos_rank);
           }
@@ -266,7 +266,7 @@ export function KTCPredictiveModel() {
           const priorDcRankByName = new Map<string, number>();
           const priorDcEntries = priorDepthCharts
             .filter((d) => d.pos_abb === position)
-            .sort((a, b) => a.dt.localeCompare(b.dt));
+            .sort((a, b) => String(a.dt || '').localeCompare(String(b.dt || '')));
           for (const d of priorDcEntries) {
             priorDcRankByName.set(normalizeName(d.player_name), d.pos_rank);
           }
