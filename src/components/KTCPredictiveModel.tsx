@@ -799,8 +799,33 @@ export function KTCPredictiveModel() {
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 11, fill: 'var(--text-secondary)', cursor: 'pointer' }}
               width={145}
+              tick={(props: { x: number; y: number; payload: { value: string } }) => {
+                const { x, y, payload } = props;
+                // Extract player name from "Name (TEAM)" format
+                const match = payload.value.match(/^(.+)\s\(/);
+                const playerName = match ? match[1] : payload.value;
+                const isSelected = selectedPlayer === playerName;
+                return (
+                  <text
+                    x={x}
+                    y={y}
+                    dy={4}
+                    textAnchor="end"
+                    fontSize={11}
+                    fill={isSelected ? '#6366f1' : 'var(--text-secondary)'}
+                    fontWeight={isSelected ? 700 : 400}
+                    cursor="pointer"
+                    textDecoration="underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPlayer(selectedPlayer === playerName ? null : playerName);
+                    }}
+                  >
+                    {payload.value}
+                  </text>
+                );
+              }}
             />
             <Tooltip
               contentStyle={{
