@@ -21,7 +21,7 @@ import type { SeasonTotals } from './types';
 import {
   computeQBMetrics, computeSkillMetrics, computeAllTeamMetrics,
   estimateRoutesRun, indexNGSByPlayer, groupByPlayer, groupSnapsByPlayer,
-  type QBMetrics, type SkillMetrics, type TeamMetrics,
+  type QBMetrics, type SkillMetrics,
 } from './lib/metrics';
 
 // ── Tool Definitions ──
@@ -1104,7 +1104,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const limit = clamp((input.limit as number) || 20, 1, 50);
 
       // Fetch all data sources in parallel
-      const [raw, snaps, games, pbpData] = await Promise.all([
+      const [raw, snaps, , pbpData] = await Promise.all([
         fetchPlayerStats(season),
         fetchSnapCounts(season),
         fetchGames(),

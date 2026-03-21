@@ -21,7 +21,6 @@ import type {
   AdvancedStats,
   FTNCharting,
   SnapCount,
-  Roster,
   Game,
 } from '../types';
 
