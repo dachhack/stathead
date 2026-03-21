@@ -34,23 +34,26 @@ import type {
   CollegeQBR,
 } from './types';
 
-const NFLVERSE =
+const NFLVERSE_REMOTE =
   'https://github.com/nflverse/nflverse-data/releases/download';
-const BASE_URL = `${NFLVERSE}/player_stats`;
 
-// GitHub release downloads don't support CORS from browsers.
-// In production (GitHub Pages), route through a CORS proxy.
-const CORS_PROXY = 'https://corsproxy.io/?';
-function corsFetch(url: string, init?: RequestInit): Promise<Response> {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, init);
+// In production, nflverse CSVs are pre-downloaded into /data/ at build time
+// as a flat directory. Locally, fetch directly from GitHub releases.
+const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+
+/** Build a URL for an nflverse CSV file. In prod, serves from local /data/filename.csv */
+function nflUrl(releaseSubpath: string): string {
+  if (IS_PROD) {
+    // Extract just the filename from paths like "player_stats/player_stats_2024.csv"
+    const filename = releaseSubpath.split('/').pop()!;
+    return `${import.meta.env.BASE_URL}data/${filename}`;
   }
-  return fetch(url, init);
+  return `${NFLVERSE_REMOTE}/${releaseSubpath}`;
 }
 
 export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
-  const url = `${BASE_URL}/player_stats_${season}.csv`;
-  const response = await corsFetch(url);
+  const url = nflUrl(`player_stats/player_stats_${season}.csv`);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch stats for ${season}: ${response.status}`);
   }
@@ -158,7 +161,7 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
   const cached = csvCache.get(url);
   if (cached) return cached as T[];
 
-  const response = await corsFetch(url);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`);
   }
@@ -174,29 +177,27 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
 
 // --- Games / Schedules ---
 export async function fetchGames(): Promise<Game[]> {
-  return fetchCsv<Game>(`${NFLVERSE}/schedules/games.csv`);
+  return fetchCsv<Game>(nflUrl(`schedules/games.csv`));
 }
 
 // --- Snap Counts ---
 export async function fetchSnapCounts(season: number): Promise<SnapCount[]> {
-  return fetchCsv<SnapCount>(
-    `${NFLVERSE}/snap_counts/snap_counts_${season}.csv`
-  );
+  return fetchCsv<SnapCount>(nflUrl(`snap_counts/snap_counts_${season}.csv`));
 }
 
 // --- Combine ---
 export async function fetchCombine(): Promise<CombineResult[]> {
-  return fetchCsv<CombineResult>(`${NFLVERSE}/combine/combine.csv`);
+  return fetchCsv<CombineResult>(nflUrl(`combine/combine.csv`));
 }
 
 // --- Draft Picks ---
 export async function fetchDraftPicks(): Promise<DraftPick[]> {
-  return fetchCsv<DraftPick>(`${NFLVERSE}/draft_picks/draft_picks.csv`);
+  return fetchCsv<DraftPick>(nflUrl(`draft_picks/draft_picks.csv`));
 }
 
 // --- Injuries ---
 export async function fetchInjuries(season: number): Promise<Injury[]> {
-  return fetchCsv<Injury>(`${NFLVERSE}/injuries/injuries_${season}.csv`);
+  return fetchCsv<Injury>(nflUrl(`injuries/injuries_${season}.csv`));
 }
 
 // --- PFR Advanced Stats ---
@@ -204,16 +205,14 @@ export async function fetchAdvancedStats(
   season: number,
   type: 'pass' | 'rush' | 'rec' | 'def' = 'pass'
 ): Promise<AdvancedStats[]> {
-  return fetchCsv<AdvancedStats>(
-    `${NFLVERSE}/pfr_advstats/advstats_week_${type}_${season}.csv`
-  );
+  return fetchCsv<AdvancedStats>(nflUrl(`pfr_advstats/advstats_week_${type}_${season}.csv`));
 }
 
 // --- Play-by-Play ---
 export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
-  const url = `${NFLVERSE}/pbp/play_by_play_${season}.csv`;
+  const url = nflUrl(`pbp/play_by_play_${season}.csv`);
   // PBP files are large, so we parse with specific columns to save memory
-  const response = await corsFetch(url);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch PBP for ${season}: ${response.status}`);
   }
@@ -233,9 +232,7 @@ export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
 export async function fetchPbpParticipation(
   season: number
 ): Promise<import('./types').PbpParticipation[]> {
-  return fetchCsv<import('./types').PbpParticipation>(
-    `${NFLVERSE}/pbp_participation/pbp_participation_${season}.csv`
-  );
+  return fetchCsv<import('./types').PbpParticipation>(nflUrl(`pbp_participation/pbp_participation_${season}.csv`));
 }
 
 // --- Fantasy Rankings (FantasyPros ECR via dynastyprocess) ---
@@ -337,7 +334,7 @@ export async function fetchFfcADP(
   if (cached) return cached;
 
   const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
-  const response = await corsFetch(url);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`FFC API returned ${response.status}`);
   }
@@ -420,7 +417,7 @@ export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
     },
   };
 
-  const response = await corsFetch(url, {
+  const response = await fetch(url, {
     headers: {
       'x-fantasy-filter': JSON.stringify(filter),
     },
@@ -621,7 +618,7 @@ export async function fetchKTCRankings(
   // KTC paginates across 10 pages
   for (let page = 0; page < 10; page++) {
     const url = `https://keeptradecut.com/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
-    const response = await corsFetch(url);
+    const response = await fetch(url);
     if (!response.ok) {
       if (page === 0) throw new Error(`KTC returned ${response.status}`);
       break; // Later pages may not exist
@@ -685,7 +682,7 @@ export async function fetchKTCHistory(
   }
 
   if (toFetch.length > 0) {
-    const response = await corsFetch('https://keeptradecut.com/dynasty-rankings/histories', {
+    const response = await fetch('https://keeptradecut.com/dynasty-rankings/histories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(toFetch),
@@ -720,7 +717,7 @@ export async function fetchFantasyCalcValues(
   if (cached) return cached;
 
   const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
-  const response = await corsFetch(url);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`FantasyCalc API returned ${response.status}`);
   }
@@ -738,49 +735,41 @@ export async function fetchNextGenStats(
   season: number,
   type: 'passing' | 'rushing' | 'receiving' = 'passing'
 ): Promise<NextGenStats[]> {
-  return fetchCsv<NextGenStats>(
-    `${NFLVERSE}/nextgen_stats/ngs_${season}_${type}.csv`
-  );
+  return fetchCsv<NextGenStats>(nflUrl(`nextgen_stats/ngs_${season}_${type}.csv`));
 }
 
 // --- Rosters ---
 export async function fetchRosters(season: number): Promise<Roster[]> {
-  return fetchCsv<Roster>(
-    `${NFLVERSE}/rosters/roster_${season}.csv`
-  );
+  return fetchCsv<Roster>(nflUrl(`rosters/roster_${season}.csv`));
 }
 
 // --- Contracts ---
 export async function fetchContracts(): Promise<Contract[]> {
-  return fetchCsv<Contract>(`${NFLVERSE}/contracts/historical_contracts.csv`);
+  return fetchCsv<Contract>(nflUrl(`contracts/historical_contracts.csv`));
 }
 
 // --- Depth Charts ---
 export async function fetchDepthCharts(season: number): Promise<DepthChart[]> {
-  return fetchCsv<DepthChart>(
-    `${NFLVERSE}/depth_charts/depth_charts_${season}.csv`
-  );
+  return fetchCsv<DepthChart>(nflUrl(`depth_charts/depth_charts_${season}.csv`));
 }
 
 // --- FTN Charting ---
 export async function fetchFTNCharting(season: number): Promise<FTNCharting[]> {
-  return fetchCsv<FTNCharting>(
-    `${NFLVERSE}/ftn_charting/ftn_charting_${season}.csv`
-  );
+  return fetchCsv<FTNCharting>(nflUrl(`ftn_charting/ftn_charting_${season}.csv`));
 }
 
 // --- Trades ---
 export async function fetchTrades(): Promise<Trade[]> {
-  return fetchCsv<Trade>(`${NFLVERSE}/trades/trades.csv`);
+  return fetchCsv<Trade>(nflUrl(`trades/trades.csv`));
 }
 
 // --- ESPN QBR ---
 export async function fetchQBRSeason(): Promise<QBRSeason[]> {
-  return fetchCsv<QBRSeason>(`${NFLVERSE}/espn_data/qbr_season_level.csv`);
+  return fetchCsv<QBRSeason>(nflUrl(`espn_data/qbr_season_level.csv`));
 }
 
 export async function fetchQBRWeek(): Promise<QBRWeek[]> {
-  return fetchCsv<QBRWeek>(`${NFLVERSE}/espn_data/qbr_week_level.csv`);
+  return fetchCsv<QBRWeek>(nflUrl(`espn_data/qbr_week_level.csv`));
 }
 
 // --- Draft Prospect Data (JackLich10/nfl-draft-data) ---
