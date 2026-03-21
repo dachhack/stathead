@@ -8,17 +8,23 @@ import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import {
   fetchKTCRankings, fetchKTCHistory, fetchPlayerStats,
   fetchCombine, fetchDraftPicks, fetchInjuries, fetchGames,
-  fetchSnapCounts, aggregateToSeasonTotals,
+  fetchSnapCounts, aggregateToSeasonTotals, fetchDepthCharts,
 } from '../data';
 import { trainRidgeRegression, predict, type TrainedModel, type PredictionResult } from '../lib/ridge';
 
 // ── Types ──
 
-interface RBModelRow {
+type Position = 'QB' | 'RB' | 'WR' | 'TE';
+type RookieFilter = 'all' | 'rookie' | 'veteran';
+
+const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE'];
+
+interface ModelRow {
   name: string;
   team: string;
   season: number;
   playerID: number;
+  yearsInLeague: number;
   // Target
   septValue: number;
   decValue: number;
@@ -40,45 +46,81 @@ interface PlayerPrediction {
 
 // ── Feature definitions ──
 
-const FEATURE_DEFS: { key: string; label: string; category: string }[] = [
-  // KTC context
+interface FeatureDef { key: string; label: string; category: string }
+
+// Shared features across all positions
+const COMMON_FEATURES: FeatureDef[] = [
   { key: 'septValue', label: 'Sept KTC Value', category: 'Dynasty' },
   { key: 'age', label: 'Age', category: 'Dynasty' },
-  // Draft capital
   { key: 'draftRound', label: 'Draft Round', category: 'Draft' },
   { key: 'draftPick', label: 'Draft Pick', category: 'Draft' },
   { key: 'yearsInLeague', label: 'Years in League', category: 'Draft' },
-  // Physical
   { key: 'weight', label: 'Weight', category: 'Physical' },
   { key: 'bmi', label: 'BMI', category: 'Physical' },
   { key: 'forty', label: '40-Yard Dash', category: 'Physical' },
   { key: 'speedScore', label: 'Speed Score', category: 'Physical' },
-  // Prior season stats
+  { key: 'depthChartRank', label: 'Depth Chart Rank', category: 'Depth Chart' },
+  { key: 'priorDepthChartRank', label: 'Prior DC Rank', category: 'Depth Chart' },
+  { key: 'depthChartChange', label: 'DC Rank Change', category: 'Depth Chart' },
   { key: 'priorGames', label: 'Prior Games', category: 'Prior Season' },
+  { key: 'priorFantasyPPR', label: 'Prior Fantasy PPR', category: 'Prior Season' },
+  { key: 'priorPPG', label: 'Prior PPG', category: 'Prior Season' },
+  { key: 'priorSnapPct', label: 'Prior Snap %', category: 'Prior Season' },
+  { key: 'priorInjuryWeeks', label: 'Prior Injury Weeks', category: 'Injury' },
+  { key: 'priorGamesOut', label: 'Prior Games Out', category: 'Injury' },
+  { key: 'priorGamesMissed', label: 'Prior Games Missed', category: 'Injury' },
+  { key: 'teamWins', label: 'Team Wins (Prior)', category: 'Team' },
+  { key: 'teamPPG', label: 'Team PPG (Prior)', category: 'Team' },
+];
+
+const QB_FEATURES: FeatureDef[] = [
+  { key: 'priorPassYards', label: 'Prior Pass Yards', category: 'Prior Season' },
+  { key: 'priorPassTDs', label: 'Prior Pass TDs', category: 'Prior Season' },
+  { key: 'priorINTs', label: 'Prior INTs', category: 'Prior Season' },
+  { key: 'priorCompletions', label: 'Prior Completions', category: 'Prior Season' },
+  { key: 'priorAttempts', label: 'Prior Attempts', category: 'Prior Season' },
+  { key: 'priorRushYards', label: 'Prior Rush Yards', category: 'Prior Season' },
+  { key: 'priorRushTDs', label: 'Prior Rush TDs', category: 'Prior Season' },
+];
+
+const RB_FEATURES: FeatureDef[] = [
   { key: 'priorRushYards', label: 'Prior Rush Yards', category: 'Prior Season' },
   { key: 'priorRushTDs', label: 'Prior Rush TDs', category: 'Prior Season' },
   { key: 'priorYPC', label: 'Prior YPC', category: 'Prior Season' },
   { key: 'priorTargets', label: 'Prior Targets', category: 'Prior Season' },
   { key: 'priorReceptions', label: 'Prior Receptions', category: 'Prior Season' },
   { key: 'priorRecYards', label: 'Prior Rec Yards', category: 'Prior Season' },
-  { key: 'priorFantasyPPR', label: 'Prior Fantasy PPR', category: 'Prior Season' },
-  { key: 'priorPPG', label: 'Prior PPG', category: 'Prior Season' },
   { key: 'priorTotalTouches', label: 'Prior Total Touches', category: 'Prior Season' },
-  // Snap share
-  { key: 'priorSnapPct', label: 'Prior Snap %', category: 'Prior Season' },
-  // Injury history
-  { key: 'priorInjuryWeeks', label: 'Prior Injury Weeks', category: 'Injury' },
-  { key: 'priorGamesOut', label: 'Prior Games Out', category: 'Injury' },
-  { key: 'priorGamesMissed', label: 'Prior Games Missed', category: 'Injury' },
-  // Team context
-  { key: 'teamWins', label: 'Team Wins (Prior)', category: 'Team' },
-  { key: 'teamPPG', label: 'Team PPG (Prior)', category: 'Team' },
 ];
+
+const WR_FEATURES: FeatureDef[] = [
+  { key: 'priorTargets', label: 'Prior Targets', category: 'Prior Season' },
+  { key: 'priorReceptions', label: 'Prior Receptions', category: 'Prior Season' },
+  { key: 'priorRecYards', label: 'Prior Rec Yards', category: 'Prior Season' },
+  { key: 'priorRecTDs', label: 'Prior Rec TDs', category: 'Prior Season' },
+  { key: 'priorRushYards', label: 'Prior Rush Yards', category: 'Prior Season' },
+];
+
+const TE_FEATURES: FeatureDef[] = [
+  { key: 'priorTargets', label: 'Prior Targets', category: 'Prior Season' },
+  { key: 'priorReceptions', label: 'Prior Receptions', category: 'Prior Season' },
+  { key: 'priorRecYards', label: 'Prior Rec Yards', category: 'Prior Season' },
+  { key: 'priorRecTDs', label: 'Prior Rec TDs', category: 'Prior Season' },
+];
+
+function getFeatureDefsForPosition(pos: Position): FeatureDef[] {
+  const posFeatures = pos === 'QB' ? QB_FEATURES
+    : pos === 'RB' ? RB_FEATURES
+    : pos === 'WR' ? WR_FEATURES
+    : TE_FEATURES;
+  return [...COMMON_FEATURES, ...posFeatures];
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   Dynasty: '#6366f1',
   Draft: '#8b5cf6',
   Physical: '#ec4899',
+  'Depth Chart': '#06b6d4',
   'Prior Season': '#f59e0b',
   Injury: '#ef4444',
   Team: '#10b981',
@@ -119,8 +161,10 @@ const TRAIN_SEASONS = [2025];
 // ── Component ──
 
 export function KTCPredictiveModel() {
+  const [position, setPosition] = useState<Position>('RB');
+  const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [model, setModel] = useState<TrainedModel | null>(null);
-  const [, setTrainingData] = useState<RBModelRow[]>([]);
+  const [allRows, setAllRows] = useState<ModelRow[]>([]);
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -137,11 +181,11 @@ export function KTCPredictiveModel() {
         // ── 1. Fetch all base data ──
         setLoadingStatus('Loading KTC rankings...');
         const ktcPlayers = await fetchKTCRankings('1qb');
-        const rbs = ktcPlayers.filter((p) => p.position === 'RB' && p.playerID > 0);
+        const posPlayers = ktcPlayers.filter((p) => p.position === position && p.playerID > 0);
         if (cancelled) return;
 
         setLoadingStatus('Loading KTC history...');
-        const histories = await fetchKTCHistory(rbs.map((r) => r.playerID));
+        const histories = await fetchKTCHistory(posPlayers.map((r) => r.playerID));
         const historyMap = new Map<number, KTCPlayerHistory>();
         for (const h of histories) historyMap.set(h.playerID, h);
         if (cancelled) return;
@@ -152,16 +196,18 @@ export function KTCPredictiveModel() {
 
         // Build lookup maps (by normalized name)
         const ktcByName = new Map<string, KTCPlayer>();
-        for (const p of rbs) ktcByName.set(normalizeName(p.playerName), p);
+        for (const p of posPlayers) ktcByName.set(normalizeName(p.playerName), p);
 
+        // Map combine positions to our Position type
+        const combinePos = position === 'RB' ? 'RB' : position === 'WR' ? 'WR' : position === 'TE' ? 'TE' : 'QB';
         const combineByName = new Map<string, typeof combineData[0]>();
         for (const c of combineData) {
-          if (c.pos === 'RB') combineByName.set(normalizeName(c.player_name), c);
+          if (c.pos === combinePos) combineByName.set(normalizeName(c.player_name), c);
         }
 
         const draftByName = new Map<string, typeof draftData[0]>();
         for (const d of draftData) {
-          if (d.position === 'RB') draftByName.set(normalizeName(d.pfr_player_name), d);
+          if (d.position === position) draftByName.set(normalizeName(d.pfr_player_name), d);
         }
 
         // ── 2. Build training rows for each season ──
@@ -173,7 +219,7 @@ export function KTCPredictiveModel() {
           // Fetch all season data in parallel
           const [
             currentStats, priorStats, injuries, priorInjuries,
-            games, snapCounts,
+            games, snapCounts, depthCharts, priorDepthCharts,
           ] = await Promise.all([
             fetchPlayerStats(season).catch(() => []),
             fetchPlayerStats(season - 1).catch(() => []),
@@ -181,12 +227,14 @@ export function KTCPredictiveModel() {
             fetchInjuries(season - 1).catch(() => []),
             fetchGames(),
             fetchSnapCounts(season - 1).catch(() => []),
+            fetchDepthCharts(season).catch(() => []),
+            fetchDepthCharts(season - 1).catch(() => []),
           ]);
           if (cancelled) return;
 
           // Prior season totals (for prior-year features)
           const priorTotals = aggregateToSeasonTotals(
-            priorStats.filter((s) => s.position === 'RB' && s.season_type === 'REG')
+            priorStats.filter((s) => s.position === position && s.season_type === 'REG')
           );
           const priorByName = new Map<string, typeof priorTotals[0]>();
           for (const p of priorTotals) priorByName.set(normalizeName(p.player_display_name), p);
@@ -195,7 +243,7 @@ export function KTCPredictiveModel() {
           const snapsByName = new Map<string, number>();
           const snapAccum = new Map<string, { total: number; count: number }>();
           for (const s of snapCounts) {
-            if (s.position !== 'RB') continue;
+            if (s.position !== position) continue;
             const name = normalizeName(s.player);
             const acc = snapAccum.get(name) || { total: 0, count: 0 };
             acc.total += s.offense_pct || 0;
@@ -206,10 +254,28 @@ export function KTCPredictiveModel() {
             snapsByName.set(name, acc.count > 0 ? acc.total / acc.count : 0);
           }
 
+          // Depth chart rank: most recent entry per player for this position
+          const dcRankByName = new Map<string, number>();
+          const dcEntries = depthCharts
+            .filter((d) => d.pos_abb === position)
+            .sort((a, b) => a.dt.localeCompare(b.dt)); // earliest first, later overwrites
+          for (const d of dcEntries) {
+            dcRankByName.set(normalizeName(d.player_name), d.pos_rank);
+          }
+
+          // Prior season depth chart rank
+          const priorDcRankByName = new Map<string, number>();
+          const priorDcEntries = priorDepthCharts
+            .filter((d) => d.pos_abb === position)
+            .sort((a, b) => a.dt.localeCompare(b.dt));
+          for (const d of priorDcEntries) {
+            priorDcRankByName.set(normalizeName(d.player_name), d.pos_rank);
+          }
+
           // Prior injury counts by player name
           const injuryByName = new Map<string, { weeks: number; out: number }>();
           for (const inj of priorInjuries) {
-            if (inj.position !== 'RB') continue;
+            if (inj.position !== position) continue;
             const name = normalizeName(inj.full_name);
             const acc = injuryByName.get(name) || { weeks: 0, out: 0 };
             acc.weeks += 1;
@@ -220,7 +286,7 @@ export function KTCPredictiveModel() {
           // Current-season injury weeks (preseason / early season)
           const currentInjByName = new Map<string, number>();
           for (const inj of injuries) {
-            if (inj.position !== 'RB') continue;
+            if (inj.position !== position) continue;
             if (inj.week > 4) continue; // only count early-season
             const name = normalizeName(inj.full_name);
             currentInjByName.set(name, (currentInjByName.get(name) || 0) + 1);
@@ -247,16 +313,16 @@ export function KTCPredictiveModel() {
             teamPoints.set(g.away_team, ap);
           }
 
-          // Current season RB stats grouped by player for name→team mapping
-          const currentRBStats = currentStats.filter(
-            (s) => s.position === 'RB' && s.season_type === 'REG'
+          // Current season stats grouped by player for name→team mapping
+          const currentPosStats = currentStats.filter(
+            (s) => s.position === position && s.season_type === 'REG'
           );
           const currentTeamByName = new Map<string, string>();
-          for (const s of currentRBStats) {
+          for (const s of currentPosStats) {
             currentTeamByName.set(normalizeName(s.player_display_name), s.recent_team);
           }
 
-          // ── For each RB with KTC data, build a feature row ──
+          // ── For each player with KTC data, build a feature row ──
           for (const [normalName, ktcPlayer] of ktcByName) {
             const history = historyMap.get(ktcPlayer.playerID);
             if (!history?.oneQB?.valueHistory?.length) continue;
@@ -292,16 +358,27 @@ export function KTCPredictiveModel() {
             const tp = teamPoints.get(team);
             const tppg = tp && tp.games > 0 ? tp.total / tp.games : 0;
 
+            // Depth chart
+            const dcRank = dcRankByName.get(normalName) || 0;
+            const priorDcRank = priorDcRankByName.get(normalName) || 0;
+            // Positive = moved up (e.g. 3→1 = +2), negative = moved down
+            const dcChange = (priorDcRank > 0 && dcRank > 0) ? priorDcRank - dcRank : 0;
+
+            const yrsInLeague = draft ? season - draft.season : 0;
+
             const features: Record<string, number> = {
               septValue: septVal,
               age: ktcPlayer.age || 0,
               draftRound: draft?.round || 8,
               draftPick: draft?.pick || 300,
-              yearsInLeague: draft ? season - draft.season : 0,
+              yearsInLeague: yrsInLeague,
               weight: wt,
               bmi: Math.round(bmi * 10) / 10,
               forty: fortyTime,
               speedScore: Math.round(speedScore * 10) / 10,
+              depthChartRank: dcRank,
+              priorDepthChartRank: priorDcRank,
+              depthChartChange: dcChange,
               priorGames: priorGamesPlayed,
               priorRushYards: priorRushYds,
               priorRushTDs: prior?.rushing_tds || 0,
@@ -309,6 +386,12 @@ export function KTCPredictiveModel() {
               priorTargets: prior?.targets || 0,
               priorReceptions: prior?.receptions || 0,
               priorRecYards: prior?.receiving_yards || 0,
+              priorRecTDs: prior?.receiving_tds || 0,
+              priorPassYards: prior?.passing_yards || 0,
+              priorPassTDs: prior?.passing_tds || 0,
+              priorINTs: prior?.interceptions || 0,
+              priorCompletions: prior?.completions || 0,
+              priorAttempts: prior?.attempts || 0,
               priorFantasyPPR: Math.round(priorPPR * 10) / 10,
               priorPPG: priorGamesPlayed > 0 ? Math.round((priorPPR / priorGamesPlayed) * 10) / 10 : 0,
               priorTotalTouches: priorCarries + (prior?.receptions || 0),
@@ -325,6 +408,7 @@ export function KTCPredictiveModel() {
               team,
               season,
               playerID: ktcPlayer.playerID,
+              yearsInLeague: yrsInLeague,
               septValue: septVal,
               decValue: decVal,
               valueDelta: decVal - septVal,
@@ -336,20 +420,27 @@ export function KTCPredictiveModel() {
         if (cancelled) return;
 
         // ── 3. Filter to rows with enough data ──
-        // Only include RBs with Sept value > 0 and some prior season data
-        const validRows = rows.filter((r) => r.septValue > 0);
+        let validRows = rows.filter((r) => r.septValue > 0);
+
+        // Apply rookie/veteran filter
+        if (rookieFilter === 'rookie') {
+          validRows = validRows.filter((r) => r.yearsInLeague <= 1);
+        } else if (rookieFilter === 'veteran') {
+          validRows = validRows.filter((r) => r.yearsInLeague > 1);
+        }
 
         if (validRows.length < 10) {
-          setError(`Only ${validRows.length} valid data points — need at least 10 to train`);
+          setError(`Only ${validRows.length} ${position}s match filters — need at least 10 to train`);
           setLoading(false);
           return;
         }
 
-        setTrainingData(validRows);
+        setAllRows(validRows);
 
         // ── 4. Build feature matrix ──
         setLoadingStatus('Training model...');
-        const featureNames = FEATURE_DEFS.map((f) => f.key);
+        const activeDefs = getFeatureDefsForPosition(position);
+        const featureNames = activeDefs.map((f) => f.key);
         const X = validRows.map((r) => featureNames.map((k) => r.features[k] || 0));
         const y = validRows.map((r) => r.valueDelta);
 
@@ -357,7 +448,7 @@ export function KTCPredictiveModel() {
         const trained = trainRidgeRegression(X, y, featureNames, lambda);
         setModel(trained);
 
-        // ── 5. Generate predictions for all current RBs ──
+        // ── 5. Generate predictions ──
         const preds: PlayerPrediction[] = validRows.map((row) => {
           const result = predict(trained, row.features);
           return {
@@ -382,14 +473,16 @@ export function KTCPredictiveModel() {
 
     run();
     return () => { cancelled = true; };
-  }, [lambda]);
+  }, [lambda, position, rookieFilter]);
+
+  const activeDefs = useMemo(() => getFeatureDefsForPosition(position), [position]);
 
   // Feature importance (sorted by absolute coefficient)
   const featureImportance = useMemo(() => {
     if (!model) return [];
     return model.featureNames
       .map((name, i) => {
-        const def = FEATURE_DEFS.find((f) => f.key === name);
+        const def = activeDefs.find((f) => f.key === name);
         return {
           name,
           label: def?.label || name,
@@ -399,7 +492,7 @@ export function KTCPredictiveModel() {
         };
       })
       .sort((a, b) => b.absCoeff - a.absCoeff);
-  }, [model]);
+  }, [model, activeDefs]);
 
   const filteredImportance = useMemo(() => {
     if (showCategory === 'all') return featureImportance;
@@ -428,9 +521,9 @@ export function KTCPredictiveModel() {
   }, [predictions]);
 
   const categories = useMemo(() => {
-    const cats = new Set(FEATURE_DEFS.map((f) => f.category));
+    const cats = new Set(activeDefs.map((f) => f.category));
     return ['all', ...cats];
-  }, []);
+  }, [activeDefs]);
 
   if (loading) {
     return (
@@ -460,9 +553,37 @@ export function KTCPredictiveModel() {
 
   return (
     <>
+      {/* Position & filter controls */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="control-group">
+          <label className="control-label">Position</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {POSITIONS.map((pos) => (
+              <button
+                key={pos}
+                className={`pos-filter ${position === pos ? 'active' : ''}`}
+                onClick={() => setPosition(pos)}
+                style={{ fontSize: 12, padding: '4px 10px' }}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="control-group">
+          <label className="control-label">Experience</label>
+          <select value={rookieFilter} onChange={(e) => setRookieFilter(e.target.value as RookieFilter)}>
+            <option value="all">All Players</option>
+            <option value="rookie">Rookies (0-1 yrs)</option>
+            <option value="veteran">Veterans (2+ yrs)</option>
+          </select>
+        </div>
+      </div>
+
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        Ridge regression model trained on {model.n} RB-seasons ({TRAIN_SEASONS.join(', ')}).
-        Uses {FEATURE_DEFS.length} features across 6 categories to predict Sep→Dec KTC value change.
+        Ridge regression model trained on {model.n} {position}-seasons ({TRAIN_SEASONS.join(', ')}).
+        Uses {activeDefs.length} features across {categories.length - 1} categories to predict Sep→Dec KTC value change.
+        {rookieFilter !== 'all' && ` Filtered to ${rookieFilter === 'rookie' ? 'rookies (≤1 yr)' : 'veterans (2+ yrs)'}.`}
       </p>
 
       {/* Model performance */}
@@ -473,7 +594,7 @@ export function KTCPredictiveModel() {
           { label: 'MAE', value: Math.round(model.mae).toLocaleString(), color: '#6366f1' },
           { label: 'RMSE', value: Math.round(model.rmse).toLocaleString(), color: '#6366f1' },
           { label: 'Samples', value: String(model.n), color: 'var(--text-muted)' },
-          { label: 'Features', value: String(FEATURE_DEFS.length), color: 'var(--text-muted)' },
+          { label: 'Features', value: String(activeDefs.length), color: 'var(--text-muted)' },
         ].map((m) => (
           <div
             key={m.label}
@@ -631,7 +752,7 @@ export function KTCPredictiveModel() {
           </select>
         </div>
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          {predictions.length} RBs
+          {predictions.length} {position}s
         </span>
       </div>
 
@@ -688,7 +809,7 @@ export function KTCPredictiveModel() {
                   </td>
                   <td style={{ fontSize: 11, maxWidth: 300 }}>
                     {p.topDrivers.slice(0, 3).map((d, j) => {
-                      const def = FEATURE_DEFS.find((f) => f.key === d.name);
+                      const def = activeDefs.find((f) => f.key === d.name);
                       return (
                         <span key={j} style={{ marginRight: 8 }}>
                           <span style={{ color: CATEGORY_COLORS[def?.category || 'Other'] || '#6366f1' }}>
@@ -712,7 +833,7 @@ export function KTCPredictiveModel() {
       {/* Category breakdown */}
       <details style={{ marginTop: 20 }}>
         <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}>
-          Full coefficient table ({FEATURE_DEFS.length} features)
+          Full coefficient table ({activeDefs.length} features)
         </summary>
         <div className="table-container" style={{ marginTop: 8 }}>
           <table>
