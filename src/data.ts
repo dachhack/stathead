@@ -705,10 +705,27 @@ export async function fetchKTCHistory(
       throw new Error(`KTC history API returned ${response.status}`);
     }
 
-    const data: KTCPlayerHistory[] = await response.json();
-    for (const entry of data) {
-      ktcHistoryCache.set(entry.playerID, entry);
-      results.push(entry);
+    const raw = await response.json();
+    for (const entry of raw) {
+      // KTC returns valueHistory as packed strings "YYMMDDVVVV..."
+      // Convert to { d: "YYYY-MM-DD", v: number } objects
+      const parseHistory = (arr: (string | { d: string; v: number })[]) =>
+        arr.map((item) => {
+          if (typeof item === 'object') return item;
+          const s = String(item);
+          const yy = s.slice(0, 2);
+          const mm = s.slice(2, 4);
+          const dd = s.slice(4, 6);
+          const v = Number(s.slice(6));
+          return { d: `20${yy}-${mm}-${dd}`, v };
+        });
+      const parsed: KTCPlayerHistory = {
+        playerID: entry.playerID,
+        oneQB: { valueHistory: parseHistory(entry.oneQB.valueHistory) },
+        superflex: { valueHistory: parseHistory(entry.superflex.valueHistory) },
+      };
+      ktcHistoryCache.set(parsed.playerID, parsed);
+      results.push(parsed);
     }
   }
 
