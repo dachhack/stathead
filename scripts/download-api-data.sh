@@ -11,7 +11,7 @@ mkdir -p "$OUT"
 echo "Fetching external API data..."
 
 # ── KTC (rankings + history via Node script to avoid shell size limits) ──
-node scripts/fetch-ktc.js "$OUT"
+node scripts/fetch-ktc.cjs "$OUT"
 
 # ── FantasyCalc ──
 for variant in "true&numQbs=1:fantasycalc_dynasty_1qb" "true&numQbs=2:fantasycalc_dynasty_sf" "false&numQbs=1:fantasycalc_redraft_1qb"; do
