@@ -240,7 +240,10 @@ const DYNASTYPROCESS =
   'https://github.com/dynastyprocess/data/raw/master/files';
 
 export async function fetchFantasyRankings(): Promise<FantasyRanking[]> {
-  return fetchCsv<FantasyRanking>(`${DYNASTYPROCESS}/db_fpecr_latest.csv`);
+  const url = IS_PROD
+    ? `${import.meta.env.BASE_URL}data/db_fpecr_latest.csv`
+    : `${DYNASTYPROCESS}/db_fpecr_latest.csv`;
+  return fetchCsv<FantasyRanking>(url);
 }
 
 // --- Fantasy Season Results: merge ADP with actual production ---

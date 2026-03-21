@@ -54,8 +54,19 @@ for s in 2024 2023 2022; do
   [ -f "$OUT/ftn_charting_${s}.csv" ] || curl -sL "$NFLVERSE/ftn_charting/ftn_charting_${s}.csv" -o "$OUT/ftn_charting_${s}.csv" &
 done
 
-# Play-by-play is very large, skip for now (fetched on demand)
-# PBP participation also skipped
+# Play-by-play (large but needed)
+for s in 2024 2023 2022 2021; do
+  [ -f "$OUT/play_by_play_${s}.csv" ] || curl -sL "$NFLVERSE/pbp/play_by_play_${s}.csv" -o "$OUT/play_by_play_${s}.csv" &
+done
+
+# PBP participation
+for s in 2024 2023 2022 2021; do
+  [ -f "$OUT/pbp_participation_${s}.csv" ] || curl -sL "$NFLVERSE/pbp_participation/pbp_participation_${s}.csv" -o "$OUT/pbp_participation_${s}.csv" &
+done
+
+# DynastyProcess fantasy rankings
+DYNASTYPROCESS="https://github.com/dynastyprocess/data/raw/master/files"
+[ -f "$OUT/db_fpecr_latest.csv" ] || curl -sL "$DYNASTYPROCESS/db_fpecr_latest.csv" -o "$OUT/db_fpecr_latest.csv" &
 
 wait
 echo "Done! Data files in $OUT/"
