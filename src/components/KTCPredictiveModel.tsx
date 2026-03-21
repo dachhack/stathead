@@ -175,12 +175,12 @@ export function KTCPredictiveModel() {
             currentStats, priorStats, injuries, priorInjuries,
             games, snapCounts,
           ] = await Promise.all([
-            fetchPlayerStats(season),
-            fetchPlayerStats(season - 1),
-            fetchInjuries(season),
-            fetchInjuries(season - 1),
+            fetchPlayerStats(season).catch(() => []),
+            fetchPlayerStats(season - 1).catch(() => []),
+            fetchInjuries(season).catch(() => []),
+            fetchInjuries(season - 1).catch(() => []),
             fetchGames(),
-            fetchSnapCounts(season - 1).catch(() => []), // may not exist
+            fetchSnapCounts(season - 1).catch(() => []),
           ]);
           if (cancelled) return;
 
