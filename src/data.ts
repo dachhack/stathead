@@ -41,6 +41,10 @@ const NFLVERSE_REMOTE =
 // as a flat directory. Locally, fetch directly from GitHub releases.
 const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
 
+// CORS proxy for KeepTradeCut (Cloudflare Worker).
+// Deploy workers/ktc-proxy/ and set this to your worker URL.
+const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
+
 /** Build a URL for an nflverse CSV file. In prod, serves from local /data/filename.csv */
 function nflUrl(releaseSubpath: string): string {
   if (IS_PROD) {
@@ -620,7 +624,10 @@ export async function fetchKTCRankings(
 
   // KTC paginates across 10 pages
   for (let page = 0; page < 10; page++) {
-    const url = `https://keeptradecut.com/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
+    const ktcPath = `/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
+    const url = IS_PROD
+      ? `${KTC_PROXY}${ktcPath}`
+      : `https://keeptradecut.com${ktcPath}`;
     const response = await fetch(url);
     if (!response.ok) {
       if (page === 0) throw new Error(`KTC returned ${response.status}`);
@@ -685,7 +692,10 @@ export async function fetchKTCHistory(
   }
 
   if (toFetch.length > 0) {
-    const response = await fetch('https://keeptradecut.com/dynasty-rankings/histories', {
+    const historyUrl = IS_PROD
+      ? `${KTC_PROXY}/dynasty-rankings/histories`
+      : 'https://keeptradecut.com/dynasty-rankings/histories';
+    const response = await fetch(historyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(toFetch),
