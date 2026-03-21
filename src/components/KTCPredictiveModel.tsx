@@ -42,6 +42,7 @@ interface PlayerPrediction {
   predictedDelta: number;
   predictedDecValue: number;
   topDrivers: PredictionResult['featureContributions'];
+  allDrivers: PredictionResult['featureContributions'];
 }
 
 // ── Feature definitions ──
@@ -171,6 +172,7 @@ export function KTCPredictiveModel() {
   const [lambda, setLambda] = useState(5);
   const [sortBy, setSortBy] = useState<'predictedDelta' | 'septValue' | 'name'>('predictedDelta');
   const [showCategory, setShowCategory] = useState<string>('all');
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -457,6 +459,7 @@ export function KTCPredictiveModel() {
             predictedDelta: Math.round(result.predicted),
             predictedDecValue: Math.round(row.septValue + result.predicted),
             topDrivers: result.featureContributions.slice(0, 5),
+            allDrivers: result.featureContributions,
           };
         });
 
@@ -516,6 +519,11 @@ export function KTCPredictiveModel() {
         septValue: p.septValue,
       }));
   }, [predictions]);
+
+  const selectedPrediction = useMemo(() => {
+    if (!selectedPlayer) return null;
+    return predictions.find((p) => p.name === selectedPlayer) || null;
+  }, [predictions, selectedPlayer]);
 
   const categories = useMemo(() => {
     const cats = new Set(activeDefs.map((f) => f.category));
@@ -737,95 +745,214 @@ export function KTCPredictiveModel() {
         </ResponsiveContainer>
       </div>
 
-      {/* Predictions table */}
-      <h4 style={{ marginBottom: 8 }}>Player Predictions</h4>
+      {/* Predicted Value Change Chart */}
+      <h4 style={{ marginBottom: 8 }}>Predicted Value Change (Current → Dec)</h4>
       <div className="controls" style={{ marginBottom: 12 }}>
         <div className="control-group">
           <label className="control-label">Sort by</label>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
             <option value="predictedDelta">Predicted Change</option>
-            <option value="septValue">Sept Value</option>
+            <option value="septValue">Current Value</option>
             <option value="name">Name</option>
           </select>
         </div>
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          {predictions.length} {position}s
+          {predictions.length} {position}s — click a bar to see factor breakdown
         </span>
       </div>
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Player</th>
-              <th>Team</th>
-              <th>Sept Value</th>
-              <th>Predicted Delta</th>
-              <th>Predicted Dec</th>
-              <th>Actual Delta</th>
-              <th>Error</th>
-              <th>Top Drivers</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedPredictions.map((p, i) => {
-              const error = p.actualDelta != null ? p.predictedDelta - p.actualDelta : null;
-              return (
-                <tr key={`${p.playerID}-${i}`}>
-                  <td className="rank-cell">{i + 1}</td>
-                  <td><strong>{p.name}</strong></td>
-                  <td>{p.team}</td>
-                  <td>{p.septValue.toLocaleString()}</td>
-                  <td style={{
-                    color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
-                    fontWeight: 700,
-                    fontFamily: 'monospace',
-                  }}>
-                    {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta.toLocaleString()}
-                  </td>
-                  <td>{p.predictedDecValue.toLocaleString()}</td>
-                  <td style={{
-                    color: p.actualDelta != null
-                      ? (p.actualDelta >= 0 ? '#10b981' : '#ef4444')
-                      : 'var(--text-muted)',
-                    fontFamily: 'monospace',
-                  }}>
-                    {p.actualDelta != null
-                      ? `${p.actualDelta >= 0 ? '+' : ''}${p.actualDelta.toLocaleString()}`
-                      : '-'}
-                  </td>
-                  <td style={{
-                    fontFamily: 'monospace',
-                    fontSize: 11,
-                    color: error != null
-                      ? (Math.abs(error) < 500 ? '#10b981' : Math.abs(error) < 1500 ? '#f59e0b' : '#ef4444')
-                      : 'var(--text-muted)',
-                  }}>
-                    {error != null ? `${error >= 0 ? '+' : ''}${error.toLocaleString()}` : '-'}
-                  </td>
-                  <td style={{ fontSize: 11, maxWidth: 300 }}>
-                    {p.topDrivers.slice(0, 3).map((d, j) => {
-                      const def = activeDefs.find((f) => f.key === d.name);
-                      return (
-                        <span key={j} style={{ marginRight: 8 }}>
-                          <span style={{ color: CATEGORY_COLORS[def?.category || 'Other'] || '#6366f1' }}>
-                            {def?.label || d.name}
-                          </span>
-                          {' '}
-                          <span style={{ color: d.contribution >= 0 ? '#10b981' : '#ef4444' }}>
-                            {d.contribution >= 0 ? '+' : ''}{Math.round(d.contribution)}
-                          </span>
-                        </span>
-                      );
-                    })}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+        padding: '16px 12px 8px 0',
+        marginBottom: 20,
+      }}>
+        <ResponsiveContainer width="100%" height={Math.max(400, sortedPredictions.length * 26 + 40)}>
+          <BarChart
+            data={sortedPredictions.map((p) => ({
+              name: `${p.name} (${p.team})`,
+              playerName: p.name,
+              value: p.predictedDelta,
+              septValue: p.septValue,
+              predictedDec: p.predictedDecValue,
+              fill: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
+            }))}
+            layout="vertical"
+            margin={{ top: 5, right: 30, bottom: 5, left: 150 }}
+            onClick={(data) => {
+              if (data?.activePayload?.[0]?.payload?.playerName) {
+                const name = data.activePayload[0].payload.playerName;
+                setSelectedPlayer(selectedPlayer === name ? null : name);
+              }
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+              tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v}`}
+            >
+              <Label value="Predicted KTC Change" position="bottom" offset={-5} style={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+            </XAxis>
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fontSize: 11, fill: 'var(--text-secondary)', cursor: 'pointer' }}
+              width={145}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--bg-card, #1e1e2e)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                fontSize: 12,
+              }}
+              formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value.toLocaleString()}`, 'Predicted Change']}
+              labelFormatter={(label) => label}
+            />
+            <ReferenceLine x={0} stroke="var(--text-muted)" strokeWidth={1} />
+            <Bar
+              dataKey="value"
+              radius={[0, 3, 3, 0]}
+              maxBarSize={20}
+              cursor="pointer"
+              isAnimationActive={false}
+            >
+              {sortedPredictions.map((p, idx) => (
+                <rect
+                  key={idx}
+                  fill={p.predictedDelta >= 0 ? '#10b981' : '#ef4444'}
+                  opacity={selectedPlayer && selectedPlayer !== p.name ? 0.3 : 1}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+
+      {/* Selected player detail panel */}
+      {selectedPrediction && (
+        <div style={{
+          background: 'var(--bg-secondary)',
+          border: '2px solid #6366f1',
+          borderRadius: 'var(--radius)',
+          padding: 20,
+          marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h4 style={{ margin: 0 }}>{selectedPrediction.name} ({selectedPrediction.team})</h4>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Current: {selectedPrediction.septValue.toLocaleString()} KTC
+                {' → '}
+                Predicted Dec: {selectedPrediction.predictedDecValue.toLocaleString()} KTC
+                {' '}
+                (<span style={{ color: selectedPrediction.predictedDelta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                  {selectedPrediction.predictedDelta >= 0 ? '+' : ''}{selectedPrediction.predictedDelta.toLocaleString()}
+                </span>)
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedPlayer(null)}
+              style={{
+                background: 'none',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px 10px',
+                fontSize: 12,
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          <h5 style={{ margin: '0 0 8px', color: 'var(--text-secondary)', fontSize: 13 }}>
+            Factor Contributions to Prediction
+          </h5>
+          <ResponsiveContainer width="100%" height={Math.max(300, selectedPrediction.allDrivers.length * 24 + 40)}>
+            <BarChart
+              data={selectedPrediction.allDrivers.map((d) => {
+                const def = activeDefs.find((f) => f.key === d.name);
+                return {
+                  name: def?.label || d.name,
+                  category: def?.category || 'Other',
+                  contribution: Math.round(d.contribution * 10) / 10,
+                  value: d.value,
+                  fill: d.contribution >= 0 ? '#10b981' : '#ef4444',
+                };
+              })}
+              layout="vertical"
+              margin={{ top: 5, right: 30, bottom: 5, left: 150 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v}`}
+              >
+                <Label value="Contribution to Predicted Change" position="bottom" offset={-5} style={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+              </XAxis>
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                width={145}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--bg-card, #1e1e2e)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  fontSize: 12,
+                }}
+                content={({ payload }) => {
+                  if (!payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 6,
+                      padding: '8px 12px',
+                      fontSize: 12,
+                    }}>
+                      <strong>{d.name}</strong>
+                      <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>{d.category}</span>
+                      <br />
+                      Raw value: <strong>{d.value}</strong>
+                      <br />
+                      Contribution: <span style={{ color: d.contribution >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                        {d.contribution >= 0 ? '+' : ''}{d.contribution}
+                      </span> KTC points
+                    </div>
+                  );
+                }}
+              />
+              <ReferenceLine x={0} stroke="var(--text-muted)" strokeWidth={1} />
+              <Bar
+                dataKey="contribution"
+                radius={[0, 3, 3, 0]}
+                maxBarSize={18}
+                isAnimationActive={false}
+              >
+                {selectedPrediction.allDrivers.map((d, idx) => {
+                  const def = activeDefs.find((f) => f.key === d.name);
+                  return (
+                    <rect
+                      key={idx}
+                      fill={CATEGORY_COLORS[def?.category || 'Other'] || '#6366f1'}
+                      opacity={d.contribution >= 0 ? 1 : 0.8}
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Category breakdown */}
       <details style={{ marginTop: 20 }}>
