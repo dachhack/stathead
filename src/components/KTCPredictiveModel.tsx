@@ -780,9 +780,10 @@ export function KTCPredictiveModel() {
             }))}
             layout="vertical"
             margin={{ top: 5, right: 30, bottom: 5, left: 150 }}
-            onClick={(data) => {
-              if (data?.activePayload?.[0]?.payload?.playerName) {
-                const name = data.activePayload[0].payload.playerName;
+            onClick={(data: Record<string, unknown>) => {
+              const ap = (data as { activePayload?: { payload?: { playerName?: string } }[] }).activePayload;
+              if (ap?.[0]?.payload?.playerName) {
+                const name = ap[0].payload.playerName;
                 setSelectedPlayer(selectedPlayer === name ? null : name);
               }
             }}
@@ -808,7 +809,7 @@ export function KTCPredictiveModel() {
                 borderRadius: 6,
                 fontSize: 12,
               }}
-              formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value.toLocaleString()}`, 'Predicted Change']}
+              formatter={(value) => [`${Number(value) >= 0 ? '+' : ''}${Number(value).toLocaleString()}`, 'Predicted Change']}
               labelFormatter={(label) => label}
             />
             <ReferenceLine x={0} stroke="var(--text-muted)" strokeWidth={1} />
