@@ -9,13 +9,13 @@ OUT="public/data"
 mkdir -p "$OUT"
 
 # Current + recent seasons
-SEASONS="2024 2023 2022 2021 2020 2019 2018 2017 2016 2015"
+SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015"
 
 echo "Downloading nflverse data..."
 
-# Player stats (per season)
+# Player stats (per season) - use --fail to skip seasons that don't exist yet
 for s in $SEASONS; do
-  [ -f "$OUT/player_stats_${s}.csv" ] || curl -sL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
+  [ -f "$OUT/player_stats_${s}.csv" ] || curl -sfL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
 done
 
 # Static/cross-season files
@@ -27,12 +27,12 @@ done
 [ -f "$OUT/qbr_season_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_season_level.csv" -o "$OUT/qbr_season_level.csv" &
 [ -f "$OUT/qbr_week_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_week_level.csv" -o "$OUT/qbr_week_level.csv" &
 
-# Per-season files
+# Per-season files (--fail to skip missing seasons gracefully)
 for s in $SEASONS; do
-  [ -f "$OUT/snap_counts_${s}.csv" ] || curl -sL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
-  [ -f "$OUT/injuries_${s}.csv" ] || curl -sL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
-  [ -f "$OUT/roster_${s}.csv" ] || curl -sL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv" &
-  [ -f "$OUT/depth_charts_${s}.csv" ] || curl -sL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
+  [ -f "$OUT/snap_counts_${s}.csv" ] || curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
+  [ -f "$OUT/injuries_${s}.csv" ] || curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
+  [ -f "$OUT/roster_${s}.csv" ] || curl -sfL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv" &
+  [ -f "$OUT/depth_charts_${s}.csv" ] || curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
 done
 
 # Advanced stats (per type per season) - only recent seasons
