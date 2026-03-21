@@ -38,9 +38,19 @@ const NFLVERSE =
   'https://github.com/nflverse/nflverse-data/releases/download';
 const BASE_URL = `${NFLVERSE}/player_stats`;
 
+// GitHub release downloads don't support CORS from browsers.
+// In production (GitHub Pages), route through a CORS proxy.
+const CORS_PROXY = 'https://corsproxy.io/?';
+function corsFetch(url: string, init?: RequestInit): Promise<Response> {
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return fetch(`${CORS_PROXY}${encodeURIComponent(url)}`, init);
+  }
+  return fetch(url, init);
+}
+
 export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
   const url = `${BASE_URL}/player_stats_${season}.csv`;
-  const response = await fetch(url);
+  const response = await corsFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch stats for ${season}: ${response.status}`);
   }
@@ -148,7 +158,7 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
   const cached = csvCache.get(url);
   if (cached) return cached as T[];
 
-  const response = await fetch(url);
+  const response = await corsFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`);
   }
@@ -203,7 +213,7 @@ export async function fetchAdvancedStats(
 export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
   const url = `${NFLVERSE}/pbp/play_by_play_${season}.csv`;
   // PBP files are large, so we parse with specific columns to save memory
-  const response = await fetch(url);
+  const response = await corsFetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch PBP for ${season}: ${response.status}`);
   }
@@ -327,7 +337,7 @@ export async function fetchFfcADP(
   if (cached) return cached;
 
   const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
-  const response = await fetch(url);
+  const response = await corsFetch(url);
   if (!response.ok) {
     throw new Error(`FFC API returned ${response.status}`);
   }
@@ -410,7 +420,7 @@ export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
     },
   };
 
-  const response = await fetch(url, {
+  const response = await corsFetch(url, {
     headers: {
       'x-fantasy-filter': JSON.stringify(filter),
     },
@@ -611,7 +621,7 @@ export async function fetchKTCRankings(
   // KTC paginates across 10 pages
   for (let page = 0; page < 10; page++) {
     const url = `https://keeptradecut.com/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
-    const response = await fetch(url);
+    const response = await corsFetch(url);
     if (!response.ok) {
       if (page === 0) throw new Error(`KTC returned ${response.status}`);
       break; // Later pages may not exist
@@ -675,7 +685,7 @@ export async function fetchKTCHistory(
   }
 
   if (toFetch.length > 0) {
-    const response = await fetch('https://keeptradecut.com/dynasty-rankings/histories', {
+    const response = await corsFetch('https://keeptradecut.com/dynasty-rankings/histories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(toFetch),
@@ -710,7 +720,7 @@ export async function fetchFantasyCalcValues(
   if (cached) return cached;
 
   const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
-  const response = await fetch(url);
+  const response = await corsFetch(url);
   if (!response.ok) {
     throw new Error(`FantasyCalc API returned ${response.status}`);
   }
