@@ -823,13 +823,13 @@ export function ADPFactorAnalysis() {
           const teamPassCatcherPPR = new Map<string, number>();
           const teamElitePassCatchers = new Map<string, number>(); // count of top-24 WR/TE
           for (const [key, names] of rosterByTeamPos) {
-            const [, pos] = key.split(':');
+            const [pcTeam, pos] = key.split(':');
             if (pos !== 'WR' && pos !== 'TE') continue;
             for (const name of names) {
               const ppr = priorPPRByName.get(name) || 0;
-              teamPassCatcherPPR.set(team, (teamPassCatcherPPR.get(team) || 0) + ppr);
+              teamPassCatcherPPR.set(pcTeam, (teamPassCatcherPPR.get(pcTeam) || 0) + ppr);
               const rank = posPriorRanks.get(pos)?.get(name) || 999;
-              if (rank <= 24) teamElitePassCatchers.set(team, (teamElitePassCatchers.get(team) || 0) + 1);
+              if (rank <= 24) teamElitePassCatchers.set(pcTeam, (teamElitePassCatchers.get(pcTeam) || 0) + 1);
             }
           }
 
@@ -1471,13 +1471,13 @@ export function ADPFactorAnalysis() {
             const predTeamPassCatcherPPR2 = new Map<string, number>();
             const predTeamElitePassCatchers2 = new Map<string, number>();
             for (const [key, names] of predRosterByTeamPos) {
-              const [, pos] = key.split(':');
+              const [pcTeam, pos] = key.split(':');
               if (pos !== 'WR' && pos !== 'TE') continue;
               for (const name of names) {
                 const ppr = predPriorPPRByName.get(name) || 0;
-                predTeamPassCatcherPPR2.set(team, (predTeamPassCatcherPPR2.get(team) || 0) + ppr);
+                predTeamPassCatcherPPR2.set(pcTeam, (predTeamPassCatcherPPR2.get(pcTeam) || 0) + ppr);
                 const rank = predPosPriorRanks.get(pos)?.get(name) || 999;
-                if (rank <= 24) predTeamElitePassCatchers2.set(team, (predTeamElitePassCatchers2.get(team) || 0) + 1);
+                if (rank <= 24) predTeamElitePassCatchers2.set(pcTeam, (predTeamElitePassCatchers2.get(pcTeam) || 0) + 1);
               }
             }
             const predTeamTargetHHI2 = new Map<string, number>();

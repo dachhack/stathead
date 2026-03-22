@@ -9,7 +9,6 @@ import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../typ
 // ── Config ──
 
 const PREDICT_SEASON = 2026;
-const PROJECTED_GAMES = 17;
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 type Position = typeof POSITIONS[number];
 
