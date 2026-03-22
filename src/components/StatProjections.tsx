@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
-  fetchDraftPicks, fetchRosters,
+  fetchDraftPicks, fetchRosters, fetchGames,
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../types';
 import projectionConfig from '../generated/projection-config.json';
 
 // ── Config ──
@@ -107,11 +107,12 @@ export function StatProjections() {
       try {
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, oddsLines] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
           fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
+          fetchGames().catch(() => [] as Game[]),
           fetchOddsGameLines().catch(() => []),
         ]);
         if (cancelled) return;
@@ -234,6 +235,107 @@ export function StatProjections() {
           projectedTeamTotals.set(team, proj);
         }
 
+        // ── Step 3b: Compute per-team position pool shares from prior season ──
+        // Instead of hardcoded "RBs get 88% of rush att", compute actual shares
+        interface PosPoolShares {
+          qbPassAtt: number; qbRushAtt: number; qbRushTD: number;
+          rbRushAtt: number; rbRushTD: number; rbTgt: number; rbRecTD: number;
+          wrTgt: number; wrRecTD: number; wrRushAtt: number; wrRushTD: number;
+          teTgt: number; teRecTD: number;
+        }
+
+        // Compute actual shares from prior-season player stats grouped by team+position
+        function computePoolShares(team: string): PosPoolShares {
+          const teamPlayers = priorTotals.filter(
+            (p) => p.recent_team === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)
+          );
+          const teamRushAtt = teamPlayers.reduce((s, p) => s + (p.carries || 0), 0) || 1;
+          const teamRushTD = teamPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) || 1;
+          const teamTgt = teamPlayers.reduce((s, p) => s + (p.targets || 0), 0) || 1;
+          const teamRecTD = teamPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) || 1;
+          const teamPassAtt = teamPlayers.reduce((s, p) => s + (p.attempts || 0), 0) || 1;
+
+          const byPos = (pos: string) => teamPlayers.filter((p) => p.position === pos);
+
+          const qbs = byPos('QB');
+          const rbPlayers = byPos('RB');
+          const wrPlayers = byPos('WR');
+          const tePlayers = byPos('TE');
+
+          return {
+            qbPassAtt: qbs.reduce((s, p) => s + (p.attempts || 0), 0) / teamPassAtt,
+            qbRushAtt: qbs.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            qbRushTD: qbs.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
+            rbRushAtt: rbPlayers.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            rbRushTD: rbPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
+            rbTgt: rbPlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
+            rbRecTD: rbPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
+            wrTgt: wrPlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
+            wrRecTD: wrPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
+            wrRushAtt: wrPlayers.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            wrRushTD: wrPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
+            teTgt: tePlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
+            teRecTD: tePlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
+          };
+        }
+
+        // League-average position pool shares (fallback / regression target)
+        const leaguePoolShares: PosPoolShares = {
+          qbPassAtt: 0, qbRushAtt: 0, qbRushTD: 0,
+          rbRushAtt: 0, rbRushTD: 0, rbTgt: 0, rbRecTD: 0,
+          wrTgt: 0, wrRecTD: 0, wrRushAtt: 0, wrRushTD: 0,
+          teTgt: 0, teRecTD: 0,
+        };
+        const teamsWithShares: PosPoolShares[] = [];
+        for (const team of priorTeamTotals.keys()) {
+          const shares = computePoolShares(team);
+          teamsWithShares.push(shares);
+        }
+        if (teamsWithShares.length > 0) {
+          for (const k of Object.keys(leaguePoolShares) as (keyof PosPoolShares)[]) {
+            leaguePoolShares[k] = teamsWithShares.reduce((s, t) => s + t[k], 0) / teamsWithShares.length;
+          }
+        }
+
+        // ── Step 3c: Detect coaching changes ──
+        // New HC → regress position pools more toward league average
+        const coachChangedTeams = new Set<string>();
+        const priorSeasonGames = gamesData.filter(
+          (g) => g.season === PREDICT_SEASON - 1 && g.game_type === 'REG'
+        );
+        const currentSeasonGames = gamesData.filter(
+          (g) => g.season === PREDICT_SEASON && g.game_type === 'REG'
+        );
+        // Build team → coach maps for prior and current seasons
+        const priorCoach = new Map<string, string>();
+        for (const g of priorSeasonGames) {
+          if (g.home_coach) priorCoach.set(g.home_team, g.home_coach);
+          if (g.away_coach) priorCoach.set(g.away_team, g.away_coach);
+        }
+        const currentCoach = new Map<string, string>();
+        for (const g of currentSeasonGames) {
+          if (g.home_coach) currentCoach.set(g.home_team, g.home_coach);
+          if (g.away_coach) currentCoach.set(g.away_team, g.away_coach);
+        }
+        for (const [team, coach] of currentCoach) {
+          const prev = priorCoach.get(team);
+          if (prev && prev !== coach) coachChangedTeams.add(team);
+        }
+
+        // Blend team-specific pool shares with league average
+        // Normal: 75% team / 25% league (some stability)
+        // New coach: 40% team / 60% league (more regression — new scheme)
+        function getTeamPools(team: string): PosPoolShares {
+          const raw = computePoolShares(team);
+          const teamBlend = coachChangedTeams.has(team) ? 0.40 : 0.75;
+          const leagueBlend = 1 - teamBlend;
+          const blended: PosPoolShares = {} as PosPoolShares;
+          for (const k of Object.keys(leaguePoolShares) as (keyof PosPoolShares)[]) {
+            blended[k] = raw[k] * teamBlend + leaguePoolShares[k] * leagueBlend;
+          }
+          return blended;
+        }
+
         // ── Step 4: Build player roster for each team ──
         // Collect all players we'll project: ADP players + roster fill-ins
         interface PlayerCandidate {
@@ -314,19 +416,20 @@ export function StatProjections() {
 
         for (const team of allTeams) {
           const projTeam = projectedTeamTotals.get(team);
-          if (!projTeam) continue; // no prior data for this team
+          if (!projTeam) continue;
+
+          // Per-team position pool shares (computed from prior season + coach regression)
+          const pools = getTeamPools(team);
 
           for (const pos of POSITIONS) {
             const players = (candidatesByTeamPos.get(tpKey(team, pos)) || []).slice(0, TEAM_POS_LIMITS[pos]);
 
-            // Compute raw shares from prior season for each volume stat
-            // QB: passAtt, rushAtt (for this team's QBs)
-            // RB/WR: rushAtt, targets (for this team's RBs/WRs)
-            // TE: targets (for this team's TEs)
             if (pos === 'QB') {
-              // QBs own pass attempts + some rush attempts
               const priorPassAttTotal = players.reduce((s, p) => s + (p.prior?.attempts || 0), 0);
               const priorRushAttTotal = players.reduce((s, p) => s + (p.prior?.carries || 0), 0);
+              const qbPassPool = projTeam.passAtt * pools.qbPassAtt;
+              const qbRushPool = projTeam.rushAtt * pools.qbRushAtt;
+              const qbRushTDPool = projTeam.rushTD * pools.qbRushTD;
 
               for (const player of players) {
                 const prior = player.prior;
@@ -337,9 +440,8 @@ export function StatProjections() {
                 let rushAtt: number, rushYds: number, rushTD: number;
 
                 if (prior && prior.games >= 3) {
-                  // Share of team pass attempts
                   const passShare = priorPassAttTotal > 0 ? (prior.attempts || 0) / priorPassAttTotal : 1 / players.length;
-                  passAtt = Math.round(projTeam.passAtt * passShare * af);
+                  passAtt = Math.round(qbPassPool * passShare * af);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
                   passComp = Math.round(passAtt * compRate);
                   const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
@@ -349,24 +451,19 @@ export function StatProjections() {
                   const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
                   ints = Math.round(passAtt * intRate);
 
-                  // QB rushing share
                   const rushShare = priorRushAttTotal > 0 ? (prior.carries || 0) / priorRushAttTotal : 0.5 / players.length;
-                  // QBs get a fraction of team rush attempts (typically ~8-12%)
-                  const qbRushPool = projTeam.rushAtt * 0.10; // ~10% of team rush att for QBs
                   rushAtt = Math.round(qbRushPool * rushShare * af);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / Math.max(prior.carries, 1) : 0.04;
-                  rushTD = Math.round(rushAtt * rushTDrate);
+                  rushTD = Math.round(qbRushTDPool * rushShare * af);
                 } else {
-                  // No prior: backup QB baseline — small share
                   const share = 1 / (players.length * 3);
-                  passAtt = Math.round(projTeam.passAtt * share);
+                  passAtt = Math.round(qbPassPool * share);
                   passComp = Math.round(passAtt * 0.60);
                   passYds = Math.round(passAtt * 6.5);
                   passTD = Math.round(passAtt * 0.035);
                   ints = Math.round(passAtt * 0.03);
-                  rushAtt = Math.round(projTeam.rushAtt * 0.02);
+                  rushAtt = Math.round(qbRushPool * share * 0.3);
                   rushYds = Math.round(rushAtt * 3.5);
                   rushTD = 0;
                 }
@@ -379,14 +476,12 @@ export function StatProjections() {
                 });
               }
             } else if (pos === 'RB') {
-              // RBs share rush attempts and a portion of targets
               const priorRushTotal = players.reduce((s, p) => s + (p.prior?.carries || 0), 0);
               const priorTgtTotal = players.reduce((s, p) => s + (p.prior?.targets || 0), 0);
-              // RB pool: ~88% of team rush att (rest to QBs/WRs), ~18% of targets
-              const rbRushPool = projTeam.rushAtt * 0.88;
-              const rbTgtPool = projTeam.targets * 0.18;
-              const rbRushTDPool = projTeam.rushTD * 0.88;
-              const rbRecTDPool = projTeam.recTD * 0.12;
+              const rbRushPool = projTeam.rushAtt * pools.rbRushAtt;
+              const rbTgtPool = projTeam.targets * pools.rbTgt;
+              const rbRushTDPool = projTeam.rushTD * pools.rbRushTD;
+              const rbRecTDPool = projTeam.recTD * pools.rbRecTD;
 
               for (const player of players) {
                 const prior = player.prior;
@@ -401,8 +496,7 @@ export function StatProjections() {
                   rushAtt = Math.round(rbRushPool * rushShare * af);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  const rushTDshare = priorRushTotal > 0 ? (prior.carries || 0) / priorRushTotal : 1 / players.length;
-                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushTDshare * af));
+                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * af));
 
                   const tgtShare = priorTgtTotal > 0 ? (prior.targets || 0) / priorTgtTotal : 1 / players.length;
                   tgt = Math.round(rbTgtPool * tgtShare * af);
@@ -410,10 +504,8 @@ export function StatProjections() {
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
                   recYds = Math.round(rec * ypr);
-                  const recTDshare = priorTgtTotal > 0 ? (prior.targets || 0) / priorTgtTotal : 1 / players.length;
-                  recTD = Math.max(0, Math.round(rbRecTDPool * recTDshare * af));
+                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * af));
                 } else {
-                  // Small replacement share
                   const share = 1 / (players.length * 4);
                   rushAtt = Math.round(rbRushPool * share);
                   rushYds = Math.round(rushAtt * 3.8);
@@ -431,14 +523,12 @@ export function StatProjections() {
                 });
               }
             } else if (pos === 'WR') {
-              // WRs share targets and a small portion of rush attempts
               const priorTgtTotal = players.reduce((s, p) => s + (p.prior?.targets || 0), 0);
               const priorRushTotal = players.reduce((s, p) => s + (p.prior?.carries || 0), 0);
-              // WR pool: ~65% of team targets, ~2% of rush att
-              const wrTgtPool = projTeam.targets * 0.65;
-              const wrRushPool = projTeam.rushAtt * 0.02;
-              const wrRecTDPool = projTeam.recTD * 0.65;
-              const wrRushTDPool = projTeam.rushTD * 0.02;
+              const wrTgtPool = projTeam.targets * pools.wrTgt;
+              const wrRushPool = projTeam.rushAtt * pools.wrRushAtt;
+              const wrRecTDPool = projTeam.recTD * pools.wrRecTD;
+              const wrRushTDPool = projTeam.rushTD * pools.wrRushTD;
 
               for (const player of players) {
                 const prior = player.prior;
@@ -455,8 +545,7 @@ export function StatProjections() {
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
                   recYds = Math.round(rec * ypr);
-                  const recTDshare = priorTgtTotal > 0 ? (prior.targets || 0) / priorTgtTotal : 1 / players.length;
-                  recTD = Math.max(0, Math.round(wrRecTDPool * recTDshare * af));
+                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * af));
 
                   const rushShare = priorRushTotal > 0 ? (prior.carries || 0) / priorRushTotal : 0;
                   rushAtt = Math.round(wrRushPool * rushShare * af);
@@ -479,10 +568,9 @@ export function StatProjections() {
                 });
               }
             } else if (pos === 'TE') {
-              // TEs share ~17% of team targets
               const priorTgtTotal = players.reduce((s, p) => s + (p.prior?.targets || 0), 0);
-              const teTgtPool = projTeam.targets * 0.17;
-              const teRecTDPool = projTeam.recTD * 0.23;
+              const teTgtPool = projTeam.targets * pools.teTgt;
+              const teRecTDPool = projTeam.recTD * pools.teRecTD;
 
               for (const player of players) {
                 const prior = player.prior;
@@ -498,8 +586,7 @@ export function StatProjections() {
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
                   recYds = Math.round(rec * ypr);
-                  const recTDshare = priorTgtTotal > 0 ? (prior.targets || 0) / priorTgtTotal : 1 / players.length;
-                  recTD = Math.max(0, Math.round(teRecTDPool * recTDshare * af));
+                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * af));
                 } else {
                   const share = 1 / (players.length * 4);
                   tgt = Math.round(teTgtPool * share);
@@ -621,7 +708,8 @@ export function StatProjections() {
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {PREDICT_SEASON} projections: team totals projected via {Math.round(projectionConfig.winner.teamWeight * 100)}/{Math.round((1 - projectionConfig.winner.teamWeight) * 100)} team/league blend,
-        then split by each player's prior-season share of team volume. Individual rate stats (YPC, catch rate, YPR) preserved. Sorted by PPR.
+        position pools computed from prior-season tendencies (regressed toward league avg for coaching changes),
+        then split by each player's share of team volume. Individual efficiency rates preserved. Sorted by PPR.
       </p>
 
       {/* View mode + Position tabs */}
