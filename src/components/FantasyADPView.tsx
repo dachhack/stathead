@@ -3,9 +3,10 @@ import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, 
 import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } from '../data';
 import { ADPOutcomes } from './ADPOutcomes';
 import { ADPFactorAnalysis } from './ADPFactorAnalysis';
+import { StatProjections } from './StatProjections';
 
 type SortField = keyof FantasySeasonResult;
-type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes' | 'factors';
+type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes' | 'factors' | 'projections';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -231,9 +232,17 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
         >
           Hit/Bust Factors
         </button>
+        <button
+          className={`format-tab ${viewMode === 'projections' ? 'active' : ''}`}
+          onClick={() => setViewMode('projections')}
+        >
+          2026 Projections
+        </button>
       </div>
 
-      {viewMode === 'factors' ? (
+      {viewMode === 'projections' ? (
+        <StatProjections />
+      ) : viewMode === 'factors' ? (
         <ADPFactorAnalysis />
       ) : viewMode === 'outcomes' ? (
         <ADPOutcomes />
