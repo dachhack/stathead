@@ -817,11 +817,12 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
               type="category"
               dataKey="name"
               width={145}
-              tick={(props: { x: number; y: number; payload: { value: string } }) => {
-                const { x, y, payload } = props;
-                // Extract player name from "Name (TEAM)" format
-                const match = payload.value.match(/^(.+)\s\(/);
-                const playerName = match ? match[1] : payload.value;
+              tick={((props: Record<string, unknown>) => {
+                const x = props.x as number;
+                const y = props.y as number;
+                const value = (props.payload as { value: string }).value;
+                const match = value.match(/^(.+)\s\(/);
+                const playerName = match ? match[1] : value;
                 const isSelected = selectedPlayer === playerName;
                 return (
                   <text
@@ -839,10 +840,11 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
                       setSelectedPlayer(selectedPlayer === playerName ? null : playerName);
                     }}
                   >
-                    {payload.value}
+                    {value}
                   </text>
                 );
-              }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              }) as any}
             />
             <Tooltip
               contentStyle={{
