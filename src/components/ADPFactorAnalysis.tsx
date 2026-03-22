@@ -10,7 +10,7 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Game } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 
@@ -754,7 +754,7 @@ export function ADPFactorAnalysis() {
 
           // Build team-pos aggregations using current roster + prior stats
           for (const [key, names] of rosterByTeamPos) {
-            const [team, pos] = key.split(':');
+            const [, pos] = key.split(':');
             const agg: TeamPosAgg = { bestPPR: 0, totalPPR: 0, hasTop12: false, playerTargets: [] };
             for (const name of names) {
               const ppr = priorPPRByName.get(name) || 0;
@@ -773,7 +773,7 @@ export function ADPFactorAnalysis() {
           const teamPassCatcherPPR = new Map<string, number>();
           const teamElitePassCatchers = new Map<string, number>(); // count of top-24 WR/TE
           for (const [key, names] of rosterByTeamPos) {
-            const [team, pos] = key.split(':');
+            const [, pos] = key.split(':');
             if (pos !== 'WR' && pos !== 'TE') continue;
             for (const name of names) {
               const ppr = priorPPRByName.get(name) || 0;
@@ -1405,7 +1405,7 @@ export function ADPFactorAnalysis() {
             const predTeamPassCatcherPPR2 = new Map<string, number>();
             const predTeamElitePassCatchers2 = new Map<string, number>();
             for (const [key, names] of predRosterByTeamPos) {
-              const [team, pos] = key.split(':');
+              const [, pos] = key.split(':');
               if (pos !== 'WR' && pos !== 'TE') continue;
               for (const name of names) {
                 const ppr = predPriorPPRByName.get(name) || 0;
