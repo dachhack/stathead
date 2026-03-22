@@ -49,10 +49,17 @@ for s in 2024 2023 2022 2021; do
   done
 done
 
-# Next Gen Stats (per type per season) - only recent seasons
-for s in 2024 2023 2022 2021; do
+# Next Gen Stats (per type per season) - files are .csv.gz
+# Current season (2025) uses ngs_{type}.csv.gz (no year in filename)
+for s in 2025 2024 2023 2022 2021; do
   for type in passing rushing receiving; do
-    [ -f "$OUT/ngs_${s}_${type}.csv" ] || curl -sL "$NFLVERSE/nextgen_stats/ngs_${s}_${type}.csv" -o "$OUT/ngs_${s}_${type}.csv" &
+    if [ ! -f "$OUT/ngs_${s}_${type}.csv" ]; then
+      if [ "$s" -ge 2025 ]; then
+        curl -sfL "$NFLVERSE/nextgen_stats/ngs_${type}.csv.gz" | gunzip > "$OUT/ngs_${s}_${type}.csv" &
+      else
+        curl -sfL "$NFLVERSE/nextgen_stats/ngs_${s}_${type}.csv.gz" | gunzip > "$OUT/ngs_${s}_${type}.csv" &
+      fi
+    fi
   done
 done
 

@@ -869,11 +869,39 @@ export async function fetchFantasyCalcValues(
 }
 
 // --- Next Gen Stats ---
+// NGS files are .csv.gz on GitHub. Current season uses ngs_{type}.csv.gz (no year).
 export async function fetchNextGenStats(
   season: number,
   type: 'passing' | 'rushing' | 'receiving' = 'passing'
 ): Promise<NextGenStats[]> {
-  return fetchCsv<NextGenStats>(nflUrl(`nextgen_stats/ngs_${season}_${type}.csv`));
+  if (IS_PROD) {
+    return fetchCsv<NextGenStats>(nflUrl(`nextgen_stats/ngs_${season}_${type}.csv`));
+  }
+  // Try year-specific first, then current-season (no year) filename
+  const urls = [
+    `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${season}_${type}.csv.gz`,
+    `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${type}.csv.gz`,
+  ];
+  for (const url of urls) {
+    const cached = csvCache.get(url);
+    if (cached) return cached as NextGenStats[];
+    const response = await fetch(url);
+    if (!response.ok) continue;
+    const buf = await response.arrayBuffer();
+    const decompressed = new TextDecoder().decode(
+      await new Response(
+        new Response(buf).body!.pipeThrough(new DecompressionStream('gzip'))
+      ).arrayBuffer()
+    );
+    const result = Papa.parse<NextGenStats>(decompressed, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+    });
+    csvCache.set(url, result.data as unknown[]);
+    return result.data;
+  }
+  return [];
 }
 
 // --- Rosters ---
