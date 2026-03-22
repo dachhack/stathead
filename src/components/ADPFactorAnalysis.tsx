@@ -8,8 +8,9 @@ import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
+  fetchRosters, fetchDepthCharts,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 
@@ -128,6 +129,16 @@ const FEATURES: FeatureDef[] = [
   { key: 'preseasonInjWeeks', label: 'Preseason Injury Weeks', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'priorSoftTissue', label: 'Prior Soft Tissue Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'priorKneeInjury', label: 'Prior Knee Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Roster competition
+  { key: 'teamSamePosCount', label: 'Same-Pos Teammates', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'depthChartRank', label: 'Depth Chart Rank', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorTeamTouchShare', label: 'Prior Team Touch Share', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
+  { key: 'priorTeamTargetShare', label: 'Prior Team Target Share', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
+  { key: 'newSamePosAdded', label: 'New Same-Pos Arrivals', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamDraftedSamePos', label: 'Team Drafted Same Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'draftCapitalSamePos', label: 'Draft Capital at Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teammatePriorPPR', label: 'Best Teammate PPR', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -141,6 +152,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   NGS: '#8b5cf6',
   Route: '#06b6d4',
   Injury: '#f43f5e',
+  Competition: '#f97316',
 };
 
 // ── Helpers ──
@@ -236,6 +248,7 @@ export function ADPFactorAnalysis() {
             priorInjuries, preseasonInjuries,
             priorNgsRec, priorNgsRush, priorNgsPass,
             priorPbp, priorParticipation,
+            seasonRosters, priorRosters, seasonDepthCharts,
           ] = await Promise.all([
             fetchFfcADP(season, 'ppr', 12).catch(() => []),
             fetchPlayerStats(season).catch(() => []),
@@ -248,6 +261,9 @@ export function ADPFactorAnalysis() {
             fetchNextGenStats(season - 1, 'passing').catch(() => [] as NextGenStats[]),
             fetchPlayByPlay(season - 1).catch(() => [] as PlayByPlay[]),
             fetchPbpParticipation(season - 1).catch(() => [] as PbpParticipation[]),
+            fetchRosters(season).catch(() => [] as Roster[]),
+            fetchRosters(season - 1).catch(() => [] as Roster[]),
+            fetchDepthCharts(season).catch(() => [] as DepthChart[]),
           ]);
           if (cancelled) return;
 
@@ -486,6 +502,76 @@ export function ADPFactorAnalysis() {
             }
           }
 
+          // ── Roster competition features ──
+
+          // Current-season roster: players per team-position
+          // Use latest week snapshot (highest week number)
+          const rosterByTeamPos = new Map<string, Set<string>>();
+          const playerTeamMap = new Map<string, string>(); // name → team
+          for (const r of seasonRosters) {
+            if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
+            const key = `${r.team}:${r.position}`;
+            if (!rosterByTeamPos.has(key)) rosterByTeamPos.set(key, new Set());
+            const name = normalizeName(r.full_name);
+            rosterByTeamPos.get(key)!.add(name);
+            playerTeamMap.set(name, r.team);
+          }
+
+          // Prior-season roster for detecting new arrivals
+          const priorRosterByTeamPos = new Map<string, Set<string>>();
+          for (const r of priorRosters) {
+            if (!POSITIONS.includes(r.position)) continue;
+            const key = `${r.team}:${r.position}`;
+            if (!priorRosterByTeamPos.has(key)) priorRosterByTeamPos.set(key, new Set());
+            priorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
+          }
+
+          // Depth chart rank (use latest available depth chart)
+          const depthRankByName = new Map<string, number>();
+          const dcLatest = new Map<string, DepthChart>(); // key: team:pos:name → latest entry
+          for (const dc of seasonDepthCharts) {
+            const name = normalizeName(dc.player_name);
+            const key = `${dc.team}:${dc.pos_abb}:${name}`;
+            const existing = dcLatest.get(key);
+            if (!existing || dc.dt > existing.dt) dcLatest.set(key, dc);
+          }
+          for (const dc of dcLatest.values()) {
+            depthRankByName.set(normalizeName(dc.player_name), dc.pos_rank || dc.pos_slot || 99);
+          }
+
+          // Prior team touch totals for share calculation
+          const teamTotalCarries = new Map<string, number>();
+          const teamTotalTargets = new Map<string, number>();
+          for (const p of priorTotals) {
+            if (!POSITIONS.includes(p.position)) continue;
+            const team = p.recent_team || '';
+            if (!team) continue;
+            teamTotalCarries.set(team, (teamTotalCarries.get(team) || 0) + (p.carries || 0));
+            teamTotalTargets.set(team, (teamTotalTargets.get(team) || 0) + (p.targets || 0));
+          }
+
+          // Prior season PPR by name (for teammate best PPR)
+          const priorPPRByName = new Map<string, number>();
+          for (const p of priorTotals) {
+            if (POSITIONS.includes(p.position)) {
+              priorPPRByName.set(normalizeName(p.player_display_name), p.fantasy_points_ppr || 0);
+            }
+          }
+
+          // Draft picks for this season (team drafted same position)
+          const draftPicksBySeason = draftData.filter((d) => d.season === season);
+          const teamDraftedPos = new Map<string, { count: number; bestPick: number }>();
+          for (const d of draftPicksBySeason) {
+            // Match draft position to fantasy positions
+            const pos = d.position || '';
+            if (!POSITIONS.includes(pos)) continue;
+            const key = `${d.team}:${pos}`;
+            const existing = teamDraftedPos.get(key) || { count: 0, bestPick: 300 };
+            existing.count += 1;
+            existing.bestPick = Math.min(existing.bestPick, d.pick || 300);
+            teamDraftedPos.set(key, existing);
+          }
+
           // Join ADP with outcomes
           for (const adpPlayer of adpData) {
             if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -651,6 +737,46 @@ export function ADPFactorAnalysis() {
               preseasonInjWeeks: preseasonInjByName.get(normalName)?.weeks || 0,
               priorSoftTissue: priorInjByName.get(normalName)?.softTissue ? 1 : 0,
               priorKneeInjury: priorInjByName.get(normalName)?.knee ? 1 : 0,
+
+              // Roster competition features
+              ...(() => {
+                const playerTeam2 = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const posKey = `${playerTeam2}:${adpPlayer.position}`;
+                const teammates = rosterByTeamPos.get(posKey);
+                const samePosCount = teammates ? teammates.size - (teammates.has(normalName) ? 1 : 0) : 0;
+                const priorTeammates = priorRosterByTeamPos.get(posKey);
+                const newArrivals = teammates && priorTeammates
+                  ? [...teammates].filter((n) => n !== normalName && !priorTeammates.has(n)).length
+                  : 0;
+                const draftedInfo = teamDraftedPos.get(posKey);
+                const priorTeamCarries = teamTotalCarries.get(playerTeam2) || 1;
+                const priorTeamTargets2 = teamTotalTargets.get(playerTeam2) || 1;
+                const playerTouchShare = adpPlayer.position === 'RB'
+                  ? (prior?.carries || 0) / priorTeamCarries
+                  : (prior?.targets || 0) / priorTeamTargets2;
+                const playerTargetShareTeam = (prior?.targets || 0) / priorTeamTargets2;
+
+                // Best same-pos teammate PPR (excluding self)
+                let bestTeammatePPR = 0;
+                if (teammates) {
+                  for (const tmName of teammates) {
+                    if (tmName === normalName) continue;
+                    const tmPPR = priorPPRByName.get(tmName) || 0;
+                    if (tmPPR > bestTeammatePPR) bestTeammatePPR = tmPPR;
+                  }
+                }
+
+                return {
+                  teamSamePosCount: samePosCount,
+                  depthChartRank: depthRankByName.get(normalName) || 99,
+                  priorTeamTouchShare: Math.round(playerTouchShare * 1000) / 1000,
+                  priorTeamTargetShare: Math.round(playerTargetShareTeam * 1000) / 1000,
+                  newSamePosAdded: newArrivals,
+                  teamDraftedSamePos: draftedInfo ? draftedInfo.count : 0,
+                  draftCapitalSamePos: draftedInfo ? Math.max(0, 8 - Math.ceil(draftedInfo.bestPick / 32)) : 0,
+                  teammatePriorPPR: Math.round(bestTeammatePPR * 10) / 10,
+                };
+              })(),
             };
 
             rows.push({
@@ -681,6 +807,7 @@ export function ADPFactorAnalysis() {
             predPriorInjuries, predPreseasonInjuries,
             predPriorNgsRec, predPriorNgsRush, predPriorNgsPass,
             predPriorPbp, predPriorParticipation,
+            predSeasonRosters, predPriorRosters, predSeasonDepthCharts,
           ] = await Promise.all([
             fetchFfcADP(predSeason, 'ppr', 12).catch(() => []),
             fetchPlayerStats(priorSeason).catch(() => []),
@@ -692,6 +819,9 @@ export function ADPFactorAnalysis() {
             fetchNextGenStats(priorSeason, 'passing').catch(() => [] as NextGenStats[]),
             fetchPlayByPlay(priorSeason).catch(() => [] as PlayByPlay[]),
             fetchPbpParticipation(priorSeason).catch(() => [] as PbpParticipation[]),
+            fetchRosters(predSeason).catch(() => [] as Roster[]),
+            fetchRosters(priorSeason).catch(() => [] as Roster[]),
+            fetchDepthCharts(predSeason).catch(() => [] as DepthChart[]),
           ]);
           if (cancelled) return;
 
@@ -865,6 +995,59 @@ export function ADPFactorAnalysis() {
               predPreseasonInjByName.set(name, acc);
             }
 
+            // ── Roster competition for predictions ──
+            const predRosterByTeamPos = new Map<string, Set<string>>();
+            const predPlayerTeamMap = new Map<string, string>();
+            for (const r of predSeasonRosters) {
+              if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
+              const key = `${r.team}:${r.position}`;
+              if (!predRosterByTeamPos.has(key)) predRosterByTeamPos.set(key, new Set());
+              const name = normalizeName(r.full_name);
+              predRosterByTeamPos.get(key)!.add(name);
+              predPlayerTeamMap.set(name, r.team);
+            }
+            const predPriorRosterByTeamPos = new Map<string, Set<string>>();
+            for (const r of predPriorRosters) {
+              if (!POSITIONS.includes(r.position)) continue;
+              const key = `${r.team}:${r.position}`;
+              if (!predPriorRosterByTeamPos.has(key)) predPriorRosterByTeamPos.set(key, new Set());
+              predPriorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
+            }
+            const predDepthRankByName = new Map<string, number>();
+            const predDcLatest = new Map<string, DepthChart>();
+            for (const dc of predSeasonDepthCharts) {
+              const name = normalizeName(dc.player_name);
+              const key = `${dc.team}:${dc.pos_abb}:${name}`;
+              const existing = predDcLatest.get(key);
+              if (!existing || dc.dt > existing.dt) predDcLatest.set(key, dc);
+            }
+            for (const dc of predDcLatest.values()) {
+              predDepthRankByName.set(normalizeName(dc.player_name), dc.pos_rank || dc.pos_slot || 99);
+            }
+            const predTeamTotalCarries = new Map<string, number>();
+            const predTeamTotalTargets = new Map<string, number>();
+            const predPriorPPRByName = new Map<string, number>();
+            for (const p of predPriorTotals) {
+              if (!POSITIONS.includes(p.position)) continue;
+              const team = p.recent_team || '';
+              if (team) {
+                predTeamTotalCarries.set(team, (predTeamTotalCarries.get(team) || 0) + (p.carries || 0));
+                predTeamTotalTargets.set(team, (predTeamTotalTargets.get(team) || 0) + (p.targets || 0));
+              }
+              predPriorPPRByName.set(normalizeName(p.player_display_name), p.fantasy_points_ppr || 0);
+            }
+            const predDraftPicksBySeason = draftData.filter((d) => d.season === predSeason);
+            const predTeamDraftedPos = new Map<string, { count: number; bestPick: number }>();
+            for (const d of predDraftPicksBySeason) {
+              const pos = d.position || '';
+              if (!POSITIONS.includes(pos)) continue;
+              const key = `${d.team}:${pos}`;
+              const existing = predTeamDraftedPos.get(key) || { count: 0, bestPick: 300 };
+              existing.count += 1;
+              existing.bestPick = Math.min(existing.bestPick, d.pick || 300);
+              predTeamDraftedPos.set(key, existing);
+            }
+
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -998,6 +1181,45 @@ export function ADPFactorAnalysis() {
                 preseasonInjWeeks: predPreseasonInjByName.get(normalName)?.weeks || 0,
                 priorSoftTissue: predPriorInjByName.get(normalName)?.softTissue ? 1 : 0,
                 priorKneeInjury: predPriorInjByName.get(normalName)?.knee ? 1 : 0,
+
+                // Roster competition features
+                ...(() => {
+                  const playerTeam2 = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const posKey = `${playerTeam2}:${adpPlayer.position}`;
+                  const teammates = predRosterByTeamPos.get(posKey);
+                  const samePosCount = teammates ? teammates.size - (teammates.has(normalName) ? 1 : 0) : 0;
+                  const priorTeammates2 = predPriorRosterByTeamPos.get(posKey);
+                  const newArrivals = teammates && priorTeammates2
+                    ? [...teammates].filter((n) => n !== normalName && !priorTeammates2.has(n)).length
+                    : 0;
+                  const draftedInfo = predTeamDraftedPos.get(posKey);
+                  const priorTeamCarries = predTeamTotalCarries.get(playerTeam2) || 1;
+                  const priorTeamTargets2 = predTeamTotalTargets.get(playerTeam2) || 1;
+                  const playerTouchShare = adpPlayer.position === 'RB'
+                    ? (prior?.carries || 0) / priorTeamCarries
+                    : (prior?.targets || 0) / priorTeamTargets2;
+                  const playerTargetShareTeam = (prior?.targets || 0) / priorTeamTargets2;
+
+                  let bestTeammatePPR = 0;
+                  if (teammates) {
+                    for (const tmName of teammates) {
+                      if (tmName === normalName) continue;
+                      const tmPPR = predPriorPPRByName.get(tmName) || 0;
+                      if (tmPPR > bestTeammatePPR) bestTeammatePPR = tmPPR;
+                    }
+                  }
+
+                  return {
+                    teamSamePosCount: samePosCount,
+                    depthChartRank: predDepthRankByName.get(normalName) || 99,
+                    priorTeamTouchShare: Math.round(playerTouchShare * 1000) / 1000,
+                    priorTeamTargetShare: Math.round(playerTargetShareTeam * 1000) / 1000,
+                    newSamePosAdded: newArrivals,
+                    teamDraftedSamePos: draftedInfo ? draftedInfo.count : 0,
+                    draftCapitalSamePos: draftedInfo ? Math.max(0, 8 - Math.ceil(draftedInfo.bestPick / 32)) : 0,
+                    teammatePriorPPR: Math.round(bestTeammatePPR * 10) / 10,
+                  };
+                })(),
               };
 
               predRows.push({
