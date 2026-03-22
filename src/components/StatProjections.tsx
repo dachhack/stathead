@@ -4,7 +4,9 @@ import {
   fetchDraftPicks, fetchRosters, fetchGames,
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection } from '../types';
+import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { ScenarioBuilder } from './ScenarioBuilder';
 import projectionConfig from '../generated/projection-config.json';
 
 // ── Config ──
@@ -63,94 +65,150 @@ function computePPR(p: {
   );
 }
 
-// ── Scenario types ──
+// ── Scenario application ──
 
-interface ScenarioSettings {
-  // Team-level multipliers: team → multiplier (1.0 = baseline, 1.10 = +10%)
-  teamPassAdj: Record<string, number>;   // multiplier on team pass attempts
-  teamRushAdj: Record<string, number>;   // multiplier on team rush attempts
-  // Player-level overrides: normalized name → overrides
-  playerAdj: Record<string, { games?: number; targets?: number; carries?: number }>;
-}
-
-function defaultScenario(): ScenarioSettings {
-  return { teamPassAdj: {}, teamRushAdj: {}, playerAdj: {} };
-}
-
-function isScenarioActive(sc: ScenarioSettings): boolean {
-  return (
-    Object.keys(sc.teamPassAdj).length > 0 ||
-    Object.keys(sc.teamRushAdj).length > 0 ||
-    Object.keys(sc.playerAdj).length > 0
-  );
-}
-
-function applyScenarioAdj(
-  qbs: QBProjection[], rbs: RBProjection[], wrs: WRProjection[], tes: TEProjection[],
-  sc: ScenarioSettings
+function applyScenarioToProjections(
+  qbs: QBProjection[],
+  rbs: RBProjection[],
+  wrs: WRProjection[],
+  tes: TEProjection[],
+  sc: ScenarioConfig,
 ): { qbs: QBProjection[]; rbs: RBProjection[]; wrs: WRProjection[]; tes: TEProjection[] } {
-  const pm = (team: string) => sc.teamPassAdj[team] ?? 1;
-  const rm = (team: string) => sc.teamRushAdj[team] ?? 1;
+  // Build team override map from player movements (normalizedName → newTeam)
+  const teamOverrides = new Map<string, string>();
+  for (const move of sc.movements) {
+    teamOverrides.set(normalizeName(move.playerName), move.toTeam);
+  }
 
-  const adjQbs = qbs.map(p => {
-    const passAtt = Math.round(p.passAtt * pm(p.team));
-    const passComp = Math.round(p.passComp * pm(p.team));
-    const passYds = Math.round(p.passYds * pm(p.team));
-    const passTD = Math.round(p.passTD * pm(p.team));
-    const int = Math.round(p.int * pm(p.team));
-    const rushAtt = Math.round(p.rushAtt * rm(p.team));
-    const rushYds = Math.round(p.rushYds * rm(p.team));
-    const rushTD = Math.round(p.rushTD * rm(p.team));
-    return { ...p, passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD,
+  // Build volume override map by player name (normalizedName → volumeDelta %)
+  const volumeByName = new Map<string, number>();
+  for (const vo of sc.volumeOverrides) {
+    volumeByName.set(normalizeName(vo.playerName), vo.volumeDelta);
+  }
+
+  const getTeam = (p: { name: string; team: string }) =>
+    teamOverrides.get(normalizeName(p.name)) ?? p.team;
+
+  const passMult = (team: string) => {
+    const t = sc.teamTendencies.find((x) => x.team === team);
+    return t ? 1 + t.passRatioDelta * 0.008 : 1;
+  };
+  const rushMult = (team: string) => {
+    const t = sc.teamTendencies.find((x) => x.team === team);
+    return t ? 1 - t.passRatioDelta * 0.010 : 1;
+  };
+
+  const adjQbs = qbs.map((p) => {
+    const team = getTeam(p);
+    const vd = volumeByName.get(normalizeName(p.name));
+    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
+    const passAtt = Math.round(p.passAtt * f);
+    const passComp = Math.round(p.passComp * f);
+    const passYds = Math.round(p.passYds * f);
+    const passTD = Math.round(p.passTD * f);
+    const int = Math.round(p.int * f);
+    const rushAtt = Math.round(p.rushAtt * rf);
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    return { ...p, team, passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD,
       pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) };
   });
 
-  const adjRbs = rbs.map(p => {
-    const nn = normalizeName(p.name);
-    const padj = sc.playerAdj[nn];
-    const games = padj?.games ?? p.games;
-    const rushAtt = padj?.carries !== undefined ? padj.carries : Math.round(p.rushAtt * rm(p.team));
+  const adjRbs = rbs.map((p) => {
+    const team = getTeam(p);
+    const vd = volumeByName.get(normalizeName(p.name));
+    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
+    const pf = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const rushAtt = Math.round(p.rushAtt * rf);
     const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
     const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
-    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+    const tgt = Math.round(p.tgt * pf);
     const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.72;
     const rec = Math.round(tgt * catchRate);
     const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
     const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
-    return { ...p, games, rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD,
+    return { ...p, team, rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD,
       pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
   });
 
-  const adjWrs = wrs.map(p => {
-    const nn = normalizeName(p.name);
-    const padj = sc.playerAdj[nn];
-    const games = padj?.games ?? p.games;
-    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+  const adjWrs = wrs.map((p) => {
+    const team = getTeam(p);
+    const vd = volumeByName.get(normalizeName(p.name));
+    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
+    const tgt = Math.round(p.tgt * f);
     const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.65;
     const rec = Math.round(tgt * catchRate);
     const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
     const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
-    const rushAtt = padj?.carries !== undefined ? padj.carries : Math.round(p.rushAtt * rm(p.team));
+    const rushAtt = Math.round(p.rushAtt * rf);
     const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
     const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
-    return { ...p, games, tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD,
+    return { ...p, team, tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD,
       pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
   });
 
-  const adjTes = tes.map(p => {
-    const nn = normalizeName(p.name);
-    const padj = sc.playerAdj[nn];
-    const games = padj?.games ?? p.games;
-    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+  const adjTes = tes.map((p) => {
+    const team = getTeam(p);
+    const vd = volumeByName.get(normalizeName(p.name));
+    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const tgt = Math.round(p.tgt * f);
     const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.68;
     const rec = Math.round(tgt * catchRate);
     const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
     const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
-    return { ...p, games, tgt, rec, recYds, recTD,
+    return { ...p, team, tgt, rec, recYds, recTD,
       pprPts: Math.round(computePPR({ rec, recYds, recTD })) };
   });
 
+  // Vegas weighting — regression toward position mean on pprPts
+  if (sc.vegasWeighting > 0) {
+    const factor = sc.vegasWeighting / 100;
+    const mean = (arr: { pprPts: number }[]) =>
+      arr.length ? arr.reduce((s, p) => s + p.pprPts, 0) / arr.length : 0;
+    const regress = (pts: number, avg: number) => Math.round(pts + (avg - pts) * factor);
+    const qbMean = mean(adjQbs), rbMean = mean(adjRbs), wrMean = mean(adjWrs), teMean = mean(adjTes);
+    adjQbs.forEach((p, i) => { adjQbs[i] = { ...p, pprPts: regress(p.pprPts, qbMean) }; });
+    adjRbs.forEach((p, i) => { adjRbs[i] = { ...p, pprPts: regress(p.pprPts, rbMean) }; });
+    adjWrs.forEach((p, i) => { adjWrs[i] = { ...p, pprPts: regress(p.pprPts, wrMean) }; });
+    adjTes.forEach((p, i) => { adjTes[i] = { ...p, pprPts: regress(p.pprPts, teMean) }; });
+  }
+
+  // Custom players — inject into position arrays
+  for (const cp of sc.customPlayers) {
+    const base = { name: `★ ${cp.name}`, team: cp.team || 'FA', adp: 999, games: 17, pprPts: cp.fantasyPointsPPR };
+    if (cp.position === 'QB') {
+      adjQbs.push({ ...base, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0 });
+    } else if (cp.position === 'RB') {
+      adjRbs.push({ ...base, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0 });
+    } else if (cp.position === 'WR') {
+      adjWrs.push({ ...base, tgt: 0, rec: 0, recYds: 0, recTD: 0, rushAtt: 0, rushYds: 0, rushTD: 0 });
+    } else if (cp.position === 'TE') {
+      adjTes.push({ ...base, tgt: 0, rec: 0, recYds: 0, recTD: 0 });
+    }
+  }
+
   return { qbs: adjQbs, rbs: adjRbs, wrs: adjWrs, tes: adjTes };
+}
+
+// Build SDIOProjection[] from internal projections for ScenarioBuilder player search
+function buildSearchProjections(
+  qbs: QBProjection[], rbs: RBProjection[], wrs: WRProjection[], tes: TEProjection[],
+): SDIOProjection[] {
+  const zero = {
+    PassingAttempts: 0, PassingCompletions: 0, PassingYards: 0, PassingTouchdowns: 0,
+    PassingInterceptions: 0, RushingAttempts: 0, RushingYards: 0, RushingTouchdowns: 0,
+    Receptions: 0, ReceivingYards: 0, ReceivingTouchdowns: 0,
+    FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
+  };
+  let id = 1;
+  return [
+    ...qbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'QB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
+    ...rbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'RB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
+    ...wrs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'WR', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
+    ...tes.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'TE', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
+  ] as SDIOProjection[];
 }
 
 
@@ -189,14 +247,19 @@ export function StatProjections() {
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
   const [teProjections, setTEProjections] = useState<TEProjection[]>([]);
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
-  const [scenario, setScenario] = useState<ScenarioSettings>(defaultScenario);
+  const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const [scenarioOpen, setScenarioOpen] = useState(false);
 
+  const searchProjections = useMemo(
+    () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
+    [qbProjections, rbProjections, wrProjections, teProjections],
+  );
+
   const { qbs: dispQbs, rbs: dispRbs, wrs: dispWrs, tes: dispTes } = useMemo(() => {
-    if (!isScenarioActive(scenario)) {
+    if (isScenarioEmpty(scenario)) {
       return { qbs: qbProjections, rbs: rbProjections, wrs: wrProjections, tes: teProjections };
     }
-    return applyScenarioAdj(qbProjections, rbProjections, wrProjections, teProjections, scenario);
+    return applyScenarioToProjections(qbProjections, rbProjections, wrProjections, teProjections, scenario);
   }, [qbProjections, rbProjections, wrProjections, teProjections, scenario]);
 
   useEffect(() => {
@@ -895,10 +958,10 @@ export function StatProjections() {
           </div>
         )}
         <button
-          className={`scenario-builder-btn ${isScenarioActive(scenario) ? 'active' : ''}`}
+          className={`scenario-builder-btn ${!isScenarioEmpty(scenario) ? 'active' : ''}`}
           onClick={() => setScenarioOpen(true)}
         >
-          {isScenarioActive(scenario) && <span className="scenario-active-dot" />}
+          {!isScenarioEmpty(scenario) && <span className="scenario-active-dot" />}
           Scenarios
         </button>
       </div>
@@ -1340,179 +1403,14 @@ export function StatProjections() {
       </div>
       </>}
 
-      {scenarioOpen && (
-        <StatScenarioDrawer
-          scenario={scenario}
-          onChange={setScenario}
-          onClose={() => setScenarioOpen(false)}
-          teams={Array.from(new Set([
-            ...dispQbs.map(p => p.team),
-            ...dispRbs.map(p => p.team),
-            ...dispWrs.map(p => p.team),
-            ...dispTes.map(p => p.team),
-          ])).filter(Boolean).sort()}
-        />
-      )}
+      <ScenarioBuilder
+        open={scenarioOpen}
+        onClose={() => setScenarioOpen(false)}
+        projections={searchProjections}
+        scenario={scenario}
+        onChange={setScenario}
+      />
     </>
   );
 }
 
-function fmtPct(mult: number): string {
-  const pct = Math.round((mult - 1) * 100);
-  return pct >= 0 ? `+${pct}%` : `${pct}%`;
-}
-
-function StatScenarioDrawer({
-  scenario, onChange, onClose, teams,
-}: {
-  scenario: ScenarioSettings;
-  onChange: (s: ScenarioSettings) => void;
-  onClose: () => void;
-  teams: string[];
-}) {
-  const [newTeam, setNewTeam] = useState('');
-  const [newPassPct, setNewPassPct] = useState(0);
-  const [newRushPct, setNewRushPct] = useState(0);
-
-  const activeTeams = Array.from(
-    new Set([...Object.keys(scenario.teamPassAdj), ...Object.keys(scenario.teamRushAdj)])
-  ).sort();
-
-  const addTeam = () => {
-    if (!newTeam) return;
-    onChange({
-      ...scenario,
-      teamPassAdj: { ...scenario.teamPassAdj, [newTeam]: 1 + newPassPct / 100 },
-      teamRushAdj: { ...scenario.teamRushAdj, [newTeam]: 1 + newRushPct / 100 },
-    });
-    setNewTeam('');
-    setNewPassPct(0);
-    setNewRushPct(0);
-  };
-
-  const removeTeam = (team: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { [team]: _p, ...restPass } = scenario.teamPassAdj;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { [team]: _r, ...restRush } = scenario.teamRushAdj;
-    onChange({ ...scenario, teamPassAdj: restPass, teamRushAdj: restRush });
-  };
-
-  const availableTeams = teams.filter(t => !activeTeams.includes(t));
-
-  return (
-    <>
-      <div className="scenario-overlay" onClick={onClose} />
-      <div className="scenario-drawer">
-        <div className="scenario-header">
-          <div>
-            <div className="scenario-title">Scenario Adjustments</div>
-            {activeTeams.length > 0 && (
-              <div className="scenario-count">
-                {activeTeams.length} team{activeTeams.length !== 1 ? 's' : ''} adjusted
-              </div>
-            )}
-          </div>
-          <button className="chat-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="scenario-body">
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Team Volume Adjustments</span>
-            </div>
-            <p className="scenario-section-hint">
-              Adjust a team's projected pass or rush volume. Changes cascade to all players on that team.
-            </p>
-
-            {activeTeams.length > 0 && (
-              <table style={{ width: '100%', marginBottom: 12, fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Team</th>
-                    <th style={{ textAlign: 'center', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Pass</th>
-                    <th style={{ textAlign: 'center', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Rush</th>
-                    <th style={{ width: 32 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeTeams.map(team => (
-                    <tr key={team} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td style={{ padding: '6px 6px', fontWeight: 700 }}>{team}</td>
-                      <td style={{ padding: '6px 6px', textAlign: 'center', color: scenario.teamPassAdj[team] && scenario.teamPassAdj[team] !== 1 ? '#6366f1' : 'var(--text-muted)' }}>
-                        {fmtPct(scenario.teamPassAdj[team] ?? 1)}
-                      </td>
-                      <td style={{ padding: '6px 6px', textAlign: 'center', color: scenario.teamRushAdj[team] && scenario.teamRushAdj[team] !== 1 ? '#10b981' : 'var(--text-muted)' }}>
-                        {fmtPct(scenario.teamRushAdj[team] ?? 1)}
-                      </td>
-                      <td>
-                        <button className="scenario-link-btn danger" onClick={() => removeTeam(team)}>✕</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {activeTeams.length === 0 && (
-              <p className="scenario-section-empty">No adjustments yet. Add a team below.</p>
-            )}
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 8 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Team</label>
-                <select
-                  value={newTeam}
-                  onChange={e => setNewTeam(e.target.value)}
-                  style={{ padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
-                >
-                  <option value="">Select...</option>
-                  {availableTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pass %</label>
-                <input
-                  type="number"
-                  value={newPassPct}
-                  onChange={e => setNewPassPct(Number(e.target.value))}
-                  min={-50} max={50} step={5}
-                  style={{ width: 64, padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rush %</label>
-                <input
-                  type="number"
-                  value={newRushPct}
-                  onChange={e => setNewRushPct(Number(e.target.value))}
-                  min={-50} max={50} step={5}
-                  style={{ width: 64, padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
-                />
-              </div>
-              <button
-                className="scenario-action-btn"
-                onClick={addTeam}
-                disabled={!newTeam}
-              >
-                Add Team
-              </button>
-            </div>
-          </div>
-
-          {isScenarioActive(scenario) && (
-            <div className="scenario-section" style={{ marginTop: 16 }}>
-              <button
-                className="scenario-action-btn"
-                onClick={() => onChange(defaultScenario())}
-                style={{ width: '100%' }}
-              >
-                Reset All Adjustments
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
