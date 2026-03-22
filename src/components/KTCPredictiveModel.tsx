@@ -11,11 +11,13 @@ import {
   fetchSnapCounts, aggregateToSeasonTotals, fetchDepthCharts,
 } from '../data';
 import { trainRidgeRegression, predict, type TrainedModel, type PredictionResult } from '../lib/ridge';
+import { trainGBMWithCI, predictGBM, type TrainedGBM, type GBMPredictionResult } from '../lib/gbm';
 
 // ── Types ──
 
 type Position = 'QB' | 'RB' | 'WR' | 'TE';
 type RookieFilter = 'all' | 'rookie' | 'veteran';
+type ModelType = 'ridge' | 'gbm';
 
 const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE'];
 
@@ -28,10 +30,13 @@ interface ModelRow {
   // Target
   septValue: number;
   decValue: number;
-  valueDelta: number;
+  valueDelta: number;       // raw absolute change
+  valueDeltaPct: number;    // percentage change: ((dec - sept) / sept) * 100
   // Feature vector (keyed by feature name)
   features: Record<string, number>;
 }
+
+type FeatureContrib = { name: string; value: number; contribution: number };
 
 interface PlayerPrediction {
   name: string;
@@ -39,10 +44,16 @@ interface PlayerPrediction {
   playerID: number;
   septValue: number;
   actualDelta: number | null; // null for future predictions
-  predictedDelta: number;
+  actualDeltaPct: number | null;
+  predictedDeltaPct: number;  // predicted percentage change
+  predictedDelta: number;     // converted back to absolute
   predictedDecValue: number;
-  topDrivers: PredictionResult['featureContributions'];
-  allDrivers: PredictionResult['featureContributions'];
+  ciLower: number | null;     // 80% CI lower bound (pct)
+  ciUpper: number | null;     // 80% CI upper bound (pct)
+  ciLowerAbs: number | null;  // converted to absolute KTC points
+  ciUpperAbs: number | null;
+  topDrivers: FeatureContrib[];
+  allDrivers: FeatureContrib[];
 }
 
 // ── Feature definitions ──
@@ -158,7 +169,7 @@ function parseHeight(ht: string): number {
 }
 
 // ── Seasons ──
-const TRAIN_SEASONS = [2025];
+const TRAIN_SEASONS = [2024, 2025];
 
 // ── Component ──
 
@@ -169,7 +180,11 @@ interface KTCPredictiveModelProps {
 export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
+  const [modelType, setModelType] = useState<ModelType>('gbm');
   const [model, setModel] = useState<TrainedModel | null>(null);
+  const [gbmModel, setGbmModel] = useState<TrainedGBM | null>(null);
+  const [gbmLower, setGbmLower] = useState<TrainedGBM | null>(null);
+  const [gbmUpper, setGbmUpper] = useState<TrainedGBM | null>(null);
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -431,6 +446,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
               septValue: septVal,
               decValue: decVal,
               valueDelta: decVal - septVal,
+              valueDeltaPct: septVal > 0 ? ((decVal - septVal) / septVal) * 100 : 0,
               features,
             });
           }
@@ -455,31 +471,103 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
         }
 
         // ── 4. Build feature matrix ──
+        // Use percentage change as target to avoid ceiling effects
         setLoadingStatus('Training model...');
         const activeDefs = getFeatureDefsForPosition(position);
         const featureNames = activeDefs.map((f) => f.key);
         const X = validRows.map((r) => featureNames.map((k) => r.features[k] || 0));
-        const y = validRows.map((r) => r.valueDelta);
+        const yPct = validRows.map((r) => r.valueDeltaPct);
 
-        // Train
-        const trained = trainRidgeRegression(X, y, featureNames, lambda);
-        setModel(trained);
+        let preds: PlayerPrediction[];
 
-        // ── 5. Generate predictions ──
-        const preds: PlayerPrediction[] = validRows.map((row) => {
-          const result = predict(trained, row.features);
-          return {
-            name: row.name,
-            team: row.team,
-            playerID: row.playerID,
-            septValue: row.septValue,
-            actualDelta: row.valueDelta,
-            predictedDelta: Math.round(result.predicted),
-            predictedDecValue: Math.round(row.septValue + result.predicted),
-            topDrivers: result.featureContributions.slice(0, 5),
-            allDrivers: result.featureContributions,
-          };
-        });
+        if (modelType === 'gbm') {
+          // Train GBM with 80% confidence intervals via quantile regression
+          setLoadingStatus('Training gradient boosting model with confidence intervals...');
+          const { median, lower, upper } = trainGBMWithCI(X, yPct, featureNames, {
+            nEstimators: 100,
+            learningRate: 0.1,
+            maxDepth: 3,
+            minSamplesLeaf: Math.max(3, Math.floor(validRows.length / 20)),
+            subsample: 0.8,
+          }, 0.80);
+
+          setGbmModel(median);
+          setGbmLower(lower);
+          setGbmUpper(upper);
+          // Store ridge-like metrics for display
+          setModel({
+            coefficients: [],
+            intercept: 0,
+            featureNames,
+            featureMeans: [],
+            featureStds: [],
+            targetMean: 0,
+            targetStd: 0,
+            rSquared: median.rSquared,
+            adjustedRSquared: median.adjustedRSquared,
+            mae: median.mae,
+            rmse: median.rmse,
+            n: median.n,
+            predictions: median.predictions,
+          });
+
+          preds = validRows.map((row) => {
+            const result = predictGBM(median, row.features);
+            const lowerResult = predictGBM(lower, row.features);
+            const upperResult = predictGBM(upper, row.features);
+            const predPct = result.predicted;
+            const predAbsDelta = Math.round((predPct / 100) * row.septValue);
+            const lowerPct = lowerResult.predicted;
+            const upperPct = upperResult.predicted;
+            return {
+              name: row.name,
+              team: row.team,
+              playerID: row.playerID,
+              septValue: row.septValue,
+              actualDelta: row.valueDelta,
+              actualDeltaPct: row.valueDeltaPct,
+              predictedDeltaPct: Math.round(predPct * 10) / 10,
+              predictedDelta: predAbsDelta,
+              predictedDecValue: Math.round(row.septValue + predAbsDelta),
+              ciLower: Math.round(lowerPct * 10) / 10,
+              ciUpper: Math.round(upperPct * 10) / 10,
+              ciLowerAbs: Math.round((lowerPct / 100) * row.septValue),
+              ciUpperAbs: Math.round((upperPct / 100) * row.septValue),
+              topDrivers: result.featureContributions.slice(0, 5),
+              allDrivers: result.featureContributions,
+            };
+          });
+        } else {
+          // Ridge regression
+          const trained = trainRidgeRegression(X, yPct, featureNames, lambda);
+          setModel(trained);
+          setGbmModel(null);
+          setGbmLower(null);
+          setGbmUpper(null);
+
+          preds = validRows.map((row) => {
+            const result = predict(trained, row.features);
+            const predPct = result.predicted;
+            const predAbsDelta = Math.round((predPct / 100) * row.septValue);
+            return {
+              name: row.name,
+              team: row.team,
+              playerID: row.playerID,
+              septValue: row.septValue,
+              actualDelta: row.valueDelta,
+              actualDeltaPct: row.valueDeltaPct,
+              predictedDeltaPct: Math.round(predPct * 10) / 10,
+              predictedDelta: predAbsDelta,
+              predictedDecValue: Math.round(row.septValue + predAbsDelta),
+              ciLower: null,
+              ciUpper: null,
+              ciLowerAbs: null,
+              ciUpperAbs: null,
+              topDrivers: result.featureContributions.slice(0, 5),
+              allDrivers: result.featureContributions,
+            };
+          });
+        }
 
         setPredictions(preds);
       } catch (e) {
@@ -491,13 +579,37 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, position, rookieFilter]);
+  }, [lambda, position, rookieFilter, modelType]);
 
   const activeDefs = useMemo(() => getFeatureDefsForPosition(position), [position]);
 
-  // Feature importance (sorted by absolute coefficient)
+  // Feature importance (sorted by absolute coefficient / importance)
   const featureImportance = useMemo(() => {
     if (!model) return [];
+    if (modelType === 'gbm' && predictions.length > 0) {
+      // For GBM: average absolute contribution across all predictions
+      const nFeatures = activeDefs.length;
+      const avgContrib = new Array(nFeatures).fill(0);
+      const featureNames = activeDefs.map(f => f.key);
+      for (const pred of predictions) {
+        for (const driver of pred.allDrivers) {
+          const idx = featureNames.indexOf(driver.name);
+          if (idx >= 0) avgContrib[idx] += Math.abs(driver.contribution);
+        }
+      }
+      for (let i = 0; i < nFeatures; i++) avgContrib[i] /= predictions.length;
+      // Normalize to max = 1 for display
+      const maxContrib = Math.max(...avgContrib, 0.001);
+      return activeDefs
+        .map((def, i) => ({
+          name: def.key,
+          label: def.label,
+          category: def.category,
+          coefficient: avgContrib[i] / maxContrib,
+          absCoeff: avgContrib[i] / maxContrib,
+        }))
+        .sort((a, b) => b.absCoeff - a.absCoeff);
+    }
     return model.featureNames
       .map((name, i) => {
         const def = activeDefs.find((f) => f.key === name);
@@ -510,7 +622,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
         };
       })
       .sort((a, b) => b.absCoeff - a.absCoeff);
-  }, [model, activeDefs]);
+  }, [model, activeDefs, modelType, predictions]);
 
   const filteredImportance = useMemo(() => {
     if (showCategory === 'all') return featureImportance;
@@ -526,15 +638,17 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
     return sorted;
   }, [predictions, sortBy]);
 
-  // Actual vs predicted scatter data
+  // Actual vs predicted scatter data (percentage)
   const scatterData = useMemo(() => {
     return predictions
-      .filter((p) => p.actualDelta !== null)
+      .filter((p) => p.actualDeltaPct !== null)
       .map((p) => ({
         name: p.name,
-        actual: p.actualDelta!,
-        predicted: p.predictedDelta,
+        actual: p.actualDeltaPct!,
+        predicted: p.predictedDeltaPct,
         septValue: p.septValue,
+        actualAbs: p.actualDelta!,
+        predictedAbs: p.predictedDelta,
       }));
   }, [predictions]);
 
@@ -601,11 +715,27 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
             <option value="veteran">Veterans (2+ yrs)</option>
           </select>
         </div>
+        <div className="control-group">
+          <label className="control-label">Model</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['gbm', 'ridge'] as ModelType[]).map((mt) => (
+              <button
+                key={mt}
+                className={`pos-filter ${modelType === mt ? 'active' : ''}`}
+                onClick={() => setModelType(mt)}
+                style={{ fontSize: 12, padding: '4px 10px' }}
+              >
+                {mt === 'gbm' ? 'Gradient Boosting' : 'Ridge Regression'}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        Ridge regression model trained on {model.n} {position}-seasons ({TRAIN_SEASONS.join(', ')}).
-        Uses {activeDefs.length} features across {categories.length - 1} categories to predict Sep→Dec KTC value change.
+        {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} model trained on {model.n} {position}-seasons ({TRAIN_SEASONS.join(', ')}).
+        Uses {activeDefs.length} features across {categories.length - 1} categories to predict Sep→Dec KTC % change.
+        {modelType === 'gbm' && ' 80% confidence intervals via quantile regression.'}
         {rookieFilter !== 'all' && ` Filtered to ${rookieFilter === 'rookie' ? 'rookies (≤1 yr)' : 'veterans (2+ yrs)'}.`}
       </p>
 
@@ -636,20 +766,22 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
             </div>
           </div>
         ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Lambda (λ):</label>
-          <select value={lambda} onChange={(e) => setLambda(Number(e.target.value))}>
-            <option value={0.1}>0.1 (low reg)</option>
-            <option value={1}>1</option>
-            <option value={5}>5 (default)</option>
-            <option value={10}>10</option>
-            <option value={25}>25 (high reg)</option>
-          </select>
-        </div>
+        {modelType === 'ridge' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Lambda (λ):</label>
+            <select value={lambda} onChange={(e) => setLambda(Number(e.target.value))}>
+              <option value={0.1}>0.1 (low reg)</option>
+              <option value={1}>1</option>
+              <option value={5}>5 (default)</option>
+              <option value={10}>10</option>
+              <option value={25}>25 (high reg)</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Feature importance bar chart */}
-      <h4 style={{ marginBottom: 8 }}>Feature Importance (Standardized Coefficients)</h4>
+      <h4 style={{ marginBottom: 8 }}>Feature Importance {modelType === 'gbm' ? '(Avg Contribution)' : '(Standardized Coefficients)'}</h4>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {categories.map((cat) => (
           <button
@@ -712,7 +844,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
       </div>
 
       {/* Actual vs Predicted scatter */}
-      <h4 style={{ marginBottom: 8 }}>Actual vs Predicted (Training Fit)</h4>
+      <h4 style={{ marginBottom: 8 }}>Actual vs Predicted % Change (Training Fit)</h4>
       <div style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border)',
@@ -723,11 +855,11 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
         <ResponsiveContainer width="100%" height={380}>
           <ScatterChart margin={{ top: 10, right: 20, bottom: 40, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
-            <XAxis type="number" dataKey="actual" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-              <Label value="Actual Value Change" position="bottom" offset={20} style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
+            <XAxis type="number" dataKey="actual" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`}>
+              <Label value="Actual % Change" position="bottom" offset={20} style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
             </XAxis>
-            <YAxis type="number" dataKey="predicted" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-              <Label value="Predicted Value Change" angle={-90} position="insideLeft" offset={10} style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
+            <YAxis type="number" dataKey="predicted" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}%`}>
+              <Label value="Predicted % Change" angle={-90} position="insideLeft" offset={10} style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
             </YAxis>
             <ReferenceLine
               segment={[
@@ -752,8 +884,8 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
                   }}>
                     <strong>{d.name}</strong>
                     <br />Sept: {d.septValue.toLocaleString()}
-                    <br />Actual: <span style={{ color: d.actual >= 0 ? '#10b981' : '#ef4444' }}>{d.actual >= 0 ? '+' : ''}{d.actual.toLocaleString()}</span>
-                    <br />Predicted: <span style={{ color: d.predicted >= 0 ? '#10b981' : '#ef4444' }}>{d.predicted >= 0 ? '+' : ''}{d.predicted.toLocaleString()}</span>
+                    <br />Actual: <span style={{ color: d.actual >= 0 ? '#10b981' : '#ef4444' }}>{d.actual >= 0 ? '+' : ''}{d.actual.toFixed(1)}% ({d.actualAbs >= 0 ? '+' : ''}{d.actualAbs.toLocaleString()})</span>
+                    <br />Predicted: <span style={{ color: d.predicted >= 0 ? '#10b981' : '#ef4444' }}>{d.predicted >= 0 ? '+' : ''}{d.predicted.toFixed(1)}% ({d.predictedAbs >= 0 ? '+' : ''}{d.predictedAbs.toLocaleString()})</span>
                   </div>
                 );
               }}
@@ -764,7 +896,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
       </div>
 
       {/* Predicted Value Change Chart */}
-      <h4 style={{ marginBottom: 8 }}>Predicted Value Change (Current → Dec)</h4>
+      <h4 style={{ marginBottom: 8 }}>Predicted Value Change (Current → Dec) {modelType === 'gbm' && '— with 80% CI'}</h4>
       <div className="controls" style={{ marginBottom: 12 }}>
         <div className="control-group">
           <label className="control-label">Sort by</label>
@@ -792,8 +924,13 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
               name: `${p.name} (${p.team})`,
               playerName: p.name,
               value: p.predictedDelta,
+              pctChange: p.predictedDeltaPct,
               septValue: p.septValue,
               predictedDec: p.predictedDecValue,
+              ciLower: p.ciLowerAbs,
+              ciUpper: p.ciUpperAbs,
+              ciLowerPct: p.ciLower,
+              ciUpperPct: p.ciUpper,
               fill: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
             }))}
             layout="vertical"
@@ -854,9 +991,35 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
                 borderRadius: 6,
                 fontSize: 12,
               }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={((value: number) => [`${value >= 0 ? '+' : ''}${value.toLocaleString()}`, 'Predicted Change']) as any}
-              labelFormatter={(label) => label}
+              content={({ payload }) => {
+                if (!payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div style={{
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    fontSize: 12,
+                  }}>
+                    <strong>{d.name}</strong>
+                    <br />Sept Value: {d.septValue.toLocaleString()}
+                    <br />Predicted: <span style={{ color: d.value >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                      {d.value >= 0 ? '+' : ''}{d.value.toLocaleString()} ({d.pctChange >= 0 ? '+' : ''}{d.pctChange}%)
+                    </span>
+                    <br />Predicted Dec: {d.predictedDec.toLocaleString()}
+                    {d.ciLower != null && d.ciUpper != null && (
+                      <>
+                        <br />
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          80% CI: {d.ciLower >= 0 ? '+' : ''}{d.ciLower.toLocaleString()} to {d.ciUpper >= 0 ? '+' : ''}{d.ciUpper.toLocaleString()}
+                          {' '}({d.ciLowerPct >= 0 ? '+' : ''}{d.ciLowerPct}% to {d.ciUpperPct >= 0 ? '+' : ''}{d.ciUpperPct}%)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                );
+              }}
             />
             <ReferenceLine x={0} stroke="var(--text-muted)" strokeWidth={1} />
             <Bar
@@ -897,7 +1060,13 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
                 {' '}
                 (<span style={{ color: selectedPrediction.predictedDelta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                   {selectedPrediction.predictedDelta >= 0 ? '+' : ''}{selectedPrediction.predictedDelta.toLocaleString()}
+                  {' / '}{selectedPrediction.predictedDeltaPct >= 0 ? '+' : ''}{selectedPrediction.predictedDeltaPct}%
                 </span>)
+                {selectedPrediction.ciLowerAbs != null && selectedPrediction.ciUpperAbs != null && (
+                  <span style={{ marginLeft: 8, color: '#6366f1' }}>
+                    80% CI: [{(selectedPrediction.septValue + selectedPrediction.ciLowerAbs).toLocaleString()} – {(selectedPrediction.septValue + selectedPrediction.ciUpperAbs).toLocaleString()}]
+                  </span>
+                )}
               </span>
             </div>
             <button
