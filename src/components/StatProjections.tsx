@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
-  fetchDraftPicks, fetchRosters,
+  fetchDraftPicks, fetchRosters, fetchGames,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../types';
 
 // ── Config ──
 
@@ -82,11 +82,12 @@ export function StatProjections() {
       try {
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
           fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
+          fetchGames().catch(() => [] as Game[]),
         ]);
         if (cancelled) return;
 
@@ -114,6 +115,40 @@ export function StatProjections() {
           if (['QB', 'RB', 'WR', 'TE'].includes(r.position)) {
             rosterTeam.set(normalizeName(r.full_name), r.team);
           }
+        }
+
+        // Vegas implied totals per team (prior season average)
+        // Higher implied total → more scoring → scale projections up
+        const priorSeasonGames = gamesData.filter(
+          (g) => g.season === PREDICT_SEASON - 1 && g.game_type === 'REG' && g.total_line > 0
+        );
+        const teamImpliedTotals = new Map<string, { sum: number; count: number }>();
+        for (const g of priorSeasonGames) {
+          const homeImpl = (g.total_line - g.spread_line) / 2;
+          const awayImpl = (g.total_line + g.spread_line) / 2;
+          if (!teamImpliedTotals.has(g.home_team)) teamImpliedTotals.set(g.home_team, { sum: 0, count: 0 });
+          if (!teamImpliedTotals.has(g.away_team)) teamImpliedTotals.set(g.away_team, { sum: 0, count: 0 });
+          const h = teamImpliedTotals.get(g.home_team)!;
+          h.sum += homeImpl; h.count += 1;
+          const a = teamImpliedTotals.get(g.away_team)!;
+          a.sum += awayImpl; a.count += 1;
+        }
+        // League average implied total per game
+        let leagueImpliedSum = 0; let leagueImpliedCount = 0;
+        for (const [, v] of teamImpliedTotals) {
+          leagueImpliedSum += v.sum; leagueImpliedCount += v.count;
+        }
+        const leagueAvgImplied = leagueImpliedCount > 0 ? leagueImpliedSum / leagueImpliedCount : 23;
+
+        // Vegas multiplier: team's implied total vs league average
+        // A team at 27 vs league avg 23 → 27/23 = 1.17 → capped multiplier
+        function vegasMultiplier(teamAbbr: string): number {
+          const t = teamImpliedTotals.get(teamAbbr);
+          if (!t || t.count === 0) return 1;
+          const teamAvg = t.sum / t.count;
+          // Dampen: blend 60% team-specific, 40% league average
+          const blended = teamAvg * 0.6 + leagueAvgImplied * 0.4;
+          return Math.max(0.85, Math.min(1.15, blended / leagueAvgImplied));
         }
 
         // Draft data for age/experience
@@ -178,39 +213,40 @@ export function StatProjections() {
           const team = rosterTeam.get(normalName) || adp.team || '';
           const games = projectGames(prior);
           const af = ageFactor(normalName, adp.position);
+          const vm = vegasMultiplier(team);
 
-          // If no prior stats, use ADP-implied baseline
+          // If no prior stats, use ADP-implied baseline (scaled by Vegas)
           if (!prior || prior.games < 3) {
-            // Rough ADP-implied baseline projections for players without prior stats (rookies, etc.)
             if (adp.position === 'QB') {
-              const basePts = Math.max(50, 320 - adp.adp * 1.5);
+              const basePts = Math.max(50, 320 - adp.adp * 1.5) * vm;
               qbs.push({
                 name: adp.name, team, adp: adp.adp, games: 16,
-                passAtt: 520, passComp: 340, passYds: 3800, passTD: 24, int: 12,
-                rushAtt: 45, rushYds: 180, rushTD: 2,
+                passAtt: Math.round(520 * vm), passComp: Math.round(340 * vm),
+                passYds: Math.round(3800 * vm), passTD: Math.round(24 * vm), int: 12,
+                rushAtt: Math.round(45 * vm), rushYds: Math.round(180 * vm), rushTD: 2,
                 pprPts: Math.round(basePts),
               });
             } else if (adp.position === 'RB') {
-              const basePts = Math.max(40, 280 - adp.adp * 1.2);
+              const basePts = Math.max(40, 280 - adp.adp * 1.2) * vm;
               rbs.push({
                 name: adp.name, team, adp: adp.adp, games: 15,
-                rushAtt: 180, rushYds: 750, rushTD: 5,
-                tgt: 45, rec: 35, recYds: 280, recTD: 1,
+                rushAtt: Math.round(180 * vm), rushYds: Math.round(750 * vm), rushTD: Math.round(5 * vm),
+                tgt: Math.round(45 * vm), rec: Math.round(35 * vm), recYds: Math.round(280 * vm), recTD: 1,
                 pprPts: Math.round(basePts),
               });
             } else if (adp.position === 'WR') {
-              const basePts = Math.max(40, 260 - adp.adp * 1.1);
+              const basePts = Math.max(40, 260 - adp.adp * 1.1) * vm;
               wrs.push({
                 name: adp.name, team, adp: adp.adp, games: 16,
-                tgt: 100, rec: 60, recYds: 780, recTD: 5,
+                tgt: Math.round(100 * vm), rec: Math.round(60 * vm), recYds: Math.round(780 * vm), recTD: Math.round(5 * vm),
                 rushAtt: 5, rushYds: 20, rushTD: 0,
                 pprPts: Math.round(basePts),
               });
             } else {
-              const basePts = Math.max(30, 200 - adp.adp * 1.0);
+              const basePts = Math.max(30, 200 - adp.adp * 1.0) * vm;
               tes.push({
                 name: adp.name, team, adp: adp.adp, games: 16,
-                tgt: 75, rec: 50, recYds: 550, recTD: 4,
+                tgt: Math.round(75 * vm), rec: Math.round(50 * vm), recYds: Math.round(550 * vm), recTD: Math.round(4 * vm),
                 pprPts: Math.round(basePts),
               });
             }
@@ -220,7 +256,7 @@ export function StatProjections() {
           const pg = prior.games;
 
           if (adp.position === 'QB') {
-            const passAtt = Math.round((prior.attempts || 0) / pg * games * af);
+            const passAtt = Math.round((prior.attempts || 0) / pg * games * af * vm);
             const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
             const passComp = Math.round(passAtt * compRate);
             const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
@@ -229,7 +265,7 @@ export function StatProjections() {
             const passTD = Math.round(passAtt * tdRate);
             const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
             const ints = Math.round(passAtt * intRate);
-            const rushAtt = Math.round((prior.carries || 0) / pg * games * af);
+            const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
             const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
             const rushYds = Math.round(rushAtt * ypc);
             const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / prior.carries : 0.04;
@@ -243,12 +279,12 @@ export function StatProjections() {
               pprPts: Math.round(pts),
             });
           } else if (adp.position === 'RB') {
-            const rushAtt = Math.round((prior.carries || 0) / pg * games * af);
+            const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
             const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
             const rushYds = Math.round(rushAtt * ypc);
             const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / prior.carries : 0.035;
             const rushTD = Math.max(0, Math.round(rushAtt * rushTDrate));
-            const tgt = Math.round((prior.targets || 0) / pg * games * af);
+            const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
             const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
             const rec = Math.round(tgt * catchRate);
             const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
@@ -264,14 +300,14 @@ export function StatProjections() {
               pprPts: Math.round(pts),
             });
           } else if (adp.position === 'WR') {
-            const tgt = Math.round((prior.targets || 0) / pg * games * af);
+            const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
             const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
             const rec = Math.round(tgt * catchRate);
             const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
             const recYds = Math.round(rec * ypr);
             const recTDrate = (prior.targets || 0) > 0 ? (prior.receiving_tds || 0) / prior.targets : 0.06;
             const recTD = Math.max(0, Math.round(tgt * recTDrate));
-            const rushAtt = Math.round((prior.carries || 0) / pg * games * af);
+            const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
             const rushYpc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 5.0;
             const rushYds = Math.round(rushAtt * rushYpc);
             const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / Math.max(prior.carries, 1) : 0;
@@ -285,7 +321,7 @@ export function StatProjections() {
               pprPts: Math.round(pts),
             });
           } else if (adp.position === 'TE') {
-            const tgt = Math.round((prior.targets || 0) / pg * games * af);
+            const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
             const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
             const rec = Math.round(tgt * catchRate);
             const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
@@ -359,8 +395,8 @@ export function StatProjections() {
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        {PREDICT_SEASON} season stat projections based on {PREDICT_SEASON - 1} per-game rates, projected games, and age regression.
-        Sorted by projected PPR fantasy points.
+        {PREDICT_SEASON} season stat projections based on {PREDICT_SEASON - 1} per-game rates, projected games, age regression,
+        and Vegas implied team totals. Sorted by projected PPR fantasy points.
       </p>
 
       {/* Position tabs */}
