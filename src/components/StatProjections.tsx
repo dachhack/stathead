@@ -64,11 +64,25 @@ function computePPR(p: {
 
 // ── Component ──
 
+type ViewMode = 'position' | 'team';
+
+const TEAM_POS_LIMITS: Record<Position, number> = { QB: 2, RB: 4, WR: 5, TE: 3 };
+
+interface TeamGroup {
+  team: string;
+  totalPPR: number;
+  qbs: QBProjection[];
+  rbs: RBProjection[];
+  wrs: WRProjection[];
+  tes: TEProjection[];
+}
+
 export function StatProjections() {
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedPos, setSelectedPos] = useState<Position>('RB');
+  const [viewMode, setViewMode] = useState<ViewMode>('position');
 
   const [qbProjections, setQBProjections] = useState<QBProjection[]>([]);
   const [rbProjections, setRBProjections] = useState<RBProjection[]>([]);
@@ -382,6 +396,26 @@ export function StatProjections() {
     return teProjections;
   }, [selectedPos, qbProjections, rbProjections, wrProjections, teProjections]);
 
+  const teamGroups = useMemo(() => {
+    const byTeam = new Map<string, TeamGroup>();
+    function ensure(team: string): TeamGroup {
+      if (!byTeam.has(team)) byTeam.set(team, { team, totalPPR: 0, qbs: [], rbs: [], wrs: [], tes: [] });
+      return byTeam.get(team)!;
+    }
+    for (const p of qbProjections) { if (p.team) ensure(p.team).qbs.push(p); }
+    for (const p of rbProjections) { if (p.team) ensure(p.team).rbs.push(p); }
+    for (const p of wrProjections) { if (p.team) ensure(p.team).wrs.push(p); }
+    for (const p of teProjections) { if (p.team) ensure(p.team).tes.push(p); }
+    for (const g of byTeam.values()) {
+      g.qbs = g.qbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.QB);
+      g.rbs = g.rbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.RB);
+      g.wrs = g.wrs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.WR);
+      g.tes = g.tes.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.TE);
+      g.totalPPR = [...g.qbs, ...g.rbs, ...g.wrs, ...g.tes].reduce((s, p) => s + p.pprPts, 0);
+    }
+    return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
+  }, [qbProjections, rbProjections, wrProjections, teProjections]);
+
   if (loading) {
     return (
       <div className="loading">
@@ -413,27 +447,137 @@ export function StatProjections() {
         and Vegas implied team totals{oddsSource === 'live' ? ' (live odds)' : ''}. Sorted by projected PPR fantasy points.
       </p>
 
-      {/* Position tabs */}
-      <div className="controls" style={{ marginBottom: 16 }}>
+      {/* View mode + Position tabs */}
+      <div className="controls" style={{ marginBottom: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div className="control-group">
-          <label className="control-label">Position</label>
+          <label className="control-label">View</label>
           <div style={{ display: 'flex', gap: 4 }}>
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                className={`pos-filter ${selectedPos === pos ? 'active' : ''}`}
-                onClick={() => setSelectedPos(pos)}
-                style={{ borderColor: POS_COLORS[pos] }}
-              >
-                {pos}
-              </button>
-            ))}
+            <button
+              className={`pos-filter ${viewMode === 'position' ? 'active' : ''}`}
+              onClick={() => setViewMode('position')}
+              style={{ borderColor: 'var(--text-muted)' }}
+            >
+              By Position
+            </button>
+            <button
+              className={`pos-filter ${viewMode === 'team' ? 'active' : ''}`}
+              onClick={() => setViewMode('team')}
+              style={{ borderColor: 'var(--text-muted)' }}
+            >
+              By Team
+            </button>
           </div>
         </div>
+        {viewMode === 'position' && (
+          <div className="control-group">
+            <label className="control-label">Position</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {POSITIONS.map((pos) => (
+                <button
+                  key={pos}
+                  className={`pos-filter ${selectedPos === pos ? 'active' : ''}`}
+                  onClick={() => setSelectedPos(pos)}
+                  style={{ borderColor: POS_COLORS[pos] }}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Team view */}
+      {viewMode === 'team' && (
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 12 }}>
+            Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
+          </p>
+          {teamGroups.map((g, ti) => (
+            <div key={g.team} style={{
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 700 }}>
+                  <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>#{ti + 1}</span>
+                  {g.team}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>
+                  {g.totalPPR.toLocaleString()} PPR
+                </span>
+              </div>
+              <div className="table-container" style={{ maxHeight: 'none' }}>
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 40 }}>Pos</th>
+                      <th>Player</th>
+                      <th>ADP</th>
+                      <th>Gm</th>
+                      <th>Key Stats</th>
+                      <th style={{ borderBottom: '2px solid #f59e0b' }}>PPR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.qbs.map((p) => (
+                      <tr key={p.name}>
+                        <td style={{ color: POS_COLORS.QB, fontWeight: 700 }}>QB</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{p.games}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                          {p.passYds.toLocaleString()} yds, {p.passTD} TD, {p.int} INT | {p.rushYds} rush
+                        </td>
+                        <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
+                      </tr>
+                    ))}
+                    {g.rbs.map((p) => (
+                      <tr key={p.name}>
+                        <td style={{ color: POS_COLORS.RB, fontWeight: 700 }}>RB</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{p.games}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                          {p.rushYds.toLocaleString()} rush, {p.rushTD} TD | {p.rec} rec, {p.recYds} yds
+                        </td>
+                        <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
+                      </tr>
+                    ))}
+                    {g.wrs.map((p) => (
+                      <tr key={p.name}>
+                        <td style={{ color: POS_COLORS.WR, fontWeight: 700 }}>WR</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{p.games}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                          {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
+                        </td>
+                        <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
+                      </tr>
+                    ))}
+                    {g.tes.map((p) => (
+                      <tr key={p.name}>
+                        <td style={{ color: POS_COLORS.TE, fontWeight: 700 }}>TE</td>
+                        <td><strong>{p.name}</strong></td>
+                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{p.games}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                          {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
+                        </td>
+                        <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Summary cards */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      {viewMode === 'position' && <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         {POSITIONS.map((pos) => {
           const data = pos === 'QB' ? qbProjections : pos === 'RB' ? rbProjections : pos === 'WR' ? wrProjections : teProjections;
           const top = data[0];
@@ -461,9 +605,10 @@ export function StatProjections() {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* Projection table */}
+      {viewMode === 'position' && <>
       <h4 style={{ marginBottom: 8 }}>
         <span style={{ color: POS_COLORS[selectedPos] }}>{selectedPos}</span> Projections — {PREDICT_SEASON}
         <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
@@ -604,6 +749,7 @@ export function StatProjections() {
           </tbody>
         </table>
       </div>
+      </>}
     </>
   );
 }
