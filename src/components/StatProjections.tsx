@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchDraftPicks, fetchRosters, fetchGames,
@@ -63,6 +63,42 @@ function computePPR(p: {
   );
 }
 
+// ── Scenario types ──
+
+interface ScenarioSettings {
+  // Team-level multipliers: team → multiplier (1.0 = baseline, 1.10 = +10%)
+  teamPassAdj: Record<string, number>;   // multiplier on team pass attempts
+  teamRushAdj: Record<string, number>;   // multiplier on team rush attempts
+  // Player-level overrides: normalized name → overrides
+  playerAdj: Record<string, { games?: number; targets?: number; carries?: number }>;
+}
+
+function defaultScenario(): ScenarioSettings {
+  return { teamPassAdj: {}, teamRushAdj: {}, playerAdj: {} };
+}
+
+// Raw data loaded once from APIs, stored in ref
+interface LoadedData {
+  adpData: FfcADPPlayer[];
+  priorTotals: SeasonTotals[];
+  priorByName: Map<string, SeasonTotals>;
+  rosterTeam: Map<string, string>;
+  rosters: Roster[];
+  draftByName: Map<string, DraftPick>;
+  gamesData: Game[];
+  priorTeamTotals: Map<string, TeamStats>;
+  leagueAvg: TeamStats;
+  allTeams: Set<string>;
+  coachChangedTeams: Set<string>;
+  coachOriginTeam: Map<string, string>;
+}
+
+interface TeamStats {
+  passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
+  rushAtt: number; rushYds: number; rushTD: number;
+  targets: number; receptions: number; recYds: number; recTD: number;
+}
+
 // ── Component ──
 
 type ViewMode = 'position' | 'team' | 'teamTotals';
@@ -98,6 +134,13 @@ export function StatProjections() {
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
   const [teProjections, setTEProjections] = useState<TEProjection[]>([]);
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
+  // Scenario scaffolding (wired up in next iteration)
+  const [_scenario, _setScenario] = useState<ScenarioSettings>(defaultScenario);
+  const [_scenarioOpen, _setScenarioOpen] = useState(false);
+  const _loadedRef = useRef<LoadedData | null>(null);
+  const [_loadedVersion, _setLoadedVersion] = useState(0);
+  void _scenario; void _setScenario; void _scenarioOpen; void _setScenarioOpen;
+  void _loadedRef; void _loadedVersion; void _setLoadedVersion;
 
   useEffect(() => {
     let cancelled = false;
