@@ -19,6 +19,7 @@ type ModelType = 'ridge' | 'gbm';
 
 // Need prior-season data, so training starts at 2021
 const SEASONS = [2021, 2022, 2023, 2024, 2025];
+const PREDICT_SEASON = 2026; // upcoming season to predict
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
@@ -180,11 +181,20 @@ interface PositionModel {
   mae: number;
 }
 
+interface PredictionRow {
+  name: string;
+  position: string;
+  team: string;
+  adp: number;
+  features: Record<string, number>;
+}
+
 // ── Component ──
 
 export function ADPFactorAnalysis() {
   const [models, setModels] = useState<PositionModel[]>([]);
   const [allRows, setAllRows] = useState<PlayerRow[]>([]);
+  const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +203,7 @@ export function ADPFactorAnalysis() {
   const [maxADP, setMaxADP] = useState(150);
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
+  const [selected2026Player, setSelected2026Player] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -658,6 +669,349 @@ export function ADPFactorAnalysis() {
         if (cancelled) return;
         setAllRows(rows);
 
+        // ── Build 2026 prediction rows ──
+        setLoadingStatus(`Building ${PREDICT_SEASON} prediction features...`);
+        const predRows: PredictionRow[] = [];
+        {
+          const predSeason = PREDICT_SEASON;
+          const priorSeason = predSeason - 1;
+
+          const [
+            predAdpData, predPriorStats, predPriorSnaps,
+            predPriorInjuries, predPreseasonInjuries,
+            predPriorNgsRec, predPriorNgsRush, predPriorNgsPass,
+            predPriorPbp, predPriorParticipation,
+          ] = await Promise.all([
+            fetchFfcADP(predSeason, 'ppr', 12).catch(() => []),
+            fetchPlayerStats(priorSeason).catch(() => []),
+            fetchSnapCounts(priorSeason).catch(() => []),
+            fetchInjuries(priorSeason).catch(() => []),
+            fetchInjuries(predSeason).catch(() => []),
+            fetchNextGenStats(priorSeason, 'receiving').catch(() => [] as NextGenStats[]),
+            fetchNextGenStats(priorSeason, 'rushing').catch(() => [] as NextGenStats[]),
+            fetchNextGenStats(priorSeason, 'passing').catch(() => [] as NextGenStats[]),
+            fetchPlayByPlay(priorSeason).catch(() => [] as PlayByPlay[]),
+            fetchPbpParticipation(priorSeason).catch(() => [] as PbpParticipation[]),
+          ]);
+          if (cancelled) return;
+
+          if (predAdpData.length > 0) {
+            // Prior season totals
+            const predPriorTotals = aggregateToSeasonTotals(
+              predPriorStats.filter((s) => s.season_type === 'REG')
+            );
+            const predPriorByName = new Map<string, SeasonTotals>();
+            for (const p of predPriorTotals) {
+              if (POSITIONS.includes(p.position)) {
+                predPriorByName.set(normalizeName(p.player_display_name), p);
+              }
+            }
+
+            // Snap %
+            const predSnapAccum = new Map<string, { total: number; count: number }>();
+            for (const s of predPriorSnaps) {
+              if (!POSITIONS.includes(s.position)) continue;
+              const name = normalizeName(s.player);
+              const acc = predSnapAccum.get(name) || { total: 0, count: 0 };
+              acc.total += s.offense_pct || 0;
+              acc.count += 1;
+              predSnapAccum.set(name, acc);
+            }
+
+            // Advanced weekly stats
+            interface PredAdvAgg {
+              targetShare: number; airYardsShare: number; wopr: number;
+              racr: number; recAirYards: number; yac: number;
+              receptions: number; targets: number;
+              recEPA: number; rushEPA: number;
+              weeks: number;
+            }
+            const predAdvByName = new Map<string, PredAdvAgg>();
+            const predPriorWeekly = predPriorStats.filter((s) => s.season_type === 'REG') as PlayerStats[];
+            for (const w of predPriorWeekly) {
+              if (!POSITIONS.includes(w.position)) continue;
+              const name = normalizeName(w.player_display_name);
+              const acc = predAdvByName.get(name) || {
+                targetShare: 0, airYardsShare: 0, wopr: 0, racr: 0,
+                recAirYards: 0, yac: 0, receptions: 0, targets: 0,
+                recEPA: 0, rushEPA: 0, weeks: 0,
+              };
+              acc.targetShare += w.target_share || 0;
+              acc.airYardsShare += w.air_yards_share || 0;
+              acc.wopr += w.wopr || 0;
+              acc.recAirYards += w.receiving_air_yards || 0;
+              acc.yac += w.receiving_yards_after_catch || 0;
+              acc.receptions += w.receptions || 0;
+              acc.targets += w.targets || 0;
+              acc.recEPA += w.receiving_epa || 0;
+              acc.rushEPA += w.rushing_epa || 0;
+              if (w.racr && w.racr > 0) acc.racr += w.racr;
+              acc.weeks += 1;
+              predAdvByName.set(name, acc);
+            }
+
+            // NGS season-level
+            const predNgsRecByName = new Map<string, NextGenStats>();
+            for (const n of predPriorNgsRec) {
+              if (n.week === 0 && n.season_type === 'REG') predNgsRecByName.set(normalizeName(n.player_display_name), n);
+            }
+            const predNgsRushByName = new Map<string, NextGenStats>();
+            for (const n of predPriorNgsRush) {
+              if (n.week === 0 && n.season_type === 'REG') predNgsRushByName.set(normalizeName(n.player_display_name), n);
+            }
+            const predNgsPassByName = new Map<string, NextGenStats>();
+            for (const n of predPriorNgsPass) {
+              if (n.week === 0 && n.season_type === 'REG') predNgsPassByName.set(normalizeName(n.player_display_name), n);
+            }
+
+            // PBP-derived
+            interface PredPbpAgg {
+              totalAirYards: number; targets: number; deepTargets: number; rzTargets: number;
+            }
+            const predPbpByReceiver = new Map<string, PredPbpAgg>();
+            const predTeamRZTargets = new Map<string, number>();
+            for (const play of predPriorPbp) {
+              if (play.play_type !== 'pass' || !play.receiver_player_name) continue;
+              const recName = normalizeName(play.receiver_player_name);
+              const acc = predPbpByReceiver.get(recName) || { totalAirYards: 0, targets: 0, deepTargets: 0, rzTargets: 0 };
+              acc.targets += 1;
+              if (typeof play.air_yards === 'number' && !isNaN(play.air_yards)) {
+                acc.totalAirYards += play.air_yards;
+                if (play.air_yards >= 15) acc.deepTargets += 1;
+              }
+              if (play.yardline_100 <= 20) {
+                acc.rzTargets += 1;
+                const team = play.posteam || '';
+                predTeamRZTargets.set(team, (predTeamRZTargets.get(team) || 0) + 1);
+              }
+              predPbpByReceiver.set(recName, acc);
+            }
+
+            // Participation-derived
+            const predGsisToName = new Map<string, string>();
+            for (const w of predPriorWeekly) {
+              if (w.player_id && w.player_display_name) predGsisToName.set(w.player_id, normalizeName(w.player_display_name));
+            }
+            interface PredRouteAgg { routesRun: number; snaps11: number; snaps12: number; totalSnaps: number }
+            const predRoutesByName = new Map<string, PredRouteAgg>();
+            const predPassPlayKeys = new Set<string>();
+            for (const play of predPriorPbp) {
+              if (play.qb_dropback === 1 || play.play_type === 'pass') predPassPlayKeys.add(`${play.game_id}:${play.play_id}`);
+            }
+            for (const part of predPriorParticipation) {
+              if (!part.offense_players) continue;
+              const gamePlayKey = `${part.nflverse_game_id}:${part.play_id}`;
+              const altKey = `${part.old_game_id}:${part.play_id}`;
+              const isPassPlay = predPassPlayKeys.has(gamePlayKey) || predPassPlayKeys.has(altKey);
+              const personnel = (() => {
+                const p = part.offense_personnel || '';
+                const rbMatch = p.match(/(\d+)\s*RB/i);
+                const teMatch = p.match(/(\d+)\s*TE/i);
+                return `${rbMatch ? rbMatch[1] : '0'}${teMatch ? teMatch[1] : '0'}`;
+              })();
+              const offenseIds = part.offense_players.split(';');
+              for (const gsisId of offenseIds) {
+                const id = gsisId.trim();
+                const name = predGsisToName.get(id);
+                if (!name) continue;
+                const acc = predRoutesByName.get(name) || { routesRun: 0, snaps11: 0, snaps12: 0, totalSnaps: 0 };
+                acc.totalSnaps += 1;
+                if (isPassPlay) acc.routesRun += 1;
+                if (personnel === '11') acc.snaps11 += 1;
+                else if (personnel === '12') acc.snaps12 += 1;
+                predRoutesByName.set(name, acc);
+              }
+            }
+
+            // Pass location
+            interface PredLocAgg { left: number; middle: number; right: number; total: number }
+            const predLocByReceiver = new Map<string, PredLocAgg>();
+            for (const play of predPriorPbp) {
+              if (play.play_type !== 'pass' || !play.receiver_player_name || !play.pass_location) continue;
+              const recName = normalizeName(play.receiver_player_name);
+              const acc = predLocByReceiver.get(recName) || { left: 0, middle: 0, right: 0, total: 0 };
+              acc.total += 1;
+              if (play.pass_location === 'left') acc.left += 1;
+              else if (play.pass_location === 'middle') acc.middle += 1;
+              else if (play.pass_location === 'right') acc.right += 1;
+              predLocByReceiver.set(recName, acc);
+            }
+
+            // Injury
+            const SOFT_TISSUE_PRED = /hamstring|groin|calf|quad|hip|thigh|achilles|ankle|foot|toe/i;
+            const KNEE_PRED = /knee|acl|mcl|pcl|meniscus/i;
+            interface PredInjAgg { weeks: number; gamesOut: number; softTissue: boolean; knee: boolean }
+            const predPriorInjByName = new Map<string, PredInjAgg>();
+            for (const inj of predPriorInjuries) {
+              if (!POSITIONS.includes(inj.position)) continue;
+              const name = normalizeName(inj.full_name);
+              const acc = predPriorInjByName.get(name) || { weeks: 0, gamesOut: 0, softTissue: false, knee: false };
+              acc.weeks += 1;
+              if (inj.report_status === 'Out' || inj.report_status === 'Doubtful') acc.gamesOut += 1;
+              const allInjText = `${inj.report_primary_injury || ''} ${inj.report_secondary_injury || ''} ${inj.practice_primary_injury || ''} ${inj.practice_secondary_injury || ''}`;
+              if (SOFT_TISSUE_PRED.test(allInjText)) acc.softTissue = true;
+              if (KNEE_PRED.test(allInjText)) acc.knee = true;
+              predPriorInjByName.set(name, acc);
+            }
+            const predPreseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
+            for (const inj of predPreseasonInjuries) {
+              if (!POSITIONS.includes(inj.position)) continue;
+              const isPre = inj.game_type === 'PRE' || inj.week <= 0;
+              if (!isPre) continue;
+              const name = normalizeName(inj.full_name);
+              const acc = predPreseasonInjByName.get(name) || { injured: false, weeks: 0 };
+              acc.weeks += 1;
+              if (inj.report_status === 'Out' || inj.report_status === 'Doubtful' || inj.report_status === 'Questionable') acc.injured = true;
+              predPreseasonInjByName.set(name, acc);
+            }
+
+            // Build prediction features for each ADP player
+            for (const adpPlayer of predAdpData) {
+              if (!POSITIONS.includes(adpPlayer.position)) continue;
+              if (adpPlayer.adp > 200) continue;
+
+              const normalName = normalizeName(adpPlayer.name);
+              const prior = predPriorByName.get(normalName);
+              const combine = combineByName.get(normalName);
+              const draft = draftByName.get(normalName);
+              const snapAcc = predSnapAccum.get(normalName);
+              const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
+
+              const heightIn = combine?.ht ? parseHeight(combine.ht) : 0;
+              const wt = combine?.wt || 0;
+              const bmi = heightIn > 0 && wt > 0 ? (703 * wt) / (heightIn * heightIn) : 0;
+
+              const priorGames = prior?.games || 0;
+              const priorPPR = prior?.fantasy_points_ppr || 0;
+              const priorAttempts = prior?.attempts || 0;
+              const priorCarries = prior?.carries || 0;
+
+              const draftAge = draft?.age || 0;
+              const draftYear = draft?.season || 0;
+              const age = draftAge > 0 && draftYear > 0 ? draftAge + (predSeason - draftYear) : 0;
+
+              const adv = predAdvByName.get(normalName);
+              const advWeeks = adv?.weeks || 1;
+              const avgTargetShare = adv ? adv.targetShare / advWeeks : 0;
+              const avgAirYardsShare = adv ? adv.airYardsShare / advWeeks : 0;
+              const avgWOPR = adv ? adv.wopr / advWeeks : 0;
+              const avgRACR = adv && advWeeks > 0 ? adv.racr / advWeeks : 0;
+              const yacPerRec = adv && adv.receptions > 0 ? adv.yac / adv.receptions : 0;
+              const airYardsPerTarget = adv && adv.targets > 0 ? adv.recAirYards / adv.targets : 0;
+
+              const pbp = predPbpByReceiver.get(normalName);
+              const adot = pbp && pbp.targets > 0 ? pbp.totalAirYards / pbp.targets : 0;
+              const deepPct = pbp && pbp.targets > 0 ? pbp.deepTargets / pbp.targets : 0;
+              const playerTeam = prior?.recent_team || '';
+              const teamRZ = predTeamRZTargets.get(playerTeam) || 1;
+              const rzTargetShare = pbp ? pbp.rzTargets / teamRZ : 0;
+
+              const ngsRec = predNgsRecByName.get(normalName);
+              const ngsRush = predNgsRushByName.get(normalName);
+              const ngsPass = predNgsPassByName.get(normalName);
+
+              const features: Record<string, number> = {
+                adp: adpPlayer.adp,
+                adpRound: Math.ceil(adpPlayer.adp / 12),
+                age,
+                yearsInLeague: draft ? predSeason - draft.season : 0,
+                nflDraftRound: draft?.round || 8,
+                nflDraftPick: draft?.pick || 300,
+                weight: wt,
+                forty: combine?.forty || 0,
+                bmi: Math.round(bmi * 10) / 10,
+                priorPassYards: prior?.passing_yards || 0,
+                priorPassTDs: prior?.passing_tds || 0,
+                priorINTs: prior?.interceptions || 0,
+                priorPassYPA: priorAttempts > 0 ? Math.round((prior?.passing_yards || 0) / priorAttempts * 10) / 10 : 0,
+                priorQBRating: 0,
+                priorRushYards: prior?.rushing_yards || 0,
+                priorRushTDs: prior?.rushing_tds || 0,
+                priorYPC: priorCarries > 0 ? Math.round((prior?.rushing_yards || 0) / priorCarries * 10) / 10 : 0,
+                priorCarries: priorCarries,
+                priorTargets: prior?.targets || 0,
+                priorReceptions: prior?.receptions || 0,
+                priorRecYards: prior?.receiving_yards || 0,
+                priorRecTDs: prior?.receiving_tds || 0,
+                priorYPR: (prior?.receptions || 0) > 0
+                  ? Math.round((prior?.receiving_yards || 0) / (prior?.receptions || 1) * 10) / 10 : 0,
+                priorTargetShare: Math.round(avgTargetShare * 1000) / 1000,
+                priorAirYardsShare: Math.round(avgAirYardsShare * 1000) / 1000,
+                priorWOPR: Math.round(avgWOPR * 1000) / 1000,
+                priorRACR: Math.round(avgRACR * 100) / 100,
+                priorYACperRec: Math.round(yacPerRec * 10) / 10,
+                priorAirYardsPerTarget: Math.round(airYardsPerTarget * 10) / 10,
+                priorRecEPA: Math.round((adv?.recEPA || 0) * 10) / 10,
+                priorRushEPA: Math.round((adv?.rushEPA || 0) * 10) / 10,
+                priorADOT: Math.round(adot * 10) / 10,
+                priorDeepTargetPct: Math.round(deepPct * 1000) / 1000,
+                priorRZTargetShare: Math.round(rzTargetShare * 1000) / 1000,
+                priorSeparation: ngsRec?.avg_separation || 0,
+                priorCushion: ngsRec?.avg_cushion || 0,
+                priorYACAboveExp: ngsRec?.avg_yac_above_expectation || 0,
+                priorCatchPct: ngsRec?.catch_percentage || 0,
+                priorIntendedAirYardShare: ngsRec?.percent_share_of_intended_air_yards || 0,
+                priorRYOEperAtt: ngsRush?.rush_yards_over_expected_per_att || 0,
+                priorRushEfficiency: ngsRush?.efficiency || 0,
+                priorPctVs8Defenders: ngsRush?.percent_attempts_gte_eight_defenders || 0,
+                priorCPOE: ngsPass?.completion_percentage_above_expectation || 0,
+                priorTimeToThrow: ngsPass?.avg_time_to_throw || 0,
+                priorAggressiveness: ngsPass?.aggressiveness || 0,
+                priorYPRR: (() => {
+                  const rt = predRoutesByName.get(normalName);
+                  return rt && rt.routesRun > 0
+                    ? Math.round(((prior?.receiving_yards || 0) / rt.routesRun) * 100) / 100 : 0;
+                })(),
+                priorRoutesRun: predRoutesByName.get(normalName)?.routesRun || 0,
+                priorTargetsPerRoute: (() => {
+                  const rt = predRoutesByName.get(normalName);
+                  return rt && rt.routesRun > 0
+                    ? Math.round(((prior?.targets || 0) / rt.routesRun) * 1000) / 1000 : 0;
+                })(),
+                priorPct11Personnel: (() => {
+                  const rt = predRoutesByName.get(normalName);
+                  return rt && rt.totalSnaps > 0
+                    ? Math.round((rt.snaps11 / rt.totalSnaps) * 1000) / 1000 : 0;
+                })(),
+                priorPct12Personnel: (() => {
+                  const rt = predRoutesByName.get(normalName);
+                  return rt && rt.totalSnaps > 0
+                    ? Math.round((rt.snaps12 / rt.totalSnaps) * 1000) / 1000 : 0;
+                })(),
+                priorPassLocationLeft: (() => {
+                  const loc = predLocByReceiver.get(normalName);
+                  return loc && loc.total > 0 ? Math.round((loc.left / loc.total) * 1000) / 1000 : 0;
+                })(),
+                priorPassLocationMiddle: (() => {
+                  const loc = predLocByReceiver.get(normalName);
+                  return loc && loc.total > 0 ? Math.round((loc.middle / loc.total) * 1000) / 1000 : 0;
+                })(),
+                priorPPR: Math.round(priorPPR * 10) / 10,
+                priorPPG: priorGames > 0 ? Math.round(priorPPR / priorGames * 10) / 10 : 0,
+                priorGames,
+                priorGamesMissed: prior ? Math.max(0, 17 - priorGames) : 0,
+                priorTotalTouches: priorCarries + (prior?.receptions || 0),
+                priorSnapPct: Math.round(snapPct * 10) / 10,
+                priorInjuryWeeks: predPriorInjByName.get(normalName)?.weeks || 0,
+                priorGamesOut: predPriorInjByName.get(normalName)?.gamesOut || 0,
+                preseasonInjured: predPreseasonInjByName.get(normalName)?.injured ? 1 : 0,
+                preseasonInjWeeks: predPreseasonInjByName.get(normalName)?.weeks || 0,
+                priorSoftTissue: predPriorInjByName.get(normalName)?.softTissue ? 1 : 0,
+                priorKneeInjury: predPriorInjByName.get(normalName)?.knee ? 1 : 0,
+              };
+
+              predRows.push({
+                name: adpPlayer.name,
+                position: adpPlayer.position,
+                team: adpPlayer.team || '',
+                adp: adpPlayer.adp,
+                features,
+              });
+            }
+          }
+        }
+        setPredictionRows(predRows);
+
         // Train per-position models (both Ridge and GBM)
         const posModels: PositionModel[] = [];
         for (const pos of POSITIONS) {
@@ -794,6 +1148,42 @@ export function ADPFactorAnalysis() {
   const selectedPrediction = useMemo(
     () => playerPredictions.find((p) => p.name === selectedPlayerName) || null,
     [playerPredictions, selectedPlayerName]
+  );
+
+  // 2026 predictions for selected position
+  const predictions2026 = useMemo(() => {
+    const model = models.find((m) => m.position === selectedPos);
+    if (!model) return [];
+    const posPlayers = predictionRows.filter((r) => r.position === selectedPos && r.adp <= maxADP);
+    return posPlayers.map((r) => {
+      const result = modelType === 'gbm' && model.gbmModel
+        ? predictGBM(model.gbmModel, r.features)
+        : model.ridgeModel
+          ? predict(model.ridgeModel, r.features)
+          : { predicted: 0, featureContributions: [] };
+      const factors = result.featureContributions.map((fc) => {
+        const idx = model.featureNames.indexOf(fc.name);
+        return {
+          key: fc.name,
+          label: idx >= 0 ? model.featureLabels[idx] : fc.name,
+          raw: fc.value,
+          contribution: fc.contribution,
+        };
+      });
+      return {
+        name: r.name,
+        team: r.team,
+        adp: r.adp,
+        predictedDelta: Math.round(result.predicted * 10) / 10,
+        hitProb: result.predicted >= -12 ? 'Likely Hit' : result.predicted < -24 ? 'Likely Bust' : 'Middle',
+        factors,
+      };
+    }).sort((a, b) => b.predictedDelta - a.predictedDelta);
+  }, [models, predictionRows, selectedPos, maxADP, modelType]);
+
+  const selected2026Prediction = useMemo(
+    () => predictions2026.find((p) => p.name === selected2026Player) || null,
+    [predictions2026, selected2026Player]
   );
 
   // Cross-position comparison: top features per position
@@ -960,6 +1350,153 @@ export function ADPFactorAnalysis() {
           </div>
         ))}
       </div>
+
+      {/* ── 2026 Predictions ── */}
+      {currentModel && predictions2026.length > 0 && (
+        <>
+          <h4 style={{ marginBottom: 4, marginTop: 8 }}>
+            <span style={{ color: '#f59e0b', fontSize: 18 }}>{PREDICT_SEASON}</span>{' '}
+            {selectedPos} Predictions
+            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+              Model-predicted ADP delta &middot; {predictions2026.length} players
+            </span>
+          </h4>
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+            Trained on {SEASONS[0]}-{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Positive = predicted to outperform ADP.
+          </p>
+          <div className="table-container" style={{ marginBottom: 20, maxHeight: 500, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  <th>Team</th>
+                  <th>ADP</th>
+                  <th>Predicted Delta</th>
+                  <th>Outlook</th>
+                </tr>
+              </thead>
+              <tbody>
+                {predictions2026.map((p, i) => (
+                  <tr
+                    key={p.name}
+                    style={{ background: selected2026Player === p.name ? 'var(--bg-tertiary)' : undefined }}
+                  >
+                    <td className="rank-cell">{i + 1}</td>
+                    <td>
+                      <strong
+                        style={{
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textDecorationColor: 'var(--border)',
+                          color: selected2026Player === p.name ? 'var(--accent)' : undefined,
+                        }}
+                        onClick={() => setSelected2026Player(selected2026Player === p.name ? null : p.name)}
+                      >
+                        {p.name}
+                      </strong>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
+                    <td>{p.adp.toFixed(1)}</td>
+                    <td style={{
+                      fontWeight: 700,
+                      color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
+                    }}>
+                      {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta}
+                    </td>
+                    <td>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)'
+                          : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)',
+                        color: p.hitProb === 'Likely Hit' ? '#10b981'
+                          : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                      }}>
+                        {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : 'MID'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Factor breakdown for selected 2026 player */}
+          {selected2026Prediction && (
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '2px solid #f59e0b',
+              borderRadius: 'var(--radius)',
+              padding: 16,
+              marginBottom: 20,
+            }}>
+              <h4 style={{ marginBottom: 4 }}>
+                {selected2026Prediction.name}
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                  {PREDICT_SEASON} &middot; ADP {selected2026Prediction.adp.toFixed(1)} &middot;
+                  Predicted: <span style={{ color: selected2026Prediction.predictedDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selected2026Prediction.predictedDelta >= 0 ? '+' : ''}{selected2026Prediction.predictedDelta}
+                  </span>
+                </span>
+              </h4>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Top factors driving this {PREDICT_SEASON} prediction:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {selected2026Prediction.factors.slice(0, 10).map((f) => {
+                  const maxContrib = Math.max(
+                    ...selected2026Prediction.factors.slice(0, 10).map((x) => Math.abs(x.contribution))
+                  ) || 1;
+                  const pct = (Math.abs(f.contribution) / maxContrib) * 100;
+                  return (
+                    <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                      <span style={{ width: 140, textAlign: 'right', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                        {f.label}
+                      </span>
+                      <span style={{ width: 60, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>
+                        {typeof f.raw === 'number' ? (Number.isInteger(f.raw) ? f.raw : f.raw.toFixed(1)) : f.raw}
+                      </span>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', height: 16 }}>
+                        {f.contribution >= 0 ? (
+                          <div style={{
+                            width: `${pct}%`,
+                            height: 12,
+                            borderRadius: 3,
+                            background: '#10b981',
+                            opacity: 0.7,
+                          }} />
+                        ) : (
+                          <div style={{
+                            width: `${pct}%`,
+                            height: 12,
+                            borderRadius: 3,
+                            background: '#ef4444',
+                            opacity: 0.7,
+                            marginLeft: 'auto',
+                          }} />
+                        )}
+                      </div>
+                      <span style={{
+                        width: 60,
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        color: f.contribution >= 0 ? '#10b981' : '#ef4444',
+                        flexShrink: 0,
+                      }}>
+                        {f.contribution >= 0 ? '+' : ''}{f.contribution.toFixed(1)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {currentModel && (
         <>
