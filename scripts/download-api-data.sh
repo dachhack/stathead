@@ -42,8 +42,8 @@ for season in 2025; do
   fi
 done
 
-# ── FFC ADP ──
-for season in 2025; do
+# ── FFC ADP (all seasons needed for Hit/Bust Factors analysis) ──
+for season in 2025 2024 2023 2022 2021; do
   outfile="$OUT/ffc_adp_ppr_${season}.json"
   if [ -f "$outfile" ]; then
     echo "  [skip] $outfile already exists"
