@@ -891,6 +891,7 @@ export function StatProjections() {
                 const prior = player.prior;
                 const games = idx === 0 ? starterGames : 17 - starterGames;
                 const af = ageFactor(normalizeName(player.name), 'QB');
+                const gamesScale = games / 17;
 
                 let passAtt: number, passComp: number, passYds: number, passTD: number, ints: number;
                 let rushAtt: number, rushYds: number, rushTD: number;
@@ -898,7 +899,7 @@ export function StatProjections() {
                 if (prior && prior.games >= 3) {
                   const adjAtt = isPrimary ? healthAdjust(prior.attempts || 0, prior.games) : (prior.attempts || 0);
                   const passShare = priorPassAttTotal > 0 ? adjAtt / priorPassAttTotal : 1 / players.length;
-                  passAtt = Math.round(qbPassPool * passShare * af);
+                  passAtt = Math.round(qbPassPool * passShare * af * gamesScale);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
                   passComp = Math.round(passAtt * compRate);
                   const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
@@ -910,18 +911,18 @@ export function StatProjections() {
 
                   const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
                   const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5 / players.length;
-                  rushAtt = Math.round(qbRushPool * rushShare * af);
+                  rushAtt = Math.round(qbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.round(qbRushTDPool * rushShare * af);
+                  rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
                 } else {
                   const share = 1 / (players.length * 3);
-                  passAtt = Math.round(qbPassPool * share);
+                  passAtt = Math.round(qbPassPool * share * gamesScale);
                   passComp = Math.round(passAtt * 0.60);
                   passYds = Math.round(passAtt * 6.5);
                   passTD = Math.round(passAtt * 0.035);
                   ints = Math.round(passAtt * 0.03);
-                  rushAtt = Math.round(qbRushPool * share * 0.3);
+                  rushAtt = Math.round(qbRushPool * share * 0.3 * gamesScale);
                   rushYds = Math.round(rushAtt * 3.5);
                   rushTD = 0;
                 }
@@ -955,6 +956,7 @@ export function StatProjections() {
                 const prior = player.prior;
                 const games = projectGames(prior, isPrimary);
                 const af = ageFactor(normalizeName(player.name), 'RB');
+                const gamesScale = games / 17;
 
                 let rushAtt: number, rushYds: number, rushTD: number;
                 let tgt: number, rec: number, recYds: number, recTD: number;
@@ -962,25 +964,25 @@ export function StatProjections() {
                 if (prior && prior.games >= 3) {
                   const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
                   const rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 1 / players.length;
-                  rushAtt = Math.round(rbRushPool * rushShare * af);
+                  rushAtt = Math.round(rbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * af));
+                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * af * gamesScale));
 
                   const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                   const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
-                  tgt = Math.round(rbTgtPool * tgtShare * af);
+                  tgt = Math.round(rbTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * af * gamesScale));
                 } else {
                   const share = 1 / (players.length * 4);
-                  rushAtt = Math.round(rbRushPool * share);
+                  rushAtt = Math.round(rbRushPool * share * gamesScale);
                   rushYds = Math.round(rushAtt * 3.8);
-                  rushTD = Math.max(0, Math.round(rbRushTDPool * share));
-                  tgt = Math.round(rbTgtPool * share);
+                  rushTD = Math.max(0, Math.round(rbRushTDPool * share * gamesScale));
+                  tgt = Math.round(rbTgtPool * share * gamesScale);
                   rec = Math.round(tgt * 0.72);
                   recYds = Math.round(rec * 6.5);
                   recTD = 0;
@@ -1014,6 +1016,7 @@ export function StatProjections() {
                 const prior = player.prior;
                 const games = projectGames(prior, isPrimary);
                 const af = ageFactor(normalizeName(player.name), 'WR');
+                const gamesScale = games / 17;
 
                 let tgt: number, rec: number, recYds: number, recTD: number;
                 let rushAtt: number, rushYds: number, rushTD: number;
@@ -1021,22 +1024,22 @@ export function StatProjections() {
                 if (prior && prior.games >= 3) {
                   const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                   const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
-                  tgt = Math.round(wrTgtPool * tgtShare * af);
+                  tgt = Math.round(wrTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * af * gamesScale));
 
                   const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
                   const rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 0;
-                  rushAtt = Math.round(wrRushPool * rushShare * af);
+                  rushAtt = Math.round(wrRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 5.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.max(0, Math.round(wrRushTDPool * rushShare * af));
+                  rushTD = Math.max(0, Math.round(wrRushTDPool * rushShare * af * gamesScale));
                 } else {
                   const share = 1 / (players.length * 4);
-                  tgt = Math.round(wrTgtPool * share);
+                  tgt = Math.round(wrTgtPool * share * gamesScale);
                   rec = Math.round(tgt * 0.62);
                   recYds = Math.round(rec * 11.0);
                   recTD = 0;
@@ -1064,21 +1067,22 @@ export function StatProjections() {
                 const prior = player.prior;
                 const games = projectGames(prior, isPrimary);
                 const af = ageFactor(normalizeName(player.name), 'TE');
+                const gamesScale = games / 17;
 
                 let tgt: number, rec: number, recYds: number, recTD: number;
 
                 if (prior && prior.games >= 3) {
                   const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                   const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
-                  tgt = Math.round(teTgtPool * tgtShare * af);
+                  tgt = Math.round(teTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * af * gamesScale));
                 } else {
                   const share = 1 / (players.length * 4);
-                  tgt = Math.round(teTgtPool * share);
+                  tgt = Math.round(teTgtPool * share * gamesScale);
                   rec = Math.round(tgt * 0.65);
                   recYds = Math.round(rec * 9.5);
                   recTD = 0;
