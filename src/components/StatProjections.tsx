@@ -297,41 +297,79 @@ export function StatProjections() {
           }
         }
 
-        // ── Step 3c: Detect coaching changes ──
-        // New HC → regress position pools more toward league average
-        const coachChangedTeams = new Set<string>();
+        // ── Step 3c: Detect coaching changes & carry over coach tendencies ──
+        // Build team ↔ coach maps for prior and current seasons
         const priorSeasonGames = gamesData.filter(
           (g) => g.season === PREDICT_SEASON - 1 && g.game_type === 'REG'
         );
         const currentSeasonGames = gamesData.filter(
           (g) => g.season === PREDICT_SEASON && g.game_type === 'REG'
         );
-        // Build team → coach maps for prior and current seasons
-        const priorCoach = new Map<string, string>();
+        const priorCoach = new Map<string, string>(); // team → coach last season
+        const coachPriorTeam = new Map<string, string>(); // coach → team last season
         for (const g of priorSeasonGames) {
-          if (g.home_coach) priorCoach.set(g.home_team, g.home_coach);
-          if (g.away_coach) priorCoach.set(g.away_team, g.away_coach);
+          if (g.home_coach) {
+            priorCoach.set(g.home_team, g.home_coach);
+            coachPriorTeam.set(g.home_coach, g.home_team);
+          }
+          if (g.away_coach) {
+            priorCoach.set(g.away_team, g.away_coach);
+            coachPriorTeam.set(g.away_coach, g.away_team);
+          }
         }
-        const currentCoach = new Map<string, string>();
+        const currentCoach = new Map<string, string>(); // team → coach this season
         for (const g of currentSeasonGames) {
           if (g.home_coach) currentCoach.set(g.home_team, g.home_coach);
           if (g.away_coach) currentCoach.set(g.away_team, g.away_coach);
         }
+
+        // Identify coaching changes and where the new coach came from
+        // coachOriginTeam: for teams with new HC, the team that coach ran last year
+        const coachChangedTeams = new Set<string>();
+        const coachOriginTeam = new Map<string, string>(); // new team → coach's old team
         for (const [team, coach] of currentCoach) {
           const prev = priorCoach.get(team);
-          if (prev && prev !== coach) coachChangedTeams.add(team);
+          if (prev && prev !== coach) {
+            coachChangedTeams.add(team);
+            // Where did this coach come from?
+            const origin = coachPriorTeam.get(coach);
+            if (origin && origin !== team) {
+              coachOriginTeam.set(team, origin);
+            }
+          }
         }
 
-        // Blend team-specific pool shares with league average
-        // Normal: 75% team / 25% league (some stability)
-        // New coach: 40% team / 60% league (more regression — new scheme)
+        // Blend pool shares:
+        // Same coach:  75% team + 25% league
+        // New coach (promoted/first-time): 35% team + 65% league
+        // New coach from another team: 30% team + 40% coach's old team + 30% league
         function getTeamPools(team: string): PosPoolShares {
-          const raw = computePoolShares(team);
-          const teamBlend = coachChangedTeams.has(team) ? 0.40 : 0.75;
-          const leagueBlend = 1 - teamBlend;
+          const teamShares = computePoolShares(team);
+
+          if (!coachChangedTeams.has(team)) {
+            // Same coach — mostly preserve team tendencies
+            const blended: PosPoolShares = {} as PosPoolShares;
+            for (const k of Object.keys(leaguePoolShares) as (keyof PosPoolShares)[]) {
+              blended[k] = teamShares[k] * 0.75 + leaguePoolShares[k] * 0.25;
+            }
+            return blended;
+          }
+
+          const origin = coachOriginTeam.get(team);
+          if (origin) {
+            // New coach from another team — blend in his old team's tendencies
+            const coachShares = computePoolShares(origin);
+            const blended: PosPoolShares = {} as PosPoolShares;
+            for (const k of Object.keys(leaguePoolShares) as (keyof PosPoolShares)[]) {
+              blended[k] = teamShares[k] * 0.30 + coachShares[k] * 0.40 + leaguePoolShares[k] * 0.30;
+            }
+            return blended;
+          }
+
+          // New coach but no prior HC record (promoted coordinator / first-time HC)
           const blended: PosPoolShares = {} as PosPoolShares;
           for (const k of Object.keys(leaguePoolShares) as (keyof PosPoolShares)[]) {
-            blended[k] = raw[k] * teamBlend + leaguePoolShares[k] * leagueBlend;
+            blended[k] = teamShares[k] * 0.35 + leaguePoolShares[k] * 0.65;
           }
           return blended;
         }
