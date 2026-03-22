@@ -1,0 +1,330 @@
+{
+  "generatedAt": "2026-03-22T13:37:06.210Z",
+  "testSeasons": [
+    2025,
+    2024,
+    2023,
+    2022,
+    2021,
+    2020
+  ],
+  "configsTested": 170,
+  "winner": {
+    "teamWeight": 0.4,
+    "leagueWeight": 0.6,
+    "useVegas": false,
+    "vegasBlend": 0,
+    "vegasCap": 0
+  },
+  "avgPctError": 14.67,
+  "perStatErrors": {
+    "passAtt": 8.9,
+    "passComp": 10.3,
+    "passYds": 9.6,
+    "passTD": 22.1,
+    "int": 28.3,
+    "rushAtt": 8.7,
+    "rushYds": 13,
+    "rushTD": 26.5,
+    "targets": 8.3,
+    "receptions": 9.3,
+    "recYds": 8.9,
+    "recTD": 22.1
+  },
+  "perStatDetail": {
+    "passAtt": {
+      "mae": 51,
+      "rmse": 73,
+      "meanActual": 568,
+      "pctError": 8.9
+    },
+    "passComp": {
+      "mae": 38,
+      "rmse": 51,
+      "meanActual": 368,
+      "pctError": 10.3
+    },
+    "passYds": {
+      "mae": 386,
+      "rmse": 517,
+      "meanActual": 4035,
+      "pctError": 9.6
+    },
+    "passTD": {
+      "mae": 6,
+      "rmse": 7,
+      "meanActual": 25,
+      "pctError": 22.1
+    },
+    "int": {
+      "mae": 4,
+      "rmse": 4,
+      "meanActual": 13,
+      "pctError": 28.3
+    },
+    "rushAtt": {
+      "mae": 39,
+      "rmse": 50,
+      "meanActual": 450,
+      "pctError": 8.7
+    },
+    "rushYds": {
+      "mae": 256,
+      "rmse": 333,
+      "meanActual": 1969,
+      "pctError": 13
+    },
+    "rushTD": {
+      "mae": 4,
+      "rmse": 5,
+      "meanActual": 16,
+      "pctError": 26.5
+    },
+    "targets": {
+      "mae": 45,
+      "rmse": 57,
+      "meanActual": 541,
+      "pctError": 8.3
+    },
+    "receptions": {
+      "mae": 34,
+      "rmse": 43,
+      "meanActual": 365,
+      "pctError": 9.3
+    },
+    "recYds": {
+      "mae": 357,
+      "rmse": 453,
+      "meanActual": 4014,
+      "pctError": 8.9
+    },
+    "recTD": {
+      "mae": 5,
+      "rmse": 7,
+      "meanActual": 25,
+      "pctError": 22.1
+    }
+  },
+  "top10": [
+    {
+      "rank": 1,
+      "teamWeight": 0.4,
+      "useVegas": false,
+      "vegasBlend": 0,
+      "vegasCap": 0,
+      "avgPctError": 14.67,
+      "statErrors": {
+        "passAtt": 8.9,
+        "passComp": 10.3,
+        "passYds": 9.6,
+        "passTD": 22.1,
+        "int": 28.3,
+        "rushAtt": 8.7,
+        "rushYds": 13,
+        "rushTD": 26.5,
+        "targets": 8.3,
+        "receptions": 9.3,
+        "recYds": 8.9,
+        "recTD": 22.1
+      }
+    },
+    {
+      "rank": 2,
+      "teamWeight": 0.5,
+      "useVegas": false,
+      "vegasBlend": 0,
+      "vegasCap": 0,
+      "avgPctError": 14.74,
+      "statErrors": {
+        "passAtt": 9.1,
+        "passComp": 10.4,
+        "passYds": 9.6,
+        "passTD": 21.6,
+        "int": 29.8,
+        "rushAtt": 8.7,
+        "rushYds": 12.8,
+        "rushTD": 26.6,
+        "targets": 8.3,
+        "receptions": 9.3,
+        "recYds": 8.8,
+        "recTD": 21.9
+      }
+    },
+    {
+      "rank": 3,
+      "teamWeight": 0.55,
+      "useVegas": false,
+      "vegasBlend": 0,
+      "vegasCap": 0,
+      "avgPctError": 14.84,
+      "statErrors": {
+        "passAtt": 9.2,
+        "passComp": 10.5,
+        "passYds": 9.6,
+        "passTD": 21.7,
+        "int": 30.7,
+        "rushAtt": 8.8,
+        "rushYds": 12.7,
+        "rushTD": 26.6,
+        "targets": 8.4,
+        "receptions": 9.4,
+        "recYds": 8.8,
+        "recTD": 21.7
+      }
+    },
+    {
+      "rank": 4,
+      "teamWeight": 0.6,
+      "useVegas": false,
+      "vegasBlend": 0,
+      "vegasCap": 0,
+      "avgPctError": 15.01,
+      "statErrors": {
+        "passAtt": 9.3,
+        "passComp": 10.7,
+        "passYds": 9.8,
+        "passTD": 21.5,
+        "int": 31.4,
+        "rushAtt": 8.9,
+        "rushYds": 12.8,
+        "rushTD": 27.1,
+        "targets": 8.5,
+        "receptions": 9.5,
+        "recYds": 8.8,
+        "recTD": 21.8
+      }
+    },
+    {
+      "rank": 5,
+      "teamWeight": 0.5,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.1,
+      "avgPctError": 15.03,
+      "statErrors": {
+        "passAtt": 9.4,
+        "passComp": 10.7,
+        "passYds": 10,
+        "passTD": 21.7,
+        "int": 30.1,
+        "rushAtt": 9,
+        "rushYds": 13.2,
+        "rushTD": 26.4,
+        "targets": 8.9,
+        "receptions": 9.6,
+        "recYds": 9.5,
+        "recTD": 21.8
+      }
+    },
+    {
+      "rank": 6,
+      "teamWeight": 0.5,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.15,
+      "avgPctError": 15.03,
+      "statErrors": {
+        "passAtt": 9.4,
+        "passComp": 10.7,
+        "passYds": 10,
+        "passTD": 21.7,
+        "int": 30.1,
+        "rushAtt": 9,
+        "rushYds": 13.2,
+        "rushTD": 26.4,
+        "targets": 8.9,
+        "receptions": 9.6,
+        "recYds": 9.5,
+        "recTD": 21.8
+      }
+    },
+    {
+      "rank": 7,
+      "teamWeight": 0.5,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.2,
+      "avgPctError": 15.03,
+      "statErrors": {
+        "passAtt": 9.4,
+        "passComp": 10.7,
+        "passYds": 10,
+        "passTD": 21.7,
+        "int": 30.1,
+        "rushAtt": 9,
+        "rushYds": 13.2,
+        "rushTD": 26.4,
+        "targets": 8.9,
+        "receptions": 9.6,
+        "recYds": 9.5,
+        "recTD": 21.8
+      }
+    },
+    {
+      "rank": 8,
+      "teamWeight": 0.5,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.25,
+      "avgPctError": 15.03,
+      "statErrors": {
+        "passAtt": 9.4,
+        "passComp": 10.7,
+        "passYds": 10,
+        "passTD": 21.7,
+        "int": 30.1,
+        "rushAtt": 9,
+        "rushYds": 13.2,
+        "rushTD": 26.4,
+        "targets": 8.9,
+        "receptions": 9.6,
+        "recYds": 9.5,
+        "recTD": 21.8
+      }
+    },
+    {
+      "rank": 9,
+      "teamWeight": 0.4,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.1,
+      "avgPctError": 15.06,
+      "statErrors": {
+        "passAtt": 9.2,
+        "passComp": 10.5,
+        "passYds": 10,
+        "passTD": 22.2,
+        "int": 29.2,
+        "rushAtt": 9.1,
+        "rushYds": 13.5,
+        "rushTD": 26.7,
+        "targets": 8.7,
+        "receptions": 9.5,
+        "recYds": 9.6,
+        "recTD": 22.5
+      }
+    },
+    {
+      "rank": 10,
+      "teamWeight": 0.4,
+      "useVegas": true,
+      "vegasBlend": 0.4,
+      "vegasCap": 0.15,
+      "avgPctError": 15.06,
+      "statErrors": {
+        "passAtt": 9.2,
+        "passComp": 10.5,
+        "passYds": 10,
+        "passTD": 22.2,
+        "int": 29.2,
+        "rushAtt": 9.1,
+        "rushYds": 13.5,
+        "rushTD": 26.7,
+        "targets": 8.7,
+        "receptions": 9.5,
+        "recYds": 9.6,
+        "recTD": 22.5
+      }
+    }
+  ]
+}

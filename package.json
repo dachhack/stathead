@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build:semantic": "node scripts/build-semantic-layer.js",
+    "build:sweep": "node scripts/sweep-projection-config.js",
     "build": "npm run build:semantic && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

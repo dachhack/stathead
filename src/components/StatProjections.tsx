@@ -5,6 +5,7 @@ import {
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../types';
+import projectionConfig from '../generated/projection-config.json';
 
 // ── Config ──
 
@@ -177,14 +178,15 @@ export function StatProjections() {
         const usingLiveOdds = oddsTeamImplied.length > 0;
 
         // Vegas multiplier: team's implied total vs league average
-        // A team at 27 vs league avg 23 → 27/23 = 1.17 → capped multiplier
+        // Config from build-time sweep (may disable Vegas entirely if sweep found it unhelpful)
+        const { useVegas, vegasBlend, vegasCap } = projectionConfig.winner;
         function vegasMultiplier(teamAbbr: string): number {
+          if (!useVegas) return 1;
           const t = teamImpliedTotals.get(teamAbbr);
           if (!t || t.count === 0) return 1;
           const teamAvg = t.sum / t.count;
-          // Dampen: blend 60% team-specific, 40% league average
-          const blended = teamAvg * 0.6 + leagueAvgImplied * 0.4;
-          return Math.max(0.85, Math.min(1.15, blended / leagueAvgImplied));
+          const blended = teamAvg * vegasBlend + leagueAvgImplied * (1 - vegasBlend);
+          return Math.max(1 - vegasCap, Math.min(1 + vegasCap, blended / leagueAvgImplied));
         }
 
         // Draft data for age/experience
