@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { ROSTER_OVERRIDES_2026, ROSTER_OVERRIDES_2026_SEASON } from './rosterOverrides';
 import type {
   PlayerStats,
   SeasonTotals,
@@ -906,7 +907,19 @@ export async function fetchNextGenStats(
 
 // --- Rosters ---
 export async function fetchRosters(season: number): Promise<Roster[]> {
-  return fetchCsv<Roster>(nflUrl(`rosters/roster_${season}.csv`));
+  const rosters = await fetchCsv<Roster>(nflUrl(`rosters/roster_${season}.csv`));
+  if (season >= ROSTER_OVERRIDES_2026_SEASON) {
+    for (const r of rosters) {
+      const nn = r.full_name
+        .toLowerCase()
+        .replace(/[^a-z ]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const override = ROSTER_OVERRIDES_2026[nn];
+      if (override) r.team = override.team;
+    }
+  }
+  return rosters;
 }
 
 // --- Contracts ---
