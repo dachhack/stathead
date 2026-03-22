@@ -896,8 +896,10 @@ export function StatProjections() {
                 let passAtt: number, passComp: number, passYds: number, passTD: number, ints: number;
                 let rushAtt: number, rushYds: number, rushTD: number;
 
-                if (prior && prior.games >= 3) {
-                  const adjAtt = isPrimary ? healthAdjust(prior.attempts || 0, prior.games) : (prior.attempts || 0);
+                if (isPrimary && prior && prior.games >= 3) {
+                  // Primary starter with meaningful history: allocate from the team
+                  // pass pool using their historical share, health-adjusted.
+                  const adjAtt = healthAdjust(prior.attempts || 0, prior.games);
                   const passShare = priorPassAttTotal > 0 ? adjAtt / priorPassAttTotal : 1 / players.length;
                   passAtt = Math.round(qbPassPool * passShare * af * gamesScale);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
@@ -909,22 +911,22 @@ export function StatProjections() {
                   const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
                   ints = Math.round(passAtt * intRate);
 
-                  const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
+                  const adjCar = healthAdjust(prior.carries || 0, prior.games);
                   const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5 / players.length;
                   rushAtt = Math.round(qbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
                 } else {
-                  // Backup QB with minimal prior data (likely mop-up duty).
-                  // games = 17 - starterGames (already correctly 1-3 for a true backup).
-                  // Use starter-level per-game rates so the backup's spot start looks
-                  // like a real game, not scaled-down mop-up production.
-                  const starter = players.find(
-                    p => p.prior && p.prior.games >= 10 && (p.prior.attempts || 0) > 100
-                  );
-                  const sp = starter?.prior;
-                  const perGameAtt = sp ? Math.round((sp.attempts / sp.games) * 0.88) : 27;
+                  // Backup QB (any prior history), or primary with <3 prior games.
+                  // The pool-share + gamesScale approach yields near-zero stats for a
+                  // backup with games=1, even if they have prior starts elsewhere.
+                  // Instead, project starter-level per-game volume for their allocated games.
+                  // Use players[0] (the team's projected starter) as the per-game rate reference.
+                  const sp = players[0]?.prior;
+                  const perGameAtt = sp && sp.games > 0 && sp.attempts > 0
+                    ? Math.round((sp.attempts / sp.games) * 0.88)
+                    : 27;
                   const compRate = sp && sp.attempts > 0 ? Math.min(0.68, (sp.completions || 0) / sp.attempts) : 0.60;
                   const ypa = sp && sp.attempts > 0 ? Math.min(8.5, (sp.passing_yards || 0) / sp.attempts) * 0.92 : 6.5;
                   const tdRate = sp && sp.attempts > 0 ? (sp.passing_tds || 0) / sp.attempts : 0.038;
@@ -936,7 +938,9 @@ export function StatProjections() {
                   passTD = Math.round(passAtt * tdRate);
                   ints = Math.round(passAtt * intRate);
 
-                  const perGameRushAtt = sp && sp.games > 0 ? Math.max(2, Math.round(((sp.carries || 0) / sp.games) * 0.6)) : 3;
+                  const perGameRushAtt = sp && sp.games > 0
+                    ? Math.max(2, Math.round(((sp.carries || 0) / sp.games) * 0.6))
+                    : 3;
                   rushAtt = Math.round(perGameRushAtt * games);
                   rushYds = Math.round(rushAtt * 3.8);
                   rushTD = 0;
