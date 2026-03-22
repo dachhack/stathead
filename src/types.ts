@@ -1005,6 +1005,48 @@ export interface CustomPlayer {
   fantasyPoints: number;
 }
 
+// Free agent available for signing — derived from prior season stats
+export interface FreeAgentPlayer {
+  name: string;
+  position: string;
+  priorGames: number;
+  priorPPR: number;
+  passAtt: number;
+  passComp: number;
+  passYds: number;
+  passTD: number;
+  int: number;
+  rushAtt: number;
+  rushYds: number;
+  rushTD: number;
+  tgt: number;
+  rec: number;
+  recYds: number;
+  recTD: number;
+}
+
+// A free agent signed to a specific team in a scenario
+export interface FreeAgentSigning {
+  id: string;
+  name: string;
+  position: string;
+  toTeam: string;
+  priorGames: number;
+  priorPPR: number;
+  passAtt: number;
+  passComp: number;
+  passYds: number;
+  passTD: number;
+  int: number;
+  rushAtt: number;
+  rushYds: number;
+  rushTD: number;
+  tgt: number;
+  rec: number;
+  recYds: number;
+  recTD: number;
+}
+
 export interface ScenarioConfig {
   id: string;
   name: string;
@@ -1015,4 +1057,5 @@ export interface ScenarioConfig {
   volumeOverrides: VolumeOverride[];
   movements: PlayerMovement[];
   customPlayers: CustomPlayer[];
+  freeAgentSignings: FreeAgentSigning[];
 }

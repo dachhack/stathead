@@ -9,6 +9,8 @@ import type {
   VolumeOverride,
   PlayerMovement,
   CustomPlayer,
+  FreeAgentPlayer,
+  FreeAgentSigning,
 } from '../types';
 import {
   saveScenario,
@@ -21,6 +23,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   projections: SDIOProjection[];
+  freeAgents?: FreeAgentPlayer[];
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
 }
@@ -39,7 +42,17 @@ function usePlayerSearch(projections: SDIOProjection[], query: string) {
   }, [projections, query]);
 }
 
-export function ScenarioBuilder({ open, onClose, projections, scenario, onChange }: Props) {
+function useFASearch(freeAgents: FreeAgentPlayer[], query: string) {
+  return useMemo(() => {
+    if (!query.trim() || query.length < 2) return [];
+    const q = query.toLowerCase();
+    return freeAgents
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, 10);
+  }, [freeAgents, query]);
+}
+
+export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -97,6 +110,12 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
     { label: 'Rushing', stats: ['RushingAttempts', 'RushingYards', 'RushingTouchdowns'] },
     { label: 'Receiving', stats: ['Receptions', 'ReceivingYards', 'ReceivingTouchdowns'] },
   ];
+
+  // Free agent signing form
+  const [faSearch, setFaSearch] = useState('');
+  const [faPlayer, setFaPlayer] = useState<FreeAgentPlayer | null>(null);
+  const [faToTeam, setFaToTeam] = useState('');
+  const faResults = useFASearch(freeAgents, faSearch);
 
   const teams = useMemo(() => {
     const set = new Set(projections.map((p) => p.Team).filter(Boolean));
@@ -235,6 +254,42 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
   const removeCustomPlayer = (id: string) =>
     update({ customPlayers: scenario.customPlayers.filter((c) => c.id !== id) });
 
+  // --- Free agent signing actions ---
+  const addFASigning = () => {
+    if (!faPlayer || !faToTeam) return;
+    const signing: FreeAgentSigning = {
+      id: `fa-${Date.now()}`,
+      name: faPlayer.name,
+      position: faPlayer.position,
+      toTeam: faToTeam,
+      priorGames: faPlayer.priorGames,
+      priorPPR: faPlayer.priorPPR,
+      passAtt: faPlayer.passAtt,
+      passComp: faPlayer.passComp,
+      passYds: faPlayer.passYds,
+      passTD: faPlayer.passTD,
+      int: faPlayer.int,
+      rushAtt: faPlayer.rushAtt,
+      rushYds: faPlayer.rushYds,
+      rushTD: faPlayer.rushTD,
+      tgt: faPlayer.tgt,
+      rec: faPlayer.rec,
+      recYds: faPlayer.recYds,
+      recTD: faPlayer.recTD,
+    };
+    update({
+      freeAgentSignings: [
+        ...(scenario.freeAgentSignings ?? []).filter((s) => s.name !== faPlayer.name),
+        signing,
+      ],
+    });
+    setFaSearch('');
+    setFaPlayer(null);
+    setFaToTeam('');
+  };
+  const removeFASigning = (id: string) =>
+    update({ freeAgentSignings: (scenario.freeAgentSignings ?? []).filter((s) => s.id !== id) });
+
   // --- Save/load ---
   const handleSave = () => {
     saveScenario(scenario);
@@ -255,7 +310,8 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
     (scenario.teamStatAdjustments ?? []).length +
     scenario.volumeOverrides.length +
     scenario.movements.length +
-    scenario.customPlayers.length;
+    scenario.customPlayers.length +
+    (scenario.freeAgentSignings ?? []).length;
 
   const deltaLabel = (delta: number, type: 'pass' | 'volume') => {
     if (delta === 0) return '0';
@@ -879,7 +935,115 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
             )}
           </div>
 
-          {/* 6. Add Custom Player */}
+          {/* 6. Free Agent Signings */}
+          {freeAgents.length > 0 && (
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Free Agent Signings</span>
+            </div>
+            <p className="scenario-section-hint">
+              Sign free agents to a team. Projections use their prior-season stats adjusted for the new team context.
+            </p>
+
+            <div className="scenario-add-form">
+              <div className="scenario-search-wrap">
+                <input
+                  type="text"
+                  placeholder="Search free agents..."
+                  value={faPlayer ? faPlayer.name : faSearch}
+                  onChange={(e) => {
+                    setFaSearch(e.target.value);
+                    setFaPlayer(null);
+                  }}
+                  className="scenario-search"
+                />
+                {faResults.length > 0 && !faPlayer && (
+                  <div className="scenario-dropdown">
+                    {faResults.map((p) => (
+                      <div
+                        key={p.name}
+                        className="scenario-dropdown-item"
+                        onClick={() => {
+                          setFaPlayer(p);
+                          setFaSearch('');
+                        }}
+                      >
+                        <span className={`pos-badge pos-${p.position}`}>{p.position}</span>
+                        <span className="scenario-dropdown-name">{p.name}</span>
+                        <span className="scenario-dropdown-team">{p.priorPPR} PPR ({p.priorGames}g)</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {faPlayer && (
+                <>
+                  <div className="scenario-selected-player">
+                    <span className={`pos-badge pos-${faPlayer.position}`}>
+                      {faPlayer.position}
+                    </span>
+                    <span>{faPlayer.name}</span>
+                    <span className="scenario-dropdown-team">
+                      {faPlayer.priorPPR} PPR last season ({faPlayer.priorGames}g)
+                    </span>
+                    <button
+                      className="scenario-clear-selection"
+                      onClick={() => setFaPlayer(null)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="scenario-move-row">
+                    <span className="scenario-move-from">FA</span>
+                    <span className="scenario-move-arrow">→</span>
+                    <select
+                      value={faToTeam}
+                      onChange={(e) => setFaToTeam(e.target.value)}
+                      className="scenario-select"
+                    >
+                      <option value="">Sign to team...</option>
+                      {teams.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    className="scenario-confirm-btn"
+                    onClick={addFASigning}
+                    disabled={!faToTeam}
+                  >
+                    Sign Player
+                  </button>
+                </>
+              )}
+            </div>
+
+            {(scenario.freeAgentSignings ?? []).map((s) => (
+              <div key={s.id} className="scenario-item">
+                <div className="scenario-item-left">
+                  <span className={`pos-badge pos-${s.position}`}>{s.position}</span>
+                  <span className="scenario-item-name">{s.name}</span>
+                  <span className="scenario-item-delta">
+                    FA → {s.toTeam} · {s.priorPPR} PPR last szn
+                  </span>
+                </div>
+                <button
+                  className="scenario-remove-btn"
+                  onClick={() => removeFASigning(s.id)}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {(scenario.freeAgentSignings ?? []).length === 0 && !faPlayer && !faSearch && (
+              <div className="scenario-section-empty">No free agent signings</div>
+            )}
+          </div>
+          )}
+
+          {/* 7. Add Custom Player */}
           <div className="scenario-section">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Add Custom Player</span>
@@ -979,6 +1143,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
                 volumeOverrides: [],
                 movements: [],
                 customPlayers: [],
+                freeAgentSignings: [],
               })
             }
             disabled={isScenarioEmpty(scenario)}

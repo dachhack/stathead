@@ -8,7 +8,8 @@ export function isScenarioEmpty(s: ScenarioConfig): boolean {
     (s.teamStatAdjustments ?? []).length === 0 &&
     s.volumeOverrides.length === 0 &&
     s.movements.length === 0 &&
-    s.customPlayers.length === 0
+    s.customPlayers.length === 0 &&
+    (s.freeAgentSignings ?? []).length === 0
   );
 }
 
@@ -279,6 +280,53 @@ export function applyScenario(
     });
   }
 
+  // 6. Free agent signings — inject with scaled prior-season stats
+  // Stats are scaled from priorGames → FA_PROJ_GAMES with regression
+  const FA_PROJ_GAMES = 14;
+  const FA_REG = 0.85;
+  for (const fa of (scenario.freeAgentSignings ?? [])) {
+    const scale = fa.priorGames > 0 ? (FA_PROJ_GAMES / fa.priorGames) * FA_REG : 0;
+    const passAtt = Math.round(fa.passAtt * scale);
+    const passComp = Math.round(fa.passComp * scale);
+    const passYds = Math.round(fa.passYds * scale);
+    const passTD = Math.round(fa.passTD * scale);
+    const passInt = Math.round(fa.int * scale);
+    const rushAtt = Math.round(fa.rushAtt * scale);
+    const rushYds = Math.round(fa.rushYds * scale);
+    const rushTD = Math.round(fa.rushTD * scale);
+    const rec = Math.round(fa.rec * scale);
+    const recYds = Math.round(fa.recYds * scale);
+    const recTD = Math.round(fa.recTD * scale);
+    const { ppr, std } = recalcPoints({
+      PassingYards: passYds, PassingTouchdowns: passTD, PassingInterceptions: passInt,
+      RushingYards: rushYds, RushingTouchdowns: rushTD,
+      Receptions: rec, ReceivingYards: recYds, ReceivingTouchdowns: recTD,
+      FumblesLost: 0,
+    } as SDIOProjection);
+    result.push({
+      PlayerID: -(cpIdx++),
+      Name: `★ ${fa.name}`,
+      Team: fa.toTeam,
+      Position: fa.position,
+      FantasyPointsPPR: ppr,
+      FantasyPoints: std,
+      PassingAttempts: passAtt,
+      PassingCompletions: passComp,
+      PassingYards: passYds,
+      PassingTouchdowns: passTD,
+      PassingInterceptions: passInt,
+      RushingAttempts: rushAtt,
+      RushingYards: rushYds,
+      RushingTouchdowns: rushTD,
+      Receptions: rec,
+      ReceivingYards: recYds,
+      ReceivingTouchdowns: recTD,
+      FumblesLost: 0,
+      FieldGoalsMade: 0,
+      ExtraPointsMade: 0,
+    });
+  }
+
   return result;
 }
 
@@ -318,5 +366,6 @@ export function createEmptyScenario(): ScenarioConfig {
     volumeOverrides: [],
     movements: [],
     customPlayers: [],
+    freeAgentSignings: [],
   };
 }

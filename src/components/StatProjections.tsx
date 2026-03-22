@@ -4,7 +4,7 @@ import {
   fetchDraftPicks, fetchRosters, fetchGames,
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import projectionConfig from '../generated/projection-config.json';
@@ -67,13 +67,67 @@ function computePPR(p: {
 
 // ── Scenario application ──
 
+// Scale factor for FA signings: project to FA_PROJ_GAMES with regression
+const FA_PROJ_GAMES = 14;
+const FA_REG = 0.85;
+
 function applyScenarioToProjections(
-  qbs: QBProjection[],
-  rbs: RBProjection[],
-  wrs: WRProjection[],
-  tes: TEProjection[],
+  qbsIn: QBProjection[],
+  rbsIn: RBProjection[],
+  wrsIn: WRProjection[],
+  tesIn: TEProjection[],
   sc: ScenarioConfig,
 ): { qbs: QBProjection[]; rbs: RBProjection[]; wrs: WRProjection[]; tes: TEProjection[] } {
+  // Inject free agent signings before team adjustments so tendencies apply to them
+  const qbs = [...qbsIn];
+  const rbs = [...rbsIn];
+  const wrs = [...wrsIn];
+  const tes = [...tesIn];
+
+  for (const fa of (sc.freeAgentSignings ?? [])) {
+    const scale = fa.priorGames > 0 ? (FA_PROJ_GAMES / fa.priorGames) * FA_REG : 0;
+    const base = { name: `★ ${fa.name}`, team: fa.toTeam, adp: 999, games: FA_PROJ_GAMES };
+    if (fa.position === 'QB') {
+      const passAtt = Math.round(fa.passAtt * scale);
+      const passComp = Math.round(fa.passComp * scale);
+      const passYds = Math.round(fa.passYds * scale);
+      const passTD = Math.round(fa.passTD * scale);
+      const int = Math.round(fa.int * scale);
+      const rushAtt = Math.round(fa.rushAtt * scale);
+      const rushYds = Math.round(fa.rushYds * scale);
+      const rushTD = Math.round(fa.rushTD * scale);
+      qbs.push({ ...base, passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD,
+        pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) });
+    } else if (fa.position === 'RB') {
+      const rushAtt = Math.round(fa.rushAtt * scale);
+      const rushYds = Math.round(fa.rushYds * scale);
+      const rushTD = Math.round(fa.rushTD * scale);
+      const tgt = Math.round(fa.tgt * scale);
+      const rec = Math.round(fa.rec * scale);
+      const recYds = Math.round(fa.recYds * scale);
+      const recTD = Math.round(fa.recTD * scale);
+      rbs.push({ ...base, rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD,
+        pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) });
+    } else if (fa.position === 'WR') {
+      const tgt = Math.round(fa.tgt * scale);
+      const rec = Math.round(fa.rec * scale);
+      const recYds = Math.round(fa.recYds * scale);
+      const recTD = Math.round(fa.recTD * scale);
+      const rushAtt = Math.round(fa.rushAtt * scale);
+      const rushYds = Math.round(fa.rushYds * scale);
+      const rushTD = Math.round(fa.rushTD * scale);
+      wrs.push({ ...base, tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD,
+        pprPts: Math.round(computePPR({ rec, recYds, recTD, rushYds, rushTD })) });
+    } else if (fa.position === 'TE') {
+      const tgt = Math.round(fa.tgt * scale);
+      const rec = Math.round(fa.rec * scale);
+      const recYds = Math.round(fa.recYds * scale);
+      const recTD = Math.round(fa.recTD * scale);
+      tes.push({ ...base, tgt, rec, recYds, recTD,
+        pprPts: Math.round(computePPR({ rec, recYds, recTD })) });
+    }
+  }
+
   // Build lookup maps
   const teamOverrides = new Map<string, string>();
   for (const move of sc.movements) {
@@ -382,6 +436,7 @@ export function StatProjections() {
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const [scenarioOpen, setScenarioOpen] = useState(false);
+  const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
 
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
@@ -436,6 +491,40 @@ export function StatProjections() {
           if (['QB', 'RB', 'WR', 'TE'].includes(r.position)) {
             rosterTeam.set(normalizeName(r.full_name), r.team);
           }
+        }
+
+        // ── Free agent list: prior-season players not on current rosters ──
+        // Only built when roster data is substantial enough to be meaningful
+        if (!cancelled && rosters.length >= 50) {
+          const fas: FreeAgentPlayer[] = [];
+          for (const p of priorTotals) {
+            if (!['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
+            if ((p.games || 0) < 3) continue;
+            if ((p.fantasy_points_ppr || 0) < 25) continue;
+            const nn = normalizeName(p.player_display_name);
+            if (rosterTeam.has(nn)) continue; // already on a team
+            fas.push({
+              name: p.player_display_name,
+              position: p.position,
+              priorGames: p.games,
+              priorPPR: Math.round(p.fantasy_points_ppr),
+              passAtt: p.attempts || 0,
+              passComp: p.completions || 0,
+              passYds: p.passing_yards || 0,
+              passTD: p.passing_tds || 0,
+              int: p.interceptions || 0,
+              rushAtt: p.carries || 0,
+              rushYds: p.rushing_yards || 0,
+              rushTD: p.rushing_tds || 0,
+              tgt: p.targets || 0,
+              rec: p.receptions || 0,
+              recYds: p.receiving_yards || 0,
+              recTD: p.receiving_tds || 0,
+            });
+          }
+          // Sort by prior PPR descending
+          fas.sort((a, b) => b.priorPPR - a.priorPPR);
+          setFreeAgentList(fas);
         }
 
         // Vegas implied totals (kept for future sweeps that may re-enable it)
@@ -1540,6 +1629,7 @@ export function StatProjections() {
         open={scenarioOpen}
         onClose={() => setScenarioOpen(false)}
         projections={searchProjections}
+        freeAgents={freeAgentList}
         scenario={scenario}
         onChange={setScenario}
       />
