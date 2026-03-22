@@ -163,6 +163,20 @@ const FEATURES: FeatureDef[] = [
   { key: 'teamShotgunRate', label: 'Team Shotgun Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'teamNoHuddleRate', label: 'Team No-Huddle Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'teamRBTargetRate', label: 'Team RB Target Rate', category: 'Coaching', positions: ['RB', 'WR', 'TE'] },
+
+  // Personnel & positional usage (team-level)
+  { key: 'team11Rate', label: 'Team 11 Personnel Rate', category: 'Personnel', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'team12Rate', label: 'Team 12 Personnel Rate', category: 'Personnel', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'team13Rate', label: 'Team 13 Personnel Rate', category: 'Personnel', positions: ['RB', 'TE'] },
+  { key: 'team21Rate', label: 'Team 21 Personnel Rate', category: 'Personnel', positions: ['RB', 'TE'] },
+  { key: 'team22Rate', label: 'Team 22 Personnel Rate', category: 'Personnel', positions: ['RB'] },
+  { key: 'team10Rate', label: 'Team 10 Personnel Rate', category: 'Personnel', positions: ['QB', 'WR'] },
+  { key: 'teamTETargetRate', label: 'Team TE Target Rate', category: 'Personnel', positions: ['TE', 'WR'] },
+  { key: 'teamWRTargetRate', label: 'Team WR Target Rate', category: 'Personnel', positions: ['WR', 'TE'] },
+  { key: 'teamTETargetsPerGame', label: 'Team TE Targets/Game', category: 'Personnel', positions: ['TE'] },
+  { key: 'teamRBTargetsPerGame', label: 'Team RB Targets/Game', category: 'Personnel', positions: ['RB'] },
+  { key: 'teamWR3PlusOnField', label: 'Team 3+ WR on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
+  { key: 'team2PlusTEOnField', label: 'Team 2+ TE on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -178,6 +192,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Injury: '#f43f5e',
   Competition: '#f97316',
   Coaching: '#a855f7',
+  Personnel: '#0ea5e9',
 };
 
 // ── Helpers ──
@@ -500,7 +515,7 @@ export function ADPFactorAnalysis() {
             neutralPasses: number; neutralPlays: number;
             firstDownRuns: number; firstDownPlays: number;
             shotgunPlays: number; noHuddlePlays: number;
-            rbTargets: number; totalTargets: number;
+            rbTargets: number; teTargets: number; wrTargets: number; totalTargets: number;
           }
           const schemeByTeam = new Map<string, SchemeAgg>();
           // Count games per team for pace calculation
@@ -517,7 +532,7 @@ export function ADPFactorAnalysis() {
               neutralPasses: 0, neutralPlays: 0,
               firstDownRuns: 0, firstDownPlays: 0,
               shotgunPlays: 0, noHuddlePlays: 0,
-              rbTargets: 0, totalTargets: 0,
+              rbTargets: 0, teTargets: 0, wrTargets: 0, totalTargets: 0,
             };
             acc.plays += 1;
             if (play.play_type === 'pass' || play.qb_dropback === 1) acc.passes += 1;
@@ -539,13 +554,14 @@ export function ADPFactorAnalysis() {
             if (play.shotgun === 1) acc.shotgunPlays += 1;
             if (play.no_huddle === 1) acc.noHuddlePlays += 1;
 
-            // RB target rate
+            // Positional target breakdown
             if (play.play_type === 'pass' && play.receiver_player_name) {
               acc.totalTargets += 1;
-              // Check if receiver is an RB (from prior totals)
               const recName = normalizeName(play.receiver_player_name);
               const recPrior = priorByName.get(recName);
               if (recPrior?.position === 'RB') acc.rbTargets += 1;
+              else if (recPrior?.position === 'TE') acc.teTargets += 1;
+              else if (recPrior?.position === 'WR') acc.wrTargets += 1;
             }
 
             schemeByTeam.set(team, acc);
@@ -554,6 +570,46 @@ export function ADPFactorAnalysis() {
           for (const [team, gameSet] of priorGamesByTeam) {
             const acc = schemeByTeam.get(team);
             if (acc) acc.games = gameSet.size;
+          }
+
+          // ── Team personnel grouping rates from PBP ──
+          // Parse offense_personnel from PBP plays (e.g. "1 RB, 1 TE, 3 WR")
+          interface PersonnelAgg {
+            p11: number; p12: number; p13: number; p21: number;
+            p22: number; p10: number; total: number;
+            wr3plus: number; te2plus: number;
+          }
+          const personnelByTeam = new Map<string, PersonnelAgg>();
+          for (const play of priorPbp) {
+            if (!play.posteam || !play.offense_personnel) continue;
+            if (play.play_type !== 'pass' && play.play_type !== 'run') continue;
+            const team = play.posteam;
+            const acc = personnelByTeam.get(team) || {
+              p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0, total: 0,
+              wr3plus: 0, te2plus: 0,
+            };
+            acc.total += 1;
+
+            const pers = play.offense_personnel;
+            const rbMatch = pers.match(/(\d+)\s*RB/i);
+            const teMatch = pers.match(/(\d+)\s*TE/i);
+            const wrMatch = pers.match(/(\d+)\s*WR/i);
+            const rb = rbMatch ? Number(rbMatch[1]) : 0;
+            const te = teMatch ? Number(teMatch[1]) : 0;
+            const wr = wrMatch ? Number(wrMatch[1]) : 0;
+
+            const grouping = `${rb}${te}`;
+            if (grouping === '11') acc.p11 += 1;
+            else if (grouping === '12') acc.p12 += 1;
+            else if (grouping === '13') acc.p13 += 1;
+            else if (grouping === '21') acc.p21 += 1;
+            else if (grouping === '22') acc.p22 += 1;
+            else if (grouping === '10') acc.p10 += 1;
+
+            if (wr >= 3) acc.wr3plus += 1;
+            if (te >= 2) acc.te2plus += 1;
+
+            personnelByTeam.set(team, acc);
           }
 
           // Coach change detection: compare prior season coach to current season coach
@@ -1023,6 +1079,30 @@ export function ADPFactorAnalysis() {
                     ? Math.round((scheme.rbTargets / scheme.totalTargets) * 1000) / 1000 : 0,
                 };
               })(),
+
+              // Personnel & positional usage features
+              ...(() => {
+                const pTeam2 = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const pers = personnelByTeam.get(pTeam2);
+                const persTotal = pers?.total || 1;
+                const sch = schemeByTeam.get(pTeam2);
+                const schGames = sch?.games || 1;
+                const schTotalTgts = sch?.totalTargets || 1;
+                return {
+                  team11Rate: pers ? Math.round((pers.p11 / persTotal) * 1000) / 1000 : 0,
+                  team12Rate: pers ? Math.round((pers.p12 / persTotal) * 1000) / 1000 : 0,
+                  team13Rate: pers ? Math.round((pers.p13 / persTotal) * 1000) / 1000 : 0,
+                  team21Rate: pers ? Math.round((pers.p21 / persTotal) * 1000) / 1000 : 0,
+                  team22Rate: pers ? Math.round((pers.p22 / persTotal) * 1000) / 1000 : 0,
+                  team10Rate: pers ? Math.round((pers.p10 / persTotal) * 1000) / 1000 : 0,
+                  teamTETargetRate: sch ? Math.round((sch.teTargets / schTotalTgts) * 1000) / 1000 : 0,
+                  teamWRTargetRate: sch ? Math.round((sch.wrTargets / schTotalTgts) * 1000) / 1000 : 0,
+                  teamTETargetsPerGame: sch ? Math.round((sch.teTargets / schGames) * 10) / 10 : 0,
+                  teamRBTargetsPerGame: sch ? Math.round((sch.rbTargets / schGames) * 10) / 10 : 0,
+                  teamWR3PlusOnField: pers ? Math.round((pers.wr3plus / persTotal) * 1000) / 1000 : 0,
+                  team2PlusTEOnField: pers ? Math.round((pers.te2plus / persTotal) * 1000) / 1000 : 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1376,10 +1456,18 @@ export function ADPFactorAnalysis() {
               neutralPasses: number; neutralPlays: number;
               firstDownRuns: number; firstDownPlays: number;
               shotgunPlays: number; noHuddlePlays: number;
-              rbTargets: number; totalTargets: number;
+              rbTargets: number; teTargets: number; wrTargets: number; totalTargets: number;
             }
             const predSchemeByTeam = new Map<string, PredSchemeAgg>();
             const predPriorGamesByTeam = new Map<string, Set<string>>();
+            // Personnel aggregation for predictions
+            interface PredPersonnelAgg {
+              p11: number; p12: number; p13: number; p21: number;
+              p22: number; p10: number; total: number;
+              wr3plus: number; te2plus: number;
+            }
+            const predPersonnelByTeam = new Map<string, PredPersonnelAgg>();
+
             for (const play of predPriorPbp) {
               if (!play.posteam || play.play_type === 'no_play') continue;
               const team = play.posteam;
@@ -1392,7 +1480,7 @@ export function ADPFactorAnalysis() {
                 neutralPasses: 0, neutralPlays: 0,
                 firstDownRuns: 0, firstDownPlays: 0,
                 shotgunPlays: 0, noHuddlePlays: 0,
-                rbTargets: 0, totalTargets: 0,
+                rbTargets: 0, teTargets: 0, wrTargets: 0, totalTargets: 0,
               };
               acc.plays += 1;
               if (play.play_type === 'pass' || play.qb_dropback === 1) acc.passes += 1;
@@ -1413,8 +1501,36 @@ export function ADPFactorAnalysis() {
                 const recName = normalizeName(play.receiver_player_name);
                 const recPrior = predPriorByName.get(recName);
                 if (recPrior?.position === 'RB') acc.rbTargets += 1;
+                else if (recPrior?.position === 'TE') acc.teTargets += 1;
+                else if (recPrior?.position === 'WR') acc.wrTargets += 1;
               }
               predSchemeByTeam.set(team, acc);
+
+              // Personnel grouping
+              if (play.offense_personnel) {
+                const persAcc = predPersonnelByTeam.get(team) || {
+                  p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0, total: 0,
+                  wr3plus: 0, te2plus: 0,
+                };
+                persAcc.total += 1;
+                const pers = play.offense_personnel;
+                const rbM = pers.match(/(\d+)\s*RB/i);
+                const teM = pers.match(/(\d+)\s*TE/i);
+                const wrM = pers.match(/(\d+)\s*WR/i);
+                const rb = rbM ? Number(rbM[1]) : 0;
+                const te = teM ? Number(teM[1]) : 0;
+                const wr = wrM ? Number(wrM[1]) : 0;
+                const grouping = `${rb}${te}`;
+                if (grouping === '11') persAcc.p11 += 1;
+                else if (grouping === '12') persAcc.p12 += 1;
+                else if (grouping === '13') persAcc.p13 += 1;
+                else if (grouping === '21') persAcc.p21 += 1;
+                else if (grouping === '22') persAcc.p22 += 1;
+                else if (grouping === '10') persAcc.p10 += 1;
+                if (wr >= 3) persAcc.wr3plus += 1;
+                if (te >= 2) persAcc.te2plus += 1;
+                predPersonnelByTeam.set(team, persAcc);
+              }
             }
             for (const [team, gameSet] of predPriorGamesByTeam) {
               const acc = predSchemeByTeam.get(team);
@@ -1642,6 +1758,30 @@ export function ADPFactorAnalysis() {
                     teamNoHuddleRate: scheme ? Math.round((scheme.noHuddlePlays / totalPlays) * 1000) / 1000 : 0,
                     teamRBTargetRate: scheme && scheme.totalTargets > 0
                       ? Math.round((scheme.rbTargets / scheme.totalTargets) * 1000) / 1000 : 0,
+                  };
+                })(),
+
+                // Personnel & positional usage features
+                ...(() => {
+                  const pTeam2 = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const pers = predPersonnelByTeam.get(pTeam2);
+                  const persTotal = pers?.total || 1;
+                  const sch = predSchemeByTeam.get(pTeam2);
+                  const schGames = sch?.games || 1;
+                  const schTotalTgts = sch?.totalTargets || 1;
+                  return {
+                    team11Rate: pers ? Math.round((pers.p11 / persTotal) * 1000) / 1000 : 0,
+                    team12Rate: pers ? Math.round((pers.p12 / persTotal) * 1000) / 1000 : 0,
+                    team13Rate: pers ? Math.round((pers.p13 / persTotal) * 1000) / 1000 : 0,
+                    team21Rate: pers ? Math.round((pers.p21 / persTotal) * 1000) / 1000 : 0,
+                    team22Rate: pers ? Math.round((pers.p22 / persTotal) * 1000) / 1000 : 0,
+                    team10Rate: pers ? Math.round((pers.p10 / persTotal) * 1000) / 1000 : 0,
+                    teamTETargetRate: sch ? Math.round((sch.teTargets / schTotalTgts) * 1000) / 1000 : 0,
+                    teamWRTargetRate: sch ? Math.round((sch.wrTargets / schTotalTgts) * 1000) / 1000 : 0,
+                    teamTETargetsPerGame: sch ? Math.round((sch.teTargets / schGames) * 10) / 10 : 0,
+                    teamRBTargetsPerGame: sch ? Math.round((sch.rbTargets / schGames) * 10) / 10 : 0,
+                    teamWR3PlusOnField: pers ? Math.round((pers.wr3plus / persTotal) * 1000) / 1000 : 0,
+                    team2PlusTEOnField: pers ? Math.round((pers.te2plus / persTotal) * 1000) / 1000 : 0,
                   };
                 })(),
               };
