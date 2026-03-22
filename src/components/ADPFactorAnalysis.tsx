@@ -11,6 +11,9 @@ import {
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
+import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
+
+type ModelType = 'ridge' | 'gbm';
 
 // ── Config ──
 
@@ -166,12 +169,15 @@ interface PlayerRow {
 
 interface PositionModel {
   position: string;
-  model: TrainedModel;
+  ridgeModel?: TrainedModel;
+  gbmModel?: TrainedGBM;
   featureNames: string[];
   featureLabels: string[];
   n: number;
   hitRate: number;
   bustRate: number;
+  rSquared: number;
+  mae: number;
 }
 
 // ── Component ──
@@ -185,6 +191,7 @@ export function ADPFactorAnalysis() {
   const [selectedPos, setSelectedPos] = useState('RB');
   const [lambda, setLambda] = useState(5);
   const [maxADP, setMaxADP] = useState(150);
+  const [modelType, setModelType] = useState<ModelType>('gbm');
   const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -651,7 +658,7 @@ export function ADPFactorAnalysis() {
         if (cancelled) return;
         setAllRows(rows);
 
-        // Train per-position models
+        // Train per-position models (both Ridge and GBM)
         const posModels: PositionModel[] = [];
         for (const pos of POSITIONS) {
           const posRows = rows.filter((r) => r.position === pos && r.adp <= maxADP);
@@ -664,16 +671,26 @@ export function ADPFactorAnalysis() {
           const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
           const y = posRows.map((r) => r.adpDelta);
 
-          const model = trainRidgeRegression(X, y, featureKeys, lambda);
+          const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
+          const gbmModel = trainGBM(X, y, featureKeys, {
+            nEstimators: 150,
+            learningRate: 0.08,
+            maxDepth: 3,
+            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
+            subsample: 0.8,
+          });
 
           posModels.push({
             position: pos,
-            model,
+            ridgeModel,
+            gbmModel,
             featureNames: featureKeys,
             featureLabels,
             n: posRows.length,
             hitRate: Math.round(posRows.filter((r) => r.isHit).length / posRows.length * 100),
             bustRate: Math.round(posRows.filter((r) => r.isBust).length / posRows.length * 100),
+            rSquared: 0,
+            mae: 0,
           });
         }
 
@@ -694,9 +711,40 @@ export function ADPFactorAnalysis() {
     [models, selectedPos]
   );
 
-  // Feature importance sorted by absolute coefficient
+  // Feature importance sorted by absolute value
   const featureImportance = useMemo(() => {
     if (!currentModel) return [];
+
+    if (modelType === 'gbm' && currentModel.gbmModel) {
+      // For GBM: compute average feature contribution across training data
+      const gbm = currentModel.gbmModel;
+      const posRows = allRows.filter((r) => r.position === selectedPos && r.adp <= maxADP);
+      const contribSums = new Array(currentModel.featureNames.length).fill(0);
+      for (const row of posRows) {
+        const result = predictGBM(gbm, row.features);
+        for (const fc of result.featureContributions) {
+          const idx = currentModel.featureNames.indexOf(fc.name);
+          if (idx >= 0) contribSums[idx] += fc.contribution;
+        }
+      }
+      const n = posRows.length || 1;
+      return currentModel.featureNames
+        .map((key, i) => {
+          const def = FEATURES.find((f) => f.key === key);
+          const avgContrib = contribSums[i] / n;
+          return {
+            key,
+            label: currentModel.featureLabels[i],
+            category: def?.category || 'Other',
+            coefficient: avgContrib,
+            absCoeff: Math.abs(avgContrib),
+          };
+        })
+        .sort((a, b) => b.absCoeff - a.absCoeff);
+    }
+
+    // Ridge: use coefficients directly
+    if (!currentModel.ridgeModel) return [];
     return currentModel.featureNames
       .map((key, i) => {
         const def = FEATURES.find((f) => f.key === key);
@@ -704,19 +752,23 @@ export function ADPFactorAnalysis() {
           key,
           label: currentModel.featureLabels[i],
           category: def?.category || 'Other',
-          coefficient: currentModel.model.coefficients[i],
-          absCoeff: Math.abs(currentModel.model.coefficients[i]),
+          coefficient: currentModel.ridgeModel!.coefficients[i],
+          absCoeff: Math.abs(currentModel.ridgeModel!.coefficients[i]),
         };
       })
       .sort((a, b) => b.absCoeff - a.absCoeff);
-  }, [currentModel]);
+  }, [currentModel, modelType, allRows, selectedPos, maxADP]);
 
   // Per-player predictions for selected position
   const playerPredictions = useMemo(() => {
     if (!currentModel) return [];
     const posRows = allRows.filter((r) => r.position === selectedPos && r.adp <= maxADP);
     return posRows.map((r) => {
-      const result = predict(currentModel.model, r.features);
+      const result = modelType === 'gbm' && currentModel.gbmModel
+        ? predictGBM(currentModel.gbmModel, r.features)
+        : currentModel.ridgeModel
+          ? predict(currentModel.ridgeModel, r.features)
+          : { predicted: 0, featureContributions: [] };
       const factors = result.featureContributions.map((fc) => {
         const idx = currentModel.featureNames.indexOf(fc.name);
         return {
@@ -737,21 +789,45 @@ export function ADPFactorAnalysis() {
         factors,
       };
     }).sort((a, b) => b.predictedDelta - a.predictedDelta);
-  }, [currentModel, allRows, selectedPos, maxADP]);
+  }, [currentModel, allRows, selectedPos, maxADP, modelType]);
 
   const selectedPrediction = useMemo(
     () => playerPredictions.find((p) => p.name === selectedPlayerName) || null,
     [playerPredictions, selectedPlayerName]
   );
 
-  // Cross-position comparison: top 5 features per position
+  // Cross-position comparison: top features per position
   const crossPositionData = useMemo(() => {
     const commonFeatures = FEATURES.filter((f) => f.positions.length === 4);
+
+    // For GBM, compute average contributions per feature per position
+    const gbmContribsByPos = new Map<string, Map<string, number>>();
+    if (modelType === 'gbm') {
+      for (const m of models) {
+        if (!m.gbmModel) continue;
+        const posRows = allRows.filter((r) => r.position === m.position && r.adp <= maxADP);
+        const contribs = new Map<string, number>();
+        for (const row of posRows) {
+          const result = predictGBM(m.gbmModel, row.features);
+          for (const fc of result.featureContributions) {
+            contribs.set(fc.name, (contribs.get(fc.name) || 0) + fc.contribution);
+          }
+        }
+        const n = posRows.length || 1;
+        for (const [k, v] of contribs) contribs.set(k, v / n);
+        gbmContribsByPos.set(m.position, contribs);
+      }
+    }
+
     return commonFeatures.map((feat) => {
       const row: Record<string, unknown> = { label: feat.label };
       for (const m of models) {
-        const idx = m.featureNames.indexOf(feat.key);
-        row[m.position] = idx >= 0 ? Math.round(m.model.coefficients[idx] * 1000) / 1000 : 0;
+        if (modelType === 'gbm') {
+          row[m.position] = Math.round((gbmContribsByPos.get(m.position)?.get(feat.key) || 0) * 1000) / 1000;
+        } else {
+          const idx = m.featureNames.indexOf(feat.key);
+          row[m.position] = idx >= 0 && m.ridgeModel ? Math.round(m.ridgeModel.coefficients[idx] * 1000) / 1000 : 0;
+        }
       }
       return row;
     }).sort((a, b) => {
@@ -759,7 +835,7 @@ export function ADPFactorAnalysis() {
       const maxB = Math.max(...POSITIONS.map((p) => Math.abs((b[p] as number) || 0)));
       return maxB - maxA;
     });
-  }, [models]);
+  }, [models, modelType, allRows, maxADP]);
 
   // Scatter data for selected position
   const scatterData = useMemo(() => {
@@ -803,7 +879,7 @@ export function ADPFactorAnalysis() {
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        Ridge regression models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
+        {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
         Predicts ADP Delta (positive = outperformed draft position).
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>
@@ -827,6 +903,14 @@ export function ADPFactorAnalysis() {
         </div>
 
         <div className="control-group">
+          <label className="control-label">Model</label>
+          <select value={modelType} onChange={(e) => setModelType(e.target.value as ModelType)}>
+            <option value="gbm">Gradient Boosting</option>
+            <option value="ridge">Ridge Regression</option>
+          </select>
+        </div>
+
+        <div className="control-group">
           <label className="control-label">Max ADP</label>
           <select value={maxADP} onChange={(e) => setMaxADP(Number(e.target.value))}>
             <option value={60}>Top 60</option>
@@ -836,15 +920,17 @@ export function ADPFactorAnalysis() {
           </select>
         </div>
 
-        <div className="control-group">
-          <label className="control-label">Lambda</label>
-          <select value={lambda} onChange={(e) => setLambda(Number(e.target.value))}>
-            <option value={1}>1 (low)</option>
-            <option value={5}>5 (default)</option>
-            <option value={10}>10</option>
-            <option value={25}>25 (high)</option>
-          </select>
-        </div>
+        {modelType === 'ridge' && (
+          <div className="control-group">
+            <label className="control-label">Lambda</label>
+            <select value={lambda} onChange={(e) => setLambda(Number(e.target.value))}>
+              <option value={1}>1 (low)</option>
+              <option value={5}>5 (default)</option>
+              <option value={10}>10</option>
+              <option value={25}>25 (high)</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Model performance cards */}
@@ -867,8 +953,8 @@ export function ADPFactorAnalysis() {
               {m.position}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              <div>R² = <strong style={{ color: 'var(--text-primary)' }}>{m.model.rSquared.toFixed(3)}</strong></div>
-              <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(m.model.mae)}</strong></div>
+              <div>R² = <strong style={{ color: 'var(--text-primary)' }}>{(modelType === 'gbm' ? m.gbmModel?.rSquared ?? 0 : m.ridgeModel?.rSquared ?? 0).toFixed(3)}</strong></div>
+              <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(modelType === 'gbm' ? m.gbmModel?.mae ?? 0 : m.ridgeModel?.mae ?? 0)}</strong></div>
               <div>N = {m.n} &middot; Hits {m.hitRate}% &middot; Busts {m.bustRate}%</div>
             </div>
           </div>
@@ -881,7 +967,7 @@ export function ADPFactorAnalysis() {
           <h4 style={{ marginBottom: 8 }}>
             {selectedPos} Hit/Bust Predictors
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              (positive coefficient = predicts outperformance)
+              ({modelType === 'gbm' ? 'positive = predicts outperformance' : 'positive coefficient = predicts outperformance'})
             </span>
           </h4>
           <div style={{
@@ -916,7 +1002,7 @@ export function ADPFactorAnalysis() {
                     borderRadius: 6,
                     fontSize: 12,
                   }}
-                  formatter={(value) => [Number(value).toFixed(4), 'Coefficient']}
+                  formatter={(value) => [Number(value).toFixed(4), modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient']}
                 />
                 <ReferenceLine x={0} stroke="var(--text-muted)" />
                 <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={18} />
@@ -933,7 +1019,7 @@ export function ADPFactorAnalysis() {
                   <th>#</th>
                   <th>Feature</th>
                   <th>Category</th>
-                  <th>Coefficient</th>
+                  <th>{modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient'}</th>
                   <th>Interpretation</th>
                 </tr>
               </thead>
