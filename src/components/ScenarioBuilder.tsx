@@ -3,6 +3,7 @@ import type {
   SDIOProjection,
   ScenarioConfig,
   TeamTendency,
+  TeamVolume,
   VolumeOverride,
   PlayerMovement,
   CustomPlayer,
@@ -44,6 +45,11 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
   const [addingTeam, setAddingTeam] = useState(false);
   const [newTeam, setNewTeam] = useState('');
   const [newTeamDelta, setNewTeamDelta] = useState(0);
+
+  // Team volume add form
+  const [addingTeamVol, setAddingTeamVol] = useState(false);
+  const [newTeamVolTeam, setNewTeamVolTeam] = useState('');
+  const [newTeamVolDelta, setNewTeamVolDelta] = useState(0);
 
   // Volume override add form
   const [volSearch, setVolSearch] = useState('');
@@ -93,6 +99,25 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
     update({
       teamTendencies: scenario.teamTendencies.map((t) =>
         t.team === team ? { ...t, passRatioDelta: delta } : t
+      ),
+    });
+
+  // --- Team volume actions ---
+  const addTeamVolume = () => {
+    if (!newTeamVolTeam || newTeamVolDelta === 0) return;
+    if ((scenario.teamVolumes ?? []).find((t) => t.team === newTeamVolTeam)) return;
+    const tv: TeamVolume = { team: newTeamVolTeam, volumeDelta: newTeamVolDelta };
+    update({ teamVolumes: [...(scenario.teamVolumes ?? []), tv] });
+    setNewTeamVolTeam('');
+    setNewTeamVolDelta(0);
+    setAddingTeamVol(false);
+  };
+  const removeTeamVolume = (team: string) =>
+    update({ teamVolumes: (scenario.teamVolumes ?? []).filter((t) => t.team !== team) });
+  const updateTeamVolumeDelta = (team: string, delta: number) =>
+    update({
+      teamVolumes: (scenario.teamVolumes ?? []).map((t) =>
+        t.team === team ? { ...t, volumeDelta: delta } : t
       ),
     });
 
@@ -179,6 +204,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
 
   const activeCount =
     scenario.teamTendencies.length +
+    (scenario.teamVolumes ?? []).length +
     scenario.volumeOverrides.length +
     scenario.movements.length +
     scenario.customPlayers.length;
@@ -372,7 +398,103 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
             )}
           </div>
 
-          {/* 3. Player Volume Overrides */}
+          {/* 3. Team Volume */}
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Team Volume</span>
+              <button
+                className="scenario-add-btn"
+                onClick={() => setAddingTeamVol((v) => !v)}
+              >
+                {addingTeamVol ? '✕' : '+ Add'}
+              </button>
+            </div>
+            <p className="scenario-section-hint">
+              Scale total volume for all players on a team (total pie size, not the split).
+            </p>
+
+            {addingTeamVol && (
+              <div className="scenario-add-form">
+                <select
+                  value={newTeamVolTeam}
+                  onChange={(e) => setNewTeamVolTeam(e.target.value)}
+                  className="scenario-select"
+                >
+                  <option value="">Select team...</option>
+                  {teams
+                    .filter((t) => !(scenario.teamVolumes ?? []).find((x) => x.team === t))
+                    .map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
+                <div className="scenario-slider-row">
+                  <span className="scenario-slider-label scenario-label-run">−50%</span>
+                  <input
+                    type="range"
+                    min={-50}
+                    max={50}
+                    value={newTeamVolDelta}
+                    onChange={(e) => setNewTeamVolDelta(Number(e.target.value))}
+                    className="scenario-slider"
+                  />
+                  <span className="scenario-slider-label scenario-label-pass">+50%</span>
+                </div>
+                <div className="scenario-slider-value-row">
+                  <span
+                    className={`scenario-slider-value ${
+                      newTeamVolDelta > 0 ? 'positive' : newTeamVolDelta < 0 ? 'negative' : ''
+                    }`}
+                  >
+                    {deltaLabel(newTeamVolDelta, 'volume')}
+                  </span>
+                </div>
+                <button
+                  className="scenario-confirm-btn"
+                  onClick={addTeamVolume}
+                  disabled={!newTeamVolTeam || newTeamVolDelta === 0}
+                >
+                  Add Adjustment
+                </button>
+              </div>
+            )}
+
+            {(scenario.teamVolumes ?? []).map((tv) => (
+              <div key={tv.team} className="scenario-item">
+                <div className="scenario-item-left">
+                  <span className="scenario-item-name">{tv.team}</span>
+                  <span
+                    className={`scenario-item-delta ${
+                      tv.volumeDelta > 0 ? 'positive' : 'negative'
+                    }`}
+                  >
+                    {deltaLabel(tv.volumeDelta, 'volume')} volume
+                  </span>
+                </div>
+                <div className="scenario-item-controls">
+                  <input
+                    type="range"
+                    min={-50}
+                    max={50}
+                    value={tv.volumeDelta}
+                    onChange={(e) => updateTeamVolumeDelta(tv.team, Number(e.target.value))}
+                    className="scenario-slider-inline"
+                  />
+                  <button
+                    className="scenario-remove-btn"
+                    onClick={() => removeTeamVolume(tv.team)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(scenario.teamVolumes ?? []).length === 0 && !addingTeamVol && (
+              <div className="scenario-section-empty">No team volume adjustments</div>
+            )}
+          </div>
+
+          {/* 4. Player Volume */}
           <div className="scenario-section">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Player Volume</span>
@@ -497,7 +619,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
             )}
           </div>
 
-          {/* 4. Player Movement */}
+          {/* 5. Player Movement */}
           <div className="scenario-section">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Player Movement</span>
@@ -601,7 +723,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
             )}
           </div>
 
-          {/* 5. Add Custom Player */}
+          {/* 6. Add Custom Player */}
           <div className="scenario-section">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Add Custom Player</span>
@@ -696,6 +818,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
                 ...scenario,
                 vegasWeighting: 0,
                 teamTendencies: [],
+                teamVolumes: [],
                 volumeOverrides: [],
                 movements: [],
                 customPlayers: [],

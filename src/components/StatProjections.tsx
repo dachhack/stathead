@@ -74,13 +74,11 @@ function applyScenarioToProjections(
   tes: TEProjection[],
   sc: ScenarioConfig,
 ): { qbs: QBProjection[]; rbs: RBProjection[]; wrs: WRProjection[]; tes: TEProjection[] } {
-  // Build team override map from player movements (normalizedName → newTeam)
+  // Build lookup maps
   const teamOverrides = new Map<string, string>();
   for (const move of sc.movements) {
     teamOverrides.set(normalizeName(move.playerName), move.toTeam);
   }
-
-  // Build volume override map by player name (normalizedName → volumeDelta %)
   const volumeByName = new Map<string, number>();
   for (const vo of sc.volumeOverrides) {
     volumeByName.set(normalizeName(vo.playerName), vo.volumeDelta);
@@ -97,12 +95,18 @@ function applyScenarioToProjections(
     const t = sc.teamTendencies.find((x) => x.team === team);
     return t ? 1 - t.passRatioDelta * 0.010 : 1;
   };
+  const volMult = (team: string) => {
+    const tv = (sc.teamVolumes ?? []).find((x) => x.team === team);
+    return tv ? 1 + tv.volumeDelta / 100 : 1;
+  };
 
-  const adjQbs = qbs.map((p) => {
+  // ── Pass 1: team-level adjustments (tendency + total volume), no player overrides ──
+
+  const baseQbs = qbs.map((p) => {
     const team = getTeam(p);
-    const vd = volumeByName.get(normalizeName(p.name));
-    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
-    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
+    const vm = volMult(team);
+    const f = passMult(team) * vm;
+    const rf = rushMult(team) * vm;
     const passAtt = Math.round(p.passAtt * f);
     const passComp = Math.round(p.passComp * f);
     const passYds = Math.round(p.passYds * f);
@@ -115,11 +119,11 @@ function applyScenarioToProjections(
       pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) };
   });
 
-  const adjRbs = rbs.map((p) => {
+  const baseRbs = rbs.map((p) => {
     const team = getTeam(p);
-    const vd = volumeByName.get(normalizeName(p.name));
-    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
-    const pf = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const vm = volMult(team);
+    const rf = rushMult(team) * vm;
+    const pf = passMult(team) * vm;
     const rushAtt = Math.round(p.rushAtt * rf);
     const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
     const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
@@ -132,11 +136,11 @@ function applyScenarioToProjections(
       pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
   });
 
-  const adjWrs = wrs.map((p) => {
+  const baseWrs = wrs.map((p) => {
     const team = getTeam(p);
-    const vd = volumeByName.get(normalizeName(p.name));
-    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
-    const rf = vd !== undefined ? 1 + vd / 100 : rushMult(team);
+    const vm = volMult(team);
+    const f = passMult(team) * vm;
+    const rf = rushMult(team) * vm;
     const tgt = Math.round(p.tgt * f);
     const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.65;
     const rec = Math.round(tgt * catchRate);
@@ -149,10 +153,10 @@ function applyScenarioToProjections(
       pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
   });
 
-  const adjTes = tes.map((p) => {
+  const baseTes = tes.map((p) => {
     const team = getTeam(p);
-    const vd = volumeByName.get(normalizeName(p.name));
-    const f = vd !== undefined ? 1 + vd / 100 : passMult(team);
+    const vm = volMult(team);
+    const f = passMult(team) * vm;
     const tgt = Math.round(p.tgt * f);
     const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.68;
     const rec = Math.round(tgt * catchRate);
@@ -160,6 +164,135 @@ function applyScenarioToProjections(
     const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
     return { ...p, team, tgt, rec, recYds, recTD,
       pprPts: Math.round(computePPR({ rec, recYds, recTD })) };
+  });
+
+  // ── Zero-sum redistribution setup ──
+  // Compute team pool totals from base (before individual overrides)
+  const teamRushPool = new Map<string, number>();
+  const teamTgtPool = new Map<string, number>();
+  for (const p of baseRbs) {
+    teamRushPool.set(p.team, (teamRushPool.get(p.team) ?? 0) + p.rushAtt);
+    teamTgtPool.set(p.team, (teamTgtPool.get(p.team) ?? 0) + p.tgt);
+  }
+  for (const p of [...baseWrs, ...baseTes]) {
+    teamTgtPool.set(p.team, (teamTgtPool.get(p.team) ?? 0) + p.tgt);
+  }
+
+  // Sum up original and new targets/carries for overridden players per team
+  const rushOrigOvr = new Map<string, number>();
+  const rushNewOvr = new Map<string, number>();
+  const tgtOrigOvr = new Map<string, number>();
+  const tgtNewOvr = new Map<string, number>();
+  for (const p of baseRbs) {
+    const vd = volumeByName.get(normalizeName(p.name));
+    if (vd !== undefined) {
+      const f = 1 + vd / 100;
+      rushOrigOvr.set(p.team, (rushOrigOvr.get(p.team) ?? 0) + p.rushAtt);
+      rushNewOvr.set(p.team, (rushNewOvr.get(p.team) ?? 0) + p.rushAtt * f);
+      tgtOrigOvr.set(p.team, (tgtOrigOvr.get(p.team) ?? 0) + p.tgt);
+      tgtNewOvr.set(p.team, (tgtNewOvr.get(p.team) ?? 0) + p.tgt * f);
+    }
+  }
+  for (const p of [...baseWrs, ...baseTes]) {
+    const vd = volumeByName.get(normalizeName(p.name));
+    if (vd !== undefined) {
+      const f = 1 + vd / 100;
+      tgtOrigOvr.set(p.team, (tgtOrigOvr.get(p.team) ?? 0) + p.tgt);
+      tgtNewOvr.set(p.team, (tgtNewOvr.get(p.team) ?? 0) + p.tgt * f);
+    }
+  }
+
+  // Scale factor for non-overridden players: keeps team total the same
+  const rushOtherScale = (team: string): number => {
+    const total = teamRushPool.get(team) ?? 0;
+    const origOvr = rushOrigOvr.get(team) ?? 0;
+    const newOvr = rushNewOvr.get(team) ?? 0;
+    if (origOvr === 0 || total - origOvr <= 0) return 1;
+    return Math.max(0, (total - newOvr) / (total - origOvr));
+  };
+  const tgtOtherScale = (team: string): number => {
+    const total = teamTgtPool.get(team) ?? 0;
+    const origOvr = tgtOrigOvr.get(team) ?? 0;
+    const newOvr = tgtNewOvr.get(team) ?? 0;
+    if (origOvr === 0 || total - origOvr <= 0) return 1;
+    return Math.max(0, (total - newOvr) / (total - origOvr));
+  };
+
+  // Stat application helpers
+  const applyRbStats = (p: RBProjection, rf: number, pf: number): RBProjection => {
+    const rushAtt = Math.round(p.rushAtt * rf);
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    const tgt = Math.round(p.tgt * pf);
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.72;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    return { ...p, rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD,
+      pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+  };
+  const applyWrStats = (p: WRProjection, tgtF: number, rushF: number): WRProjection => {
+    const tgt = Math.round(p.tgt * tgtF);
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.65;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    const rushAtt = Math.round(p.rushAtt * rushF);
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    return { ...p, tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD,
+      pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+  };
+  const applyTeStats = (p: TEProjection, f: number): TEProjection => {
+    const tgt = Math.round(p.tgt * f);
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.68;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    return { ...p, tgt, rec, recYds, recTD,
+      pprPts: Math.round(computePPR({ rec, recYds, recTD })) };
+  };
+
+  // ── Pass 2: player overrides (boost overridden, scale down others) ──
+
+  const adjQbs = baseQbs.map((p) => {
+    const vd = volumeByName.get(normalizeName(p.name));
+    if (vd === undefined) return p;
+    const f = 1 + vd / 100;
+    const passAtt = Math.round(p.passAtt * f);
+    const passComp = Math.round(p.passComp * f);
+    const passYds = Math.round(p.passYds * f);
+    const passTD = Math.round(p.passTD * f);
+    const int = Math.round(p.int * f);
+    const rushAtt = Math.round(p.rushAtt * f);
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    return { ...p, passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD,
+      pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) };
+  });
+
+  const adjRbs = baseRbs.map((p) => {
+    const vd = volumeByName.get(normalizeName(p.name));
+    if (vd !== undefined) return applyRbStats(p, 1 + vd / 100, 1 + vd / 100);
+    const rf = rushOtherScale(p.team);
+    const pf = tgtOtherScale(p.team);
+    return rf === 1 && pf === 1 ? p : applyRbStats(p, rf, pf);
+  });
+
+  const adjWrs = baseWrs.map((p) => {
+    const vd = volumeByName.get(normalizeName(p.name));
+    // Overridden WR: boost both receiving and rushing
+    if (vd !== undefined) return applyWrStats(p, 1 + vd / 100, 1 + vd / 100);
+    // Non-overridden: only scale receiving (rushing is independent)
+    const f = tgtOtherScale(p.team);
+    return f === 1 ? p : applyWrStats(p, f, 1);
+  });
+
+  const adjTes = baseTes.map((p) => {
+    const vd = volumeByName.get(normalizeName(p.name));
+    if (vd !== undefined) return applyTeStats(p, 1 + vd / 100);
+    const f = tgtOtherScale(p.team);
+    return f === 1 ? p : applyTeStats(p, f);
   });
 
   // Vegas weighting — regression toward position mean on pprPts

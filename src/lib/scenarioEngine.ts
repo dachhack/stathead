@@ -4,6 +4,7 @@ export function isScenarioEmpty(s: ScenarioConfig): boolean {
   return (
     s.vegasWeighting === 0 &&
     s.teamTendencies.length === 0 &&
+    (s.teamVolumes ?? []).length === 0 &&
     s.volumeOverrides.length === 0 &&
     s.movements.length === 0 &&
     s.customPlayers.length === 0
@@ -73,12 +74,69 @@ export function applyScenario(
     }
   }
 
-  // 3. Player volume overrides — adjust individual target/carry share
+  // 2.5. Team volume — scale the entire team's output (total pie size)
+  for (const tv of (scenario.teamVolumes ?? [])) {
+    if (tv.volumeDelta === 0) continue;
+    const f = 1 + tv.volumeDelta / 100;
+    for (const player of result.filter((p) => p.Team === tv.team)) {
+      if (player.Position === 'QB') {
+        player.PassingAttempts = (player.PassingAttempts || 0) * f;
+        player.PassingCompletions = (player.PassingCompletions || 0) * f;
+        player.PassingYards = (player.PassingYards || 0) * f;
+        player.PassingTouchdowns = (player.PassingTouchdowns || 0) * f;
+        player.PassingInterceptions = (player.PassingInterceptions || 0) * f;
+      }
+      player.RushingAttempts = (player.RushingAttempts || 0) * f;
+      player.RushingYards = (player.RushingYards || 0) * f;
+      player.RushingTouchdowns = (player.RushingTouchdowns || 0) * f;
+      player.Receptions = (player.Receptions || 0) * f;
+      player.ReceivingYards = (player.ReceivingYards || 0) * f;
+      player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * f;
+      const { ppr, std } = recalcPoints(player);
+      player.FantasyPointsPPR = ppr;
+      player.FantasyPoints = std;
+    }
+  }
+
+  // 3. Player volume overrides — zero-sum share redistribution within team pools
+  // Compute base pool totals (after team adjustments, before individual overrides)
+  const teamRushPool = new Map<string, number>();
+  const teamRecPool = new Map<string, number>();
+  for (const p of result) {
+    if (p.Position === 'RB') {
+      teamRushPool.set(p.Team, (teamRushPool.get(p.Team) ?? 0) + (p.RushingAttempts || 0));
+    }
+    if (p.Position !== 'QB' && p.Position !== 'K') {
+      teamRecPool.set(p.Team, (teamRecPool.get(p.Team) ?? 0) + (p.Receptions || 0));
+    }
+  }
+
+  // Track how much each team's pool shifts due to overrides
+  const rushOrigOvr = new Map<string, number>();
+  const rushNewOvr = new Map<string, number>();
+  const recOrigOvr = new Map<string, number>();
+  const recNewOvr = new Map<string, number>();
   for (const override of scenario.volumeOverrides) {
     const player = result.find((p) => p.PlayerID === override.playerId);
     if (!player) continue;
     const factor = 1 + override.volumeDelta / 100;
+    if (player.Position === 'RB') {
+      rushOrigOvr.set(player.Team, (rushOrigOvr.get(player.Team) ?? 0) + (player.RushingAttempts || 0));
+      rushNewOvr.set(player.Team, (rushNewOvr.get(player.Team) ?? 0) + (player.RushingAttempts || 0) * factor);
+    }
+    if (player.Position !== 'QB' && player.Position !== 'K') {
+      recOrigOvr.set(player.Team, (recOrigOvr.get(player.Team) ?? 0) + (player.Receptions || 0));
+      recNewOvr.set(player.Team, (recNewOvr.get(player.Team) ?? 0) + (player.Receptions || 0) * factor);
+    }
+  }
 
+  const overriddenIds = new Set(scenario.volumeOverrides.map((v) => v.playerId));
+
+  // Boost overridden players
+  for (const override of scenario.volumeOverrides) {
+    const player = result.find((p) => p.PlayerID === override.playerId);
+    if (!player) continue;
+    const factor = 1 + override.volumeDelta / 100;
     if (player.Position === 'QB') {
       player.PassingAttempts = (player.PassingAttempts || 0) * factor;
       player.PassingCompletions = (player.PassingCompletions || 0) * factor;
@@ -88,7 +146,6 @@ export function applyScenario(
       player.Receptions = (player.Receptions || 0) * factor;
       player.ReceivingYards = (player.ReceivingYards || 0) * factor;
       player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * factor;
-      // RBs: volume delta also applies to rushing
       if (player.Position === 'RB') {
         player.RushingAttempts = (player.RushingAttempts || 0) * factor;
         player.RushingYards = (player.RushingYards || 0) * factor;
@@ -98,6 +155,48 @@ export function applyScenario(
     const { ppr, std } = recalcPoints(player);
     player.FantasyPointsPPR = ppr;
     player.FantasyPoints = std;
+  }
+
+  // Scale down non-overridden players to keep team totals the same
+  for (const player of result) {
+    if (overriddenIds.has(player.PlayerID)) continue;
+    if (player.Position === 'QB' || player.Position === 'K') continue;
+
+    let rushSc = 1;
+    if (player.Position === 'RB') {
+      const total = teamRushPool.get(player.Team) ?? 0;
+      const origOvr = rushOrigOvr.get(player.Team) ?? 0;
+      const newOvr = rushNewOvr.get(player.Team) ?? 0;
+      if (origOvr > 0 && total - origOvr > 0) {
+        rushSc = Math.max(0, (total - newOvr) / (total - origOvr));
+      }
+    }
+
+    let recSc = 1;
+    {
+      const total = teamRecPool.get(player.Team) ?? 0;
+      const origOvr = recOrigOvr.get(player.Team) ?? 0;
+      const newOvr = recNewOvr.get(player.Team) ?? 0;
+      if (origOvr > 0 && total - origOvr > 0) {
+        recSc = Math.max(0, (total - newOvr) / (total - origOvr));
+      }
+    }
+
+    if (rushSc !== 1) {
+      player.RushingAttempts = (player.RushingAttempts || 0) * rushSc;
+      player.RushingYards = (player.RushingYards || 0) * rushSc;
+      player.RushingTouchdowns = (player.RushingTouchdowns || 0) * rushSc;
+    }
+    if (recSc !== 1) {
+      player.Receptions = (player.Receptions || 0) * recSc;
+      player.ReceivingYards = (player.ReceivingYards || 0) * recSc;
+      player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * recSc;
+    }
+    if (rushSc !== 1 || recSc !== 1) {
+      const { ppr, std } = recalcPoints(player);
+      player.FantasyPointsPPR = ppr;
+      player.FantasyPoints = std;
+    }
   }
 
   // 4. Vegas weighting — regression toward position mean
@@ -183,6 +282,7 @@ export function createEmptyScenario(): ScenarioConfig {
     name: 'New Scenario',
     vegasWeighting: 0,
     teamTendencies: [],
+    teamVolumes: [],
     volumeOverrides: [],
     movements: [],
     customPlayers: [],
