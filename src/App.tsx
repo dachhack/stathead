@@ -20,7 +20,7 @@ import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import type { Tab } from './types';
 
-const SEASONS = Array.from({ length: 10 }, (_, i) => 2024 - i);
+const SEASONS = Array.from({ length: 10 }, (_, i) => 2025 - i);
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'stats', label: 'Rankings' },
@@ -42,7 +42,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 function App() {
   const [tab, setTab] = useState<Tab>('stats');
-  const [season, setSeason] = useState(2024);
+  const [season, setSeason] = useState(2025);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setApiKeysVersion] = useState(0);

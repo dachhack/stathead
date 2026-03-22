@@ -9,7 +9,7 @@ import type { FfcADPPlayer, SeasonTotals } from '../types';
 
 // ── Config ──
 
-const SEASONS = [2020, 2021, 2022, 2023, 2024];
+const SEASONS = [2020, 2021, 2022, 2023, 2024, 2025];
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444', ALL: '#8b5cf6',

@@ -54,7 +54,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
     if (viewMode !== 'espn' || espnPlayers.length > 0) return;
     setEspnLoading(true);
     setEspnError(null);
-    fetchEspnADP(2024)
+    fetchEspnADP(2025)
       .then(setEspnPlayers)
       .catch((e) => setEspnError(e instanceof Error ? e.message : 'Failed to load ESPN ADP'))
       .finally(() => setEspnLoading(false));
@@ -296,7 +296,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
                       setFfcPlayers([]);
                     }}
                   >
-                    {Array.from({ length: 6 }, (_, i) => 2024 - i).map((y) => (
+                    {Array.from({ length: 6 }, (_, i) => 2025 - i).map((y) => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>

@@ -14,8 +14,15 @@ SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015"
 echo "Downloading nflverse data..."
 
 # Player stats (per season) - use --fail to skip seasons that don't exist yet
+# nflverse moved to stats_player release starting 2025
 for s in $SEASONS; do
-  [ -f "$OUT/player_stats_${s}.csv" ] || curl -sfL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
+  if [ ! -f "$OUT/player_stats_${s}.csv" ]; then
+    if [ "$s" -ge 2025 ]; then
+      curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
+    else
+      curl -sfL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
+    fi
+  fi
 done
 
 # Static/cross-season files

@@ -34,7 +34,7 @@ IMPORTANT INSTRUCTIONS:
 8. For dynasty questions, use get_dynasty_values (KTC) and get_fantasycalc_values (FantasyCalc) for cross-source trade values.
 9. For waiver/trending analysis, use get_sleeper_trending.
 17. For trade value analysis, use get_fantasycalc_values — supports dynasty/redraft, 1QB/SF, various league sizes and PPR settings.
-10. Available seasons for stats: 2015-2024. Combine/draft go back further.
+10. Available seasons for stats: 2015-2025. Combine/draft go back further.
 11. For Next Gen Stats (separation, CPOE, rush yards over expected), use get_next_gen_stats (2016+).
 12. For salary/contract analysis, use get_contracts.
 13. For depth chart / starter-backup info, use get_depth_charts.

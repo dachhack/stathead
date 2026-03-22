@@ -67,23 +67,58 @@ function nflUrl(releaseSubpath: string): string {
   return `${NFLVERSE_REMOTE}/${releaseSubpath}`;
 }
 
-export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
-  const url = nflUrl(`player_stats/player_stats_${season}.csv`);
-  const response = await fetch(url);
-  if (!response.ok) {
-    // Season data may not exist yet (e.g. future/current season)
-    if (response.status === 404) return [];
-    throw new Error(`Failed to fetch stats for ${season}: ${response.status}`);
+// nflverse renamed the player_stats release to stats_player starting ~2025
+// with column renames: recent_team→team, interceptions→passing_interceptions,
+// sacks→sacks_suffered, sack_yards→sack_yards_lost, dakota removed
+const NEW_COL_MAP: Record<string, string> = {
+  team: 'recent_team',
+  passing_interceptions: 'interceptions',
+  sacks_suffered: 'sacks',
+  sack_yards_lost: 'sack_yards',
+  passing_cpoe: 'dakota', // closest equivalent
+};
+
+function normalizePlayerRow(row: Record<string, unknown>): Record<string, unknown> {
+  for (const [newCol, oldCol] of Object.entries(NEW_COL_MAP)) {
+    if (newCol in row && !(oldCol in row)) {
+      row[oldCol] = row[newCol];
+    }
   }
-  const text = await response.text();
+  return row;
+}
+
+export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
+  // In dev, try legacy release first then new stats_player release
+  const urls = IS_PROD
+    ? [nflUrl(`player_stats/player_stats_${season}.csv`)]
+    : [
+        `${NFLVERSE_REMOTE}/player_stats/player_stats_${season}.csv`,
+        `${NFLVERSE_REMOTE}/stats_player/stats_player_week_${season}.csv`,
+      ];
+
+  let text = '';
+  for (const url of urls) {
+    const response = await fetch(url);
+    if (response.ok) {
+      text = await response.text();
+      if (text.trim()) break;
+    }
+  }
   if (!text.trim()) return [];
-  const result = Papa.parse<PlayerStats>(text, {
+
+  const result = Papa.parse<Record<string, unknown>>(text, {
     header: true,
     dynamicTyping: true,
     skipEmptyLines: true,
   });
+
+  // Detect new nflverse schema by column name and normalize
+  if (result.data.length > 0 && 'passing_interceptions' in result.data[0]) {
+    result.data.forEach(normalizePlayerRow);
+  }
+
   // Filter to regular season only
-  return result.data.filter((row) => row.season_type === 'REG');
+  return (result.data as unknown as PlayerStats[]).filter((row) => row.season_type === 'REG');
 }
 
 export function aggregateToSeasonTotals(

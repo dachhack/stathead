@@ -15,7 +15,7 @@ import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 // ── Config ──
 
 // Need prior-season data, so training starts at 2021
-const SEASONS = [2021, 2022, 2023, 2024];
+const SEASONS = [2021, 2022, 2023, 2024, 2025];
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
