@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchDraftPicks, fetchRosters, fetchGames,
+  fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game } from '../types';
 
@@ -74,6 +75,7 @@ export function StatProjections() {
   const [rbProjections, setRBProjections] = useState<RBProjection[]>([]);
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
   const [teProjections, setTEProjections] = useState<TEProjection[]>([]);
+  const [oddsSource, setOddsSource] = useState<'live' | 'historical' | ''>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -82,12 +84,13 @@ export function StatProjections() {
       try {
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
           fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
           fetchGames().catch(() => [] as Game[]),
+          fetchOddsGameLines().catch(() => []),
         ]);
         if (cancelled) return;
 
@@ -117,21 +120,31 @@ export function StatProjections() {
           }
         }
 
-        // Vegas implied totals per team (prior season average)
-        // Higher implied total → more scoring → scale projections up
-        const priorSeasonGames = gamesData.filter(
-          (g) => g.season === PREDICT_SEASON - 1 && g.game_type === 'REG' && g.total_line > 0
-        );
+        // Vegas implied totals per team
+        // Prefer live Odds API lines for the upcoming season; fall back to prior-season game data
+        const oddsTeamImplied = oddsLines.length > 0 ? aggregateOddsToTeamImplied(oddsLines) : [];
         const teamImpliedTotals = new Map<string, { sum: number; count: number }>();
-        for (const g of priorSeasonGames) {
-          const homeImpl = (g.total_line - g.spread_line) / 2;
-          const awayImpl = (g.total_line + g.spread_line) / 2;
-          if (!teamImpliedTotals.has(g.home_team)) teamImpliedTotals.set(g.home_team, { sum: 0, count: 0 });
-          if (!teamImpliedTotals.has(g.away_team)) teamImpliedTotals.set(g.away_team, { sum: 0, count: 0 });
-          const h = teamImpliedTotals.get(g.home_team)!;
-          h.sum += homeImpl; h.count += 1;
-          const a = teamImpliedTotals.get(g.away_team)!;
-          a.sum += awayImpl; a.count += 1;
+
+        if (oddsTeamImplied.length > 0) {
+          // Use fresh Odds API data
+          for (const t of oddsTeamImplied) {
+            teamImpliedTotals.set(t.team, { sum: t.avgImplied * t.gameCount, count: t.gameCount });
+          }
+        } else {
+          // Fall back to prior-season game lines
+          const priorSeasonGames = gamesData.filter(
+            (g) => g.season === PREDICT_SEASON - 1 && g.game_type === 'REG' && g.total_line > 0
+          );
+          for (const g of priorSeasonGames) {
+            const homeImpl = (g.total_line - g.spread_line) / 2;
+            const awayImpl = (g.total_line + g.spread_line) / 2;
+            if (!teamImpliedTotals.has(g.home_team)) teamImpliedTotals.set(g.home_team, { sum: 0, count: 0 });
+            if (!teamImpliedTotals.has(g.away_team)) teamImpliedTotals.set(g.away_team, { sum: 0, count: 0 });
+            const h = teamImpliedTotals.get(g.home_team)!;
+            h.sum += homeImpl; h.count += 1;
+            const a = teamImpliedTotals.get(g.away_team)!;
+            a.sum += awayImpl; a.count += 1;
+          }
         }
         // League average implied total per game
         let leagueImpliedSum = 0; let leagueImpliedCount = 0;
@@ -139,6 +152,7 @@ export function StatProjections() {
           leagueImpliedSum += v.sum; leagueImpliedCount += v.count;
         }
         const leagueAvgImplied = leagueImpliedCount > 0 ? leagueImpliedSum / leagueImpliedCount : 23;
+        const usingLiveOdds = oddsTeamImplied.length > 0;
 
         // Vegas multiplier: team's implied total vs league average
         // A team at 27 vs league avg 23 → 27/23 = 1.17 → capped multiplier
@@ -349,6 +363,7 @@ export function StatProjections() {
           setRBProjections(rbs);
           setWRProjections(wrs);
           setTEProjections(tes);
+          setOddsSource(usingLiveOdds ? 'live' : 'historical');
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to build projections');
@@ -396,7 +411,7 @@ export function StatProjections() {
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {PREDICT_SEASON} season stat projections based on {PREDICT_SEASON - 1} per-game rates, projected games, age regression,
-        and Vegas implied team totals. Sorted by projected PPR fantasy points.
+        and Vegas implied team totals{oddsSource === 'live' ? ' (live odds)' : ''}. Sorted by projected PPR fantasy points.
       </p>
 
       {/* Position tabs */}

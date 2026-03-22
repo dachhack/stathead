@@ -956,3 +956,210 @@ export async function fetchCollegeStats(): Promise<CollegeStats[]> {
 export async function fetchCollegeQBR(): Promise<CollegeQBR[]> {
   return fetchCsv<CollegeQBR>(`${DRAFT_DATA}/college_qbr.csv`);
 }
+
+// --- The Odds API (free tier: 500 credits/month) ---
+// Fetches NFL game lines and player props from https://the-odds-api.com
+
+export interface OddsGameLine {
+  gameId: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  spread: number;       // home spread (negative = home favored)
+  totalLine: number;    // over/under
+  homeImplied: number;  // derived: (total - spread) / 2
+  awayImplied: number;  // derived: (total + spread) / 2
+  bookmaker: string;
+}
+
+export interface OddsPlayerProp {
+  gameId: string;
+  playerName: string;
+  market: string;       // e.g. 'player_pass_yds', 'player_rush_yds'
+  line: number;         // over/under line (e.g. 249.5)
+  overPrice: number;    // American odds for over
+  underPrice: number;   // American odds for under
+  bookmaker: string;
+}
+
+export interface OddsTeamImpliedTotal {
+  team: string;
+  avgImplied: number;
+  gameCount: number;
+  avgSpread: number;
+  avgTotal: number;
+}
+
+const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
+const ODDS_SPORT = 'americanfootball_nfl';
+
+// Try to get API key from environment or pre-fetched config
+function getOddsApiKey(): string | null {
+  // Check for pre-configured key (set via .env or config)
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ODDS_API_KEY) {
+    return import.meta.env.VITE_ODDS_API_KEY;
+  }
+  return null;
+}
+
+/**
+ * Fetch NFL game lines (spreads + totals) from The Odds API.
+ * Returns game lines with derived implied totals per team.
+ * Uses ~1-2 credits per call.
+ */
+export async function fetchOddsGameLines(): Promise<OddsGameLine[]> {
+  // Try pre-fetched data first
+  const preFetched = await tryPreFetched<OddsGameLine[]>('odds_nfl_lines.json');
+  if (preFetched && preFetched.length > 0) return preFetched;
+
+  const apiKey = getOddsApiKey();
+  if (!apiKey) return [];
+
+  const url = `${ODDS_API_BASE}/sports/${ODDS_SPORT}/odds?regions=us&markets=spreads,totals&oddsFormat=american&apiKey=${apiKey}`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+
+  const data: Array<{
+    id: string;
+    home_team: string;
+    away_team: string;
+    commence_time: string;
+    bookmakers: Array<{
+      key: string;
+      markets: Array<{
+        key: string;
+        outcomes: Array<{ name: string; price: number; point?: number }>;
+      }>;
+    }>;
+  }> = await response.json();
+
+  const lines: OddsGameLine[] = [];
+  for (const game of data) {
+    // Use first bookmaker with both spreads and totals
+    for (const bk of game.bookmakers) {
+      const spreadMkt = bk.markets.find((m) => m.key === 'spreads');
+      const totalMkt = bk.markets.find((m) => m.key === 'totals');
+      if (!spreadMkt || !totalMkt) continue;
+
+      const homeSpreadOutcome = spreadMkt.outcomes.find((o) => o.name === game.home_team);
+      const totalOverOutcome = totalMkt.outcomes.find((o) => o.name === 'Over');
+      if (!homeSpreadOutcome?.point || !totalOverOutcome?.point) continue;
+
+      const spread = homeSpreadOutcome.point;
+      const total = totalOverOutcome.point;
+      lines.push({
+        gameId: game.id,
+        homeTeam: game.home_team,
+        awayTeam: game.away_team,
+        commenceTime: game.commence_time,
+        spread,
+        totalLine: total,
+        homeImplied: (total - spread) / 2,
+        awayImplied: (total + spread) / 2,
+        bookmaker: bk.key,
+      });
+      break; // Only use first valid bookmaker per game
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Aggregate game lines into per-team average implied totals.
+ * Useful for projecting team offensive environment.
+ */
+export function aggregateOddsToTeamImplied(lines: OddsGameLine[]): OddsTeamImpliedTotal[] {
+  const teamMap = new Map<string, { implied: number[]; spreads: number[]; totals: number[] }>();
+
+  for (const line of lines) {
+    if (!teamMap.has(line.homeTeam)) teamMap.set(line.homeTeam, { implied: [], spreads: [], totals: [] });
+    if (!teamMap.has(line.awayTeam)) teamMap.set(line.awayTeam, { implied: [], spreads: [], totals: [] });
+    teamMap.get(line.homeTeam)!.implied.push(line.homeImplied);
+    teamMap.get(line.homeTeam)!.spreads.push(-line.spread); // negate for home perspective
+    teamMap.get(line.homeTeam)!.totals.push(line.totalLine);
+    teamMap.get(line.awayTeam)!.implied.push(line.awayImplied);
+    teamMap.get(line.awayTeam)!.spreads.push(line.spread);
+    teamMap.get(line.awayTeam)!.totals.push(line.totalLine);
+  }
+
+  const result: OddsTeamImpliedTotal[] = [];
+  for (const [team, data] of teamMap) {
+    const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    result.push({
+      team,
+      avgImplied: Math.round(avg(data.implied) * 10) / 10,
+      gameCount: data.implied.length,
+      avgSpread: Math.round(avg(data.spreads) * 10) / 10,
+      avgTotal: Math.round(avg(data.totals) * 10) / 10,
+    });
+  }
+
+  result.sort((a, b) => b.avgImplied - a.avgImplied);
+  return result;
+}
+
+/**
+ * Fetch per-game player props from The Odds API for a specific event.
+ * Markets: player_pass_yds, player_rush_yds, player_reception_yds, player_pass_tds, etc.
+ * Uses ~1 credit per market per region.
+ */
+export async function fetchOddsPlayerProps(
+  eventId: string,
+  markets: string[] = ['player_pass_yds', 'player_rush_yds', 'player_reception_yds']
+): Promise<OddsPlayerProp[]> {
+  const apiKey = getOddsApiKey();
+  if (!apiKey) return [];
+
+  const marketsParam = markets.join(',');
+  const url = `${ODDS_API_BASE}/sports/${ODDS_SPORT}/events/${eventId}/odds?regions=us&markets=${marketsParam}&oddsFormat=american&apiKey=${apiKey}`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+
+  const data: {
+    id: string;
+    bookmakers: Array<{
+      key: string;
+      markets: Array<{
+        key: string;
+        outcomes: Array<{ name: string; description: string; price: number; point?: number }>;
+      }>;
+    }>;
+  } = await response.json();
+
+  const props: OddsPlayerProp[] = [];
+  // Use first bookmaker with each market
+  const seenMarkets = new Set<string>();
+  for (const bk of data.bookmakers) {
+    for (const mkt of bk.markets) {
+      if (seenMarkets.has(mkt.key)) continue;
+      seenMarkets.add(mkt.key);
+      // Props come in pairs (Over/Under) grouped by player description
+      const playerLines = new Map<string, { over: number; under: number; line: number }>();
+      for (const outcome of mkt.outcomes) {
+        const player = outcome.description;
+        if (!playerLines.has(player)) playerLines.set(player, { over: 0, under: 0, line: 0 });
+        const entry = playerLines.get(player)!;
+        if (outcome.name === 'Over') {
+          entry.over = outcome.price;
+          entry.line = outcome.point || 0;
+        } else {
+          entry.under = outcome.price;
+        }
+      }
+      for (const [player, entry] of playerLines) {
+        props.push({
+          gameId: data.id,
+          playerName: player,
+          market: mkt.key,
+          line: entry.line,
+          overPrice: entry.over,
+          underPrice: entry.under,
+          bookmaker: bk.key,
+        });
+      }
+    }
+  }
+
+  return props;
+}
