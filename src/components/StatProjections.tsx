@@ -365,6 +365,163 @@ export function StatProjections() {
           }
         }
 
+        // ── Fill roster gaps: ensure every team has enough players at each position ──
+        // Track which players already have projections
+        const projectedNames = new Set<string>();
+        for (const p of qbs) projectedNames.add(normalizeName(p.name));
+        for (const p of rbs) projectedNames.add(normalizeName(p.name));
+        for (const p of wrs) projectedNames.add(normalizeName(p.name));
+        for (const p of tes) projectedNames.add(normalizeName(p.name));
+
+        // Count projected players per team+position
+        const teamPosCounts = new Map<string, number>();
+        function tpKey(team: string, pos: string) { return `${team}:${pos}`; }
+        for (const p of qbs) teamPosCounts.set(tpKey(p.team, 'QB'), (teamPosCounts.get(tpKey(p.team, 'QB')) || 0) + 1);
+        for (const p of rbs) teamPosCounts.set(tpKey(p.team, 'RB'), (teamPosCounts.get(tpKey(p.team, 'RB')) || 0) + 1);
+        for (const p of wrs) teamPosCounts.set(tpKey(p.team, 'WR'), (teamPosCounts.get(tpKey(p.team, 'WR')) || 0) + 1);
+        for (const p of tes) teamPosCounts.set(tpKey(p.team, 'TE'), (teamPosCounts.get(tpKey(p.team, 'TE')) || 0) + 1);
+
+        // Build roster candidates grouped by team+pos, sorted by prior PPR (best first)
+        const rosterCandidates = new Map<string, { name: string; fullName: string; team: string; pos: string; prior: SeasonTotals | undefined }[]>();
+        for (const r of rosters) {
+          if (!POSITIONS.includes(r.position as Position)) continue;
+          if (r.status !== 'ACT' && r.status !== 'Active' && r.status !== 'A') {
+            // Accept any non-clearly-inactive status as a fallback
+            if (['RES', 'CUT', 'EXE', 'SUS', 'PUP', 'NFI', 'UDF'].includes(r.status)) continue;
+          }
+          const nn = normalizeName(r.full_name);
+          if (projectedNames.has(nn)) continue;
+          const key = tpKey(r.team, r.position);
+          if (!rosterCandidates.has(key)) rosterCandidates.set(key, []);
+          rosterCandidates.get(key)!.push({
+            name: r.full_name, fullName: r.full_name, team: r.team, pos: r.position,
+            prior: priorByName.get(nn),
+          });
+        }
+        // Sort candidates: those with prior stats first (by PPR desc), then by name
+        for (const [, candidates] of rosterCandidates) {
+          candidates.sort((a, b) => {
+            const aPPR = a.prior ? (a.prior.fantasy_points_ppr || 0) : -1;
+            const bPPR = b.prior ? (b.prior.fantasy_points_ppr || 0) : -1;
+            return bPPR - aPPR;
+          });
+        }
+
+        // All 32 NFL teams
+        const allTeams = new Set<string>();
+        for (const r of rosters) {
+          if (r.team && POSITIONS.includes(r.position as Position)) allTeams.add(r.team);
+        }
+
+        for (const team of allTeams) {
+          for (const pos of POSITIONS) {
+            const currentCount = teamPosCounts.get(tpKey(team, pos)) || 0;
+            const needed = TEAM_POS_LIMITS[pos] - currentCount;
+            if (needed <= 0) continue;
+
+            const candidates = rosterCandidates.get(tpKey(team, pos)) || [];
+            const vm = vegasMultiplier(team);
+
+            for (let ci = 0; ci < needed; ci++) {
+              const cand = candidates[ci];
+              const prior = cand?.prior;
+              const playerName = cand?.name || `${team} ${pos}${currentCount + ci + 1}`;
+
+              if (pos === 'QB') {
+                if (prior && prior.games >= 3) {
+                  const pg = prior.games;
+                  const games = projectGames(prior);
+                  const af = ageFactor(normalizeName(playerName), 'QB');
+                  const passAtt = Math.round((prior.attempts || 0) / pg * games * af * vm);
+                  const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
+                  const passComp = Math.round(passAtt * compRate);
+                  const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
+                  const passYds = Math.round(passAtt * ypa);
+                  const tdRate = (prior.attempts || 0) > 0 ? (prior.passing_tds || 0) / prior.attempts : 0.04;
+                  const passTD = Math.round(passAtt * tdRate);
+                  const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
+                  const ints = Math.round(passAtt * intRate);
+                  const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
+                  const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
+                  const rushYds = Math.round(rushAtt * ypc);
+                  const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / prior.carries : 0.04;
+                  const rushTD = Math.round(rushAtt * rushTDrate);
+                  const pts = computePPR({ passYds, passTD, int: ints, rushYds, rushTD });
+                  qbs.push({ name: playerName, team, adp: 999, games: Math.round(games), passAtt, passComp, passYds, passTD, int: ints, rushAtt, rushYds, rushTD, pprPts: Math.round(pts) });
+                } else {
+                  // Backup QB baseline
+                  const pts = computePPR({ passYds: 800, passTD: 5, int: 4, rushYds: 40, rushTD: 0 });
+                  qbs.push({ name: playerName, team, adp: 999, games: 6, passAtt: 130, passComp: 80, passYds: 800, passTD: 5, int: 4, rushAtt: 12, rushYds: 40, rushTD: 0, pprPts: Math.round(pts) });
+                }
+              } else if (pos === 'RB') {
+                if (prior && prior.games >= 3) {
+                  const pg = prior.games;
+                  const games = projectGames(prior);
+                  const af = ageFactor(normalizeName(playerName), 'RB');
+                  const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
+                  const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
+                  const rushYds = Math.round(rushAtt * ypc);
+                  const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / prior.carries : 0.035;
+                  const rushTD = Math.max(0, Math.round(rushAtt * rushTDrate));
+                  const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
+                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
+                  const rec = Math.round(tgt * catchRate);
+                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
+                  const recYds = Math.round(rec * ypr);
+                  const recTDrate = (prior.targets || 0) > 0 ? (prior.receiving_tds || 0) / prior.targets : 0.02;
+                  const recTD = Math.max(0, Math.round(tgt * recTDrate));
+                  const pts = computePPR({ rushYds, rushTD, rec, recYds, recTD });
+                  rbs.push({ name: playerName, team, adp: 999, games: Math.round(games), rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD, pprPts: Math.round(pts) });
+                } else {
+                  const pts = computePPR({ rushYds: 150, rushTD: 1, rec: 8, recYds: 50, recTD: 0 });
+                  rbs.push({ name: playerName, team, adp: 999, games: 12, rushAtt: 40, rushYds: 150, rushTD: 1, tgt: 12, rec: 8, recYds: 50, recTD: 0, pprPts: Math.round(pts) });
+                }
+              } else if (pos === 'WR') {
+                if (prior && prior.games >= 3) {
+                  const pg = prior.games;
+                  const games = projectGames(prior);
+                  const af = ageFactor(normalizeName(playerName), 'WR');
+                  const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
+                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
+                  const rec = Math.round(tgt * catchRate);
+                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
+                  const recYds = Math.round(rec * ypr);
+                  const recTDrate = (prior.targets || 0) > 0 ? (prior.receiving_tds || 0) / prior.targets : 0.06;
+                  const recTD = Math.max(0, Math.round(tgt * recTDrate));
+                  const rushAtt = Math.round((prior.carries || 0) / pg * games * af * vm);
+                  const rushYpc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 5.0;
+                  const rushYds = Math.round(rushAtt * rushYpc);
+                  const rushTDrate = (prior.carries || 0) > 0 ? (prior.rushing_tds || 0) / Math.max(prior.carries, 1) : 0;
+                  const rushTD = Math.max(0, Math.round(rushAtt * rushTDrate));
+                  const pts = computePPR({ rushYds, rushTD, rec, recYds, recTD });
+                  wrs.push({ name: playerName, team, adp: 999, games: Math.round(games), tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD, pprPts: Math.round(pts) });
+                } else {
+                  const pts = computePPR({ rec: 10, recYds: 120, recTD: 0, rushYds: 0, rushTD: 0 });
+                  wrs.push({ name: playerName, team, adp: 999, games: 14, tgt: 18, rec: 10, recYds: 120, recTD: 0, rushAtt: 0, rushYds: 0, rushTD: 0, pprPts: Math.round(pts) });
+                }
+              } else {
+                if (prior && prior.games >= 3) {
+                  const pg = prior.games;
+                  const games = projectGames(prior);
+                  const af = ageFactor(normalizeName(playerName), 'TE');
+                  const tgt = Math.round((prior.targets || 0) / pg * games * af * vm);
+                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
+                  const rec = Math.round(tgt * catchRate);
+                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
+                  const recYds = Math.round(rec * ypr);
+                  const recTDrate = (prior.targets || 0) > 0 ? (prior.receiving_tds || 0) / prior.targets : 0.05;
+                  const recTD = Math.max(0, Math.round(tgt * recTDrate));
+                  const pts = computePPR({ rec, recYds, recTD });
+                  tes.push({ name: playerName, team, adp: 999, games: Math.round(games), tgt, rec, recYds, recTD, pprPts: Math.round(pts) });
+                } else {
+                  const pts = computePPR({ rec: 8, recYds: 80, recTD: 0 });
+                  tes.push({ name: playerName, team, adp: 999, games: 14, tgt: 14, rec: 8, recYds: 80, recTD: 0, pprPts: Math.round(pts) });
+                }
+              }
+            }
+          }
+        }
+
         // Sort by PPR points descending
         qbs.sort((a, b) => b.pprPts - a.pprPts);
         rbs.sort((a, b) => b.pprPts - a.pprPts);
@@ -388,6 +545,8 @@ export function StatProjections() {
     run();
     return () => { cancelled = true; };
   }, []);
+
+  const fmtADP = (adp: number) => adp >= 500 ? '—' : adp.toFixed(1);
 
   const currentData = useMemo(() => {
     if (selectedPos === 'QB') return qbProjections;
@@ -524,7 +683,7 @@ export function StatProjections() {
                       <tr key={p.name}>
                         <td style={{ color: POS_COLORS.QB, fontWeight: 700 }}>QB</td>
                         <td><strong>{p.name}</strong></td>
-                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{fmtADP(p.adp)}</td>
                         <td>{p.games}</td>
                         <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                           {p.passYds.toLocaleString()} yds, {p.passTD} TD, {p.int} INT | {p.rushYds} rush
@@ -536,7 +695,7 @@ export function StatProjections() {
                       <tr key={p.name}>
                         <td style={{ color: POS_COLORS.RB, fontWeight: 700 }}>RB</td>
                         <td><strong>{p.name}</strong></td>
-                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{fmtADP(p.adp)}</td>
                         <td>{p.games}</td>
                         <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                           {p.rushYds.toLocaleString()} rush, {p.rushTD} TD | {p.rec} rec, {p.recYds} yds
@@ -548,7 +707,7 @@ export function StatProjections() {
                       <tr key={p.name}>
                         <td style={{ color: POS_COLORS.WR, fontWeight: 700 }}>WR</td>
                         <td><strong>{p.name}</strong></td>
-                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{fmtADP(p.adp)}</td>
                         <td>{p.games}</td>
                         <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                           {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
@@ -560,7 +719,7 @@ export function StatProjections() {
                       <tr key={p.name}>
                         <td style={{ color: POS_COLORS.TE, fontWeight: 700 }}>TE</td>
                         <td><strong>{p.name}</strong></td>
-                        <td>{p.adp.toFixed(1)}</td>
+                        <td>{fmtADP(p.adp)}</td>
                         <td>{p.games}</td>
                         <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                           {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
@@ -685,7 +844,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{p.adp.toFixed(1)}</td>
+                <td>{fmtADP(p.adp)}</td>
                 <td>{p.games}</td>
                 <td>{p.passAtt}</td>
                 <td>{p.passComp}</td>
@@ -703,7 +862,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{p.adp.toFixed(1)}</td>
+                <td>{fmtADP(p.adp)}</td>
                 <td>{p.games}</td>
                 <td>{p.rushAtt}</td>
                 <td>{p.rushYds.toLocaleString()}</td>
@@ -720,7 +879,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{p.adp.toFixed(1)}</td>
+                <td>{fmtADP(p.adp)}</td>
                 <td>{p.games}</td>
                 <td>{p.tgt}</td>
                 <td>{p.rec}</td>
@@ -737,7 +896,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{p.adp.toFixed(1)}</td>
+                <td>{fmtADP(p.adp)}</td>
                 <td>{p.games}</td>
                 <td>{p.tgt}</td>
                 <td>{p.rec}</td>
