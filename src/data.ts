@@ -380,6 +380,15 @@ function normalizeName(name: string): string {
 
 // --- Fantasy Football Calculator ADP (free REST API) ---
 
+// FFC uses different team abbreviations than nflverse for some franchises
+const FFC_TEAM_TO_NFLVERSE: Record<string, string> = {
+  LAR: 'LA', // Rams: FFC uses 'LAR', nflverse uses 'LA'
+};
+
+function normalizeFfcTeam(team: string): string {
+  return FFC_TEAM_TO_NFLVERSE[team] ?? team;
+}
+
 const ffcAdpCache = new Map<string, FfcADPPlayer[]>();
 
 export async function fetchFfcADP(
@@ -397,7 +406,7 @@ export async function fetchFfcADP(
     const players: FfcADPPlayer[] = preFetched.players.map((p) => ({
       name: String(p.name || ''),
       position: String(p.position || ''),
-      team: String(p.team || ''),
+      team: normalizeFfcTeam(String(p.team || '')),
       adp: Number(p.adp) || 0,
       high: Number(p.high) || 0,
       low: Number(p.low) || 0,
@@ -421,7 +430,7 @@ export async function fetchFfcADP(
   const players: FfcADPPlayer[] = rawPlayers.map((p) => ({
     name: String(p.name || ''),
     position: String(p.position || ''),
-    team: String(p.team || ''),
+    team: normalizeFfcTeam(String(p.team || '')),
     adp: Number(p.adp) || 0,
     high: Number(p.high) || 0,
     low: Number(p.low) || 0,

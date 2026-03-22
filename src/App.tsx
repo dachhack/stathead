@@ -54,7 +54,7 @@ const OTHER_TABS: { id: Tab; label: string }[] = [
 
 function App() {
   const [tab, setTab] = useState<Tab>('projections');
-  const [season, setSeason] = useState(2026);
+  const [season, setSeason] = useState(2025);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setApiKeysVersion] = useState(0);
