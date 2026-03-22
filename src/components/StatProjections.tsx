@@ -405,7 +405,6 @@ type ViewMode = 'position' | 'team' | 'teamTotals';
 
 interface TeamTotalRow {
   team: string;
-  games: number;
   passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
   rushAtt: number; rushYds: number; rushTD: number;
   tgt: number; rec: number; recYds: number; recTD: number;
@@ -881,11 +880,16 @@ export function StatProjections() {
               const qbRushPool = projTeam.rushAtt * pools.qbRushAtt;
               const qbRushTDPool = projTeam.rushTD * pools.qbRushTD;
 
+              // Zero-sum QB games: starter gets projected games (health-adjusted), backup gets remainder to 17.
+              // Players are sorted by ADP ascending, so players[0] is the starter.
+              const starterProjected = players.length > 0 ? Math.round(projectGames(players[0].prior, true)) : 17;
+              const starterGames = players.length === 1 ? 17 : Math.min(16, Math.max(1, starterProjected));
+
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
                 const isPrimary = idx === 0;
                 const prior = player.prior;
-                const games = projectGames(prior, isPrimary);
+                const games = idx === 0 ? starterGames : 17 - starterGames;
                 const af = ageFactor(normalizeName(player.name), 'QB');
 
                 let passAtt: number, passComp: number, passYds: number, passTD: number, ints: number;
@@ -1145,11 +1149,11 @@ export function StatProjections() {
 
   const teamTotals = useMemo((): TeamTotalRow[] => {
     return teamGroups.map((g) => {
-      const row: TeamTotalRow = { team: g.team, games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, pprPts: g.totalPPR };
-      for (const p of g.qbs) { row.games += p.games; row.passAtt += p.passAtt; row.passComp += p.passComp; row.passYds += p.passYds; row.passTD += p.passTD; row.int += p.int; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; }
-      for (const p of g.rbs) { row.games += p.games; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
-      for (const p of g.wrs) { row.games += p.games; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
-      for (const p of g.tes) { row.games += p.games; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      const row: TeamTotalRow = { team: g.team, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, pprPts: g.totalPPR };
+      for (const p of g.qbs) { row.passAtt += p.passAtt; row.passComp += p.passComp; row.passYds += p.passYds; row.passTD += p.passTD; row.int += p.int; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; }
+      for (const p of g.rbs) { row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      for (const p of g.wrs) { row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      for (const p of g.tes) { row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
       return row;
     });
   }, [teamGroups]);
@@ -1259,16 +1263,15 @@ export function StatProjections() {
           </p>
           {teamGroups.map((g, ti) => {
             // Compute position subtotals and team total
-            const sumQB = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
-            for (const p of g.qbs) { sumQB.games += p.games; sumQB.passAtt += p.passAtt; sumQB.passComp += p.passComp; sumQB.passYds += p.passYds; sumQB.passTD += p.passTD; sumQB.int += p.int; sumQB.rushAtt += p.rushAtt; sumQB.rushYds += p.rushYds; sumQB.rushTD += p.rushTD; sumQB.ppr += p.pprPts; }
-            const sumRB = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
-            for (const p of g.rbs) { sumRB.games += p.games; sumRB.rushAtt += p.rushAtt; sumRB.rushYds += p.rushYds; sumRB.rushTD += p.rushTD; sumRB.tgt += p.tgt; sumRB.rec += p.rec; sumRB.recYds += p.recYds; sumRB.recTD += p.recTD; sumRB.ppr += p.pprPts; }
-            const sumWR = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
-            for (const p of g.wrs) { sumWR.games += p.games; sumWR.tgt += p.tgt; sumWR.rec += p.rec; sumWR.recYds += p.recYds; sumWR.recTD += p.recTD; sumWR.rushAtt += p.rushAtt; sumWR.rushYds += p.rushYds; sumWR.rushTD += p.rushTD; sumWR.ppr += p.pprPts; }
-            const sumTE = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
-            for (const p of g.tes) { sumTE.games += p.games; sumTE.tgt += p.tgt; sumTE.rec += p.rec; sumTE.recYds += p.recYds; sumTE.recTD += p.recTD; sumTE.ppr += p.pprPts; }
+            const sumQB = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.qbs) { sumQB.passAtt += p.passAtt; sumQB.passComp += p.passComp; sumQB.passYds += p.passYds; sumQB.passTD += p.passTD; sumQB.int += p.int; sumQB.rushAtt += p.rushAtt; sumQB.rushYds += p.rushYds; sumQB.rushTD += p.rushTD; sumQB.ppr += p.pprPts; }
+            const sumRB = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.rbs) { sumRB.rushAtt += p.rushAtt; sumRB.rushYds += p.rushYds; sumRB.rushTD += p.rushTD; sumRB.tgt += p.tgt; sumRB.rec += p.rec; sumRB.recYds += p.recYds; sumRB.recTD += p.recTD; sumRB.ppr += p.pprPts; }
+            const sumWR = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.wrs) { sumWR.tgt += p.tgt; sumWR.rec += p.rec; sumWR.recYds += p.recYds; sumWR.recTD += p.recTD; sumWR.rushAtt += p.rushAtt; sumWR.rushYds += p.rushYds; sumWR.rushTD += p.rushTD; sumWR.ppr += p.pprPts; }
+            const sumTE = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.tes) { sumTE.tgt += p.tgt; sumTE.rec += p.rec; sumTE.recYds += p.recYds; sumTE.recTD += p.recTD; sumTE.ppr += p.pprPts; }
             const total = {
-              games: sumQB.games + sumRB.games + sumWR.games + sumTE.games,
               passAtt: sumQB.passAtt, passComp: sumQB.passComp, passYds: sumQB.passYds, passTD: sumQB.passTD, int: sumQB.int,
               rushAtt: sumQB.rushAtt + sumRB.rushAtt + sumWR.rushAtt, rushYds: sumQB.rushYds + sumRB.rushYds + sumWR.rushYds, rushTD: sumQB.rushTD + sumRB.rushTD + sumWR.rushTD,
               tgt: sumRB.tgt + sumWR.tgt + sumTE.tgt, rec: sumRB.rec + sumWR.rec + sumTE.rec, recYds: sumRB.recYds + sumWR.recYds + sumTE.recYds, recTD: sumRB.recTD + sumWR.recTD + sumTE.recTD,
@@ -1307,7 +1310,7 @@ export function StatProjections() {
               return (
                 <tr key={label}>
                   <td colSpan={2} style={{ ...subtotalStyle, color }}>{label}</td>
-                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.games}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}></td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passAtt || ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passComp || ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passYds ? s.passYds.toLocaleString() : ''}</td>
@@ -1381,7 +1384,7 @@ export function StatProjections() {
                     {subtotalRow('TE Total', POS_COLORS.TE, sumTE)}
                     <tr>
                       <td colSpan={2} style={{ ...totalStyle, fontSize: 12 }}>Total</td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.games}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passAtt}</td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passComp}</td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passYds.toLocaleString()}</td>
@@ -1423,7 +1426,7 @@ export function StatProjections() {
         // League averages for the footer
         const avg: Record<string, number> = {};
         const n = sortedTeamTotals.length || 1;
-        for (const key of ['games','passAtt','passComp','passYds','passTD','int','rushAtt','rushYds','rushTD','tgt','rec','recYds','recTD','pprPts'] as (keyof TeamTotalRow)[]) {
+        for (const key of ['passAtt','passComp','passYds','passTD','int','rushAtt','rushYds','rushTD','tgt','rec','recYds','recTD','pprPts'] as (keyof TeamTotalRow)[]) {
           avg[key] = Math.round(sortedTeamTotals.reduce((s, r) => s + (r[key] as number), 0) / n);
         }
         return (
@@ -1440,7 +1443,6 @@ export function StatProjections() {
                   <tr>
                     <th style={{ ...thS, textAlign: 'center' }}>#</th>
                     {sortHeader('Team', 'team', 'left')}
-                    {sortHeader('Gm', 'games')}
                     <th colSpan={5} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.QB}` }}>PASSING</th>
                     <th colSpan={3} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.RB}` }}>RUSHING</th>
                     <th colSpan={4} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.WR}` }}>RECEIVING</th>
@@ -1470,7 +1472,6 @@ export function StatProjections() {
                     <tr key={r.team} onClick={() => { setViewMode('team'); }} style={{ cursor: 'pointer' }}>
                       <td style={{ ...tdS, textAlign: 'center', color: 'var(--text-muted)' }}>{i + 1}</td>
                       <td style={{ ...tdS, textAlign: 'left', fontWeight: 700 }}>{r.team}</td>
-                      <td style={tdS}>{r.games}</td>
                       <td style={tdS}>{r.passAtt.toLocaleString()}</td>
                       <td style={tdS}>{r.passComp.toLocaleString()}</td>
                       <td style={tdS}>{r.passYds.toLocaleString()}</td>
@@ -1491,7 +1492,6 @@ export function StatProjections() {
                   <tr style={{ borderTop: '2px solid var(--text-muted)' }}>
                     <td style={{ ...tdS, textAlign: 'center' }}></td>
                     <td style={{ ...tdS, textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>Avg</td>
-                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.games}</td>
                     <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passAtt?.toLocaleString()}</td>
                     <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passComp?.toLocaleString()}</td>
                     <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passYds?.toLocaleString()}</td>
