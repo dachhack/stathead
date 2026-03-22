@@ -4,9 +4,10 @@ import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } f
 import { ADPOutcomes } from './ADPOutcomes';
 import { ADPFactorAnalysis } from './ADPFactorAnalysis';
 import { StatProjections } from './StatProjections';
+import { TeamTotalsBacktest } from './TeamTotalsBacktest';
 
 type SortField = keyof FantasySeasonResult;
-type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes' | 'factors' | 'projections';
+type ViewMode = 'results' | 'adp' | 'espn' | 'ffc' | 'outcomes' | 'factors' | 'projections' | 'backtest';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -238,9 +239,17 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
         >
           2026 Projections
         </button>
+        <button
+          className={`format-tab ${viewMode === 'backtest' ? 'active' : ''}`}
+          onClick={() => setViewMode('backtest')}
+        >
+          Backtest
+        </button>
       </div>
 
-      {viewMode === 'projections' ? (
+      {viewMode === 'backtest' ? (
+        <TeamTotalsBacktest />
+      ) : viewMode === 'projections' ? (
         <StatProjections />
       ) : viewMode === 'factors' ? (
         <ADPFactorAnalysis />
