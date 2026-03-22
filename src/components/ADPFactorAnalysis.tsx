@@ -10,7 +10,7 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation } from '../types';
-import { trainRidgeRegression, type TrainedModel } from '../lib/ridge';
+import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 
 // ── Config ──
 
@@ -185,6 +185,7 @@ export function ADPFactorAnalysis() {
   const [selectedPos, setSelectedPos] = useState('RB');
   const [lambda, setLambda] = useState(5);
   const [maxADP, setMaxADP] = useState(150);
+  const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -710,6 +711,39 @@ export function ADPFactorAnalysis() {
       .sort((a, b) => b.absCoeff - a.absCoeff);
   }, [currentModel]);
 
+  // Per-player predictions for selected position
+  const playerPredictions = useMemo(() => {
+    if (!currentModel) return [];
+    const posRows = allRows.filter((r) => r.position === selectedPos && r.adp <= maxADP);
+    return posRows.map((r) => {
+      const result = predict(currentModel.model, r.features);
+      const factors = result.featureContributions.map((fc) => {
+        const idx = currentModel.featureNames.indexOf(fc.name);
+        return {
+          key: fc.name,
+          label: idx >= 0 ? currentModel.featureLabels[idx] : fc.name,
+          raw: fc.value,
+          contribution: fc.contribution,
+        };
+      });
+      return {
+        name: r.name,
+        season: r.season,
+        adp: r.adp,
+        actualDelta: r.adpDelta,
+        predictedDelta: Math.round(result.predicted * 10) / 10,
+        isHit: r.isHit,
+        isBust: r.isBust,
+        factors,
+      };
+    }).sort((a, b) => b.predictedDelta - a.predictedDelta);
+  }, [currentModel, allRows, selectedPos, maxADP]);
+
+  const selectedPrediction = useMemo(
+    () => playerPredictions.find((p) => p.name === selectedPlayerName) || null,
+    [playerPredictions, selectedPlayerName]
+  );
+
   // Cross-position comparison: top 5 features per position
   const crossPositionData = useMemo(() => {
     const commonFeatures = FEATURES.filter((f) => f.positions.length === 4);
@@ -993,6 +1027,159 @@ export function ADPFactorAnalysis() {
               </ScatterChart>
             </ResponsiveContainer>
           </div>
+        </>
+      )}
+
+      {/* Player predictions list */}
+      {currentModel && playerPredictions.length > 0 && (
+        <>
+          <h4 style={{ marginBottom: 8 }}>
+            {selectedPos} Player Predictions
+            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+              Click a player name to see their factor breakdown
+            </span>
+          </h4>
+          <div className="table-container" style={{ marginBottom: 20, maxHeight: 420, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  <th>Season</th>
+                  <th>ADP</th>
+                  <th>Predicted Delta</th>
+                  <th>Actual Delta</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {playerPredictions.map((p, i) => (
+                  <tr
+                    key={`${p.name}-${p.season}`}
+                    style={{
+                      background: selectedPlayerName === p.name ? 'var(--bg-tertiary)' : undefined,
+                    }}
+                  >
+                    <td className="rank-cell">{i + 1}</td>
+                    <td>
+                      <strong
+                        style={{
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textDecorationColor: 'var(--border)',
+                          color: selectedPlayerName === p.name ? 'var(--accent)' : undefined,
+                        }}
+                        onClick={() => setSelectedPlayerName(selectedPlayerName === p.name ? null : p.name)}
+                      >
+                        {p.name}
+                      </strong>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>{p.season}</td>
+                    <td>{p.adp.toFixed(1)}</td>
+                    <td style={{
+                      fontWeight: 700,
+                      color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
+                    }}>
+                      {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta}
+                    </td>
+                    <td style={{
+                      fontWeight: 700,
+                      color: p.actualDelta >= 0 ? '#10b981' : '#ef4444',
+                    }}>
+                      {p.actualDelta >= 0 ? '+' : ''}{p.actualDelta}
+                    </td>
+                    <td>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: p.isHit ? 'rgba(16,185,129,0.15)' : p.isBust ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)',
+                        color: p.isHit ? '#10b981' : p.isBust ? '#ef4444' : '#6b7280',
+                      }}>
+                        {p.isHit ? 'HIT' : p.isBust ? 'BUST' : 'MID'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Factor breakdown for selected player */}
+          {selectedPrediction && (
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '2px solid var(--accent)',
+              borderRadius: 'var(--radius)',
+              padding: 16,
+              marginBottom: 20,
+            }}>
+              <h4 style={{ marginBottom: 4 }}>
+                {selectedPrediction.name}
+                <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                  {selectedPrediction.season} &middot; ADP {selectedPrediction.adp.toFixed(1)} &middot;
+                  Predicted: <span style={{ color: selectedPrediction.predictedDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selectedPrediction.predictedDelta >= 0 ? '+' : ''}{selectedPrediction.predictedDelta}
+                  </span> &middot;
+                  Actual: <span style={{ color: selectedPrediction.actualDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selectedPrediction.actualDelta >= 0 ? '+' : ''}{selectedPrediction.actualDelta}
+                  </span>
+                </span>
+              </h4>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Top factors driving this prediction (contribution to predicted ADP delta):
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {selectedPrediction.factors.slice(0, 10).map((f) => {
+                  const maxContrib = Math.max(
+                    ...selectedPrediction.factors.slice(0, 10).map((x) => Math.abs(x.contribution))
+                  ) || 1;
+                  const pct = (Math.abs(f.contribution) / maxContrib) * 100;
+                  return (
+                    <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                      <span style={{ width: 140, textAlign: 'right', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                        {f.label}
+                      </span>
+                      <span style={{ width: 60, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>
+                        {typeof f.raw === 'number' ? (Number.isInteger(f.raw) ? f.raw : f.raw.toFixed(1)) : f.raw}
+                      </span>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', height: 16 }}>
+                        {f.contribution >= 0 ? (
+                          <div style={{
+                            width: `${pct}%`,
+                            height: 12,
+                            borderRadius: 3,
+                            background: '#10b981',
+                            opacity: 0.7,
+                          }} />
+                        ) : (
+                          <div style={{
+                            width: `${pct}%`,
+                            height: 12,
+                            borderRadius: 3,
+                            background: '#ef4444',
+                            opacity: 0.7,
+                            marginLeft: 'auto',
+                          }} />
+                        )}
+                      </div>
+                      <span style={{
+                        width: 60,
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        color: f.contribution >= 0 ? '#10b981' : '#ef4444',
+                        flexShrink: 0,
+                      }}>
+                        {f.contribution >= 0 ? '+' : ''}{f.contribution.toFixed(1)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
