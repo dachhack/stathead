@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchDraftPicks, fetchRosters, fetchGames,
@@ -77,6 +77,82 @@ function defaultScenario(): ScenarioSettings {
   return { teamPassAdj: {}, teamRushAdj: {}, playerAdj: {} };
 }
 
+function isScenarioActive(sc: ScenarioSettings): boolean {
+  return (
+    Object.keys(sc.teamPassAdj).length > 0 ||
+    Object.keys(sc.teamRushAdj).length > 0 ||
+    Object.keys(sc.playerAdj).length > 0
+  );
+}
+
+function applyScenarioAdj(
+  qbs: QBProjection[], rbs: RBProjection[], wrs: WRProjection[], tes: TEProjection[],
+  sc: ScenarioSettings
+): { qbs: QBProjection[]; rbs: RBProjection[]; wrs: WRProjection[]; tes: TEProjection[] } {
+  const pm = (team: string) => sc.teamPassAdj[team] ?? 1;
+  const rm = (team: string) => sc.teamRushAdj[team] ?? 1;
+
+  const adjQbs = qbs.map(p => {
+    const passAtt = Math.round(p.passAtt * pm(p.team));
+    const passComp = Math.round(p.passComp * pm(p.team));
+    const passYds = Math.round(p.passYds * pm(p.team));
+    const passTD = Math.round(p.passTD * pm(p.team));
+    const int = Math.round(p.int * pm(p.team));
+    const rushAtt = Math.round(p.rushAtt * rm(p.team));
+    const rushYds = Math.round(p.rushYds * rm(p.team));
+    const rushTD = Math.round(p.rushTD * rm(p.team));
+    return { ...p, passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD,
+      pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) };
+  });
+
+  const adjRbs = rbs.map(p => {
+    const nn = normalizeName(p.name);
+    const padj = sc.playerAdj[nn];
+    const games = padj?.games ?? p.games;
+    const rushAtt = padj?.carries !== undefined ? padj.carries : Math.round(p.rushAtt * rm(p.team));
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.72;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    return { ...p, games, rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD,
+      pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+  });
+
+  const adjWrs = wrs.map(p => {
+    const nn = normalizeName(p.name);
+    const padj = sc.playerAdj[nn];
+    const games = padj?.games ?? p.games;
+    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.65;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    const rushAtt = padj?.carries !== undefined ? padj.carries : Math.round(p.rushAtt * rm(p.team));
+    const rushYds = p.rushAtt > 0 ? Math.round(rushAtt * p.rushYds / p.rushAtt) : 0;
+    const rushTD = p.rushAtt > 0 ? Math.round(p.rushTD * rushAtt / p.rushAtt) : 0;
+    return { ...p, games, tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD,
+      pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+  });
+
+  const adjTes = tes.map(p => {
+    const nn = normalizeName(p.name);
+    const padj = sc.playerAdj[nn];
+    const games = padj?.games ?? p.games;
+    const tgt = padj?.targets !== undefined ? padj.targets : Math.round(p.tgt * pm(p.team));
+    const catchRate = p.tgt > 0 ? p.rec / p.tgt : 0.68;
+    const rec = Math.round(tgt * catchRate);
+    const recYds = p.rec > 0 ? Math.round(rec * p.recYds / p.rec) : 0;
+    const recTD = p.tgt > 0 ? Math.round(p.recTD * tgt / p.tgt) : 0;
+    return { ...p, games, tgt, rec, recYds, recTD,
+      pprPts: Math.round(computePPR({ rec, recYds, recTD })) };
+  });
+
+  return { qbs: adjQbs, rbs: adjRbs, wrs: adjWrs, tes: adjTes };
+}
+
 // Raw data loaded once from APIs, stored in ref
 interface LoadedData {
   adpData: FfcADPPlayer[];
@@ -134,13 +210,15 @@ export function StatProjections() {
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
   const [teProjections, setTEProjections] = useState<TEProjection[]>([]);
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
-  // Scenario scaffolding (wired up in next iteration)
-  const [_scenario, _setScenario] = useState<ScenarioSettings>(defaultScenario);
-  const [_scenarioOpen, _setScenarioOpen] = useState(false);
-  const _loadedRef = useRef<LoadedData | null>(null);
-  const [_loadedVersion, _setLoadedVersion] = useState(0);
-  void _scenario; void _setScenario; void _scenarioOpen; void _setScenarioOpen;
-  void _loadedRef; void _loadedVersion; void _setLoadedVersion;
+  const [scenario, setScenario] = useState<ScenarioSettings>(defaultScenario);
+  const [scenarioOpen, setScenarioOpen] = useState(false);
+
+  const { qbs: dispQbs, rbs: dispRbs, wrs: dispWrs, tes: dispTes } = useMemo(() => {
+    if (!isScenarioActive(scenario)) {
+      return { qbs: qbProjections, rbs: rbProjections, wrs: wrProjections, tes: teProjections };
+    }
+    return applyScenarioAdj(qbProjections, rbProjections, wrProjections, teProjections, scenario);
+  }, [qbProjections, rbProjections, wrProjections, teProjections, scenario]);
 
   useEffect(() => {
     let cancelled = false;
@@ -712,11 +790,11 @@ export function StatProjections() {
   const fmtADP = (adp: number) => adp >= 500 ? '—' : adp.toFixed(1);
 
   const currentData = useMemo(() => {
-    if (selectedPos === 'QB') return qbProjections;
-    if (selectedPos === 'RB') return rbProjections;
-    if (selectedPos === 'WR') return wrProjections;
-    return teProjections;
-  }, [selectedPos, qbProjections, rbProjections, wrProjections, teProjections]);
+    if (selectedPos === 'QB') return dispQbs;
+    if (selectedPos === 'RB') return dispRbs;
+    if (selectedPos === 'WR') return dispWrs;
+    return dispTes;
+  }, [selectedPos, dispQbs, dispRbs, dispWrs, dispTes]);
 
   const teamGroups = useMemo(() => {
     const byTeam = new Map<string, TeamGroup>();
@@ -724,10 +802,10 @@ export function StatProjections() {
       if (!byTeam.has(team)) byTeam.set(team, { team, totalPPR: 0, qbs: [], rbs: [], wrs: [], tes: [] });
       return byTeam.get(team)!;
     }
-    for (const p of qbProjections) { if (p.team) ensure(p.team).qbs.push(p); }
-    for (const p of rbProjections) { if (p.team) ensure(p.team).rbs.push(p); }
-    for (const p of wrProjections) { if (p.team) ensure(p.team).wrs.push(p); }
-    for (const p of teProjections) { if (p.team) ensure(p.team).tes.push(p); }
+    for (const p of dispQbs) { if (p.team) ensure(p.team).qbs.push(p); }
+    for (const p of dispRbs) { if (p.team) ensure(p.team).rbs.push(p); }
+    for (const p of dispWrs) { if (p.team) ensure(p.team).wrs.push(p); }
+    for (const p of dispTes) { if (p.team) ensure(p.team).tes.push(p); }
     for (const g of byTeam.values()) {
       g.qbs = g.qbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.QB);
       g.rbs = g.rbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.RB);
@@ -736,7 +814,7 @@ export function StatProjections() {
       g.totalPPR = [...g.qbs, ...g.rbs, ...g.wrs, ...g.tes].reduce((s, p) => s + p.pprPts, 0);
     }
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
-  }, [qbProjections, rbProjections, wrProjections, teProjections]);
+  }, [dispQbs, dispRbs, dispWrs, dispTes]);
 
   const teamTotals = useMemo((): TeamTotalRow[] => {
     return teamGroups.map((g) => {
@@ -837,6 +915,13 @@ export function StatProjections() {
             </div>
           </div>
         )}
+        <button
+          className={`scenario-builder-btn ${isScenarioActive(scenario) ? 'active' : ''}`}
+          onClick={() => setScenarioOpen(true)}
+        >
+          {isScenarioActive(scenario) && <span className="scenario-active-dot" />}
+          Scenarios
+        </button>
       </div>
 
       {/* Team view */}
@@ -1104,7 +1189,7 @@ export function StatProjections() {
       {/* Summary cards */}
       {viewMode === 'position' && <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         {POSITIONS.map((pos) => {
-          const data = pos === 'QB' ? qbProjections : pos === 'RB' ? rbProjections : pos === 'WR' ? wrProjections : teProjections;
+          const data = pos === 'QB' ? dispQbs : pos === 'RB' ? dispRbs : pos === 'WR' ? dispWrs : dispTes;
           const top = data[0];
           return (
             <div
@@ -1205,7 +1290,7 @@ export function StatProjections() {
             </tr>
           </thead>
           <tbody>
-            {selectedPos === 'QB' && qbProjections.map((p, i) => (
+            {selectedPos === 'QB' && dispQbs.map((p, i) => (
               <tr key={p.name}>
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
@@ -1223,7 +1308,7 @@ export function StatProjections() {
                 <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
               </tr>
             ))}
-            {selectedPos === 'RB' && rbProjections.map((p, i) => (
+            {selectedPos === 'RB' && dispRbs.map((p, i) => (
               <tr key={p.name}>
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
@@ -1240,7 +1325,7 @@ export function StatProjections() {
                 <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
               </tr>
             ))}
-            {selectedPos === 'WR' && wrProjections.map((p, i) => (
+            {selectedPos === 'WR' && dispWrs.map((p, i) => (
               <tr key={p.name}>
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
@@ -1257,7 +1342,7 @@ export function StatProjections() {
                 <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
               </tr>
             ))}
-            {selectedPos === 'TE' && teProjections.map((p, i) => (
+            {selectedPos === 'TE' && dispTes.map((p, i) => (
               <tr key={p.name}>
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
@@ -1275,6 +1360,180 @@ export function StatProjections() {
         </table>
       </div>
       </>}
+
+      {scenarioOpen && (
+        <StatScenarioDrawer
+          scenario={scenario}
+          onChange={setScenario}
+          onClose={() => setScenarioOpen(false)}
+          teams={Array.from(new Set([
+            ...dispQbs.map(p => p.team),
+            ...dispRbs.map(p => p.team),
+            ...dispWrs.map(p => p.team),
+            ...dispTes.map(p => p.team),
+          ])).filter(Boolean).sort()}
+        />
+      )}
+    </>
+  );
+}
+
+function fmtPct(mult: number): string {
+  const pct = Math.round((mult - 1) * 100);
+  return pct >= 0 ? `+${pct}%` : `${pct}%`;
+}
+
+function StatScenarioDrawer({
+  scenario, onChange, onClose, teams,
+}: {
+  scenario: ScenarioSettings;
+  onChange: (s: ScenarioSettings) => void;
+  onClose: () => void;
+  teams: string[];
+}) {
+  const [newTeam, setNewTeam] = useState('');
+  const [newPassPct, setNewPassPct] = useState(0);
+  const [newRushPct, setNewRushPct] = useState(0);
+
+  const activeTeams = Array.from(
+    new Set([...Object.keys(scenario.teamPassAdj), ...Object.keys(scenario.teamRushAdj)])
+  ).sort();
+
+  const addTeam = () => {
+    if (!newTeam) return;
+    onChange({
+      ...scenario,
+      teamPassAdj: { ...scenario.teamPassAdj, [newTeam]: 1 + newPassPct / 100 },
+      teamRushAdj: { ...scenario.teamRushAdj, [newTeam]: 1 + newRushPct / 100 },
+    });
+    setNewTeam('');
+    setNewPassPct(0);
+    setNewRushPct(0);
+  };
+
+  const removeTeam = (team: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [team]: _p, ...restPass } = scenario.teamPassAdj;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { [team]: _r, ...restRush } = scenario.teamRushAdj;
+    onChange({ ...scenario, teamPassAdj: restPass, teamRushAdj: restRush });
+  };
+
+  const availableTeams = teams.filter(t => !activeTeams.includes(t));
+
+  return (
+    <>
+      <div className="scenario-overlay" onClick={onClose} />
+      <div className="scenario-drawer">
+        <div className="scenario-header">
+          <div>
+            <div className="scenario-title">Scenario Adjustments</div>
+            {activeTeams.length > 0 && (
+              <div className="scenario-count">
+                {activeTeams.length} team{activeTeams.length !== 1 ? 's' : ''} adjusted
+              </div>
+            )}
+          </div>
+          <button className="chat-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="scenario-body">
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Team Volume Adjustments</span>
+            </div>
+            <p className="scenario-section-hint">
+              Adjust a team's projected pass or rush volume. Changes cascade to all players on that team.
+            </p>
+
+            {activeTeams.length > 0 && (
+              <table style={{ width: '100%', marginBottom: 12, fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Team</th>
+                    <th style={{ textAlign: 'center', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Pass</th>
+                    <th style={{ textAlign: 'center', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 600 }}>Rush</th>
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeTeams.map(team => (
+                    <tr key={team} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '6px 6px', fontWeight: 700 }}>{team}</td>
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: scenario.teamPassAdj[team] && scenario.teamPassAdj[team] !== 1 ? '#6366f1' : 'var(--text-muted)' }}>
+                        {fmtPct(scenario.teamPassAdj[team] ?? 1)}
+                      </td>
+                      <td style={{ padding: '6px 6px', textAlign: 'center', color: scenario.teamRushAdj[team] && scenario.teamRushAdj[team] !== 1 ? '#10b981' : 'var(--text-muted)' }}>
+                        {fmtPct(scenario.teamRushAdj[team] ?? 1)}
+                      </td>
+                      <td>
+                        <button className="scenario-link-btn danger" onClick={() => removeTeam(team)}>✕</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTeams.length === 0 && (
+              <p className="scenario-section-empty">No adjustments yet. Add a team below.</p>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Team</label>
+                <select
+                  value={newTeam}
+                  onChange={e => setNewTeam(e.target.value)}
+                  style={{ padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
+                >
+                  <option value="">Select...</option>
+                  {availableTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pass %</label>
+                <input
+                  type="number"
+                  value={newPassPct}
+                  onChange={e => setNewPassPct(Number(e.target.value))}
+                  min={-50} max={50} step={5}
+                  style={{ width: 64, padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rush %</label>
+                <input
+                  type="number"
+                  value={newRushPct}
+                  onChange={e => setNewRushPct(Number(e.target.value))}
+                  min={-50} max={50} step={5}
+                  style={{ width: 64, padding: '6px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)', fontSize: 13 }}
+                />
+              </div>
+              <button
+                className="scenario-action-btn"
+                onClick={addTeam}
+                disabled={!newTeam}
+              >
+                Add Team
+              </button>
+            </div>
+          </div>
+
+          {isScenarioActive(scenario) && (
+            <div className="scenario-section" style={{ marginTop: 16 }}>
+              <button
+                className="scenario-action-btn"
+                onClick={() => onChange(defaultScenario())}
+                style={{ width: '100%' }}
+              >
+                Reset All Adjustments
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }
