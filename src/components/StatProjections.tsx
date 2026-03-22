@@ -93,7 +93,6 @@ export function StatProjections() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPos, setSelectedPos] = useState<Position>('RB');
   const [viewMode, setViewMode] = useState<ViewMode>('position');
-
   const [qbProjections, setQBProjections] = useState<QBProjection[]>([]);
   const [rbProjections, setRBProjections] = useState<RBProjection[]>([]);
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);

@@ -182,6 +182,7 @@ export interface KTCPlayerHistory {
 }
 
 export type Tab =
+  | 'projections'
   | 'stats'
   | 'compare'
   | 'scoring'
@@ -196,7 +197,8 @@ export type Tab =
   | 'charts'
   | 'sleeper'
   | 'ktc'
-  | 'sportsdata';
+  | 'sportsdata'
+  | 'backtest';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {

@@ -14,6 +14,8 @@ import { InjuriesView } from './components/InjuriesView';
 import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
+import { StatProjections } from './components/StatProjections';
+import { TeamTotalsBacktest } from './components/TeamTotalsBacktest';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
@@ -25,39 +27,49 @@ import type { Tab } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
 
-const TABS: { id: Tab; label: string }[] = [
+// Primary navigation tabs
+const PRIMARY_TABS: { id: Tab; label: string }[] = [
+  { id: 'projections', label: 'Projections' },
   { id: 'stats', label: 'Rankings' },
+  { id: 'adp', label: 'ADP Research' },
+  { id: 'ktc', label: 'Dynasty Values' },
+  { id: 'charts', label: 'Chart Builder' },
+  { id: 'sportsdata', label: 'Odds & Lines' },
+];
+
+// "Other" dropdown tabs
+const OTHER_TABS: { id: Tab; label: string }[] = [
   { id: 'compare', label: 'Compare' },
   { id: 'scoring', label: 'Scoring' },
-  { id: 'adp', label: 'ADP' },
   { id: 'games', label: 'Games' },
   { id: 'snaps', label: 'Snaps' },
   { id: 'advanced', label: 'Advanced' },
-  { id: 'pbp', label: 'PBP' },
+  { id: 'pbp', label: 'Play-by-Play' },
   { id: 'injuries', label: 'Injuries' },
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
-  { id: 'charts', label: 'Charts' },
   { id: 'sleeper', label: 'Sleeper' },
-  { id: 'ktc', label: 'KTC' },
-  { id: 'sportsdata', label: 'SportsData' },
+  { id: 'backtest', label: 'Backtest' },
 ];
 
 function App() {
-  const [tab, setTab] = useState<Tab>('stats');
+  const [tab, setTab] = useState<Tab>('projections');
   const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
+  const [otherOpen, setOtherOpen] = useState(false);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
-  // Callback for child views to register their loaded data for chat context
   const onDataLoaded = useCallback((data: unknown[]) => {
     setExtraData(data);
   }, []);
 
   const dataContext = buildDataContext(tab, season, seasonTotals, extraData);
+
+  const isOtherTab = OTHER_TABS.some((t) => t.id === tab);
+  const otherLabel = isOtherTab ? OTHER_TABS.find((t) => t.id === tab)?.label : 'Other';
 
   return (
     <>
@@ -69,18 +81,59 @@ function App() {
           </div>
         </div>
         <nav className="nav-tabs">
-          {TABS.map((t) => (
+          {PRIMARY_TABS.map((t) => (
             <button
               key={t.id}
               className={`nav-tab ${tab === t.id ? 'active' : ''}`}
               onClick={() => {
                 setTab(t.id);
                 setExtraData([]);
+                setOtherOpen(false);
               }}
             >
               {t.label}
             </button>
           ))}
+          <div style={{ position: 'relative' }}>
+            <button
+              className={`nav-tab ${isOtherTab ? 'active' : ''}`}
+              onClick={() => setOtherOpen(!otherOpen)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              {otherLabel} <span style={{ fontSize: 8, opacity: 0.6 }}>{otherOpen ? '\u25B2' : '\u25BC'}</span>
+            </button>
+            {otherOpen && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                  onClick={() => setOtherOpen(false)}
+                />
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, zIndex: 100,
+                  background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                  borderRadius: 6, padding: '4px 0', minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                }}>
+                  {OTHER_TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => { setTab(t.id); setExtraData([]); setOtherOpen(false); }}
+                      style={{
+                        display: 'block', width: '100%', textAlign: 'left',
+                        padding: '8px 16px', border: 'none', background: tab === t.id ? 'var(--bg-tertiary)' : 'transparent',
+                        color: tab === t.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontWeight: tab === t.id ? 700 : 400, fontSize: 13, cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                      onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-tertiary)'; }}
+                      onMouseLeave={(e) => { (e.target as HTMLElement).style.background = tab === t.id ? 'var(--bg-tertiary)' : 'transparent'; }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </nav>
         <div className="control-group" style={{ marginLeft: 'auto' }}>
           <label className="control-label">Season</label>
@@ -104,6 +157,7 @@ function App() {
         </div>
       </header>
       <main className="main">
+        {tab === 'projections' && <StatProjections />}
         {tab === 'stats' && (
           <PlayerStatsTable
             players={seasonTotals}
@@ -151,6 +205,7 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
+        {tab === 'backtest' && <TeamTotalsBacktest />}
       </main>
 
       <button
