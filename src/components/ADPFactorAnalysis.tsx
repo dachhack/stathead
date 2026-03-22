@@ -1318,7 +1318,7 @@ export function ADPFactorAnalysis() {
       {/* Key insights summary */}
       <details style={{ marginTop: 8 }}>
         <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}>
-          All coefficients by position
+          All {modelType === 'gbm' ? 'contributions' : 'coefficients'} by position
         </summary>
         <div className="table-container" style={{ marginTop: 8 }}>
           <table>
@@ -1335,7 +1335,13 @@ export function ADPFactorAnalysis() {
               {FEATURES.map((feat) => {
                 const values = models.map((m) => {
                   const idx = m.featureNames.indexOf(feat.key);
-                  return idx >= 0 ? m.model.coefficients[idx] : null;
+                  if (idx < 0) return null;
+                  if (modelType === 'ridge' && m.ridgeModel) {
+                    return m.ridgeModel.coefficients[idx];
+                  }
+                  // For GBM, look up precomputed cross-position data
+                  const cpRow = crossPositionData.find((r) => r.label === feat.label);
+                  return cpRow ? (cpRow[m.position] as number) ?? null : null;
                 });
                 if (values.every((v) => v === null)) return null;
 
