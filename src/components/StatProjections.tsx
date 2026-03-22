@@ -385,10 +385,6 @@ export function StatProjections() {
         const rosterCandidates = new Map<string, { name: string; fullName: string; team: string; pos: string; prior: SeasonTotals | undefined }[]>();
         for (const r of rosters) {
           if (!POSITIONS.includes(r.position as Position)) continue;
-          if (r.status !== 'ACT' && r.status !== 'Active' && r.status !== 'A') {
-            // Accept any non-clearly-inactive status as a fallback
-            if (['RES', 'CUT', 'EXE', 'SUS', 'PUP', 'NFI', 'UDF'].includes(r.status)) continue;
-          }
           const nn = normalizeName(r.full_name);
           if (projectedNames.has(nn)) continue;
           const key = tpKey(r.team, r.position);
@@ -398,6 +394,24 @@ export function StatProjections() {
             prior: priorByName.get(nn),
           });
         }
+        // Also add prior-season players as candidates (for teams whose roster file is thin)
+        for (const p of priorTotals) {
+          if (!POSITIONS.includes(p.position as Position)) continue;
+          const nn = normalizeName(p.player_display_name);
+          if (projectedNames.has(nn)) continue;
+          const team = rosterTeam.get(nn) || p.recent_team || '';
+          if (!team) continue;
+          const key = tpKey(team, p.position);
+          // Only add if not already a roster candidate
+          const existing = rosterCandidates.get(key) || [];
+          if (existing.some(c => normalizeName(c.name) === nn)) continue;
+          if (!rosterCandidates.has(key)) rosterCandidates.set(key, []);
+          rosterCandidates.get(key)!.push({
+            name: p.player_display_name, fullName: p.player_display_name, team, pos: p.position,
+            prior: p,
+          });
+        }
+
         // Sort candidates: those with prior stats first (by PPR desc), then by name
         for (const [, candidates] of rosterCandidates) {
           candidates.sort((a, b) => {
@@ -407,11 +421,15 @@ export function StatProjections() {
           });
         }
 
-        // All 32 NFL teams
+        // All teams: from rosters + already-projected players
         const allTeams = new Set<string>();
         for (const r of rosters) {
           if (r.team && POSITIONS.includes(r.position as Position)) allTeams.add(r.team);
         }
+        for (const p of qbs) { if (p.team) allTeams.add(p.team); }
+        for (const p of rbs) { if (p.team) allTeams.add(p.team); }
+        for (const p of wrs) { if (p.team) allTeams.add(p.team); }
+        for (const p of tes) { if (p.team) allTeams.add(p.team); }
 
         for (const team of allTeams) {
           for (const pos of POSITIONS) {
