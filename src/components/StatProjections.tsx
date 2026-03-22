@@ -64,7 +64,16 @@ function computePPR(p: {
 
 // ── Component ──
 
-type ViewMode = 'position' | 'team';
+type ViewMode = 'position' | 'team' | 'teamTotals';
+
+interface TeamTotalRow {
+  team: string;
+  games: number;
+  passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
+  rushAtt: number; rushYds: number; rushTD: number;
+  tgt: number; rec: number; recYds: number; recTD: number;
+  pprPts: number;
+}
 
 const TEAM_POS_LIMITS: Record<Position, number> = { QB: 2, RB: 4, WR: 5, TE: 3 };
 
@@ -593,6 +602,28 @@ export function StatProjections() {
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
   }, [qbProjections, rbProjections, wrProjections, teProjections]);
 
+  const teamTotals = useMemo((): TeamTotalRow[] => {
+    return teamGroups.map((g) => {
+      const row: TeamTotalRow = { team: g.team, games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, pprPts: g.totalPPR };
+      for (const p of g.qbs) { row.games += p.games; row.passAtt += p.passAtt; row.passComp += p.passComp; row.passYds += p.passYds; row.passTD += p.passTD; row.int += p.int; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; }
+      for (const p of g.rbs) { row.games += p.games; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      for (const p of g.wrs) { row.games += p.games; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      for (const p of g.tes) { row.games += p.games; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
+      return row;
+    });
+  }, [teamGroups]);
+
+  const [teamSortCol, setTeamSortCol] = useState<keyof TeamTotalRow>('pprPts');
+  const [teamSortAsc, setTeamSortAsc] = useState(false);
+
+  const sortedTeamTotals = useMemo(() => {
+    return [...teamTotals].sort((a, b) => {
+      const av = a[teamSortCol]; const bv = b[teamSortCol];
+      if (typeof av === 'string' && typeof bv === 'string') return teamSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      return teamSortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+  }, [teamTotals, teamSortCol, teamSortAsc]);
+
   if (loading) {
     return (
       <div className="loading">
@@ -642,6 +673,13 @@ export function StatProjections() {
               style={{ borderColor: 'var(--text-muted)' }}
             >
               By Team
+            </button>
+            <button
+              className={`pos-filter ${viewMode === 'teamTotals' ? 'active' : ''}`}
+              onClick={() => setViewMode('teamTotals')}
+              style={{ borderColor: 'var(--text-muted)' }}
+            >
+              Team Totals
             </button>
           </div>
         </div>
@@ -817,6 +855,114 @@ export function StatProjections() {
           })}
         </div>
       )}
+
+      {/* Team Totals view */}
+      {viewMode === 'teamTotals' && (() => {
+        const thS = { fontSize: 10, padding: '4px 8px', cursor: 'pointer' as const, whiteSpace: 'nowrap' as const, userSelect: 'none' as const };
+        const tdS = { fontSize: 11, padding: '4px 8px', textAlign: 'right' as const };
+        function sortHeader(label: string, col: keyof TeamTotalRow, align: 'left' | 'right' = 'right') {
+          const active = teamSortCol === col;
+          return (
+            <th
+              style={{ ...thS, textAlign: align, color: active ? 'var(--text-primary)' : undefined }}
+              onClick={() => { if (teamSortCol === col) setTeamSortAsc(!teamSortAsc); else { setTeamSortCol(col); setTeamSortAsc(false); } }}
+            >
+              {label}{active ? (teamSortAsc ? ' ▲' : ' ▼') : ''}
+            </th>
+          );
+        }
+        // League averages for the footer
+        const avg: Record<string, number> = {};
+        const n = sortedTeamTotals.length || 1;
+        for (const key of ['games','passAtt','passComp','passYds','passTD','int','rushAtt','rushYds','rushTD','tgt','rec','recYds','recTD','pprPts'] as (keyof TeamTotalRow)[]) {
+          avg[key] = Math.round(sortedTeamTotals.reduce((s, r) => s + (r[key] as number), 0) / n);
+        }
+        return (
+          <div style={{ marginBottom: 20 }}>
+            <h4 style={{ marginBottom: 8 }}>
+              Team Totals — {PREDICT_SEASON}
+              <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                {sortedTeamTotals.length} teams · {TEAM_POS_LIMITS.QB} QB, {TEAM_POS_LIMITS.RB} RB, {TEAM_POS_LIMITS.WR} WR, {TEAM_POS_LIMITS.TE} TE per team · click headers to sort
+              </span>
+            </h4>
+            <div className="table-container" style={{ maxHeight: 800, overflowY: 'auto' }}>
+              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thS, textAlign: 'center' }}>#</th>
+                    {sortHeader('Team', 'team', 'left')}
+                    {sortHeader('Gm', 'games')}
+                    <th colSpan={5} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.QB}` }}>PASSING</th>
+                    <th colSpan={3} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.RB}` }}>RUSHING</th>
+                    <th colSpan={4} style={{ ...thS, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.WR}` }}>RECEIVING</th>
+                    <th style={{ ...thS, borderBottom: '2px solid #f59e0b' }}>PPR</th>
+                  </tr>
+                  <tr>
+                    <th style={thS}></th>
+                    <th style={thS}></th>
+                    <th style={thS}></th>
+                    {sortHeader('Att', 'passAtt')}
+                    {sortHeader('Cmp', 'passComp')}
+                    {sortHeader('Yds', 'passYds')}
+                    {sortHeader('TD', 'passTD')}
+                    {sortHeader('INT', 'int')}
+                    {sortHeader('Att', 'rushAtt')}
+                    {sortHeader('Yds', 'rushYds')}
+                    {sortHeader('TD', 'rushTD')}
+                    {sortHeader('Tgt', 'tgt')}
+                    {sortHeader('Rec', 'rec')}
+                    {sortHeader('Yds', 'recYds')}
+                    {sortHeader('TD', 'recTD')}
+                    {sortHeader('Pts', 'pprPts')}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedTeamTotals.map((r, i) => (
+                    <tr key={r.team} onClick={() => { setViewMode('team'); }} style={{ cursor: 'pointer' }}>
+                      <td style={{ ...tdS, textAlign: 'center', color: 'var(--text-muted)' }}>{i + 1}</td>
+                      <td style={{ ...tdS, textAlign: 'left', fontWeight: 700 }}>{r.team}</td>
+                      <td style={tdS}>{r.games}</td>
+                      <td style={tdS}>{r.passAtt.toLocaleString()}</td>
+                      <td style={tdS}>{r.passComp.toLocaleString()}</td>
+                      <td style={tdS}>{r.passYds.toLocaleString()}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{r.passTD}</td>
+                      <td style={{ ...tdS, color: '#ef4444' }}>{r.int}</td>
+                      <td style={tdS}>{r.rushAtt.toLocaleString()}</td>
+                      <td style={tdS}>{r.rushYds.toLocaleString()}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{r.rushTD}</td>
+                      <td style={tdS}>{r.tgt.toLocaleString()}</td>
+                      <td style={tdS}>{r.rec.toLocaleString()}</td>
+                      <td style={tdS}>{r.recYds.toLocaleString()}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{r.recTD}</td>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#f59e0b' }}>{r.pprPts.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid var(--text-muted)' }}>
+                    <td style={{ ...tdS, textAlign: 'center' }}></td>
+                    <td style={{ ...tdS, textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>Avg</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.games}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passAtt?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passComp?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passYds?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.passTD}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.int}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.rushAtt?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.rushYds?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.rushTD}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.tgt?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.rec?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.recYds?.toLocaleString()}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.recTD}</td>
+                    <td style={{ ...tdS, color: 'var(--text-muted)' }}>{avg.pprPts?.toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Summary cards */}
       {viewMode === 'position' && <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
