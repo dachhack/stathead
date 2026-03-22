@@ -916,14 +916,29 @@ export function StatProjections() {
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
                 } else {
-                  const share = 1 / (players.length * 3);
-                  passAtt = Math.round(qbPassPool * share * gamesScale);
-                  passComp = Math.round(passAtt * 0.60);
-                  passYds = Math.round(passAtt * 6.5);
-                  passTD = Math.round(passAtt * 0.035);
-                  ints = Math.round(passAtt * 0.03);
-                  rushAtt = Math.round(qbRushPool * share * 0.3 * gamesScale);
-                  rushYds = Math.round(rushAtt * 3.5);
+                  // Backup QB with minimal prior data (likely mop-up duty).
+                  // games = 17 - starterGames (already correctly 1-3 for a true backup).
+                  // Use starter-level per-game rates so the backup's spot start looks
+                  // like a real game, not scaled-down mop-up production.
+                  const starter = players.find(
+                    p => p.prior && p.prior.games >= 10 && (p.prior.attempts || 0) > 100
+                  );
+                  const sp = starter?.prior;
+                  const perGameAtt = sp ? Math.round((sp.attempts / sp.games) * 0.88) : 27;
+                  const compRate = sp && sp.attempts > 0 ? Math.min(0.68, (sp.completions || 0) / sp.attempts) : 0.60;
+                  const ypa = sp && sp.attempts > 0 ? Math.min(8.5, (sp.passing_yards || 0) / sp.attempts) * 0.92 : 6.5;
+                  const tdRate = sp && sp.attempts > 0 ? (sp.passing_tds || 0) / sp.attempts : 0.038;
+                  const intRate = sp && sp.attempts > 0 ? Math.max(0.025, ((sp.interceptions || 0) / sp.attempts) * 1.15) : 0.032;
+
+                  passAtt = Math.round(perGameAtt * games);
+                  passComp = Math.round(passAtt * compRate);
+                  passYds = Math.round(passAtt * ypa);
+                  passTD = Math.round(passAtt * tdRate);
+                  ints = Math.round(passAtt * intRate);
+
+                  const perGameRushAtt = sp && sp.games > 0 ? Math.max(2, Math.round(((sp.carries || 0) / sp.games) * 0.6)) : 3;
+                  rushAtt = Math.round(perGameRushAtt * games);
+                  rushYds = Math.round(rushAtt * 3.8);
                   rushTD = 0;
                 }
 
