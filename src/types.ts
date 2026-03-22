@@ -295,6 +295,8 @@ export interface Game {
   surface: string;
   temp: number;
   wind: number;
+  home_coach: string;
+  away_coach: string;
 }
 
 // --- Snap Counts ---

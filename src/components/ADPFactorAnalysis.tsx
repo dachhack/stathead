@@ -8,9 +8,9 @@ import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
-  fetchRosters, fetchDepthCharts,
+  fetchRosters, fetchDepthCharts, fetchGames,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Game } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 
@@ -152,6 +152,17 @@ const FEATURES: FeatureDef[] = [
   { key: 'teamTargetHHI', label: 'Team Target Concentration', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
   { key: 'newArrivalBestPPR', label: 'Best New Arrival PPR', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'newArrivalBestADP', label: 'Best New Arrival ADP', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Coaching & scheme
+  { key: 'newHeadCoach', label: 'New Head Coach', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'coachPriorTeamPPR', label: 'Coach Prior Team PPR', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamPassRate', label: 'Team Pass Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamNeutralPassRate', label: 'Team Neutral Pass Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamPace', label: 'Team Pace (Plays/Game)', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamFirstDownRunRate', label: 'Team 1st Down Run Rate', category: 'Coaching', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamShotgunRate', label: 'Team Shotgun Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamNoHuddleRate', label: 'Team No-Huddle Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamRBTargetRate', label: 'Team RB Target Rate', category: 'Coaching', positions: ['RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -166,6 +177,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Route: '#06b6d4',
   Injury: '#f43f5e',
   Competition: '#f97316',
+  Coaching: '#a855f7',
 };
 
 // ── Helpers ──
@@ -235,11 +247,12 @@ export function ADPFactorAnalysis() {
 
     async function run() {
       try {
-        // Load combine + draft once (static)
-        setLoadingStatus('Loading combine & draft data...');
-        const [combineData, draftData] = await Promise.all([
+        // Load combine + draft + games once (static)
+        setLoadingStatus('Loading combine, draft & games data...');
+        const [combineData, draftData, gamesData] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
+          fetchGames(),
         ]);
         if (cancelled) return;
 
@@ -249,6 +262,14 @@ export function ADPFactorAnalysis() {
 
         const draftByName = new Map<string, DraftPick>();
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
+
+        // Coach lookup: season → team → head coach name
+        const coachBySeasonTeam = new Map<string, string>();
+        for (const g of gamesData) {
+          if (g.game_type !== 'REG') continue;
+          if (g.home_coach) coachBySeasonTeam.set(`${g.season}:${g.home_team}`, g.home_coach);
+          if (g.away_coach) coachBySeasonTeam.set(`${g.season}:${g.away_team}`, g.away_coach);
+        }
 
         const rows: PlayerRow[] = [];
 
@@ -471,6 +492,86 @@ export function ADPFactorAnalysis() {
             else if (play.pass_location === 'middle') acc.middle += 1;
             else if (play.pass_location === 'right') acc.right += 1;
             locByReceiver.set(recName, acc);
+          }
+
+          // ── Team scheme features from prior PBP ──
+          interface SchemeAgg {
+            passes: number; rushes: number; plays: number; games: number;
+            neutralPasses: number; neutralPlays: number;
+            firstDownRuns: number; firstDownPlays: number;
+            shotgunPlays: number; noHuddlePlays: number;
+            rbTargets: number; totalTargets: number;
+          }
+          const schemeByTeam = new Map<string, SchemeAgg>();
+          // Count games per team for pace calculation
+          const priorGamesByTeam = new Map<string, Set<string>>();
+          for (const play of priorPbp) {
+            if (!play.posteam || play.play_type === 'no_play') continue;
+            const team = play.posteam;
+            if (!priorGamesByTeam.has(team)) priorGamesByTeam.set(team, new Set());
+            priorGamesByTeam.get(team)!.add(play.game_id);
+
+            if (play.play_type !== 'pass' && play.play_type !== 'run') continue;
+            const acc = schemeByTeam.get(team) || {
+              passes: 0, rushes: 0, plays: 0, games: 0,
+              neutralPasses: 0, neutralPlays: 0,
+              firstDownRuns: 0, firstDownPlays: 0,
+              shotgunPlays: 0, noHuddlePlays: 0,
+              rbTargets: 0, totalTargets: 0,
+            };
+            acc.plays += 1;
+            if (play.play_type === 'pass' || play.qb_dropback === 1) acc.passes += 1;
+            else acc.rushes += 1;
+
+            // Neutral game script: score diff within 7, 1st-3rd quarter
+            const isNeutral = Math.abs(play.score_differential || 0) <= 7 && (play.qtr || 0) <= 3;
+            if (isNeutral) {
+              acc.neutralPlays += 1;
+              if (play.play_type === 'pass' || play.qb_dropback === 1) acc.neutralPasses += 1;
+            }
+
+            // First down tendencies
+            if (play.down === 1) {
+              acc.firstDownPlays += 1;
+              if (play.play_type === 'run' && play.qb_dropback !== 1) acc.firstDownRuns += 1;
+            }
+
+            if (play.shotgun === 1) acc.shotgunPlays += 1;
+            if (play.no_huddle === 1) acc.noHuddlePlays += 1;
+
+            // RB target rate
+            if (play.play_type === 'pass' && play.receiver_player_name) {
+              acc.totalTargets += 1;
+              // Check if receiver is an RB (from prior totals)
+              const recName = normalizeName(play.receiver_player_name);
+              const recPrior = priorByName.get(recName);
+              if (recPrior?.position === 'RB') acc.rbTargets += 1;
+            }
+
+            schemeByTeam.set(team, acc);
+          }
+          // Set games count
+          for (const [team, gameSet] of priorGamesByTeam) {
+            const acc = schemeByTeam.get(team);
+            if (acc) acc.games = gameSet.size;
+          }
+
+          // Coach change detection: compare prior season coach to current season coach
+          const coachChangeTeams = new Set<string>();
+          for (const [key, coach] of coachBySeasonTeam) {
+            const [szn, team] = key.split(':');
+            if (Number(szn) === season) {
+              const priorCoach = coachBySeasonTeam.get(`${season - 1}:${team}`);
+              if (priorCoach && priorCoach !== coach) coachChangeTeams.add(team);
+            }
+          }
+
+          // Coach's prior-season total team PPR (how productive was the offense)
+          const coachPriorTeamPPR = new Map<string, number>();
+          for (const p of priorTotals) {
+            if (!POSITIONS.includes(p.position)) continue;
+            const team = p.recent_team || '';
+            coachPriorTeamPPR.set(team, (coachPriorTeamPPR.get(team) || 0) + (p.fantasy_points_ppr || 0));
           }
 
           // Prior-season injury aggregation
@@ -900,6 +1001,28 @@ export function ADPFactorAnalysis() {
                   newArrivalBestADP: newArrivalBestADP.get(posKey) || 0,
                 };
               })(),
+
+              // Coaching & scheme features
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const scheme = schemeByTeam.get(pTeam);
+                const totalPlays = scheme?.plays || 1;
+                const totalGames = scheme?.games || 1;
+                return {
+                  newHeadCoach: coachChangeTeams.has(pTeam) ? 1 : 0,
+                  coachPriorTeamPPR: Math.round((coachPriorTeamPPR.get(pTeam) || 0) * 10) / 10,
+                  teamPassRate: scheme ? Math.round((scheme.passes / totalPlays) * 1000) / 1000 : 0,
+                  teamNeutralPassRate: scheme && scheme.neutralPlays > 0
+                    ? Math.round((scheme.neutralPasses / scheme.neutralPlays) * 1000) / 1000 : 0,
+                  teamPace: scheme ? Math.round((totalPlays / totalGames) * 10) / 10 : 0,
+                  teamFirstDownRunRate: scheme && scheme.firstDownPlays > 0
+                    ? Math.round((scheme.firstDownRuns / scheme.firstDownPlays) * 1000) / 1000 : 0,
+                  teamShotgunRate: scheme ? Math.round((scheme.shotgunPlays / totalPlays) * 1000) / 1000 : 0,
+                  teamNoHuddleRate: scheme ? Math.round((scheme.noHuddlePlays / totalPlays) * 1000) / 1000 : 0,
+                  teamRBTargetRate: scheme && scheme.totalTargets > 0
+                    ? Math.round((scheme.rbTargets / scheme.totalTargets) * 1000) / 1000 : 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1247,6 +1370,73 @@ export function ADPFactorAnalysis() {
               predNewArrivalBestADP2.set(key, bestAdp < 999 ? bestAdp : 0);
             }
 
+            // ── Scheme features for predictions ──
+            interface PredSchemeAgg {
+              passes: number; rushes: number; plays: number; games: number;
+              neutralPasses: number; neutralPlays: number;
+              firstDownRuns: number; firstDownPlays: number;
+              shotgunPlays: number; noHuddlePlays: number;
+              rbTargets: number; totalTargets: number;
+            }
+            const predSchemeByTeam = new Map<string, PredSchemeAgg>();
+            const predPriorGamesByTeam = new Map<string, Set<string>>();
+            for (const play of predPriorPbp) {
+              if (!play.posteam || play.play_type === 'no_play') continue;
+              const team = play.posteam;
+              if (!predPriorGamesByTeam.has(team)) predPriorGamesByTeam.set(team, new Set());
+              predPriorGamesByTeam.get(team)!.add(play.game_id);
+
+              if (play.play_type !== 'pass' && play.play_type !== 'run') continue;
+              const acc = predSchemeByTeam.get(team) || {
+                passes: 0, rushes: 0, plays: 0, games: 0,
+                neutralPasses: 0, neutralPlays: 0,
+                firstDownRuns: 0, firstDownPlays: 0,
+                shotgunPlays: 0, noHuddlePlays: 0,
+                rbTargets: 0, totalTargets: 0,
+              };
+              acc.plays += 1;
+              if (play.play_type === 'pass' || play.qb_dropback === 1) acc.passes += 1;
+              else acc.rushes += 1;
+              const isNeutral = Math.abs(play.score_differential || 0) <= 7 && (play.qtr || 0) <= 3;
+              if (isNeutral) {
+                acc.neutralPlays += 1;
+                if (play.play_type === 'pass' || play.qb_dropback === 1) acc.neutralPasses += 1;
+              }
+              if (play.down === 1) {
+                acc.firstDownPlays += 1;
+                if (play.play_type === 'run' && play.qb_dropback !== 1) acc.firstDownRuns += 1;
+              }
+              if (play.shotgun === 1) acc.shotgunPlays += 1;
+              if (play.no_huddle === 1) acc.noHuddlePlays += 1;
+              if (play.play_type === 'pass' && play.receiver_player_name) {
+                acc.totalTargets += 1;
+                const recName = normalizeName(play.receiver_player_name);
+                const recPrior = predPriorByName.get(recName);
+                if (recPrior?.position === 'RB') acc.rbTargets += 1;
+              }
+              predSchemeByTeam.set(team, acc);
+            }
+            for (const [team, gameSet] of predPriorGamesByTeam) {
+              const acc = predSchemeByTeam.get(team);
+              if (acc) acc.games = gameSet.size;
+            }
+
+            // Coach change detection for prediction season
+            const predCoachChangeTeams = new Set<string>();
+            for (const [key, coach] of coachBySeasonTeam) {
+              const [szn, team] = key.split(':');
+              if (Number(szn) === predSeason) {
+                const priorCoach = coachBySeasonTeam.get(`${priorSeason}:${team}`);
+                if (priorCoach && priorCoach !== coach) predCoachChangeTeams.add(team);
+              }
+            }
+            const predCoachPriorTeamPPR = new Map<string, number>();
+            for (const p of predPriorTotals) {
+              if (!POSITIONS.includes(p.position)) continue;
+              const team = p.recent_team || '';
+              predCoachPriorTeamPPR.set(team, (predCoachPriorTeamPPR.get(team) || 0) + (p.fantasy_points_ppr || 0));
+            }
+
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -1430,6 +1620,28 @@ export function ADPFactorAnalysis() {
                     teamTargetHHI: predTeamTargetHHI2.get(playerTeam2) || 0,
                     newArrivalBestPPR: predNewArrivalBestPPR2.get(posKey) || 0,
                     newArrivalBestADP: predNewArrivalBestADP2.get(posKey) || 0,
+                  };
+                })(),
+
+                // Coaching & scheme features
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const scheme = predSchemeByTeam.get(pTeam);
+                  const totalPlays = scheme?.plays || 1;
+                  const totalGames = scheme?.games || 1;
+                  return {
+                    newHeadCoach: predCoachChangeTeams.has(pTeam) ? 1 : 0,
+                    coachPriorTeamPPR: Math.round((predCoachPriorTeamPPR.get(pTeam) || 0) * 10) / 10,
+                    teamPassRate: scheme ? Math.round((scheme.passes / totalPlays) * 1000) / 1000 : 0,
+                    teamNeutralPassRate: scheme && scheme.neutralPlays > 0
+                      ? Math.round((scheme.neutralPasses / scheme.neutralPlays) * 1000) / 1000 : 0,
+                    teamPace: scheme ? Math.round((totalPlays / totalGames) * 10) / 10 : 0,
+                    teamFirstDownRunRate: scheme && scheme.firstDownPlays > 0
+                      ? Math.round((scheme.firstDownRuns / scheme.firstDownPlays) * 1000) / 1000 : 0,
+                    teamShotgunRate: scheme ? Math.round((scheme.shotgunPlays / totalPlays) * 1000) / 1000 : 0,
+                    teamNoHuddleRate: scheme ? Math.round((scheme.noHuddlePlays / totalPlays) * 1000) / 1000 : 0,
+                    teamRBTargetRate: scheme && scheme.totalTargets > 0
+                      ? Math.round((scheme.rbTargets / scheme.totalTargets) * 1000) / 1000 : 0,
                   };
                 })(),
               };
