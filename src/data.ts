@@ -71,9 +71,12 @@ export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
   const url = nflUrl(`player_stats/player_stats_${season}.csv`);
   const response = await fetch(url);
   if (!response.ok) {
+    // Season data may not exist yet (e.g. future/current season)
+    if (response.status === 404) return [];
     throw new Error(`Failed to fetch stats for ${season}: ${response.status}`);
   }
   const text = await response.text();
+  if (!text.trim()) return [];
   const result = Papa.parse<PlayerStats>(text, {
     header: true,
     dynamicTyping: true,

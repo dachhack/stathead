@@ -169,7 +169,7 @@ function parseHeight(ht: string): number {
 }
 
 // ── Seasons ──
-const TRAIN_SEASONS = [2024, 2025];
+const TRAIN_SEASONS = [2023, 2024];
 
 // ── Component ──
 
