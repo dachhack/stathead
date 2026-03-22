@@ -3,6 +3,7 @@ import type {
   SDIOProjection,
   SDIOOdds,
   SDIONews,
+  ScenarioConfig,
 } from '../types';
 import {
   fetchSDIOSeasonProjections,
@@ -11,6 +12,8 @@ import {
   fetchSDIONews,
   hasSDIOKey,
 } from '../lib/sportsDataIO';
+import { applyScenario, createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { ScenarioBuilder } from './ScenarioBuilder';
 
 type ViewMode = 'projections' | 'odds' | 'news';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
@@ -34,6 +37,8 @@ export function SportsDataIOView({ season, onDataLoaded, onOpenSettings }: Props
   const [week, setWeek] = useState<number | undefined>(undefined);
   const [sortCol, setSortCol] = useState<string>('FantasyPointsPPR');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [scenarioOpen, setScenarioOpen] = useState(false);
+  const [activeScenario, setActiveScenario] = useState<ScenarioConfig>(createEmptyScenario);
 
   const keyConfigured = hasSDIOKey();
 
@@ -84,7 +89,8 @@ export function SportsDataIOView({ season, onDataLoaded, onOpenSettings }: Props
   }, [keyConfigured, viewMode, onDataLoaded]);
 
   const filteredProjections = useMemo(() => {
-    let data = [...projections];
+    // Apply scenario adjustments before filtering/sorting
+    let data = applyScenario([...projections], activeScenario);
     if (posFilter !== 'ALL') data = data.filter((p) => p.Position === posFilter);
     if (search) {
       const q = search.toLowerCase();
@@ -100,7 +106,7 @@ export function SportsDataIOView({ season, onDataLoaded, onOpenSettings }: Props
       return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
     });
     return data;
-  }, [projections, posFilter, search, sortCol, sortDir]);
+  }, [projections, activeScenario, posFilter, search, sortCol, sortDir]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) {
@@ -199,6 +205,15 @@ export function SportsDataIOView({ season, onDataLoaded, onOpenSettings }: Props
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <button
+              className={`scenario-builder-btn ${!isScenarioEmpty(activeScenario) ? 'active' : ''}`}
+              onClick={() => setScenarioOpen(true)}
+            >
+              {!isScenarioEmpty(activeScenario) && (
+                <span className="scenario-active-dot" />
+              )}
+              Scenarios
+            </button>
           </>
         )}
       </div>
@@ -229,6 +244,14 @@ export function SportsDataIOView({ season, onDataLoaded, onOpenSettings }: Props
       {!loading && !error && viewMode === 'odds' && <OddsTable data={odds} />}
 
       {!loading && !error && viewMode === 'news' && <NewsFeed data={news} />}
+
+      <ScenarioBuilder
+        open={scenarioOpen}
+        onClose={() => setScenarioOpen(false)}
+        projections={projections}
+        scenario={activeScenario}
+        onChange={setActiveScenario}
+      />
     </>
   );
 }
@@ -300,7 +323,10 @@ function ProjectionsTable({
         </thead>
         <tbody>
           {data.map((p, i) => (
-            <tr key={p.PlayerID}>
+            <tr
+              key={p.PlayerID}
+              className={p.PlayerID < 0 ? 'scenario-custom-row-highlight' : ''}
+            >
               <td className="rank-cell">{i + 1}</td>
               <td className="player-name">{p.Name}</td>
               <td>

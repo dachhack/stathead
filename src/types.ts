@@ -949,3 +949,44 @@ export interface SDIOPlayerGame {
   Played: number;
   Started: number;
 }
+
+// --- Scenario Builder Types ---
+
+export interface TeamTendency {
+  team: string;
+  passRatioDelta: number; // -30 to +30, positive = more pass-heavy
+}
+
+export interface VolumeOverride {
+  playerId: number;
+  playerName: string;
+  team: string;
+  position: string;
+  volumeDelta: number; // percentage change, e.g. 25 = +25%
+}
+
+export interface PlayerMovement {
+  playerId: number;
+  playerName: string;
+  fromTeam: string;
+  toTeam: string;
+}
+
+export interface CustomPlayer {
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  fantasyPointsPPR: number;
+  fantasyPoints: number;
+}
+
+export interface ScenarioConfig {
+  id: string;
+  name: string;
+  vegasWeighting: number; // 0 | 10 | 25 | 50
+  teamTendencies: TeamTendency[];
+  volumeOverrides: VolumeOverride[];
+  movements: PlayerMovement[];
+  customPlayers: CustomPlayer[];
+}

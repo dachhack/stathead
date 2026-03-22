@@ -1215,3 +1215,639 @@ tr:hover td {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* ===================== Scenario Builder ===================== */
+
+.scenario-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 600;
+}
+
+.scenario-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 560px;
+  max-width: 100vw;
+  height: 100%;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 601;
+  animation: slideIn 0.2s ease-out;
+}
+
+.scenario-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-primary);
+}
+
+.scenario-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.scenario-count {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.scenario-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.scenario-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scenario-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.scenario-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.scenario-section-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.scenario-section-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Scenario name row */
+
+.scenario-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scenario-name-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.scenario-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.scenario-action-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.scenario-action-btn:hover,
+.scenario-action-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Saved scenarios list */
+
+.scenario-saved-list {
+  margin-top: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.scenario-saved-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scenario-saved-item:last-child {
+  border-bottom: none;
+}
+
+.scenario-saved-name {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.scenario-saved-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scenario-link-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.scenario-link-btn:hover {
+  background: rgba(0, 212, 170, 0.1);
+}
+
+.scenario-link-btn.danger {
+  color: var(--danger);
+}
+
+.scenario-link-btn.danger:hover {
+  background: rgba(255, 77, 106, 0.1);
+}
+
+.scenario-empty-msg {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Vegas buttons */
+
+.scenario-vegas-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.scenario-vegas-btn {
+  flex: 1;
+  padding: 8px 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.scenario-vegas-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.scenario-vegas-btn.active {
+  background: rgba(0, 212, 170, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Add button */
+
+.scenario-add-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.scenario-add-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Add form */
+
+.scenario-add-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Selects */
+
+.scenario-select {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 100%;
+  cursor: pointer;
+}
+
+.scenario-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.scenario-select-sm {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Sliders */
+
+.scenario-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scenario-slider-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scenario-label-run { color: #64c8ff; }
+.scenario-label-pass { color: #64ff96; }
+
+.scenario-slider {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.scenario-slider-value-row {
+  display: flex;
+  justify-content: center;
+}
+
+.scenario-slider-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.scenario-slider-value.positive { color: var(--success); }
+.scenario-slider-value.negative { color: #64c8ff; }
+
+.scenario-slider-inline {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+  max-width: 100px;
+}
+
+/* Confirm button */
+
+.scenario-confirm-btn {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+
+.scenario-confirm-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.scenario-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Existing adjustment items */
+
+.scenario-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  gap: 8px;
+}
+
+.scenario-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.scenario-item-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scenario-item-delta {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scenario-item-delta.positive { color: var(--success); }
+.scenario-item-delta.negative { color: #64c8ff; }
+
+.scenario-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.scenario-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.scenario-remove-btn:hover {
+  color: var(--danger);
+  background: rgba(255, 77, 106, 0.1);
+}
+
+/* Player search */
+
+.scenario-search-wrap {
+  position: relative;
+}
+
+.scenario-search {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.scenario-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.scenario-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  z-index: 10;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.scenario-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  font-size: 13px;
+}
+
+.scenario-dropdown-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.scenario-dropdown-name {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.scenario-dropdown-team {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.scenario-selected-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 212, 170, 0.08);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.scenario-clear-selection {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.scenario-clear-selection:hover {
+  color: var(--danger);
+}
+
+/* Player movement */
+
+.scenario-move-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenario-move-from {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.scenario-move-arrow {
+  font-size: 16px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Custom player inputs */
+
+.scenario-custom-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scenario-input-sm {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.scenario-input-sm:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Footer */
+
+.scenario-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.scenario-clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.scenario-clear-btn:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.scenario-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scenario-status {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Scenario Builder trigger button in controls bar */
+
+.scenario-builder-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.scenario-builder-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.scenario-builder-btn.active {
+  background: rgba(0, 212, 170, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.scenario-active-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Highlight custom player rows in the projections table */
+tr.scenario-custom-row-highlight td {
+  background: rgba(0, 212, 170, 0.05);
+}
+
+@media (max-width: 768px) {
+  .scenario-drawer {
+    width: 100vw;
+  }
+}
