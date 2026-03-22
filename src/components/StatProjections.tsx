@@ -670,13 +670,81 @@ export function StatProjections() {
           <p style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 12 }}>
             Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
           </p>
-          {teamGroups.map((g, ti) => (
+          {teamGroups.map((g, ti) => {
+            // Compute position subtotals and team total
+            const sumQB = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.qbs) { sumQB.games += p.games; sumQB.passAtt += p.passAtt; sumQB.passComp += p.passComp; sumQB.passYds += p.passYds; sumQB.passTD += p.passTD; sumQB.int += p.int; sumQB.rushAtt += p.rushAtt; sumQB.rushYds += p.rushYds; sumQB.rushTD += p.rushTD; sumQB.ppr += p.pprPts; }
+            const sumRB = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.rbs) { sumRB.games += p.games; sumRB.rushAtt += p.rushAtt; sumRB.rushYds += p.rushYds; sumRB.rushTD += p.rushTD; sumRB.tgt += p.tgt; sumRB.rec += p.rec; sumRB.recYds += p.recYds; sumRB.recTD += p.recTD; sumRB.ppr += p.pprPts; }
+            const sumWR = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.wrs) { sumWR.games += p.games; sumWR.tgt += p.tgt; sumWR.rec += p.rec; sumWR.recYds += p.recYds; sumWR.recTD += p.recTD; sumWR.rushAtt += p.rushAtt; sumWR.rushYds += p.rushYds; sumWR.rushTD += p.rushTD; sumWR.ppr += p.pprPts; }
+            const sumTE = { games: 0, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
+            for (const p of g.tes) { sumTE.games += p.games; sumTE.tgt += p.tgt; sumTE.rec += p.rec; sumTE.recYds += p.recYds; sumTE.recTD += p.recTD; sumTE.ppr += p.pprPts; }
+            const total = {
+              games: sumQB.games + sumRB.games + sumWR.games + sumTE.games,
+              passAtt: sumQB.passAtt, passComp: sumQB.passComp, passYds: sumQB.passYds, passTD: sumQB.passTD, int: sumQB.int,
+              rushAtt: sumQB.rushAtt + sumRB.rushAtt + sumWR.rushAtt, rushYds: sumQB.rushYds + sumRB.rushYds + sumWR.rushYds, rushTD: sumQB.rushTD + sumRB.rushTD + sumWR.rushTD,
+              tgt: sumRB.tgt + sumWR.tgt + sumTE.tgt, rec: sumRB.rec + sumWR.rec + sumTE.rec, recYds: sumRB.recYds + sumWR.recYds + sumTE.recYds, recTD: sumRB.recTD + sumWR.recTD + sumTE.recTD,
+              ppr: g.totalPPR,
+            };
+
+            const thStyle = { fontSize: 10, padding: '4px 6px', whiteSpace: 'nowrap' as const };
+            const tdStyle = { fontSize: 11, padding: '3px 6px' };
+            const subtotalStyle = { ...tdStyle, fontWeight: 700 as const, background: 'var(--bg-tertiary)', borderTop: '1px solid var(--border)' };
+            const totalStyle = { ...tdStyle, fontWeight: 700 as const, background: 'var(--bg-tertiary)', borderTop: '2px solid var(--text-muted)' };
+
+            function playerRow(pos: string, name: string, gm: number, pAtt: number, pComp: number, pYds: number, pTD: number, pInt: number, rAtt: number, rYds: number, rTD: number, tgt: number, rec: number, recYds: number, recTD: number, ppr: number) {
+              return (
+                <tr key={name}>
+                  <td style={{ ...tdStyle, color: POS_COLORS[pos], fontWeight: 700 }}>{pos}</td>
+                  <td style={{ ...tdStyle, minWidth: 130 }}><strong>{name}</strong></td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{gm}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pAtt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pComp || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pYds ? pYds.toLocaleString() : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: pTD ? 700 : 400 }}>{pTD || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: pInt ? '#ef4444' : undefined }}>{pInt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rAtt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rYds ? rYds.toLocaleString() : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: rTD ? 700 : 400 }}>{rTD || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{tgt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rec || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{recYds ? recYds.toLocaleString() : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: recTD ? 700 : 400 }}>{recTD || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: POS_COLORS[pos] }}>{ppr}</td>
+                </tr>
+              );
+            }
+
+            function subtotalRow(label: string, color: string, s: typeof sumQB) {
+              return (
+                <tr key={label}>
+                  <td colSpan={2} style={{ ...subtotalStyle, color }}>{label}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.games}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passAtt || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passComp || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passYds ? s.passYds.toLocaleString() : ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passTD || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.int || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushAtt || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushYds ? s.rushYds.toLocaleString() : ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushTD || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.tgt || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rec || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.recYds ? s.recYds.toLocaleString() : ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.recTD || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right', color }}>{s.ppr}</td>
+                </tr>
+              );
+            }
+
+            return (
             <div key={g.team} style={{
               background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+              borderRadius: 8, padding: '12px 16px', marginBottom: 16,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 700 }}>
+                <span style={{ fontSize: 18, fontWeight: 700 }}>
                   <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>#{ti + 1}</span>
                   {g.team}
                 </span>
@@ -684,72 +752,69 @@ export function StatProjections() {
                   {g.totalPPR.toLocaleString()} PPR
                 </span>
               </div>
-              <div className="table-container" style={{ maxHeight: 'none' }}>
-                <table style={{ fontSize: 12 }}>
+              <div className="table-container" style={{ maxHeight: 'none', overflowX: 'auto' }}>
+                <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: 40 }}>Pos</th>
-                      <th>Player</th>
-                      <th>ADP</th>
-                      <th>Gm</th>
-                      <th>Key Stats</th>
-                      <th style={{ borderBottom: '2px solid #f59e0b' }}>PPR</th>
+                      <th style={thStyle}>Pos</th>
+                      <th style={thStyle}>Player</th>
+                      <th style={thStyle}>Gm</th>
+                      <th colSpan={5} style={{ ...thStyle, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.QB}` }}>PASSING</th>
+                      <th colSpan={3} style={{ ...thStyle, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.RB}` }}>RUSHING</th>
+                      <th colSpan={4} style={{ ...thStyle, textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.WR}` }}>RECEIVING</th>
+                      <th style={{ ...thStyle, borderBottom: '2px solid #f59e0b' }}>PPR</th>
+                    </tr>
+                    <tr>
+                      <th style={thStyle}></th>
+                      <th style={thStyle}></th>
+                      <th style={thStyle}></th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Att</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Cmp</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Yds</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>TD</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>INT</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Att</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Yds</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>TD</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Tgt</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Rec</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Yds</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>TD</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Pts</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {g.qbs.map((p) => (
-                      <tr key={p.name}>
-                        <td style={{ color: POS_COLORS.QB, fontWeight: 700 }}>QB</td>
-                        <td><strong>{p.name}</strong></td>
-                        <td>{fmtADP(p.adp)}</td>
-                        <td>{p.games}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                          {p.passYds.toLocaleString()} yds, {p.passTD} TD, {p.int} INT | {p.rushYds} rush
-                        </td>
-                        <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
-                      </tr>
-                    ))}
-                    {g.rbs.map((p) => (
-                      <tr key={p.name}>
-                        <td style={{ color: POS_COLORS.RB, fontWeight: 700 }}>RB</td>
-                        <td><strong>{p.name}</strong></td>
-                        <td>{fmtADP(p.adp)}</td>
-                        <td>{p.games}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                          {p.rushYds.toLocaleString()} rush, {p.rushTD} TD | {p.rec} rec, {p.recYds} yds
-                        </td>
-                        <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
-                      </tr>
-                    ))}
-                    {g.wrs.map((p) => (
-                      <tr key={p.name}>
-                        <td style={{ color: POS_COLORS.WR, fontWeight: 700 }}>WR</td>
-                        <td><strong>{p.name}</strong></td>
-                        <td>{fmtADP(p.adp)}</td>
-                        <td>{p.games}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                          {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
-                        </td>
-                        <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
-                      </tr>
-                    ))}
-                    {g.tes.map((p) => (
-                      <tr key={p.name}>
-                        <td style={{ color: POS_COLORS.TE, fontWeight: 700 }}>TE</td>
-                        <td><strong>{p.name}</strong></td>
-                        <td>{fmtADP(p.adp)}</td>
-                        <td>{p.games}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                          {p.tgt} tgt, {p.rec} rec, {p.recYds.toLocaleString()} yds, {p.recTD} TD
-                        </td>
-                        <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
-                      </tr>
-                    ))}
+                    {g.qbs.map((p) => playerRow('QB', p.name, p.games, p.passAtt, p.passComp, p.passYds, p.passTD, p.int, p.rushAtt, p.rushYds, p.rushTD, 0, 0, 0, 0, p.pprPts))}
+                    {subtotalRow('QB Total', POS_COLORS.QB, sumQB)}
+                    {g.rbs.map((p) => playerRow('RB', p.name, p.games, 0, 0, 0, 0, 0, p.rushAtt, p.rushYds, p.rushTD, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {subtotalRow('RB Total', POS_COLORS.RB, sumRB)}
+                    {g.wrs.map((p) => playerRow('WR', p.name, p.games, 0, 0, 0, 0, 0, p.rushAtt, p.rushYds, p.rushTD, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {subtotalRow('WR Total', POS_COLORS.WR, sumWR)}
+                    {g.tes.map((p) => playerRow('TE', p.name, p.games, 0, 0, 0, 0, 0, 0, 0, 0, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {subtotalRow('TE Total', POS_COLORS.TE, sumTE)}
+                    <tr>
+                      <td colSpan={2} style={{ ...totalStyle, fontSize: 12 }}>Total</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.games}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passAtt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passComp}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passYds.toLocaleString()}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passTD}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.int}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushAtt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushYds.toLocaleString()}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushTD}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.tgt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rec}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.recYds.toLocaleString()}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.recTD}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>{total.ppr}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
