@@ -853,7 +853,8 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
                 borderRadius: 6,
                 fontSize: 12,
               }}
-              formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value.toLocaleString()}`, 'Predicted Change']}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={((value: number) => [`${value >= 0 ? '+' : ''}${value.toLocaleString()}`, 'Predicted Change']) as any}
               labelFormatter={(label) => label}
             />
             <ReferenceLine x={0} stroke="var(--text-muted)" strokeWidth={1} />
