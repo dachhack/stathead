@@ -177,6 +177,13 @@ const FEATURES: FeatureDef[] = [
   { key: 'teamRBTargetsPerGame', label: 'Team RB Targets/Game', category: 'Personnel', positions: ['RB'] },
   { key: 'teamWR3PlusOnField', label: 'Team 3+ WR on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
   { key: 'team2PlusTEOnField', label: 'Team 2+ TE on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
+
+  // Vegas / implied totals
+  { key: 'vegasImpliedTotal', label: 'Vegas Implied Team Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'vegasImpliedSpread', label: 'Vegas Avg Spread', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'vegasGameTotal', label: 'Vegas Avg Game Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'vegasWinPct', label: 'Vegas Implied Win %', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'vegasActualPtsPerGame', label: 'Prior Actual Pts/Game', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -193,6 +200,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Competition: '#f97316',
   Coaching: '#a855f7',
   Personnel: '#0ea5e9',
+  Vegas: '#22c55e',
 };
 
 // ── Helpers ──
@@ -284,6 +292,48 @@ export function ADPFactorAnalysis() {
           if (g.game_type !== 'REG') continue;
           if (g.home_coach) coachBySeasonTeam.set(`${g.season}:${g.home_team}`, g.home_coach);
           if (g.away_coach) coachBySeasonTeam.set(`${g.season}:${g.away_team}`, g.away_coach);
+        }
+
+        // Build Vegas implied totals per team-season from game lines
+        interface VegasTeamAgg {
+          impliedTotal: number; spread: number; gameTotal: number;
+          actualPts: number; games: number; wins: number;
+        }
+        const vegasBySeasonTeam = new Map<string, VegasTeamAgg>();
+        for (const g of gamesData) {
+          if (g.game_type !== 'REG') continue;
+          const tl = g.total_line || 0;
+          const sl = g.spread_line || 0; // negative = home favored
+
+          // Home team
+          const homeKey = `${g.season}:${g.home_team}`;
+          const homeAcc = vegasBySeasonTeam.get(homeKey) || {
+            impliedTotal: 0, spread: 0, gameTotal: 0, actualPts: 0, games: 0, wins: 0,
+          };
+          if (tl > 0) {
+            homeAcc.impliedTotal += (tl - sl) / 2; // home implied = (total - spread) / 2
+            homeAcc.gameTotal += tl;
+          }
+          homeAcc.spread += sl;
+          homeAcc.actualPts += g.home_score || 0;
+          homeAcc.games += 1;
+          if ((g.home_score || 0) > (g.away_score || 0)) homeAcc.wins += 1;
+          vegasBySeasonTeam.set(homeKey, homeAcc);
+
+          // Away team
+          const awayKey = `${g.season}:${g.away_team}`;
+          const awayAcc = vegasBySeasonTeam.get(awayKey) || {
+            impliedTotal: 0, spread: 0, gameTotal: 0, actualPts: 0, games: 0, wins: 0,
+          };
+          if (tl > 0) {
+            awayAcc.impliedTotal += (tl + sl) / 2; // away implied = (total + spread) / 2
+            awayAcc.gameTotal += tl;
+          }
+          awayAcc.spread += -sl; // flip sign for away perspective
+          awayAcc.actualPts += g.away_score || 0;
+          awayAcc.games += 1;
+          if ((g.away_score || 0) > (g.home_score || 0)) awayAcc.wins += 1;
+          vegasBySeasonTeam.set(awayKey, awayAcc);
         }
 
         const rows: PlayerRow[] = [];
@@ -1103,6 +1153,22 @@ export function ADPFactorAnalysis() {
                   team2PlusTEOnField: pers ? Math.round((pers.te2plus / persTotal) * 1000) / 1000 : 0,
                 };
               })(),
+
+              // Vegas / implied totals (use prior season lines for the team)
+              ...(() => {
+                const vTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                // Use prior season Vegas data (same as other "prior" features)
+                const vKey = `${season - 1}:${vTeam}`;
+                const v = vegasBySeasonTeam.get(vKey);
+                const vGames = v?.games || 1;
+                return {
+                  vegasImpliedTotal: v ? Math.round((v.impliedTotal / vGames) * 10) / 10 : 0,
+                  vegasImpliedSpread: v ? Math.round((v.spread / vGames) * 10) / 10 : 0,
+                  vegasGameTotal: v ? Math.round((v.gameTotal / vGames) * 10) / 10 : 0,
+                  vegasWinPct: v ? Math.round((v.wins / vGames) * 1000) / 1000 : 0,
+                  vegasActualPtsPerGame: v ? Math.round((v.actualPts / vGames) * 10) / 10 : 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1782,6 +1848,21 @@ export function ADPFactorAnalysis() {
                     teamRBTargetsPerGame: sch ? Math.round((sch.rbTargets / schGames) * 10) / 10 : 0,
                     teamWR3PlusOnField: pers ? Math.round((pers.wr3plus / persTotal) * 1000) / 1000 : 0,
                     team2PlusTEOnField: pers ? Math.round((pers.te2plus / persTotal) * 1000) / 1000 : 0,
+                  };
+                })(),
+
+                // Vegas / implied totals (use prior season = 2025 lines)
+                ...(() => {
+                  const vTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const vKey = `${predSeason - 1}:${vTeam}`;
+                  const v = vegasBySeasonTeam.get(vKey);
+                  const vGames = v?.games || 1;
+                  return {
+                    vegasImpliedTotal: v ? Math.round((v.impliedTotal / vGames) * 10) / 10 : 0,
+                    vegasImpliedSpread: v ? Math.round((v.spread / vGames) * 10) / 10 : 0,
+                    vegasGameTotal: v ? Math.round((v.gameTotal / vGames) * 10) / 10 : 0,
+                    vegasWinPct: v ? Math.round((v.wins / vGames) * 1000) / 1000 : 0,
+                    vegasActualPtsPerGame: v ? Math.round((v.actualPts / vGames) * 10) / 10 : 0,
                   };
                 })(),
               };
