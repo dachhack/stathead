@@ -1,3 +1,6 @@
+declare const __APP_VERSION__: string;
+declare const __BUILD_HASH__: string;
+
 import { useState, useCallback } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
@@ -61,6 +64,9 @@ function App() {
       <header className="header">
         <div className="header-logo">
           Stat<span>Head</span>
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 400, marginTop: -2, letterSpacing: '0.5px' }}>
+            v{__APP_VERSION__} · {__BUILD_HASH__}
+          </div>
         </div>
         <nav className="nav-tabs">
           {TABS.map((t) => (
