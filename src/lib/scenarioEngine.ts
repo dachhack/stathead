@@ -1,15 +1,24 @@
-import type { SDIOProjection, ScenarioConfig } from '../types';
+import type { SDIOProjection, ScenarioConfig, TeamStatKey } from '../types';
 
 export function isScenarioEmpty(s: ScenarioConfig): boolean {
   return (
     s.vegasWeighting === 0 &&
     s.teamTendencies.length === 0 &&
     (s.teamVolumes ?? []).length === 0 &&
+    (s.teamStatAdjustments ?? []).length === 0 &&
     s.volumeOverrides.length === 0 &&
     s.movements.length === 0 &&
     s.customPlayers.length === 0
   );
 }
+
+const PASSING_STAT_KEYS = new Set<TeamStatKey>([
+  'PassingAttempts', 'PassingCompletions', 'PassingYards',
+  'PassingTouchdowns', 'PassingInterceptions',
+]);
+const RUSHING_STAT_KEYS = new Set<TeamStatKey>([
+  'RushingAttempts', 'RushingYards', 'RushingTouchdowns',
+]);
 
 function recalcPoints(p: SDIOProjection): { ppr: number; std: number } {
   const passing =
@@ -92,6 +101,28 @@ export function applyScenario(
       player.Receptions = (player.Receptions || 0) * f;
       player.ReceivingYards = (player.ReceivingYards || 0) * f;
       player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * f;
+      const { ppr, std } = recalcPoints(player);
+      player.FantasyPointsPPR = ppr;
+      player.FantasyPoints = std;
+    }
+  }
+
+  // 2.75. Team stat adjustments — targeted per-stat overrides
+  for (const adj of (scenario.teamStatAdjustments ?? [])) {
+    if (adj.delta === 0) continue;
+    const f = 1 + adj.delta / 100;
+    const isPassStat = PASSING_STAT_KEYS.has(adj.stat);
+    const isRushStat = RUSHING_STAT_KEYS.has(adj.stat);
+    const isRecStat = !isPassStat && !isRushStat;
+
+    for (const player of result.filter((p) => p.Team === adj.team)) {
+      const applies =
+        (isPassStat && player.Position === 'QB') ||
+        (isRushStat && player.Position !== 'K') ||
+        (isRecStat && (player.Position === 'RB' || player.Position === 'WR' || player.Position === 'TE'));
+      if (!applies) continue;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (player as unknown as Record<string, number>)[adj.stat] = ((player as unknown as Record<string, number>)[adj.stat] || 0) * f;
       const { ppr, std } = recalcPoints(player);
       player.FantasyPointsPPR = ppr;
       player.FantasyPoints = std;
@@ -283,6 +314,7 @@ export function createEmptyScenario(): ScenarioConfig {
     vegasWeighting: 0,
     teamTendencies: [],
     teamVolumes: [],
+    teamStatAdjustments: [],
     volumeOverrides: [],
     movements: [],
     customPlayers: [],

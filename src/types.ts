@@ -962,6 +962,25 @@ export interface TeamVolume {
   volumeDelta: number; // percentage change to total team volume, e.g. 10 = +10%
 }
 
+export type TeamStatKey =
+  | 'PassingAttempts'
+  | 'PassingCompletions'
+  | 'PassingYards'
+  | 'PassingTouchdowns'
+  | 'PassingInterceptions'
+  | 'RushingAttempts'
+  | 'RushingYards'
+  | 'RushingTouchdowns'
+  | 'Receptions'
+  | 'ReceivingYards'
+  | 'ReceivingTouchdowns';
+
+export interface TeamStatAdjustment {
+  team: string;
+  stat: TeamStatKey;
+  delta: number; // percentage change, e.g. 10 = +10%
+}
+
 export interface VolumeOverride {
   playerId: number;
   playerName: string;
@@ -992,6 +1011,7 @@ export interface ScenarioConfig {
   vegasWeighting: number; // 0 | 10 | 25 | 50
   teamTendencies: TeamTendency[];
   teamVolumes: TeamVolume[];
+  teamStatAdjustments: TeamStatAdjustment[];
   volumeOverrides: VolumeOverride[];
   movements: PlayerMovement[];
   customPlayers: CustomPlayer[];

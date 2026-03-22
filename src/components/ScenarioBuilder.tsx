@@ -4,6 +4,8 @@ import type {
   ScenarioConfig,
   TeamTendency,
   TeamVolume,
+  TeamStatAdjustment,
+  TeamStatKey,
   VolumeOverride,
   PlayerMovement,
   CustomPlayer,
@@ -63,12 +65,38 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
   const [moveToTeam, setMoveToTeam] = useState('');
   const moveResults = usePlayerSearch(projections, moveSearch);
 
+  // Team stat adjustment add form
+  const [addingTeamStat, setAddingTeamStat] = useState(false);
+  const [newStatTeam, setNewStatTeam] = useState('');
+  const [newStatKey, setNewStatKey] = useState<TeamStatKey>('PassingYards');
+  const [newStatDelta, setNewStatDelta] = useState(0);
+
   // Custom player add form
   const [addingCustom, setAddingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customPos, setCustomPos] = useState('WR');
   const [customTeam, setCustomTeam] = useState('');
   const [customPPR, setCustomPPR] = useState(0);
+
+  const STAT_LABELS: Record<TeamStatKey, string> = {
+    PassingAttempts: 'Pass Attempts',
+    PassingCompletions: 'Completions',
+    PassingYards: 'Pass Yards',
+    PassingTouchdowns: 'Pass TDs',
+    PassingInterceptions: 'Interceptions',
+    RushingAttempts: 'Rush Attempts',
+    RushingYards: 'Rush Yards',
+    RushingTouchdowns: 'Rush TDs',
+    Receptions: 'Receptions',
+    ReceivingYards: 'Rec Yards',
+    ReceivingTouchdowns: 'Rec TDs',
+  };
+
+  const STAT_GROUPS: { label: string; stats: TeamStatKey[] }[] = [
+    { label: 'Passing', stats: ['PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions'] },
+    { label: 'Rushing', stats: ['RushingAttempts', 'RushingYards', 'RushingTouchdowns'] },
+    { label: 'Receiving', stats: ['Receptions', 'ReceivingYards', 'ReceivingTouchdowns'] },
+  ];
 
   const teams = useMemo(() => {
     const set = new Set(projections.map((p) => p.Team).filter(Boolean));
@@ -118,6 +146,25 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
     update({
       teamVolumes: (scenario.teamVolumes ?? []).map((t) =>
         t.team === team ? { ...t, volumeDelta: delta } : t
+      ),
+    });
+
+  // --- Team stat adjustment actions ---
+  const addTeamStat = () => {
+    if (!newStatTeam || newStatDelta === 0) return;
+    if ((scenario.teamStatAdjustments ?? []).find((a) => a.team === newStatTeam && a.stat === newStatKey)) return;
+    const adj: TeamStatAdjustment = { team: newStatTeam, stat: newStatKey, delta: newStatDelta };
+    update({ teamStatAdjustments: [...(scenario.teamStatAdjustments ?? []), adj] });
+    setNewStatTeam('');
+    setNewStatDelta(0);
+    setAddingTeamStat(false);
+  };
+  const removeTeamStat = (team: string, stat: TeamStatKey) =>
+    update({ teamStatAdjustments: (scenario.teamStatAdjustments ?? []).filter((a) => !(a.team === team && a.stat === stat)) });
+  const updateTeamStatDelta = (team: string, stat: TeamStatKey, delta: number) =>
+    update({
+      teamStatAdjustments: (scenario.teamStatAdjustments ?? []).map((a) =>
+        a.team === team && a.stat === stat ? { ...a, delta } : a
       ),
     });
 
@@ -205,6 +252,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
   const activeCount =
     scenario.teamTendencies.length +
     (scenario.teamVolumes ?? []).length +
+    (scenario.teamStatAdjustments ?? []).length +
     scenario.volumeOverrides.length +
     scenario.movements.length +
     scenario.customPlayers.length;
@@ -494,7 +542,115 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
             )}
           </div>
 
-          {/* 4. Player Volume */}
+          {/* 4. Team Stat Adjustments */}
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Team Stat Adjustments</span>
+              <button
+                className="scenario-add-btn"
+                onClick={() => setAddingTeamStat((v) => !v)}
+              >
+                {addingTeamStat ? '✕' : '+ Add'}
+              </button>
+            </div>
+            <p className="scenario-section-hint">
+              Tweak specific team-level stats. Changes flow proportionally to all relevant players.
+            </p>
+
+            {addingTeamStat && (
+              <div className="scenario-add-form">
+                <select
+                  value={newStatTeam}
+                  onChange={(e) => setNewStatTeam(e.target.value)}
+                  className="scenario-select"
+                >
+                  <option value="">Select team...</option>
+                  {teams.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <select
+                  value={newStatKey}
+                  onChange={(e) => setNewStatKey(e.target.value as TeamStatKey)}
+                  className="scenario-select"
+                >
+                  {STAT_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.stats.map((s) => (
+                        <option key={s} value={s}>{STAT_LABELS[s]}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <div className="scenario-slider-row">
+                  <span className="scenario-slider-label scenario-label-run">−50%</span>
+                  <input
+                    type="range"
+                    min={-50}
+                    max={50}
+                    value={newStatDelta}
+                    onChange={(e) => setNewStatDelta(Number(e.target.value))}
+                    className="scenario-slider"
+                  />
+                  <span className="scenario-slider-label scenario-label-pass">+50%</span>
+                </div>
+                <div className="scenario-slider-value-row">
+                  <span
+                    className={`scenario-slider-value ${
+                      newStatDelta > 0 ? 'positive' : newStatDelta < 0 ? 'negative' : ''
+                    }`}
+                  >
+                    {deltaLabel(newStatDelta, 'volume')}
+                  </span>
+                </div>
+                <button
+                  className="scenario-confirm-btn"
+                  onClick={addTeamStat}
+                  disabled={!newStatTeam || newStatDelta === 0}
+                >
+                  Add Adjustment
+                </button>
+              </div>
+            )}
+
+            {(scenario.teamStatAdjustments ?? []).map((a) => (
+              <div key={`${a.team}-${a.stat}`} className="scenario-item">
+                <div className="scenario-item-left">
+                  <span className="scenario-item-name">{a.team}</span>
+                  <span className="scenario-item-stat-label">{STAT_LABELS[a.stat]}</span>
+                  <span
+                    className={`scenario-item-delta ${
+                      a.delta > 0 ? 'positive' : 'negative'
+                    }`}
+                  >
+                    {deltaLabel(a.delta, 'volume')}
+                  </span>
+                </div>
+                <div className="scenario-item-controls">
+                  <input
+                    type="range"
+                    min={-50}
+                    max={50}
+                    value={a.delta}
+                    onChange={(e) => updateTeamStatDelta(a.team, a.stat, Number(e.target.value))}
+                    className="scenario-slider-inline"
+                  />
+                  <button
+                    className="scenario-remove-btn"
+                    onClick={() => removeTeamStat(a.team, a.stat)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(scenario.teamStatAdjustments ?? []).length === 0 && !addingTeamStat && (
+              <div className="scenario-section-empty">No stat adjustments</div>
+            )}
+          </div>
+
+          {/* 6. Player Volume */}
           <div className="scenario-section">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Player Volume</span>
@@ -819,6 +975,7 @@ export function ScenarioBuilder({ open, onClose, projections, scenario, onChange
                 vegasWeighting: 0,
                 teamTendencies: [],
                 teamVolumes: [],
+                teamStatAdjustments: [],
                 volumeOverrides: [],
                 movements: [],
                 customPlayers: [],
