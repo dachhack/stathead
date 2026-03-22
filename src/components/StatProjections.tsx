@@ -153,27 +153,6 @@ function applyScenarioAdj(
   return { qbs: adjQbs, rbs: adjRbs, wrs: adjWrs, tes: adjTes };
 }
 
-// Raw data loaded once from APIs, stored in ref
-interface LoadedData {
-  adpData: FfcADPPlayer[];
-  priorTotals: SeasonTotals[];
-  priorByName: Map<string, SeasonTotals>;
-  rosterTeam: Map<string, string>;
-  rosters: Roster[];
-  draftByName: Map<string, DraftPick>;
-  gamesData: Game[];
-  priorTeamTotals: Map<string, TeamStats>;
-  leagueAvg: TeamStats;
-  allTeams: Set<string>;
-  coachChangedTeams: Set<string>;
-  coachOriginTeam: Map<string, string>;
-}
-
-interface TeamStats {
-  passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
-  rushAtt: number; rushYds: number; rushTD: number;
-  targets: number; receptions: number; recYds: number; recTD: number;
-}
 
 // ── Component ──
 
