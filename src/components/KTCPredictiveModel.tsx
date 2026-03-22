@@ -10,8 +10,8 @@ import {
   fetchCombine, fetchDraftPicks, fetchInjuries, fetchGames,
   fetchSnapCounts, aggregateToSeasonTotals, fetchDepthCharts,
 } from '../data';
-import { trainRidgeRegression, predict, type TrainedModel, type PredictionResult } from '../lib/ridge';
-import { trainGBMWithCI, predictGBM, type TrainedGBM, type GBMPredictionResult } from '../lib/gbm';
+import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
+import { trainGBMWithCI, predictGBM } from '../lib/gbm';
 
 // ── Types ──
 
@@ -182,9 +182,6 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [model, setModel] = useState<TrainedModel | null>(null);
-  const [gbmModel, setGbmModel] = useState<TrainedGBM | null>(null);
-  const [gbmLower, setGbmLower] = useState<TrainedGBM | null>(null);
-  const [gbmUpper, setGbmUpper] = useState<TrainedGBM | null>(null);
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -491,9 +488,6 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
             subsample: 0.8,
           }, 0.80);
 
-          setGbmModel(median);
-          setGbmLower(lower);
-          setGbmUpper(upper);
           // Store ridge-like metrics for display
           setModel({
             coefficients: [],
@@ -541,9 +535,6 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
           // Ridge regression
           const trained = trainRidgeRegression(X, yPct, featureNames, lambda);
           setModel(trained);
-          setGbmModel(null);
-          setGbmLower(null);
-          setGbmUpper(null);
 
           preds = validRows.map((row) => {
             const result = predict(trained, row.features);
