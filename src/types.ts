@@ -957,6 +957,11 @@ export interface TeamTendency {
   passRatioDelta: number; // -30 to +30, positive = more pass-heavy
 }
 
+export interface TeamVolume {
+  team: string;
+  volumeDelta: number; // percentage change to total team volume, e.g. 10 = +10%
+}
+
 export interface VolumeOverride {
   playerId: number;
   playerName: string;
@@ -986,6 +991,7 @@ export interface ScenarioConfig {
   name: string;
   vegasWeighting: number; // 0 | 10 | 25 | 50
   teamTendencies: TeamTendency[];
+  teamVolumes: TeamVolume[];
   volumeOverrides: VolumeOverride[];
   movements: PlayerMovement[];
   customPlayers: CustomPlayer[];
