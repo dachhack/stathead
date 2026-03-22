@@ -266,7 +266,7 @@ function runSweepConfig(
 
 // ── Component ──
 
-const TEST_SEASONS = [2024, 2023, 2022, 2021, 2020];
+const TEST_SEASONS = [2025, 2024, 2023, 2022, 2021, 2020];
 
 export function TeamTotalsBacktest() {
   const [loading, setLoading] = useState(true);
