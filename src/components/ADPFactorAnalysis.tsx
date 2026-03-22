@@ -130,7 +130,7 @@ const FEATURES: FeatureDef[] = [
   { key: 'priorSoftTissue', label: 'Prior Soft Tissue Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'priorKneeInjury', label: 'Prior Knee Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
 
-  // Roster competition
+  // Roster competition — basic
   { key: 'teamSamePosCount', label: 'Same-Pos Teammates', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'depthChartRank', label: 'Depth Chart Rank', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'priorTeamTouchShare', label: 'Prior Team Touch Share', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
@@ -139,6 +139,19 @@ const FEATURES: FeatureDef[] = [
   { key: 'teamDraftedSamePos', label: 'Team Drafted Same Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'draftCapitalSamePos', label: 'Draft Capital at Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'teammatePriorPPR', label: 'Best Teammate PPR', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
+
+  // Roster competition — quality-aware (cross-position)
+  { key: 'teamWRElitePPR', label: 'Team Best WR PPR', category: 'Competition', positions: ['WR', 'TE', 'RB'] },
+  { key: 'teamWRTop12', label: 'Team Has Top-12 WR', category: 'Competition', positions: ['WR', 'TE', 'RB'] },
+  { key: 'teamWRTotalPPR', label: 'Team WR Total PPR', category: 'Competition', positions: ['WR', 'TE'] },
+  { key: 'teamTEElitePPR', label: 'Team Best TE PPR', category: 'Competition', positions: ['WR', 'TE'] },
+  { key: 'teamRBElitePPR', label: 'Team Best RB PPR', category: 'Competition', positions: ['RB'] },
+  { key: 'teamRBTop12', label: 'Team Has Top-12 RB', category: 'Competition', positions: ['RB'] },
+  { key: 'teamPassCatcherPPR', label: 'Team Pass Catcher PPR', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamElitePassCatchers', label: 'Team Elite Pass Catchers', category: 'Competition', positions: ['WR', 'TE'] },
+  { key: 'teamTargetHHI', label: 'Team Target Concentration', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
+  { key: 'newArrivalBestPPR', label: 'Best New Arrival PPR', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'newArrivalBestADP', label: 'Best New Arrival ADP', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -550,12 +563,109 @@ export function ADPFactorAnalysis() {
             teamTotalTargets.set(team, (teamTotalTargets.get(team) || 0) + (p.targets || 0));
           }
 
-          // Prior season PPR by name (for teammate best PPR)
+          // Prior season PPR by name + position (for quality-aware competition)
           const priorPPRByName = new Map<string, number>();
+          const priorPosByName = new Map<string, string>();
           for (const p of priorTotals) {
             if (POSITIONS.includes(p.position)) {
-              priorPPRByName.set(normalizeName(p.player_display_name), p.fantasy_points_ppr || 0);
+              const name = normalizeName(p.player_display_name);
+              priorPPRByName.set(name, p.fantasy_points_ppr || 0);
+              priorPosByName.set(name, p.position);
             }
+          }
+
+          // Positional rankings from prior season (for top-12 detection)
+          const posPriorRanks = new Map<string, Map<string, number>>(); // pos → name → rank
+          for (const pos of POSITIONS) {
+            const posPlayers = priorTotals
+              .filter((p) => p.position === pos)
+              .sort((a, b) => (b.fantasy_points_ppr || 0) - (a.fantasy_points_ppr || 0));
+            const rankMap = new Map<string, number>();
+            posPlayers.forEach((p, i) => rankMap.set(normalizeName(p.player_display_name), i + 1));
+            posPriorRanks.set(pos, rankMap);
+          }
+
+          // Team-level PPR aggregations by position (from prior season, mapped to current team)
+          // We need to know what each team's roster looks like NOW and how those players did LAST year
+          interface TeamPosAgg {
+            bestPPR: number;
+            totalPPR: number;
+            hasTop12: boolean;
+            playerTargets: number[]; // for HHI calc
+          }
+          const teamPosAgg = new Map<string, TeamPosAgg>(); // "team:pos" → agg
+
+          // Build team-pos aggregations using current roster + prior stats
+          for (const [key, names] of rosterByTeamPos) {
+            const [team, pos] = key.split(':');
+            const agg: TeamPosAgg = { bestPPR: 0, totalPPR: 0, hasTop12: false, playerTargets: [] };
+            for (const name of names) {
+              const ppr = priorPPRByName.get(name) || 0;
+              if (ppr > agg.bestPPR) agg.bestPPR = ppr;
+              agg.totalPPR += ppr;
+              const rank = posPriorRanks.get(pos)?.get(name) || 999;
+              if (rank <= 12) agg.hasTop12 = true;
+              // Get targets for HHI
+              const priorP = priorTotals.find((p) => normalizeName(p.player_display_name) === name && p.position === pos);
+              if (priorP) agg.playerTargets.push(priorP.targets || 0);
+            }
+            teamPosAgg.set(key, agg);
+          }
+
+          // Team-level pass catcher aggregation (WR + TE combined PPR)
+          const teamPassCatcherPPR = new Map<string, number>();
+          const teamElitePassCatchers = new Map<string, number>(); // count of top-24 WR/TE
+          for (const [key, names] of rosterByTeamPos) {
+            const [team, pos] = key.split(':');
+            if (pos !== 'WR' && pos !== 'TE') continue;
+            for (const name of names) {
+              const ppr = priorPPRByName.get(name) || 0;
+              teamPassCatcherPPR.set(team, (teamPassCatcherPPR.get(team) || 0) + ppr);
+              const rank = posPriorRanks.get(pos)?.get(name) || 999;
+              if (rank <= 24) teamElitePassCatchers.set(team, (teamElitePassCatchers.get(team) || 0) + 1);
+            }
+          }
+
+          // Target HHI (Herfindahl-Hirschman Index) per team — higher = more concentrated
+          const teamTargetHHI = new Map<string, number>();
+          for (const team of new Set([...teamTotalTargets.keys()])) {
+            const totalTgts = teamTotalTargets.get(team) || 1;
+            // Collect all player target shares on the team
+            let hhi = 0;
+            for (const p of priorTotals) {
+              if ((p.recent_team || '') !== team || !POSITIONS.includes(p.position)) continue;
+              const share = (p.targets || 0) / totalTgts;
+              hhi += share * share;
+            }
+            teamTargetHHI.set(team, Math.round(hhi * 1000) / 1000);
+          }
+
+          // New arrival quality: for each team-pos, best PPR among new arrivals
+          const newArrivalBestPPR = new Map<string, number>(); // "team:pos" → best PPR
+          for (const [key, names] of rosterByTeamPos) {
+            const priorNames = priorRosterByTeamPos.get(key);
+            let best = 0;
+            for (const name of names) {
+              if (priorNames && priorNames.has(name)) continue; // not new
+              const ppr = priorPPRByName.get(name) || 0;
+              if (ppr > best) best = ppr;
+            }
+            newArrivalBestPPR.set(key, Math.round(best * 10) / 10);
+          }
+
+          // New arrival ADP: for each team-pos, best (lowest) ADP among new arrivals
+          const adpByName = new Map<string, number>();
+          for (const a of adpData) adpByName.set(normalizeName(a.name), a.adp);
+          const newArrivalBestADP = new Map<string, number>(); // lower = better
+          for (const [key, names] of rosterByTeamPos) {
+            const priorNames = priorRosterByTeamPos.get(key);
+            let bestAdp = 999;
+            for (const name of names) {
+              if (priorNames && priorNames.has(name)) continue;
+              const adp2 = adpByName.get(name) || 999;
+              if (adp2 < bestAdp) bestAdp = adp2;
+            }
+            newArrivalBestADP.set(key, bestAdp < 999 ? bestAdp : 0);
           }
 
           // Draft picks for this season (team drafted same position)
@@ -775,6 +885,19 @@ export function ADPFactorAnalysis() {
                   teamDraftedSamePos: draftedInfo ? draftedInfo.count : 0,
                   draftCapitalSamePos: draftedInfo ? Math.max(0, 8 - Math.ceil(draftedInfo.bestPick / 32)) : 0,
                   teammatePriorPPR: Math.round(bestTeammatePPR * 10) / 10,
+
+                  // Quality-aware cross-position competition
+                  teamWRElitePPR: Math.round((teamPosAgg.get(`${playerTeam2}:WR`)?.bestPPR || 0) * 10) / 10,
+                  teamWRTop12: (teamPosAgg.get(`${playerTeam2}:WR`)?.hasTop12 || false) ? 1 : 0,
+                  teamWRTotalPPR: Math.round((teamPosAgg.get(`${playerTeam2}:WR`)?.totalPPR || 0) * 10) / 10,
+                  teamTEElitePPR: Math.round((teamPosAgg.get(`${playerTeam2}:TE`)?.bestPPR || 0) * 10) / 10,
+                  teamRBElitePPR: Math.round((teamPosAgg.get(`${playerTeam2}:RB`)?.bestPPR || 0) * 10) / 10,
+                  teamRBTop12: (teamPosAgg.get(`${playerTeam2}:RB`)?.hasTop12 || false) ? 1 : 0,
+                  teamPassCatcherPPR: Math.round((teamPassCatcherPPR.get(playerTeam2) || 0) * 10) / 10,
+                  teamElitePassCatchers: teamElitePassCatchers.get(playerTeam2) || 0,
+                  teamTargetHHI: teamTargetHHI.get(playerTeam2) || 0,
+                  newArrivalBestPPR: newArrivalBestPPR.get(posKey) || 0,
+                  newArrivalBestADP: newArrivalBestADP.get(posKey) || 0,
                 };
               })(),
             };
@@ -1048,6 +1171,82 @@ export function ADPFactorAnalysis() {
               predTeamDraftedPos.set(key, existing);
             }
 
+            // Quality-aware competition aggregations for predictions
+            const predPriorPosByName = new Map<string, string>();
+            for (const p of predPriorTotals) {
+              if (POSITIONS.includes(p.position)) predPriorPosByName.set(normalizeName(p.player_display_name), p.position);
+            }
+            const predPosPriorRanks = new Map<string, Map<string, number>>();
+            for (const pos of POSITIONS) {
+              const posPlayers = predPriorTotals
+                .filter((p) => p.position === pos)
+                .sort((a, b) => (b.fantasy_points_ppr || 0) - (a.fantasy_points_ppr || 0));
+              const rankMap = new Map<string, number>();
+              posPlayers.forEach((p, i) => rankMap.set(normalizeName(p.player_display_name), i + 1));
+              predPosPriorRanks.set(pos, rankMap);
+            }
+            interface PredTeamPosAgg { bestPPR: number; totalPPR: number; hasTop12: boolean }
+            const predTeamPosAgg = new Map<string, PredTeamPosAgg>();
+            for (const [key, names] of predRosterByTeamPos) {
+              const [, pos] = key.split(':');
+              const agg: PredTeamPosAgg = { bestPPR: 0, totalPPR: 0, hasTop12: false };
+              for (const name of names) {
+                const ppr = predPriorPPRByName.get(name) || 0;
+                if (ppr > agg.bestPPR) agg.bestPPR = ppr;
+                agg.totalPPR += ppr;
+                const rank = predPosPriorRanks.get(pos)?.get(name) || 999;
+                if (rank <= 12) agg.hasTop12 = true;
+              }
+              predTeamPosAgg.set(key, agg);
+            }
+            const predTeamPassCatcherPPR2 = new Map<string, number>();
+            const predTeamElitePassCatchers2 = new Map<string, number>();
+            for (const [key, names] of predRosterByTeamPos) {
+              const [team, pos] = key.split(':');
+              if (pos !== 'WR' && pos !== 'TE') continue;
+              for (const name of names) {
+                const ppr = predPriorPPRByName.get(name) || 0;
+                predTeamPassCatcherPPR2.set(team, (predTeamPassCatcherPPR2.get(team) || 0) + ppr);
+                const rank = predPosPriorRanks.get(pos)?.get(name) || 999;
+                if (rank <= 24) predTeamElitePassCatchers2.set(team, (predTeamElitePassCatchers2.get(team) || 0) + 1);
+              }
+            }
+            const predTeamTargetHHI2 = new Map<string, number>();
+            for (const team of new Set([...predTeamTotalTargets.keys()])) {
+              const totalTgts = predTeamTotalTargets.get(team) || 1;
+              let hhi = 0;
+              for (const p of predPriorTotals) {
+                if ((p.recent_team || '') !== team || !POSITIONS.includes(p.position)) continue;
+                const share = (p.targets || 0) / totalTgts;
+                hhi += share * share;
+              }
+              predTeamTargetHHI2.set(team, Math.round(hhi * 1000) / 1000);
+            }
+            const predNewArrivalBestPPR2 = new Map<string, number>();
+            for (const [key, names] of predRosterByTeamPos) {
+              const priorNames = predPriorRosterByTeamPos.get(key);
+              let best = 0;
+              for (const name of names) {
+                if (priorNames && priorNames.has(name)) continue;
+                const ppr = predPriorPPRByName.get(name) || 0;
+                if (ppr > best) best = ppr;
+              }
+              predNewArrivalBestPPR2.set(key, Math.round(best * 10) / 10);
+            }
+            const predAdpByName = new Map<string, number>();
+            for (const a of predAdpData) predAdpByName.set(normalizeName(a.name), a.adp);
+            const predNewArrivalBestADP2 = new Map<string, number>();
+            for (const [key, names] of predRosterByTeamPos) {
+              const priorNames = predPriorRosterByTeamPos.get(key);
+              let bestAdp = 999;
+              for (const name of names) {
+                if (priorNames && priorNames.has(name)) continue;
+                const adp2 = predAdpByName.get(name) || 999;
+                if (adp2 < bestAdp) bestAdp = adp2;
+              }
+              predNewArrivalBestADP2.set(key, bestAdp < 999 ? bestAdp : 0);
+            }
+
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -1218,6 +1417,19 @@ export function ADPFactorAnalysis() {
                     teamDraftedSamePos: draftedInfo ? draftedInfo.count : 0,
                     draftCapitalSamePos: draftedInfo ? Math.max(0, 8 - Math.ceil(draftedInfo.bestPick / 32)) : 0,
                     teammatePriorPPR: Math.round(bestTeammatePPR * 10) / 10,
+
+                    // Quality-aware cross-position competition
+                    teamWRElitePPR: Math.round((predTeamPosAgg.get(`${playerTeam2}:WR`)?.bestPPR || 0) * 10) / 10,
+                    teamWRTop12: (predTeamPosAgg.get(`${playerTeam2}:WR`)?.hasTop12 || false) ? 1 : 0,
+                    teamWRTotalPPR: Math.round((predTeamPosAgg.get(`${playerTeam2}:WR`)?.totalPPR || 0) * 10) / 10,
+                    teamTEElitePPR: Math.round((predTeamPosAgg.get(`${playerTeam2}:TE`)?.bestPPR || 0) * 10) / 10,
+                    teamRBElitePPR: Math.round((predTeamPosAgg.get(`${playerTeam2}:RB`)?.bestPPR || 0) * 10) / 10,
+                    teamRBTop12: (predTeamPosAgg.get(`${playerTeam2}:RB`)?.hasTop12 || false) ? 1 : 0,
+                    teamPassCatcherPPR: Math.round((predTeamPassCatcherPPR2.get(playerTeam2) || 0) * 10) / 10,
+                    teamElitePassCatchers: predTeamElitePassCatchers2.get(playerTeam2) || 0,
+                    teamTargetHHI: predTeamTargetHHI2.get(playerTeam2) || 0,
+                    newArrivalBestPPR: predNewArrivalBestPPR2.get(posKey) || 0,
+                    newArrivalBestADP: predNewArrivalBestADP2.get(posKey) || 0,
                   };
                 })(),
               };
