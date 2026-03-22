@@ -46,9 +46,25 @@ const STAT_LABELS: Record<StatKey, string> = {
   targets: 'Targets', receptions: 'Receptions', recYds: 'Rec Yds', recTD: 'Rec TD',
 };
 
-// How much to blend prior team totals with league average (regression to mean)
-const TEAM_WEIGHT = 0.60;
-const LEAGUE_WEIGHT = 0.40;
+// Default weights (will be overridden by sweep winner)
+const DEFAULT_TEAM_WEIGHT = 0.60;
+
+// ── Sweep config types ──
+
+interface ProjectionConfig {
+  label: string;
+  teamWeight: number;       // 0-1, league weight is 1 - teamWeight
+  useVegas: boolean;
+  vegasBlend: number;       // how much of team implied vs league avg for vegas calc (0-1 = team portion)
+  vegasCap: number;         // max deviation from 1.0 (e.g. 0.15 means clamp to 0.85-1.15)
+  useMultiYear: boolean;    // average 2 prior seasons instead of 1
+}
+
+interface SweepResult {
+  config: ProjectionConfig;
+  avgPctError: number;      // avg error % across all stats, all seasons
+  statErrors: Record<string, number>; // per-stat avg error %
+}
 
 // ── Helpers ──
 
@@ -94,17 +110,11 @@ function computeLeagueAvg(teams: Map<string, TeamSeasonTotals>): TeamSeasonTotal
   return avg;
 }
 
-function computeVegasMultiplier(
-  team: string,
-  games: Game[],
-  season: number,
-): number {
-  // Use prior-season game lines to compute team implied total vs league avg
+// Precompute implied team totals from game lines for a given prior season
+function buildImpliedTotals(games: Game[], priorSeason: number): { teamImplied: Record<string, { sum: number; count: number }>; leagueAvg: number } {
   const seasonGames = games.filter(
-    (g) => g.season === season - 1 && g.game_type === 'REG' && g.total_line > 0
+    (g) => g.season === priorSeason && g.game_type === 'REG' && g.total_line > 0
   );
-  if (seasonGames.length === 0) return 1;
-
   const teamImplied: Record<string, { sum: number; count: number }> = {};
   for (const g of seasonGames) {
     const homeImpl = (g.total_line - g.spread_line) / 2;
@@ -116,36 +126,57 @@ function computeVegasMultiplier(
     teamImplied[g.away_team].sum += awayImpl;
     teamImplied[g.away_team].count += 1;
   }
-
   let leagueSum = 0; let leagueCount = 0;
   for (const v of Object.values(teamImplied)) {
     leagueSum += v.sum; leagueCount += v.count;
   }
-  const leagueAvg = leagueCount > 0 ? leagueSum / leagueCount : 23;
-
-  const t = teamImplied[team];
-  if (!t || t.count === 0) return 1;
-  const teamAvg = t.sum / t.count;
-  const blended = teamAvg * 0.6 + leagueAvg * 0.4;
-  return Math.max(0.85, Math.min(1.15, blended / leagueAvg));
+  return { teamImplied, leagueAvg: leagueCount > 0 ? leagueSum / leagueCount : 23 };
 }
 
+function computeVegasMultiplierParam(
+  team: string,
+  implied: { teamImplied: Record<string, { sum: number; count: number }>; leagueAvg: number },
+  vegasBlend: number,
+  vegasCap: number,
+): number {
+  const t = implied.teamImplied[team];
+  if (!t || t.count === 0) return 1;
+  const teamAvg = t.sum / t.count;
+  const blended = teamAvg * vegasBlend + implied.leagueAvg * (1 - vegasBlend);
+  return Math.max(1 - vegasCap, Math.min(1 + vegasCap, blended / implied.leagueAvg));
+}
+
+function projectTeamTotalsParam(
+  priorTeams: Map<string, TeamSeasonTotals>,
+  leagueAvg: TeamSeasonTotals,
+  games: Game[],
+  targetSeason: number,
+  config: ProjectionConfig,
+): Map<string, TeamSeasonTotals> {
+  const implied = config.useVegas ? buildImpliedTotals(games, targetSeason - 1) : null;
+  const projected = new Map<string, TeamSeasonTotals>();
+  const leagueWeight = 1 - config.teamWeight;
+  for (const [team, prior] of priorTeams) {
+    const vm = implied ? computeVegasMultiplierParam(team, implied, config.vegasBlend, config.vegasCap) : 1;
+    const proj: TeamSeasonTotals = { team } as TeamSeasonTotals;
+    for (const k of STAT_KEYS) {
+      proj[k] = Math.round((prior[k] * config.teamWeight + leagueAvg[k] * leagueWeight) * vm);
+    }
+    projected.set(team, proj);
+  }
+  return projected;
+}
+
+// Legacy wrappers for the detail view (uses winning config)
 function projectTeamTotals(
   priorTeams: Map<string, TeamSeasonTotals>,
   leagueAvg: TeamSeasonTotals,
   games: Game[],
   targetSeason: number,
+  config?: ProjectionConfig,
 ): Map<string, TeamSeasonTotals> {
-  const projected = new Map<string, TeamSeasonTotals>();
-  for (const [team, prior] of priorTeams) {
-    const vm = computeVegasMultiplier(team, games, targetSeason);
-    const proj: TeamSeasonTotals = { team } as TeamSeasonTotals;
-    for (const k of STAT_KEYS) {
-      proj[k] = Math.round((prior[k] * TEAM_WEIGHT + leagueAvg[k] * LEAGUE_WEIGHT) * vm);
-    }
-    projected.set(team, proj);
-  }
-  return projected;
+  const cfg = config || { label: 'default', teamWeight: DEFAULT_TEAM_WEIGHT, useVegas: true, vegasBlend: 0.6, vegasCap: 0.15, useMultiYear: false };
+  return projectTeamTotalsParam(priorTeams, leagueAvg, games, targetSeason, cfg);
 }
 
 function computeErrors(rows: BacktestRow[]): Record<string, { mae: number; rmse: number; meanActual: number; pctError: number }> {
@@ -169,6 +200,70 @@ function computeErrors(rows: BacktestRow[]): Record<string, { mae: number; rmse:
   return errors;
 }
 
+// ── Sweep configuration generation ──
+
+function generateSweepConfigs(): ProjectionConfig[] {
+  const configs: ProjectionConfig[] = [];
+  const teamWeights = [0.40, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.90, 1.00];
+  const vegasBlends = [0.4, 0.6, 0.8, 1.0];
+  const vegasCaps = [0.10, 0.15, 0.20, 0.25];
+
+  // No-vegas configs
+  for (const tw of teamWeights) {
+    configs.push({
+      label: `${Math.round(tw * 100)}/${Math.round((1 - tw) * 100)} no-vegas`,
+      teamWeight: tw,
+      useVegas: false,
+      vegasBlend: 0,
+      vegasCap: 0,
+      useMultiYear: false,
+    });
+  }
+
+  // Vegas configs
+  for (const tw of teamWeights) {
+    for (const vb of vegasBlends) {
+      for (const vc of vegasCaps) {
+        configs.push({
+          label: `${Math.round(tw * 100)}/${Math.round((1 - tw) * 100)} vb${Math.round(vb * 100)} vc${Math.round(vc * 100)}`,
+          teamWeight: tw,
+          useVegas: true,
+          vegasBlend: vb,
+          vegasCap: vc,
+          useMultiYear: false,
+        });
+      }
+    }
+  }
+
+  return configs;
+}
+
+// Run a single config across all preloaded season data, return avg error %
+function runSweepConfig(
+  config: ProjectionConfig,
+  seasonData: { season: number; priorTeams: Map<string, TeamSeasonTotals>; actualTeams: Map<string, TeamSeasonTotals>; leagueAvg: TeamSeasonTotals }[],
+  games: Game[],
+): SweepResult {
+  const allRows: BacktestRow[] = [];
+  for (const sd of seasonData) {
+    const projected = projectTeamTotalsParam(sd.priorTeams, sd.leagueAvg, games, sd.season, config);
+    for (const [team, proj] of projected) {
+      const actual = sd.actualTeams.get(team);
+      if (!actual) continue;
+      allRows.push({ team, actual, projected: proj });
+    }
+  }
+  const errors = computeErrors(allRows);
+  const statErrors: Record<string, number> = {};
+  let totalPct = 0;
+  for (const k of STAT_KEYS) {
+    statErrors[k] = errors[k].pctError;
+    totalPct += errors[k].pctError;
+  }
+  return { config, avgPctError: Math.round((totalPct / STAT_KEYS.length) * 100) / 100, statErrors };
+}
+
 // ── Component ──
 
 const TEST_SEASONS = [2024, 2023, 2022, 2021, 2020];
@@ -178,10 +273,15 @@ export function TeamTotalsBacktest() {
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState('');
   const [results, setResults] = useState<SeasonBacktest[]>([]);
+  const [sweepResults, setSweepResults] = useState<SweepResult[]>([]);
+  const [winningConfig, setWinningConfig] = useState<ProjectionConfig | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number | 'all'>(2024);
   const [sortCol, setSortCol] = useState<StatKey | 'team'>('passYds');
   const [sortAsc, setSortAsc] = useState(true);
   const [showDiff, setShowDiff] = useState(false);
+  const [showSweep, setShowSweep] = useState(true);
+  const [sweepSortCol, setSweepSortCol] = useState<'rank' | 'avgPctError' | StatKey>('rank');
+  const [sweepSortAsc, setSweepSortAsc] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,11 +292,12 @@ export function TeamTotalsBacktest() {
         const gamesData = await fetchGames().catch(() => [] as Game[]);
         if (cancelled) return;
 
-        const backtests: SeasonBacktest[] = [];
+        // Load all season data first
+        const seasonData: { season: number; priorTeams: Map<string, TeamSeasonTotals>; actualTeams: Map<string, TeamSeasonTotals>; leagueAvg: TeamSeasonTotals }[] = [];
 
         for (const season of TEST_SEASONS) {
           if (cancelled) return;
-          setLoadingStatus(`Loading ${season - 1} stats (prior season for ${season} projections)...`);
+          setLoadingStatus(`Loading ${season - 1} & ${season} stats...`);
 
           const [priorStats, actualStats] = await Promise.all([
             fetchPlayerStats(season - 1).catch(() => []),
@@ -215,22 +316,37 @@ export function TeamTotalsBacktest() {
           const actualTeams = aggregateTeamTotals(actualTotals);
           const leagueAvg = computeLeagueAvg(priorTeams);
 
-          const projected = projectTeamTotals(priorTeams, leagueAvg, gamesData, season);
+          seasonData.push({ season, priorTeams, actualTeams, leagueAvg });
+        }
 
-          // Build comparison rows for teams that exist in both seasons
+        if (cancelled) return;
+        setLoadingStatus('Running configuration sweep...');
+
+        // Run sweep across all configs
+        const configs = generateSweepConfigs();
+        const sweepRes = configs.map((cfg) => runSweepConfig(cfg, seasonData, gamesData));
+        sweepRes.sort((a, b) => a.avgPctError - b.avgPctError);
+
+        const winner = sweepRes[0]?.config || null;
+
+        // Run the detail backtest with the winning config
+        const backtests: SeasonBacktest[] = [];
+        for (const sd of seasonData) {
+          const projected = projectTeamTotals(sd.priorTeams, sd.leagueAvg, gamesData, sd.season, winner || undefined);
           const rows: BacktestRow[] = [];
           for (const [team, proj] of projected) {
-            const actual = actualTeams.get(team);
+            const actual = sd.actualTeams.get(team);
             if (!actual) continue;
             rows.push({ team, actual, projected: proj });
           }
-
           rows.sort((a, b) => a.team.localeCompare(b.team));
           const errors = computeErrors(rows);
-          backtests.push({ season, rows, errors });
+          backtests.push({ season: sd.season, rows, errors });
         }
 
         if (!cancelled) {
+          setSweepResults(sweepRes);
+          setWinningConfig(winner);
           setResults(backtests);
           setLoading(false);
         }
@@ -313,9 +429,108 @@ export function TeamTotalsBacktest() {
     <div>
       <h3 style={{ marginBottom: 4 }}>Team Totals Backtest</h3>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-        Projects team totals using prior-season data (60% team + 40% league avg × Vegas multiplier),
-        then compares against actual results. This validates the top-down methodology before applying it to player projections.
+        Tested {sweepResults.length} configurations across {TEST_SEASONS.length} seasons to find the optimal blend.
+        {winningConfig && (
+          <span style={{ fontWeight: 700, color: '#10b981' }}>
+            {' '}Best: {Math.round(winningConfig.teamWeight * 100)}/{Math.round((1 - winningConfig.teamWeight) * 100)}
+            {winningConfig.useVegas ? ` + Vegas (blend ${Math.round(winningConfig.vegasBlend * 100)}%, cap ±${Math.round(winningConfig.vegasCap * 100)}%)` : ' no Vegas'}
+            {' '}— {sweepResults[0]?.avgPctError}% avg error
+          </span>
+        )}
       </p>
+
+      {/* Configuration sweep leaderboard */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <h4 style={{ margin: 0 }}>Configuration Sweep</h4>
+          <button
+            className={`pos-filter ${showSweep ? 'active' : ''}`}
+            onClick={() => setShowSweep(!showSweep)}
+            style={{ fontSize: 10 }}
+          >
+            {showSweep ? 'Hide' : 'Show'} Top 25
+          </button>
+        </div>
+        {showSweep && sweepResults.length > 0 && (() => {
+          const top = sweepResults.slice(0, 25);
+          const currentDefault = sweepResults.find(
+            (r) => r.config.teamWeight === 0.60 && r.config.useVegas && r.config.vegasBlend === 0.6 && r.config.vegasCap === 0.15
+          );
+          const currentRank = currentDefault ? sweepResults.indexOf(currentDefault) + 1 : null;
+
+          return (
+            <div>
+              {currentRank && currentDefault && (
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  Previous default (60/40 + Vegas vb60 vc15) ranks <strong>#{currentRank}</strong> of {sweepResults.length} configs
+                  with <strong>{currentDefault.avgPctError}%</strong> avg error
+                  {currentRank > 1 && sweepResults[0] && (
+                    <span> — winner saves <strong>{(currentDefault.avgPctError - sweepResults[0].avgPctError).toFixed(2)}pp</strong></span>
+                  )}
+                </p>
+              )}
+              <div className="table-container" style={{ maxHeight: 500, overflowY: 'auto' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-primary)', zIndex: 1 }}>
+                    <tr>
+                      <th style={{ ...thS, textAlign: 'center', width: 30 }}>#</th>
+                      <th style={{ ...thS, textAlign: 'left' }}>Team%</th>
+                      <th style={{ ...thS, textAlign: 'left' }}>Vegas</th>
+                      <th style={{ ...thS, textAlign: 'center', cursor: 'pointer' }}
+                        onClick={() => { setSweepSortCol('avgPctError'); setSweepSortAsc(sweepSortCol === 'avgPctError' ? !sweepSortAsc : true); }}>
+                        Avg Err%{sweepSortCol === 'avgPctError' ? (sweepSortAsc ? ' ▲' : ' ▼') : ''}
+                      </th>
+                      {STAT_KEYS.map((k) => (
+                        <th key={k} style={{ ...thS, textAlign: 'center', fontSize: 9 }}
+                          onClick={() => { setSweepSortCol(k); setSweepSortAsc(sweepSortCol === k ? !sweepSortAsc : true); }}>
+                          {STAT_LABELS[k]}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {top.map((r, i) => {
+                      const isWinner = i === 0;
+                      const isDefault = r.config.teamWeight === 0.60 && r.config.useVegas && r.config.vegasBlend === 0.6 && r.config.vegasCap === 0.15;
+                      return (
+                        <tr key={i} style={{
+                          background: isWinner ? 'rgba(16,185,129,0.08)' : isDefault ? 'rgba(99,102,241,0.08)' : undefined,
+                          fontWeight: isWinner || isDefault ? 700 : 400,
+                        }}>
+                          <td style={{ ...tdS, textAlign: 'center', color: isWinner ? '#10b981' : 'var(--text-muted)' }}>
+                            {i + 1}{isWinner ? ' ★' : ''}{isDefault ? ' ◆' : ''}
+                          </td>
+                          <td style={{ ...tdS, textAlign: 'left', fontSize: 10 }}>
+                            {Math.round(r.config.teamWeight * 100)}/{Math.round((1 - r.config.teamWeight) * 100)}
+                          </td>
+                          <td style={{ ...tdS, textAlign: 'left', fontSize: 10 }}>
+                            {r.config.useVegas
+                              ? `b${Math.round(r.config.vegasBlend * 100)} c±${Math.round(r.config.vegasCap * 100)}`
+                              : 'none'}
+                          </td>
+                          <td style={{ ...tdS, textAlign: 'center', fontWeight: 700,
+                            color: r.avgPctError <= sweepResults[0].avgPctError + 0.5 ? '#10b981' : r.avgPctError <= sweepResults[0].avgPctError + 1 ? '#f59e0b' : 'var(--text-secondary)' }}>
+                            {r.avgPctError}%
+                          </td>
+                          {STAT_KEYS.map((k) => (
+                            <td key={k} style={{ ...tdS, textAlign: 'center', fontSize: 10,
+                              color: r.statErrors[k] <= 5 ? '#10b981' : r.statErrors[k] <= 10 ? '#f59e0b' : '#ef4444' }}>
+                              {r.statErrors[k]}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                ★ = best config · ◆ = previous default · {sweepResults.length} total configs tested across {TEST_SEASONS.length} seasons
+              </p>
+            </div>
+          );
+        })()}
+      </div>
 
       {/* Season selector */}
       <div className="controls" style={{ marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -420,7 +635,7 @@ export function TeamTotalsBacktest() {
       {selectedSeason !== 'all' && currentData && (
         <div style={{ marginBottom: 24 }}>
           <h4 style={{ marginBottom: 8 }}>
-            {selectedSeason} Team-by-Team — Projected (from {selectedSeason - 1} data) vs Actual
+            {selectedSeason} Team-by-Team — Projected (from {selectedSeason - 1} data{winningConfig ? `, ${Math.round(winningConfig.teamWeight * 100)}/${Math.round((1 - winningConfig.teamWeight) * 100)}${winningConfig.useVegas ? '+Vegas' : ''}` : ''}) vs Actual
             <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
               {currentData.rows.length} teams · click headers to sort
             </span>
