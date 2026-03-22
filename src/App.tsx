@@ -63,7 +63,7 @@ function App() {
     <>
       <header className="header">
         <div className="header-logo">
-          Stat<span>Head</span>
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="StatHead" style={{ height: 36 }} />
           <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 400, marginTop: -2, letterSpacing: '0.5px' }}>
             v{__APP_VERSION__} · {__BUILD_HASH__}
           </div>
