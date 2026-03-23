@@ -281,6 +281,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [hitBustPos, setHitBustPos] = useState<string>('ALL');
   const [adpView, setAdpView] = useState<'model' | 'strategy'>('model');
   const [leagueSize, setLeagueSize] = useState(12);
+  const [strategyMetric, setStrategyMetric] = useState<'hitbust' | 'vor'>('hitbust');
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
@@ -2248,12 +2249,17 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   // ── Draft strategy: hit/bust rates by round × position ──────────────────
   const strategyData = useMemo(() => {
     const MAX_ROUND = 15;
-    type CellStats = { hits: number; busts: number; total: number; hitRate: number; bustRate: number; score: number };
+    type CellStats = {
+      hits: number; busts: number; total: number;
+      hitRate: number; bustRate: number; score: number;
+      avgVor: number; medianVor: number;
+    };
     const matrix: Array<{
       round: number;
       picks: string;
       byPos: Record<string, CellStats>;
-      bestPos: string;
+      bestPos: string;        // best by hit-bust score
+      bestPosVor: string;     // best by avg VOR
     }> = [];
 
     for (let round = 1; round <= MAX_ROUND; round++) {
@@ -2265,21 +2271,34 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       const byPos: Record<string, CellStats> = {};
       let bestScore = -Infinity;
       let bestPos   = '';
+      let bestAvgVor = -Infinity;
+      let bestPosVor = '';
 
       for (const pos of POSITIONS) {
         const posRows = roundRows.filter((r) => r.position === pos);
         const total   = posRows.length;
-        if (total < 3) { byPos[pos] = { hits: 0, busts: 0, total, hitRate: 0, bustRate: 0, score: 0 }; continue; }
+        const empty: CellStats = { hits: 0, busts: 0, total, hitRate: 0, bustRate: 0, score: 0, avgVor: 0, medianVor: 0 };
+        if (total < 3) { byPos[pos] = empty; continue; }
+
         const hits    = posRows.filter((r) => isHitForPos(r.position, r.vor)).length;
         const busts   = posRows.filter((r) => isBustForPos(r.position, r.vor)).length;
         const hitRate = hits / total;
         const bustRate = busts / total;
         const score   = hitRate - bustRate;
-        byPos[pos]    = { hits, busts, total, hitRate, bustRate, score };
-        if (total >= 5 && score > bestScore) { bestScore = score; bestPos = pos; }
+
+        const vors = posRows.map((r) => r.vor).sort((a, b) => a - b);
+        const avgVor = Math.round((vors.reduce((s, v) => s + v, 0) / vors.length) * 100) / 100;
+        const mid = Math.floor(vors.length / 2);
+        const medianVor = vors.length % 2 === 0
+          ? Math.round(((vors[mid - 1] + vors[mid]) / 2) * 100) / 100
+          : Math.round(vors[mid] * 100) / 100;
+
+        byPos[pos] = { hits, busts, total, hitRate, bustRate, score, avgVor, medianVor };
+        if (total >= 5 && score > bestScore)  { bestScore  = score;  bestPos    = pos; }
+        if (total >= 5 && avgVor > bestAvgVor) { bestAvgVor = avgVor; bestPosVor = pos; }
       }
 
-      matrix.push({ round, picks: `${pickStart}–${pickEnd}`, byPos, bestPos });
+      matrix.push({ round, picks: `${pickStart}–${pickEnd}`, byPos, bestPos, bestPosVor });
     }
     return matrix;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2408,55 +2427,97 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
 
       {/* ── Draft Strategy View ── */}
       {adpView === 'strategy' && (() => {
-        const heatColor = (score: number, total: number): string => {
+        const isVor = strategyMetric === 'vor';
+
+        // Colour helpers
+        const heatColorHitBust = (score: number, total: number): string => {
           if (total < 3) return 'var(--bg-tertiary)';
           const c = Math.max(-0.5, Math.min(0.5, score));
           if (c > 0.05)  return `rgba(16,185,129,${Math.min(0.85, c * 1.8)})`;
           if (c < -0.05) return `rgba(239,68,68,${Math.min(0.85, -c * 1.8)})`;
           return 'rgba(107,114,128,0.15)';
         };
+        const heatColorVor = (avgVor: number, total: number): string => {
+          if (total < 3) return 'var(--bg-tertiary)';
+          // Scale: ±1σ covers the full green/red range
+          const c = Math.max(-1, Math.min(1, avgVor));
+          if (c > 0.08)  return `rgba(16,185,129,${Math.min(0.85, c * 0.85)})`;
+          if (c < -0.08) return `rgba(239,68,68,${Math.min(0.85, -c * 0.85)})`;
+          return 'rgba(107,114,128,0.15)';
+        };
 
-        // Column-level best round per position (for bottom summary)
-        const bestRoundByPos: Record<string, { round: number; score: number }> = {};
+        // Column-level best round per position (for footer)
+        const bestRoundByPos: Record<string, { round: number; val: number }> = {};
         for (const pos of POSITIONS) {
-          let best = { round: 0, score: -Infinity };
+          let best = { round: 0, val: -Infinity };
           for (const row of strategyData) {
             const cell = row.byPos[pos];
-            if (cell && cell.total >= 5 && cell.score > best.score) best = { round: row.round, score: cell.score };
+            if (!cell || cell.total < 5) continue;
+            const val = isVor ? cell.avgVor : cell.score;
+            if (val > best.val) best = { round: row.round, val };
           }
           bestRoundByPos[pos] = best;
         }
 
         return (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-              <div>
-                <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 8 }}>League Size</span>
+            {/* Controls row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
+              {/* Metric toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Metric</span>
+                {([
+                  ['hitbust', 'Hit/Bust Rate'],
+                  ['vor',     'Avg VOR Score (σ)'],
+                ] as const).map(([m, label]) => (
+                  <button
+                    key={m}
+                    onClick={() => setStrategyMetric(m)}
+                    style={{
+                      padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `2px solid ${strategyMetric === m ? '#6366f1' : 'var(--border)'}`,
+                      background: strategyMetric === m ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                      color: strategyMetric === m ? '#6366f1' : 'var(--text-secondary)',
+                    }}
+                  >{label}</button>
+                ))}
+              </div>
+              {/* League size */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>League Size</span>
                 {[8, 10, 12, 14].map((n) => (
                   <button
                     key={n}
                     onClick={() => setLeagueSize(n)}
                     style={{
-                      marginRight: 4, padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+                      padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       border: `2px solid ${leagueSize === n ? '#f97316' : 'var(--border)'}`,
                       background: leagueSize === n ? 'rgba(249,115,22,0.12)' : 'var(--bg-secondary)',
                       color: leagueSize === n ? '#f97316' : 'var(--text-secondary)',
-                      cursor: 'pointer',
                     }}
                   >{n}</button>
                 ))}
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Hit/bust rates per round × position from {allRows.length} historical player-seasons · thresholds calibrated per position (≈33% hit / 33% bust each)
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {allRows.length} historical player-seasons · thresholds calibrated per position (≈33% hit / 33% bust)
               </span>
             </div>
 
             {/* Legend */}
             <div style={{ display: 'flex', gap: 16, marginBottom: 12, alignItems: 'center', fontSize: 11, color: 'var(--text-muted)' }}>
-              <span style={{ fontWeight: 700 }}>Cell = Hit% − Bust%</span>
-              {[['🟢 > +10%', 'positive value'], ['⬜ ~0%', 'neutral'], ['🔴 < −10%', 'negative value'], ['⭐ Best position in round', '']].map(([label, tip]) => (
-                <span key={label} title={tip}>{label}</span>
-              ))}
+              {isVor ? (
+                <>
+                  <span style={{ fontWeight: 700 }}>Cell = Avg VOR Score (σ)</span>
+                  <span>🟢 &gt; +0.1σ</span><span>⬜ ≈ 0σ</span><span>🔴 &lt; −0.1σ</span>
+                  <span>⭐ Best position in round</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontWeight: 700 }}>Cell = Hit% − Bust%</span>
+                  <span>🟢 &gt; +10%</span><span>⬜ ≈ 0%</span><span>🔴 &lt; −10%</span>
+                  <span>⭐ Best position in round</span>
+                </>
+              )}
             </div>
 
             {/* Heatmap table */}
@@ -2473,51 +2534,78 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   </tr>
                 </thead>
                 <tbody>
-                  {strategyData.map((row) => (
-                    <tr key={row.round}>
-                      <td style={{ fontWeight: 700 }}>Rd {row.round}</td>
-                      <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{row.picks}</td>
-                      {POSITIONS.map((pos) => {
-                        const cell = row.byPos[pos];
-                        const score = cell?.score ?? 0;
-                        const total = cell?.total ?? 0;
-                        const hitPct = cell ? Math.round(cell.hitRate * 100) : 0;
-                        const bustPct = cell ? Math.round(cell.bustRate * 100) : 0;
-                        const isBest = row.bestPos === pos && total >= 5;
-                        return (
-                          <td
-                            key={pos}
-                            title={total >= 3 ? `Hit: ${hitPct}% · Bust: ${bustPct}% · Score: ${score >= 0 ? '+' : ''}${Math.round(score * 100)}% · n=${total}` : `Too few samples (n=${total})`}
-                            style={{
-                              background: heatColor(score, total),
-                              textAlign: 'center',
-                              padding: '8px 4px',
-                              position: 'relative',
-                              cursor: total >= 3 ? 'help' : 'default',
-                            }}
-                          >
-                            {total >= 3 ? (
-                              <>
-                                {isBest && <span style={{ position: 'absolute', top: 2, right: 4, fontSize: 10 }}>⭐</span>}
-                                <div style={{ fontWeight: 700, fontSize: 14 }}>
-                                  {score >= 0 ? '+' : ''}{Math.round(score * 100)}%
-                                </div>
-                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
-                                  {hitPct}%↑ {bustPct}%↓
-                                </div>
-                                <div style={{ fontSize: 10, opacity: 0.55 }}>n={total}</div>
-                              </>
-                            ) : (
-                              <span style={{ fontSize: 12, opacity: 0.4 }}>–</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td style={{ fontWeight: 700, color: row.bestPos ? POS_COLORS[row.bestPos] : 'var(--text-muted)', fontSize: 13 }}>
-                        {row.bestPos || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {strategyData.map((row) => {
+                    const activeBest = isVor ? row.bestPosVor : row.bestPos;
+                    return (
+                      <tr key={row.round}>
+                        <td style={{ fontWeight: 700 }}>Rd {row.round}</td>
+                        <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{row.picks}</td>
+                        {POSITIONS.map((pos) => {
+                          const cell = row.byPos[pos];
+                          const total    = cell?.total ?? 0;
+                          const score    = cell?.score ?? 0;
+                          const avgVor   = cell?.avgVor ?? 0;
+                          const medVor   = cell?.medianVor ?? 0;
+                          const hitPct   = cell ? Math.round(cell.hitRate * 100) : 0;
+                          const bustPct  = cell ? Math.round(cell.bustRate * 100) : 0;
+                          const isBest   = activeBest === pos && total >= 5;
+                          const bg = isVor
+                            ? heatColorVor(avgVor, total)
+                            : heatColorHitBust(score, total);
+                          const tipText  = total >= 3
+                            ? isVor
+                              ? `Avg VOR: ${avgVor >= 0 ? '+' : ''}${avgVor}σ · Median: ${medVor >= 0 ? '+' : ''}${medVor}σ · Hit: ${hitPct}% · Bust: ${bustPct}% · n=${total}`
+                              : `Hit: ${hitPct}% · Bust: ${bustPct}% · Score: ${score >= 0 ? '+' : ''}${Math.round(score * 100)}% · Avg VOR: ${avgVor >= 0 ? '+' : ''}${avgVor}σ · n=${total}`
+                            : `Too few samples (n=${total})`;
+                          return (
+                            <td
+                              key={pos}
+                              title={tipText}
+                              style={{
+                                background: bg,
+                                textAlign: 'center',
+                                padding: '8px 4px',
+                                position: 'relative',
+                                cursor: total >= 3 ? 'help' : 'default',
+                              }}
+                            >
+                              {total >= 3 ? (
+                                <>
+                                  {isBest && <span style={{ position: 'absolute', top: 2, right: 4, fontSize: 10 }}>⭐</span>}
+                                  {isVor ? (
+                                    <>
+                                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                        {avgVor >= 0 ? '+' : ''}{avgVor}σ
+                                      </div>
+                                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
+                                        med {medVor >= 0 ? '+' : ''}{medVor}σ
+                                      </div>
+                                      <div style={{ fontSize: 10, opacity: 0.55 }}>n={total}</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                        {score >= 0 ? '+' : ''}{Math.round(score * 100)}%
+                                      </div>
+                                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
+                                        {hitPct}%↑ {bustPct}%↓
+                                      </div>
+                                      <div style={{ fontSize: 10, opacity: 0.55 }}>n={total}</div>
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <span style={{ fontSize: 12, opacity: 0.4 }}>–</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td style={{ fontWeight: 700, color: activeBest ? POS_COLORS[activeBest] : 'var(--text-muted)', fontSize: 13 }}>
+                          {activeBest || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid var(--border)' }}>
@@ -2537,11 +2625,21 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             </div>
 
             {/* Explanation */}
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 700 }}>
-              <strong>How to read:</strong> Each cell shows the historical rate of hitting (outperforming ADP) minus busting for players drafted in that round/position.
-              A green cell means that position has historically delivered more hits than busts at that draft range.
-              Thresholds are calibrated per position so each position targets ~33% hits and ~33% busts overall — differences reflect genuine round-level variation.
-              Sample sizes (n) vary; treat low-n cells cautiously.
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 740 }}>
+              {isVor ? (
+                <>
+                  <strong>Avg VOR Score (σ):</strong> Average standardised Value Over Replacement for players drafted in each round/position.
+                  Values are in z-score units (0 = positional average, +1.0 = 1 std dev above) so QBs, RBs, WRs and TEs are directly comparable.
+                  Green cells = positions that tend to return above-average value at that pick range; red cells = below average.
+                  Median is also shown as a robustness check against outliers.
+                </>
+              ) : (
+                <>
+                  <strong>Hit/Bust Rate:</strong> Historical rate of hitting (top-33% VOR for position) minus busting (bottom-33%) per round.
+                  Thresholds calibrated per position so each position targets ~33% hits and ~33% busts overall — differences reflect genuine round variation.
+                  Hover a cell for the full breakdown. Sample sizes (n) vary; treat low-n cells cautiously.
+                </>
+              )}
             </p>
           </div>
         );
