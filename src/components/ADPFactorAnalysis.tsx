@@ -275,9 +275,14 @@ interface PositionModel {
   n: number;
   hitRate: number;
   bustRate: number;
-  rSquared: number;
-  mae: number;
-  baselineR2?: number; // R² without projection features
+  rSquared: number;     // unused legacy field
+  mae: number;          // unused legacy field
+  // Leave-one-season-out cross-validated metrics (honest out-of-sample)
+  cvR2Gbm: number;
+  cvMaeGbm: number;
+  cvR2Ridge: number;
+  cvMaeRidge: number;
+  cvR2GbmBaseline: number;  // CV R² without projection features
 }
 
 interface PredictionRow {
@@ -286,6 +291,19 @@ interface PredictionRow {
   team: string;
   adp: number;
   features: Record<string, number>;
+}
+
+// ── CV metric helpers ──
+function cvR2(actuals: number[], preds: number[]): number {
+  if (actuals.length < 4) return 0;
+  const mean = actuals.reduce((s, v) => s + v, 0) / actuals.length;
+  const ssTot = actuals.reduce((s, v) => s + (v - mean) ** 2, 0);
+  const ssRes = actuals.reduce((s, v, i) => s + (v - preds[i]) ** 2, 0);
+  return ssTot === 0 ? 0 : Math.round((1 - ssRes / ssTot) * 1000) / 1000;
+}
+function cvMae(actuals: number[], preds: number[]): number {
+  if (actuals.length === 0) return 0;
+  return Math.round(actuals.reduce((s, v, i) => s + Math.abs(v - preds[i]), 0) / actuals.length * 100) / 100;
 }
 
 // ── Component ──
@@ -2000,36 +2018,67 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         setPredictionRows(predRows);
 
         // Train per-position models (both Ridge and GBM)
+        // Then compute leave-one-season-out cross-validated R² and MAE for
+        // honest out-of-sample performance estimates.
+        const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
+        const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
+        const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
+
         const posModels: PositionModel[] = [];
         for (const pos of POSITIONS) {
           const posRows = rows.filter((r) => r.position === pos && r.adp <= maxADP);
           if (posRows.length < 10) continue;
 
-          const posFeatures = FEATURES.filter((f) => f.positions.includes(pos));
-          const featureKeys = posFeatures.map((f) => f.key);
+          const posFeatures  = FEATURES.filter((f) => f.positions.includes(pos));
+          const featureKeys  = posFeatures.map((f) => f.key);
           const featureLabels = posFeatures.map((f) => f.label);
+          const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
-          const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
           const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
           const y = posRows.map((r) => r.vor);
 
+          // Full-data models (used for 2026 predictions and factor attributions)
           const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
           const gbmModel = trainGBM(X, y, featureKeys, {
-            nEstimators: 150,
-            learningRate: 0.08,
-            maxDepth: 3,
+            ...GBM_OPTS_FULL,
             minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
-            subsample: 0.8,
           });
 
-          // Baseline model without projection features
-          const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
-          const Xbaseline = posRows.map((r) => baselineKeys.map((k) => r.features[k] || 0));
-          const baselineGBM = trainGBM(Xbaseline, y, baselineKeys, {
-            nEstimators: 150, learningRate: 0.08, maxDepth: 3,
-            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)), subsample: 0.8,
-          });
+          // ── Leave-one-season-out cross-validation ─────────────────────────
+          // For each held-out season, train on the remaining seasons and
+          // predict the held-out samples. Aggregate to get honest R² / MAE.
+          const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
+          const losoActuals: number[] = [];
+          const losoPredGbm: number[] = [];
+          const losoPredRidge: number[] = [];
+          const losoPredGbmBase: number[] = [];
 
+          if (uniqueSeasons.length >= 3) {
+            for (const held of uniqueSeasons) {
+              const trainR = posRows.filter((r) => r.season !== held);
+              const testR  = posRows.filter((r) => r.season === held);
+              if (trainR.length < 8 || testR.length === 0) continue;
+
+              const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
+              const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
+              const ytr  = trainR.map((r) => r.vor);
+              const msl  = Math.max(3, Math.round(trainR.length * 0.05));
+
+              const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
+              const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
+              const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
+
+              for (const row of testR) {
+                losoActuals.push(row.vor);
+                // predictGBM / predict take Record<string, number> feature maps
+                losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
+                losoPredRidge.push(predict(foldRidge, row.features).predicted);
+                losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
+              }
+            }
+          }
+
+          const hasCV = losoActuals.length >= 10;
           posModels.push({
             position: pos,
             ridgeModel,
@@ -2037,11 +2086,15 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             featureNames: featureKeys,
             featureLabels,
             n: posRows.length,
-            hitRate: Math.round(posRows.filter((r) => r.isHit).length / posRows.length * 100),
+            hitRate:  Math.round(posRows.filter((r) => r.isHit).length  / posRows.length * 100),
             bustRate: Math.round(posRows.filter((r) => r.isBust).length / posRows.length * 100),
             rSquared: 0,
             mae: 0,
-            baselineR2: baselineGBM.rSquared,
+            cvR2Gbm:          hasCV ? cvR2(losoActuals, losoPredGbm)   : gbmModel.rSquared,
+            cvMaeGbm:         hasCV ? cvMae(losoActuals, losoPredGbm)  : gbmModel.mae,
+            cvR2Ridge:        hasCV ? cvR2(losoActuals, losoPredRidge) : ridgeModel.rSquared,
+            cvMaeRidge:       hasCV ? cvMae(losoActuals, losoPredRidge): ridgeModel.mae,
+            cvR2GbmBaseline:  hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
           });
         }
 
@@ -3008,31 +3061,34 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
               {(() => {
-                const r2 = modelType === 'gbm' ? m.gbmModel?.rSquared ?? 0 : m.ridgeModel?.rSquared ?? 0;
-                const base = m.baselineR2 ?? null;
-                const gain = base !== null ? r2 - base : null;
+                const cvR2Val  = modelType === 'gbm' ? m.cvR2Gbm   : m.cvR2Ridge;
+                const cvMaeVal = modelType === 'gbm' ? m.cvMaeGbm  : m.cvMaeRidge;
+                const baseCV   = m.cvR2GbmBaseline;
+                const gain     = cvR2Val - baseCV;
                 return (
                   <>
                     <div>
-                      R² = <strong style={{ color: 'var(--text-primary)' }}>{r2.toFixed(3)}</strong>
-                      {gain !== null && (
-                        <span style={{ marginLeft: 6, fontSize: 10, color: gain > 0.01 ? '#10b981' : gain > 0 ? '#f59e0b' : 'var(--text-muted)' }}>
+                      CV R² = <strong style={{ color: cvR2Val > 0.15 ? '#10b981' : cvR2Val > 0 ? '#f59e0b' : '#ef4444' }}>
+                        {cvR2Val.toFixed(3)}
+                      </strong>
+                      {modelType === 'gbm' && (
+                        <span style={{ marginLeft: 6, fontSize: 10, color: gain > 0.02 ? '#10b981' : gain > 0 ? '#f59e0b' : 'var(--text-muted)' }}>
                           {gain >= 0 ? '+' : ''}{gain.toFixed(3)} proj
                         </span>
                       )}
                     </div>
-                    <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(modelType === 'gbm' ? m.gbmModel?.mae ?? 0 : m.ridgeModel?.mae ?? 0)}</strong></div>
+                    <div>CV MAE = <strong style={{ color: 'var(--text-primary)' }}>{cvMaeVal.toFixed(2)}σ</strong></div>
                     {(() => {
                       const t = posThresholds.get(m.position);
                       const posR = allRows.filter((r) => r.position === m.position);
-                      const hits = t ? posR.filter((r) => isHitForPos(m.position, r.vor)).length : 0;
+                      const hits  = t ? posR.filter((r) => isHitForPos(m.position,  r.vor)).length : 0;
                       const busts = t ? posR.filter((r) => isBustForPos(m.position, r.vor)).length : 0;
                       const n = posR.length || 1;
                       return (
-                        <div title={t ? `Hit threshold: delta ≥ ${t.hit.toFixed(1)} · Bust threshold: delta < ${t.bust.toFixed(1)}` : ''}>
-                          N = {m.n} &middot; Hits {Math.round(hits/n*100)}% &middot; Busts {Math.round(busts/n*100)}%
+                        <div title={t ? `Hit threshold: ≥${t.hit.toFixed(2)}σ · Bust threshold: <${t.bust.toFixed(2)}σ` : ''}>
+                          N = {m.n} · Hits {Math.round(hits/n*100)}% · Busts {Math.round(busts/n*100)}%
                           {t && <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
-                            (≥{t.hit.toFixed(0)} / &lt;{t.bust.toFixed(0)})
+                            (≥{t.hit.toFixed(1)} / &lt;{t.bust.toFixed(1)})
                           </span>}
                         </div>
                       );
@@ -3045,30 +3101,31 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         ))}
       </div>
 
-      {/* Projection accuracy comparison banner */}
-      {currentModel && currentModel.baselineR2 !== undefined && (() => {
-        const r2 = modelType === 'gbm' ? currentModel.gbmModel?.rSquared ?? 0 : currentModel.ridgeModel?.rSquared ?? 0;
-        const base = currentModel.baselineR2;
+      {/* Projection accuracy comparison banner (CV-based) */}
+      {currentModel && (() => {
+        const r2   = currentModel.cvR2Gbm;
+        const base = currentModel.cvR2GbmBaseline;
         const gain = r2 - base;
         const pct  = base !== 0 ? (gain / Math.abs(base)) * 100 : 0;
         return (
           <div style={{
-            background: 'var(--bg-secondary)', border: `1px solid ${gain > 0 ? '#f97316' : 'var(--border)'}`,
+            background: 'var(--bg-secondary)', border: `1px solid ${gain > 0.02 ? '#f97316' : 'var(--border)'}`,
             borderRadius: 8, padding: '10px 16px', marginBottom: 16,
             display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap',
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>📐 Projection Features Impact ({selectedPos})</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>
+              📐 Projection Features Impact ({selectedPos})
+              <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>LOSO CV</span>
+            </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              Baseline R² (no projections): <strong>{base.toFixed(3)}</strong>
+              Baseline CV R² (no projections): <strong>{base.toFixed(3)}</strong>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               With projections: <strong>{r2.toFixed(3)}</strong>
             </div>
-            <div style={{
-              fontSize: 13, fontWeight: 700,
-              color: gain > 0.01 ? '#10b981' : gain > 0 ? '#f59e0b' : '#ef4444',
-            }}>
-              {gain >= 0 ? '+' : ''}{gain.toFixed(3)} R² ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%{gain > 0.01 ? ' ✓ meaningful gain' : gain > 0 ? ' marginal gain' : ' no gain'})
+            <div style={{ fontSize: 13, fontWeight: 700, color: gain > 0.02 ? '#10b981' : gain > 0 ? '#f59e0b' : '#ef4444' }}>
+              {gain >= 0 ? '+' : ''}{gain.toFixed(3)} CV R² ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
+              {gain > 0.02 ? ' ✓ meaningful gain' : gain > 0 ? ' marginal gain' : ' no gain'})
             </div>
           </div>
         );
