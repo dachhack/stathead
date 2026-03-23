@@ -205,7 +205,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ── Helpers ──
 
-function normalizeName(name: string): string {
+function normalizeName(name: string | null | undefined): string {
+  if (!name) return '';
   return name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 }
 
