@@ -19,6 +19,7 @@ async function fetchKTCRankings(formatName, formatParam) {
 
   console.log(`  Fetching KTC rankings (${formatName})...`);
   const allPlayers = [];
+  const seen = new Set(); // deduplicate playerIDs across pages
 
   for (let page = 0; page < 10; page++) {
     const url = `https://keeptradecut.com/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
@@ -44,14 +45,18 @@ async function fetchKTCRankings(formatName, formatParam) {
     }
 
     const players = JSON.parse(match[1]);
+    let added = 0;
     for (const p of players) {
+      const id = Number(p.playerID) || 0;
+      if (seen.has(id)) continue; // deduplicate across pages
+      seen.add(id);
       // KTC moved values into nested objects in 2025:
       // oneQBValues.value / superflexValues.value / oneQBValues.positionalRank
       // Fall back to old flat fields so the script stays resilient.
       const oneQB = p.oneQBValues || {};
       const sf    = p.superflexValues || {};
       allPlayers.push({
-        playerID: Number(p.playerID) || 0,
+        playerID: id,
         playerName: String(p.playerName || ''),
         position: String(p.position || ''),
         positionRank: Number(oneQB.positionalRank ?? p.positionRank) || 0,
@@ -62,12 +67,14 @@ async function fetchKTCRankings(formatName, formatParam) {
         isRookie: Boolean(p.isRookie ?? p.rookie),
         slug: String(p.slug || ''),
       });
+      added++;
     }
-    console.log(`    Page ${page}: ${players.length} players`);
+    console.log(`    Page ${page}: ${players.length} players (${added} new)`);
+    if (added === 0) break; // no new players on this page — stop early
   }
 
   fs.writeFileSync(outfile, JSON.stringify(allPlayers));
-  console.log(`  Saved ${outfile} (${allPlayers.length} players)`);
+  console.log(`  Saved ${outfile} (${allPlayers.length} unique players)`);
 }
 
 function parsePackedHistory(arr) {

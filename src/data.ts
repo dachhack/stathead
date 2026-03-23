@@ -717,6 +717,7 @@ export async function fetchKTCRankings(
   }
 
   const allPlayers: KTCPlayer[] = [];
+  const seen = new Set<number>(); // deduplicate playerIDs across pages
   const formatParam = format === '1qb' ? '1' : '0';
 
   // KTC paginates across 10 pages
@@ -742,7 +743,11 @@ export async function fetchKTCRankings(
 
     try {
       const players: Array<Record<string, unknown>> = JSON.parse(match[1]);
+      let added = 0;
       for (const p of players) {
+        const id = Number(p.playerID) || 0;
+        if (seen.has(id)) continue; // deduplicate across pages
+        seen.add(id);
         // KTC moved values into nested objects: oneQBValues.value / superflexValues.value
         // Support both old flat shape (p.value) and new nested shape for resilience
         const oneQB = p.oneQBValues as Record<string, unknown> | undefined;
@@ -751,7 +756,7 @@ export async function fetchKTCRankings(
         const valueSF  = Number(sf?.value ?? p.superflexValue) || 0;
         const posRank  = Number(oneQB?.positionalRank ?? p.positionRank) || 0;
         allPlayers.push({
-          playerID: Number(p.playerID) || 0,
+          playerID: id,
           playerName: String(p.playerName || ''),
           position: String(p.position || ''),
           positionRank: posRank,
@@ -762,7 +767,9 @@ export async function fetchKTCRankings(
           isRookie: Boolean(p.isRookie ?? p.rookie),
           slug: String(p.slug || ''),
         });
+        added++;
       }
+      if (added === 0) break; // no new players on this page — stop early
     } catch {
       if (page === 0) throw new Error('Failed to parse KTC player data');
       break;
