@@ -46,11 +46,22 @@ const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'l
 // Deploy workers/ktc-proxy/ and set this to your worker URL.
 const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 
+/** Returns a localhost base URL if NODE_HTTP_PORT is set (build-script mode). */
+function nodeHttpBase(): string | null {
+  try {
+    // process may not exist in browser
+    const port = (typeof process !== 'undefined' ? process.env : {})['NODE_HTTP_PORT'];
+    return port ? `http://localhost:${port}/` : null;
+  } catch { return null; }
+}
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
-  if (!IS_PROD) return null;
+  const nodeBase = nodeHttpBase();
+  const base = nodeBase || (IS_PROD ? `${import.meta.env.BASE_URL}data/` : null);
+  if (!base) return null;
   try {
-    const resp = await fetch(`${import.meta.env.BASE_URL}data/${filename}`);
+    const resp = await fetch(`${base}${filename}`);
     if (!resp.ok) return null;
     return await resp.json();
   } catch {
@@ -60,9 +71,10 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
 
 /** Build a URL for an nflverse CSV file. In prod, serves from local /data/filename.csv */
 function nflUrl(releaseSubpath: string): string {
+  const filename = releaseSubpath.split('/').pop()!;
+  const nodeBase = nodeHttpBase();
+  if (nodeBase) return `${nodeBase}${filename}`;
   if (IS_PROD) {
-    // Extract just the filename from paths like "player_stats/player_stats_2024.csv"
-    const filename = releaseSubpath.split('/').pop()!;
     return `${import.meta.env.BASE_URL}data/${filename}`;
   }
   return `${NFLVERSE_REMOTE}/${releaseSubpath}`;
