@@ -277,6 +277,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
   const [selected2026Player, setSelected2026Player] = useState<string | null>(null);
+  const [hitBustPos, setHitBustPos] = useState<string>('ALL');
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -2155,20 +2156,25 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     });
   }, [models, modelType, allRows, maxADP]);
 
-  // Scatter data for selected position
+  // Scatter data — filtered by hitBustPos (independent of model position selector)
   const scatterData = useMemo(() => {
-    if (!currentModel) return [];
-    const posRows = allRows.filter((r) => r.position === selectedPos && r.adp <= maxADP);
-    return posRows.map((r) => ({
+    const rows = allRows.filter((r) =>
+      (hitBustPos === 'ALL' || r.position === hitBustPos) && r.adp <= maxADP
+    );
+    return rows.map((r) => ({
       name: r.name,
       season: r.season,
       adp: r.adp,
       delta: r.adpDelta,
       isHit: r.isHit,
       isBust: r.isBust,
-      fill: r.isHit ? '#10b981' : r.isBust ? '#ef4444' : '#6b7280',
+      position: r.position,
+      // Color by hit/bust when single pos; color by position when ALL
+      fill: hitBustPos === 'ALL'
+        ? POS_COLORS[r.position] ?? '#6b7280'
+        : r.isHit ? '#10b981' : r.isBust ? '#ef4444' : '#6b7280',
     }));
-  }, [allRows, selectedPos, maxADP, currentModel]);
+  }, [allRows, hitBustPos, maxADP]);
 
   if (loading) {
     return (
@@ -2589,12 +2595,27 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
           </div>
 
           {/* Hit/Bust scatter */}
-          <h4 style={{ marginBottom: 8 }}>
-            {selectedPos} Hit/Bust Distribution
-            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              Green = hit (within 12 of ADP), Red = bust (24+ worse), Gray = middle
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+            <h4 style={{ margin: 0 }}>Hit/Bust Distribution</h4>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['ALL', ...POSITIONS] as string[]).map((pos) => (
+                <button
+                  key={pos}
+                  className={`pos-filter ${hitBustPos === pos ? 'active' : ''}`}
+                  onClick={() => setHitBustPos(pos)}
+                  style={{ fontSize: 11, padding: '3px 8px', borderColor: pos !== 'ALL' ? POS_COLORS[pos] : undefined }}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {hitBustPos === 'ALL'
+                ? 'Colors = position · '
+                : 'Green = hit · Red = bust · Gray = middle · '}
+              {scatterData.length} player-seasons
             </span>
-          </h4>
+          </div>
           <div style={{
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
@@ -2630,7 +2651,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                         padding: '8px 12px',
                         fontSize: 12,
                       }}>
-                        <strong>{d.name}</strong> ({d.season})
+                        <strong>{d.name}</strong> ({d.season}){d.position ? ` · ${d.position}` : ''}
                         <br />ADP: {d.adp.toFixed(1)}
                         <br />Delta: <span style={{ color: d.delta >= 0 ? '#10b981' : '#ef4444' }}>
                           {d.delta >= 0 ? '+' : ''}{d.delta}
