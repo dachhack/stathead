@@ -156,13 +156,16 @@ function App() {
       </header>
       <main className="main">
         {tab === 'projections' && <StatProjections season={season} />}
-        {tab === 'stats' && (
-          <PlayerStatsTable
-            players={seasonTotals}
-            loading={loading}
-            error={error}
-          />
-        )}
+        {tab === 'stats' && season >= 2026
+          ? <StatProjections season={season} />
+          : tab === 'stats' && (
+            <PlayerStatsTable
+              players={seasonTotals}
+              loading={loading}
+              error={error}
+              season={season}
+            />
+          )}
         {tab === 'compare' && (
           <PlayerCompare players={seasonTotals} loading={loading} />
         )}

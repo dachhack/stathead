@@ -1,21 +1,41 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { SeasonTotals, SortDirection } from '../types';
+import { fetchRosters } from '../data';
 
 interface Props {
   players: SeasonTotals[];
   loading: boolean;
   error: string | null;
+  season?: number;
 }
 
 type SortField = keyof SeasonTotals;
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
 
-export function PlayerStatsTable({ players, loading, error }: Props) {
+export function PlayerStatsTable({ players, loading, error, season }: Props) {
   const [sortField, setSortField] = useState<SortField>('fantasy_points_ppr');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [rookiesOnly, setRookiesOnly] = useState(false);
+  const [rookieIds, setRookieIds] = useState<Set<string>>(new Set());
+
+  // Load roster data to identify rookies (entry_year === season)
+  useEffect(() => {
+    if (!season) return;
+    fetchRosters(season)
+      .then((rosters) => {
+        const ids = new Set(
+          rosters
+            .filter((r) => r.entry_year === season)
+            .map((r) => r.gsis_id)
+            .filter(Boolean)
+        );
+        setRookieIds(ids);
+      })
+      .catch(() => setRookieIds(new Set()));
+  }, [season]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -37,6 +57,9 @@ export function PlayerStatsTable({ players, loading, error }: Props) {
     let data = [...players];
     if (posFilter !== 'ALL') {
       data = data.filter((p) => p.position === posFilter);
+    }
+    if (rookiesOnly && rookieIds.size > 0) {
+      data = data.filter((p) => rookieIds.has(p.player_id));
     }
     if (search) {
       const q = search.toLowerCase();
@@ -106,6 +129,19 @@ export function PlayerStatsTable({ players, loading, error }: Props) {
             </button>
           ))}
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input
+            type="checkbox"
+            checked={rookiesOnly}
+            onChange={(e) => setRookiesOnly(e.target.checked)}
+          />
+          Rookies only
+          {rookiesOnly && rookieIds.size > 0 && (
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {rookieIds.size} players
+            </span>
+          )}
+        </label>
       </div>
 
       <div className="table-container">
