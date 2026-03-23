@@ -12,6 +12,7 @@ import {
 } from '../data';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBMWithCI, predictGBM } from '../lib/gbm';
+import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 
 // ── Types ──
 
@@ -83,6 +84,12 @@ const COMMON_FEATURES: FeatureDef[] = [
   { key: 'priorGamesMissed', label: 'Prior Games Missed', category: 'Injury' },
   { key: 'teamWins', label: 'Team Wins (Prior)', category: 'Team' },
   { key: 'teamPPG', label: 'Team PPG (Prior)', category: 'Team' },
+  // Projection model features
+  { key: 'projTeamPassAtt',      label: 'Proj Team Pass Att',      category: 'Projection' },
+  { key: 'projTeamPassVolChg',   label: 'Proj Team Pass Vol Chg',  category: 'Projection' },
+  { key: 'projPlayerPPR',        label: 'Proj Player PPR',         category: 'Projection' },
+  { key: 'projPlayerVsExpected', label: 'Proj Player vs Expected', category: 'Projection' },
+  { key: 'projTargetShare',      label: 'Proj Target Share',       category: 'Projection' },
 ];
 
 const QB_FEATURES: FeatureDef[] = [
@@ -136,6 +143,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Prior Season': '#f59e0b',
   Injury: '#ef4444',
   Team: '#10b981',
+  Projection: '#f97316',
 };
 
 // ── Helpers ──
@@ -182,6 +190,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [model, setModel] = useState<TrainedModel | null>(null);
+  const [baselineR2, setBaselineR2] = useState<number | null>(null); // R² without projection features
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -269,6 +278,9 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
           );
           const priorByName = new Map<string, typeof priorTotals[0]>();
           for (const p of priorTotals) priorByName.set(normalizeName(p.player_display_name), p);
+
+          // ── Projection features (team-projection methodology applied to prior stats) ──
+          const projFeatures = computePlayerProjectionFeatures(priorStats);
 
           // Prior season snap counts by player name → avg offense_pct
           const snapsByName = new Map<string, number>();
@@ -432,6 +444,17 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
               priorGamesMissed: gamesMissed,
               teamWins: tw,
               teamPPG: Math.round(tppg * 10) / 10,
+              // Projection model features
+              ...(() => {
+                const pf = projFeatures.get(normalizeName(ktcPlayer.playerName));
+                return {
+                  projTeamPassAtt:      pf?.projTeamPassAtt      ?? 0,
+                  projTeamPassVolChg:   pf?.projTeamPassVolChg    ?? 0,
+                  projPlayerPPR:        pf?.projPlayerPPR         ?? 0,
+                  projPlayerVsExpected: pf?.projPlayerVsExpected  ?? 0,
+                  projTargetShare:      pf?.projTargetShare        ?? 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -470,9 +493,12 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
         // ── 4. Build feature matrix ──
         // Use percentage change as target to avoid ceiling effects
         setLoadingStatus('Training model...');
+        const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
         const activeDefs = getFeatureDefsForPosition(position);
         const featureNames = activeDefs.map((f) => f.key);
+        const baselineNames = featureNames.filter((k) => !PROJ_KEYS.includes(k));
         const X = validRows.map((r) => featureNames.map((k) => r.features[k] || 0));
+        const Xbaseline = validRows.map((r) => baselineNames.map((k) => r.features[k] || 0));
         const yPct = validRows.map((r) => r.valueDeltaPct);
 
         let preds: PlayerPrediction[];
@@ -559,6 +585,16 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
             };
           });
         }
+
+        // ── 5. Baseline model (no projection features) for R² comparison ──
+        const baselineResult = modelType === 'gbm'
+          ? trainGBMWithCI(Xbaseline, yPct, baselineNames, {
+              nEstimators: 100, learningRate: 0.1, maxDepth: 3,
+              minSamplesLeaf: Math.max(3, Math.floor(validRows.length / 20)),
+              subsample: 0.8,
+            }, 0.80).median
+          : trainRidgeRegression(Xbaseline, yPct, baselineNames, lambda);
+        setBaselineR2(baselineResult.rSquared);
 
         setPredictions(preds);
       } catch (e) {
@@ -770,6 +806,33 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
           </div>
         )}
       </div>
+
+      {/* Projection feature accuracy comparison */}
+      {baselineR2 !== null && (() => {
+        const gain = model.rSquared - baselineR2;
+        const pct  = baselineR2 !== 0 ? (gain / Math.abs(baselineR2)) * 100 : 0;
+        return (
+          <div style={{
+            background: 'var(--bg-secondary)', border: `1px solid ${gain > 0 ? '#f97316' : 'var(--border)'}`,
+            borderRadius: 8, padding: '10px 16px', marginBottom: 16,
+            display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>📐 Projection Features Impact</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Baseline R² (no projections): <strong>{baselineR2.toFixed(3)}</strong>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              With projections: <strong>{model.rSquared.toFixed(3)}</strong>
+            </div>
+            <div style={{
+              fontSize: 13, fontWeight: 700,
+              color: gain > 0.01 ? '#10b981' : gain > 0 ? '#f59e0b' : '#ef4444',
+            }}>
+              {gain >= 0 ? '+' : ''}{gain.toFixed(3)} R² ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%{gain > 0.01 ? ' ✓ meaningful gain' : gain > 0 ? ' marginal gain' : ' no gain'})
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Feature importance bar chart */}
       <h4 style={{ marginBottom: 8 }}>Feature Importance {modelType === 'gbm' ? '(Avg Contribution)' : '(Standardized Coefficients)'}</h4>

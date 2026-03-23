@@ -13,6 +13,7 @@ import {
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
+import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 
 type ModelType = 'ridge' | 'gbm';
 
@@ -184,6 +185,13 @@ const FEATURES: FeatureDef[] = [
   { key: 'vegasGameTotal', label: 'Vegas Avg Game Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'vegasWinPct', label: 'Vegas Implied Win %', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'vegasActualPtsPerGame', label: 'Prior Actual Pts/Game', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // ── Projection model features (from our team-projection methodology) ──
+  { key: 'projTeamPassAtt',     label: 'Proj Team Pass Att',       category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'projTeamPassVolChg',  label: 'Proj Team Pass Vol Chg',   category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'projPlayerPPR',       label: 'Proj Player PPR',          category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'projPlayerVsExpected',label: 'Proj Player vs Expected',  category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'projTargetShare',     label: 'Proj Target Share',        category: 'Projection', positions: ['RB', 'WR', 'TE'] },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -201,6 +209,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Coaching: '#a855f7',
   Personnel: '#0ea5e9',
   Vegas: '#22c55e',
+  Projection: '#f97316',
 };
 
 // ── Helpers ──
@@ -240,6 +249,7 @@ interface PositionModel {
   bustRate: number;
   rSquared: number;
   mae: number;
+  baselineR2?: number; // R² without projection features
 }
 
 interface PredictionRow {
@@ -389,6 +399,9 @@ export function ADPFactorAnalysis() {
               priorByName.set(normalizeName(p.player_display_name), p);
             }
           }
+
+          // ── Projection features (team-projection methodology applied to prior stats) ──
+          const projFeatures = computePlayerProjectionFeatures(priorStats);
 
           // Prior snap %
           const snapAccum = new Map<string, { total: number; count: number }>();
@@ -1170,6 +1183,18 @@ export function ADPFactorAnalysis() {
                   vegasActualPtsPerGame: v ? Math.round((v.actualPts / vGames) * 10) / 10 : 0,
                 };
               })(),
+
+              // ── Projection model features ──
+              ...(() => {
+                const pf = projFeatures.get(normalName);
+                return {
+                  projTeamPassAtt:      pf?.projTeamPassAtt      ?? 0,
+                  projTeamPassVolChg:   pf?.projTeamPassVolChg    ?? 0,
+                  projPlayerPPR:        pf?.projPlayerPPR         ?? 0,
+                  projPlayerVsExpected: pf?.projPlayerVsExpected  ?? 0,
+                  projTargetShare:      pf?.projTargetShare        ?? 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1229,6 +1254,9 @@ export function ADPFactorAnalysis() {
                 predPriorByName.set(normalizeName(p.player_display_name), p);
               }
             }
+
+            // ── Projection features for prediction season ──
+            const predProjFeatures = computePlayerProjectionFeatures(predPriorStats);
 
             // Snap %
             const predSnapAccum = new Map<string, { total: number; count: number }>();
@@ -1866,6 +1894,18 @@ export function ADPFactorAnalysis() {
                     vegasActualPtsPerGame: v ? Math.round((v.actualPts / vGames) * 10) / 10 : 0,
                   };
                 })(),
+
+                // ── Projection model features ──
+                ...(() => {
+                  const pf = predProjFeatures.get(normalName);
+                  return {
+                    projTeamPassAtt:      pf?.projTeamPassAtt      ?? 0,
+                    projTeamPassVolChg:   pf?.projTeamPassVolChg    ?? 0,
+                    projPlayerPPR:        pf?.projPlayerPPR         ?? 0,
+                    projPlayerVsExpected: pf?.projPlayerVsExpected  ?? 0,
+                    projTargetShare:      pf?.projTargetShare        ?? 0,
+                  };
+                })(),
               };
 
               predRows.push({
@@ -1890,6 +1930,7 @@ export function ADPFactorAnalysis() {
           const featureKeys = posFeatures.map((f) => f.key);
           const featureLabels = posFeatures.map((f) => f.label);
 
+          const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
           const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
           const y = posRows.map((r) => r.adpDelta);
 
@@ -1900,6 +1941,14 @@ export function ADPFactorAnalysis() {
             maxDepth: 3,
             minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
             subsample: 0.8,
+          });
+
+          // Baseline model without projection features
+          const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
+          const Xbaseline = posRows.map((r) => baselineKeys.map((k) => r.features[k] || 0));
+          const baselineGBM = trainGBM(Xbaseline, y, baselineKeys, {
+            nEstimators: 150, learningRate: 0.08, maxDepth: 3,
+            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)), subsample: 0.8,
           });
 
           posModels.push({
@@ -1913,6 +1962,7 @@ export function ADPFactorAnalysis() {
             bustRate: Math.round(posRows.filter((r) => r.isBust).length / posRows.length * 100),
             rSquared: 0,
             mae: 0,
+            baselineR2: baselineGBM.rSquared,
           });
         }
 
@@ -2211,13 +2261,58 @@ export function ADPFactorAnalysis() {
               {m.position}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              <div>R² = <strong style={{ color: 'var(--text-primary)' }}>{(modelType === 'gbm' ? m.gbmModel?.rSquared ?? 0 : m.ridgeModel?.rSquared ?? 0).toFixed(3)}</strong></div>
-              <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(modelType === 'gbm' ? m.gbmModel?.mae ?? 0 : m.ridgeModel?.mae ?? 0)}</strong></div>
-              <div>N = {m.n} &middot; Hits {m.hitRate}% &middot; Busts {m.bustRate}%</div>
+              {(() => {
+                const r2 = modelType === 'gbm' ? m.gbmModel?.rSquared ?? 0 : m.ridgeModel?.rSquared ?? 0;
+                const base = m.baselineR2 ?? null;
+                const gain = base !== null ? r2 - base : null;
+                return (
+                  <>
+                    <div>
+                      R² = <strong style={{ color: 'var(--text-primary)' }}>{r2.toFixed(3)}</strong>
+                      {gain !== null && (
+                        <span style={{ marginLeft: 6, fontSize: 10, color: gain > 0.01 ? '#10b981' : gain > 0 ? '#f59e0b' : 'var(--text-muted)' }}>
+                          {gain >= 0 ? '+' : ''}{gain.toFixed(3)} proj
+                        </span>
+                      )}
+                    </div>
+                    <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(modelType === 'gbm' ? m.gbmModel?.mae ?? 0 : m.ridgeModel?.mae ?? 0)}</strong></div>
+                    <div>N = {m.n} &middot; Hits {m.hitRate}% &middot; Busts {m.bustRate}%</div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Projection accuracy comparison banner */}
+      {currentModel && currentModel.baselineR2 !== undefined && (() => {
+        const r2 = modelType === 'gbm' ? currentModel.gbmModel?.rSquared ?? 0 : currentModel.ridgeModel?.rSquared ?? 0;
+        const base = currentModel.baselineR2;
+        const gain = r2 - base;
+        const pct  = base !== 0 ? (gain / Math.abs(base)) * 100 : 0;
+        return (
+          <div style={{
+            background: 'var(--bg-secondary)', border: `1px solid ${gain > 0 ? '#f97316' : 'var(--border)'}`,
+            borderRadius: 8, padding: '10px 16px', marginBottom: 16,
+            display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316' }}>📐 Projection Features Impact ({selectedPos})</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Baseline R² (no projections): <strong>{base.toFixed(3)}</strong>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              With projections: <strong>{r2.toFixed(3)}</strong>
+            </div>
+            <div style={{
+              fontSize: 13, fontWeight: 700,
+              color: gain > 0.01 ? '#10b981' : gain > 0 ? '#f59e0b' : '#ef4444',
+            }}>
+              {gain >= 0 ? '+' : ''}{gain.toFixed(3)} R² ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%{gain > 0.01 ? ' ✓ meaningful gain' : gain > 0 ? ' marginal gain' : ' no gain'})
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── 2026 Predictions ── */}
       {currentModel && predictions2026.length > 0 && (
