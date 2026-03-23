@@ -24,6 +24,7 @@ type ModelType = 'ridge' | 'gbm';
 const SEASONS = [2021, 2022, 2023, 2024, 2025];
 const PREDICT_SEASON = 2026; // upcoming season to predict
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
+const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
 const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
 };
@@ -233,7 +234,7 @@ interface PlayerRow {
   position: string;
   season: number;
   adp: number;
-  adpDelta: number; // positive = outperformed
+  vor: number;    // Value Over Replacement = actual PPR – positional replacement-level PPR
   isHit: boolean;
   isBust: boolean;
   features: Record<string, number>;
@@ -401,6 +402,16 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             .sort((a, b) => b.fantasy_points_ppr - a.fantasy_points_ppr);
           const overallRankMap = new Map<string, number>();
           allFantasy.forEach((p, i) => overallRankMap.set(normalizeName(p.player_display_name), i + 1));
+
+          // Per-position replacement levels for VOR
+          const vorReplacement: Record<string, number> = {};
+          for (const pos of POSITIONS) {
+            const sorted = currentTotals
+              .filter((p) => p.position === pos)
+              .sort((a, b) => (b.fantasy_points_ppr || 0) - (a.fantasy_points_ppr || 0));
+            const idx = (REPLACEMENT_RANKS[pos] ?? 24) - 1;
+            vorReplacement[pos] = Math.round((sorted[idx]?.fantasy_points_ppr ?? 0) * 10) / 10;
+          }
 
           // Prior season totals
           const priorTotals = aggregateToSeasonTotals(
@@ -925,8 +936,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
-            const overallRank = overallRankMap.get(normalName) || 999;
-            const adpDelta = Math.round(adpPlayer.adp - overallRank);
+            const playerPPR = current.fantasy_points_ppr || 0;
+            const repLevel  = vorReplacement[adpPlayer.position] ?? 0;
+            const vor  = Math.round((playerPPR - repLevel) * 10) / 10;
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -1215,9 +1227,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
               position: adpPlayer.position,
               season,
               adp: adpPlayer.adp,
-              adpDelta,
-              isHit: adpDelta >= -12,
-              isBust: adpDelta < -24,
+              vor,
+              isHit: vor >= 0,
+              isBust: vor < -50,
               features,
             });
           }
@@ -1945,7 +1957,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
 
           const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
           const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
-          const y = posRows.map((r) => r.adpDelta);
+          const y = posRows.map((r) => r.vor);
 
           const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
           const gbmModel = trainGBM(X, y, featureKeys, {
@@ -2044,6 +2056,31 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       .sort((a, b) => b.absCoeff - a.absCoeff);
   }, [currentModel, modelType, allRows, selectedPos, maxADP]);
 
+  // ── Per-position hit/bust thresholds ──────────────────────────────────────
+  // Fixed thresholds (-12 / -24) are position-agnostic and biased: QBs are
+  // systematically undervalued at ADP so they nearly all "hit" by that rule.
+  // Instead, compute the 67th / 33rd percentile of actual VOR within
+  // each position so that roughly the top-third are hits and bottom-third
+  // are busts for EVERY position equally.
+  const posThresholds = useMemo(() => {
+    const map = new Map<string, { hit: number; bust: number }>();
+    for (const pos of POSITIONS) {
+      const deltas = allRows
+        .filter((r) => r.position === pos)
+        .map((r) => r.vor)
+        .sort((a, b) => a - b);
+      if (deltas.length < 6) continue;
+      map.set(pos, {
+        hit:  deltas[Math.floor(deltas.length * 0.67)],
+        bust: deltas[Math.floor(deltas.length * 0.33)],
+      });
+    }
+    return map;
+  }, [allRows]);
+
+  const isHitForPos  = (pos: string, delta: number) => delta >= (posThresholds.get(pos)?.hit  ?? 0);
+  const isBustForPos = (pos: string, delta: number) => delta <  (posThresholds.get(pos)?.bust ?? -50);
+
   // Per-player predictions for selected position
   const playerPredictions = useMemo(() => {
     if (!currentModel) return [];
@@ -2067,44 +2104,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         name: r.name,
         season: r.season,
         adp: r.adp,
-        actualDelta: r.adpDelta,
-        predictedDelta: Math.round(result.predicted * 10) / 10,
-        isHit: r.isHit,
-        isBust: r.isBust,
+        actualVor: r.vor,
+        predictedVor: Math.round(result.predicted * 10) / 10,
+        isHit: isHitForPos(r.position, r.vor),
+        isBust: isBustForPos(r.position, r.vor),
         factors,
       };
-    }).sort((a, b) => b.predictedDelta - a.predictedDelta);
-  }, [currentModel, allRows, selectedPos, maxADP, modelType]);
+    }).sort((a, b) => b.predictedVor - a.predictedVor);
+  }, [currentModel, allRows, selectedPos, maxADP, modelType, posThresholds]);
 
   const selectedPrediction = useMemo(
     () => playerPredictions.find((p) => p.name === selectedPlayerName) || null,
     [playerPredictions, selectedPlayerName]
   );
-
-  // ── Per-position hit/bust thresholds ──────────────────────────────────────
-  // Fixed thresholds (-12 / -24) are position-agnostic and biased: QBs are
-  // systematically undervalued at ADP so they nearly all "hit" by that rule.
-  // Instead, compute the 67th / 33rd percentile of actual ADP delta within
-  // each position so that roughly the top-third are hits and bottom-third
-  // are busts for EVERY position equally.
-  const posThresholds = useMemo(() => {
-    const map = new Map<string, { hit: number; bust: number }>();
-    for (const pos of POSITIONS) {
-      const deltas = allRows
-        .filter((r) => r.position === pos)
-        .map((r) => r.adpDelta)
-        .sort((a, b) => a - b);
-      if (deltas.length < 6) continue;
-      map.set(pos, {
-        hit:  deltas[Math.floor(deltas.length * 0.67)],
-        bust: deltas[Math.floor(deltas.length * 0.33)],
-      });
-    }
-    return map;
-  }, [allRows]);
-
-  const isHitForPos  = (pos: string, delta: number) => delta >= (posThresholds.get(pos)?.hit  ?? -12);
-  const isBustForPos = (pos: string, delta: number) => delta <  (posThresholds.get(pos)?.bust ?? -24);
 
   // 2026 predictions for selected position
   const predictions2026 = useMemo(() => {
@@ -2131,13 +2143,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         name: r.name,
         team: r.team,
         adp: r.adp,
-        predictedDelta: pred,
+        predictedVor: pred,
         hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
                : isBustForPos(r.position, pred) ? 'Likely Bust'
                : 'Middle',
         factors,
       };
-    }).sort((a, b) => b.predictedDelta - a.predictedDelta);
+    }).sort((a, b) => b.predictedVor - a.predictedVor);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models, predictionRows, selectedPos, maxADP, modelType, posThresholds]);
 
@@ -2193,13 +2205,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       (hitBustPos === 'ALL' || r.position === hitBustPos) && r.adp <= maxADP
     );
     return rows.map((r) => {
-      const hit  = isHitForPos(r.position, r.adpDelta);
-      const bust = isBustForPos(r.position, r.adpDelta);
+      const hit  = isHitForPos(r.position, r.vor);
+      const bust = isBustForPos(r.position, r.vor);
       return {
         name: r.name,
         season: r.season,
         adp: r.adp,
-        delta: r.adpDelta,
+        vor: r.vor,
         isHit: hit,
         isBust: bust,
         position: r.position,
@@ -2236,8 +2248,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         const posRows = roundRows.filter((r) => r.position === pos);
         const total   = posRows.length;
         if (total < 3) { byPos[pos] = { hits: 0, busts: 0, total, hitRate: 0, bustRate: 0, score: 0 }; continue; }
-        const hits    = posRows.filter((r) => isHitForPos(r.position, r.adpDelta)).length;
-        const busts   = posRows.filter((r) => isBustForPos(r.position, r.adpDelta)).length;
+        const hits    = posRows.filter((r) => isHitForPos(r.position, r.vor)).length;
+        const busts   = posRows.filter((r) => isBustForPos(r.position, r.vor)).length;
         const hitRate = hits / total;
         const bustRate = busts / total;
         const score   = hitRate - bustRate;
@@ -2279,7 +2291,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
-        Predicts ADP Delta (positive = outperformed draft position).
+        Predicts Value Over Replacement (PPR points above positional replacement level).
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>
 
@@ -2554,8 +2566,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                     {(() => {
                       const t = posThresholds.get(m.position);
                       const posR = allRows.filter((r) => r.position === m.position);
-                      const hits = t ? posR.filter((r) => isHitForPos(m.position, r.adpDelta)).length : 0;
-                      const busts = t ? posR.filter((r) => isBustForPos(m.position, r.adpDelta)).length : 0;
+                      const hits = t ? posR.filter((r) => isHitForPos(m.position, r.vor)).length : 0;
+                      const busts = t ? posR.filter((r) => isBustForPos(m.position, r.vor)).length : 0;
                       const n = posR.length || 1;
                       return (
                         <div title={t ? `Hit threshold: delta ≥ ${t.hit.toFixed(1)} · Bust threshold: delta < ${t.bust.toFixed(1)}` : ''}>
@@ -2610,7 +2622,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             <span style={{ color: '#f59e0b', fontSize: 18 }}>{PREDICT_SEASON}</span>{' '}
             {selectedPos} Predictions
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              Model-predicted ADP delta &middot; {predictions2026.length} players
+              Model-predicted VOR (pts above replacement) &middot; {predictions2026.length} players
             </span>
             {activeScenario && (
               <span style={{
@@ -2620,7 +2632,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             )}
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-            Trained on {SEASONS[0]}-{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Positive = predicted to outperform ADP.
+            Trained on {SEASONS[0]}-{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Positive = predicted above replacement level.
           </p>
           <div className="table-container" style={{ marginBottom: 20, maxHeight: 500, overflowY: 'auto' }}>
             <table>
@@ -2630,7 +2642,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   <th>Player</th>
                   <th>Team</th>
                   <th>ADP</th>
-                  <th>Predicted Delta</th>
+                  <th>Predicted VOR</th>
                   <th>Outlook</th>
                 </tr>
               </thead>
@@ -2658,9 +2670,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                     <td>{p.adp.toFixed(1)}</td>
                     <td style={{
                       fontWeight: 700,
-                      color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
+                      color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta}
+                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}
                     </td>
                     <td>
                       <span style={{
@@ -2695,8 +2707,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 {selected2026Prediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {PREDICT_SEASON} &middot; ADP {selected2026Prediction.adp.toFixed(1)} &middot;
-                  Predicted: <span style={{ color: selected2026Prediction.predictedDelta >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selected2026Prediction.predictedDelta >= 0 ? '+' : ''}{selected2026Prediction.predictedDelta}
+                  Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}
                   </span>
                 </span>
               </h4>
@@ -2886,9 +2898,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   <Label value="ADP" position="bottom" offset={20}
                     style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
                 </XAxis>
-                <YAxis type="number" dataKey="delta"
+                <YAxis type="number" dataKey="vor"
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-                  <Label value="ADP Delta (+ = outperformed)" angle={-90} position="insideLeft" offset={10}
+                  <Label value="VOR (pts above replacement)" angle={-90} position="insideLeft" offset={10}
                     style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
                 </YAxis>
                 <ReferenceLine y={0} stroke="var(--text-muted)" strokeDasharray="5 5" />
@@ -2908,8 +2920,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       }}>
                         <strong>{d.name}</strong> ({d.season}){d.position ? ` · ${d.position}` : ''}
                         <br />ADP: {d.adp.toFixed(1)}
-                        <br />Delta: <span style={{ color: d.delta >= 0 ? '#10b981' : '#ef4444' }}>
-                          {d.delta >= 0 ? '+' : ''}{d.delta}
+                        <br />VOR: <span style={{ color: d.vor >= 0 ? '#10b981' : '#ef4444' }}>
+                          {d.vor >= 0 ? '+' : ''}{d.vor}
                         </span>
                         <br />
                         <span style={{
@@ -2946,8 +2958,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   <th>Player</th>
                   <th>Season</th>
                   <th>ADP</th>
-                  <th>Predicted Delta</th>
-                  <th>Actual Delta</th>
+                  <th>Predicted VOR</th>
+                  <th>Actual VOR</th>
                   <th>Result</th>
                 </tr>
               </thead>
@@ -2977,15 +2989,15 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                     <td>{p.adp.toFixed(1)}</td>
                     <td style={{
                       fontWeight: 700,
-                      color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
+                      color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta}
+                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}
                     </td>
                     <td style={{
                       fontWeight: 700,
-                      color: p.actualDelta >= 0 ? '#10b981' : '#ef4444',
+                      color: p.actualVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.actualDelta >= 0 ? '+' : ''}{p.actualDelta}
+                      {p.actualVor >= 0 ? '+' : ''}{p.actualVor}
                     </td>
                     <td>
                       <span style={{
@@ -3018,16 +3030,16 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 {selectedPrediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {selectedPrediction.season} &middot; ADP {selectedPrediction.adp.toFixed(1)} &middot;
-                  Predicted: <span style={{ color: selectedPrediction.predictedDelta >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.predictedDelta >= 0 ? '+' : ''}{selectedPrediction.predictedDelta}
+                  Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}
                   </span> &middot;
-                  Actual: <span style={{ color: selectedPrediction.actualDelta >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.actualDelta >= 0 ? '+' : ''}{selectedPrediction.actualDelta}
+                  Actual: <span style={{ color: selectedPrediction.actualVor >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selectedPrediction.actualVor >= 0 ? '+' : ''}{selectedPrediction.actualVor}
                   </span>
                 </span>
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                Top factors driving this prediction (contribution to predicted ADP delta):
+                Top factors driving this prediction (contribution to predicted VOR):
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {selectedPrediction.factors.slice(0, 10).map((f) => {
