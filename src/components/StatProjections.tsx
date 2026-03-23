@@ -1062,7 +1062,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                   rushAtt = Math.round(rbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * af * gamesScale));
+                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * gamesScale));
 
                   const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                   const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
@@ -1071,7 +1071,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare));
                 } else {
                   const share = 1 / (players.length * 4);
                   rushAtt = Math.round(rbRushPool * share * gamesScale);
@@ -1124,14 +1124,14 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare));
 
                   const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
                   const rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 0;
                   rushAtt = Math.round(wrRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 5.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.max(0, Math.round(wrRushTDPool * rushShare * af * gamesScale));
+                  rushTD = Math.max(0, Math.round(wrRushTDPool * rushShare * gamesScale));
                 } else {
                   const share = 1 / (players.length * 4);
                   tgt = Math.round(wrTgtPool * share * gamesScale);
@@ -1174,7 +1174,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * af));
+                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare));
                 } else {
                   const share = 1 / (players.length * 4);
                   tgt = Math.round(teTgtPool * share * gamesScale);
@@ -1576,7 +1576,6 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                     <th style={{ ...thS, borderBottom: '2px solid #f59e0b' }}>PPR</th>
                   </tr>
                   <tr>
-                    <th style={thS}></th>
                     <th style={thS}></th>
                     <th style={thS}></th>
                     {sortHeader('Att', 'passAtt')}
