@@ -80,9 +80,13 @@ export function KTCView({ onDataLoaded }: Props) {
     return data;
   }, [players, posFilter, search, showRookies]);
 
+  const displayVal = (p: KTCPlayer) =>
+    format === 'superflex' ? p.superflexValue : p.value;
+
   const maxValue = useMemo(
-    () => (filtered.length > 0 ? filtered[0].value : 9999),
-    [filtered]
+    () => (filtered.length > 0 ? Math.max(...filtered.map(displayVal)) : 9999),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, format]
   );
 
   // Players matching the history search box
@@ -480,7 +484,7 @@ export function KTCView({ onDataLoaded }: Props) {
                   <th>Age</th>
                   <th>Value</th>
                   <th style={{ minWidth: 160 }}>Value Chart</th>
-                  {format === '1qb' && <th>SF Value</th>}
+                  {format === '1qb' ? <th>SF Value</th> : <th>1QB Value</th>}
                   <th></th>
                 </tr>
               </thead>
@@ -524,7 +528,7 @@ export function KTCView({ onDataLoaded }: Props) {
                     <td>{p.team}</td>
                     <td>{p.age || '-'}</td>
                     <td>
-                      <strong>{p.value.toLocaleString()}</strong>
+                      <strong>{displayVal(p).toLocaleString()}</strong>
                     </td>
                     <td>
                       <div
@@ -532,16 +536,16 @@ export function KTCView({ onDataLoaded }: Props) {
                           background: 'var(--accent)',
                           height: 14,
                           borderRadius: 3,
-                          width: `${Math.max((p.value / maxValue) * 100, 1)}%`,
+                          width: `${Math.max((displayVal(p) / maxValue) * 100, 1)}%`,
                           opacity: 0.7,
                         }}
                       />
                     </td>
-                    {format === '1qb' && (
-                      <td style={{ color: 'var(--text-muted)' }}>
-                        {p.superflexValue > 0 ? p.superflexValue.toLocaleString() : '-'}
-                      </td>
-                    )}
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {format === '1qb'
+                        ? (p.superflexValue > 0 ? p.superflexValue.toLocaleString() : '-')
+                        : (p.value > 0 ? p.value.toLocaleString() : '-')}
+                    </td>
                     <td>
                       <button
                         onClick={() => {
