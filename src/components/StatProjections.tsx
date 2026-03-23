@@ -983,23 +983,23 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                 if (isPrimary && prior && prior.games >= 3) {
                   // Starter throws ALL team passes in their games (no intra-game sharing with backup).
                   // Game allocation already encodes the time split, so no passShare multiplier needed.
-                  passAtt = Math.round(qbPassPool * af * gamesScale);
+                  passAtt = Math.round(qbPassPool * gamesScale);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
                   passComp = Math.round(passAtt * compRate);
                   const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
                   passYds = Math.round(passAtt * ypa);
                   // Anchor TDs to the team's projected receiving TD budget so QB passTDs
                   // reconcile with receiver recTDs (same pool, gamesScale applied like receivers)
-                  passTD = Math.round(projTeam.recTD * gamesScale * af);
+                  passTD = Math.round(projTeam.recTD * gamesScale);
                   const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
                   ints = Math.round(passAtt * intRate);
 
                   const adjCar = healthAdjust(prior.carries || 0, prior.games);
                   const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5;
-                  rushAtt = Math.round(qbRushPool * rushShare * af * gamesScale);
+                  rushAtt = Math.round(qbRushPool * rushShare * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
+                  rushTD = Math.round(qbRushTDPool * rushShare * gamesScale);
                 } else {
                   // Backup QB: fill remaining pool for exact reconciliation with team totals.
                   // Use starter's per-play efficiency rates (slightly discounted).
