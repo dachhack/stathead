@@ -10,7 +10,7 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, ScenarioConfig } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
@@ -262,7 +262,7 @@ interface PredictionRow {
 
 // ── Component ──
 
-export function ADPFactorAnalysis() {
+export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
   const [models, setModels] = useState<PositionModel[]>([]);
   const [allRows, setAllRows] = useState<PlayerRow[]>([]);
   const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
@@ -1255,8 +1255,8 @@ export function ADPFactorAnalysis() {
               }
             }
 
-            // ── Projection features for prediction season ──
-            const predProjFeatures = computePlayerProjectionFeatures(predPriorStats);
+            // ── Projection features for prediction season (scenario adjustments applied here) ──
+            const predProjFeatures = computePlayerProjectionFeatures(predPriorStats, scenario);
 
             // Snap %
             const predSnapAccum = new Map<string, { total: number; count: number }>();
@@ -1976,7 +1976,7 @@ export function ADPFactorAnalysis() {
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, maxADP]);
+  }, [lambda, maxADP, scenario]);
 
   const currentModel = useMemo(
     () => models.find((m) => m.position === selectedPos),
@@ -2317,12 +2317,18 @@ export function ADPFactorAnalysis() {
       {/* ── 2026 Predictions ── */}
       {currentModel && predictions2026.length > 0 && (
         <>
-          <h4 style={{ marginBottom: 4, marginTop: 8 }}>
+          <h4 style={{ marginBottom: 4, marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: '#f59e0b', fontSize: 18 }}>{PREDICT_SEASON}</span>{' '}
             {selectedPos} Predictions
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
               Model-predicted ADP delta &middot; {predictions2026.length} players
             </span>
+            {scenario && (scenario.volumeOverrides.length > 0 || scenario.teamVolumes.length > 0 || scenario.teamTendencies.length > 0 || scenario.teamStatAdjustments.length > 0) && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff',
+                borderRadius: 4, padding: '2px 7px', marginLeft: 4,
+              }}>⚙ SCENARIO ACTIVE</span>
+            )}
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
             Trained on {SEASONS[0]}-{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Positive = predicted to outperform ADP.

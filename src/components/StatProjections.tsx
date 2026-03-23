@@ -423,7 +423,7 @@ interface TeamGroup {
   tes: TEProjection[];
 }
 
-export function StatProjections({ season = PREDICT_SEASON }: { season?: number }) {
+export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: { season?: number; onScenarioChange?: (sc: ScenarioConfig) => void }) {
   const isActuals = season < PREDICT_SEASON;
 
   const [loading, setLoading] = useState(true);
@@ -1824,7 +1824,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
           projections={searchProjections}
           freeAgents={freeAgentList}
           scenario={scenario}
-          onChange={setScenario}
+          onChange={(sc) => { setScenario(sc); onScenarioChange?.(sc); }}
         />
       )}
     </>

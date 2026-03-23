@@ -23,7 +23,8 @@ import { SportsDataIOView } from './components/SportsDataIOView';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
-import type { Tab } from './types';
+import { createEmptyScenario } from './lib/scenarioEngine';
+import type { Tab, ScenarioConfig } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
 
@@ -59,6 +60,7 @@ function App() {
   const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
   const [otherOpen, setOtherOpen] = useState(false);
+  const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
   const onDataLoaded = useCallback((data: unknown[]) => {
@@ -156,7 +158,7 @@ function App() {
         </div>
       </header>
       <main className="main">
-        {tab === 'projections' && <StatProjections season={season} />}
+        {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
         {tab === 'stats' && season >= 2026
           ? <ExternalRankings2026 />
           : tab === 'stats' && (
@@ -178,6 +180,7 @@ function App() {
             seasonTotals={seasonTotals}
             loading={loading}
             onDataLoaded={onDataLoaded}
+            scenario={scenario}
           />
         )}
         {tab === 'games' && <GamesView onDataLoaded={onDataLoaded} />}
@@ -199,7 +202,7 @@ function App() {
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
-        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
+        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} scenario={scenario} />}
         {tab === 'sportsdata' && (
           <SportsDataIOView
             season={season}

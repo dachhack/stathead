@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory } from '../types';
+import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
 import { KTCFactorAnalysis } from './KTCFactorAnalysis';
 import { KTCPredictiveModel } from './KTCPredictiveModel';
@@ -18,9 +18,10 @@ const CHART_COLORS = [
 
 interface Props {
   onDataLoaded?: (data: unknown[]) => void;
+  scenario?: ScenarioConfig;
 }
 
-export function KTCView({ onDataLoaded }: Props) {
+export function KTCView({ onDataLoaded, scenario }: Props) {
   const [players, setPlayers] = useState<KTCPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -191,7 +192,7 @@ export function KTCView({ onDataLoaded }: Props) {
       </div>
 
       {viewMode === 'model' ? (
-        <KTCPredictiveModel initialPlayer={modelPlayer} />
+        <KTCPredictiveModel initialPlayer={modelPlayer} scenario={scenario} />
       ) : viewMode === 'factors' ? (
         <KTCFactorAnalysis />
       ) : viewMode === 'history' ? (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, FfcADPPlayer, SortDirection } from '../types';
+import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, FfcADPPlayer, SortDirection, ScenarioConfig } from '../types';
 import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } from '../data';
 import { ADPOutcomes } from './ADPOutcomes';
 import { ADPFactorAnalysis } from './ADPFactorAnalysis';
@@ -12,9 +12,10 @@ interface Props {
   seasonTotals: SeasonTotals[];
   loading: boolean;
   onDataLoaded?: (data: unknown[]) => void;
+  scenario?: ScenarioConfig;
 }
 
-export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoaded }: Props) {
+export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoaded, scenario }: Props) {
   const [rankings, setRankings] = useState<FantasyRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,7 +234,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
       </div>
 
       {viewMode === 'factors' ? (
-        <ADPFactorAnalysis />
+        <ADPFactorAnalysis scenario={scenario} />
       ) : viewMode === 'outcomes' ? (
         <ADPOutcomes />
       ) : viewMode === 'ffc' ? (

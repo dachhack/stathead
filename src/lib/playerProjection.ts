@@ -11,7 +11,7 @@
  *   3. Derive simplified projected PPR and relative-to-expected signals.
  */
 
-import type { PlayerStats, SeasonTotals } from '../types';
+import type { PlayerStats, SeasonTotals, ScenarioConfig } from '../types';
 import { aggregateToSeasonTotals } from '../data';
 import { projectTeamTotals } from './teamProjection';
 
@@ -39,6 +39,7 @@ function norm(name: string | null | undefined): string {
  */
 export function computePlayerProjectionFeatures(
   rawPriorStats: PlayerStats[],
+  scenario?: ScenarioConfig,
 ): Map<string, PlayerProjectionFeatures> {
   const results = new Map<string, PlayerProjectionFeatures>();
 
@@ -81,7 +82,6 @@ export function computePlayerProjectionFeatures(
     // Team pass volume signals
     const priorPassAtt = pt.passAtt || 1;
     const projPassAtt  = proj.passAtt || 1;
-    const passVolChg   = projPassAtt / priorPassAtt - 1;
 
     // Target-share receiving projection
     const priorTargets     = p.targets    || 0;
@@ -110,18 +110,54 @@ export function computePlayerProjectionFeatures(
     const projPPR = projRec + projRecYds * 0.1 + projRecTD * 6
       + projRushYds * 0.1 + projRushTD * 6;
 
+    // ── Scenario adjustments (applied to prediction-year features only) ──
+    let scaledPPR     = projPPR;
+    let scaledPassAtt = projPassAtt;
+
+    if (scenario) {
+      const pos = p.position;
+
+      // TeamStatAdjustment: PassingAttempts delta → scale pass-volume for receivers/QBs
+      const tsa = scenario.teamStatAdjustments.find((a) => a.team === t && a.stat === 'PassingAttempts');
+      if (tsa) {
+        const passFactor = 1 + tsa.delta / 100;
+        scaledPassAtt *= passFactor;
+        if (pos === 'WR' || pos === 'TE' || pos === 'QB') scaledPPR *= passFactor;
+      }
+
+      // TeamTendency: passRatioDelta → receivers benefit, RBs lose from more pass
+      const tt = scenario.teamTendencies.find((v) => v.team === t);
+      if (tt) {
+        const ratio = tt.passRatioDelta / 100;
+        if (pos === 'WR' || pos === 'TE' || pos === 'QB') scaledPPR *= (1 + ratio * 0.5);
+        if (pos === 'RB')                                  scaledPPR *= (1 - ratio * 0.3);
+      }
+
+      // TeamVolume: overall volume scale for all players on this team
+      const tv = scenario.teamVolumes.find((v) => v.team === t);
+      if (tv) {
+        const volFactor = 1 + tv.volumeDelta / 100;
+        scaledPPR     *= volFactor;
+        scaledPassAtt *= volFactor;
+      }
+
+      // VolumeOverride: individual player-level PPR scale
+      const vo = scenario.volumeOverrides.find((o) => norm(o.playerName) === name);
+      if (vo) scaledPPR *= (1 + vo.volumeDelta / 100);
+    }
+
     // Relative-to-prior-pace: positive means projected outperformance
     const priorPPR         = p.fantasy_points_ppr || 0;
     const priorPPG         = games > 0 ? priorPPR / games : 0;
     const priorPPRPace     = priorPPG * 17;
-    const projVsExpected   = priorPPRPace > 5 ? projPPR / priorPPRPace - 1 : 0;
+    const projVsExpected   = priorPPRPace > 5 ? scaledPPR / priorPPRPace - 1 : 0;
 
     results.set(name, {
-      projTeamPassAtt:    Math.round(projPassAtt),
-      projTeamPassVolChg: Math.round(passVolChg * 1000) / 1000,
-      projPlayerPPR:      Math.round(projPPR * 10) / 10,
+      projTeamPassAtt:      Math.round(scaledPassAtt),
+      projTeamPassVolChg:   Math.round((scaledPassAtt / priorPassAtt - 1) * 1000) / 1000,
+      projPlayerPPR:        Math.round(scaledPPR * 10) / 10,
       projPlayerVsExpected: Math.round(projVsExpected * 1000) / 1000,
-      projTargetShare:    Math.round(tgtShare * 1000) / 1000,
+      projTargetShare:      Math.round(tgtShare * 1000) / 1000,
     });
   }
 

@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Label, ReferenceLine,
   BarChart, Bar,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory } from '../types';
+import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
 import {
   fetchKTCRankings, fetchKTCHistory, fetchPlayerStats,
   fetchCombine, fetchDraftPicks, fetchInjuries, fetchGames,
@@ -183,9 +183,10 @@ const TRAIN_SEASONS = [2024, 2025];
 
 interface KTCPredictiveModelProps {
   initialPlayer?: string | null;
+  scenario?: ScenarioConfig;
 }
 
-export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
+export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
@@ -279,8 +280,9 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
           const priorByName = new Map<string, typeof priorTotals[0]>();
           for (const p of priorTotals) priorByName.set(normalizeName(p.player_display_name), p);
 
-          // ── Projection features (team-projection methodology applied to prior stats) ──
-          const projFeatures = computePlayerProjectionFeatures(priorStats);
+          // ── Projection features (scenario only applied to most-recent training season) ──
+          const isLatestSeason = season === Math.max(...TRAIN_SEASONS);
+          const projFeatures = computePlayerProjectionFeatures(priorStats, isLatestSeason ? scenario : undefined);
 
           // Prior season snap counts by player name → avg offense_pct
           const snapsByName = new Map<string, number>();
@@ -606,7 +608,7 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, position, rookieFilter, modelType]);
+  }, [lambda, position, rookieFilter, modelType, scenario]);
 
   const activeDefs = useMemo(() => getFeatureDefsForPosition(position), [position]);
 
@@ -963,6 +965,12 @@ export function KTCPredictiveModel({ initialPlayer }: KTCPredictiveModelProps) {
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
           {predictions.length} {position}s — click a bar to see factor breakdown
         </span>
+        {scenario && (scenario.volumeOverrides.length > 0 || scenario.teamVolumes.length > 0 || scenario.teamTendencies.length > 0 || scenario.teamStatAdjustments.length > 0) && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff',
+            borderRadius: 4, padding: '2px 7px', marginLeft: 8,
+          }}>⚙ SCENARIO ACTIVE</span>
+        )}
       </div>
 
       <div style={{
