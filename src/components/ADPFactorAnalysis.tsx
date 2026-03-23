@@ -332,6 +332,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [starterSlots, setStarterSlots] = useState<string[]>(['QB','RB','RB','WR','WR','TE','Flex']);
   const [benchSlots,  setBenchSlots]  = useState<string[]>(['RB','WR','WR','WR','QB']);
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
+  const [actualPicks, setActualPicks] = useState<Record<number, { name: string; position: string }>>({});
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
@@ -2443,7 +2444,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     type PlayerSuggestion = {
       name: string; team: string; adp: number;
       predictedVor: number; hitProb: string; headshotUrl?: string;
-      estPPR: number;  // estimated full-season PPR (above replacement + historical mean)
+      estPPR: number;
     };
     type PlanRow = {
       round: number; label: string; yourPick: number;
@@ -2452,101 +2453,155 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
       bucketLabel: string;
       alternatives: Array<{ pos: string; metric: number }>;
-      suggestions: PlayerSuggestion[];
+      suggestions: PlayerSuggestion[];      // top picks for the *recommended* position
+      nearbyPlayers: PlayerSuggestion[];    // all positions near this pick (for actual-pick selector)
+      // Actual pick fields (set when user overrides)
+      isActualPick: boolean;
+      actualPlayer?: PlayerSuggestion;      // the player the user said they actually drafted
+      actualVsRec?: number;                 // predictedVor of actual − vorScore of rec (>0 = beat rec)
     };
     const plan: PlanRow[] = [];
-    let picksUsed = 0; // tracks how many slots we've filled (to determine starter/bench boundary)
+    let picksUsed = 0;
+
+    // Helper to build a PlayerSuggestion from a 2026 prediction entry
+    const makeSuggestion = (p: typeof allPredictions2026[0]): PlayerSuggestion => {
+      const norm = vorNormParams.get(p.position);
+      const rep  = REP_PPR[p.position] ?? 120;
+      return {
+        name:         p.name,
+        team:         p.team,
+        adp:          p.adp,
+        predictedVor: p.predictedVor,
+        hitProb:      p.hitProb,
+        headshotUrl:  p.headshotUrl,
+        estPPR:       norm ? Math.round(rep + norm.mean + p.predictedVor * norm.std) : 0,
+      };
+    };
 
     for (let r = 1; r <= 25 && remaining.length > 0; r++) {
-      // Snake-draft pick position within this round
       const posWithinRound = r % 2 === 1 ? pickNumber : (leagueSize + 1 - pickNumber);
       const yourPick = (r - 1) * leagueSize + posWithinRound;
       const label = halfRounds
         ? `Rd ${r}${posWithinRound <= Math.floor(leagueSize / 2) ? 'a' : 'b'}`
         : `Rd ${r}`;
 
-      // Find the strategy bucket (half-round or full-round) covering this pick
       const bucket = strategyData.find((b) => yourPick >= b.pickStart && yourPick <= b.pickEnd);
       if (!bucket) continue;
 
-      // Collect candidates: unique positions that can fill any remaining slot
-      const seen = new Set<string>();
-      const candidates: Array<{
-        pos: string; metric: number;
-        vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
-      }> = [];
-      for (const slot of remaining) {
-        for (const pos of POSITIONS) {
-          if (seen.has(pos)) continue;
-          if (!canFillSlot(slot, pos)) continue;
-          const cell = bucket.byPos[pos];
-          if (!cell || cell.total < 3) continue;
-          seen.add(pos);
-          const metric = optimizerMetric === 'vor' ? cell.avgVor : cell.score;
-          candidates.push({
-            pos, metric,
-            vorScore: cell.avgVor,
-            hitPct:   Math.round(cell.hitRate  * 100),
-            bustPct:  Math.round(cell.bustRate * 100),
-            score:    cell.score,
-            n:        cell.total,
-          });
+      const adpWindow = leagueSize * 1.5;
+
+      // All players near this pick (for actual-pick dropdown, all positions)
+      const nearbyPlayers: PlayerSuggestion[] = allPredictions2026
+        .filter((p) => p.adp >= yourPick - adpWindow && p.adp <= yourPick + adpWindow)
+        .sort((a, b) => a.adp - b.adp)
+        .map(makeSuggestion);
+
+      // ── Determine which position to use (actual pick or greedy) ──
+      const actual = actualPicks[r];
+      let chosenPos: string;
+      let isActualPick = false;
+      let actualPlayer: PlayerSuggestion | undefined;
+
+      if (actual) {
+        // User stated what they actually picked
+        chosenPos    = actual.position;
+        isActualPick = true;
+        const found  = allPredictions2026.find((p) => p.name === actual.name);
+        actualPlayer = found ? makeSuggestion(found) : undefined;
+      } else {
+        // Greedy: pick the eligible position with the best metric
+        const seen = new Set<string>();
+        const candidates: Array<{ pos: string; metric: number; vorScore: number; hitPct: number; bustPct: number; score: number; n: number }> = [];
+        for (const slot of remaining) {
+          for (const pos of POSITIONS) {
+            if (seen.has(pos)) continue;
+            if (!canFillSlot(slot, pos)) continue;
+            const cell = bucket.byPos[pos];
+            if (!cell || cell.total < 3) continue;
+            seen.add(pos);
+            candidates.push({
+              pos,
+              metric:   optimizerMetric === 'vor' ? cell.avgVor : cell.score,
+              vorScore: cell.avgVor,
+              hitPct:   Math.round(cell.hitRate  * 100),
+              bustPct:  Math.round(cell.bustRate * 100),
+              score:    cell.score,
+              n:        cell.total,
+            });
+          }
         }
+        if (candidates.length === 0) { remaining.shift(); picksUsed++; continue; }
+        candidates.sort((a, b) => b.metric - a.metric);
+        chosenPos = candidates[0].pos;
+        // store full candidates for alternatives display (also used below)
+        // we'll recompute below — store them on a temp var
+        (plan as unknown as { _candidates?: typeof candidates })._candidates = candidates;
       }
 
-      if (candidates.length === 0) { remaining.shift(); picksUsed++; continue; }
+      // Stats for the chosen position
+      const chosenCell = bucket.byPos[chosenPos];
+      const vorScore   = chosenCell?.avgVor ?? 0;
+      const hitPct     = chosenCell ? Math.round(chosenCell.hitRate  * 100) : 0;
+      const bustPct    = chosenCell ? Math.round(chosenCell.bustRate * 100) : 0;
+      const score      = chosenCell?.score ?? 0;
+      const n          = chosenCell?.total ?? 0;
 
-      candidates.sort((a, b) => b.metric - a.metric);
-      const best = candidates[0];
-
-      const slotIdx   = findSlotIndex(remaining, best.pos);
-      const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : best.pos;
+      // Fill the appropriate remaining slot
+      const slotIdx    = findSlotIndex(remaining, chosenPos);
+      const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : chosenPos;
       if (slotIdx !== -1) remaining.splice(slotIdx, 1);
 
-      // Player suggestions: top players of the recommended position near this ADP
-      const adpWindow = leagueSize * 1.5; // look ±1.5 rounds worth of picks
-      const norm2026 = vorNormParams.get(best.pos);
-      const repPPR   = REP_PPR[best.pos] ?? 120;
+      // Top recommendations for the chosen position
       const suggestions: PlayerSuggestion[] = allPredictions2026
-        .filter((p) =>
-          p.position === best.pos &&
-          p.adp >= yourPick - adpWindow &&
-          p.adp <= yourPick + adpWindow
-        )
+        .filter((p) => p.position === chosenPos && p.adp >= yourPick - adpWindow && p.adp <= yourPick + adpWindow)
         .sort((a, b) => b.predictedVor - a.predictedVor)
         .slice(0, 4)
-        .map((p) => ({
-          name:         p.name,
-          team:         p.team,
-          adp:          p.adp,
-          predictedVor: p.predictedVor,
-          hitProb:      p.hitProb,
-          headshotUrl:  p.headshotUrl,
-          // Convert z-score to estimated full-season PPR
-          estPPR: norm2026
-            ? Math.round(repPPR + norm2026.mean + p.predictedVor * norm2026.std)
-            : 0,
-        }));
+        .map(makeSuggestion);
+
+      // Alternatives from greedy candidates (empty if actual pick overrode)
+      const rawCandidates = isActualPick
+        ? (() => {
+            const seen2 = new Set<string>();
+            const cands: Array<{ pos: string; metric: number }> = [];
+            for (const slot of [...remaining, slotFilled]) {
+              for (const pos of POSITIONS) {
+                if (seen2.has(pos) || pos === chosenPos) continue;
+                if (!canFillSlot(slot, pos)) continue;
+                const cell = bucket.byPos[pos];
+                if (!cell || cell.total < 3) continue;
+                seen2.add(pos);
+                cands.push({ pos, metric: optimizerMetric === 'vor' ? cell.avgVor : cell.score });
+              }
+            }
+            return cands.sort((a, b) => b.metric - a.metric).slice(0, 3);
+          })()
+        : (() => {
+            const stored = (plan as unknown as { _candidates?: Array<{ pos: string; metric: number }> })._candidates ?? [];
+            delete (plan as unknown as { _candidates?: unknown })._candidates;
+            return stored.filter((c) => c.pos !== chosenPos).slice(0, 3);
+          })();
 
       plan.push({
         round: r, label, yourPick,
-        isBench:    picksUsed >= starterCount,
-        recPos:     best.pos,
+        isBench:      picksUsed >= starterCount,
+        recPos:       chosenPos,
         slotFilled,
-        vorScore:   best.vorScore,
-        hitPct:     best.hitPct,
-        bustPct:    best.bustPct,
-        score:      best.score,
-        n:          best.n,
-        bucketLabel: bucket.label,
-        alternatives: candidates.slice(1, 4).map((c) => ({ pos: c.pos, metric: c.metric })),
+        vorScore, hitPct, bustPct, score, n,
+        bucketLabel:  bucket.label,
+        alternatives: rawCandidates,
         suggestions,
+        nearbyPlayers,
+        isActualPick,
+        actualPlayer,
+        actualVsRec:  isActualPick && actualPlayer
+          ? Math.round((actualPlayer.predictedVor - vorScore) * 100) / 100
+          : undefined,
       });
       picksUsed++;
     }
     return plan;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams]);
+  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, actualPicks]);
 
   if (loading) {
     return (
@@ -3086,69 +3141,128 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                                 </span>
                               )}
                             </div>
-                            {/* Player suggestion cards */}
-                            {row.suggestions.length > 0 && (
-                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {row.suggestions.map((p, si) => (
-                                  <div key={p.name} style={{
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    background: si === 0 ? posColor + '18' : 'var(--bg-tertiary)',
-                                    border: `1px solid ${si === 0 ? posColor + '55' : 'var(--border)'}`,
-                                    borderRadius: 8, padding: '6px 10px',
-                                    minWidth: 170, flex: '1 1 170px', maxWidth: 240,
-                                  }}>
-                                    {/* Avatar / headshot */}
-                                    {p.headshotUrl ? (
-                                      <img
-                                        src={p.headshotUrl}
-                                        alt={p.name}
-                                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: posColor + '33' }}
-                                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                      />
-                                    ) : (
-                                      <div style={{
-                                        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                                        background: posColor + '33', display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', fontSize: 14, fontWeight: 700, color: posColor,
+                            {/* Two-column layout: suggestions left, actual pick right */}
+                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+                              {/* Suggested player cards */}
+                              {row.suggestions.length > 0 && (
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: '1 1 0' }}>
+                                  {row.suggestions.map((p, si) => {
+                                    const isActual = row.actualPlayer?.name === p.name;
+                                    const cardColor = isActual ? '#6366f1' : posColor;
+                                    return (
+                                      <div key={p.name} style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        background: (si === 0 || isActual) ? cardColor + '18' : 'var(--bg-tertiary)',
+                                        border: `1px solid ${(si === 0 || isActual) ? cardColor + '66' : 'var(--border)'}`,
+                                        borderRadius: 8, padding: '6px 10px',
+                                        minWidth: 160, flex: '1 1 160px', maxWidth: 230,
+                                        outline: isActual ? `2px solid #6366f1` : undefined,
                                       }}>
-                                        {p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
-                                      </div>
-                                    )}
-                                    <div style={{ minWidth: 0 }}>
-                                      <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {si === 0 && <span style={{ fontSize: 10, marginRight: 4 }}>⭐</span>}
-                                        {p.name}
-                                      </div>
-                                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                        {p.team} · ADP {p.adp.toFixed(1)}
-                                      </div>
-                                      <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
-                                        <span style={{
-                                          fontSize: 10, fontWeight: 700,
-                                          color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
-                                        }}>
-                                          {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
-                                        </span>
-                                        {p.estPPR > 0 && (
-                                          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                            ~{p.estPPR} PPR
-                                          </span>
+                                        {p.headshotUrl ? (
+                                          <img src={p.headshotUrl} alt={p.name}
+                                            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                        ) : (
+                                          <div style={{
+                                            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                            background: cardColor + '33', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', fontSize: 13, fontWeight: 700, color: cardColor,
+                                          }}>{p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>
                                         )}
-                                        <span style={{
-                                          fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
-                                          background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)'
-                                            : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
-                                          color: p.hitProb === 'Likely Hit' ? '#10b981'
-                                            : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
-                                        }}>
-                                          {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}
-                                        </span>
+                                        <div style={{ minWidth: 0 }}>
+                                          <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {isActual ? <span style={{ fontSize: 10, marginRight: 3 }}>✓</span>
+                                              : si === 0 ? <span style={{ fontSize: 10, marginRight: 3 }}>⭐</span> : null}
+                                            {p.name}
+                                          </div>
+                                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.team} · ADP {p.adp.toFixed(1)}</div>
+                                          <div style={{ display: 'flex', gap: 5, marginTop: 2, alignItems: 'center' }}>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: p.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
+                                              {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                                            </span>
+                                            {p.estPPR > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~{p.estPPR} PPR</span>}
+                                            <span style={{
+                                              fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
+                                              background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)' : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                                              color: p.hitProb === 'Likely Hit' ? '#10b981' : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                                            }}>{p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Actual pick selector */}
+                              <div style={{
+                                background: row.isActualPick ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
+                                border: `1px solid ${row.isActualPick ? '#6366f155' : 'var(--border)'}`,
+                                borderRadius: 8, padding: '8px 12px', minWidth: 220, flexShrink: 0,
+                              }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>
+                                  Actual Pick
+                                </div>
+                                <select
+                                  value={actualPicks[row.round]?.name ?? ''}
+                                  onChange={(e) => {
+                                    const name = e.target.value;
+                                    if (!name) {
+                                      setActualPicks((prev) => { const n = { ...prev }; delete n[row.round]; return n; });
+                                    } else {
+                                      const found = row.nearbyPlayers.find((p) => p.name === name);
+                                      if (found) setActualPicks((prev) => ({
+                                        ...prev,
+                                        [row.round]: { name: found.name, position: allPredictions2026.find((p) => p.name === name)?.position ?? row.recPos },
+                                      }));
+                                    }
+                                  }}
+                                  style={{ width: '100%', fontSize: 12, padding: '4px 6px', borderRadius: 4, marginBottom: 6 }}
+                                >
+                                  <option value="">— Did not pick yet —</option>
+                                  {row.nearbyPlayers.map((p) => {
+                                    const pPos = allPredictions2026.find((x) => x.name === p.name)?.position ?? '';
+                                    return (
+                                      <option key={p.name} value={p.name}>
+                                        [{pPos}] {p.name} ({p.team}, ADP {p.adp.toFixed(1)})
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+
+                                {/* Show selected player's stats + comparison */}
+                                {row.actualPlayer && (() => {
+                                  const ap = row.actualPlayer;
+                                  const apColor = POS_COLORS[allPredictions2026.find((p) => p.name === ap.name)?.position ?? ''] || '#6366f1';
+                                  const diff = row.actualVsRec ?? 0;
+                                  return (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      {ap.headshotUrl ? (
+                                        <img src={ap.headshotUrl} alt={ap.name}
+                                          style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                      ) : (
+                                        <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                          background: apColor + '33', display: 'flex', alignItems: 'center',
+                                          justifyContent: 'center', fontSize: 12, fontWeight: 700, color: apColor,
+                                        }}>{ap.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>
+                                      )}
+                                      <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {ap.name}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ap.team} · {ap.predictedVor >= 0 ? '+' : ''}{ap.predictedVor}σ · ~{ap.estPPR} PPR</div>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: diff >= 0 ? '#10b981' : '#ef4444' }}>
+                                          {diff >= 0 ? `✓ +${diff}σ vs rec` : `✗ ${diff}σ vs rec`}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })()}
                               </div>
-                            )}
+
+                            </div>
                           </div>
                         </React.Fragment>
                       );
