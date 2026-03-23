@@ -1246,16 +1246,19 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
   }, [dispQbs, dispRbs, dispWrs, dispTes]);
 
+  // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
   const teamTotals = useMemo((): TeamTotalRow[] => {
-    return teamGroups.map((g) => {
-      const row: TeamTotalRow = { team: g.team, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, pprPts: g.totalPPR };
-      for (const p of g.qbs) { row.passAtt += p.passAtt; row.passComp += p.passComp; row.passYds += p.passYds; row.passTD += p.passTD; row.int += p.int; row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; }
-      for (const p of g.rbs) { row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
-      for (const p of g.wrs) { row.rushAtt += p.rushAtt; row.rushYds += p.rushYds; row.rushTD += p.rushTD; row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
-      for (const p of g.tes) { row.tgt += p.tgt; row.rec += p.rec; row.recYds += p.recYds; row.recTD += p.recTD; }
-      return row;
-    });
-  }, [teamGroups]);
+    const byTeam = new Map<string, TeamTotalRow>();
+    function ensureRow(team: string): TeamTotalRow {
+      if (!byTeam.has(team)) byTeam.set(team, { team, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, pprPts: 0 });
+      return byTeam.get(team)!;
+    }
+    for (const p of dispQbs) { if (!p.team) continue; const t = ensureRow(p.team); t.passAtt += p.passAtt; t.passComp += p.passComp; t.passYds += p.passYds; t.passTD += p.passTD; t.int += p.int; t.rushAtt += p.rushAtt; t.rushYds += p.rushYds; t.rushTD += p.rushTD; t.pprPts += p.pprPts; }
+    for (const p of dispRbs) { if (!p.team) continue; const t = ensureRow(p.team); t.rushAtt += p.rushAtt; t.rushYds += p.rushYds; t.rushTD += p.rushTD; t.tgt += p.tgt; t.rec += p.rec; t.recYds += p.recYds; t.recTD += p.recTD; t.pprPts += p.pprPts; }
+    for (const p of dispWrs) { if (!p.team) continue; const t = ensureRow(p.team); t.rushAtt += p.rushAtt; t.rushYds += p.rushYds; t.rushTD += p.rushTD; t.tgt += p.tgt; t.rec += p.rec; t.recYds += p.recYds; t.recTD += p.recTD; t.pprPts += p.pprPts; }
+    for (const p of dispTes) { if (!p.team) continue; const t = ensureRow(p.team); t.tgt += p.tgt; t.rec += p.rec; t.recYds += p.recYds; t.recTD += p.recTD; t.pprPts += p.pprPts; }
+    return [...byTeam.values()];
+  }, [dispQbs, dispRbs, dispWrs, dispTes]);
 
   const [teamSortCol, setTeamSortCol] = useState<keyof TeamTotalRow>('pprPts');
   const [teamSortAsc, setTeamSortAsc] = useState(false);
@@ -1548,7 +1551,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
         return (
           <div style={{ marginBottom: 20 }}>
             <h4 style={{ marginBottom: 8 }}>
-              Team Totals — {PREDICT_SEASON}
+              Team Totals — {season}
               <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                 {sortedTeamTotals.length} teams · {TEAM_POS_LIMITS.QB} QB, {TEAM_POS_LIMITS.RB} RB, {TEAM_POS_LIMITS.WR} WR, {TEAM_POS_LIMITS.TE} TE per team · click headers to sort
               </span>
