@@ -82,7 +82,7 @@ export function PlayerStatsTable({ players, loading, error, season }: Props) {
         : (bVal as number) - (aVal as number);
     });
     return data;
-  }, [players, posFilter, search, sortField, sortDir]);
+  }, [players, posFilter, rookiesOnly, rookieIds, search, sortField, sortDir]);
 
   if (loading) {
     return (

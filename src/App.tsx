@@ -15,6 +15,7 @@ import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
 import { StatProjections } from './components/StatProjections';
+import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
@@ -157,7 +158,7 @@ function App() {
       <main className="main">
         {tab === 'projections' && <StatProjections season={season} />}
         {tab === 'stats' && season >= 2026
-          ? <StatProjections season={season} />
+          ? <ExternalRankings2026 />
           : tab === 'stats' && (
             <PlayerStatsTable
               players={seasonTotals}
