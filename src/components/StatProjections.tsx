@@ -947,14 +947,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
             const players = (candidatesByTeamPos.get(tpKey(team, pos)) || []).slice(0, TEAM_POS_LIMITS[pos]);
 
             if (pos === 'QB') {
-              // For share denominators, health-adjust the primary starter's stats (idx 0)
-              // so an injured starter doesn't get a depressed share due to missed games.
-              // Backups who filled in retain raw stats — they won't have the same role in 2026.
-              const priorPassAttTotal = players.reduce((s, p, i) => {
-                const att = p.prior?.attempts || 0;
-                const g = p.prior?.games ?? 17;
-                return s + (i === 0 ? healthAdjust(att, g) : att);
-              }, 0);
+              // Rush share still uses prior-season tendencies (scrambling style varies by QB).
               const priorRushAttTotal = players.reduce((s, p, i) => {
                 const car = p.prior?.carries || 0;
                 const g = p.prior?.games ?? 17;
@@ -969,9 +962,10 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
               const starterProjected = players.length > 0 ? Math.round(projectGames(players[0].prior, true)) : 17;
               const starterGames = players.length === 1 ? 17 : Math.min(16, Math.max(1, starterProjected));
 
-              // Track how much of the pool is consumed by the starter so backups can fill the remainder,
-              // ensuring QB totals always reconcile with the team's projected passing budget.
+              // Track allocated pool so each subsequent QB fills the remainder,
+              // guaranteeing QB totals always equal the team's projected passing budget.
               let allocatedPassAtt = 0;
+              let allocatedPassTD = 0;
               let allocatedRushAtt = 0;
 
               for (let idx = 0; idx < players.length; idx++) {
@@ -981,45 +975,41 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                 const games = idx === 0 ? starterGames : 17 - starterGames;
                 const af = ageFactor(normalizeName(player.name), 'QB');
                 const gamesScale = games / 17;
+                const sp = players[0]?.prior; // starter's prior — used for backup rate reference
 
                 let passAtt: number, passComp: number, passYds: number, passTD: number, ints: number;
                 let rushAtt: number, rushYds: number, rushTD: number;
 
                 if (isPrimary && prior && prior.games >= 3) {
-                  // Primary starter with meaningful history: allocate from the team
-                  // pass pool using their historical share, health-adjusted.
-                  const adjAtt = healthAdjust(prior.attempts || 0, prior.games);
-                  const passShare = priorPassAttTotal > 0 ? adjAtt / priorPassAttTotal : 1 / players.length;
-                  passAtt = Math.round(qbPassPool * passShare * af * gamesScale);
+                  // Starter throws ALL team passes in their games (no intra-game sharing with backup).
+                  // Game allocation already encodes the time split, so no passShare multiplier needed.
+                  passAtt = Math.round(qbPassPool * af * gamesScale);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
                   passComp = Math.round(passAtt * compRate);
                   const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
                   passYds = Math.round(passAtt * ypa);
-                  const tdRate = (prior.attempts || 0) > 0 ? (prior.passing_tds || 0) / prior.attempts : 0.04;
-                  passTD = Math.round(passAtt * tdRate);
+                  // Anchor TDs to the team's projected TD budget (reconciles with receiver recTDs)
+                  passTD = Math.round(projTeam.passTD * gamesScale * af);
                   const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
                   ints = Math.round(passAtt * intRate);
 
                   const adjCar = healthAdjust(prior.carries || 0, prior.games);
-                  const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5 / players.length;
+                  const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5;
                   rushAtt = Math.round(qbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
                 } else {
-                  // Backup QB: consume the remaining pool after the starter's allocation.
-                  // This guarantees QB totals = team passing budget (no leakage/inflation).
-                  // Use the starter's per-play efficiency rates (slightly discounted) for the backup.
-                  const sp = players[0]?.prior;
+                  // Backup QB: fill remaining pool for exact reconciliation with team totals.
+                  // Use starter's per-play efficiency rates (slightly discounted).
                   const compRate = sp && sp.attempts > 0 ? Math.min(0.68, (sp.completions || 0) / sp.attempts) : 0.60;
                   const ypa = sp && sp.attempts > 0 ? Math.min(8.5, (sp.passing_yards || 0) / sp.attempts) * 0.92 : 6.5;
-                  const tdRate = sp && sp.attempts > 0 ? (sp.passing_tds || 0) / sp.attempts : 0.038;
                   const intRate = sp && sp.attempts > 0 ? Math.max(0.025, ((sp.interceptions || 0) / sp.attempts) * 1.15) : 0.032;
 
                   passAtt = Math.max(0, Math.round(qbPassPool) - allocatedPassAtt);
                   passComp = Math.round(passAtt * compRate);
                   passYds = Math.round(passAtt * ypa);
-                  passTD = Math.round(passAtt * tdRate);
+                  passTD = Math.max(0, Math.round(projTeam.passTD) - allocatedPassTD);
                   ints = Math.round(passAtt * intRate);
 
                   rushAtt = Math.max(0, Math.round(qbRushPool) - allocatedRushAtt);
@@ -1028,6 +1018,7 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                 }
 
                 allocatedPassAtt += passAtt;
+                allocatedPassTD += passTD;
                 allocatedRushAtt += rushAtt;
 
                 const pts = computePPR({ passYds, passTD, int: ints, rushYds, rushTD });
