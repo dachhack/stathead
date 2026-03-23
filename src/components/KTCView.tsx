@@ -537,7 +537,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                   <th>Pos Rank</th>
                   <th>Team</th>
                   <th>Age</th>
-                  <th>{format === 'superflex' ? 'SF Value' : '1QB Value'}</th>
+                  <th>{format === 'superflex' ? 'SF Value' : 'Value'}</th>
                   <th style={{ minWidth: 160 }}>Value Chart</th>
                   {dataSource === 'fc' ? (
                     <th>30d Trend</th>
