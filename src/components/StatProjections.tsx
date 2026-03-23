@@ -373,6 +373,7 @@ export function StatProjections() {
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState(PREDICT_SEASON);
   const [selectedPos, setSelectedPos] = useState<Position>('RB');
   const [viewMode, setViewMode] = useState<ViewMode>('position');
   const [qbProjections, setQBProjections] = useState<QBProjection[]>([]);
@@ -382,6 +383,8 @@ export function StatProjections() {
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const [scenarioOpen, setScenarioOpen] = useState(false);
+
+  const isActuals = selectedSeason < PREDICT_SEASON;
 
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
@@ -400,6 +403,98 @@ export function StatProjections() {
 
     async function run() {
       try {
+        setLoading(true);
+        setError(null);
+
+        // ── Actuals mode: fetch historical player stats for a past season ──
+        if (isActuals) {
+          setLoadingStatus(`Loading ${selectedSeason} player stats...`);
+          const weeklyStats = await fetchPlayerStats(selectedSeason).catch(() => []);
+          if (cancelled) return;
+
+          const totals = aggregateToSeasonTotals(weeklyStats);
+          const fantasyPos = new Set(['QB', 'RB', 'WR', 'TE']);
+
+          const qbs: QBProjection[] = totals
+            .filter((p) => p.position === 'QB' && fantasyPos.has(p.position) && p.attempts >= 50)
+            .map((p) => ({
+              name: p.player_display_name || p.player_name,
+              team: p.recent_team,
+              adp: 999,
+              games: p.games,
+              passAtt: p.attempts,
+              passComp: p.completions,
+              passYds: p.passing_yards,
+              passTD: p.passing_tds,
+              int: p.interceptions,
+              rushAtt: p.carries,
+              rushYds: p.rushing_yards,
+              rushTD: p.rushing_tds,
+              pprPts: Math.round(p.fantasy_points_ppr),
+            }))
+            .sort((a, b) => b.pprPts - a.pprPts);
+
+          const rbs: RBProjection[] = totals
+            .filter((p) => p.position === 'RB' && (p.carries >= 20 || p.targets >= 10))
+            .map((p) => ({
+              name: p.player_display_name || p.player_name,
+              team: p.recent_team,
+              adp: 999,
+              games: p.games,
+              rushAtt: p.carries,
+              rushYds: p.rushing_yards,
+              rushTD: p.rushing_tds,
+              tgt: p.targets,
+              rec: p.receptions,
+              recYds: p.receiving_yards,
+              recTD: p.receiving_tds,
+              pprPts: Math.round(p.fantasy_points_ppr),
+            }))
+            .sort((a, b) => b.pprPts - a.pprPts);
+
+          const wrs: WRProjection[] = totals
+            .filter((p) => p.position === 'WR' && (p.targets >= 10 || p.carries >= 5))
+            .map((p) => ({
+              name: p.player_display_name || p.player_name,
+              team: p.recent_team,
+              adp: 999,
+              games: p.games,
+              tgt: p.targets,
+              rec: p.receptions,
+              recYds: p.receiving_yards,
+              recTD: p.receiving_tds,
+              rushAtt: p.carries,
+              rushYds: p.rushing_yards,
+              rushTD: p.rushing_tds,
+              pprPts: Math.round(p.fantasy_points_ppr),
+            }))
+            .sort((a, b) => b.pprPts - a.pprPts);
+
+          const tes: TEProjection[] = totals
+            .filter((p) => p.position === 'TE' && p.targets >= 5)
+            .map((p) => ({
+              name: p.player_display_name || p.player_name,
+              team: p.recent_team,
+              adp: 999,
+              games: p.games,
+              tgt: p.targets,
+              rec: p.receptions,
+              recYds: p.receiving_yards,
+              recTD: p.receiving_tds,
+              pprPts: Math.round(p.fantasy_points_ppr),
+            }))
+            .sort((a, b) => b.pprPts - a.pprPts);
+
+          if (!cancelled) {
+            setQBProjections(qbs);
+            setRBProjections(rbs);
+            setWRProjections(wrs);
+            setTEProjections(tes);
+          }
+          return;
+        }
+
+        // ── Projections mode ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
         const [adpData, priorStats, draftData, rosters, gamesData, oddsLines] = await Promise.all([
@@ -960,7 +1055,7 @@ export function StatProjections() {
 
     run();
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedSeason, isActuals]);
 
   const fmtADP = (adp: number) => adp >= 500 ? '—' : adp.toFixed(1);
 
@@ -1019,10 +1114,14 @@ export function StatProjections() {
         <div className="spinner" />
         <div className="loading-text">
           {loadingStatus}
-          <br />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Building {PREDICT_SEASON} stat projections from prior-season rates
-          </span>
+          {!isActuals && (
+            <>
+              <br />
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Building {PREDICT_SEASON} stat projections from prior-season rates
+              </span>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1037,13 +1136,49 @@ export function StatProjections() {
     );
   }
 
+  const SEASON_OPTIONS = Array.from({ length: PREDICT_SEASON - 2019 }, (_, i) => PREDICT_SEASON - i);
+
   return (
     <>
-      <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        {PREDICT_SEASON} projections: team totals projected via {Math.round(projectionConfig.winner.teamWeight * 100)}/{Math.round((1 - projectionConfig.winner.teamWeight) * 100)} team/league blend,
-        position pools computed from prior-season tendencies (regressed toward league avg for coaching changes),
-        then split by each player's share of team volume. Individual efficiency rates preserved. Sorted by PPR.
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div className="control-group" style={{ marginBottom: 0 }}>
+          <label className="control-label">Season</label>
+          <select
+            value={selectedSeason}
+            onChange={(e) => setSelectedSeason(Number(e.target.value))}
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              padding: '4px 8px',
+              cursor: 'pointer',
+            }}
+          >
+            {SEASON_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        <span style={{
+          fontSize: 11,
+          fontWeight: 700,
+          padding: '2px 8px',
+          borderRadius: 4,
+          background: isActuals ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)',
+          color: isActuals ? '#10b981' : '#6366f1',
+          border: `1px solid ${isActuals ? '#10b981' : '#6366f1'}`,
+        }}>
+          {isActuals ? 'Actuals' : 'Projected'}
+        </span>
+        {!isActuals && (
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
+            {PREDICT_SEASON} projections: team totals via {Math.round(projectionConfig.winner.teamWeight * 100)}/{Math.round((1 - projectionConfig.winner.teamWeight) * 100)} team/league blend,
+            position pools regressed toward league avg for coaching changes. Sorted by PPR.
+          </p>
+        )}
+      </div>
 
       {/* View mode + Position tabs */}
       <div className="controls" style={{ marginBottom: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -1090,13 +1225,15 @@ export function StatProjections() {
             </div>
           </div>
         )}
-        <button
-          className={`scenario-builder-btn ${!isScenarioEmpty(scenario) ? 'active' : ''}`}
-          onClick={() => setScenarioOpen(true)}
-        >
-          {!isScenarioEmpty(scenario) && <span className="scenario-active-dot" />}
-          Scenarios
-        </button>
+        {!isActuals && (
+          <button
+            className={`scenario-builder-btn ${!isScenarioEmpty(scenario) ? 'active' : ''}`}
+            onClick={() => setScenarioOpen(true)}
+          >
+            {!isScenarioEmpty(scenario) && <span className="scenario-active-dot" />}
+            Scenarios
+          </button>
+        )}
       </div>
 
       {/* Team view */}
@@ -1277,7 +1414,7 @@ export function StatProjections() {
         return (
           <div style={{ marginBottom: 20 }}>
             <h4 style={{ marginBottom: 8 }}>
-              Team Totals — {PREDICT_SEASON}
+              Team Totals — {selectedSeason}
               <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                 {sortedTeamTotals.length} teams · {TEAM_POS_LIMITS.QB} QB, {TEAM_POS_LIMITS.RB} RB, {TEAM_POS_LIMITS.WR} WR, {TEAM_POS_LIMITS.TE} TE per team · click headers to sort
               </span>
@@ -1395,7 +1532,7 @@ export function StatProjections() {
       {/* Projection table */}
       {viewMode === 'position' && <>
       <h4 style={{ marginBottom: 8 }}>
-        <span style={{ color: POS_COLORS[selectedPos] }}>{selectedPos}</span> Projections — {PREDICT_SEASON}
+        <span style={{ color: POS_COLORS[selectedPos] }}>{selectedPos}</span> {isActuals ? 'Actuals' : 'Projections'} — {selectedSeason}
         <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
           {currentData.length} players
         </span>
@@ -1407,7 +1544,7 @@ export function StatProjections() {
               <th>#</th>
               <th>Player</th>
               <th>Team</th>
-              <th>ADP</th>
+              {!isActuals && <th>ADP</th>}
               <th>Gm</th>
               {selectedPos === 'QB' && (
                 <>
@@ -1436,7 +1573,7 @@ export function StatProjections() {
               <th></th>
               <th></th>
               <th></th>
-              <th></th>
+              {!isActuals && <th></th>}
               <th></th>
               {selectedPos === 'QB' && (
                 <>
@@ -1470,7 +1607,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
+                {!isActuals && <td>{fmtADP(p.adp)}</td>}
                 <td>{p.games}</td>
                 <td>{p.passAtt}</td>
                 <td>{p.passComp}</td>
@@ -1488,7 +1625,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
+                {!isActuals && <td>{fmtADP(p.adp)}</td>}
                 <td>{p.games}</td>
                 <td>{p.rushAtt}</td>
                 <td>{p.rushYds.toLocaleString()}</td>
@@ -1505,7 +1642,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
+                {!isActuals && <td>{fmtADP(p.adp)}</td>}
                 <td>{p.games}</td>
                 <td>{p.tgt}</td>
                 <td>{p.rec}</td>
@@ -1522,7 +1659,7 @@ export function StatProjections() {
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{p.name}</strong></td>
                 <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
+                {!isActuals && <td>{fmtADP(p.adp)}</td>}
                 <td>{p.games}</td>
                 <td>{p.tgt}</td>
                 <td>{p.rec}</td>
