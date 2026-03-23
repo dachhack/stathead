@@ -5,24 +5,15 @@ import {
 } from 'recharts';
 import { fetchPlayerStats, aggregateToSeasonTotals } from '../data';
 import type { SeasonTotals, PlayerStats } from '../types';
+import { projectTeamTotals } from '../lib/teamProjection';
+import type { TeamTotals } from '../lib/teamProjection';
+import projectionConfig from '../generated/projection-config.json';
 
-// ── Types ──
+// ── Config ──
 
-interface TeamSeasonStats {
-  passYds: number;
-  passAtt: number;
-  passTD: number;
-  rushYds: number;
-  rushAtt: number;
-  rushTD: number;
-  totalTD: number;
-  recYds: number;
-  pprPts: number;
-}
+type MetricKey = keyof TeamTotals;
 
-type MetricKey = keyof TeamSeasonStats;
-
-const METRICS: { key: MetricKey; label: string; decimals?: number }[] = [
+const METRICS: { key: MetricKey; label: string }[] = [
   { key: 'passYds',  label: 'Pass Yards' },
   { key: 'rushYds',  label: 'Rush Yards' },
   { key: 'recYds',   label: 'Receiving Yards' },
@@ -31,59 +22,57 @@ const METRICS: { key: MetricKey; label: string; decimals?: number }[] = [
   { key: 'totalTD',  label: 'Total TDs' },
   { key: 'passAtt',  label: 'Pass Attempts' },
   { key: 'rushAtt',  label: 'Rush Attempts' },
-  { key: 'pprPts',   label: 'PPR Points', decimals: 0 },
+  { key: 'pprPts',   label: 'PPR Points (approx)' },
 ];
 
 const FETCH_SEASONS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
-const DISPLAY_SEASONS = FETCH_SEASONS.slice(1); // 2020-2025; prior year available for each
+const DISPLAY_SEASONS = FETCH_SEASONS.slice(1); // 2020–2025; projection uses Y-1 as prior
 
-// ── Data helpers ──
+// ── Helpers ──
 
-function emptyStats(): TeamSeasonStats {
-  return { passYds: 0, passAtt: 0, passTD: 0, rushYds: 0, rushAtt: 0, rushTD: 0, totalTD: 0, recYds: 0, pprPts: 0 };
-}
-
-function aggregateByTeam(players: SeasonTotals[]): Map<string, TeamSeasonStats> {
-  const map = new Map<string, TeamSeasonStats>();
+function aggregateActualsByTeam(players: SeasonTotals[]): Map<string, TeamTotals> {
+  const map = new Map<string, Omit<TeamTotals, 'totalTD' | 'pprPts'> & { totalTD: number; pprPts: number }>();
   for (const p of players) {
     const team = p.recent_team;
     if (!team) continue;
-    if (!map.has(team)) map.set(team, emptyStats());
-    const row = map.get(team)!;
-    row.passYds  += p.passing_yards   || 0;
-    row.passAtt  += p.attempts        || 0;
-    row.passTD   += p.passing_tds     || 0;
-    row.rushYds  += p.rushing_yards   || 0;
-    row.rushAtt  += p.carries         || 0;
-    row.rushTD   += p.rushing_tds     || 0;
-    row.recYds   += p.receiving_yards || 0;
-    row.pprPts   += p.fantasy_points_ppr || 0;
+    if (!map.has(team)) map.set(team, {
+      passAtt: 0, passYds: 0, passTD: 0,
+      rushAtt: 0, rushYds: 0, rushTD: 0,
+      recYds: 0, recTD: 0, targets: 0, receptions: 0,
+      totalTD: 0, pprPts: 0,
+    });
+    const t = map.get(team)!;
+    t.passAtt    += p.attempts          || 0;
+    t.passYds    += p.passing_yards     || 0;
+    t.passTD     += p.passing_tds       || 0;
+    t.rushAtt    += p.carries           || 0;
+    t.rushYds    += p.rushing_yards     || 0;
+    t.rushTD     += p.rushing_tds       || 0;
+    t.recYds     += p.receiving_yards   || 0;
+    t.recTD      += p.receiving_tds     || 0;
+    t.targets    += p.targets           || 0;
+    t.receptions += p.receptions        || 0;
+    t.pprPts     += p.fantasy_points_ppr || 0;
   }
-  for (const row of map.values()) {
-    row.totalTD = row.passTD + row.rushTD;
-    row.pprPts  = Math.round(row.pprPts);
+  for (const t of map.values()) {
+    t.totalTD = t.passTD + t.rushTD;
+    t.pprPts  = Math.round(t.pprPts);
   }
-  return map;
+  return map as Map<string, TeamTotals>;
 }
 
-// ── Custom tooltip ──
+// ── Tooltip ──
 
-interface TooltipPayload {
-  name: string;
-  value: number;
-  color: string;
-}
+interface TooltipEntry { name: string; value: number; color: string }
 
-function CustomTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: TooltipPayload[];
-  label?: number;
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean; payload?: TooltipEntry[]; label?: number;
 }) {
   if (!active || !payload?.length) return null;
-  const actual    = payload.find((p) => p.name === 'Actual')?.value ?? 0;
-  const projected = payload.find((p) => p.name === 'Prior Year')?.value ?? 0;
-  const delta = actual - projected;
-  const pct   = projected > 0 ? ((delta / projected) * 100).toFixed(1) : '—';
+  const actual  = payload.find((p) => p.name === 'Actual')?.value ?? 0;
+  const proj    = payload.find((p) => p.name === 'Model Projection')?.value ?? 0;
+  const delta   = actual - proj;
+  const pct     = proj > 0 ? ((delta / proj) * 100).toFixed(1) : '—';
   return (
     <div style={{
       background: 'var(--bg-secondary)', border: '1px solid var(--border)',
@@ -107,17 +96,12 @@ function CustomTooltip({ active, payload, label }: {
 
 // ── Main component ──
 
-interface ChartPoint {
-  season: number;
-  actual: number;
-  projected: number;
-  delta: number;
-}
+interface ChartPoint { season: number; actual: number; projected: number; delta: number }
 
 export function TeamAccuracyChart() {
   const [loading, setLoading] = useState(true);
-  // Map of season → team → stats
-  const [allData, setAllData] = useState<Map<number, Map<string, TeamSeasonStats>>>(new Map());
+  // Raw aggregated player stats per season (for both actuals and as prior-year input to model)
+  const [rawBySeason, setRawBySeason] = useState<Map<number, SeasonTotals[]>>(new Map());
   const [selectedTeam, setSelectedTeam] = useState('LA');
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>('passYds');
   const [chartType, setChartType] = useState<'grouped' | 'delta'>('grouped');
@@ -129,40 +113,55 @@ export function TeamAccuracyChart() {
       FETCH_SEASONS.map(async (s) => {
         const weekly = await fetchPlayerStats(s).catch(() => [] as PlayerStats[]);
         const totals = aggregateToSeasonTotals(weekly);
-        return { season: s, byTeam: aggregateByTeam(totals) };
+        return { season: s, totals };
       })
     ).then((results) => {
       if (cancelled) return;
-      const map = new Map<number, Map<string, TeamSeasonStats>>();
-      for (const { season, byTeam } of results) map.set(season, byTeam);
-      setAllData(map);
-
-      // Default to first available team alphabetically
-      const teams = [...new Set(results.flatMap((r) => [...r.byTeam.keys()]))].sort();
+      const map = new Map<number, SeasonTotals[]>();
+      for (const { season, totals } of results) map.set(season, totals);
+      setRawBySeason(map);
+      // Default to LA if available, else first team
+      const teams = [...new Set(results.flatMap((r) => r.totals.map((p) => p.recent_team).filter(Boolean)))].sort();
       if (teams.length && !teams.includes('LA')) setSelectedTeam(teams[0]);
-
       setLoading(false);
     });
     return () => { cancelled = true; };
   }, []);
 
+  // Actual team stats per season
+  const actualsBySeason = useMemo(() => {
+    const out = new Map<number, Map<string, TeamTotals>>();
+    for (const [s, totals] of rawBySeason) out.set(s, aggregateActualsByTeam(totals));
+    return out;
+  }, [rawBySeason]);
+
+  // Model projections per season (uses prior year totals through the methodology)
+  const projectionsBySeason = useMemo(() => {
+    const out = new Map<number, Map<string, TeamTotals>>();
+    for (let i = 1; i < FETCH_SEASONS.length; i++) {
+      const displaySeason = FETCH_SEASONS[i];
+      const priorTotals   = rawBySeason.get(FETCH_SEASONS[i - 1]);
+      if (priorTotals) out.set(displaySeason, projectTeamTotals(priorTotals));
+    }
+    return out;
+  }, [rawBySeason]);
+
   const teams = useMemo(() => {
     const set = new Set<string>();
-    for (const byTeam of allData.values()) for (const t of byTeam.keys()) set.add(t);
+    for (const byTeam of actualsBySeason.values()) for (const t of byTeam.keys()) set.add(t);
     return [...set].sort();
-  }, [allData]);
+  }, [actualsBySeason]);
 
   const chartData = useMemo((): ChartPoint[] => {
     return DISPLAY_SEASONS.map((s) => {
-      const actual    = Math.round(allData.get(s)?.get(selectedTeam)?.[selectedMetric]    ?? 0);
-      const projected = Math.round(allData.get(s - 1)?.get(selectedTeam)?.[selectedMetric] ?? 0);
+      const actual    = Math.round(actualsBySeason.get(s)?.get(selectedTeam)?.[selectedMetric]    ?? 0);
+      const projected = Math.round(projectionsBySeason.get(s)?.get(selectedTeam)?.[selectedMetric] ?? 0);
       return { season: s, actual, projected, delta: actual - projected };
     });
-  }, [allData, selectedTeam, selectedMetric]);
+  }, [actualsBySeason, projectionsBySeason, selectedTeam, selectedMetric]);
 
   const metricLabel = METRICS.find((m) => m.key === selectedMetric)?.label ?? selectedMetric;
 
-  // Determine domain padding for delta chart
   const deltaMin = Math.min(0, ...chartData.map((d) => d.delta));
   const deltaMax = Math.max(0, ...chartData.map((d) => d.delta));
 
@@ -198,7 +197,7 @@ export function TeamAccuracyChart() {
               onClick={() => setChartType('grouped')}
               style={{ borderColor: 'var(--text-muted)' }}
             >
-              Actual vs Prior Year
+              Actual vs Projected
             </button>
             <button
               className={`pos-filter ${chartType === 'delta' ? 'active' : ''}`}
@@ -211,17 +210,15 @@ export function TeamAccuracyChart() {
         </div>
       </div>
 
-      {/* Title */}
-      <h4 style={{ marginBottom: 16, color: 'var(--text-primary)' }}>
+      <h4 style={{ marginBottom: 16 }}>
         {selectedTeam} — {metricLabel}
         <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 10 }}>
           {chartType === 'grouped'
-            ? 'Actual results vs prior year baseline (2020–2025)'
-            : 'Actual minus prior year baseline — positive = outperformed'}
+            ? 'Actual vs model projection (2026 methodology, retroactively applied) — 2020–2025'
+            : 'Actual minus model projection — green = outperformed, red = underperformed'}
         </span>
       </h4>
 
-      {/* Chart */}
       {chartType === 'grouped' ? (
         <ResponsiveContainer width="100%" height={360}>
           <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }} barCategoryGap="25%">
@@ -229,18 +226,16 @@ export function TeamAccuracyChart() {
             <XAxis dataKey="season" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis
               tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
+              axisLine={false} tickLine={false} width={52}
               tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}
-              width={52}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
             <Legend
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
               formatter={(value) => <span style={{ color: 'var(--text-secondary)' }}>{value}</span>}
             />
-            <Bar dataKey="actual" name="Actual" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={48} />
-            <Bar dataKey="projected" name="Prior Year" fill="#475569" radius={[4, 4, 0, 0]} maxBarSize={48} />
+            <Bar dataKey="actual"    name="Actual"           fill="#6366f1" radius={[4,4,0,0]} maxBarSize={48} />
+            <Bar dataKey="projected" name="Model Projection" fill="#475569" radius={[4,4,0,0]} maxBarSize={48} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -249,27 +244,23 @@ export function TeamAccuracyChart() {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis dataKey="season" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis
-              domain={[deltaMin * 1.15, deltaMax * 1.15]}
+              domain={[deltaMin * 1.2, deltaMax * 1.2]}
               tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
+              axisLine={false} tickLine={false} width={52}
               tickFormatter={(v: number) => v >= 1000 || v <= -1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}
-              width={52}
             />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
                 const delta = payload[0]?.value as number;
-                const pct = (() => {
-                  const pt = chartData.find((d) => d.season === Number(label));
-                  return pt && pt.projected > 0 ? ((delta / pt.projected) * 100).toFixed(1) : '—';
-                })();
+                const pt = chartData.find((d) => d.season === Number(label));
+                const pct = pt && pt.projected > 0 ? ((delta / pt.projected) * 100).toFixed(1) : '—';
                 return (
                   <div style={{
                     background: 'var(--bg-secondary)', border: '1px solid var(--border)',
                     borderRadius: 8, padding: '10px 14px', fontSize: 12,
                   }}>
-                    <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>{label}</div>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}</div>
                     <div style={{ color: delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                       {delta >= 0 ? '+' : ''}{delta.toLocaleString()} ({pct}%)
                     </div>
@@ -279,7 +270,7 @@ export function TeamAccuracyChart() {
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
             />
             <ReferenceLine y={0} stroke="var(--text-muted)" strokeWidth={1.5} />
-            <Bar dataKey="delta" name="vs Prior Year" radius={[4, 4, 0, 0]} maxBarSize={56}>
+            <Bar dataKey="delta" name="vs Model Projection" radius={[4,4,0,0]} maxBarSize={56}>
               {chartData.map((d) => (
                 <Cell key={d.season} fill={d.delta >= 0 ? '#10b981' : '#ef4444'} />
               ))}
@@ -295,14 +286,14 @@ export function TeamAccuracyChart() {
             <tr>
               <th>Season</th>
               <th style={{ textAlign: 'right' }}>Actual</th>
-              <th style={{ textAlign: 'right' }}>Prior Year</th>
+              <th style={{ textAlign: 'right' }}>Model Projection</th>
               <th style={{ textAlign: 'right' }}>Delta</th>
-              <th style={{ textAlign: 'right' }}>% Change</th>
+              <th style={{ textAlign: 'right' }}>% Miss</th>
             </tr>
           </thead>
           <tbody>
             {chartData.map((d) => {
-              const pct = d.projected > 0 ? ((d.delta / d.projected) * 100) : 0;
+              const pct = d.projected > 0 ? (d.delta / d.projected) * 100 : 0;
               return (
                 <tr key={d.season}>
                   <td><strong>{d.season}</strong></td>
@@ -314,10 +305,7 @@ export function TeamAccuracyChart() {
                   }}>
                     {d.delta >= 0 ? '+' : ''}{d.delta.toLocaleString()}
                   </td>
-                  <td style={{
-                    textAlign: 'right',
-                    color: pct > 0 ? '#10b981' : pct < 0 ? '#ef4444' : 'var(--text-muted)',
-                  }}>
+                  <td style={{ textAlign: 'right', color: pct > 0 ? '#10b981' : pct < 0 ? '#ef4444' : 'var(--text-muted)' }}>
                     {d.projected > 0 ? `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%` : '—'}
                   </td>
                 </tr>
@@ -328,8 +316,10 @@ export function TeamAccuracyChart() {
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>
-        "Prior Year" is the same team's actual stat from the previous season — used as a naive baseline projection.
-        Positive delta = team outperformed prior year; negative = underperformed.
+        Model projection uses the same team/league blend methodology as the 2026 projections
+        (prior year team stats blended {Math.round(projectionConfig.winner.teamWeight * 100)}/{Math.round((1 - projectionConfig.winner.teamWeight) * 100)} team/league).
+        Applied retroactively for each year using the prior year's actual stats as input.
+        Does not include Vegas lines or coaching change adjustments.
         Source: nflverse player_stats, 2019–2025.
       </p>
     </div>
