@@ -31,11 +31,12 @@ const FETCH_SEASONS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 const DISPLAY_SEASONS = [...FETCH_SEASONS.slice(1), 2026];
 const PREDICT_SEASON = 2026;
 
-function fmtLabel(v: number | null | undefined): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fmtLabel = (v: any): string => {
   if (v == null || v === 0) return '';
   if (v >= 1000 || v <= -1000) return `${(v / 1000).toFixed(1)}k`;
   return String(v);
-}
+};
 
 // ── Helpers ──
 
