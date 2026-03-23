@@ -304,6 +304,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [benchSlots,  setBenchSlots]  = useState<string[]>(['RB','WR','WR','WR','QB']);
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
   const [actualPicks, setActualPicks] = useState<Record<number, { name: string; position: string }>>({});
+  const [roundPositions, setRoundPositions] = useState<Record<number, string>>({}); // per-round position override for suggestions
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
@@ -872,10 +873,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       round: number; label: string; yourPick: number;
       isBench: boolean;
       recPos: string; slotFilled: string;
+      displayPos: string;                   // position shown in suggestion (may differ from recPos if user overrode)
       vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
       bucketLabel: string;
       alternatives: Array<{ pos: string; metric: number }>;
-      suggestions: PlayerSuggestion[];      // top picks for the *recommended* position
+      suggestion?: PlayerSuggestion;        // single top suggestion for displayPos (deduplicated across rounds)
       nearbyPlayers: PlayerSuggestion[];    // all positions near this pick (for actual-pick selector)
       // Actual pick fields (set when user overrides)
       isActualPick: boolean;
@@ -884,6 +886,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     };
     const plan: PlanRow[] = [];
     let picksUsed = 0;
+    // Track already-suggested & already-drafted player names to avoid repeating across rounds
+    const shownNames = new Set<string>(Object.values(actualPicks).map((ap) => ap.name));
 
     // Helper to build a PlayerSuggestion from a 2026 prediction entry
     const makeSuggestion = (p: typeof allPredictions2026[0]): PlayerSuggestion => {
@@ -973,12 +977,22 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : chosenPos;
       if (slotIdx !== -1) remaining.splice(slotIdx, 1);
 
-      // Top recommendations for the chosen position
-      const suggestions: PlayerSuggestion[] = allPredictions2026
-        .filter((p) => p.position === chosenPos && p.adp >= yourPick - adpWindow && p.adp <= yourPick + adpWindow)
-        .sort((a, b) => b.predictedVor - a.predictedVor)
-        .slice(0, 4)
-        .map(makeSuggestion);
+      // Single top suggestion — use per-round position override if set, else greedy position
+      const displayPos = roundPositions[r] || chosenPos;
+      const suggestion: PlayerSuggestion | undefined = allPredictions2026
+        .filter((p) => p.position === displayPos
+          && p.adp >= yourPick - adpWindow && p.adp <= yourPick + adpWindow
+          && !shownNames.has(p.name))
+        .sort((a, b) => b.predictedVor - a.predictedVor)[0]
+        ? makeSuggestion(
+            allPredictions2026
+              .filter((p) => p.position === displayPos
+                && p.adp >= yourPick - adpWindow && p.adp <= yourPick + adpWindow
+                && !shownNames.has(p.name))
+              .sort((a, b) => b.predictedVor - a.predictedVor)[0]
+          )
+        : undefined;
+      if (suggestion) shownNames.add(suggestion.name);
 
       // Alternatives from greedy candidates (empty if actual pick overrode)
       const rawCandidates = isActualPick
@@ -1007,11 +1021,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         round: r, label, yourPick,
         isBench:      picksUsed >= starterCount,
         recPos:       chosenPos,
+        displayPos,
         slotFilled,
         vorScore, hitPct, bustPct, score, n,
         bucketLabel:  bucket.label,
         alternatives: rawCandidates,
-        suggestions,
+        suggestion,
         nearbyPlayers,
         isActualPick,
         actualPlayer,
@@ -1023,7 +1038,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     }
     return plan;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, actualPicks]);
+  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, actualPicks, roundPositions]);
 
   if (loading) {
     return (
@@ -1480,7 +1495,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   {/* Expected total points summary (starters only) */}
                   {(() => {
                     const starterRows = optimizerPlan.filter((r) => !r.isBench);
-                    const totalEstPPR  = starterRows.reduce((s, r) => s + (r.suggestions[0]?.estPPR ?? 0), 0);
+                    const totalEstPPR  = starterRows.reduce((s, r) => s + (r.suggestion?.estPPR ?? 0), 0);
                     const totalVor     = starterRows.reduce((s, r) => s + r.vorScore, 0);
                     return (
                       <div style={{
@@ -1563,65 +1578,79 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                                 </span>
                               )}
                             </div>
-                            {/* Two-column layout: suggestions left, actual pick right */}
+                            {/* Suggestion + actual pick row */}
                             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
-                              {/* Suggested player cards */}
-                              {row.suggestions.length > 0 && (
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: '1 1 0' }}>
-                                  {row.suggestions.map((p, si) => {
-                                    const isActual = row.actualPlayer?.name === p.name;
-                                    const cardColor = isActual ? '#6366f1' : posColor;
-                                    return (
-                                      <div key={p.name} style={{
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        background: (si === 0 || isActual) ? cardColor + '18' : 'var(--bg-tertiary)',
-                                        border: `1px solid ${(si === 0 || isActual) ? cardColor + '66' : 'var(--border)'}`,
-                                        borderRadius: 8, padding: '6px 10px',
-                                        minWidth: 160, flex: '1 1 160px', maxWidth: 230,
-                                        outline: isActual ? `2px solid #6366f1` : undefined,
-                                      }}>
-                                        {p.headshotUrl ? (
-                                          <img src={p.headshotUrl} alt={p.name}
-                                            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                                        ) : (
-                                          <div style={{
-                                            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                                            background: cardColor + '33', display: 'flex', alignItems: 'center',
-                                            justifyContent: 'center', fontSize: 13, fontWeight: 700, color: cardColor,
-                                          }}>{p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>
-                                        )}
-                                        <div style={{ minWidth: 0 }}>
-                                          <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {isActual ? <span style={{ fontSize: 10, marginRight: 3 }}>✓</span>
-                                              : si === 0 ? <span style={{ fontSize: 10, marginRight: 3 }}>⭐</span> : null}
-                                            {p.name}
-                                          </div>
-                                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.team} · ADP {p.adp.toFixed(1)}</div>
-                                          <div style={{ display: 'flex', gap: 5, marginTop: 2, alignItems: 'center' }}>
-                                            <span style={{ fontSize: 10, fontWeight: 700, color: p.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                                              {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
-                                            </span>
-                                            {p.estPPR > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~{p.estPPR} PPR</span>}
-                                            <span style={{
-                                              fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
-                                              background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)' : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
-                                              color: p.hitProb === 'Likely Hit' ? '#10b981' : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
-                                            }}>{p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}</span>
-                                          </div>
+                              {/* Position selector + single player card */}
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: '1 1 220px', minWidth: 0 }}>
+                                {/* Position dropdown */}
+                                <select
+                                  value={row.displayPos}
+                                  onChange={(e) => {
+                                    const pos = e.target.value;
+                                    setRoundPositions((prev) => ({ ...prev, [row.round]: pos }));
+                                  }}
+                                  style={{ fontSize: 11, padding: '3px 6px', borderRadius: 4, flexShrink: 0, fontWeight: 700, color: posColor }}
+                                >
+                                  {POSITIONS.map((pos) => (
+                                    <option key={pos} value={pos}>{pos}</option>
+                                  ))}
+                                </select>
+
+                                {/* Single suggestion card */}
+                                {row.suggestion ? (() => {
+                                  const p = row.suggestion;
+                                  const isActual = row.actualPlayer?.name === p.name;
+                                  const cardColor = isActual ? '#6366f1' : POS_COLORS[row.displayPos] || posColor;
+                                  return (
+                                    <div style={{
+                                      display: 'flex', alignItems: 'center', gap: 8,
+                                      background: cardColor + '18',
+                                      border: `1px solid ${isActual ? '#6366f1' : cardColor + '66'}`,
+                                      borderRadius: 8, padding: '6px 10px', flex: '1 1 0', minWidth: 0,
+                                      outline: isActual ? '2px solid #6366f1' : undefined,
+                                    }}>
+                                      {p.headshotUrl ? (
+                                        <img src={p.headshotUrl} alt={p.name}
+                                          style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                                      ) : (
+                                        <div style={{
+                                          width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                          background: cardColor + '33', display: 'flex', alignItems: 'center',
+                                          justifyContent: 'center', fontSize: 13, fontWeight: 700, color: cardColor,
+                                        }}>{p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>
+                                      )}
+                                      <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {isActual && <span style={{ fontSize: 10, marginRight: 3 }}>✓</span>}
+                                          {p.name}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.team} · ADP {p.adp.toFixed(1)}</div>
+                                        <div style={{ display: 'flex', gap: 5, marginTop: 2, alignItems: 'center' }}>
+                                          <span style={{ fontSize: 10, fontWeight: 700, color: p.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                                          </span>
+                                          {p.estPPR > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>~{p.estPPR} PPR</span>}
+                                          <span style={{
+                                            fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
+                                            background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)' : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                                            color: p.hitProb === 'Likely Hit' ? '#10b981' : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                                          }}>{p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}</span>
                                         </div>
                                       </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                    </div>
+                                  );
+                                })() : (
+                                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>No player available</div>
+                                )}
+                              </div>
 
                               {/* Actual pick selector */}
                               <div style={{
                                 background: row.isActualPick ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
                                 border: `1px solid ${row.isActualPick ? '#6366f155' : 'var(--border)'}`,
-                                borderRadius: 8, padding: '8px 12px', minWidth: 220, flexShrink: 0,
+                                borderRadius: 8, padding: '8px 12px', minWidth: 200, flexShrink: 0,
                               }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6 }}>
                                   Actual Pick
@@ -1642,7 +1671,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                                   }}
                                   style={{ width: '100%', fontSize: 12, padding: '4px 6px', borderRadius: 4, marginBottom: 6 }}
                                 >
-                                  <option value="">— Did not pick yet —</option>
+                                  <option value="">— Not yet —</option>
                                   {row.nearbyPlayers.map((p) => {
                                     const pPos = allPredictions2026.find((x) => x.name === p.name)?.position ?? '';
                                     return (
@@ -1652,8 +1681,6 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                                     );
                                   })}
                                 </select>
-
-                                {/* Show selected player's stats + comparison */}
                                 {row.actualPlayer && (() => {
                                   const ap = row.actualPlayer;
                                   const apColor = POS_COLORS[allPredictions2026.find((p) => p.name === ap.name)?.position ?? ''] || '#6366f1';
@@ -1662,19 +1689,17 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       {ap.headshotUrl ? (
                                         <img src={ap.headshotUrl} alt={ap.name}
-                                          style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                                          style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                       ) : (
-                                        <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                        <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                                           background: apColor + '33', display: 'flex', alignItems: 'center',
-                                          justifyContent: 'center', fontSize: 12, fontWeight: 700, color: apColor,
+                                          justifyContent: 'center', fontSize: 11, fontWeight: 700, color: apColor,
                                         }}>{ap.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>
                                       )}
                                       <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                          {ap.name}
-                                        </div>
-                                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ap.team} · {ap.predictedVor >= 0 ? '+' : ''}{ap.predictedVor}σ · ~{ap.estPPR} PPR</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ap.name}</div>
+                                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ap.team} · {ap.predictedVor >= 0 ? '+' : ''}{ap.predictedVor}σ</div>
                                         <div style={{ fontSize: 10, fontWeight: 700, color: diff >= 0 ? '#10b981' : '#ef4444' }}>
                                           {diff >= 0 ? `✓ +${diff}σ vs rec` : `✗ ${diff}σ vs rec`}
                                         </div>
