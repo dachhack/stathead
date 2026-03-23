@@ -86,10 +86,18 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   const displayVal = (p: KTCPlayer) =>
     format === 'superflex' ? p.superflexValue : p.value;
 
-  const maxValue = useMemo(
-    () => (filtered.length > 0 ? Math.max(...filtered.map(displayVal)) : 9999),
+  // Re-sort filtered list by the active format's value so switching 1QB↔SF
+  // immediately reorders the table (data arrives sorted by 1QB value).
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort((a, b) => displayVal(b) - displayVal(a)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtered, format]
+    [filtered, format],
+  );
+
+  const maxValue = useMemo(
+    () => (sortedFiltered.length > 0 ? Math.max(...sortedFiltered.map(displayVal)) : 9999),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sortedFiltered, format]
   );
 
   // Players matching the history search box
@@ -529,7 +537,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                   <th>Pos Rank</th>
                   <th>Team</th>
                   <th>Age</th>
-                  <th>Value</th>
+                  <th>{format === 'superflex' ? 'SF Value' : '1QB Value'}</th>
                   <th style={{ minWidth: 160 }}>Value Chart</th>
                   {dataSource === 'fc' ? (
                     <th>30d Trend</th>
@@ -540,7 +548,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p, i) => (
+                {sortedFiltered.map((p, i) => (
                   <tr key={p.slug || `${p.playerName}-${i}`}>
                     <td className="rank-cell">{i + 1}</td>
                     <td>
