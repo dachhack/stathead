@@ -290,6 +290,7 @@ interface PredictionRow {
   position: string;
   team: string;
   adp: number;
+  headshotUrl?: string;
   features: Record<string, number>;
 }
 
@@ -1516,6 +1517,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             // ── Roster competition for predictions ──
             const predRosterByTeamPos = new Map<string, Set<string>>();
             const predPlayerTeamMap = new Map<string, string>();
+            const predHeadshotByName = new Map<string, string>(); // normalised name → headshot URL
             for (const r of predSeasonRosters) {
               if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
               const key = `${r.team}:${r.position}`;
@@ -1523,6 +1525,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
               const name = normalizeName(r.full_name);
               predRosterByTeamPos.get(key)!.add(name);
               predPlayerTeamMap.set(name, r.team);
+              if (r.headshot_url) predHeadshotByName.set(name, r.headshot_url);
             }
             const predPriorRosterByTeamPos = new Map<string, Set<string>>();
             for (const r of predPriorRosters) {
@@ -2010,6 +2013,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 position: adpPlayer.position,
                 team: adpPlayer.team || '',
                 adp: adpPlayer.adp,
+                headshotUrl: predHeadshotByName.get(normalName) || predHeadshotByName.get(normalizeName(adpPlayer.name)) || undefined,
                 features,
               });
             }
@@ -2250,6 +2254,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         name: r.name,
         team: r.team,
         adp: r.adp,
+        position: r.position,
+        headshotUrl: r.headshotUrl,
         predictedVor: pred,
         hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
                : isBustForPos(r.position, pred) ? 'Likely Bust'
@@ -2259,6 +2265,33 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     }).sort((a, b) => b.predictedVor - a.predictedVor);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [models, predictionRows, selectedPos, maxADP, modelType, posThresholds]);
+
+  // All-position 2026 predictions (for the optimizer player suggestions)
+  const allPredictions2026 = useMemo(() => {
+    return models.flatMap((m) => {
+      const posPlayers = predictionRows.filter((r) => r.position === m.position && r.adp <= maxADP);
+      const model = m.gbmModel ?? m.ridgeModel;
+      if (!model) return [];
+      return posPlayers.map((r) => {
+        const result = m.gbmModel
+          ? predictGBM(m.gbmModel, r.features)
+          : predict(m.ridgeModel!, r.features);
+        const pred = Math.round(result.predicted * 10) / 10;
+        return {
+          name: r.name,
+          team: r.team,
+          adp: r.adp,
+          position: r.position,
+          headshotUrl: r.headshotUrl,
+          predictedVor: pred,
+          hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
+                 : isBustForPos(r.position, pred) ? 'Likely Bust'
+                 : 'Middle' as const,
+        };
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models, predictionRows, maxADP, posThresholds]);
 
   const selected2026Prediction = useMemo(
     () => predictions2026.find((p) => p.name === selected2026Player) || null,
@@ -2397,6 +2430,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   }, [allRows, leagueSize, halfRounds, posThresholds]);
 
   // ── Draft Optimizer ──────────────────────────────────────────────────────
+  // Approximate PPR replacement levels (historical averages) for expected-pts conversion
+  const REP_PPR: Record<string, number> = { QB: 285, RB: 115, WR: 115, TE: 90 };
+
   const optimizerPlan = useMemo(() => {
     const allSlots = [...starterSlots, ...benchSlots];
     if (allSlots.length === 0 || strategyData.length === 0) return [];
@@ -2404,13 +2440,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     const starterCount = starterSlots.length;
     const remaining = [...allSlots]; // mutable copy; first starterCount entries are starters
 
+    type PlayerSuggestion = {
+      name: string; team: string; adp: number;
+      predictedVor: number; hitProb: string; headshotUrl?: string;
+      estPPR: number;  // estimated full-season PPR (above replacement + historical mean)
+    };
     type PlanRow = {
       round: number; label: string; yourPick: number;
-      isBench: boolean;           // true once we've exhausted starter slots
+      isBench: boolean;
       recPos: string; slotFilled: string;
       vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
-      bucketLabel: string;        // which half-/full-round bucket the data came from
+      bucketLabel: string;
       alternatives: Array<{ pos: string; metric: number }>;
+      suggestions: PlayerSuggestion[];
     };
     const plan: PlanRow[] = [];
     let picksUsed = 0; // tracks how many slots we've filled (to determine starter/bench boundary)
@@ -2461,6 +2503,31 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
       const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : best.pos;
       if (slotIdx !== -1) remaining.splice(slotIdx, 1);
 
+      // Player suggestions: top players of the recommended position near this ADP
+      const adpWindow = leagueSize * 1.5; // look ±1.5 rounds worth of picks
+      const norm2026 = vorNormParams.get(best.pos);
+      const repPPR   = REP_PPR[best.pos] ?? 120;
+      const suggestions: PlayerSuggestion[] = allPredictions2026
+        .filter((p) =>
+          p.position === best.pos &&
+          p.adp >= yourPick - adpWindow &&
+          p.adp <= yourPick + adpWindow
+        )
+        .sort((a, b) => b.predictedVor - a.predictedVor)
+        .slice(0, 4)
+        .map((p) => ({
+          name:         p.name,
+          team:         p.team,
+          adp:          p.adp,
+          predictedVor: p.predictedVor,
+          hitProb:      p.hitProb,
+          headshotUrl:  p.headshotUrl,
+          // Convert z-score to estimated full-season PPR
+          estPPR: norm2026
+            ? Math.round(repPPR + norm2026.mean + p.predictedVor * norm2026.std)
+            : 0,
+        }));
+
       plan.push({
         round: r, label, yourPick,
         isBench:    picksUsed >= starterCount,
@@ -2471,13 +2538,15 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         bustPct:    best.bustPct,
         score:      best.score,
         n:          best.n,
-        bucketLabel: bucket.label,  // e.g. "Rd 2a" or "Rd 2" — the actual half/full bucket
+        bucketLabel: bucket.label,
         alternatives: candidates.slice(1, 4).map((c) => ({ pos: c.pos, metric: c.metric })),
+        suggestions,
       });
       picksUsed++;
     }
     return plan;
-  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams]);
 
   if (loading) {
     return (
@@ -2928,103 +2997,170 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 </div>
               ))}
 
-              {/* Optimizer results table */}
+              {/* Optimizer results */}
               {optimizerPlan.length > 0 ? (
                 <>
-                  <div className="table-container" style={{ marginBottom: 16, marginTop: 8 }}>
-                    <table style={{ tableLayout: 'fixed' }}>
-                      <thead>
-                        <tr>
-                          <th style={{ width: 72 }}>Round</th>
-                          <th style={{ width: 72 }}>Pick #</th>
-                          <th style={{ width: 80 }}>Slot</th>
-                          <th style={{ width: 90 }}>Rec. Pos.</th>
-                          <th style={{ width: 95 }}>{optimizerMetric === 'vor' ? 'Avg VOR (σ)' : 'Hit−Bust%'}</th>
-                          <th style={{ width: 110 }}>Hit% / Bust%</th>
-                          <th>Alternatives</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {optimizerPlan.map((row, idx) => {
-                          // Insert a visual divider before the first bench row
-                          const isFirstBench = row.isBench && (idx === 0 || !optimizerPlan[idx - 1].isBench);
-                          return (
-                            <React.Fragment key={row.round}>
-                              {isFirstBench && (
-                                <tr>
-                                  <td colSpan={7} style={{
-                                    background: 'var(--bg-tertiary)', fontSize: 11, fontWeight: 700,
-                                    color: 'var(--text-muted)', padding: '5px 10px',
-                                    borderTop: '2px dashed var(--border)',
-                                  }}>
-                                    ── BENCH ({benchSlots.length} spots) ──
-                                  </td>
-                                </tr>
-                              )}
-                              <tr style={{ opacity: row.isBench ? 0.75 : 1 }}>
-                                <td style={{ fontWeight: 700 }}>
-                                  {row.label}
-                                  {halfRounds && row.label !== row.bucketLabel && (
-                                    <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>
-                                      ({row.bucketLabel})
-                                    </span>
-                                  )}
-                                </td>
-                                <td style={{ color: 'var(--text-muted)' }}>#{row.yourPick}</td>
-                                <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{row.slotFilled}</td>
-                                <td>
-                                  <span style={{
-                                    fontWeight: 700, fontSize: 13, padding: '2px 8px', borderRadius: 4,
-                                    background: `${POS_COLORS[row.recPos] || '#6b7280'}22`,
-                                    color: POS_COLORS[row.recPos] || 'var(--text-primary)',
-                                  }}>{row.recPos}</span>
-                                </td>
-                                <td style={{ fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
-                                  {optimizerMetric === 'vor'
-                                    ? `${row.vorScore >= 0 ? '+' : ''}${row.vorScore}σ`
-                                    : `${row.score >= 0 ? '+' : ''}${Math.round(row.score * 100)}%`}
-                                </td>
-                                <td style={{ fontSize: 12 }}>
-                                  <span style={{ color: '#10b981' }}>{row.hitPct}%↑</span>
-                                  {' '}<span style={{ color: '#ef4444' }}>{row.bustPct}%↓</span>
-                                  <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>n={row.n}</span>
-                                </td>
-                                <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                  {row.alternatives.map((a) => (
-                                    <span key={a.pos} style={{ marginRight: 6 }}>
+                  {/* Expected total points summary (starters only) */}
+                  {(() => {
+                    const starterRows = optimizerPlan.filter((r) => !r.isBench);
+                    const totalEstPPR  = starterRows.reduce((s, r) => s + (r.suggestions[0]?.estPPR ?? 0), 0);
+                    const totalVor     = starterRows.reduce((s, r) => s + r.vorScore, 0);
+                    return (
+                      <div style={{
+                        display: 'flex', gap: 20, marginBottom: 16, marginTop: 4,
+                        padding: '10px 16px', borderRadius: 8,
+                        background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                        flexWrap: 'wrap', alignItems: 'center',
+                      }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>
+                          📊 Starting Lineup Projection
+                        </span>
+                        <span style={{ fontSize: 13 }}>
+                          Est. PPR:{' '}
+                          <strong style={{ color: '#10b981', fontSize: 15 }}>{totalEstPPR.toLocaleString()}</strong>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>pts/season (approx)</span>
+                        </span>
+                        <span style={{ fontSize: 13 }}>
+                          Cumulative VOR:{' '}
+                          <strong style={{ color: totalVor >= 0 ? '#10b981' : '#ef4444' }}>
+                            {totalVor >= 0 ? '+' : ''}{Math.round(totalVor * 100) / 100}σ
+                          </strong>
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {starterRows.length} starter slots · based on top suggestion per round
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Round cards */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                    {optimizerPlan.map((row, idx) => {
+                      const isFirstBench = row.isBench && (idx === 0 || !optimizerPlan[idx - 1].isBench);
+                      const posColor = POS_COLORS[row.recPos] || '#6b7280';
+                      return (
+                        <React.Fragment key={row.round}>
+                          {isFirstBench && (
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
+                              borderTop: '2px dashed var(--border)', paddingTop: 10, marginTop: 4,
+                            }}>── BENCH ({benchSlots.length} spots) ──</div>
+                          )}
+                          <div style={{
+                            background: 'var(--bg-secondary)',
+                            border: `1px solid ${row.isBench ? 'var(--border)' : posColor + '55'}`,
+                            borderLeft: `4px solid ${posColor}`,
+                            borderRadius: 8, padding: '10px 14px',
+                            opacity: row.isBench ? 0.8 : 1,
+                          }}>
+                            {/* Round header row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, fontSize: 13, minWidth: 48 }}>
+                                {row.label}
+                                {halfRounds && row.label !== row.bucketLabel && (
+                                  <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 3 }}>({row.bucketLabel})</span>
+                                )}
+                              </span>
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pick #{row.yourPick}</span>
+                              <span style={{
+                                fontWeight: 700, fontSize: 12, padding: '2px 8px', borderRadius: 4,
+                                background: posColor + '22', color: posColor,
+                              }}>{row.recPos}</span>
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→ {row.slotFilled}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
+                                {optimizerMetric === 'vor'
+                                  ? `${row.vorScore >= 0 ? '+' : ''}${row.vorScore}σ avg`
+                                  : `${row.score >= 0 ? '+' : ''}${Math.round(row.score * 100)}% hit-bust`}
+                              </span>
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                {row.hitPct}%↑ {row.bustPct}%↓
+                              </span>
+                              {row.alternatives.length > 0 && (
+                                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                                  Alt: {row.alternatives.map((a) => (
+                                    <span key={a.pos} style={{ marginRight: 8 }}>
                                       <span style={{ fontWeight: 600, color: POS_COLORS[a.pos] || 'inherit' }}>{a.pos}</span>
-                                      {' '}
-                                      {optimizerMetric === 'vor'
-                                        ? `${a.metric >= 0 ? '+' : ''}${a.metric}σ`
-                                        : `${a.metric >= 0 ? '+' : ''}${Math.round(a.metric * 100)}%`}
+                                      {' '}{optimizerMetric === 'vor' ? `${a.metric >= 0 ? '+' : ''}${a.metric}σ` : `${a.metric >= 0 ? '+' : ''}${Math.round(a.metric * 100)}%`}
                                     </span>
                                   ))}
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ borderTop: '2px solid var(--border)' }}>
-                          <td colSpan={4} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>Expected total</td>
-                          <td style={{ fontWeight: 700, color: '#10b981' }}>
-                            {optimizerMetric === 'vor'
-                              ? (() => { const t = optimizerPlan.reduce((s, r) => s + r.vorScore, 0); return `${t >= 0 ? '+' : ''}${Math.round(t * 100) / 100}σ`; })()
-                              : (() => { const t = optimizerPlan.reduce((s, r) => s + r.score, 0); return `${t >= 0 ? '+' : ''}${Math.round(t * 1000) / 10}%`; })()}
-                          </td>
-                          <td colSpan={2} />
-                        </tr>
-                      </tfoot>
-                    </table>
+                                </span>
+                              )}
+                            </div>
+                            {/* Player suggestion cards */}
+                            {row.suggestions.length > 0 && (
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {row.suggestions.map((p, si) => (
+                                  <div key={p.name} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    background: si === 0 ? posColor + '18' : 'var(--bg-tertiary)',
+                                    border: `1px solid ${si === 0 ? posColor + '55' : 'var(--border)'}`,
+                                    borderRadius: 8, padding: '6px 10px',
+                                    minWidth: 170, flex: '1 1 170px', maxWidth: 240,
+                                  }}>
+                                    {/* Avatar / headshot */}
+                                    {p.headshotUrl ? (
+                                      <img
+                                        src={p.headshotUrl}
+                                        alt={p.name}
+                                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: posColor + '33' }}
+                                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                      />
+                                    ) : (
+                                      <div style={{
+                                        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                                        background: posColor + '33', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', fontSize: 14, fontWeight: 700, color: posColor,
+                                      }}>
+                                        {p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
+                                      </div>
+                                    )}
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {si === 0 && <span style={{ fontSize: 10, marginRight: 4 }}>⭐</span>}
+                                        {p.name}
+                                      </div>
+                                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                        {p.team} · ADP {p.adp.toFixed(1)}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
+                                        <span style={{
+                                          fontSize: 10, fontWeight: 700,
+                                          color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
+                                        }}>
+                                          {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                                        </span>
+                                        {p.estPPR > 0 && (
+                                          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                            ~{p.estPPR} PPR
+                                          </span>
+                                        )}
+                                        <span style={{
+                                          fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
+                                          background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)'
+                                            : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                                          color: p.hitProb === 'Likely Hit' ? '#10b981'
+                                            : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                                        }}>
+                                          {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
+
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 720 }}>
-                    Greedy snake-draft: picks the position with the highest historical{' '}
-                    {optimizerMetric === 'vor' ? 'avg VOR (σ)' : 'hit/bust rate'} at your ADP range
-                    that still fills an open roster slot. Exact slots filled before Flex/SuperFlex.
-                    Bench picks (dimmed) follow the same logic — best available given remaining slots.
-                    {halfRounds && ' Half-round buckets used for finer ADP resolution.'}
-                    {' '}Based on {allRows.length} historical player-seasons.
+                    Greedy snake-draft algorithm using{' '}
+                    {optimizerMetric === 'vor' ? 'avg VOR (σ)' : 'hit/bust rate'} from{' '}
+                    {halfRounds ? 'half-round' : 'full-round'} historical buckets. ⭐ = top suggestion per round.
+                    Est. PPR = replacement level + historical mean VOR + predicted VOR in raw pts (approximation).
+                    Based on {allRows.length} historical player-seasons.
                   </p>
                 </>
               ) : (
