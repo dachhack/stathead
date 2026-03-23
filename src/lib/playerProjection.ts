@@ -11,7 +11,8 @@
  *   3. Derive simplified projected PPR and relative-to-expected signals.
  */
 
-import type { SeasonTotals } from '../types';
+import type { PlayerStats, SeasonTotals } from '../types';
+import { aggregateToSeasonTotals } from '../data';
 import { projectTeamTotals } from './teamProjection';
 
 export interface PlayerProjectionFeatures {
@@ -28,18 +29,22 @@ function norm(name: string | null | undefined): string {
 }
 
 /**
- * Given prior-season player stats, compute projection features for every player
- * who had meaningful prior-year activity (≥4 games).
+ * Given prior-season raw weekly player stats (PlayerStats[]), compute projection
+ * features for every player who had meaningful prior-year activity (≥4 games).
+ *
+ * Accepts raw weekly stats (PlayerStats[]) so callers can pass `priorStats`
+ * directly without pre-aggregating. Aggregation is done internally.
  *
  * Returns a Map keyed by normalized player name → ProjectionFeatures.
  */
 export function computePlayerProjectionFeatures(
-  priorStats: SeasonTotals[],
+  rawPriorStats: PlayerStats[],
 ): Map<string, PlayerProjectionFeatures> {
   const results = new Map<string, PlayerProjectionFeatures>();
 
-  // Only regular-season rows with a valid team
-  const reg = priorStats.filter((p) => p.season_type === 'REG' && p.recent_team);
+  // Aggregate weekly rows to season totals (REG only)
+  const regWeekly = rawPriorStats.filter((p) => p.season_type === 'REG' && p.recent_team);
+  const reg: SeasonTotals[] = aggregateToSeasonTotals(regWeekly);
 
   // ── Prior team-level aggregates ──
   const priorTeam = new Map<string, {
