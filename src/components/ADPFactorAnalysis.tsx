@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Label, Legend,
@@ -47,11 +47,12 @@ function findSlotIndex(remaining: string[], pos: string): number {
   return remaining.findIndex((s) => canFillSlot(s, pos) && s !== pos);
 }
 
-const ROSTER_PRESETS: Record<string, string[]> = {
-  'Standard':      ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'RB', 'WR', 'WR', 'WR', 'QB'],
-  '2-Flex':        ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'Flex', 'RB', 'WR', 'WR', 'QB'],
-  'Superflex':     ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'SuperFlex', 'Flex', 'RB', 'WR', 'WR', 'QB'],
-  'Starters only': ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex'],
+interface RosterPreset { starters: string[]; bench: string[] }
+const ROSTER_PRESETS: Record<string, RosterPreset> = {
+  'Standard':      { starters: ['QB','RB','RB','WR','WR','TE','Flex'],          bench: ['RB','WR','WR','WR','QB'] },
+  '2-Flex':        { starters: ['QB','RB','RB','WR','WR','TE','Flex','Flex'],   bench: ['RB','WR','WR','QB'] },
+  'Superflex':     { starters: ['QB','RB','RB','WR','WR','TE','SuperFlex','Flex'], bench: ['RB','WR','WR','QB'] },
+  'Starters only': { starters: ['QB','RB','RB','WR','WR','TE','Flex'],          bench: [] },
 };
 
 // ── Feature definitions by position ──
@@ -309,7 +310,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [strategyMetric, setStrategyMetric] = useState<'hitbust' | 'vor'>('hitbust');
   const [halfRounds, setHalfRounds] = useState(false);
   const [pickNumber, setPickNumber] = useState(1);
-  const [rosterSlots, setRosterSlots] = useState<string[]>(['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'RB', 'WR', 'WR', 'WR', 'QB']);
+  const [starterSlots, setStarterSlots] = useState<string[]>(['QB','RB','RB','WR','WR','TE','Flex']);
+  const [benchSlots,  setBenchSlots]  = useState<string[]>(['RB','WR','WR','WR','QB']);
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
@@ -2343,32 +2345,41 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
 
   // ── Draft Optimizer ──────────────────────────────────────────────────────
   const optimizerPlan = useMemo(() => {
-    if (rosterSlots.length === 0 || strategyData.length === 0) return [];
+    const allSlots = [...starterSlots, ...benchSlots];
+    if (allSlots.length === 0 || strategyData.length === 0) return [];
 
-    const remaining = [...rosterSlots];
+    const starterCount = starterSlots.length;
+    const remaining = [...allSlots]; // mutable copy; first starterCount entries are starters
+
     type PlanRow = {
       round: number; label: string; yourPick: number;
+      isBench: boolean;           // true once we've exhausted starter slots
       recPos: string; slotFilled: string;
       vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
+      bucketLabel: string;        // which half-/full-round bucket the data came from
       alternatives: Array<{ pos: string; metric: number }>;
     };
     const plan: PlanRow[] = [];
+    let picksUsed = 0; // tracks how many slots we've filled (to determine starter/bench boundary)
 
-    for (let r = 1; r <= 20 && remaining.length > 0; r++) {
-      // Snake draft: odd rounds pick at position pickNumber, even rounds mirror
+    for (let r = 1; r <= 25 && remaining.length > 0; r++) {
+      // Snake-draft pick position within this round
       const posWithinRound = r % 2 === 1 ? pickNumber : (leagueSize + 1 - pickNumber);
       const yourPick = (r - 1) * leagueSize + posWithinRound;
       const label = halfRounds
         ? `Rd ${r}${posWithinRound <= Math.floor(leagueSize / 2) ? 'a' : 'b'}`
         : `Rd ${r}`;
 
-      // Find the strategy bucket covering this pick
+      // Find the strategy bucket (half-round or full-round) covering this pick
       const bucket = strategyData.find((b) => yourPick >= b.pickStart && yourPick <= b.pickEnd);
       if (!bucket) continue;
 
       // Collect candidates: unique positions that can fill any remaining slot
       const seen = new Set<string>();
-      const candidates: Array<{ pos: string; metric: number; vorScore: number; hitPct: number; bustPct: number; score: number; n: number }> = [];
+      const candidates: Array<{
+        pos: string; metric: number;
+        vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
+      }> = [];
       for (const slot of remaining) {
         for (const pos of POSITIONS) {
           if (seen.has(pos)) continue;
@@ -2377,29 +2388,43 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
           if (!cell || cell.total < 3) continue;
           seen.add(pos);
           const metric = optimizerMetric === 'vor' ? cell.avgVor : cell.score;
-          candidates.push({ pos, metric, vorScore: cell.avgVor, hitPct: Math.round(cell.hitRate * 100), bustPct: Math.round(cell.bustRate * 100), score: cell.score, n: cell.total });
+          candidates.push({
+            pos, metric,
+            vorScore: cell.avgVor,
+            hitPct:   Math.round(cell.hitRate  * 100),
+            bustPct:  Math.round(cell.bustRate * 100),
+            score:    cell.score,
+            n:        cell.total,
+          });
         }
       }
 
-      if (candidates.length === 0) { remaining.shift(); continue; }
+      if (candidates.length === 0) { remaining.shift(); picksUsed++; continue; }
 
       candidates.sort((a, b) => b.metric - a.metric);
       const best = candidates[0];
 
-      const slotIdx = findSlotIndex(remaining, best.pos);
+      const slotIdx   = findSlotIndex(remaining, best.pos);
       const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : best.pos;
       if (slotIdx !== -1) remaining.splice(slotIdx, 1);
 
       plan.push({
         round: r, label, yourPick,
-        recPos: best.pos, slotFilled,
-        vorScore: best.vorScore, hitPct: best.hitPct, bustPct: best.bustPct,
-        score: best.score, n: best.n,
+        isBench:    picksUsed >= starterCount,
+        recPos:     best.pos,
+        slotFilled,
+        vorScore:   best.vorScore,
+        hitPct:     best.hitPct,
+        bustPct:    best.bustPct,
+        score:      best.score,
+        n:          best.n,
+        bucketLabel: bucket.label,  // e.g. "Rd 2a" or "Rd 2" — the actual half/full bucket
         alternatives: candidates.slice(1, 4).map((c) => ({ pos: c.pos, metric: c.metric })),
       });
+      picksUsed++;
     }
     return plan;
-  }, [pickNumber, leagueSize, rosterSlots, strategyData, optimizerMetric, halfRounds]);
+  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds]);
 
   if (loading) {
     return (
@@ -2758,145 +2783,178 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
 
             {/* ── Draft Optimizer ── */}
             <div style={{ marginTop: 32, borderTop: '2px solid var(--border)', paddingTop: 24 }}>
-              <h4 style={{ marginBottom: 4, fontSize: 15 }}>🎯 Draft Optimizer</h4>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, maxWidth: 680 }}>
-                Enter your pick number and roster requirements. The optimizer uses historical VOR data to suggest the best position to draft in each round of a snake draft.
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+                <h4 style={{ margin: 0, fontSize: 15 }}>🎯 Draft Optimizer</h4>
+                {halfRounds && (
+                  <span style={{ fontSize: 11, background: 'rgba(249,115,22,0.12)', color: '#f97316',
+                    border: '1px solid #f97316', borderRadius: 4, padding: '1px 6px', fontWeight: 600 }}>
+                    Using half-round data
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, maxWidth: 700 }}>
+                Enter your pick number and roster. The optimizer runs a greedy snake-draft algorithm round by round,
+                recommending the best-available position for each slot using {halfRounds ? 'half-round' : 'full-round'} historical data.
               </p>
 
               {/* Optimizer controls */}
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16, alignItems: 'flex-start' }}>
-
-                {/* Pick number */}
                 <div className="control-group">
                   <label className="control-label">Your Pick #</label>
-                  <select value={pickNumber} onChange={(e) => setPickNumber(Number(e.target.value))}
-                    style={{ width: 70 }}>
+                  <select value={pickNumber} onChange={(e) => setPickNumber(Number(e.target.value))} style={{ width: 76 }}>
                     {Array.from({ length: leagueSize }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>Pick {n}</option>
                     ))}
                   </select>
                 </div>
-
-                {/* Metric */}
                 <div className="control-group">
                   <label className="control-label">Optimize by</label>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    {([
-                      ['vor',     'VOR Score (σ)'],
-                      ['hitbust', 'Hit/Bust Rate'],
-                    ] as const).map(([m, lbl]) => (
-                      <button key={m} onClick={() => setOptimizerMetric(m)}
-                        style={{
-                          padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                          border: `2px solid ${optimizerMetric === m ? '#6366f1' : 'var(--border)'}`,
-                          background: optimizerMetric === m ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
-                          color: optimizerMetric === m ? '#6366f1' : 'var(--text-secondary)',
-                        }}
-                      >{lbl}</button>
+                    {([['vor','VOR Score (σ)'],['hitbust','Hit/Bust Rate']] as const).map(([m, lbl]) => (
+                      <button key={m} onClick={() => setOptimizerMetric(m)} style={{
+                        padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        border: `2px solid ${optimizerMetric === m ? '#6366f1' : 'var(--border)'}`,
+                        background: optimizerMetric === m ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                        color: optimizerMetric === m ? '#6366f1' : 'var(--text-secondary)',
+                      }}>{lbl}</button>
                     ))}
                   </div>
                 </div>
-
-                {/* Preset */}
                 <div className="control-group">
                   <label className="control-label">Roster Preset</label>
-                  <select onChange={(e) => { if (ROSTER_PRESETS[e.target.value]) setRosterSlots([...ROSTER_PRESETS[e.target.value]]); }}
-                    defaultValue="">
+                  <select onChange={(e) => {
+                    const p = ROSTER_PRESETS[e.target.value];
+                    if (p) { setStarterSlots([...p.starters]); setBenchSlots([...p.bench]); }
+                  }} defaultValue="">
                     <option value="" disabled>Select preset…</option>
                     {Object.keys(ROSTER_PRESETS).map((k) => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </div>
               </div>
 
-              {/* Roster slot editor */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
-                  Roster Slots ({rosterSlots.length} rounds) — click × to remove
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  {rosterSlots.map((slot, i) => (
-                    <span key={i} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      background: 'var(--bg-secondary)', border: `1px solid ${POS_COLORS[slot] || 'var(--border)'}`,
-                      borderRadius: 4, padding: '3px 8px', fontSize: 12, fontWeight: 600,
-                      color: POS_COLORS[slot] || 'var(--text-secondary)',
-                    }}>
-                      {slot}
-                      <button onClick={() => setRosterSlots((prev) => prev.filter((_, j) => j !== i))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11,
-                          color: 'var(--text-muted)', lineHeight: 1 }}>×</button>
+              {/* ── Roster slot editor: Starters + Bench ── */}
+              {([
+                ['Starters', starterSlots, setStarterSlots] as const,
+                ['Bench',    benchSlots,  setBenchSlots]  as const,
+              ] as const).map(([section, slots, setSlots]) => (
+                <div key={section} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: section === 'Bench' ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                      {section} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({slots.length} {slots.length === 1 ? 'slot' : 'slots'})</span>
                     </span>
-                  ))}
-                  <select onChange={(e) => { if (e.target.value) { setRosterSlots((prev) => [...prev, e.target.value]); e.target.value = ''; }}}
-                    style={{ fontSize: 12, padding: '3px 6px', borderRadius: 4 }}>
-                    <option value="">+ Add slot</option>
-                    {ALL_DRAFT_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                    {section === 'Bench' && (
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        drafted after starters; optimizer picks best available regardless of position
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {slots.map((slot, i) => (
+                      <span key={i} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: section === 'Bench' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                        border: `1px solid ${POS_COLORS[slot] || 'var(--border)'}`,
+                        borderRadius: 4, padding: '3px 8px', fontSize: 12, fontWeight: 600,
+                        color: POS_COLORS[slot] || 'var(--text-secondary)',
+                        opacity: section === 'Bench' ? 0.8 : 1,
+                      }}>
+                        {slot}
+                        <button
+                          onClick={() => setSlots((prev: string[]) => prev.filter((_, j) => j !== i))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                            fontSize: 11, color: 'var(--text-muted)', lineHeight: 1 }}>×</button>
+                      </span>
+                    ))}
+                    <select
+                      onChange={(e) => { if (e.target.value) { setSlots((prev: string[]) => [...prev, e.target.value]); e.target.value = ''; }}}
+                      style={{ fontSize: 12, padding: '3px 6px', borderRadius: 4 }}>
+                      <option value="">+ Add</option>
+                      {ALL_DRAFT_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              ))}
 
               {/* Optimizer results table */}
               {optimizerPlan.length > 0 ? (
                 <>
-                  <div className="table-container" style={{ marginBottom: 16 }}>
+                  <div className="table-container" style={{ marginBottom: 16, marginTop: 8 }}>
                     <table style={{ tableLayout: 'fixed' }}>
                       <thead>
                         <tr>
-                          <th style={{ width: 70 }}>Round</th>
-                          <th style={{ width: 80 }}>Your Pick</th>
-                          <th style={{ width: 80 }}>Fill Slot</th>
-                          <th style={{ width: 90 }}>Rec. Position</th>
-                          <th style={{ width: 90 }}>
-                            {optimizerMetric === 'vor' ? 'Avg VOR (σ)' : 'Hit−Bust%'}
-                          </th>
+                          <th style={{ width: 72 }}>Round</th>
+                          <th style={{ width: 72 }}>Pick #</th>
+                          <th style={{ width: 80 }}>Slot</th>
+                          <th style={{ width: 90 }}>Rec. Pos.</th>
+                          <th style={{ width: 95 }}>{optimizerMetric === 'vor' ? 'Avg VOR (σ)' : 'Hit−Bust%'}</th>
                           <th style={{ width: 110 }}>Hit% / Bust%</th>
                           <th>Alternatives</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {optimizerPlan.map((row) => (
-                          <tr key={row.round}>
-                            <td style={{ fontWeight: 700 }}>{row.label}</td>
-                            <td style={{ color: 'var(--text-muted)' }}>#{row.yourPick}</td>
-                            <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{row.slotFilled}</td>
-                            <td>
-                              <span style={{
-                                fontWeight: 700, fontSize: 13, padding: '2px 8px', borderRadius: 4,
-                                background: `${POS_COLORS[row.recPos] || '#6b7280'}22`,
-                                color: POS_COLORS[row.recPos] || 'var(--text-primary)',
-                              }}>{row.recPos}</span>
-                            </td>
-                            <td style={{ fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
-                              {optimizerMetric === 'vor'
-                                ? `${row.vorScore >= 0 ? '+' : ''}${row.vorScore}σ`
-                                : `${row.score >= 0 ? '+' : ''}${Math.round(row.score * 100)}%`}
-                            </td>
-                            <td style={{ fontSize: 12 }}>
-                              <span style={{ color: '#10b981' }}>{row.hitPct}%↑</span>
-                              {' '}<span style={{ color: '#ef4444' }}>{row.bustPct}%↓</span>
-                              <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>n={row.n}</span>
-                            </td>
-                            <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              {row.alternatives.map((a) => (
-                                <span key={a.pos} style={{ marginRight: 6 }}>
-                                  <span style={{ fontWeight: 600, color: POS_COLORS[a.pos] || 'inherit' }}>{a.pos}</span>
-                                  {' '}
-                                  <span>
-                                    {optimizerMetric === 'vor'
-                                      ? `${a.metric >= 0 ? '+' : ''}${a.metric}σ`
-                                      : `${a.metric >= 0 ? '+' : ''}${Math.round(a.metric * 100)}%`}
-                                  </span>
-                                </span>
-                              ))}
-                            </td>
-                          </tr>
-                        ))}
+                        {optimizerPlan.map((row, idx) => {
+                          // Insert a visual divider before the first bench row
+                          const isFirstBench = row.isBench && (idx === 0 || !optimizerPlan[idx - 1].isBench);
+                          return (
+                            <React.Fragment key={row.round}>
+                              {isFirstBench && (
+                                <tr>
+                                  <td colSpan={7} style={{
+                                    background: 'var(--bg-tertiary)', fontSize: 11, fontWeight: 700,
+                                    color: 'var(--text-muted)', padding: '5px 10px',
+                                    borderTop: '2px dashed var(--border)',
+                                  }}>
+                                    ── BENCH ({benchSlots.length} spots) ──
+                                  </td>
+                                </tr>
+                              )}
+                              <tr style={{ opacity: row.isBench ? 0.75 : 1 }}>
+                                <td style={{ fontWeight: 700 }}>
+                                  {row.label}
+                                  {halfRounds && row.label !== row.bucketLabel && (
+                                    <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>
+                                      ({row.bucketLabel})
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ color: 'var(--text-muted)' }}>#{row.yourPick}</td>
+                                <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{row.slotFilled}</td>
+                                <td>
+                                  <span style={{
+                                    fontWeight: 700, fontSize: 13, padding: '2px 8px', borderRadius: 4,
+                                    background: `${POS_COLORS[row.recPos] || '#6b7280'}22`,
+                                    color: POS_COLORS[row.recPos] || 'var(--text-primary)',
+                                  }}>{row.recPos}</span>
+                                </td>
+                                <td style={{ fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
+                                  {optimizerMetric === 'vor'
+                                    ? `${row.vorScore >= 0 ? '+' : ''}${row.vorScore}σ`
+                                    : `${row.score >= 0 ? '+' : ''}${Math.round(row.score * 100)}%`}
+                                </td>
+                                <td style={{ fontSize: 12 }}>
+                                  <span style={{ color: '#10b981' }}>{row.hitPct}%↑</span>
+                                  {' '}<span style={{ color: '#ef4444' }}>{row.bustPct}%↓</span>
+                                  <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>n={row.n}</span>
+                                </td>
+                                <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                  {row.alternatives.map((a) => (
+                                    <span key={a.pos} style={{ marginRight: 6 }}>
+                                      <span style={{ fontWeight: 600, color: POS_COLORS[a.pos] || 'inherit' }}>{a.pos}</span>
+                                      {' '}
+                                      {optimizerMetric === 'vor'
+                                        ? `${a.metric >= 0 ? '+' : ''}${a.metric}σ`
+                                        : `${a.metric >= 0 ? '+' : ''}${Math.round(a.metric * 100)}%`}
+                                    </span>
+                                  ))}
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                       <tfoot>
                         <tr style={{ borderTop: '2px solid var(--border)' }}>
-                          <td colSpan={4} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>
-                            Expected total
-                          </td>
+                          <td colSpan={4} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>Expected total</td>
                           <td style={{ fontWeight: 700, color: '#10b981' }}>
                             {optimizerMetric === 'vor'
                               ? (() => { const t = optimizerPlan.reduce((s, r) => s + r.vorScore, 0); return `${t >= 0 ? '+' : ''}${Math.round(t * 100) / 100}σ`; })()
@@ -2907,14 +2965,18 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       </tfoot>
                     </table>
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 700 }}>
-                    <strong>How to read:</strong> The optimizer uses a greedy snake-draft algorithm: at each round it recommends the position with the highest historical {optimizerMetric === 'vor' ? 'average VOR Score (σ)' : 'hit/bust rate'} at your pick range that still fills an open roster slot.
-                    Exact slots are filled before Flex/SuperFlex. Alternatives show the next best options. Based on {allRows.length} historical player-seasons.
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 720 }}>
+                    Greedy snake-draft: picks the position with the highest historical{' '}
+                    {optimizerMetric === 'vor' ? 'avg VOR (σ)' : 'hit/bust rate'} at your ADP range
+                    that still fills an open roster slot. Exact slots filled before Flex/SuperFlex.
+                    Bench picks (dimmed) follow the same logic — best available given remaining slots.
+                    {halfRounds && ' Half-round buckets used for finer ADP resolution.'}
+                    {' '}Based on {allRows.length} historical player-seasons.
                   </p>
                 </>
               ) : (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Add roster slots above to generate a draft plan.
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
+                  Add starter or bench slots above to generate a draft plan.
                 </p>
               )}
             </div>
