@@ -4,7 +4,7 @@ import {
   Legend, ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts';
 import { fetchPlayerStats, aggregateToSeasonTotals } from '../data';
-import type { SeasonTotals } from '../types';
+import type { SeasonTotals, PlayerStats } from '../types';
 
 // ── Types ──
 
@@ -127,7 +127,7 @@ export function TeamAccuracyChart() {
     setLoading(true);
     Promise.all(
       FETCH_SEASONS.map(async (s) => {
-        const weekly = await fetchPlayerStats(s).catch(() => [] as SeasonTotals[]);
+        const weekly = await fetchPlayerStats(s).catch(() => [] as PlayerStats[]);
         const totals = aggregateToSeasonTotals(weekly);
         return { season: s, byTeam: aggregateByTeam(totals) };
       })

@@ -974,7 +974,6 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                 const isPrimary = idx === 0;
                 const prior = player.prior;
                 const games = idx === 0 ? starterGames : 17 - starterGames;
-                const af = ageFactor(normalizeName(player.name), 'QB');
                 const gamesScale = games / 17;
                 const sp = players[0]?.prior; // starter's prior — used for backup rate reference
 
