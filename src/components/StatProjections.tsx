@@ -7,6 +7,7 @@ import {
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { ScenarioBuilder } from './ScenarioBuilder';
+import { TeamAccuracyChart } from './TeamAccuracyChart';
 import projectionConfig from '../generated/projection-config.json';
 
 // ── Config ──
@@ -401,7 +402,7 @@ function buildSearchProjections(
 
 // ── Component ──
 
-type ViewMode = 'position' | 'team' | 'teamTotals';
+type ViewMode = 'position' | 'team' | 'teamTotals' | 'accuracy';
 
 interface TeamTotalRow {
   team: string;
@@ -1345,6 +1346,13 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
             >
               Team Totals
             </button>
+            <button
+              className={`pos-filter ${viewMode === 'accuracy' ? 'active' : ''}`}
+              onClick={() => setViewMode('accuracy')}
+              style={{ borderColor: 'var(--text-muted)' }}
+            >
+              Accuracy Chart
+            </button>
           </div>
         </div>
         {viewMode === 'position' && (
@@ -1807,6 +1815,9 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
         </table>
       </div>
       </>}
+
+      {/* Accuracy chart */}
+      {viewMode === 'accuracy' && <TeamAccuracyChart />}
 
       {!isActuals && (
         <ScenarioBuilder
