@@ -969,6 +969,11 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
               const starterProjected = players.length > 0 ? Math.round(projectGames(players[0].prior, true)) : 17;
               const starterGames = players.length === 1 ? 17 : Math.min(16, Math.max(1, starterProjected));
 
+              // Track how much of the pool is consumed by the starter so backups can fill the remainder,
+              // ensuring QB totals always reconcile with the team's projected passing budget.
+              let allocatedPassAtt = 0;
+              let allocatedRushAtt = 0;
+
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
                 const isPrimary = idx === 0;
@@ -1002,33 +1007,28 @@ export function StatProjections({ season = PREDICT_SEASON }: { season?: number }
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.round(qbRushTDPool * rushShare * af * gamesScale);
                 } else {
-                  // Backup QB (any prior history), or primary with <3 prior games.
-                  // The pool-share + gamesScale approach yields near-zero stats for a
-                  // backup with games=1, even if they have prior starts elsewhere.
-                  // Instead, project starter-level per-game volume for their allocated games.
-                  // Use players[0] (the team's projected starter) as the per-game rate reference.
+                  // Backup QB: consume the remaining pool after the starter's allocation.
+                  // This guarantees QB totals = team passing budget (no leakage/inflation).
+                  // Use the starter's per-play efficiency rates (slightly discounted) for the backup.
                   const sp = players[0]?.prior;
-                  const perGameAtt = sp && sp.games > 0 && sp.attempts > 0
-                    ? Math.round((sp.attempts / sp.games) * 0.88)
-                    : 27;
                   const compRate = sp && sp.attempts > 0 ? Math.min(0.68, (sp.completions || 0) / sp.attempts) : 0.60;
                   const ypa = sp && sp.attempts > 0 ? Math.min(8.5, (sp.passing_yards || 0) / sp.attempts) * 0.92 : 6.5;
                   const tdRate = sp && sp.attempts > 0 ? (sp.passing_tds || 0) / sp.attempts : 0.038;
                   const intRate = sp && sp.attempts > 0 ? Math.max(0.025, ((sp.interceptions || 0) / sp.attempts) * 1.15) : 0.032;
 
-                  passAtt = Math.round(perGameAtt * games);
+                  passAtt = Math.max(0, Math.round(qbPassPool) - allocatedPassAtt);
                   passComp = Math.round(passAtt * compRate);
                   passYds = Math.round(passAtt * ypa);
                   passTD = Math.round(passAtt * tdRate);
                   ints = Math.round(passAtt * intRate);
 
-                  const perGameRushAtt = sp && sp.games > 0
-                    ? Math.max(2, Math.round(((sp.carries || 0) / sp.games) * 0.6))
-                    : 3;
-                  rushAtt = Math.round(perGameRushAtt * games);
+                  rushAtt = Math.max(0, Math.round(qbRushPool) - allocatedRushAtt);
                   rushYds = Math.round(rushAtt * 3.8);
                   rushTD = 0;
                 }
+
+                allocatedPassAtt += passAtt;
+                allocatedRushAtt += rushAtt;
 
                 const pts = computePPR({ passYds, passTD, int: ints, rushYds, rushTD });
                 qbs.push({
