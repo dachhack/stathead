@@ -858,11 +858,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const REP_PPR: Record<string, number> = { QB: 285, RB: 115, WR: 115, TE: 90 };
 
   const optimizerPlan = useMemo(() => {
-    const allSlots = [...starterSlots, ...benchSlots];
+    // Only plan for starting roster spots so VOR / total points reflect the starting lineup
+    const allSlots = [...starterSlots];
     if (allSlots.length === 0 || strategyData.length === 0) return [];
 
     const starterCount = starterSlots.length;
-    const remaining = [...allSlots]; // mutable copy; first starterCount entries are starters
+    const remaining = [...allSlots]; // mutable copy – starters only
 
     type PlayerSuggestion = {
       name: string; team: string; adp: number;
@@ -1038,7 +1039,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     }
     return plan;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, actualPicks, roundPositions]);
+  }, [pickNumber, leagueSize, starterSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, actualPicks, roundPositions]);
 
   if (loading) {
     return (
