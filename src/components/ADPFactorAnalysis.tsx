@@ -14,6 +14,7 @@ import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats,
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
+import { loadAllScenarios } from '../lib/scenarioEngine';
 
 type ModelType = 'ridge' | 'gbm';
 
@@ -262,7 +263,8 @@ interface PredictionRow {
 
 // ── Component ──
 
-export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: ScenarioConfig }) {
   const [models, setModels] = useState<PositionModel[]>([]);
   const [allRows, setAllRows] = useState<PlayerRow[]>([]);
   const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
@@ -275,6 +277,14 @@ export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
   const [selected2026Player, setSelected2026Player] = useState<string | null>(null);
+
+  // ── Scenario selection (loaded from saved localStorage scenarios) ──
+  const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
+  const [activeScenarioId, setActiveScenarioId] = useState<string>('none');
+  const activeScenario = useMemo(
+    () => activeScenarioId === 'none' ? undefined : savedScenarios.find((s) => s.id === activeScenarioId),
+    [activeScenarioId, savedScenarios],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1256,7 +1266,7 @@ export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
             }
 
             // ── Projection features for prediction season (scenario adjustments applied here) ──
-            const predProjFeatures = computePlayerProjectionFeatures(predPriorStats, scenario);
+            const predProjFeatures = computePlayerProjectionFeatures(predPriorStats, activeScenario);
 
             // Snap %
             const predSnapAccum = new Map<string, { total: number; count: number }>();
@@ -1976,7 +1986,7 @@ export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, maxADP, scenario]);
+  }, [lambda, maxADP, activeScenario]);
 
   const currentModel = useMemo(
     () => models.find((m) => m.position === selectedPos),
@@ -2239,6 +2249,27 @@ export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
             </select>
           </div>
         )}
+
+        <div className="control-group" style={{ marginLeft: 'auto' }}>
+          <label className="control-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Scenario
+            <button
+              onClick={() => setSavedScenarios(loadAllScenarios())}
+              title="Reload saved scenarios"
+              style={{ fontSize: 11, padding: '1px 6px', cursor: 'pointer', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-secondary)' }}
+            >↺</button>
+          </label>
+          <select
+            value={activeScenarioId}
+            onChange={(e) => setActiveScenarioId(e.target.value)}
+            style={{ minWidth: 160, borderColor: activeScenarioId !== 'none' ? '#f97316' : undefined }}
+          >
+            <option value="none">None</option>
+            {savedScenarios.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Model performance cards */}
@@ -2323,11 +2354,11 @@ export function ADPFactorAnalysis({ scenario }: { scenario?: ScenarioConfig }) {
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
               Model-predicted ADP delta &middot; {predictions2026.length} players
             </span>
-            {scenario && (scenario.volumeOverrides.length > 0 || scenario.teamVolumes.length > 0 || scenario.teamTendencies.length > 0 || scenario.teamStatAdjustments.length > 0) && (
+            {activeScenario && (
               <span style={{
                 fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff',
                 borderRadius: 4, padding: '2px 7px', marginLeft: 4,
-              }}>⚙ SCENARIO ACTIVE</span>
+              }}>⚙ {activeScenario.name}</span>
             )}
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>

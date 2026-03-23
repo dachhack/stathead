@@ -25,7 +25,11 @@ export interface PlayerProjectionFeatures {
 
 function norm(name: string | null | undefined): string {
   if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+  return name.toLowerCase()
+    .replace(/[^a-z ]/g, '')                       // strip non-alpha
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')       // strip name suffixes
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**

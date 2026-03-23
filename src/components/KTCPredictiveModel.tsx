@@ -14,6 +14,7 @@ import {
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBMWithCI, predictGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
+import { loadAllScenarios } from '../lib/scenarioEngine';
 
 // ── Types ──
 
@@ -185,16 +186,25 @@ const TRAIN_SEASONS = [2024, 2025];
 
 interface KTCPredictiveModelProps {
   initialPlayer?: string | null;
-  scenario?: ScenarioConfig;
+  scenario?: ScenarioConfig; // kept for API compat, overridden by local dropdown
   dataSource?: 'ktc' | 'fc';
 }
 
-export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc' }: KTCPredictiveModelProps) {
+export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
   const [model, setModel] = useState<TrainedModel | null>(null);
   const [baselineR2, setBaselineR2] = useState<number | null>(null); // R² without projection features
+
+  // ── Scenario selection (loaded from saved localStorage scenarios) ──
+  const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
+  const [activeScenarioId, setActiveScenarioId] = useState<string>('none');
+  const activeScenario = useMemo(
+    () => activeScenarioId === 'none' ? undefined : savedScenarios.find((s) => s.id === activeScenarioId),
+    [activeScenarioId, savedScenarios],
+  );
+
   const [predictions, setPredictions] = useState<PlayerPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Initializing...');
@@ -285,7 +295,7 @@ export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc'
 
           // ── Projection features (scenario only applied to most-recent training season) ──
           const isLatestSeason = season === Math.max(...TRAIN_SEASONS);
-          const projFeatures = computePlayerProjectionFeatures(priorStats, isLatestSeason ? scenario : undefined);
+          const projFeatures = computePlayerProjectionFeatures(priorStats, isLatestSeason ? activeScenario : undefined);
 
           // Prior season snap counts by player name → avg offense_pct
           const snapsByName = new Map<string, number>();
@@ -625,7 +635,7 @@ export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc'
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, position, rookieFilter, modelType, scenario, dataSource]);
+  }, [lambda, position, rookieFilter, modelType, activeScenario, dataSource]);
 
   const activeDefs = useMemo(() => getFeatureDefsForPosition(position), [position]);
 
@@ -775,6 +785,27 @@ export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc'
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="control-group" style={{ marginLeft: 'auto' }}>
+          <label className="control-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Scenario
+            <button
+              onClick={() => setSavedScenarios(loadAllScenarios())}
+              title="Reload saved scenarios"
+              style={{ fontSize: 11, padding: '1px 6px', cursor: 'pointer', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-secondary)' }}
+            >↺</button>
+          </label>
+          <select
+            value={activeScenarioId}
+            onChange={(e) => setActiveScenarioId(e.target.value)}
+            style={{ minWidth: 160, borderColor: activeScenarioId !== 'none' ? '#f97316' : undefined }}
+          >
+            <option value="none">None</option>
+            {savedScenarios.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -982,11 +1013,11 @@ export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc'
         <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
           {predictions.length} {position}s — click a bar to see factor breakdown
         </span>
-        {scenario && (scenario.volumeOverrides.length > 0 || scenario.teamVolumes.length > 0 || scenario.teamTendencies.length > 0 || scenario.teamStatAdjustments.length > 0) && (
+        {activeScenario && (
           <span style={{
             fontSize: 11, fontWeight: 700, background: '#f97316', color: '#fff',
             borderRadius: 4, padding: '2px 7px', marginLeft: 8,
-          }}>⚙ SCENARIO ACTIVE</span>
+          }}>⚙ {activeScenario.name}</span>
         )}
       </div>
 
