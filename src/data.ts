@@ -853,6 +853,73 @@ export async function fetchKTCHistory(
   return results;
 }
 
+// --- FantasyCalc Rankings (normalized to KTCPlayer shape) ---
+
+const fcCache = new Map<string, KTCPlayer[]>();
+
+export async function fetchFantasyCalcRankings(
+  format: '1qb' | 'superflex' = '1qb'
+): Promise<KTCPlayer[]> {
+  const cacheKey = format;
+  const cached = fcCache.get(cacheKey);
+  if (cached) return cached;
+
+  const url1qb =
+    'https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=1&numTeams=12&ppr=1';
+  const urlSf =
+    'https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=1';
+
+  // Fetch both in parallel so we can populate both value fields
+  const [oneQbData, sfData] = await Promise.all([
+    fetch(url1qb).then((r) => {
+      if (!r.ok) throw new Error(`FantasyCalc API returned ${r.status}`);
+      return r.json() as Promise<Array<{
+        player: { id: number; name: string; position: string; maybeTeam?: string; maybeAge?: number; maybeYoe?: number };
+        value: number;
+        overallRank: number;
+        positionRank: number;
+        trend30Day?: number;
+        maybeTier?: number;
+      }>>;
+    }),
+    fetch(urlSf).then((r) => {
+      if (!r.ok) throw new Error(`FantasyCalc SF API returned ${r.status}`);
+      return r.json() as Promise<Array<{
+        player: { id: number; name: string };
+        value: number;
+      }>>;
+    }),
+  ]);
+
+  // Build SF value lookup by player id
+  const sfMap = new Map<number, number>();
+  for (const item of sfData) {
+    sfMap.set(item.player.id, item.value);
+  }
+
+  const results: KTCPlayer[] = oneQbData
+    .filter((item) => item.player.position !== 'PICK')
+    .map((item) => ({
+      playerID: item.player.id,
+      playerName: item.player.name,
+      position: item.player.position,
+      positionRank: item.positionRank,
+      team: item.player.maybeTeam ?? '',
+      age: item.player.maybeAge ?? 0,
+      value: item.value,
+      superflexValue: sfMap.get(item.player.id) ?? 0,
+      isRookie: item.player.maybeYoe === 0,
+      slug: '',
+      trend30Day: item.trend30Day ?? 0,
+    }));
+
+  // Sort by value descending (1QB value)
+  results.sort((a, b) => b.value - a.value);
+
+  fcCache.set(cacheKey, results);
+  return results;
+}
+
 // --- FantasyCalc API ---
 
 const fantasyCalcCache = new Map<string, FantasyCalcPlayer[]>();

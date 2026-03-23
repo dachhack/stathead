@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
-import { fetchKTCRankings, fetchKTCHistory } from '../data';
+import { fetchKTCRankings, fetchKTCHistory, fetchFantasyCalcRankings } from '../data';
 import { KTCFactorAnalysis } from './KTCFactorAnalysis';
 import { KTCPredictiveModel } from './KTCPredictiveModel';
 
@@ -27,6 +27,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<FormatMode>('1qb');
   const [viewMode, setViewMode] = useState<ViewMode>('rankings');
+  const [dataSource, setDataSource] = useState<'ktc' | 'fc'>('ktc');
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [showRookies, setShowRookies] = useState(false);
@@ -44,14 +45,15 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchKTCRankings(format)
+    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchKTCRankings;
+    fetcher(format)
       .then((data) => {
         setPlayers(data);
         onDataLoaded?.(data);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
-  }, [format, onDataLoaded]);
+  }, [format, dataSource, onDataLoaded]);
 
   // Fetch history when selected players change
   useEffect(() => {
@@ -143,7 +145,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading KeepTradeCut dynasty values...</div>
+        <div className="loading-text">Loading {dataSource === 'fc' ? 'FantasyCalc' : 'KeepTradeCut'} dynasty values...</div>
       </div>
     );
   }
@@ -151,19 +153,41 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   if (error) {
     return (
       <div className="empty-state">
-        <h3>Failed to load KTC data</h3>
+        <h3>Failed to load {dataSource === 'fc' ? 'FantasyCalc' : 'KTC'} data</h3>
         <p>{error}</p>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-          KTC does not have a public API. This feature scrapes their dynasty rankings page,
-          which may be blocked by CORS in some environments.
-          Works best when deployed behind a CORS proxy or server-side.
-        </p>
+        {dataSource === 'ktc' && (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+            KTC does not have a public API. This feature scrapes their dynasty rankings page,
+            which may be blocked by CORS in some environments.
+            Works best when deployed behind a CORS proxy or server-side.
+          </p>
+        )}
+        {dataSource === 'fc' && (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+            Could not reach the FantasyCalc API. Check your network connection or try again later.
+          </p>
+        )}
       </div>
     );
   }
 
   return (
     <>
+      <div className="scoring-format-tabs" style={{ marginBottom: 8 }}>
+        <button
+          className={`format-tab ${dataSource === 'ktc' ? 'active' : ''}`}
+          onClick={() => setDataSource('ktc')}
+        >
+          KTC
+        </button>
+        <button
+          className={`format-tab ${dataSource === 'fc' ? 'active' : ''}`}
+          onClick={() => setDataSource('fc')}
+        >
+          FantasyCalc
+        </button>
+      </div>
+
       <div className="scoring-format-tabs" style={{ marginBottom: 12 }}>
         <button
           className={`format-tab ${viewMode === 'rankings' ? 'active' : ''}`}
@@ -192,10 +216,16 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
       </div>
 
       {viewMode === 'model' ? (
-        <KTCPredictiveModel initialPlayer={modelPlayer} scenario={scenario} />
+        <KTCPredictiveModel initialPlayer={modelPlayer} scenario={scenario} dataSource={dataSource} />
       ) : viewMode === 'factors' ? (
         <KTCFactorAnalysis />
       ) : viewMode === 'history' ? (
+        dataSource === 'fc' ? (
+          <div className="empty-state">
+            <h3>Value history not available for FantasyCalc</h3>
+            <p>Value history is only available for KTC. Switch to KTC source to view historical trends.</p>
+          </div>
+        ) : (
         <>
           <div className="controls">
             <div style={{ position: 'relative', flex: 1 }}>
@@ -412,6 +442,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
             </div>
           )}
         </>
+        )
       ) : (
         <>
           <div className="controls">
@@ -459,19 +490,34 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
             </span>
           </div>
 
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-            Crowdsourced dynasty trade values from{' '}
-            <a
-              href="https://keeptradecut.com/dynasty-rankings"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--accent)' }}
-            >
-              KeepTradeCut
-            </a>
-            . Values are based on 25M+ user-submitted rankings using an adapted ELO algorithm.
-            Max value = 9999.
-          </p>
+          {dataSource === 'ktc' ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+              Crowdsourced dynasty trade values from{' '}
+              <a
+                href="https://keeptradecut.com/dynasty-rankings"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--accent)' }}
+              >
+                KeepTradeCut
+              </a>
+              . Values are based on 25M+ user-submitted rankings using an adapted ELO algorithm.
+              Max value = 9999.
+            </p>
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+              Dynasty trade values from{' '}
+              <a
+                href="https://fantasycalc.com/dynasty-rankings"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--accent)' }}
+              >
+                FantasyCalc
+              </a>
+              . 30-day trend shows value change over the past 30 days.
+            </p>
+          )}
 
           <div className="table-container">
             <table>
@@ -485,7 +531,11 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                   <th>Age</th>
                   <th>Value</th>
                   <th style={{ minWidth: 160 }}>Value Chart</th>
-                  {format === '1qb' ? <th>SF Value</th> : <th>1QB Value</th>}
+                  {dataSource === 'fc' ? (
+                    <th>30d Trend</th>
+                  ) : (
+                    format === '1qb' ? <th>SF Value</th> : <th>1QB Value</th>
+                  )}
                   <th></th>
                 </tr>
               </thead>
@@ -542,34 +592,43 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                         }}
                       />
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>
-                      {format === '1qb'
-                        ? (p.superflexValue > 0 ? p.superflexValue.toLocaleString() : '-')
-                        : (p.value > 0 ? p.value.toLocaleString() : '-')}
+                    <td style={{ color: dataSource === 'fc' ? ((p.trend30Day ?? 0) >= 0 ? '#10b981' : '#ef4444') : 'var(--text-muted)' }}>
+                      {dataSource === 'fc' ? (
+                        (() => {
+                          const trend = p.trend30Day ?? 0;
+                          return trend === 0 ? '-' : `${trend >= 0 ? '+' : ''}${trend.toLocaleString()}`;
+                        })()
+                      ) : (
+                        format === '1qb'
+                          ? (p.superflexValue > 0 ? p.superflexValue.toLocaleString() : '-')
+                          : (p.value > 0 ? p.value.toLocaleString() : '-')
+                      )}
                     </td>
                     <td>
-                      <button
-                        onClick={() => {
-                          setSelectedPlayers((prev) =>
-                            prev.some((s) => s.playerID === p.playerID)
-                              ? prev
-                              : [...prev.slice(0, 7), p]
-                          );
-                          setViewMode('history');
-                        }}
-                        title="View value history"
-                        style={{
-                          background: 'none',
-                          border: '1px solid var(--border, #333)',
-                          borderRadius: 4,
-                          color: 'var(--accent)',
-                          cursor: 'pointer',
-                          fontSize: 11,
-                          padding: '2px 6px',
-                        }}
-                      >
-                        History
-                      </button>
+                      {dataSource === 'ktc' && (
+                        <button
+                          onClick={() => {
+                            setSelectedPlayers((prev) =>
+                              prev.some((s) => s.playerID === p.playerID)
+                                ? prev
+                                : [...prev.slice(0, 7), p]
+                            );
+                            setViewMode('history');
+                          }}
+                          title="View value history"
+                          style={{
+                            background: 'none',
+                            border: '1px solid var(--border, #333)',
+                            borderRadius: 4,
+                            color: 'var(--accent)',
+                            cursor: 'pointer',
+                            fontSize: 11,
+                            padding: '2px 6px',
+                          }}
+                        >
+                          History
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

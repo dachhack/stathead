@@ -9,6 +9,7 @@ import {
   fetchKTCRankings, fetchKTCHistory, fetchPlayerStats,
   fetchCombine, fetchDraftPicks, fetchInjuries, fetchGames,
   fetchSnapCounts, aggregateToSeasonTotals, fetchDepthCharts,
+  fetchFantasyCalcRankings,
 } from '../data';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBMWithCI, predictGBM } from '../lib/gbm';
@@ -55,6 +56,7 @@ interface PlayerPrediction {
   ciUpperAbs: number | null;
   topDrivers: FeatureContrib[];
   allDrivers: FeatureContrib[];
+  fcValue?: number;           // current FantasyCalc value (if available)
 }
 
 // ── Feature definitions ──
@@ -184,9 +186,10 @@ const TRAIN_SEASONS = [2024, 2025];
 interface KTCPredictiveModelProps {
   initialPlayer?: string | null;
   scenario?: ScenarioConfig;
+  dataSource?: 'ktc' | 'fc';
 }
 
-export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveModelProps) {
+export function KTCPredictiveModel({ initialPlayer, scenario, dataSource = 'ktc' }: KTCPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
@@ -598,6 +601,20 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
           : trainRidgeRegression(Xbaseline, yPct, baselineNames, lambda);
         setBaselineR2(baselineResult.rSquared);
 
+        // ── 6. Fetch FantasyCalc values to enrich predictions ──
+        setLoadingStatus('Loading FantasyCalc values...');
+        const fcPlayers = await fetchFantasyCalcRankings('1qb').catch(() => []);
+        const fcByName = new Map<string, number>();
+        for (const p of fcPlayers) {
+          if (p.position === position) fcByName.set(normalizeName(p.playerName), p.value);
+        }
+
+        // Attach fcValue to each prediction
+        for (const pred of preds) {
+          const fcVal = fcByName.get(normalizeName(pred.name));
+          if (fcVal !== undefined) pred.fcValue = fcVal;
+        }
+
         setPredictions(preds);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Model training failed');
@@ -608,7 +625,7 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, position, rookieFilter, modelType, scenario]);
+  }, [lambda, position, rookieFilter, modelType, scenario, dataSource]);
 
   const activeDefs = useMemo(() => getFeatureDefsForPosition(position), [position]);
 
@@ -993,6 +1010,7 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
               ciUpper: p.ciUpperAbs,
               ciLowerPct: p.ciLower,
               ciUpperPct: p.ciUpper,
+              fcValue: p.fcValue,
               fill: p.predictedDelta >= 0 ? '#10b981' : '#ef4444',
             }))}
             layout="vertical"
@@ -1066,6 +1084,12 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
                   }}>
                     <strong>{d.name}</strong>
                     <br />Sept Value: {d.septValue.toLocaleString()}
+                    {d.fcValue != null && (
+                      <>
+                        <br />
+                        <span style={{ color: '#10b981' }}>FC Value: {d.fcValue.toLocaleString()}</span>
+                      </>
+                    )}
                     <br />Predicted: <span style={{ color: d.value >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                       {d.value >= 0 ? '+' : ''}{d.value.toLocaleString()} ({d.pctChange >= 0 ? '+' : ''}{d.pctChange}%)
                     </span>
@@ -1116,7 +1140,12 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
             <div>
               <h4 style={{ margin: 0 }}>{selectedPrediction.name} ({selectedPrediction.team})</h4>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Current: {selectedPrediction.septValue.toLocaleString()} KTC
+                KTC: {selectedPrediction.septValue.toLocaleString()}
+                {selectedPrediction.fcValue != null && (
+                  <span style={{ color: '#10b981', marginLeft: 8 }}>
+                    FC: {selectedPrediction.fcValue.toLocaleString()}
+                  </span>
+                )}
                 {' → '}
                 Predicted Dec: {selectedPrediction.predictedDecValue.toLocaleString()} KTC
                 {' '}
@@ -1231,6 +1260,53 @@ export function KTCPredictiveModel({ initialPlayer, scenario }: KTCPredictiveMod
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Predictions table */}
+      <details style={{ marginTop: 20 }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13 }}>
+          Predictions table ({sortedPredictions.length} players)
+        </summary>
+        <div className="table-container" style={{ marginTop: 8 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Team</th>
+                <th>KTC Value</th>
+                <th style={{ color: '#10b981' }}>FC Value</th>
+                <th>Predicted Change</th>
+                <th>Predicted Dec</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPredictions.map((p) => (
+                <tr key={p.playerID}>
+                  <td>
+                    <strong
+                      style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }}
+                      onClick={() => setSelectedPlayer(selectedPlayer === p.name ? null : p.name)}
+                    >
+                      {p.name}
+                    </strong>
+                  </td>
+                  <td>{p.team}</td>
+                  <td>{p.septValue.toLocaleString()}</td>
+                  <td style={{ color: '#10b981', fontWeight: p.fcValue != null ? 600 : 400 }}>
+                    {p.fcValue != null ? p.fcValue.toLocaleString() : '-'}
+                  </td>
+                  <td>
+                    <span style={{ color: p.predictedDelta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                      {p.predictedDelta >= 0 ? '+' : ''}{p.predictedDelta.toLocaleString()}
+                      {' '}({p.predictedDeltaPct >= 0 ? '+' : ''}{p.predictedDeltaPct}%)
+                    </span>
+                  </td>
+                  <td>{p.predictedDecValue.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
 
       {/* Category breakdown */}
       <details style={{ marginTop: 20 }}>

@@ -168,6 +168,7 @@ export interface KTCPlayer {
   superflexValue: number;
   isRookie: boolean;
   slug: string;
+  trend30Day?: number;
 }
 
 export interface KTCHistoryPoint {
