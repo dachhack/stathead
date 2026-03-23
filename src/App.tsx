@@ -157,7 +157,7 @@ function App() {
         </div>
       </header>
       <main className="main">
-        {tab === 'projections' && <StatProjections />}
+        {tab === 'projections' && <StatProjections season={season} />}
         {tab === 'stats' && (
           <PlayerStatsTable
             players={seasonTotals}
