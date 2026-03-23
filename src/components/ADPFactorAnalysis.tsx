@@ -29,6 +29,31 @@ const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
 };
 
+// ── Draft optimizer helpers ──
+const FLEX_POS  = new Set(['RB', 'WR', 'TE']);
+const SF_POS    = new Set(['QB', 'RB', 'WR', 'TE']);
+const ALL_DRAFT_SLOTS = ['QB', 'RB', 'WR', 'TE', 'Flex', 'SuperFlex', 'K', 'DEF'];
+
+function canFillSlot(slot: string, pos: string): boolean {
+  if (slot === pos) return true;
+  if (slot === 'Flex'      && FLEX_POS.has(pos)) return true;
+  if (slot === 'SuperFlex' && SF_POS.has(pos))   return true;
+  return false;
+}
+
+function findSlotIndex(remaining: string[], pos: string): number {
+  const exact = remaining.findIndex((s) => s === pos);
+  if (exact !== -1) return exact;
+  return remaining.findIndex((s) => canFillSlot(s, pos) && s !== pos);
+}
+
+const ROSTER_PRESETS: Record<string, string[]> = {
+  'Standard':      ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'RB', 'WR', 'WR', 'WR', 'QB'],
+  '2-Flex':        ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'Flex', 'RB', 'WR', 'WR', 'QB'],
+  'Superflex':     ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'SuperFlex', 'Flex', 'RB', 'WR', 'WR', 'QB'],
+  'Starters only': ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex'],
+};
+
 // ── Feature definitions by position ──
 
 interface FeatureDef {
@@ -282,6 +307,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [adpView, setAdpView] = useState<'model' | 'strategy'>('model');
   const [leagueSize, setLeagueSize] = useState(12);
   const [strategyMetric, setStrategyMetric] = useState<'hitbust' | 'vor'>('hitbust');
+  const [halfRounds, setHalfRounds] = useState(false);
+  const [pickNumber, setPickNumber] = useState(1);
+  const [rosterSlots, setRosterSlots] = useState<string[]>(['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'Flex', 'RB', 'WR', 'WR', 'WR', 'QB']);
+  const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
@@ -2249,6 +2278,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   // ── Draft strategy: hit/bust rates by round × position ──────────────────
   const strategyData = useMemo(() => {
     const MAX_ROUND = 15;
+    const bucketSize = halfRounds ? Math.max(1, Math.floor(leagueSize / 2)) : leagueSize;
+    const totalBuckets = halfRounds ? MAX_ROUND * 2 : MAX_ROUND;
+
     type CellStats = {
       hits: number; busts: number; total: number;
       hitRate: number; bustRate: number; score: number;
@@ -2256,23 +2288,29 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     };
     const matrix: Array<{
       round: number;
+      half?: 'a' | 'b';
+      label: string;
       picks: string;
+      pickStart: number;
+      pickEnd: number;
       byPos: Record<string, CellStats>;
-      bestPos: string;        // best by hit-bust score
-      bestPosVor: string;     // best by avg VOR
+      bestPos: string;
+      bestPosVor: string;
     }> = [];
 
-    for (let round = 1; round <= MAX_ROUND; round++) {
-      const pickStart = (round - 1) * leagueSize + 1;
-      const pickEnd   = round * leagueSize;
+    for (let bucket = 0; bucket < totalBuckets; bucket++) {
+      const pickStart = bucket * bucketSize + 1;
+      const pickEnd   = (bucket + 1) * bucketSize;
+      const roundNum  = halfRounds ? Math.floor(bucket / 2) + 1 : bucket + 1;
+      const half      = halfRounds ? (bucket % 2 === 0 ? 'a' as const : 'b' as const) : undefined;
+      const label     = halfRounds ? `Rd ${roundNum}${half}` : `Rd ${roundNum}`;
+
       const roundRows = allRows.filter((r) => r.adp >= pickStart && r.adp <= pickEnd);
       if (roundRows.length === 0) continue;
 
       const byPos: Record<string, CellStats> = {};
-      let bestScore = -Infinity;
-      let bestPos   = '';
-      let bestAvgVor = -Infinity;
-      let bestPosVor = '';
+      let bestScore  = -Infinity, bestPos    = '';
+      let bestAvgVor = -Infinity, bestPosVor = '';
 
       for (const pos of POSITIONS) {
         const posRows = roundRows.filter((r) => r.position === pos);
@@ -2280,29 +2318,88 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
         const empty: CellStats = { hits: 0, busts: 0, total, hitRate: 0, bustRate: 0, score: 0, avgVor: 0, medianVor: 0 };
         if (total < 3) { byPos[pos] = empty; continue; }
 
-        const hits    = posRows.filter((r) => isHitForPos(r.position, r.vor)).length;
-        const busts   = posRows.filter((r) => isBustForPos(r.position, r.vor)).length;
-        const hitRate = hits / total;
+        const hits     = posRows.filter((r) => isHitForPos(r.position, r.vor)).length;
+        const busts    = posRows.filter((r) => isBustForPos(r.position, r.vor)).length;
+        const hitRate  = hits / total;
         const bustRate = busts / total;
-        const score   = hitRate - bustRate;
-
-        const vors = posRows.map((r) => r.vor).sort((a, b) => a - b);
-        const avgVor = Math.round((vors.reduce((s, v) => s + v, 0) / vors.length) * 100) / 100;
+        const score    = hitRate - bustRate;
+        const vors     = posRows.map((r) => r.vor).sort((a, b) => a - b);
+        const avgVor   = Math.round((vors.reduce((s, v) => s + v, 0) / vors.length) * 100) / 100;
         const mid = Math.floor(vors.length / 2);
         const medianVor = vors.length % 2 === 0
           ? Math.round(((vors[mid - 1] + vors[mid]) / 2) * 100) / 100
           : Math.round(vors[mid] * 100) / 100;
 
         byPos[pos] = { hits, busts, total, hitRate, bustRate, score, avgVor, medianVor };
-        if (total >= 5 && score > bestScore)  { bestScore  = score;  bestPos    = pos; }
-        if (total >= 5 && avgVor > bestAvgVor) { bestAvgVor = avgVor; bestPosVor = pos; }
+        if (total >= 5 && score   > bestScore)  { bestScore  = score;  bestPos    = pos; }
+        if (total >= 5 && avgVor  > bestAvgVor) { bestAvgVor = avgVor; bestPosVor = pos; }
       }
 
-      matrix.push({ round, picks: `${pickStart}–${pickEnd}`, byPos, bestPos, bestPosVor });
+      matrix.push({ round: roundNum, half, label, picks: `${pickStart}–${pickEnd}`, pickStart, pickEnd, byPos, bestPos, bestPosVor });
     }
     return matrix;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allRows, leagueSize, posThresholds]);
+  }, [allRows, leagueSize, halfRounds, posThresholds]);
+
+  // ── Draft Optimizer ──────────────────────────────────────────────────────
+  const optimizerPlan = useMemo(() => {
+    if (rosterSlots.length === 0 || strategyData.length === 0) return [];
+
+    const remaining = [...rosterSlots];
+    type PlanRow = {
+      round: number; label: string; yourPick: number;
+      recPos: string; slotFilled: string;
+      vorScore: number; hitPct: number; bustPct: number; score: number; n: number;
+      alternatives: Array<{ pos: string; metric: number }>;
+    };
+    const plan: PlanRow[] = [];
+
+    for (let r = 1; r <= 20 && remaining.length > 0; r++) {
+      // Snake draft: odd rounds pick at position pickNumber, even rounds mirror
+      const posWithinRound = r % 2 === 1 ? pickNumber : (leagueSize + 1 - pickNumber);
+      const yourPick = (r - 1) * leagueSize + posWithinRound;
+      const label = halfRounds
+        ? `Rd ${r}${posWithinRound <= Math.floor(leagueSize / 2) ? 'a' : 'b'}`
+        : `Rd ${r}`;
+
+      // Find the strategy bucket covering this pick
+      const bucket = strategyData.find((b) => yourPick >= b.pickStart && yourPick <= b.pickEnd);
+      if (!bucket) continue;
+
+      // Collect candidates: unique positions that can fill any remaining slot
+      const seen = new Set<string>();
+      const candidates: Array<{ pos: string; metric: number; vorScore: number; hitPct: number; bustPct: number; score: number; n: number }> = [];
+      for (const slot of remaining) {
+        for (const pos of POSITIONS) {
+          if (seen.has(pos)) continue;
+          if (!canFillSlot(slot, pos)) continue;
+          const cell = bucket.byPos[pos];
+          if (!cell || cell.total < 3) continue;
+          seen.add(pos);
+          const metric = optimizerMetric === 'vor' ? cell.avgVor : cell.score;
+          candidates.push({ pos, metric, vorScore: cell.avgVor, hitPct: Math.round(cell.hitRate * 100), bustPct: Math.round(cell.bustRate * 100), score: cell.score, n: cell.total });
+        }
+      }
+
+      if (candidates.length === 0) { remaining.shift(); continue; }
+
+      candidates.sort((a, b) => b.metric - a.metric);
+      const best = candidates[0];
+
+      const slotIdx = findSlotIndex(remaining, best.pos);
+      const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : best.pos;
+      if (slotIdx !== -1) remaining.splice(slotIdx, 1);
+
+      plan.push({
+        round: r, label, yourPick,
+        recPos: best.pos, slotFilled,
+        vorScore: best.vorScore, hitPct: best.hitPct, bustPct: best.bustPct,
+        score: best.score, n: best.n,
+        alternatives: candidates.slice(1, 4).map((c) => ({ pos: c.pos, metric: c.metric })),
+      });
+    }
+    return plan;
+  }, [pickNumber, leagueSize, rosterSlots, strategyData, optimizerMetric, halfRounds]);
 
   if (loading) {
     return (
@@ -2498,6 +2595,23 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   >{n}</button>
                 ))}
               </div>
+              {/* Granularity toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Granularity</span>
+                {([
+                  [false, 'Full rounds'],
+                  [true,  'Half rounds'],
+                ] as const).map(([val, lbl]) => (
+                  <button key={String(val)} onClick={() => setHalfRounds(val)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `2px solid ${halfRounds === val ? '#f97316' : 'var(--border)'}`,
+                      background: halfRounds === val ? 'rgba(249,115,22,0.12)' : 'var(--bg-secondary)',
+                      color: halfRounds === val ? '#f97316' : 'var(--text-secondary)',
+                    }}
+                  >{lbl}</button>
+                ))}
+              </div>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                 {allRows.length} historical player-seasons · thresholds calibrated per position (≈33% hit / 33% bust)
               </span>
@@ -2537,8 +2651,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   {strategyData.map((row) => {
                     const activeBest = isVor ? row.bestPosVor : row.bestPos;
                     return (
-                      <tr key={row.round}>
-                        <td style={{ fontWeight: 700 }}>Rd {row.round}</td>
+                      <tr key={row.label}>
+                        <td style={{ fontWeight: 700 }}>{row.label}</td>
                         <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{row.picks}</td>
                         {POSITIONS.map((pos) => {
                           const cell = row.byPos[pos];
@@ -2641,6 +2755,169 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 </>
               )}
             </p>
+
+            {/* ── Draft Optimizer ── */}
+            <div style={{ marginTop: 32, borderTop: '2px solid var(--border)', paddingTop: 24 }}>
+              <h4 style={{ marginBottom: 4, fontSize: 15 }}>🎯 Draft Optimizer</h4>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, maxWidth: 680 }}>
+                Enter your pick number and roster requirements. The optimizer uses historical VOR data to suggest the best position to draft in each round of a snake draft.
+              </p>
+
+              {/* Optimizer controls */}
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16, alignItems: 'flex-start' }}>
+
+                {/* Pick number */}
+                <div className="control-group">
+                  <label className="control-label">Your Pick #</label>
+                  <select value={pickNumber} onChange={(e) => setPickNumber(Number(e.target.value))}
+                    style={{ width: 70 }}>
+                    {Array.from({ length: leagueSize }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>Pick {n}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Metric */}
+                <div className="control-group">
+                  <label className="control-label">Optimize by</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {([
+                      ['vor',     'VOR Score (σ)'],
+                      ['hitbust', 'Hit/Bust Rate'],
+                    ] as const).map(([m, lbl]) => (
+                      <button key={m} onClick={() => setOptimizerMetric(m)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                          border: `2px solid ${optimizerMetric === m ? '#6366f1' : 'var(--border)'}`,
+                          background: optimizerMetric === m ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                          color: optimizerMetric === m ? '#6366f1' : 'var(--text-secondary)',
+                        }}
+                      >{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Preset */}
+                <div className="control-group">
+                  <label className="control-label">Roster Preset</label>
+                  <select onChange={(e) => { if (ROSTER_PRESETS[e.target.value]) setRosterSlots([...ROSTER_PRESETS[e.target.value]]); }}
+                    defaultValue="">
+                    <option value="" disabled>Select preset…</option>
+                    {Object.keys(ROSTER_PRESETS).map((k) => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Roster slot editor */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
+                  Roster Slots ({rosterSlots.length} rounds) — click × to remove
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {rosterSlots.map((slot, i) => (
+                    <span key={i} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'var(--bg-secondary)', border: `1px solid ${POS_COLORS[slot] || 'var(--border)'}`,
+                      borderRadius: 4, padding: '3px 8px', fontSize: 12, fontWeight: 600,
+                      color: POS_COLORS[slot] || 'var(--text-secondary)',
+                    }}>
+                      {slot}
+                      <button onClick={() => setRosterSlots((prev) => prev.filter((_, j) => j !== i))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11,
+                          color: 'var(--text-muted)', lineHeight: 1 }}>×</button>
+                    </span>
+                  ))}
+                  <select onChange={(e) => { if (e.target.value) { setRosterSlots((prev) => [...prev, e.target.value]); e.target.value = ''; }}}
+                    style={{ fontSize: 12, padding: '3px 6px', borderRadius: 4 }}>
+                    <option value="">+ Add slot</option>
+                    {ALL_DRAFT_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Optimizer results table */}
+              {optimizerPlan.length > 0 ? (
+                <>
+                  <div className="table-container" style={{ marginBottom: 16 }}>
+                    <table style={{ tableLayout: 'fixed' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: 70 }}>Round</th>
+                          <th style={{ width: 80 }}>Your Pick</th>
+                          <th style={{ width: 80 }}>Fill Slot</th>
+                          <th style={{ width: 90 }}>Rec. Position</th>
+                          <th style={{ width: 90 }}>
+                            {optimizerMetric === 'vor' ? 'Avg VOR (σ)' : 'Hit−Bust%'}
+                          </th>
+                          <th style={{ width: 110 }}>Hit% / Bust%</th>
+                          <th>Alternatives</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {optimizerPlan.map((row) => (
+                          <tr key={row.round}>
+                            <td style={{ fontWeight: 700 }}>{row.label}</td>
+                            <td style={{ color: 'var(--text-muted)' }}>#{row.yourPick}</td>
+                            <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{row.slotFilled}</td>
+                            <td>
+                              <span style={{
+                                fontWeight: 700, fontSize: 13, padding: '2px 8px', borderRadius: 4,
+                                background: `${POS_COLORS[row.recPos] || '#6b7280'}22`,
+                                color: POS_COLORS[row.recPos] || 'var(--text-primary)',
+                              }}>{row.recPos}</span>
+                            </td>
+                            <td style={{ fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
+                              {optimizerMetric === 'vor'
+                                ? `${row.vorScore >= 0 ? '+' : ''}${row.vorScore}σ`
+                                : `${row.score >= 0 ? '+' : ''}${Math.round(row.score * 100)}%`}
+                            </td>
+                            <td style={{ fontSize: 12 }}>
+                              <span style={{ color: '#10b981' }}>{row.hitPct}%↑</span>
+                              {' '}<span style={{ color: '#ef4444' }}>{row.bustPct}%↓</span>
+                              <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>n={row.n}</span>
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              {row.alternatives.map((a) => (
+                                <span key={a.pos} style={{ marginRight: 6 }}>
+                                  <span style={{ fontWeight: 600, color: POS_COLORS[a.pos] || 'inherit' }}>{a.pos}</span>
+                                  {' '}
+                                  <span>
+                                    {optimizerMetric === 'vor'
+                                      ? `${a.metric >= 0 ? '+' : ''}${a.metric}σ`
+                                      : `${a.metric >= 0 ? '+' : ''}${Math.round(a.metric * 100)}%`}
+                                  </span>
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ borderTop: '2px solid var(--border)' }}>
+                          <td colSpan={4} style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>
+                            Expected total
+                          </td>
+                          <td style={{ fontWeight: 700, color: '#10b981' }}>
+                            {optimizerMetric === 'vor'
+                              ? (() => { const t = optimizerPlan.reduce((s, r) => s + r.vorScore, 0); return `${t >= 0 ? '+' : ''}${Math.round(t * 100) / 100}σ`; })()
+                              : (() => { const t = optimizerPlan.reduce((s, r) => s + r.score, 0); return `${t >= 0 ? '+' : ''}${Math.round(t * 1000) / 10}%`; })()}
+                          </td>
+                          <td colSpan={2} />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 700 }}>
+                    <strong>How to read:</strong> The optimizer uses a greedy snake-draft algorithm: at each round it recommends the position with the highest historical {optimizerMetric === 'vor' ? 'average VOR Score (σ)' : 'hit/bust rate'} at your pick range that still fills an open roster slot.
+                    Exact slots are filled before Flex/SuperFlex. Alternatives show the next best options. Based on {allRows.length} historical player-seasons.
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  Add roster slots above to generate a draft plan.
+                </p>
+              )}
+            </div>
           </div>
         );
       })()}
