@@ -234,7 +234,7 @@ interface PlayerRow {
   position: string;
   season: number;
   adp: number;
-  vor: number;    // Value Over Replacement = actual PPR – positional replacement-level PPR
+  vor: number;    // VOR Score (z-score): (PPR − replacement_PPR − pos_mean) / pos_std — comparable across positions
   isHit: boolean;
   isBust: boolean;
   features: Record<string, number>;
@@ -281,6 +281,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [hitBustPos, setHitBustPos] = useState<string>('ALL');
   const [adpView, setAdpView] = useState<'model' | 'strategy'>('model');
   const [leagueSize, setLeagueSize] = useState(12);
+  const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -1235,8 +1236,29 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
           }
         }
 
+        // ── Standardize VOR per position (z-score) ───────────────────────────
+        // Raw PPR-based VOR varies in scale across positions (QBs score far
+        // more than TEs in absolute terms). Standardising to z-scores makes
+        // the metric directly comparable across positions: +1.0 means 1 std
+        // above the mean for *that* position, regardless of which position.
+        const vorNorm = new Map<string, { mean: number; std: number }>();
+        for (const pos of POSITIONS) {
+          const vals = rows.filter((r) => r.position === pos).map((r) => r.vor);
+          if (vals.length < 4) continue;
+          const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+          const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+          const std = Math.sqrt(variance) || 1;
+          vorNorm.set(pos, { mean, std });
+          for (const row of rows) {
+            if (row.position === pos) {
+              row.vor = Math.round((row.vor - mean) / std * 100) / 100;
+            }
+          }
+        }
+
         if (cancelled) return;
         setAllRows(rows);
+        setVorNormParams(vorNorm);
 
         // ── Build 2026 prediction rows ──
         setLoadingStatus(`Building ${PREDICT_SEASON} prediction features...`);
@@ -2291,7 +2313,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
-        Predicts Value Over Replacement (PPR points above positional replacement level).
+        Predicts VOR Score — a standardised (z-score) measure of Value Over Replacement, comparable across all positions (+1.0 = 1 std dev above the positional mean).
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>
 
@@ -2622,7 +2644,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             <span style={{ color: '#f59e0b', fontSize: 18 }}>{PREDICT_SEASON}</span>{' '}
             {selectedPos} Predictions
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              Model-predicted VOR (pts above replacement) &middot; {predictions2026.length} players
+              Model-predicted VOR Score (σ from positional mean) &middot; {predictions2026.length} players
             </span>
             {activeScenario && (
               <span style={{
@@ -2631,9 +2653,31 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
               }}>⚙ {activeScenario.name}</span>
             )}
           </h4>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-            Trained on {SEASONS[0]}-{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Positive = predicted above replacement level.
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
+            Trained on {SEASONS[0]}–{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. VOR Score is standardised per position: 0 = positional average, +1.0 = 1 std dev above.
           </p>
+          {vorNormParams.size > 0 && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              {POSITIONS.map((pos) => {
+                const np = vorNormParams.get(pos);
+                if (!np) return null;
+                const repRank = REPLACEMENT_RANKS[pos];
+                return (
+                  <div key={pos} style={{
+                    background: 'var(--bg-secondary)', border: `1px solid ${POS_COLORS[pos]}44`,
+                    borderRadius: 6, padding: '5px 10px', fontSize: 11,
+                  }}>
+                    <span style={{ fontWeight: 700, color: POS_COLORS[pos] }}>{pos}</span>
+                    <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                      avg VOR <strong style={{ color: 'var(--text-primary)' }}>{np.mean >= 0 ? '+' : ''}{Math.round(np.mean)} pts</strong>
+                      {' · '}σ = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(np.std)} pts</strong>
+                      {' · '}baseline = {repRank}th {pos}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div className="table-container" style={{ marginBottom: 20, maxHeight: 500, overflowY: 'auto' }}>
             <table>
               <thead>
@@ -2642,7 +2686,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   <th>Player</th>
                   <th>Team</th>
                   <th>ADP</th>
-                  <th>Predicted VOR</th>
+                  <th>Predicted VOR (σ)</th>
                   <th>Outlook</th>
                 </tr>
               </thead>
@@ -2672,7 +2716,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}
+                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
                     </td>
                     <td>
                       <span style={{
@@ -2708,7 +2752,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {PREDICT_SEASON} &middot; ADP {selected2026Prediction.adp.toFixed(1)} &middot;
                   Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}
+                    {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}σ
                   </span>
                 </span>
               </h4>
@@ -2900,12 +2944,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 </XAxis>
                 <YAxis type="number" dataKey="vor"
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-                  <Label value="VOR (pts above replacement)" angle={-90} position="insideLeft" offset={10}
+                  <Label value="VOR Score (σ, pos-adjusted)" angle={-90} position="insideLeft" offset={10}
                     style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
                 </YAxis>
                 <ReferenceLine y={0} stroke="var(--text-muted)" strokeDasharray="5 5" />
-                <ReferenceLine y={-12} stroke="#f59e0b" strokeDasharray="3 3" opacity={0.5} />
-                <ReferenceLine y={-24} stroke="#ef4444" strokeDasharray="3 3" opacity={0.5} />
+                <ReferenceLine y={1} stroke="#10b981" strokeDasharray="3 3" opacity={0.4} />
+                <ReferenceLine y={-1} stroke="#ef4444" strokeDasharray="3 3" opacity={0.4} />
                 <Tooltip
                   content={({ payload }) => {
                     if (!payload?.length) return null;
@@ -2920,8 +2964,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       }}>
                         <strong>{d.name}</strong> ({d.season}){d.position ? ` · ${d.position}` : ''}
                         <br />ADP: {d.adp.toFixed(1)}
-                        <br />VOR: <span style={{ color: d.vor >= 0 ? '#10b981' : '#ef4444' }}>
-                          {d.vor >= 0 ? '+' : ''}{d.vor}
+                        <br />VOR Score: <span style={{ color: d.vor >= 0 ? '#10b981' : '#ef4444' }}>
+                          {d.vor >= 0 ? '+' : ''}{d.vor}σ
                         </span>
                         <br />
                         <span style={{
@@ -2958,8 +3002,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                   <th>Player</th>
                   <th>Season</th>
                   <th>ADP</th>
-                  <th>Predicted VOR</th>
-                  <th>Actual VOR</th>
+                  <th>Predicted VOR (σ)</th>
+                  <th>Actual VOR (σ)</th>
                   <th>Result</th>
                 </tr>
               </thead>
@@ -2991,13 +3035,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}
+                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
                     </td>
                     <td style={{
                       fontWeight: 700,
                       color: p.actualVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.actualVor >= 0 ? '+' : ''}{p.actualVor}
+                      {p.actualVor >= 0 ? '+' : ''}{p.actualVor}σ
                     </td>
                     <td>
                       <span style={{
@@ -3031,15 +3075,15 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {selectedPrediction.season} &middot; ADP {selectedPrediction.adp.toFixed(1)} &middot;
                   Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}
+                    {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}σ
                   </span> &middot;
                   Actual: <span style={{ color: selectedPrediction.actualVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.actualVor >= 0 ? '+' : ''}{selectedPrediction.actualVor}
+                    {selectedPrediction.actualVor >= 0 ? '+' : ''}{selectedPrediction.actualVor}σ
                   </span>
                 </span>
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                Top factors driving this prediction (contribution to predicted VOR):
+                Top factors driving this prediction (contribution to predicted VOR Score):
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {selectedPrediction.factors.slice(0, 10).map((f) => {
