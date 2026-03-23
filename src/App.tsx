@@ -15,7 +15,6 @@ import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
 import { StatProjections } from './components/StatProjections';
-import { TeamTotalsBacktest } from './components/TeamTotalsBacktest';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
@@ -49,7 +48,6 @@ const OTHER_TABS: { id: Tab; label: string }[] = [
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
   { id: 'sleeper', label: 'Sleeper' },
-  { id: 'backtest', label: 'Backtest' },
 ];
 
 function App() {
@@ -205,7 +203,6 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
-        {tab === 'backtest' && <TeamTotalsBacktest />}
       </main>
 
       <button
