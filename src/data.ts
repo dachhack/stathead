@@ -743,16 +743,23 @@ export async function fetchKTCRankings(
     try {
       const players: Array<Record<string, unknown>> = JSON.parse(match[1]);
       for (const p of players) {
+        // KTC moved values into nested objects: oneQBValues.value / superflexValues.value
+        // Support both old flat shape (p.value) and new nested shape for resilience
+        const oneQB = p.oneQBValues as Record<string, unknown> | undefined;
+        const sf    = p.superflexValues as Record<string, unknown> | undefined;
+        const value1qb = Number(oneQB?.value ?? p.value) || 0;
+        const valueSF  = Number(sf?.value ?? p.superflexValue) || 0;
+        const posRank  = Number(oneQB?.positionalRank ?? p.positionRank) || 0;
         allPlayers.push({
           playerID: Number(p.playerID) || 0,
           playerName: String(p.playerName || ''),
           position: String(p.position || ''),
-          positionRank: Number(p.positionRank) || 0,
+          positionRank: posRank,
           team: String(p.team || ''),
           age: Number(p.age) || 0,
-          value: Number(p.value) || 0,
-          superflexValue: Number(p.superflexValue) || 0,
-          isRookie: Boolean(p.isRookie),
+          value: value1qb,
+          superflexValue: valueSF,
+          isRookie: Boolean(p.isRookie ?? p.rookie),
           slug: String(p.slug || ''),
         });
       }
