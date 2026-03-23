@@ -2079,6 +2079,31 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     [playerPredictions, selectedPlayerName]
   );
 
+  // ── Per-position hit/bust thresholds ──────────────────────────────────────
+  // Fixed thresholds (-12 / -24) are position-agnostic and biased: QBs are
+  // systematically undervalued at ADP so they nearly all "hit" by that rule.
+  // Instead, compute the 67th / 33rd percentile of actual ADP delta within
+  // each position so that roughly the top-third are hits and bottom-third
+  // are busts for EVERY position equally.
+  const posThresholds = useMemo(() => {
+    const map = new Map<string, { hit: number; bust: number }>();
+    for (const pos of POSITIONS) {
+      const deltas = allRows
+        .filter((r) => r.position === pos)
+        .map((r) => r.adpDelta)
+        .sort((a, b) => a - b);
+      if (deltas.length < 6) continue;
+      map.set(pos, {
+        hit:  deltas[Math.floor(deltas.length * 0.67)],
+        bust: deltas[Math.floor(deltas.length * 0.33)],
+      });
+    }
+    return map;
+  }, [allRows]);
+
+  const isHitForPos  = (pos: string, delta: number) => delta >= (posThresholds.get(pos)?.hit  ?? -12);
+  const isBustForPos = (pos: string, delta: number) => delta <  (posThresholds.get(pos)?.bust ?? -24);
+
   // 2026 predictions for selected position
   const predictions2026 = useMemo(() => {
     const model = models.find((m) => m.position === selectedPos);
@@ -2099,16 +2124,20 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
           contribution: fc.contribution,
         };
       });
+      const pred = Math.round(result.predicted * 10) / 10;
       return {
         name: r.name,
         team: r.team,
         adp: r.adp,
-        predictedDelta: Math.round(result.predicted * 10) / 10,
-        hitProb: result.predicted >= -12 ? 'Likely Hit' : result.predicted < -24 ? 'Likely Bust' : 'Middle',
+        predictedDelta: pred,
+        hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
+               : isBustForPos(r.position, pred) ? 'Likely Bust'
+               : 'Middle',
         factors,
       };
     }).sort((a, b) => b.predictedDelta - a.predictedDelta);
-  }, [models, predictionRows, selectedPos, maxADP, modelType]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models, predictionRows, selectedPos, maxADP, modelType, posThresholds]);
 
   const selected2026Prediction = useMemo(
     () => predictions2026.find((p) => p.name === selected2026Player) || null,
@@ -2161,20 +2190,24 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
     const rows = allRows.filter((r) =>
       (hitBustPos === 'ALL' || r.position === hitBustPos) && r.adp <= maxADP
     );
-    return rows.map((r) => ({
-      name: r.name,
-      season: r.season,
-      adp: r.adp,
-      delta: r.adpDelta,
-      isHit: r.isHit,
-      isBust: r.isBust,
-      position: r.position,
-      // Color by hit/bust when single pos; color by position when ALL
-      fill: hitBustPos === 'ALL'
-        ? POS_COLORS[r.position] ?? '#6b7280'
-        : r.isHit ? '#10b981' : r.isBust ? '#ef4444' : '#6b7280',
-    }));
-  }, [allRows, hitBustPos, maxADP]);
+    return rows.map((r) => {
+      const hit  = isHitForPos(r.position, r.adpDelta);
+      const bust = isBustForPos(r.position, r.adpDelta);
+      return {
+        name: r.name,
+        season: r.season,
+        adp: r.adp,
+        delta: r.adpDelta,
+        isHit: hit,
+        isBust: bust,
+        position: r.position,
+        fill: hitBustPos === 'ALL'
+          ? POS_COLORS[r.position] ?? '#6b7280'
+          : hit ? '#10b981' : bust ? '#ef4444' : '#6b7280',
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRows, hitBustPos, maxADP, posThresholds]);
 
   if (loading) {
     return (
@@ -2313,7 +2346,21 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
                       )}
                     </div>
                     <div>MAE = <strong style={{ color: 'var(--text-primary)' }}>{Math.round(modelType === 'gbm' ? m.gbmModel?.mae ?? 0 : m.ridgeModel?.mae ?? 0)}</strong></div>
-                    <div>N = {m.n} &middot; Hits {m.hitRate}% &middot; Busts {m.bustRate}%</div>
+                    {(() => {
+                      const t = posThresholds.get(m.position);
+                      const posR = allRows.filter((r) => r.position === m.position);
+                      const hits = t ? posR.filter((r) => isHitForPos(m.position, r.adpDelta)).length : 0;
+                      const busts = t ? posR.filter((r) => isBustForPos(m.position, r.adpDelta)).length : 0;
+                      const n = posR.length || 1;
+                      return (
+                        <div title={t ? `Hit threshold: delta ≥ ${t.hit.toFixed(1)} · Bust threshold: delta < ${t.bust.toFixed(1)}` : ''}>
+                          N = {m.n} &middot; Hits {Math.round(hits/n*100)}% &middot; Busts {Math.round(busts/n*100)}%
+                          {t && <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
+                            (≥{t.hit.toFixed(0)} / &lt;{t.bust.toFixed(0)})
+                          </span>}
+                        </div>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -2611,9 +2658,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
             </div>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {hitBustPos === 'ALL'
-                ? 'Colors = position · '
-                : 'Green = hit · Red = bust · Gray = middle · '}
-              {scatterData.length} player-seasons
+                ? `Colors = position · ${scatterData.length} player-seasons · thresholds calibrated per position`
+                : (() => {
+                    const t = posThresholds.get(hitBustPos);
+                    return `Green = hit (delta ≥ ${t ? t.hit.toFixed(0) : '−12'}) · Red = bust (< ${t ? t.bust.toFixed(0) : '−24'}) · ${scatterData.length} player-seasons`;
+                  })()
+              }
             </span>
           </div>
           <div style={{
