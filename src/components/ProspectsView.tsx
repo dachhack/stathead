@@ -36,6 +36,7 @@ const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S',
 export function ProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
   const [profiles, setProfiles] = useState<DraftProfile[]>([]);
   const [prospects, setProspects] = useState<DraftProspect[]>([]);
+  const [draftYear, setDraftYear] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -53,8 +54,17 @@ export function ProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[
       fetchDraftProspects().catch(() => [] as DraftProspect[]),
     ])
       .then(([profileData, prospectData]) => {
-        setProfiles(profileData);
-        setProspects(prospectData.filter((p) => p.draft_year === 2026));
+        // Use the latest year available in the prospects data
+        const maxYear = prospectData.reduce(
+          (max, p) => (typeof p.draft_year === 'number' && p.draft_year > max ? p.draft_year : max),
+          0
+        );
+        const yearProspects = prospectData.filter((p) => p.draft_year === maxYear);
+        const prospectNames = new Set(yearProspects.map((p) => normName(p.player_name)));
+        // Only show profiles that match a prospect in the latest year
+        setProfiles(profileData.filter((p) => prospectNames.has(normName(p.player_name))));
+        setProspects(yearProspects);
+        setDraftYear(maxYear);
         onDataLoaded?.(profileData);
       })
       .catch((e) => setError(e.message))
@@ -191,7 +201,7 @@ export function ProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        2026 NFL Draft prospects — grades &amp; rankings from ESPN via{' '}
+        {draftYear} NFL Draft prospects — grades &amp; rankings from ESPN via{' '}
         <a href="https://github.com/JackLich10/nfl-draft-data" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
           nfl-draft-data
         </a>.
