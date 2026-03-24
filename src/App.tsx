@@ -10,6 +10,7 @@ import { GamesView } from './components/GamesView';
 import { SnapCountsView } from './components/SnapCountsView';
 import { CombineView } from './components/CombineView';
 import { DraftView } from './components/DraftView';
+import { ProspectsView } from './components/ProspectsView';
 import { InjuriesView } from './components/InjuriesView';
 import { AdvancedStatsView } from './components/AdvancedStatsView';
 import { PlayByPlayView } from './components/PlayByPlayView';
@@ -48,6 +49,7 @@ const OTHER_TABS: { id: Tab; label: string }[] = [
   { id: 'pbp', label: 'Play-by-Play' },
   { id: 'injuries', label: 'Injuries' },
   { id: 'combine', label: 'Combine' },
+  { id: 'prospects', label: '2026 Prospects' },
   { id: 'draft', label: 'Draft' },
   { id: 'sleeper', label: 'Sleeper' },
 ];
@@ -188,6 +190,7 @@ function App() {
           <SnapCountsView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
+        {tab === 'prospects' && <ProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
