@@ -1,243 +1,242 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchFfcADP, fetchKTCRankings } from '../data';
-import type { FfcADPPlayer, KTCPlayer } from '../types';
+import { fetchProspects2026 } from '../data';
+import type { Prospect2026 } from '../data';
 
-const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
+const ALL_POS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OT', 'IOL', 'EDGE', 'DL', 'LB', 'CB', 'S'];
+const SKILL_POS = new Set(['QB', 'RB', 'WR', 'TE']);
 
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-}
+const POS_COLOR: Record<string, string> = {
+  QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
+  EDGE: '#8b5cf6', LB: '#06b6d4', CB: '#ec4899', S: '#14b8a6',
+  OT: '#64748b', IOL: '#64748b', DL: '#64748b',
+};
 
-interface Row {
-  name: string;
-  position: string;
-  team: string;
-  adp: number;
-  adpFormatted: string;
-  high: number;
-  low: number;
-  stdev: number;
-  timesDrafted: number;
-  ktcValue: number;
-  sfValue: number;
-  isRookie: boolean;
-}
-
-type SortKey = 'adp' | 'name' | 'position' | 'team' | 'ktcValue' | 'sfValue';
+type SortKey = 'consensusRank' | 'fpRank' | 'djRank' | 'name' | 'pos' | 'school';
+type View = 'overall' | 'fantasy';
 
 export function ExternalRankings2026() {
-  const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [prospects, setProspects] = useState<Prospect2026[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
-  const [rookiesOnly, setRookiesOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('adp');
+  const [view, setView] = useState<View>('overall');
+  const [sortKey, setSortKey] = useState<SortKey>('consensusRank');
   const [sortAsc, setSortAsc] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
-      fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
-    ]).then(([ffcData, ktcData]) => {
-      setFfc(ffcData);
-      setKtc(ktcData);
-      setLoading(false);
-    }).catch((e) => {
-      setError(e.message);
+    fetchProspects2026().then((data) => {
+      setProspects(data);
       setLoading(false);
     });
   }, []);
 
-  // Build a name→KTC map for fast lookup
-  const ktcByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
-    for (const p of ktc) m.set(normName(p.playerName), p);
-    return m;
-  }, [ktc]);
-
-  const rows = useMemo((): Row[] => {
-    return ffc.map((p) => {
-      const ktcPlayer = ktcByName.get(normName(p.name));
-      return {
-        name: p.name,
-        position: p.position,
-        team: p.team,
-        adp: p.adp,
-        adpFormatted: String(p.adp.toFixed(1)),
-        high: p.high,
-        low: p.low,
-        stdev: p.stdev,
-        timesDrafted: p.timesDrafted,
-        ktcValue: ktcPlayer?.value ?? 0,
-        sfValue: ktcPlayer?.superflexValue ?? 0,
-        isRookie: ktcPlayer?.isRookie ?? false,
-      };
-    });
-  }, [ffc, ktcByName]);
+  // When switching views, reset sort to the natural default
+  function handleViewChange(v: View) {
+    setView(v);
+    setPosFilter('ALL');
+    if (v === 'fantasy') {
+      setSortKey('fpRank');
+      setSortAsc(true);
+    } else {
+      setSortKey('consensusRank');
+      setSortAsc(true);
+    }
+  }
 
   const filtered = useMemo(() => {
-    let data = [...rows];
-    if (posFilter !== 'ALL') data = data.filter((r) => r.position === posFilter);
-    if (rookiesOnly) data = data.filter((r) => r.isRookie);
+    let data = [...prospects];
+
+    // Fantasy view: skill positions only, must have an FP rank or be a skill pos in consensus
+    if (view === 'fantasy') {
+      data = data.filter((p) => SKILL_POS.has(p.pos));
+    }
+
+    if (posFilter !== 'ALL') {
+      data = data.filter((p) => p.pos === posFilter);
+    }
+
     if (search) {
       const q = search.toLowerCase();
-      data = data.filter((r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.team.toLowerCase().includes(q)
+      data = data.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.school.toLowerCase().includes(q),
       );
     }
-    data.sort((a, b) => {
-      let av: string | number;
-      let bv: string | number;
-      if (sortKey === 'name' || sortKey === 'position' || sortKey === 'team') {
-        av = a[sortKey]; bv = b[sortKey];
-        return sortAsc ? (av as string).localeCompare(bv as string) : (bv as string).localeCompare(av as string);
-      }
-      av = a[sortKey] as number;
-      bv = b[sortKey] as number;
-      return sortAsc ? av - bv : bv - av;
-    });
-    return data;
-  }, [rows, posFilter, rookiesOnly, search, sortKey, sortAsc]);
 
-  const rookieCount = useMemo(() => rows.filter((r) => r.isRookie).length, [rows]);
+    data.sort((a, b) => {
+      if (sortKey === 'name' || sortKey === 'pos' || sortKey === 'school') {
+        const av = a[sortKey] || '';
+        const bv = b[sortKey] || '';
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      // Numeric: nulls go to the bottom
+      const av = a[sortKey] ?? Infinity;
+      const bv = b[sortKey] ?? Infinity;
+      return sortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+
+    return data;
+  }, [prospects, view, posFilter, search, sortKey, sortAsc]);
 
   function handleSort(key: SortKey) {
     if (key === sortKey) setSortAsc((a) => !a);
-    else { setSortKey(key); setSortAsc(key === 'adp'); }
+    else { setSortKey(key); setSortAsc(true); }
   }
 
-  function sortArrow(key: SortKey) {
-    if (key !== sortKey) return null;
-    return <span className="sort-arrow">{sortAsc ? '▲' : '▼'}</span>;
+  function arrow(key: SortKey) {
+    return key === sortKey ? <span style={{ marginLeft: 3 }}>{sortAsc ? '▲' : '▼'}</span> : null;
   }
+
+  const posOptions = view === 'fantasy'
+    ? ['ALL', 'QB', 'RB', 'WR', 'TE']
+    : ALL_POS;
 
   if (loading) {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading 2026 pre-season ADP + KTC values…</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="empty-state">
-        <h3>Failed to load 2026 rankings</h3>
-        <p>{error}</p>
+        <div className="loading-text">Loading 2026 draft class…</div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="controls">
-        <div className="control-group">
-          <input
-            type="text"
-            placeholder="Search players or teams…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="position-filters">
-          {POSITIONS.map((pos) => (
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['overall', 'fantasy'] as View[]).map((v) => (
             <button
-              key={pos}
-              className={`pos-filter ${posFilter === pos ? 'active' : ''}`}
-              onClick={() => setPosFilter(pos)}
+              key={v}
+              onClick={() => handleViewChange(v)}
+              style={{
+                padding: '6px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                background: view === v ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: view === v ? '#fff' : 'var(--text-secondary)',
+              }}
             >
-              {pos}
+              {v === 'overall' ? '🏈 Overall Big Board' : '⭐ Fantasy Rankings'}
             </button>
           ))}
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <input
-            type="checkbox"
-            checked={rookiesOnly}
-            onChange={(e) => setRookiesOnly(e.target.checked)}
-          />
-          Rookies only
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {rookieCount} identified via KTC
-          </span>
-        </label>
+        <input
+          type="text"
+          placeholder="Search player or school…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 13, minWidth: 200 }}
+        />
       </div>
 
+      {/* Position filters */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {posOptions.map((pos) => (
+          <button
+            key={pos}
+            onClick={() => setPosFilter(pos)}
+            className={`pos-filter ${posFilter === pos ? 'active' : ''}`}
+          >
+            {pos}
+          </button>
+        ))}
+      </div>
+
+      {/* Source note */}
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        2026 pre-season rankings — ADP from{' '}
-        <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-          Fantasy Football Calculator
-        </a>{' '}
-        · dynasty values from{' '}
-        <a href="https://keeptradecut.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-          KeepTradeCut
-        </a>.
-        {' '}{filtered.length} of {rows.length} players shown.
+        {view === 'overall' ? (
+          <>Overall consensus rank aggregated from 121 big boards via{' '}
+            <a href="https://www.nflmockdraftdatabase.com/big-boards/2026/consensus-big-board-2026" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>NFL Mock Draft Database</a>
+            {' '}· DJ rank from{' '}
+            <a href="https://www.nfl.com/news/daniel-jeremiah-s-top-50-2026-nfl-draft-prospect-rankings-3-0" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Daniel Jeremiah (NFL.com)</a>.
+          </>
+        ) : (
+          <>Fantasy dynasty rookie rankings from{' '}
+            <a href="https://www.fantasypros.com/nfl/rankings/dynasty-rookies-overall.php" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>FantasyPros ECR</a>
+            {' '}· consensus big board from{' '}
+            <a href="https://www.nflmockdraftdatabase.com/big-boards/2026/consensus-big-board-2026" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>NFL Mock Draft Database</a>.
+          </>
+        )}
+        {' '}{filtered.length} prospects shown.
       </p>
 
       <div className="table-container">
         <table>
           <thead>
             <tr>
-              <th style={{ width: 40 }}>#</th>
-              <th onClick={() => handleSort('name')} className={sortKey === 'name' ? 'sorted' : ''} style={{ cursor: 'pointer' }}>
-                Player{sortArrow('name')}
+              <th style={{ width: 36, textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSort('consensusRank')}>
+                {view === 'fantasy' ? 'Overall' : '#'}{arrow('consensusRank')}
               </th>
-              <th onClick={() => handleSort('position')} className={sortKey === 'position' ? 'sorted' : ''} style={{ cursor: 'pointer' }}>
-                Pos{sortArrow('position')}
+              {view === 'fantasy' && (
+                <th style={{ width: 52, textAlign: 'center', cursor: 'pointer', color: 'var(--accent)' }} onClick={() => handleSort('fpRank')}>
+                  FP Rank{arrow('fpRank')}
+                </th>
+              )}
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                Player{arrow('name')}
               </th>
-              <th onClick={() => handleSort('team')} className={sortKey === 'team' ? 'sorted' : ''} style={{ cursor: 'pointer' }}>
-                Team{sortArrow('team')}
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('pos')}>
+                Pos{arrow('pos')}
               </th>
-              <th onClick={() => handleSort('adp')} className={sortKey === 'adp' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                ADP{sortArrow('adp')}
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('school')}>
+                School{arrow('school')}
               </th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>High</th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>Low</th>
-              <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>StDev</th>
-              <th onClick={() => handleSort('ktcValue')} className={sortKey === 'ktcValue' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                KTC Value{sortArrow('ktcValue')}
-              </th>
-              <th onClick={() => handleSort('sfValue')} className={sortKey === 'sfValue' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right', color: 'var(--text-muted)' }}>
-                SF Value{sortArrow('sfValue')}
+              <th style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSort('djRank')}>
+                DJ Rank{arrow('djRank')}
               </th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r, i) => (
-              <tr key={`${r.name}-${r.position}`}>
-                <td className="rank-cell">{i + 1}</td>
-                <td>
-                  <strong>{r.name}</strong>
-                  {r.isRookie && (
-                    <span style={{
-                      marginLeft: 6, fontSize: 10, background: 'var(--accent)',
-                      color: '#fff', padding: '1px 5px', borderRadius: 3,
-                    }}>R</span>
+            {filtered.map((p, i) => {
+              const color = POS_COLOR[p.pos] || '#64748b';
+              return (
+                <tr key={`${p.name}-${p.pos}`}>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {p.consensusRank ?? '—'}
+                  </td>
+                  {view === 'fantasy' && (
+                    <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--accent)' }}>
+                      {p.fpRank != null ? (
+                        <>
+                          {p.fpRank}
+                          {p.fpAvg != null && p.fpAvg !== p.fpRank && (
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 3 }}>
+                              ({p.fpAvg.toFixed(1)})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
+                      )}
+                    </td>
                   )}
-                </td>
-                <td>
-                  <span className={`pos-badge pos-${r.position}`}>{r.position}</span>
-                </td>
-                <td>{r.team}</td>
-                <td style={{ textAlign: 'right', fontWeight: 700 }}>{r.adp.toFixed(1)}</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.high}</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.low}</td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.stdev.toFixed(1)}</td>
-                <td style={{ textAlign: 'right', fontWeight: 600, color: r.ktcValue > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.ktcValue > 0 ? r.ktcValue.toLocaleString() : '—'}
-                </td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
-                  {r.sfValue > 0 ? r.sfValue.toLocaleString() : '—'}
-                </td>
-              </tr>
-            ))}
+                  <td>
+                    <strong>{p.name}</strong>
+                  </td>
+                  <td>
+                    <span style={{
+                      display: 'inline-block', padding: '1px 7px', borderRadius: 4, fontSize: 11,
+                      fontWeight: 700, background: color + '22', color,
+                    }}>
+                      {p.pos}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                    {p.school || '—'}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {p.djRank != null ? (
+                      <span style={{
+                        display: 'inline-block', padding: '1px 7px', borderRadius: 4, fontSize: 12,
+                        background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                      }}>
+                        {p.djRank}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

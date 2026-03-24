@@ -1053,6 +1053,28 @@ export async function fetchQBRWeek(): Promise<QBRWeek[]> {
   return fetchCsv<QBRWeek>(nflUrl(`espn_data/qbr_week_level.csv`));
 }
 
+// --- 2026 Draft Class Big Board (consensus from nflmockdraftdatabase.com + FantasyPros) ---
+export interface Prospect2026 {
+  consensusRank: number | null;
+  name: string;
+  pos: string;
+  school: string;
+  fpRank: number | null;
+  fpAvg: number | null;
+  djRank: number | null;
+  isSkillPos: boolean;
+}
+
+export async function fetchProspects2026(): Promise<Prospect2026[]> {
+  try {
+    const resp = await fetch(`${import.meta.env.BASE_URL}data/prospects_2026.json`);
+    if (!resp.ok) return [];
+    return await resp.json();
+  } catch {
+    return [];
+  }
+}
+
 // --- Draft Prospect Data (JackLich10/nfl-draft-data) ---
 const DRAFT_DATA = 'https://raw.githubusercontent.com/JackLich10/nfl-draft-data/main';
 

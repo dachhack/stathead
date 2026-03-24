@@ -3,3 +3,5 @@ dist
 .DS_Store
 *.local
 public/data/
+# Curated static data files committed directly
+!public/data/prospects_2026.json
