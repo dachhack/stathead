@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, "claude/nfl-fantasy-workbench-6D1yd", "claude/competent-banzai"]
+    branches: [main, "claude/nfl-fantasy-workbench-6D1yd", "claude/competent-banzai", "claude/fix-draft-optimizer-roster-e77Yn"]
 
 permissions:
   contents: read
