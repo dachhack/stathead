@@ -1,19 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchFfcADP, fetchKTCRankings, fetchDraftProfiles, fetchDraftProspects } from '../data';
-import type { FfcADPPlayer, KTCPlayer, DraftProfile, DraftProspect } from '../types';
+import { fetchFfcADP, fetchKTCRankings } from '../data';
+import type { FfcADPPlayer, KTCPlayer } from '../types';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
 
 function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-function gradeColor(grade: number): string {
-  if (grade >= 90) return '#10b981'; // elite
-  if (grade >= 80) return '#34d399'; // great
-  if (grade >= 70) return '#60a5fa'; // good
-  if (grade >= 60) return '#fbbf24'; // average
-  return '#ef4444'; // below average
 }
 
 interface Row {
@@ -29,22 +21,13 @@ interface Row {
   ktcValue: number;
   sfValue: number;
   isRookie: boolean;
-  // Draft prospect fields (rookies only)
-  grade: number | null;
-  ovrRk: number | null;
-  posRk: number | null;
-  projRound: number | null;
-  projPick: number | null;
-  projOverall: number | null;
 }
 
-type SortKey = 'adp' | 'name' | 'position' | 'team' | 'ktcValue' | 'sfValue' | 'grade' | 'ovrRk' | 'posRk' | 'projRound';
+type SortKey = 'adp' | 'name' | 'position' | 'team' | 'ktcValue' | 'sfValue';
 
 export function ExternalRankings2026() {
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
-  const [profiles, setProfiles] = useState<DraftProfile[]>([]);
-  const [prospects, setProspects] = useState<DraftProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -59,13 +42,9 @@ export function ExternalRankings2026() {
     Promise.all([
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
       fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
-      fetchDraftProfiles().catch(() => [] as DraftProfile[]),
-      fetchDraftProspects().catch(() => [] as DraftProspect[]),
-    ]).then(([ffcData, ktcData, profileData, prospectData]) => {
+    ]).then(([ffcData, ktcData]) => {
       setFfc(ffcData);
       setKtc(ktcData);
-      setProfiles(profileData);
-      setProspects(prospectData.filter((p) => p.draft_year === 2026));
       setLoading(false);
     }).catch((e) => {
       setError(e.message);
@@ -73,32 +52,16 @@ export function ExternalRankings2026() {
     });
   }, []);
 
-  // Build name→lookup maps for fast matching
+  // Build a name→KTC map for fast lookup
   const ktcByName = useMemo(() => {
     const m = new Map<string, KTCPlayer>();
     for (const p of ktc) m.set(normName(p.playerName), p);
     return m;
   }, [ktc]);
 
-  const profileByName = useMemo(() => {
-    const m = new Map<string, DraftProfile>();
-    for (const p of profiles) m.set(normName(p.player_name), p);
-    return m;
-  }, [profiles]);
-
-  const prospectByName = useMemo(() => {
-    const m = new Map<string, DraftProspect>();
-    for (const p of prospects) m.set(normName(p.player_name), p);
-    return m;
-  }, [prospects]);
-
   const rows = useMemo((): Row[] => {
     return ffc.map((p) => {
-      const nn = normName(p.name);
-      const ktcPlayer = ktcByName.get(nn);
-      const profile = profileByName.get(nn);
-      const prospect = prospectByName.get(nn);
-      const isRookie = ktcPlayer?.isRookie ?? false;
+      const ktcPlayer = ktcByName.get(normName(p.name));
       return {
         name: p.name,
         position: p.position,
@@ -111,16 +74,10 @@ export function ExternalRankings2026() {
         timesDrafted: p.timesDrafted,
         ktcValue: ktcPlayer?.value ?? 0,
         sfValue: ktcPlayer?.superflexValue ?? 0,
-        isRookie,
-        grade: isRookie ? (profile?.grade ?? prospect?.grade ?? null) : null,
-        ovrRk: isRookie ? (profile?.ovr_rk ?? prospect?.ovr_rk ?? null) : null,
-        posRk: isRookie ? (profile?.pos_rk ?? prospect?.pos_rk ?? null) : null,
-        projRound: isRookie && prospect ? (prospect.round || null) : null,
-        projPick: isRookie && prospect ? (prospect.pick || null) : null,
-        projOverall: isRookie && prospect ? (prospect.overall || null) : null,
+        isRookie: ktcPlayer?.isRookie ?? false,
       };
     });
-  }, [ffc, ktcByName, profileByName, prospectByName]);
+  }, [ffc, ktcByName]);
 
   const filtered = useMemo(() => {
     let data = [...rows];
@@ -134,13 +91,14 @@ export function ExternalRankings2026() {
       );
     }
     data.sort((a, b) => {
+      let av: string | number;
+      let bv: string | number;
       if (sortKey === 'name' || sortKey === 'position' || sortKey === 'team') {
-        const av = a[sortKey]; const bv = b[sortKey];
-        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        av = a[sortKey]; bv = b[sortKey];
+        return sortAsc ? (av as string).localeCompare(bv as string) : (bv as string).localeCompare(av as string);
       }
-      // Numeric sort — treat null as Infinity so blanks sort last
-      const av = (a[sortKey] as number | null) ?? Infinity;
-      const bv = (b[sortKey] as number | null) ?? Infinity;
+      av = a[sortKey] as number;
+      bv = b[sortKey] as number;
       return sortAsc ? av - bv : bv - av;
     });
     return data;
@@ -219,10 +177,6 @@ export function ExternalRankings2026() {
         · dynasty values from{' '}
         <a href="https://keeptradecut.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
           KeepTradeCut
-        </a>
-        {' '}· rookie grades from ESPN via{' '}
-        <a href="https://github.com/JackLich10/nfl-draft-data" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-          nfl-draft-data
         </a>.
         {' '}{filtered.length} of {rows.length} players shown.
       </p>
@@ -253,18 +207,6 @@ export function ExternalRankings2026() {
               <th onClick={() => handleSort('sfValue')} className={sortKey === 'sfValue' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right', color: 'var(--text-muted)' }}>
                 SF Value{sortArrow('sfValue')}
               </th>
-              <th onClick={() => handleSort('grade')} className={sortKey === 'grade' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                Grade{sortArrow('grade')}
-              </th>
-              <th onClick={() => handleSort('ovrRk')} className={sortKey === 'ovrRk' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                Ovr Rk{sortArrow('ovrRk')}
-              </th>
-              <th onClick={() => handleSort('posRk')} className={sortKey === 'posRk' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                Pos Rk{sortArrow('posRk')}
-              </th>
-              <th onClick={() => handleSort('projRound')} className={sortKey === 'projRound' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                Rd/Pick{sortArrow('projRound')}
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -293,19 +235,6 @@ export function ExternalRankings2026() {
                 </td>
                 <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
                   {r.sfValue > 0 ? r.sfValue.toLocaleString() : '—'}
-                </td>
-                <td style={{ textAlign: 'right', fontWeight: r.grade ? 600 : 400, color: r.grade ? gradeColor(r.grade) : 'var(--text-muted)' }}>
-                  {r.grade ?? '—'}
-                </td>
-                <td style={{ textAlign: 'right', color: r.ovrRk ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.ovrRk ?? '—'}
-                </td>
-                <td style={{ textAlign: 'right', color: r.posRk ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.posRk ?? '—'}
-                </td>
-                <td style={{ textAlign: 'right', color: r.projRound ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.projRound ? `${r.projRound}.${String(r.projPick ?? '').padStart(2, '0')}` : '—'}
-                  {r.projOverall ? <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 3 }}>({r.projOverall})</span> : null}
                 </td>
               </tr>
             ))}
