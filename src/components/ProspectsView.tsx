@@ -113,12 +113,16 @@ export function ProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[
       );
     }
     d.sort((a, b) => {
-      const aVal = a[sortField] ?? (sortDir === 'asc' ? Infinity : -Infinity);
-      const bVal = b[sortField] ?? (sortDir === 'asc' ? Infinity : -Infinity);
-      if (typeof aVal === 'string')
+      const bottom = sortDir === 'asc' ? Infinity : -Infinity;
+      const rawA = a[sortField];
+      const rawB = b[sortField];
+      // Treat null, undefined, and 0 as "no data" — always sort to bottom
+      const aVal = (rawA == null || rawA === 0) ? bottom : rawA;
+      const bVal = (rawB == null || rawB === 0) ? bottom : rawB;
+      if (typeof aVal === 'string' && typeof bVal === 'string')
         return sortDir === 'asc'
-          ? aVal.localeCompare(bVal as string)
-          : (bVal as string).localeCompare(aVal);
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
       return sortDir === 'asc'
         ? (aVal as number) - (bVal as number)
         : (bVal as number) - (aVal as number);
