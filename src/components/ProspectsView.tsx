@@ -68,21 +68,30 @@ export function ProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[
   }, [prospects]);
 
   const prospectRows = useMemo((): ProspectRow[] => {
+    const num = (v: unknown, ...fallbacks: unknown[]): number => {
+      if (typeof v === 'number' && !isNaN(v) && v !== 0) return v;
+      for (const f of fallbacks) {
+        if (typeof f === 'number' && !isNaN(f) && f !== 0) return f;
+      }
+      return 0;
+    };
     return profiles.map((p) => {
       const prospect = prospectByName.get(normName(p.player_name));
-      const scouting = [p.text1, p.text2, p.text3, p.text4].filter(Boolean);
+      const scouting = [p.text1, p.text2, p.text3, p.text4].filter(
+        (t) => typeof t === 'string' && t !== 'NA' && t.trim() !== ''
+      );
       return {
         name: p.player_name,
         position: p.pos_abbr,
         school: p.school_name || p.school,
-        height: p.height,
-        weight: p.weight,
-        grade: p.grade || prospect?.grade || 0,
-        ovrRk: p.ovr_rk || prospect?.ovr_rk || 0,
-        posRk: p.pos_rk || prospect?.pos_rk || 0,
-        projRound: prospect?.round || null,
-        projPick: prospect?.pick || null,
-        projOverall: prospect?.overall || null,
+        height: num(p.height),
+        weight: num(p.weight),
+        grade: num(p.grade, prospect?.grade),
+        ovrRk: num(p.ovr_rk, prospect?.ovr_rk),
+        posRk: num(p.pos_rk, prospect?.pos_rk),
+        projRound: num(prospect?.round) || null,
+        projPick: num(prospect?.pick) || null,
+        projOverall: num(prospect?.overall) || null,
         scouting,
       };
     });
