@@ -1,127 +1,141 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { DraftProspect, DraftProfile, SortDirection } from '../types';
-import { fetchDraftProspects, fetchDraftProfiles } from '../data';
+import type { KTCPlayer, DraftPick, SortDirection } from '../types';
+import { fetchKTCRankings, fetchDraftPicks } from '../data';
 
-type MergedProspect = DraftProspect & { text1?: string; text2?: string; text3?: string; text4?: string };
-type SortField = keyof MergedProspect;
+interface RookieRow {
+  name: string;
+  position: string;
+  team: string;
+  college: string;
+  round: number;
+  pick: number;
+  age: number;
+  dynastyValue: number;
+  superflexValue: number;
+  positionRank: number;
+  ktcSlug: string;
+  // Draft pick stats (rookie season)
+  games: number;
+  passYards: number;
+  passTds: number;
+  rushYards: number;
+  rushTds: number;
+  receptions: number;
+  recYards: number;
+  recTds: number;
+}
 
-const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'CB', 'S', 'EDGE'];
+type SortField = keyof RookieRow;
 
-function gradeColor(grade: number | undefined): string {
-  if (grade == null || isNaN(grade)) return 'var(--text-muted)';
-  if (grade >= 90) return '#22c55e';
-  if (grade >= 80) return '#4ade80';
-  if (grade >= 70) return '#a3e635';
-  if (grade >= 60) return '#facc15';
-  if (grade >= 50) return '#fb923c';
+const FANTASY_POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
+
+function valueColor(value: number): string {
+  if (value >= 7000) return '#22c55e';
+  if (value >= 5000) return '#4ade80';
+  if (value >= 3000) return '#a3e635';
+  if (value >= 1500) return '#facc15';
+  if (value >= 500) return '#fb923c';
   return '#ef4444';
 }
 
-function gradeLabel(grade: number | undefined): string {
-  if (grade == null || isNaN(grade)) return '';
-  if (grade >= 90) return 'Elite';
-  if (grade >= 80) return 'Great';
-  if (grade >= 70) return 'Good';
-  if (grade >= 60) return 'Above Avg';
-  if (grade >= 50) return 'Average';
-  return 'Below Avg';
+function valueTier(value: number): string {
+  if (value >= 7000) return 'Elite';
+  if (value >= 5000) return 'Blue Chip';
+  if (value >= 3000) return 'Starter';
+  if (value >= 1500) return 'Upside';
+  if (value >= 500) return 'Dart Throw';
+  return 'Deep Stash';
 }
 
-function heightDisplay(inches: number | undefined): string {
-  if (!inches || isNaN(inches)) return '-';
-  const ft = Math.floor(inches / 12);
-  const rem = Math.round(inches % 12);
-  return `${ft}'${rem}"`;
-}
-
-function roundLabel(round: number | undefined, pick: number | undefined): string {
-  if (!round && !pick) return '-';
-  if (round && pick) return `Rd ${round}, #${pick}`;
-  if (round) return `Rd ${round}`;
-  if (pick) return `#${pick}`;
-  return '-';
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z]/g, '')
+    .replace(/iii$|ii$|iv$|jr$|sr$/, '');
 }
 
 export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
-  const [prospects, setProspects] = useState<MergedProspect[]>([]);
+  const [rows, setRows] = useState<RookieRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
-  const [yearFilter, setYearFilter] = useState(0);
-  const [sortField, setSortField] = useState<SortField>('ovr_rk');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [sortField, setSortField] = useState<SortField>('dynastyValue');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [format, setFormat] = useState<'1qb' | 'superflex'>('1qb');
 
   useEffect(() => {
-    Promise.all([fetchDraftProspects(), fetchDraftProfiles()])
-      .then(([prosp, profiles]) => {
-        const profileMap = new Map<number, DraftProfile>();
-        for (const p of profiles) {
-          profileMap.set(p.player_id, p);
+    Promise.all([
+      fetchKTCRankings(format),
+      fetchDraftPicks(),
+    ])
+      .then(([ktcPlayers, draftPicks]) => {
+        // Get rookies from KTC
+        const rookies = ktcPlayers.filter((p: KTCPlayer) => p.isRookie);
+
+        // Build draft pick lookup by normalized name for the most recent draft year
+        const maxDraftYear = Math.max(...draftPicks.map((d: DraftPick) => d.season));
+        const recentPicks = draftPicks.filter((d: DraftPick) => d.season === maxDraftYear);
+        const draftMap = new Map<string, DraftPick>();
+        for (const dp of recentPicks) {
+          draftMap.set(normalizeName(dp.pfr_player_name), dp);
         }
-        const merged: MergedProspect[] = prosp.map((p) => {
-          const profile = profileMap.get(p.player_id);
+
+        const merged: RookieRow[] = rookies.map((ktc: KTCPlayer) => {
+          const draft = draftMap.get(normalizeName(ktc.playerName));
           return {
-            ...p,
-            text1: profile?.text1,
-            text2: profile?.text2,
-            text3: profile?.text3,
-            text4: profile?.text4,
-            // Use profile grade if prospect grade is missing
-            grade: p.grade || profile?.grade || 0,
-            ovr_rk: p.ovr_rk || profile?.ovr_rk || 999,
-            pos_rk: p.pos_rk || profile?.pos_rk || 999,
+            name: ktc.playerName,
+            position: ktc.position,
+            team: ktc.team || draft?.team || '',
+            college: draft?.college || '',
+            round: draft?.round || 0,
+            pick: draft?.pick || 0,
+            age: ktc.age || draft?.age || 0,
+            dynastyValue: format === '1qb' ? ktc.value : ktc.superflexValue,
+            superflexValue: ktc.superflexValue,
+            positionRank: ktc.positionRank,
+            ktcSlug: ktc.slug,
+            games: draft?.games || 0,
+            passYards: draft?.pass_yards || 0,
+            passTds: draft?.pass_tds || 0,
+            rushYards: draft?.rush_yards || 0,
+            rushTds: draft?.rush_tds || 0,
+            receptions: draft?.receptions || 0,
+            recYards: Number((draft as Record<string, unknown>)?.rec_yards) || 0,
+            recTds: Number((draft as Record<string, unknown>)?.rec_tds) || 0,
           };
         });
-        setProspects(merged);
+
+        setRows(merged);
         onDataLoaded?.(merged);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [onDataLoaded]);
-
-  const years = useMemo(
-    () => [...new Set(prospects.map((d) => d.draft_year).filter(Boolean))].sort((a, b) => b - a),
-    [prospects]
-  );
-
-  // Default to the most recent draft year
-  const activeYear = yearFilter || years[0] || 0;
+  }, [format, onDataLoaded]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      setSortDir(field === 'grade' ? 'desc' : 'asc');
+      setSortDir(field === 'name' || field === 'team' || field === 'college' ? 'asc' : 'desc');
     }
   };
 
   const filtered = useMemo(() => {
-    let d = [...prospects];
-    if (activeYear > 0) d = d.filter((r) => r.draft_year === activeYear);
-    if (posFilter !== 'ALL') {
-      d = d.filter((r) => {
-        const pos = (r.pos_abbr || r.position || '').toUpperCase();
-        if (posFilter === 'OL') return ['OT', 'OG', 'C', 'OL', 'IOL', 'G', 'T'].includes(pos);
-        if (posFilter === 'DL') return ['DT', 'DE', 'DL', 'NT', 'IDL'].includes(pos);
-        if (posFilter === 'EDGE') return ['EDGE', 'OLB', 'DE'].includes(pos);
-        return pos === posFilter;
-      });
-    }
+    let d = [...rows];
+    if (posFilter !== 'ALL') d = d.filter((r) => r.position === posFilter);
     if (search) {
       const q = search.toLowerCase();
       d = d.filter(
         (r) =>
-          r.player_name?.toLowerCase().includes(q) ||
-          r.school_name?.toLowerCase().includes(q) ||
-          r.school?.toLowerCase().includes(q) ||
-          r.team?.toLowerCase().includes(q)
+          r.name.toLowerCase().includes(q) ||
+          r.team.toLowerCase().includes(q) ||
+          r.college.toLowerCase().includes(q)
       );
     }
     d.sort((a, b) => {
-      const aVal = a[sortField] ?? 999;
-      const bVal = b[sortField] ?? 999;
+      const aVal = a[sortField];
+      const bVal = b[sortField];
       if (typeof aVal === 'string')
         return sortDir === 'asc'
           ? aVal.localeCompare(bVal as string)
@@ -130,8 +144,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         ? (aVal as number) - (bVal as number)
         : (bVal as number) - (aVal as number);
     });
-    return d.slice(0, 300);
-  }, [prospects, activeYear, posFilter, search, sortField, sortDir]);
+    return d;
+  }, [rows, posFilter, search, sortField, sortDir]);
 
   const sortArrow = (field: SortField) =>
     field === sortField ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
@@ -156,26 +170,19 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       <div className="controls">
         <input
           type="text"
-          placeholder="Search players, schools, or teams..."
+          placeholder="Search players, teams, or colleges..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="control-group">
-          <label className="control-label">Draft Year</label>
-          <select
-            value={yearFilter}
-            onChange={(e) => setYearFilter(Number(e.target.value))}
-          >
-            <option value={0}>Latest ({years[0]})</option>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
+          <label className="control-label">Format</label>
+          <select value={format} onChange={(e) => setFormat(e.target.value as '1qb' | 'superflex')}>
+            <option value="1qb">1QB</option>
+            <option value="superflex">Superflex</option>
           </select>
         </div>
         <div className="position-filters">
-          {POSITIONS.map((pos) => (
+          {FANTASY_POSITIONS.map((pos) => (
             <button
               key={pos}
               className={`pos-filter ${posFilter === pos ? 'active' : ''}`}
@@ -188,120 +195,98 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        Showing {filtered.length} prospects for the {activeYear} draft class
+        {filtered.length} rookies &middot; Dynasty values from KeepTradeCut &middot; Draft data from NFLverse
       </div>
 
       <div className="table-container">
         <table>
           <thead>
             <tr>
-              <th onClick={() => handleSort('ovr_rk')} style={{ cursor: 'pointer' }}>
-                Rank{sortArrow('ovr_rk')}
-              </th>
-              <th onClick={() => handleSort('player_name')} style={{ cursor: 'pointer' }}>
-                Player{sortArrow('player_name')}
+              <th style={{ width: 40 }}>#</th>
+              <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
+                Player{sortArrow('name')}
               </th>
               <th>Pos</th>
-              <th onClick={() => handleSort('school_name')} style={{ cursor: 'pointer' }}>
-                School{sortArrow('school_name')}
+              <th onClick={() => handleSort('team')} style={{ cursor: 'pointer' }}>
+                Team{sortArrow('team')}
               </th>
-              <th onClick={() => handleSort('grade')} style={{ cursor: 'pointer' }}>
-                Grade{sortArrow('grade')}
-              </th>
-              <th onClick={() => handleSort('pos_rk')} style={{ cursor: 'pointer' }}>
-                Pos Rk{sortArrow('pos_rk')}
+              <th onClick={() => handleSort('college')} style={{ cursor: 'pointer' }}>
+                College{sortArrow('college')}
               </th>
               <th onClick={() => handleSort('round')} style={{ cursor: 'pointer' }}>
-                Proj. Round{sortArrow('round')}
+                Draft{sortArrow('round')}
               </th>
-              <th onClick={() => handleSort('overall')} style={{ cursor: 'pointer' }}>
-                Proj. Pick{sortArrow('overall')}
+              <th onClick={() => handleSort('dynastyValue')} style={{ cursor: 'pointer' }}>
+                Dynasty Value{sortArrow('dynastyValue')}
               </th>
-              <th>Team</th>
-              <th onClick={() => handleSort('height')} style={{ cursor: 'pointer' }}>
-                Ht{sortArrow('height')}
+              <th onClick={() => handleSort('positionRank')} style={{ cursor: 'pointer' }}>
+                Pos Rk{sortArrow('positionRank')}
               </th>
-              <th onClick={() => handleSort('weight')} style={{ cursor: 'pointer' }}>
-                Wt{sortArrow('weight')}
+              <th onClick={() => handleSort('age')} style={{ cursor: 'pointer' }}>
+                Age{sortArrow('age')}
               </th>
+              <th onClick={() => handleSort('games')} style={{ cursor: 'pointer' }}>
+                GP{sortArrow('games')}
+              </th>
+              <th>Rookie Season Stats</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((r, i) => (
-              <>
-                <tr
-                  key={`${r.player_id}-${i}`}
-                  onClick={() => setExpandedId(expandedId === r.player_id ? null : r.player_id)}
-                  style={{ cursor: r.text1 ? 'pointer' : 'default' }}
-                >
-                  <td style={{ fontWeight: 700 }}>
-                    {r.ovr_rk && r.ovr_rk < 999 ? r.ovr_rk : '-'}
-                  </td>
-                  <td>
-                    <strong>{r.player_name}</strong>
-                  </td>
-                  <td>
-                    <span className={`pos-badge pos-${(r.pos_abbr || r.position || '').toUpperCase()}`}>
-                      {r.pos_abbr || r.position}
+              <tr key={`${r.name}-${i}`}>
+                <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
+                <td>
+                  <strong>{r.name}</strong>
+                </td>
+                <td>
+                  <span className={`pos-badge pos-${r.position}`}>{r.position}</span>
+                </td>
+                <td>{r.team || '-'}</td>
+                <td>{r.college || '-'}</td>
+                <td>
+                  {r.round ? (
+                    <span
+                      style={{
+                        fontWeight: r.round <= 2 ? 700 : 400,
+                        color: r.round === 1 ? '#22c55e' : r.round === 2 ? '#a3e635' : 'inherit',
+                      }}
+                    >
+                      Rd {r.round}{r.pick ? `, #${r.pick}` : ''}
                     </span>
-                  </td>
-                  <td>{r.school_name || r.school || '-'}</td>
-                  <td>
-                    {r.grade ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: gradeColor(r.grade),
-                          }}
-                        />
-                        <strong style={{ color: gradeColor(r.grade) }}>
-                          {Number(r.grade).toFixed(1)}
-                        </strong>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          {gradeLabel(r.grade)}
-                        </span>
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{r.pos_rk && r.pos_rk < 999 ? r.pos_rk : '-'}</td>
-                  <td>
-                    {r.round ? (
-                      <span
-                        style={{
-                          fontWeight: r.round <= 2 ? 700 : 400,
-                          color: r.round === 1 ? '#22c55e' : r.round === 2 ? '#a3e635' : 'inherit',
-                        }}
-                      >
-                        Round {r.round}
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{r.overall ? `#${r.overall}` : '-'}</td>
-                  <td>{r.team_abbr || r.team || '-'}</td>
-                  <td>{heightDisplay(r.height)}</td>
-                  <td>{r.weight || '-'}</td>
-                </tr>
-                {expandedId === r.player_id && (r.text1 || r.text2 || r.text3 || r.text4) && (
-                  <tr key={`${r.player_id}-detail`}>
-                    <td colSpan={11} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderLeft: `3px solid ${gradeColor(r.grade)}` }}>
-                      <div style={{ display: 'grid', gap: 8, fontSize: 13, lineHeight: 1.5 }}>
-                        {r.text1 && <div><strong>Overview:</strong> {r.text1}</div>}
-                        {r.text2 && <div><strong>Strengths:</strong> {r.text2}</div>}
-                        {r.text3 && <div><strong>Weaknesses:</strong> {r.text3}</div>}
-                        {r.text4 && <div><strong>Bottom Line:</strong> {r.text4}</div>}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: valueColor(r.dynastyValue),
+                      }}
+                    />
+                    <strong style={{ color: valueColor(r.dynastyValue) }}>
+                      {r.dynastyValue.toLocaleString()}
+                    </strong>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      {valueTier(r.dynastyValue)}
+                    </span>
+                  </span>
+                </td>
+                <td>{r.positionRank || '-'}</td>
+                <td>{r.age || '-'}</td>
+                <td>{r.games || '-'}</td>
+                <td style={{ fontSize: 12 }}>
+                  {r.position === 'QB' && r.passYards > 0
+                    ? `${r.passYards} yds, ${r.passTds} TD, ${r.rushYards} rush`
+                    : (r.rushYards > 0 || r.recYards > 0)
+                    ? `${r.rushYards ? `${r.rushYards} rush` : ''}${r.rushYards && r.recYards ? ', ' : ''}${r.recYards ? `${r.receptions} rec/${r.recYards} yds` : ''}${r.rushTds + r.recTds > 0 ? `, ${r.rushTds + r.recTds} TD` : ''}`
+                    : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
