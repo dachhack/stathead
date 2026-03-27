@@ -1,11 +1,28 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
+import prospectGrades from '../data/prospect-grades-2026.json';
+
+interface ProspectGrade {
+  name: string;
+  pos: string;
+  school: string;
+  grade: number;
+  projRound: number;
+  projPick: number;
+  tier: string;
+}
 
 interface ProspectRow {
   name: string;
   pos: string;
   school: string;
+  // Prospect grade (big board)
+  grade: number;
+  projRound: number;
+  projPick: number;
+  tier: string;
+  // Combine measurables
   ht: string;
   wt: number;
   forty: number;
@@ -18,18 +35,15 @@ interface ProspectRow {
   rookieEcr: number;
   rookieBest: number;
   rookieWorst: number;
-  rookieSd: number;
   owned: number;
   // KTC dynasty
   dynastyValue: number;
   superflexValue: number;
-  ktcPosRank: number;
-  ktcTeam: string;
 }
 
 type SortField = keyof ProspectRow;
 
-const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'EDGE', 'DL', 'LB', 'CB', 'S', 'OL'];
+const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'EDGE', 'DT', 'LB', 'CB', 'SAF', 'OL'];
 const DRAFT_YEAR = 2026;
 
 function normalizeName(name: string): string {
@@ -38,6 +52,15 @@ function normalizeName(name: string): string {
     .replace(/[.\-']/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function gradeColor(grade: number): string {
+  if (grade >= 90) return '#22c55e';
+  if (grade >= 85) return '#4ade80';
+  if (grade >= 78) return '#a3e635';
+  if (grade >= 70) return '#facc15';
+  if (grade >= 64) return '#fb923c';
+  return '#ef4444';
 }
 
 function valueColor(value: number): string {
@@ -58,15 +81,6 @@ function ecrTierColor(ecr: number): string {
   return 'var(--text-muted)';
 }
 
-function ecrTierLabel(ecr: number): string {
-  if (ecr <= 5) return 'Elite';
-  if (ecr <= 12) return 'Round 1';
-  if (ecr <= 24) return 'Round 2';
-  if (ecr <= 48) return 'Day 2';
-  if (ecr <= 80) return 'Day 3';
-  return 'Flier';
-}
-
 function fmtMeasurable(v: number | null | undefined): string {
   return v != null && !isNaN(v) && v > 0 ? v.toFixed(2) : '-';
 }
@@ -77,9 +91,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
-  const [sortField, setSortField] = useState<SortField>('rookieEcr');
-  const [sortDir, setSortDir] = useState<SortDirection>('asc');
-  const [view, setView] = useState<'all' | 'fantasy'>('fantasy');
+  const [sortField, setSortField] = useState<SortField>('grade');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [view, setView] = useState<'graded' | 'all'>('graded');
 
   useEffect(() => {
     Promise.all([
@@ -88,6 +102,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       fetchKTCRankings('1qb'),
     ])
       .then(([combine, fpRankings, ktcPlayers]) => {
+        // Build prospect grade lookup
+        const gradeMap = new Map<string, ProspectGrade>();
+        for (const g of prospectGrades as ProspectGrade[]) {
+          gradeMap.set(normalizeName(g.name), g);
+        }
+
         // Filter to 2026 combine prospects
         const prospects2026 = combine.filter((c: CombineResult) => c.season === DRAFT_YEAR);
 
@@ -106,17 +126,22 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         }
 
         // Build merged rows from combine as base
-        const combineRows: ProspectRow[] = prospects2026.map((c: CombineResult) => {
+        const allRows: ProspectRow[] = prospects2026.map((c: CombineResult) => {
           const nName = normalizeName(c.player_name);
+          const pg = gradeMap.get(nName);
           const fp = fpMap.get(nName);
           const ktc = ktcMap.get(nName);
-          // Remove from maps so we can add unmatched FP/KTC entries after
           if (fp) fpMap.delete(nName);
           if (ktc) ktcMap.delete(nName);
+          if (pg) gradeMap.delete(nName);
           return {
             name: c.player_name,
-            pos: c.pos || '',
-            school: c.school || '',
+            pos: pg?.pos || c.pos || '',
+            school: c.school || pg?.school || '',
+            grade: pg?.grade || 0,
+            projRound: pg?.projRound || 0,
+            projPick: pg?.projPick || 0,
+            tier: pg?.tier || '',
             ht: c.ht || '',
             wt: c.wt || 0,
             forty: c.forty || 0,
@@ -128,41 +153,60 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             rookieEcr: fp ? fp.ecr : 999,
             rookieBest: fp ? fp.best : 0,
             rookieWorst: fp ? fp.worst : 0,
-            rookieSd: fp ? fp.sd : 0,
             owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
-            ktcPosRank: ktc?.positionRank || 0,
-            ktcTeam: ktc?.team || '',
           };
         });
 
-        // Add FantasyPros rookies not in combine
+        // Add graded prospects not in combine
+        for (const [, pg] of gradeMap) {
+          const nName = normalizeName(pg.name);
+          const fp = fpMap.get(nName);
+          const ktc = ktcMap.get(nName);
+          if (fp) fpMap.delete(nName);
+          if (ktc) ktcMap.delete(nName);
+          allRows.push({
+            name: pg.name,
+            pos: pg.pos,
+            school: pg.school,
+            grade: pg.grade,
+            projRound: pg.projRound,
+            projPick: pg.projPick,
+            tier: pg.tier,
+            ht: '', wt: 0, forty: 0, bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
+            rookieEcr: fp ? fp.ecr : 999,
+            rookieBest: fp ? fp.best : 0,
+            rookieWorst: fp ? fp.worst : 0,
+            owned: fp ? (fp.player_owned_avg || 0) : 0,
+            dynastyValue: ktc?.value || 0,
+            superflexValue: ktc?.superflexValue || 0,
+          });
+        }
+
+        // Add FantasyPros rookies not yet matched
         for (const [, fp] of fpMap) {
           const nName = normalizeName(fp.player);
           const ktc = ktcMap.get(nName);
           if (ktc) ktcMap.delete(nName);
-          combineRows.push({
+          allRows.push({
             name: fp.player,
             pos: fp.pos || '',
             school: '',
-            ht: '',
-            wt: 0,
-            forty: 0, bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
+            grade: 0,
+            projRound: 0, projPick: 0, tier: '',
+            ht: '', wt: 0, forty: 0, bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
             rookieEcr: fp.ecr,
             rookieBest: fp.best,
             rookieWorst: fp.worst,
-            rookieSd: fp.sd,
             owned: fp.player_owned_avg || 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
-            ktcPosRank: ktc?.positionRank || 0,
-            ktcTeam: ktc?.team || fp.team || '',
           });
         }
 
-        setRows(combineRows);
-        onDataLoaded?.(combineRows);
+        setRows(allRows);
+        onDataLoaded?.(allRows);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -172,21 +216,21 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned'];
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
 
   const filtered = useMemo(() => {
     let d = [...rows];
-    // In fantasy view, only show players with a rookie ECR ranking
-    if (view === 'fantasy') d = d.filter((r) => r.rookieEcr < 999);
+    if (view === 'graded') d = d.filter((r) => r.grade > 0);
     if (posFilter !== 'ALL') {
       d = d.filter((r) => {
         const pos = r.pos.toUpperCase();
         if (posFilter === 'OL') return ['OT', 'OG', 'C', 'OL', 'IOL', 'G', 'T'].includes(pos);
-        if (posFilter === 'DL') return ['DT', 'DE', 'DL', 'NT', 'IDL'].includes(pos);
-        if (posFilter === 'EDGE') return ['EDGE', 'OLB'].includes(pos);
+        if (posFilter === 'DT') return ['DT', 'DL', 'NT', 'IDL'].includes(pos);
+        if (posFilter === 'EDGE') return ['EDGE', 'OLB', 'DE'].includes(pos);
+        if (posFilter === 'SAF') return ['SAF', 'S', 'FS', 'SS'].includes(pos);
         return pos === posFilter;
       });
     }
@@ -196,7 +240,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         (r) =>
           r.name.toLowerCase().includes(q) ||
           r.school.toLowerCase().includes(q) ||
-          r.ktcTeam.toLowerCase().includes(q)
+          r.tier.toLowerCase().includes(q)
       );
     }
     d.sort((a, b) => {
@@ -206,6 +250,10 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       if (sortField === 'rookieEcr') {
         if ((aVal as number) >= 999) aVal = sortDir === 'asc' ? Infinity : -Infinity;
         if ((bVal as number) >= 999) bVal = sortDir === 'asc' ? Infinity : -Infinity;
+      }
+      if (sortField === 'grade' || sortField === 'dynastyValue' || sortField === 'projPick') {
+        if ((aVal as number) === 0) aVal = sortDir === 'desc' ? -Infinity : Infinity;
+        if ((bVal as number) === 0) bVal = sortDir === 'desc' ? -Infinity : Infinity;
       }
       if (typeof aVal === 'string')
         return sortDir === 'asc'
@@ -236,26 +284,26 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       </div>
     );
 
-  const rankedCount = rows.filter((r) => r.rookieEcr < 999).length;
+  const gradedCount = rows.filter((r) => r.grade > 0).length;
 
   return (
     <>
       <div className="controls">
         <input
           type="text"
-          placeholder="Search players, schools, or teams..."
+          placeholder="Search players, schools, or tiers..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="control-group">
           <label className="control-label">View</label>
-          <select value={view} onChange={(e) => setView(e.target.value as 'all' | 'fantasy')}>
-            <option value="fantasy">Fantasy Ranked ({rankedCount})</option>
+          <select value={view} onChange={(e) => setView(e.target.value as 'graded' | 'all')}>
+            <option value="graded">Big Board ({gradedCount})</option>
             <option value="all">All Prospects ({rows.length})</option>
           </select>
         </div>
         <div className="position-filters">
-          {(view === 'fantasy' ? POSITIONS.slice(0, 5) : POSITIONS).map((pos) => (
+          {POSITIONS.map((pos) => (
             <button
               key={pos}
               className={`pos-filter ${posFilter === pos ? 'active' : ''}`}
@@ -268,7 +316,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        {filtered.length} prospects &middot; Rookie rankings from FantasyPros &middot; Dynasty values from KTC &middot; Measurables from NFL Combine
+        {filtered.length} prospects &middot; Prospect grades &amp; draft projections &middot; Combine measurables from NFLverse &middot; Fantasy rankings from FantasyPros
       </div>
 
       <div className="table-container">
@@ -283,14 +331,17 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('school')} style={{ cursor: 'pointer' }}>
                 School{sortArrow('school')}
               </th>
+              <th onClick={() => handleSort('grade')} style={{ cursor: 'pointer' }}>
+                Grade{sortArrow('grade')}
+              </th>
+              <th onClick={() => handleSort('projRound')} style={{ cursor: 'pointer' }}>
+                Proj. Draft{sortArrow('projRound')}
+              </th>
               <th onClick={() => handleSort('rookieEcr')} style={{ cursor: 'pointer' }}>
                 Rookie ECR{sortArrow('rookieEcr')}
               </th>
               <th onClick={() => handleSort('dynastyValue')} style={{ cursor: 'pointer' }}>
                 Dynasty Val{sortArrow('dynastyValue')}
-              </th>
-              <th onClick={() => handleSort('owned')} style={{ cursor: 'pointer' }}>
-                Owned %{sortArrow('owned')}
               </th>
               <th onClick={() => handleSort('ht')} style={{ cursor: 'pointer' }}>
                 Ht{sortArrow('ht')}
@@ -301,20 +352,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('forty')} style={{ cursor: 'pointer' }}>
                 40-Yd{sortArrow('forty')}
               </th>
-              <th onClick={() => handleSort('bench')} style={{ cursor: 'pointer' }}>
-                Bench{sortArrow('bench')}
-              </th>
               <th onClick={() => handleSort('vertical')} style={{ cursor: 'pointer' }}>
                 Vert{sortArrow('vertical')}
               </th>
               <th onClick={() => handleSort('broadJump')} style={{ cursor: 'pointer' }}>
                 Broad{sortArrow('broadJump')}
-              </th>
-              <th onClick={() => handleSort('cone')} style={{ cursor: 'pointer' }}>
-                3-Cone{sortArrow('cone')}
-              </th>
-              <th onClick={() => handleSort('shuttle')} style={{ cursor: 'pointer' }}>
-                Shuttle{sortArrow('shuttle')}
               </th>
             </tr>
           </thead>
@@ -330,7 +372,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 </td>
                 <td>{r.school || '-'}</td>
                 <td>
-                  {r.rookieEcr < 999 ? (
+                  {r.grade > 0 ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <span
                         style={{
@@ -338,16 +380,55 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
+                          background: gradeColor(r.grade),
+                        }}
+                      />
+                      <strong style={{ color: gradeColor(r.grade) }}>
+                        {r.grade}
+                      </strong>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        {r.tier}
+                      </span>
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  {r.projRound > 0 ? (
+                    <span
+                      style={{
+                        fontWeight: r.projRound <= 2 ? 700 : 400,
+                        color: r.projRound === 1 ? '#22c55e' : r.projRound === 2 ? '#a3e635' : r.projRound === 3 ? '#facc15' : 'inherit',
+                      }}
+                    >
+                      Rd {r.projRound}
+                      {r.projPick > 0 ? <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>#{r.projPick}</span> : ''}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  {r.rookieEcr < 999 ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
                           background: ecrTierColor(r.rookieEcr),
                         }}
                       />
-                      <strong style={{ color: ecrTierColor(r.rookieEcr) }}>
+                      <strong style={{ color: ecrTierColor(r.rookieEcr), fontSize: 13 }}>
                         {Number(r.rookieEcr).toFixed(1)}
                       </strong>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                        {ecrTierLabel(r.rookieEcr)}
-                        {r.rookieBest > 0 && r.rookieWorst > 0 ? ` (${r.rookieBest}-${r.rookieWorst})` : ''}
-                      </span>
+                      {r.rookieBest > 0 && r.rookieWorst > 0 && (
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          ({r.rookieBest}-{r.rookieWorst})
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
@@ -362,27 +443,13 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
                 </td>
-                <td>
-                  {r.owned > 0 ? (
-                    <span>{r.owned.toFixed(1)}%</span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>-</span>
-                  )}
-                </td>
                 <td>{r.ht || '-'}</td>
                 <td>{r.wt || '-'}</td>
                 <td className={r.forty ? '' : 'text-muted'}>
                   {fmtMeasurable(r.forty)}
                 </td>
-                <td>{r.bench || '-'}</td>
                 <td>{r.vertical ? fmtMeasurable(r.vertical) : '-'}</td>
                 <td>{r.broadJump || '-'}</td>
-                <td className={r.cone ? '' : 'text-muted'}>
-                  {fmtMeasurable(r.cone)}
-                </td>
-                <td className={r.shuttle ? '' : 'text-muted'}>
-                  {fmtMeasurable(r.shuttle)}
-                </td>
               </tr>
             ))}
           </tbody>
