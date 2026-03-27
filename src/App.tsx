@@ -29,30 +29,52 @@ import type { Tab, ScenarioConfig } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
 
-// Primary navigation tabs
-const PRIMARY_TABS: { id: Tab; label: string }[] = [
-  { id: 'projections', label: 'Projections' },
-  { id: 'stats', label: 'Rankings' },
-  { id: 'adp', label: 'ADP Research' },
-  { id: 'ktc', label: 'Dynasty Values' },
-  { id: 'charts', label: 'Chart Builder' },
-  { id: 'sportsdata', label: 'Odds & Lines' },
+// Tab groups for navigation
+interface TabGroup {
+  label: string;
+  tabs: { id: Tab; label: string }[];
+}
+
+const TAB_GROUPS: TabGroup[] = [
+  {
+    label: 'Draft Prep',
+    tabs: [
+      { id: 'projections', label: 'Projections' },
+      { id: 'stats', label: 'Rankings' },
+      { id: 'adp', label: 'ADP Research' },
+      { id: 'prospects', label: 'Prospects' },
+    ],
+  },
+  {
+    label: 'Dynasty',
+    tabs: [
+      { id: 'ktc', label: 'Dynasty Values' },
+      { id: 'sleeper', label: 'Sleeper Sync' },
+      { id: 'compare', label: 'Compare' },
+    ],
+  },
+  {
+    label: 'In-Season',
+    tabs: [
+      { id: 'scoring', label: 'Scoring' },
+      { id: 'games', label: 'Games' },
+      { id: 'snaps', label: 'Snap Counts' },
+      { id: 'injuries', label: 'Injuries' },
+      { id: 'sportsdata', label: 'Odds & Lines' },
+    ],
+  },
+  {
+    label: 'Research',
+    tabs: [
+      { id: 'advanced', label: 'Advanced Stats' },
+      { id: 'pbp', label: 'Play-by-Play' },
+      { id: 'combine', label: 'Combine' },
+      { id: 'draft', label: 'Draft History' },
+      { id: 'charts', label: 'Chart Builder' },
+    ],
+  },
 ];
 
-// "Other" dropdown tabs
-const OTHER_TABS: { id: Tab; label: string }[] = [
-  { id: 'compare', label: 'Compare' },
-  { id: 'scoring', label: 'Scoring' },
-  { id: 'games', label: 'Games' },
-  { id: 'snaps', label: 'Snaps' },
-  { id: 'advanced', label: 'Advanced' },
-  { id: 'pbp', label: 'Play-by-Play' },
-  { id: 'injuries', label: 'Injuries' },
-  { id: 'combine', label: 'Combine' },
-  { id: 'draft', label: 'Draft' },
-  { id: 'prospects', label: 'Prospects' },
-  { id: 'sleeper', label: 'Sleeper' },
-];
 
 function App() {
   const [tab, setTab] = useState<Tab>('projections');
@@ -61,7 +83,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
-  const [otherOpen, setOtherOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
@@ -71,8 +93,6 @@ function App() {
 
   const dataContext = buildDataContext(tab, season, seasonTotals, extraData);
 
-  const isOtherTab = OTHER_TABS.some((t) => t.id === tab);
-  const otherLabel = isOtherTab ? OTHER_TABS.find((t) => t.id === tab)?.label : 'Other';
 
   return (
     <>
@@ -84,59 +104,61 @@ function App() {
           </div>
         </div>
         <nav className="nav-tabs">
-          {PRIMARY_TABS.map((t) => (
-            <button
-              key={t.id}
-              className={`nav-tab ${tab === t.id ? 'active' : ''}`}
-              onClick={() => {
-                setTab(t.id);
-                setExtraData([]);
-                setOtherOpen(false);
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`nav-tab ${isOtherTab ? 'active' : ''}`}
-              onClick={() => setOtherOpen(!otherOpen)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              {otherLabel} <span style={{ fontSize: 8, opacity: 0.6 }}>{otherOpen ? '\u25B2' : '\u25BC'}</span>
-            </button>
-            {otherOpen && (
-              <>
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                  onClick={() => setOtherOpen(false)}
-                />
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, zIndex: 100,
-                  background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                  borderRadius: 6, padding: '4px 0', minWidth: 160, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                }}>
-                  {OTHER_TABS.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => { setTab(t.id); setExtraData([]); setOtherOpen(false); }}
-                      style={{
-                        display: 'block', width: '100%', textAlign: 'left',
-                        padding: '8px 16px', border: 'none', background: tab === t.id ? 'var(--bg-tertiary)' : 'transparent',
-                        color: tab === t.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        fontWeight: tab === t.id ? 700 : 400, fontSize: 13, cursor: 'pointer',
-                        fontFamily: 'inherit',
-                      }}
-                      onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-tertiary)'; }}
-                      onMouseLeave={(e) => { (e.target as HTMLElement).style.background = tab === t.id ? 'var(--bg-tertiary)' : 'transparent'; }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          {TAB_GROUPS.map((group) => {
+            const isOpen = openGroup === group.label;
+            const activeTab = group.tabs.find((t) => t.id === tab);
+            const hasActive = !!activeTab;
+            const displayLabel = hasActive ? activeTab.label : group.label;
+            return (
+              <div key={group.label} style={{ position: 'relative' }}>
+                <button
+                  className={`nav-tab ${hasActive ? 'active' : ''}`}
+                  onClick={() => setOpenGroup(isOpen ? null : group.label)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  {displayLabel} <span style={{ fontSize: 8, opacity: 0.6 }}>{isOpen ? '\u25B2' : '\u25BC'}</span>
+                </button>
+                {isOpen && (
+                  <>
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                      onClick={() => setOpenGroup(null)}
+                    />
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, zIndex: 100,
+                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                      borderRadius: 6, padding: '4px 0', minWidth: 170, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    }}>
+                      <div style={{
+                        padding: '4px 12px 6px', fontSize: 10, fontWeight: 700,
+                        color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px',
+                      }}>
+                        {group.label}
+                      </div>
+                      {group.tabs.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTab(t.id); setExtraData([]); setOpenGroup(null); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '8px 16px', border: 'none',
+                            background: tab === t.id ? 'var(--bg-tertiary)' : 'transparent',
+                            color: tab === t.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            fontWeight: tab === t.id ? 700 : 400, fontSize: 13, cursor: 'pointer',
+                            fontFamily: 'inherit',
+                          }}
+                          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-tertiary)'; }}
+                          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = tab === t.id ? 'var(--bg-tertiary)' : 'transparent'; }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </nav>
         <div className="control-group" style={{ marginLeft: 'auto' }}>
           <label className="control-label">Season</label>
