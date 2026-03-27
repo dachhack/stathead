@@ -20,6 +20,7 @@ import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
 import { SportsDataIOView } from './components/SportsDataIOView';
+import { RookieProspectsView } from './components/RookieProspectsView';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -49,6 +50,7 @@ const OTHER_TABS: { id: Tab; label: string }[] = [
   { id: 'injuries', label: 'Injuries' },
   { id: 'combine', label: 'Combine' },
   { id: 'draft', label: 'Draft' },
+  { id: 'prospects', label: 'Prospects' },
   { id: 'sleeper', label: 'Sleeper' },
 ];
 
@@ -189,6 +191,7 @@ function App() {
         )}
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
+        {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
         )}

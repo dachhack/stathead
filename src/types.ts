@@ -198,7 +198,8 @@ export type Tab =
   | 'charts'
   | 'sleeper'
   | 'ktc'
-  | 'sportsdata';
+  | 'sportsdata'
+  | 'prospects';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
