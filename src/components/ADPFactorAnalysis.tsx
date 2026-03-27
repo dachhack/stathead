@@ -310,7 +310,7 @@ function cvMae(actuals: number[], preds: number[]): number {
 // ── Component ──
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: ScenarioConfig }) {
+export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { scenario?: ScenarioConfig; initialView?: 'model' | 'strategy' }) {
   const [models, setModels] = useState<PositionModel[]>([]);
   const [allRows, setAllRows] = useState<PlayerRow[]>([]);
   const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
@@ -324,7 +324,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp }: { scenario?: Scen
   const [selectedPlayerName, setSelectedPlayerName] = useState<string | null>(null);
   const [selected2026Player, setSelected2026Player] = useState<string | null>(null);
   const [hitBustPos, setHitBustPos] = useState<string>('ALL');
-  const [adpView, setAdpView] = useState<'model' | 'strategy'>('model');
+  const [adpView, setAdpView] = useState<'model' | 'strategy'>(initialView ?? 'model');
   const [leagueSize, setLeagueSize] = useState(12);
   const [strategyMetric, setStrategyMetric] = useState<'hitbust' | 'vor'>('hitbust');
   const [halfRounds, setHalfRounds] = useState(false);

@@ -21,6 +21,8 @@ import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
 import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
+import { TradeCalculator } from './components/TradeCalculator';
+import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -43,12 +45,15 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
       { id: 'prospects', label: 'Prospects' },
+      { id: 'draft-strategy', label: 'Draft Strategy' },
+      { id: 'draft-optimizer', label: 'Draft Optimizer' },
     ],
   },
   {
     label: 'Dynasty',
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
+      { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
     ],
@@ -214,6 +219,9 @@ function App() {
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
+        {tab === 'draft-strategy' && <ADPFactorAnalysis initialView="strategy" />}
+        {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
+        {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
         )}
