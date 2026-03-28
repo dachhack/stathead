@@ -44,7 +44,6 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'projections', label: 'Projections' },
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
-      { id: 'prospects', label: 'Prospects' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
     ],
   },
@@ -53,6 +52,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
+      { id: 'prospects', label: 'Prospects' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
     ],
