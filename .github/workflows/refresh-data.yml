@@ -2,8 +2,8 @@ name: Refresh Data
 
 on:
   schedule:
-    # Every 2 hours
-    - cron: '0 */2 * * *'
+    # Every 2 hours, 7am-11pm EST (12:00-04:00 UTC)
+    - cron: '0 12,14,16,18,20,22,0,2,4 * * *'
   workflow_dispatch: # Allow manual trigger
 
 permissions:
