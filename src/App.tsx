@@ -1,7 +1,7 @@
 declare const __APP_VERSION__: string;
 declare const __BUILD_HASH__: string;
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -95,7 +95,10 @@ function App() {
     setExtraData(data);
   }, []);
 
-  const dataContext = buildDataContext(tab, season, seasonTotals, extraData);
+  const dataContext = useMemo(
+    () => buildDataContext(tab, season, seasonTotals, extraData),
+    [tab, season, seasonTotals, extraData],
+  );
 
 
   return (
