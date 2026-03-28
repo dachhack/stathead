@@ -65,30 +65,79 @@ async function main() {
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
 
-  // Train models (same logic as trainModelsOnly in ADPFactorAnalysis)
+  // Train models with position-specific tuning
+  // QB (N≈140) and TE (N≈106) need fewer features and more regularization
+  // to avoid overfitting. RB (N≈367) and WR (N≈408) can handle more features.
   console.log('  Training models...');
   const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
-  const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
-  const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
 
+  // Position-specific hyperparameters
+  const POS_CONFIG: Record<string, {
+    maxFeatures: number;  // max features to use (feature selection via initial importance)
+    gbmEstimators: number;
+    gbmLR: number;
+    gbmDepth: number;
+    ridgeLambda: number;
+    minLeafPct: number;
+  }> = {
+    QB: { maxFeatures: 20, gbmEstimators: 80, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 15, minLeafPct: 0.10 },
+    RB: { maxFeatures: 50, gbmEstimators: 150, gbmLR: 0.08, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
+    WR: { maxFeatures: 40, gbmEstimators: 150, gbmLR: 0.08, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
+    TE: { maxFeatures: 15, gbmEstimators: 60, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 20, minLeafPct: 0.12 },
+  };
   const models: Record<string, unknown>[] = [];
   for (const pos of POSITIONS) {
     console.log(`    Training ${pos}...`);
     const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
     if (posRows.length < 10) continue;
 
-    const posFeatures = FEATURES.filter((f) => f.positions.includes(pos));
-    const featureKeys = posFeatures.map((f) => f.key);
+    const cfg = POS_CONFIG[pos] || POS_CONFIG.WR;
+    let posFeatures = FEATURES.filter((f) => f.positions.includes(pos));
+    let featureKeys = posFeatures.map((f) => f.key);
+
+    // Feature selection for small-sample positions:
+    // Train a quick GBM on all features, rank by importance, keep top K
+    if (featureKeys.length > cfg.maxFeatures) {
+      console.log(`      Feature selection: ${featureKeys.length} → ${cfg.maxFeatures} (N=${posRows.length})`);
+      const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+      const yAll = posRows.map((r: PlayerRow) => r.vor);
+      const quickGbm = trainGBM(XAll, yAll, featureKeys, {
+        nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
+        minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
+      });
+      // Rank features by importance
+      const importanceSums = new Array(featureKeys.length).fill(0);
+      const sampleN = Math.min(100, posRows.length);
+      const sampleStep = Math.max(1, Math.floor(posRows.length / sampleN));
+      for (let i = 0; i < posRows.length; i += sampleStep) {
+        const pred = predictGBM(quickGbm, posRows[i].features);
+        for (const fc of pred.featureContributions) {
+          const idx = featureKeys.indexOf(fc.name);
+          if (idx >= 0) importanceSums[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const ranked = featureKeys
+        .map((k, i) => ({ key: k, imp: importanceSums[i] }))
+        .sort((a, b) => b.imp - a.imp);
+      const topKeys = new Set(ranked.slice(0, cfg.maxFeatures).map((r) => r.key));
+      // Always keep projection keys if applicable
+      for (const pk of PROJ_KEYS) if (featureKeys.includes(pk)) topKeys.add(pk);
+      featureKeys = featureKeys.filter((k) => topKeys.has(k));
+      posFeatures = posFeatures.filter((f) => topKeys.has(f.key));
+      console.log(`      Selected: ${featureKeys.slice(0, 8).join(', ')}...`);
+    }
+
     const featureLabels = posFeatures.map((f) => f.label);
     const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
     const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
     const y = posRows.map((r: PlayerRow) => r.vor);
 
-    const ridgeModel = trainRidgeRegression(X, y, featureKeys, LAMBDA);
+    const msl = Math.max(3, Math.round(posRows.length * cfg.minLeafPct));
+    const ridgeModel = trainRidgeRegression(X, y, featureKeys, cfg.ridgeLambda);
     const gbmModel = trainGBM(X, y, featureKeys, {
-      ...GBM_OPTS_FULL,
-      minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
+      nEstimators: cfg.gbmEstimators, learningRate: cfg.gbmLR,
+      maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: msl,
     });
 
     // LOSO cross-validation
@@ -107,11 +156,13 @@ async function main() {
         const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
         const Xtrb = trainR.map((r: PlayerRow) => baselineKeys.map((k) => r.features[k] || 0));
         const ytr = trainR.map((r: PlayerRow) => r.vor);
-        const msl = Math.max(3, Math.round(trainR.length * 0.05));
+        const foldMsl = Math.max(3, Math.round(trainR.length * cfg.minLeafPct));
 
-        const foldGbm = trainGBM(Xtr, ytr, featureKeys, { ...GBM_OPTS_CV, minSamplesLeaf: msl });
-        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, LAMBDA);
-        const foldBase = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV, minSamplesLeaf: msl });
+        // Use position-specific hyperparameters for CV folds too
+        const cvGbmOpts = { nEstimators: Math.min(80, cfg.gbmEstimators), learningRate: cfg.gbmLR + 0.02, maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl };
+        const foldGbm = trainGBM(Xtr, ytr, featureKeys, cvGbmOpts);
+        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, cfg.ridgeLambda);
+        const foldBase = trainGBM(Xtrb, ytr, baselineKeys, cvGbmOpts);
 
         for (const row of testR) {
           losoActuals.push(row.vor);
