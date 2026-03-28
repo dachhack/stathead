@@ -7,7 +7,7 @@
     "dev": "vite",
     "build:semantic": "node scripts/build-semantic-layer.js",
     "build:sweep": "node scripts/sweep-projection-config.js",
-    "build:features": "NODE_OPTIONS='--max-old-space-size=4096' tsx scripts/precompute-features.ts",
+    "build:features": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' tsx scripts/precompute-features.ts || echo 'Feature precomputation skipped — app will compute at runtime'",
     "build": "npm run build:semantic && npm run build:features && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
