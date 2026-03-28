@@ -79,6 +79,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Vegas: '#22c55e',
   Projection: '#f97316',
   Sentiment: '#e879f9',
+  SOS: '#f472b6',
+  Scheme: '#38bdf8',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -205,6 +207,24 @@ export const FEATURES: FeatureDef[] = [
   { key: 'redditSentiment4w', label: 'Reddit Sentiment (4wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'redditMentionVelocity', label: 'Reddit Mention Velocity', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'redditSentimentVelocity', label: 'Reddit Sentiment Velocity', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Strength of Schedule
+  { key: 'sosDefPassYdg', label: 'SOS: Opp Pass Yd/Game', category: 'SOS', positions: ['QB', 'WR', 'TE'] },
+  { key: 'sosDefRushYdg', label: 'SOS: Opp Rush Yd/Game', category: 'SOS', positions: ['RB'] },
+  { key: 'sosDefPPG', label: 'SOS: Opp Fantasy Pts Allowed/Game', category: 'SOS', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'sosAvgSpread', label: 'SOS: Avg Expected Spread', category: 'SOS', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Coaching scheme clusters (derived from PBP tendencies)
+  { key: 'schemePassHeavy', label: 'Scheme: Pass-Heavy (>58%)', category: 'Scheme', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'schemeRunHeavy', label: 'Scheme: Run-Heavy (<48%)', category: 'Scheme', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'schemeUptempo', label: 'Scheme: Uptempo (>67 plays/g)', category: 'Scheme', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'schemeShotgunHeavy', label: 'Scheme: Shotgun-Heavy (>70%)', category: 'Scheme', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'schemeRBReceiving', label: 'Scheme: RB Pass-Catching (>18% tgt)', category: 'Scheme', positions: ['RB', 'WR', 'TE'] },
+  { key: 'schemeTEHeavy', label: 'Scheme: TE-Heavy (>22% tgt)', category: 'Scheme', positions: ['TE', 'WR'] },
+
+  // Vegas season-level props
+  { key: 'vegasSeasonWinTotal', label: 'Vegas Season Win Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'vegasSeasonOverUnder', label: 'Vegas Season O/U (avg)', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──

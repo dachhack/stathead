@@ -723,6 +723,72 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             teamDraftedPos.set(key, existing);
           }
 
+          // ── Strength of Schedule ──
+          // Compute opponent defensive quality from prior-season game data
+          // For each team, average the defensive stats of their opponents
+          const sosDefPPG = new Map<string, number>(); // team → avg fantasy pts allowed by opponents
+          const sosAvgSpread = new Map<string, number>();
+          {
+            const teamOpponents = new Map<string, string[]>();
+            for (const g of gamesData) {
+              if (g.game_type !== 'REG' || g.season !== season) continue;
+              if (!teamOpponents.has(g.home_team)) teamOpponents.set(g.home_team, []);
+              if (!teamOpponents.has(g.away_team)) teamOpponents.set(g.away_team, []);
+              teamOpponents.get(g.home_team)!.push(g.away_team);
+              teamOpponents.get(g.away_team)!.push(g.home_team);
+            }
+            for (const [team, opps] of teamOpponents) {
+              let totalPtsAllowed = 0, totalSpread = 0, count = 0;
+              for (const opp of opps) {
+                const v = vegasBySeasonTeam.get(`${season - 1}:${opp}`);
+                if (v && v.games > 0) {
+                  totalPtsAllowed += v.actualPts / v.games;
+                  totalSpread += v.spread / v.games;
+                  count++;
+                }
+              }
+              if (count > 0) {
+                sosDefPPG.set(team, Math.round((totalPtsAllowed / count) * 10) / 10);
+                sosAvgSpread.set(team, Math.round((totalSpread / count) * 10) / 10);
+              }
+            }
+          }
+
+          // ── Coaching Scheme Clusters ──
+          // Binary flags derived from existing scheme aggregations
+          const schemeFlags = new Map<string, {
+            passHeavy: number; runHeavy: number; uptempo: number;
+            shotgunHeavy: number; rbReceiving: number; teHeavy: number;
+          }>();
+          for (const [team, scheme] of schemeByTeam) {
+            if (scheme.plays === 0) continue;
+            const passRate = scheme.passes / scheme.plays;
+            const pace = scheme.plays / Math.max(1, scheme.games);
+            const shotgunRate = scheme.shotgunPlays / scheme.plays;
+            const rbTgtRate = scheme.totalTargets > 0 ? scheme.rbTargets / scheme.totalTargets : 0;
+            const teTgtRate = scheme.totalTargets > 0 ? scheme.teTargets / scheme.totalTargets : 0;
+            schemeFlags.set(team, {
+              passHeavy: passRate > 0.58 ? 1 : 0,
+              runHeavy: passRate < 0.48 ? 1 : 0,
+              uptempo: pace > 67 ? 1 : 0,
+              shotgunHeavy: shotgunRate > 0.70 ? 1 : 0,
+              rbReceiving: rbTgtRate > 0.18 ? 1 : 0,
+              teHeavy: teTgtRate > 0.22 ? 1 : 0,
+            });
+          }
+
+          // ── Vegas Season-Level Props ──
+          // Derived from game-level Vegas data: season win total and avg O/U
+          const vegasSeasonProps = new Map<string, { winTotal: number; avgOU: number }>();
+          for (const [key, v] of vegasBySeasonTeam) {
+            const [szn, team] = key.split(':');
+            if (Number(szn) !== season - 1 || v.games === 0) continue;
+            vegasSeasonProps.set(team, {
+              winTotal: Math.round(v.wins * 10) / 10,
+              avgOU: v.gameTotal > 0 ? Math.round((v.gameTotal / v.games) * 10) / 10 : 0,
+            });
+          }
+
           // Join ADP with outcomes
           for (const adpPlayer of adpData) {
             if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -1030,6 +1096,41 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   redditSentiment4w: win?.sentiment_4w || buzz?.sentiment || 0,
                   redditMentionVelocity: win?.mention_velocity || 0,
                   redditSentimentVelocity: win?.sentiment_velocity || 0,
+                };
+              })(),
+
+              // Strength of Schedule features
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                return {
+                  sosDefPassYdg: sosDefPPG.get(pTeam) || 0, // reusing PPG as proxy for pass defense
+                  sosDefRushYdg: 0, // would need rushing defense data
+                  sosDefPPG: sosDefPPG.get(pTeam) || 0,
+                  sosAvgSpread: sosAvgSpread.get(pTeam) || 0,
+                };
+              })(),
+
+              // Coaching scheme cluster flags
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const sf = schemeFlags.get(pTeam);
+                return {
+                  schemePassHeavy: sf?.passHeavy || 0,
+                  schemeRunHeavy: sf?.runHeavy || 0,
+                  schemeUptempo: sf?.uptempo || 0,
+                  schemeShotgunHeavy: sf?.shotgunHeavy || 0,
+                  schemeRBReceiving: sf?.rbReceiving || 0,
+                  schemeTEHeavy: sf?.teHeavy || 0,
+                };
+              })(),
+
+              // Vegas season-level props
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const vp = vegasSeasonProps.get(pTeam);
+                return {
+                  vegasSeasonWinTotal: vp?.winTotal || 0,
+                  vegasSeasonOverUnder: vp?.avgOU || 0,
                 };
               })(),
             };
@@ -1506,6 +1607,68 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predCoachPriorTeamPPR.set(team, (predCoachPriorTeamPPR.get(team) || 0) + (p.fantasy_points_ppr || 0));
             }
 
+            // ── SOS for prediction season ──
+            const predSosDefPPG = new Map<string, number>();
+            const predSosAvgSpread = new Map<string, number>();
+            {
+              const teamOpponents = new Map<string, string[]>();
+              for (const g of gamesData) {
+                if (g.game_type !== 'REG' || g.season !== predSeason) continue;
+                if (!teamOpponents.has(g.home_team)) teamOpponents.set(g.home_team, []);
+                if (!teamOpponents.has(g.away_team)) teamOpponents.set(g.away_team, []);
+                teamOpponents.get(g.home_team)!.push(g.away_team);
+                teamOpponents.get(g.away_team)!.push(g.home_team);
+              }
+              for (const [team, opps] of teamOpponents) {
+                let totalPts = 0, totalSpread = 0, count = 0;
+                for (const opp of opps) {
+                  const v = vegasBySeasonTeam.get(`${priorSeason}:${opp}`);
+                  if (v && v.games > 0) {
+                    totalPts += v.actualPts / v.games;
+                    totalSpread += v.spread / v.games;
+                    count++;
+                  }
+                }
+                if (count > 0) {
+                  predSosDefPPG.set(team, Math.round((totalPts / count) * 10) / 10);
+                  predSosAvgSpread.set(team, Math.round((totalSpread / count) * 10) / 10);
+                }
+              }
+            }
+
+            // ── Scheme clusters for prediction season ──
+            const predSchemeFlags = new Map<string, {
+              passHeavy: number; runHeavy: number; uptempo: number;
+              shotgunHeavy: number; rbReceiving: number; teHeavy: number;
+            }>();
+            for (const [team, scheme] of predSchemeByTeam) {
+              if (scheme.plays === 0) continue;
+              const passRate = scheme.passes / scheme.plays;
+              const pace = scheme.plays / Math.max(1, scheme.games);
+              const shotgunRate = scheme.shotgunPlays / scheme.plays;
+              const rbTgtRate = scheme.totalTargets > 0 ? scheme.rbTargets / scheme.totalTargets : 0;
+              const teTgtRate = scheme.totalTargets > 0 ? scheme.teTargets / scheme.totalTargets : 0;
+              predSchemeFlags.set(team, {
+                passHeavy: passRate > 0.58 ? 1 : 0,
+                runHeavy: passRate < 0.48 ? 1 : 0,
+                uptempo: pace > 67 ? 1 : 0,
+                shotgunHeavy: shotgunRate > 0.70 ? 1 : 0,
+                rbReceiving: rbTgtRate > 0.18 ? 1 : 0,
+                teHeavy: teTgtRate > 0.22 ? 1 : 0,
+              });
+            }
+
+            // ── Vegas season props for prediction ──
+            const predVegasSeasonProps = new Map<string, { winTotal: number; avgOU: number }>();
+            for (const [key, v] of vegasBySeasonTeam) {
+              const [szn, team] = key.split(':');
+              if (Number(szn) !== priorSeason || v.games === 0) continue;
+              predVegasSeasonProps.set(team, {
+                winTotal: Math.round(v.wins * 10) / 10,
+                avgOU: v.gameTotal > 0 ? Math.round((v.gameTotal / v.games) * 10) / 10 : 0,
+              });
+            }
+
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
@@ -1778,6 +1941,41 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     redditSentiment4w: win?.sentiment_4w || buzz?.sentiment || 0,
                     redditMentionVelocity: win?.mention_velocity || 0,
                     redditSentimentVelocity: win?.sentiment_velocity || 0,
+                  };
+                })(),
+
+                // SOS
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  return {
+                    sosDefPassYdg: predSosDefPPG.get(pTeam) || 0,
+                    sosDefRushYdg: 0,
+                    sosDefPPG: predSosDefPPG.get(pTeam) || 0,
+                    sosAvgSpread: predSosAvgSpread.get(pTeam) || 0,
+                  };
+                })(),
+
+                // Scheme clusters
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const sf = predSchemeFlags.get(pTeam);
+                  return {
+                    schemePassHeavy: sf?.passHeavy || 0,
+                    schemeRunHeavy: sf?.runHeavy || 0,
+                    schemeUptempo: sf?.uptempo || 0,
+                    schemeShotgunHeavy: sf?.shotgunHeavy || 0,
+                    schemeRBReceiving: sf?.rbReceiving || 0,
+                    schemeTEHeavy: sf?.teHeavy || 0,
+                  };
+                })(),
+
+                // Vegas season props
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const vp = predVegasSeasonProps.get(pTeam);
+                  return {
+                    vegasSeasonWinTotal: vp?.winTotal || 0,
+                    vegasSeasonOverUnder: vp?.avgOU || 0,
                   };
                 })(),
               };
