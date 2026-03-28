@@ -503,7 +503,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           <div style={{ marginTop: 8, fontSize: 13 }}>
             {(() => {
               const thenDiff = tradeDateTotals.diff;
-              const nowDiff = diff;
               const aGain = totalA - tradeDateTotals.aTotal;
               const bGain = totalB - tradeDateTotals.bTotal;
               const winner = aGain > bGain ? 'Side A' : aGain < bGain ? 'Side B' : null;
@@ -602,8 +601,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               <YAxis stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => v.toLocaleString()} />
               <Tooltip
                 contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-                labelFormatter={fmtDate}
-                formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                labelFormatter={(label) => fmtDate(String(label))}
+                formatter={(value: number | string, name: string) => [Number(value).toLocaleString(), name]}
               />
               {sideA.length > 0 && (
                 <Line type="monotone" dataKey="Side A" stroke={SIDE_A_COLOR} strokeWidth={2} dot={false} />
