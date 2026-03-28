@@ -22,6 +22,15 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      # Cache static data files between builds (saves ~8 min of downloads)
+      - name: Cache static data
+        uses: actions/cache@v4
+        with:
+          path: public/data
+          key: static-data-v2
+          restore-keys: static-data-
+
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh

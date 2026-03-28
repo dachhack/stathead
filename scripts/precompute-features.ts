@@ -7,9 +7,12 @@ import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, cvR2, 
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM } from '../src/lib/gbm';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
+
+const CACHE_PATH = 'public/data/training-rows-cache.json';
+const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
 const LAMBDA = 5;
@@ -18,17 +21,47 @@ async function main() {
   console.log('Precomputing feature matrix + models...');
   const start = Date.now();
 
-  const result = await buildFeatureMatrix({
-    seasons: SEASONS,
-    predictSeason: PREDICT_SEASON,
-    positions: POSITIONS,
-    replacementRanks: REPLACEMENT_RANKS,
-    vorBasis: 'total',
-    onStatus: (msg) => {
-      console.log(`  ${msg}`);
-      if (global.gc) global.gc();
-    },
-  });
+  // Check for cached training rows (static 2018-2025 data doesn't change)
+  let result;
+  if (existsSync(CACHE_PATH)) {
+    console.log('  Loading cached training rows...');
+    const cached = JSON.parse(readFileSync(CACHE_PATH, 'utf-8'));
+    console.log(`  Cached: ${cached.rows.length} training rows`);
+
+    // Only rebuild prediction rows (2026 data changes with ADP/rosters)
+    console.log('  Rebuilding 2026 prediction rows only...');
+    const fresh = await buildFeatureMatrix({
+      seasons: [],  // skip training seasons — use cache
+      predictSeason: PREDICT_SEASON,
+      positions: POSITIONS,
+      replacementRanks: REPLACEMENT_RANKS,
+      vorBasis: 'total',
+      onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
+    });
+
+    result = {
+      rows: cached.rows,
+      predRows: fresh.predRows,
+      vorNorm: cached.vorNorm,
+    };
+  } else {
+    console.log('  No cache — building full feature matrix...');
+    result = await buildFeatureMatrix({
+      seasons: SEASONS,
+      predictSeason: PREDICT_SEASON,
+      positions: POSITIONS,
+      replacementRanks: REPLACEMENT_RANKS,
+      vorBasis: 'total',
+      onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
+    });
+
+    // Cache training rows for next build
+    console.log('  Caching training rows...');
+    mkdirSync('public/data', { recursive: true });
+    writeFileSync(CACHE_PATH, JSON.stringify({ rows: result.rows, vorNorm: result.vorNorm }));
+    const cacheSize = (readFileSync(CACHE_PATH).length / 1024 / 1024).toFixed(1);
+    console.log(`  Training cache saved (${cacheSize} MB)`);
+  }
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
 
