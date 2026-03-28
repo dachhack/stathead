@@ -344,11 +344,106 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     [activeScenarioId, savedScenarios],
   );
 
+  // Extracted model training — used both from cache and full pipeline
+  const trainModelsOnly = (rows: PlayerRow[], predRows: PredictionRow[], vorNorm: Map<string, { mean: number; std: number }>) => {
+    setLoadingStatus('Training models...');
+    const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
+    const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
+    const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
+
+    const posModels: PositionModel[] = [];
+    for (const pos of POSITIONS) {
+      const posRows = rows.filter((r) => r.position === pos && r.adp <= maxADP);
+      if (posRows.length < 10) continue;
+
+      const posFeatures  = FEATURES.filter((f) => f.positions.includes(pos));
+      const featureKeys  = posFeatures.map((f) => f.key);
+      const featureLabels = posFeatures.map((f) => f.label);
+      const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
+
+      const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
+      const y = posRows.map((r) => r.vor);
+
+      const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
+      const gbmModel = trainGBM(X, y, featureKeys, {
+        ...GBM_OPTS_FULL,
+        minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
+      });
+
+      const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
+      const losoActuals: number[] = [];
+      const losoPredGbm: number[] = [];
+      const losoPredRidge: number[] = [];
+      const losoPredGbmBase: number[] = [];
+
+      if (uniqueSeasons.length >= 3) {
+        for (const held of uniqueSeasons) {
+          const trainR = posRows.filter((r) => r.season !== held);
+          const testR  = posRows.filter((r) => r.season === held);
+          if (trainR.length < 8 || testR.length === 0) continue;
+
+          const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
+          const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
+          const ytr  = trainR.map((r) => r.vor);
+          const msl  = Math.max(3, Math.round(trainR.length * 0.05));
+
+          const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
+          const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
+          const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
+
+          for (const row of testR) {
+            losoActuals.push(row.vor);
+            losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
+            losoPredRidge.push(predict(foldRidge, row.features).predicted);
+            losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
+          }
+        }
+      }
+
+      const hasCV = losoActuals.length >= 10;
+      posModels.push({
+        position: pos, ridgeModel, gbmModel,
+        featureNames: featureKeys, featureLabels,
+        n: posRows.length,
+        hitRate:  Math.round(posRows.filter((r) => r.isHit).length  / posRows.length * 100),
+        bustRate: Math.round(posRows.filter((r) => r.isBust).length / posRows.length * 100),
+        rSquared: 0, mae: 0,
+        cvR2Gbm:          hasCV ? cvR2(losoActuals, losoPredGbm)   : gbmModel.rSquared,
+        cvMaeGbm:         hasCV ? cvMae(losoActuals, losoPredGbm)  : gbmModel.mae,
+        cvR2Ridge:        hasCV ? cvR2(losoActuals, losoPredRidge) : ridgeModel.rSquared,
+        cvMaeRidge:       hasCV ? cvMae(losoActuals, losoPredRidge): ridgeModel.mae,
+        cvR2GbmBaseline:  hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
+      });
+    }
+    setModels(posModels);
+    setLoading(false);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
+    // Cache key based on vorBasis + scenario (features depend on these)
+    const cacheKey = `adp_features_v3_${vorBasis}_${activeScenario?.id ?? 'none'}`;
+
     async function run() {
       try {
+        // Check for cached feature data
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            setLoadingStatus('Loading cached data...');
+            const { rows, predRows, vorNorm } = JSON.parse(cached);
+            if (rows?.length > 0) {
+              const normMap = new Map<string, { mean: number; std: number }>(Object.entries(vorNorm));
+              setAllRows(rows);
+              setPredictionRows(predRows);
+              setVorNormParams(normMap);
+              trainModelsOnly(rows, predRows, normMap);
+              return;
+            }
+          }
+        } catch { /* cache miss or parse error, run full pipeline */ }
+
         // Load combine + draft + games once (static)
         setLoadingStatus('Loading combine, draft & games data...');
         const [combineData, draftData, gamesData] = await Promise.all([
@@ -2041,88 +2136,14 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         }
         setPredictionRows(predRows);
 
-        // Train per-position models (both Ridge and GBM)
-        // Then compute leave-one-season-out cross-validated R² and MAE for
-        // honest out-of-sample performance estimates.
-        const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
-        const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
-        const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
+        // Cache the expensive feature data for instant subsequent loads
+        try {
+          const vorNormObj: Record<string, { mean: number; std: number }> = {};
+          vorNorm.forEach((v, k) => { vorNormObj[k] = v; });
+          localStorage.setItem(cacheKey, JSON.stringify({ rows, predRows, vorNorm: vorNormObj }));
+        } catch { /* localStorage full or unavailable */ }
 
-        const posModels: PositionModel[] = [];
-        for (const pos of POSITIONS) {
-          const posRows = rows.filter((r) => r.position === pos && r.adp <= maxADP);
-          if (posRows.length < 10) continue;
-
-          const posFeatures  = FEATURES.filter((f) => f.positions.includes(pos));
-          const featureKeys  = posFeatures.map((f) => f.key);
-          const featureLabels = posFeatures.map((f) => f.label);
-          const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
-
-          const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
-          const y = posRows.map((r) => r.vor);
-
-          // Full-data models (used for 2026 predictions and factor attributions)
-          const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
-          const gbmModel = trainGBM(X, y, featureKeys, {
-            ...GBM_OPTS_FULL,
-            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
-          });
-
-          // ── Leave-one-season-out cross-validation ─────────────────────────
-          // For each held-out season, train on the remaining seasons and
-          // predict the held-out samples. Aggregate to get honest R² / MAE.
-          const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
-          const losoActuals: number[] = [];
-          const losoPredGbm: number[] = [];
-          const losoPredRidge: number[] = [];
-          const losoPredGbmBase: number[] = [];
-
-          if (uniqueSeasons.length >= 3) {
-            for (const held of uniqueSeasons) {
-              const trainR = posRows.filter((r) => r.season !== held);
-              const testR  = posRows.filter((r) => r.season === held);
-              if (trainR.length < 8 || testR.length === 0) continue;
-
-              const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
-              const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
-              const ytr  = trainR.map((r) => r.vor);
-              const msl  = Math.max(3, Math.round(trainR.length * 0.05));
-
-              const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
-              const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
-              const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
-
-              for (const row of testR) {
-                losoActuals.push(row.vor);
-                // predictGBM / predict take Record<string, number> feature maps
-                losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
-                losoPredRidge.push(predict(foldRidge, row.features).predicted);
-                losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
-              }
-            }
-          }
-
-          const hasCV = losoActuals.length >= 10;
-          posModels.push({
-            position: pos,
-            ridgeModel,
-            gbmModel,
-            featureNames: featureKeys,
-            featureLabels,
-            n: posRows.length,
-            hitRate:  Math.round(posRows.filter((r) => r.isHit).length  / posRows.length * 100),
-            bustRate: Math.round(posRows.filter((r) => r.isBust).length / posRows.length * 100),
-            rSquared: 0,
-            mae: 0,
-            cvR2Gbm:          hasCV ? cvR2(losoActuals, losoPredGbm)   : gbmModel.rSquared,
-            cvMaeGbm:         hasCV ? cvMae(losoActuals, losoPredGbm)  : gbmModel.mae,
-            cvR2Ridge:        hasCV ? cvR2(losoActuals, losoPredRidge) : ridgeModel.rSquared,
-            cvMaeRidge:       hasCV ? cvMae(losoActuals, losoPredRidge): ridgeModel.mae,
-            cvR2GbmBaseline:  hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
-          });
-        }
-
-        setModels(posModels);
+        trainModelsOnly(rows, predRows, vorNorm);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to build models');
       } finally {
