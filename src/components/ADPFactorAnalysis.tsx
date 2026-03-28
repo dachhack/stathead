@@ -38,6 +38,13 @@ interface PositionModel {
   cvR2GbmBaseline: number;
 }
 
+/** Format raw ADP as round.pick based on league size (e.g. ADP 40 in 12-team = "4.04") */
+function fmtAdp(adp: number, leagueSize: number): string {
+  const round = Math.ceil(adp / leagueSize);
+  const pick = Math.round(adp - (round - 1) * leagueSize) || leagueSize;
+  return `${round}.${String(pick).padStart(2, '0')}`;
+}
+
 // ── Draft optimizer helpers ──
 const FLEX_POS  = new Set(['RB', 'WR', 'TE']);
 const SF_POS    = new Set(['QB', 'RB', 'WR', 'TE']);
@@ -1389,7 +1396,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                         {p.name}
                                       </div>
                                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                        {p.team} · ADP {p.adp.toFixed(1)}
+                                        {p.team} · ADP {fmtAdp(p.adp, leagueSize)}
                                       </div>
                                       <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
                                         <span style={{
@@ -1610,7 +1617,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       </strong>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                    <td>{p.adp.toFixed(1)}</td>
+                    <td>{fmtAdp(p.adp, leagueSize)}</td>
                     <td style={{
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
@@ -1649,7 +1656,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               <h4 style={{ marginBottom: 4 }}>
                 {selected2026Prediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-                  {PREDICT_SEASON} &middot; ADP {selected2026Prediction.adp.toFixed(1)} &middot;
+                  {PREDICT_SEASON} &middot; ADP {fmtAdp(selected2026Prediction.adp, leagueSize)} &middot;
                   Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
                     {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}σ
                   </span>
@@ -1863,7 +1870,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         fontSize: 12,
                       }}>
                         <strong>{d.name}</strong> ({d.season}){d.position ? ` · ${d.position}` : ''}
-                        <br />ADP: {d.adp.toFixed(1)}
+                        <br />ADP: {fmtAdp(d.adp, leagueSize)}
                         <br />VOR Score: <span style={{ color: d.vor >= 0 ? '#10b981' : '#ef4444' }}>
                           {d.vor >= 0 ? '+' : ''}{d.vor}σ
                         </span>
@@ -1930,7 +1937,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       </strong>
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.season}</td>
-                    <td>{p.adp.toFixed(1)}</td>
+                    <td>{fmtAdp(p.adp, leagueSize)}</td>
                     <td style={{
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
@@ -1973,7 +1980,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               <h4 style={{ marginBottom: 4 }}>
                 {selectedPrediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-                  {selectedPrediction.season} &middot; ADP {selectedPrediction.adp.toFixed(1)} &middot;
+                  {selectedPrediction.season} &middot; ADP {fmtAdp(selectedPrediction.adp, leagueSize)} &middot;
                   Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
                     {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}σ
                   </span> &middot;
