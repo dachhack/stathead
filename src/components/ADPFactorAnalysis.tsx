@@ -2509,14 +2509,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       if (slotIdx !== -1) remaining.splice(slotIdx, 1);
 
       // Player suggestions: top players of the recommended position near this ADP
-      const adpWindow = leagueSize * 1.5; // look ±1.5 rounds worth of picks
+      // Only show players whose ADP is within a realistic draft window:
+      // - Lower bound: previous round's pick (they'd already be gone)
+      // - Upper bound: 1.5 rounds ahead (reach picks)
+      const prevRoundPick = r > 1 ? (r - 2) * leagueSize + (r % 2 === 0 ? pickNumber : (leagueSize + 1 - pickNumber)) : 0;
+      const adpLower = Math.max(prevRoundPick, yourPick - leagueSize * 0.5);
+      const adpUpper = yourPick + leagueSize * 1.5;
       const norm2026 = vorNormParams.get(best.pos);
       const repPPR   = REP_PPR[best.pos] ?? 120;
       const suggestions: PlayerSuggestion[] = allPredictions2026
         .filter((p) =>
           p.position === best.pos &&
-          p.adp >= yourPick - adpWindow &&
-          p.adp <= yourPick + adpWindow
+          p.adp >= adpLower &&
+          p.adp <= adpUpper
         )
         .sort((a, b) => b.predictedVor - a.predictedVor)
         .slice(0, 4)
