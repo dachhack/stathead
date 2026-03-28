@@ -332,6 +332,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const [starterSlots, setStarterSlots] = useState<string[]>(['QB','RB','RB','WR','WR','TE','Flex']);
   const [benchSlots,  setBenchSlots]  = useState<string[]>(['RB','WR','WR','WR','QB']);
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
+  const [roundOverrides, setRoundOverrides] = useState<Record<number, string>>({});
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
@@ -2497,7 +2498,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       if (candidates.length === 0) { remaining.shift(); picksUsed++; continue; }
 
       candidates.sort((a, b) => b.metric - a.metric);
-      const best = candidates[0];
+
+      // Check for user override on this round
+      const override = roundOverrides[r];
+      const overrideCandidate = override ? candidates.find((c) => c.pos === override) : null;
+      const best = overrideCandidate || candidates[0];
 
       const slotIdx   = findSlotIndex(remaining, best.pos);
       const slotFilled = slotIdx !== -1 ? remaining[slotIdx] : best.pos;
@@ -2546,7 +2551,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     }
     return plan;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams]);
+  }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, roundOverrides]);
 
   if (loading) {
     return (
@@ -2952,6 +2957,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     {Object.keys(ROSTER_PRESETS).map((k) => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </div>
+                {Object.keys(roundOverrides).length > 0 && (
+                  <div className="control-group" style={{ alignSelf: 'flex-end' }}>
+                    <button
+                      onClick={() => setRoundOverrides({})}
+                      style={{
+                        padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        border: '2px solid #ef4444', background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                      }}
+                    >
+                      Reset Overrides ({Object.keys(roundOverrides).length})
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* ── Roster slot editor: Starters + Bench ── */}
@@ -3062,10 +3080,39 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                 )}
                               </span>
                               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pick #{row.yourPick}</span>
-                              <span style={{
-                                fontWeight: 700, fontSize: 12, padding: '2px 8px', borderRadius: 4,
-                                background: posColor + '22', color: posColor,
-                              }}>{row.recPos}</span>
+                              <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+                                {['QB', 'RB', 'WR', 'TE'].map((pos) => {
+                                  const isSelected = row.recPos === pos;
+                                  const isOverride = roundOverrides[row.round] === pos;
+                                  const pc = POS_COLORS[pos] || '#6b7280';
+                                  return (
+                                    <button
+                                      key={pos}
+                                      onClick={() => {
+                                        setRoundOverrides((prev) => {
+                                          const next = { ...prev };
+                                          if (isOverride || (isSelected && !prev[row.round])) {
+                                            delete next[row.round];
+                                          } else {
+                                            next[row.round] = pos;
+                                          }
+                                          return next;
+                                        });
+                                      }}
+                                      style={{
+                                        fontWeight: 700, fontSize: 11, padding: '2px 6px', borderRadius: 4,
+                                        background: isSelected ? pc + '22' : 'transparent',
+                                        color: isSelected ? pc : 'var(--text-muted)',
+                                        border: isSelected ? `2px solid ${pc}` : '1px solid var(--border)',
+                                        cursor: 'pointer', fontFamily: 'inherit',
+                                        opacity: isSelected ? 1 : 0.6,
+                                      }}
+                                    >
+                                      {pos}
+                                    </button>
+                                  );
+                                })}
+                              </span>
                               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→ {row.slotFilled}</span>
                               <span style={{ fontSize: 12, fontWeight: 700, color: (optimizerMetric === 'vor' ? row.vorScore : row.score) >= 0 ? '#10b981' : '#ef4444' }}>
                                 {optimizerMetric === 'vor'
