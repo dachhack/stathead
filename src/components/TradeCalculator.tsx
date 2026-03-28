@@ -442,7 +442,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       <div className="controls" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div className="control-group">
           <label className="control-label">Format</label>
-          <select value={format} onChange={(e) => { setFormat(e.target.value as FormatMode); setSideA([]); setSideB([]); }}>
+          <select value={format} onChange={(e) => setFormat(e.target.value as FormatMode)}>
             <option value="1qb">1QB</option>
             <option value="superflex">Superflex</option>
           </select>
