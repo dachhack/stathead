@@ -602,7 +602,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               <Tooltip
                 contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
                 labelFormatter={(label) => fmtDate(String(label))}
-                formatter={(value: unknown, name: string) => [Number(value).toLocaleString(), name]}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={((value: any, name: any) => [Number(value).toLocaleString(), String(name)]) as any}
               />
               {sideA.length > 0 && (
                 <Line type="monotone" dataKey="Side A" stroke={SIDE_A_COLOR} strokeWidth={2} dot={false} />
