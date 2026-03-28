@@ -441,7 +441,18 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const allPredictions2026 = useMemo(() => {
     // Use precomputed predictions if available (from build or cache)
     if (precomputedPredictions && precomputedPredictions.length > 0) {
-      return precomputedPredictions.filter((p) => p.adp <= maxADP);
+      // Enrich with Reddit sentiment from predictionRows features
+      const featuresByName = new Map(predictionRows.map((r) => [r.name, r.features]));
+      return precomputedPredictions.filter((p) => p.adp <= maxADP).map((p) => {
+        const f = featuresByName.get(p.name);
+        return {
+          ...p,
+          redditMentions: f?.redditMentions4w || 0,
+          redditSentiment: f?.redditSentiment4w || 0,
+          redditHype: f?.redditHype1w || 0,
+          redditVelocity: f?.redditMentionVelocity || 0,
+        };
+      });
     }
     // Fall back to runtime prediction
     return models.flatMap((m) => {
@@ -463,6 +474,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
                  : isBustForPos(r.position, pred) ? 'Likely Bust'
                  : 'Middle' as const,
+          redditMentions: r.features.redditMentions4w || 0,
+          redditSentiment: r.features.redditSentiment4w || 0,
+          redditHype: r.features.redditHype1w || 0,
+          redditVelocity: r.features.redditMentionVelocity || 0,
         };
       });
     });
@@ -618,7 +633,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     type PlayerSuggestion = {
       name: string; team: string; adp: number;
       predictedVor: number; hitProb: string; headshotUrl?: string;
-      estPPR: number;  // estimated full-season PPR (above replacement + historical mean)
+      estPPR: number;
+      redditSentiment: number;
+      redditHype: number;
     };
     type PlanRow = {
       round: number; label: string; yourPick: number;
@@ -710,6 +727,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           estPPR: norm2026
             ? Math.round(repPPR + norm2026.mean + p.predictedVor * norm2026.std)
             : 0,
+          redditSentiment: (p as any).redditSentiment || 0,
+          redditHype: (p as any).redditHype || 0,
         }));
 
       plan.push({
@@ -1439,6 +1458,17 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                         }}>
                                           {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}
                                         </span>
+                                        {(p.redditSentiment !== 0 || p.redditHype > 0) && (
+                                          <span title={`Reddit: sentiment ${p.redditSentiment >= 0 ? '+' : ''}${p.redditSentiment.toFixed(1)}, hype ${p.redditHype}`} style={{
+                                            fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                                            background: p.redditSentiment > 0.3 ? 'rgba(232,121,249,0.15)'
+                                              : p.redditSentiment < -0.3 ? 'rgba(239,68,68,0.1)' : 'rgba(107,114,128,0.08)',
+                                            color: p.redditSentiment > 0.3 ? '#e879f9'
+                                              : p.redditSentiment < -0.3 ? '#fb923c' : '#6b7280',
+                                          }}>
+                                            {p.redditSentiment > 0.3 ? '🔥' : p.redditSentiment < -0.3 ? '🧊' : '💬'}{p.redditHype > 0 ? ` ${p.redditHype}` : ''}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
