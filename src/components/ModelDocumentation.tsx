@@ -31,7 +31,7 @@ export function ModelDocumentation() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
-  const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
+  const [modelType, setModelType] = useState<'gbm' | 'ridge'>('ridge'); // Ridge is default — instant, no crash
 
   useEffect(() => {
     async function load() {
@@ -66,15 +66,19 @@ export function ModelDocumentation() {
 
     if (modelType === 'gbm' && model.gbmModel) {
       const posRows = data.rows.filter((r) => r.position === selectedPos && r.adp <= 150);
+      // Subsample to prevent mobile crashes — 150 rows is enough for stable importance estimates
+      const sampleSize = Math.min(150, posRows.length);
+      const step = Math.max(1, Math.floor(posRows.length / sampleSize));
+      const sampled = posRows.filter((_, i) => i % step === 0).slice(0, sampleSize);
       const contribSums = new Array(model.featureNames.length).fill(0);
-      for (const row of posRows) {
+      for (const row of sampled) {
         const result = predictGBM(model.gbmModel as any, row.features);
         for (const fc of result.featureContributions) {
           const idx = model.featureNames.indexOf(fc.name);
           if (idx >= 0) contribSums[idx] += Math.abs(fc.contribution);
         }
       }
-      const n = posRows.length || 1;
+      const n = sampled.length || 1;
       return model.featureNames
         .map((key, i) => {
           const def = FEATURES.find((f) => f.key === key);
