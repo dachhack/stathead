@@ -2579,14 +2579,14 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
 
   return (
     <>
-      <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+      {!initialView && <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
         Predicts VOR Score — a standardised (z-score) measure of Value Over Replacement, comparable across all positions (+1.0 = 1 std dev above the positional mean).
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
-      </p>
+      </p>}
 
-      {/* View toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      {/* View toggle — hidden when launched from a standalone tab */}
+      {!initialView && <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {([['model', '📊 Model Analysis'], ['strategy', '🏈 Draft Strategy']] as const).map(([v, label]) => (
           <button
             key={v}
@@ -2602,7 +2602,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* Controls */}
       <div className="controls" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
