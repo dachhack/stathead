@@ -51,7 +51,7 @@ export interface FeatureMatrixResult {
 
 // ── Constants ──
 
-export const SEASONS = [2021, 2022, 2023, 2024, 2025];
+export const SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 export const PREDICT_SEASON = 2026;
 export const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 export const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };

@@ -205,7 +205,7 @@ function findPlayerMentions(
 
 // Main: fetch and aggregate Reddit sentiment data
 async function main() {
-  const seasons = [2021, 2022, 2023, 2024, 2025];
+  const seasons = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
   console.log('Fetching Reddit sentiment data from r/fantasyfootball...');
 

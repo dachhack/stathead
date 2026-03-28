@@ -42,16 +42,16 @@ for s in $SEASONS; do
   [ -f "$OUT/depth_charts_${s}.csv" ] || curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
 done
 
-# Advanced stats (per type per season) - only recent seasons
-for s in 2024 2023 2022 2021; do
+# Advanced stats (per type per season) — expanded for training window
+for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
   for type in pass rush rec def; do
     [ -f "$OUT/advstats_week_${type}_${s}.csv" ] || curl -sL "$NFLVERSE/pfr_advstats/advstats_week_${type}_${s}.csv" -o "$OUT/advstats_week_${type}_${s}.csv" &
   done
 done
 
-# Next Gen Stats (per type per season) - files are .csv.gz
+# Next Gen Stats (per type per season) — expanded for training window
 # Current season (2025) uses ngs_{type}.csv.gz (no year in filename)
-for s in 2025 2024 2023 2022 2021; do
+for s in 2025 2024 2023 2022 2021 2020 2019 2018 2017; do
   for type in passing rushing receiving; do
     if [ ! -f "$OUT/ngs_${s}_${type}.csv" ]; then
       if [ "$s" -ge 2025 ]; then
@@ -68,13 +68,13 @@ for s in 2024 2023 2022; do
   [ -f "$OUT/ftn_charting_${s}.csv" ] || curl -sL "$NFLVERSE/ftn_charting/ftn_charting_${s}.csv" -o "$OUT/ftn_charting_${s}.csv" &
 done
 
-# Play-by-play (large but needed)
-for s in 2024 2023 2022 2021; do
+# Play-by-play (include 2017-2024 to cover training window 2018-2025 prior data)
+for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
   [ -f "$OUT/play_by_play_${s}.csv" ] || curl -sL "$NFLVERSE/pbp/play_by_play_${s}.csv" -o "$OUT/play_by_play_${s}.csv" &
 done
 
-# PBP participation
-for s in 2024 2023 2022 2021; do
+# PBP participation (2017+ for training window)
+for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
   [ -f "$OUT/pbp_participation_${s}.csv" ] || curl -sL "$NFLVERSE/pbp_participation/pbp_participation_${s}.csv" -o "$OUT/pbp_participation_${s}.csv" &
 done
 
