@@ -699,6 +699,50 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickNumber, leagueSize, starterSlots, benchSlots, strategyData, optimizerMetric, halfRounds, allPredictions2026, vorNormParams, roundOverrides]);
 
+  // Snarky loading messages that rotate
+  const [snarkIdx, setSnarkIdx] = useState(0);
+  useEffect(() => {
+    if (!loading) return;
+    const SNARKY = [
+      'Debating who the #1 WR is.',
+      'Finding out who is in the best shape of his life.',
+      'Overreacting to camp hype.',
+      'Analyzing a backup RB\'s preseason TD.',
+      'Checking if this is finally the year for that breakout.',
+      'Convincing myself a late-round TE will be different this time.',
+      'Arguing about handcuff strategy.',
+      'Looking up how much FAAB to bid on a week 1 waiver.',
+      'Stalking beat reporters for snap count intel.',
+      'Drafting a kicker too early just to feel something.',
+      'Refreshing the injury report one more time.',
+      'Googling "is [player] droppable" in week 2.',
+      'Calculating the optimal number of bench RBs.',
+      'Wondering if Zero RB is back.',
+      'Pretending last year\'s champ wasn\'t lucky.',
+    ];
+    setSnarkIdx(Math.floor(Math.random() * SNARKY.length));
+    const iv = setInterval(() => setSnarkIdx((i) => (i + 1) % SNARKY.length), 4000);
+    return () => clearInterval(iv);
+  }, [loading]);
+
+  const SNARKY_MSGS = [
+    'Debating who the #1 WR is.',
+    'Finding out who is in the best shape of his life.',
+    'Overreacting to camp hype.',
+    'Analyzing a backup RB\'s preseason TD.',
+    'Checking if this is finally the year for that breakout.',
+    'Convincing myself a late-round TE will be different this time.',
+    'Arguing about handcuff strategy.',
+    'Looking up how much FAAB to bid on a week 1 waiver.',
+    'Stalking beat reporters for snap count intel.',
+    'Drafting a kicker too early just to feel something.',
+    'Refreshing the injury report one more time.',
+    'Googling "is [player] droppable" in week 2.',
+    'Calculating the optimal number of bench RBs.',
+    'Wondering if Zero RB is back.',
+    'Pretending last year\'s champ wasn\'t lucky.',
+  ];
+
   if (loading) {
     return (
       <div className="loading">
@@ -706,8 +750,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         <div className="loading-text">
           {loadingStatus}
           <br />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Joining ADP + stats + combine + draft + snaps + NGS + PBP for {SEASONS.length} seasons
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', transition: 'opacity 0.3s' }}>
+            {SNARKY_MSGS[snarkIdx % SNARKY_MSGS.length]}
           </span>
         </div>
       </div>
@@ -871,7 +915,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         return (
           <div>
             {/* Controls row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
               {/* Metric toggle */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Metric</span>
@@ -959,16 +1003,16 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             </div>
 
             {/* Heatmap table */}
-            <div className="table-container" style={{ marginBottom: 24 }}>
-              <table style={{ tableLayout: 'fixed' }}>
+            <div className="table-container" style={{ marginBottom: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ tableLayout: 'auto', minWidth: 400 }}>
                 <thead>
                   <tr>
-                    <th style={{ width: 70 }}>Round</th>
-                    <th style={{ width: 90, fontSize: 11 }}>Picks</th>
+                    <th style={{ width: 55, fontSize: 12 }}>Round</th>
+                    <th style={{ width: 55, fontSize: 11 }}>Picks</th>
                     {POSITIONS.map((pos) => (
-                      <th key={pos} style={{ color: POS_COLORS[pos], textAlign: 'center' }}>{pos}</th>
+                      <th key={pos} style={{ color: POS_COLORS[pos], textAlign: 'center', fontSize: 12, padding: '6px 2px' }}>{pos}</th>
                     ))}
-                    <th style={{ width: 100, fontSize: 11 }}>Best Pick</th>
+                    <th style={{ width: 55, fontSize: 11 }}>Best</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1002,7 +1046,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                               style={{
                                 background: bg,
                                 textAlign: 'center',
-                                padding: '8px 4px',
+                                padding: '6px 2px',
                                 position: 'relative',
                                 cursor: total >= 3 ? 'help' : 'default',
                               }}
@@ -1012,23 +1056,23 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                   {isBest && <span style={{ position: 'absolute', top: 2, right: 4, fontSize: 10 }}>⭐</span>}
                                   {isVor ? (
                                     <>
-                                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                      <div style={{ fontWeight: 700, fontSize: 13 }}>
                                         {avgVor >= 0 ? '+' : ''}{avgVor}σ
                                       </div>
-                                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
-                                        med {medVor >= 0 ? '+' : ''}{medVor}σ
+                                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
+                                        {hitPct}%↑ {bustPct}%↓
                                       </div>
-                                      <div style={{ fontSize: 10, opacity: 0.55 }}>n={total}</div>
+                                      <div style={{ fontSize: 9, opacity: 0.55 }}>n={total}</div>
                                     </>
                                   ) : (
                                     <>
-                                      <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                      <div style={{ fontWeight: 700, fontSize: 13 }}>
                                         {score >= 0 ? '+' : ''}{Math.round(score * 100)}%
                                       </div>
-                                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
+                                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>
                                         {hitPct}%↑ {bustPct}%↓
                                       </div>
-                                      <div style={{ fontSize: 10, opacity: 0.55 }}>n={total}</div>
+                                      <div style={{ fontSize: 9, opacity: 0.55 }}>n={total}</div>
                                     </>
                                   )}
                                 </>
