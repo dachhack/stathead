@@ -5,18 +5,38 @@ import {
   ScatterChart, Scatter,
 } from 'recharts';
 import type { ScenarioConfig } from '../types';
-import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
-import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
+import { trainRidgeRegression, predict } from '../lib/ridge';
+import type { TrainedModel } from '../lib/ridge';
+import { trainGBM, predictGBM } from '../lib/gbm';
+import type { TrainedGBM } from '../lib/gbm';
 import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
   FEATURES, CATEGORY_COLORS, REP_PPR,
-  normalizeName, parseHeight, cvR2, cvMae,
-  type PlayerRow, type PredictionRow, type FeatureDef,
+  cvR2, cvMae,
+  type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
 
 type ModelType = 'ridge' | 'gbm';
+
+interface PositionModel {
+  position: string;
+  ridgeModel?: TrainedModel;
+  gbmModel?: TrainedGBM;
+  featureNames: string[];
+  featureLabels: string[];
+  n: number;
+  hitRate: number;
+  bustRate: number;
+  rSquared: number;
+  mae: number;
+  cvR2Gbm: number;
+  cvMaeGbm: number;
+  cvR2Ridge: number;
+  cvMaeRidge: number;
+  cvR2GbmBaseline: number;
+}
 
 // ── Draft optimizer helpers ──
 const FLEX_POS  = new Set(['RB', 'WR', 'TE']);
@@ -85,7 +105,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   );
 
   // Extracted model training — used both from cache and full pipeline
-  const trainModelsOnly = (rows: PlayerRow[], predRows: PredictionRow[], vorNorm: Map<string, { mean: number; std: number }>) => {
+  const trainModelsOnly = (rows: PlayerRow[], _predRows: PredictionRow[], _vorNorm: Map<string, { mean: number; std: number }>) => {
     setLoadingStatus('Training models...');
     const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
     const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
@@ -1682,7 +1702,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     borderRadius: 6,
                     fontSize: 12,
                   }}
-                  formatter={(value) => [Number(value).toFixed(4), modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient']}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={((value: any) => [Number(value).toFixed(4), modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient']) as any}
                 />
                 <ReferenceLine x={0} stroke="var(--text-muted)" />
                 <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={18} />
