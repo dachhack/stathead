@@ -82,6 +82,11 @@ done
 DYNASTYPROCESS="https://github.com/dynastyprocess/data/raw/master/files"
 [ -f "$OUT/db_fpecr_latest.csv" ] || curl -sL "$DYNASTYPROCESS/db_fpecr_latest.csv" -o "$OUT/db_fpecr_latest.csv" &
 
+# College stats & QBR (JackLich10/nfl-draft-data)
+DRAFTDATA="https://raw.githubusercontent.com/JackLich10/nfl-draft-data/main"
+[ -f "$OUT/college_statistics.csv" ] || curl -sfL "$DRAFTDATA/college_statistics.csv" -o "$OUT/college_statistics.csv" &
+[ -f "$OUT/college_qbr.csv" ] || curl -sfL "$DRAFTDATA/college_qbr.csv" -o "$OUT/college_qbr.csv" &
+
 wait
 echo "Done! Data files in $OUT/"
 ls -lh "$OUT/" | head -20

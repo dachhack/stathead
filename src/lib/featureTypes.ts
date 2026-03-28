@@ -81,6 +81,9 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Sentiment: '#e879f9',
   SOS: '#f472b6',
   Scheme: '#38bdf8',
+  College: '#a78bfa',
+  Contract: '#34d399',
+  Aging: '#fbbf24',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -225,6 +228,26 @@ export const FEATURES: FeatureDef[] = [
   // Vegas season-level props
   { key: 'vegasSeasonWinTotal', label: 'Vegas Season Win Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'vegasSeasonOverUnder', label: 'Vegas Season O/U (avg)', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // College production (rookie prediction)
+  { key: 'collegePassYds', label: 'College Pass Yards (final yr)', category: 'College', positions: ['QB'] },
+  { key: 'collegePassTDs', label: 'College Pass TDs (final yr)', category: 'College', positions: ['QB'] },
+  { key: 'collegeRushYds', label: 'College Rush Yards (final yr)', category: 'College', positions: ['QB', 'RB'] },
+  { key: 'collegeRecYds', label: 'College Rec Yards (final yr)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeRecTDs', label: 'College Rec TDs (final yr)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeTotalTDs', label: 'College Total TDs (final yr)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'collegeQBR', label: 'College QBR (final yr)', category: 'College', positions: ['QB'] },
+
+  // Contract data (team investment signal)
+  { key: 'contractAPY', label: 'Contract APY ($M)', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'contractGuaranteed', label: 'Contract Guaranteed ($M)', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'contractAPYCapPct', label: 'Contract APY % of Cap', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'contractYearsRemaining', label: 'Contract Years Remaining', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Player aging curves
+  { key: 'ageCurveDelta', label: 'Age Curve Expected Delta', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'isPeakAge', label: 'Is Peak Age Window', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'isDeclineAge', label: 'Is Decline Age', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──

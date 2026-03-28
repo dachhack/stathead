@@ -7,8 +7,9 @@ import {
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
+  fetchContracts, fetchCollegeStats, fetchCollegeQBR,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 import {
   POSITIONS, REPLACEMENT_RANKS,
@@ -73,20 +74,65 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         } catch { /* Reddit data not available — features will be 0 */ }
 
-        // Load combine + draft + games once (static)
-        onStatus?.('Loading combine, draft & games data...');
-        const [combineData, draftData, gamesData] = await Promise.all([
+        // Load combine + draft + games + contracts + college once (static)
+        onStatus?.('Loading combine, draft, games, contracts & college data...');
+        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
+          fetchContracts().catch(() => [] as Contract[]),
+          fetchCollegeStats().catch(() => [] as CollegeStats[]),
+          fetchCollegeQBR().catch(() => [] as CollegeQBR[]),
         ]);
-        
 
         // Build lookup maps
         const combineByName = new Map<string, CombineResult>();
         for (const c of combineData) combineByName.set(normalizeName(c.player_name), c);
 
         const draftByName = new Map<string, DraftPick>();
+
+        // Contract lookup: player name → latest active contract
+        const contractByName = new Map<string, Contract>();
+        const sortedContracts = [...contractsData].sort((a, b) => b.year_signed - a.year_signed);
+        for (const c of sortedContracts) {
+          if (!['QB', 'RB', 'WR', 'TE'].includes(c.position)) continue;
+          const name = normalizeName(c.player);
+          if (!contractByName.has(name)) contractByName.set(name, c);
+        }
+
+        // College stats lookup: player name → final college season stats
+        // CollegeStats has one row per player per statistic per season
+        const collegeByName = new Map<string, Map<string, number>>(); // name → { statistic → value }
+        for (const cs of collegeStatsData) {
+          const name = normalizeName(cs.player_name);
+          if (!collegeByName.has(name)) collegeByName.set(name, new Map());
+          const existing = collegeByName.get(name)!;
+          // Keep the latest season's stats (highest season number)
+          const existingKey = `${cs.statistic}:latest`;
+          const existingSeason = existing.get(existingKey) || 0;
+          if (cs.season >= existingSeason) {
+            existing.set(cs.statistic, cs.value || 0);
+            existing.set(existingKey, cs.season);
+          }
+        }
+
+        // College QBR lookup: player name → final season QBR
+        const collegeQBRByName = new Map<string, number>();
+        for (const q of collegeQBRData) {
+          const name = normalizeName(q.player_name);
+          const existing = collegeQBRByName.get(name) || 0;
+          if (q.season >= existing || !collegeQBRByName.has(name)) {
+            collegeQBRByName.set(name, q.total_qbr || 0);
+          }
+        }
+
+        // Aging curve constants (position → { peakStart, peakEnd, declineStart })
+        const AGING_CURVES: Record<string, { peakStart: number; peakEnd: number; declineStart: number }> = {
+          QB: { peakStart: 27, peakEnd: 32, declineStart: 35 },
+          RB: { peakStart: 23, peakEnd: 26, declineStart: 28 },
+          WR: { peakStart: 25, peakEnd: 29, declineStart: 31 },
+          TE: { peakStart: 25, peakEnd: 29, declineStart: 31 },
+        };
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
 
         // Coach lookup: season → team → head coach name
@@ -1133,6 +1179,50 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   vegasSeasonOverUnder: vp?.avgOU || 0,
                 };
               })(),
+
+              // College production (most impactful for rookies/young players)
+              ...(() => {
+                const cs = collegeByName.get(normalName);
+                return {
+                  collegePassYds: cs?.get('Passing Yards') || 0,
+                  collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+                  collegeRushYds: cs?.get('Rushing Yards') || 0,
+                  collegeRecYds: cs?.get('Receiving Yards') || 0,
+                  collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
+                  collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
+                  collegeQBR: collegeQBRByName.get(normalName) || 0,
+                };
+              })(),
+
+              // Contract data
+              ...(() => {
+                const c = contractByName.get(normalName);
+                const yearsRem = c ? Math.max(0, c.years - (season - c.year_signed)) : 0;
+                return {
+                  contractAPY: c ? Math.round(c.apy / 1_000_000 * 10) / 10 : 0,
+                  contractGuaranteed: c ? Math.round(c.guaranteed / 1_000_000 * 10) / 10 : 0,
+                  contractAPYCapPct: c ? Math.round(c.apy_cap_pct * 100) / 100 : 0,
+                  contractYearsRemaining: yearsRem,
+                };
+              })(),
+
+              // Aging curves
+              ...(() => {
+                const draftAge2 = draft?.age || 0;
+                const draftYear2 = draft?.season || 0;
+                const playerAge = draftAge2 > 0 && draftYear2 > 0 ? draftAge2 + (season - draftYear2) : 0;
+                const curve = AGING_CURVES[adpPlayer.position];
+                if (!curve || playerAge === 0) return { ageCurveDelta: 0, isPeakAge: 0, isDeclineAge: 0 };
+                const isPeak = playerAge >= curve.peakStart && playerAge <= curve.peakEnd ? 1 : 0;
+                const isDecline = playerAge >= curve.declineStart ? 1 : 0;
+                // Simple linear aging delta: positive during peak, negative during decline
+                const delta = isPeak ? 0.5 : isDecline ? -0.3 * (playerAge - curve.declineStart + 1) : 0;
+                return {
+                  ageCurveDelta: Math.round(delta * 100) / 100,
+                  isPeakAge: isPeak,
+                  isDeclineAge: isDecline,
+                };
+              })(),
             };
 
             rows.push({
@@ -1976,6 +2066,49 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   return {
                     vegasSeasonWinTotal: vp?.winTotal || 0,
                     vegasSeasonOverUnder: vp?.avgOU || 0,
+                  };
+                })(),
+
+                // College production
+                ...(() => {
+                  const cs = collegeByName.get(normalName);
+                  return {
+                    collegePassYds: cs?.get('Passing Yards') || 0,
+                    collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+                    collegeRushYds: cs?.get('Rushing Yards') || 0,
+                    collegeRecYds: cs?.get('Receiving Yards') || 0,
+                    collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
+                    collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
+                    collegeQBR: collegeQBRByName.get(normalName) || 0,
+                  };
+                })(),
+
+                // Contract data
+                ...(() => {
+                  const c = contractByName.get(normalName);
+                  const yearsRem = c ? Math.max(0, c.years - (predSeason - c.year_signed)) : 0;
+                  return {
+                    contractAPY: c ? Math.round(c.apy / 1_000_000 * 10) / 10 : 0,
+                    contractGuaranteed: c ? Math.round(c.guaranteed / 1_000_000 * 10) / 10 : 0,
+                    contractAPYCapPct: c ? Math.round(c.apy_cap_pct * 100) / 100 : 0,
+                    contractYearsRemaining: yearsRem,
+                  };
+                })(),
+
+                // Aging curves
+                ...(() => {
+                  const draftAge2 = draft?.age || 0;
+                  const draftYear2 = draft?.season || 0;
+                  const playerAge = draftAge2 > 0 && draftYear2 > 0 ? draftAge2 + (predSeason - draftYear2) : 0;
+                  const curve = AGING_CURVES[adpPlayer.position];
+                  if (!curve || playerAge === 0) return { ageCurveDelta: 0, isPeakAge: 0, isDeclineAge: 0 };
+                  const isPeak = playerAge >= curve.peakStart && playerAge <= curve.peakEnd ? 1 : 0;
+                  const isDecline = playerAge >= curve.declineStart ? 1 : 0;
+                  const delta = isPeak ? 0.5 : isDecline ? -0.3 * (playerAge - curve.declineStart + 1) : 0;
+                  return {
+                    ageCurveDelta: Math.round(delta * 100) / 100,
+                    isPeakAge: isPeak,
+                    isDeclineAge: isDecline,
                   };
                 })(),
               };
