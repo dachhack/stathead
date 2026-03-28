@@ -15,24 +15,21 @@ import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 import { loadAllScenarios } from '../lib/scenarioEngine';
+import {
+  SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
+  FEATURES, CATEGORY_COLORS, REP_PPR,
+  normalizeName, parseHeight, cvR2, cvMae,
+  type PlayerRow, type PredictionRow, type FeatureDef,
+} from '../lib/featureTypes';
 
 type ModelType = 'ridge' | 'gbm';
-
-// ── Config ──
-
-// Need prior-season data, so training starts at 2021
-const SEASONS = [2021, 2022, 2023, 2024, 2025];
-const PREDICT_SEASON = 2026; // upcoming season to predict
-const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
-const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
-const POS_COLORS: Record<string, string> = {
-  QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
-};
 
 // ── Draft optimizer helpers ──
 const FLEX_POS  = new Set(['RB', 'WR', 'TE']);
 const SF_POS    = new Set(['QB', 'RB', 'WR', 'TE']);
 const ALL_DRAFT_SLOTS = ['QB', 'RB', 'WR', 'TE', 'Flex', 'SuperFlex', 'K', 'DEF'];
+
+// REP_PPR is now imported from featureTypes
 
 function canFillSlot(slot: string, pos: string): boolean {
   if (slot === pos) return true;
@@ -55,258 +52,7 @@ const ROSTER_PRESETS: Record<string, RosterPreset> = {
   'Starters only': { starters: ['QB','RB','RB','WR','WR','TE','Flex'],          bench: [] },
 };
 
-// ── Feature definitions by position ──
-
-interface FeatureDef {
-  key: string;
-  label: string;
-  category: string;
-  positions: string[]; // which positions use this feature
-}
-
-const FEATURES: FeatureDef[] = [
-  // ADP context
-  { key: 'adp', label: 'ADP', category: 'Draft', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'adpRound', label: 'ADP Round', category: 'Draft', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Player profile
-  { key: 'age', label: 'Age', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'yearsInLeague', label: 'Years in League', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'nflDraftRound', label: 'NFL Draft Round', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'nflDraftPick', label: 'NFL Draft Pick', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Physical
-  { key: 'weight', label: 'Weight', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
-  { key: 'forty', label: '40-Yard Dash', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
-  { key: 'bmi', label: 'BMI', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
-
-  // Prior season — passing
-  { key: 'priorPassYards', label: 'Prior Pass Yards', category: 'Prior Stats', positions: ['QB'] },
-  { key: 'priorPassTDs', label: 'Prior Pass TDs', category: 'Prior Stats', positions: ['QB'] },
-  { key: 'priorINTs', label: 'Prior INTs', category: 'Prior Stats', positions: ['QB'] },
-  { key: 'priorPassYPA', label: 'Prior Yards/Attempt', category: 'Prior Stats', positions: ['QB'] },
-  { key: 'priorQBRating', label: 'Prior Passer Rating', category: 'Prior Stats', positions: ['QB'] },
-
-  // Prior season — rushing
-  { key: 'priorRushYards', label: 'Prior Rush Yards', category: 'Prior Stats', positions: ['QB', 'RB'] },
-  { key: 'priorRushTDs', label: 'Prior Rush TDs', category: 'Prior Stats', positions: ['QB', 'RB'] },
-  { key: 'priorYPC', label: 'Prior Yards/Carry', category: 'Prior Stats', positions: ['RB'] },
-  { key: 'priorCarries', label: 'Prior Carries', category: 'Prior Stats', positions: ['RB'] },
-
-  // Prior season — receiving
-  { key: 'priorTargets', label: 'Prior Targets', category: 'Prior Stats', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorReceptions', label: 'Prior Receptions', category: 'Prior Stats', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorRecYards', label: 'Prior Rec Yards', category: 'Prior Stats', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorRecTDs', label: 'Prior Rec TDs', category: 'Prior Stats', positions: ['WR', 'TE'] },
-  { key: 'priorYPR', label: 'Prior Yards/Reception', category: 'Prior Stats', positions: ['WR', 'TE'] },
-
-  // Advanced receiving (from weekly stats)
-  { key: 'priorTargetShare', label: 'Prior Target Share', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorAirYardsShare', label: 'Prior Air Yards Share', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorWOPR', label: 'Prior WOPR', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorRACR', label: 'Prior RACR', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorYACperRec', label: 'Prior YAC/Reception', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorAirYardsPerTarget', label: 'Prior Air Yards/Target', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorRecEPA', label: 'Prior Receiving EPA', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorRushEPA', label: 'Prior Rushing EPA', category: 'Advanced', positions: ['QB', 'RB'] },
-
-  // PBP-derived (aDOT, deep targets, red zone)
-  { key: 'priorADOT', label: 'Prior aDOT', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorDeepTargetPct', label: 'Prior Deep Target %', category: 'Advanced', positions: ['WR', 'TE'] },
-  { key: 'priorRZTargetShare', label: 'Prior RZ Target Share', category: 'Advanced', positions: ['RB', 'WR', 'TE'] },
-
-  // Next Gen Stats — receiving
-  { key: 'priorSeparation', label: 'Prior Avg Separation', category: 'NGS', positions: ['WR', 'TE'] },
-  { key: 'priorCushion', label: 'Prior Avg Cushion', category: 'NGS', positions: ['WR', 'TE'] },
-  { key: 'priorYACAboveExp', label: 'Prior YAC Above Expected', category: 'NGS', positions: ['WR', 'TE'] },
-  { key: 'priorCatchPct', label: 'Prior Catch %', category: 'NGS', positions: ['WR', 'TE'] },
-  { key: 'priorIntendedAirYardShare', label: 'Prior Intended Air Yard Share', category: 'NGS', positions: ['WR', 'TE'] },
-
-  // Next Gen Stats — rushing
-  { key: 'priorRYOEperAtt', label: 'Prior RYOE/Attempt', category: 'NGS', positions: ['RB'] },
-  { key: 'priorRushEfficiency', label: 'Prior Rush Efficiency', category: 'NGS', positions: ['RB'] },
-  { key: 'priorPctVs8Defenders', label: 'Prior % vs 8+ Box', category: 'NGS', positions: ['RB'] },
-
-  // Next Gen Stats — passing
-  { key: 'priorCPOE', label: 'Prior CPOE', category: 'NGS', positions: ['QB'] },
-  { key: 'priorTimeToThrow', label: 'Prior Time to Throw', category: 'NGS', positions: ['QB'] },
-  { key: 'priorAggressiveness', label: 'Prior Aggressiveness', category: 'NGS', positions: ['QB'] },
-
-  // Participation-derived (YPRR, personnel)
-  { key: 'priorYPRR', label: 'Prior YPRR', category: 'Route', positions: ['WR', 'TE'] },
-  { key: 'priorRoutesRun', label: 'Prior Routes Run', category: 'Route', positions: ['WR', 'TE'] },
-  { key: 'priorTargetsPerRoute', label: 'Prior Targets/Route', category: 'Route', positions: ['WR', 'TE'] },
-  { key: 'priorPct11Personnel', label: 'Prior % 11 Personnel', category: 'Route', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorPct12Personnel', label: 'Prior % 12 Personnel', category: 'Route', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorPassLocationLeft', label: 'Prior % Targets Left', category: 'Route', positions: ['WR', 'TE'] },
-  { key: 'priorPassLocationMiddle', label: 'Prior % Targets Middle', category: 'Route', positions: ['WR', 'TE'] },
-
-  // Prior season — fantasy totals
-  { key: 'priorPPR', label: 'Prior PPR Points', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorPPG', label: 'Prior PPG', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorGames', label: 'Prior Games Played', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorGamesMissed', label: 'Prior Games Missed', category: 'Prior Fantasy', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Workload
-  { key: 'priorTotalTouches', label: 'Prior Total Touches', category: 'Workload', positions: ['RB'] },
-  { key: 'priorSnapPct', label: 'Prior Snap %', category: 'Workload', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Injury history
-  { key: 'priorInjuryWeeks', label: 'Prior Injury Report Weeks', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorGamesOut', label: 'Prior Games Out/Doubtful', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'preseasonInjured', label: 'Preseason Injured', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'preseasonInjWeeks', label: 'Preseason Injury Weeks', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorSoftTissue', label: 'Prior Soft Tissue Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorKneeInjury', label: 'Prior Knee Injury', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Roster competition — basic
-  { key: 'teamSamePosCount', label: 'Same-Pos Teammates', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'depthChartRank', label: 'Depth Chart Rank', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'priorTeamTouchShare', label: 'Prior Team Touch Share', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
-  { key: 'priorTeamTargetShare', label: 'Prior Team Target Share', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
-  { key: 'newSamePosAdded', label: 'New Same-Pos Arrivals', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamDraftedSamePos', label: 'Team Drafted Same Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'draftCapitalSamePos', label: 'Draft Capital at Pos', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teammatePriorPPR', label: 'Best Teammate PPR', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
-
-  // Roster competition — quality-aware (cross-position)
-  { key: 'teamWRElitePPR', label: 'Team Best WR PPR', category: 'Competition', positions: ['WR', 'TE', 'RB'] },
-  { key: 'teamWRTop12', label: 'Team Has Top-12 WR', category: 'Competition', positions: ['WR', 'TE', 'RB'] },
-  { key: 'teamWRTotalPPR', label: 'Team WR Total PPR', category: 'Competition', positions: ['WR', 'TE'] },
-  { key: 'teamTEElitePPR', label: 'Team Best TE PPR', category: 'Competition', positions: ['WR', 'TE'] },
-  { key: 'teamRBElitePPR', label: 'Team Best RB PPR', category: 'Competition', positions: ['RB'] },
-  { key: 'teamRBTop12', label: 'Team Has Top-12 RB', category: 'Competition', positions: ['RB'] },
-  { key: 'teamPassCatcherPPR', label: 'Team Pass Catcher PPR', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
-  { key: 'teamElitePassCatchers', label: 'Team Elite Pass Catchers', category: 'Competition', positions: ['WR', 'TE'] },
-  { key: 'teamTargetHHI', label: 'Team Target Concentration', category: 'Competition', positions: ['RB', 'WR', 'TE'] },
-  { key: 'newArrivalBestPPR', label: 'Best New Arrival PPR', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'newArrivalBestADP', label: 'Best New Arrival ADP', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // Coaching & scheme
-  { key: 'newHeadCoach', label: 'New Head Coach', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'coachPriorTeamPPR', label: 'Coach Prior Team PPR', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamPassRate', label: 'Team Pass Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamNeutralPassRate', label: 'Team Neutral Pass Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamPace', label: 'Team Pace (Plays/Game)', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamFirstDownRunRate', label: 'Team 1st Down Run Rate', category: 'Coaching', positions: ['RB', 'WR', 'TE'] },
-  { key: 'teamShotgunRate', label: 'Team Shotgun Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamNoHuddleRate', label: 'Team No-Huddle Rate', category: 'Coaching', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'teamRBTargetRate', label: 'Team RB Target Rate', category: 'Coaching', positions: ['RB', 'WR', 'TE'] },
-
-  // Personnel & positional usage (team-level)
-  { key: 'team11Rate', label: 'Team 11 Personnel Rate', category: 'Personnel', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'team12Rate', label: 'Team 12 Personnel Rate', category: 'Personnel', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'team13Rate', label: 'Team 13 Personnel Rate', category: 'Personnel', positions: ['RB', 'TE'] },
-  { key: 'team21Rate', label: 'Team 21 Personnel Rate', category: 'Personnel', positions: ['RB', 'TE'] },
-  { key: 'team22Rate', label: 'Team 22 Personnel Rate', category: 'Personnel', positions: ['RB'] },
-  { key: 'team10Rate', label: 'Team 10 Personnel Rate', category: 'Personnel', positions: ['QB', 'WR'] },
-  { key: 'teamTETargetRate', label: 'Team TE Target Rate', category: 'Personnel', positions: ['TE', 'WR'] },
-  { key: 'teamWRTargetRate', label: 'Team WR Target Rate', category: 'Personnel', positions: ['WR', 'TE'] },
-  { key: 'teamTETargetsPerGame', label: 'Team TE Targets/Game', category: 'Personnel', positions: ['TE'] },
-  { key: 'teamRBTargetsPerGame', label: 'Team RB Targets/Game', category: 'Personnel', positions: ['RB'] },
-  { key: 'teamWR3PlusOnField', label: 'Team 3+ WR on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
-  { key: 'team2PlusTEOnField', label: 'Team 2+ TE on Field Rate', category: 'Personnel', positions: ['WR', 'TE'] },
-
-  // Vegas / implied totals
-  { key: 'vegasImpliedTotal', label: 'Vegas Implied Team Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'vegasImpliedSpread', label: 'Vegas Avg Spread', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'vegasGameTotal', label: 'Vegas Avg Game Total', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'vegasWinPct', label: 'Vegas Implied Win %', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'vegasActualPtsPerGame', label: 'Prior Actual Pts/Game', category: 'Vegas', positions: ['QB', 'RB', 'WR', 'TE'] },
-
-  // ── Projection model features (from our team-projection methodology) ──
-  { key: 'projTeamPassAtt',     label: 'Proj Team Pass Att',       category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'projTeamPassVolChg',  label: 'Proj Team Pass Vol Chg',   category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'projPlayerPPR',       label: 'Proj Player PPR',          category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'projPlayerVsExpected',label: 'Proj Player vs Expected',  category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'projTargetShare',     label: 'Proj Target Share',        category: 'Projection', positions: ['RB', 'WR', 'TE'] },
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Draft: '#8b5cf6',
-  Profile: '#6366f1',
-  Physical: '#ec4899',
-  'Prior Stats': '#f59e0b',
-  'Prior Fantasy': '#10b981',
-  Workload: '#3b82f6',
-  Advanced: '#14b8a6',
-  NGS: '#8b5cf6',
-  Route: '#06b6d4',
-  Injury: '#f43f5e',
-  Competition: '#f97316',
-  Coaching: '#a855f7',
-  Personnel: '#0ea5e9',
-  Vegas: '#22c55e',
-  Projection: '#f97316',
-};
-
-// ── Helpers ──
-
-function normalizeName(name: string | null | undefined): string {
-  if (!name) return '';
-  return name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
-}
-
-function parseHeight(ht: string | number): number {
-  if (typeof ht === 'number') return ht;
-  const parts = String(ht).split('-');
-  return parts.length === 2 ? Number(parts[0]) * 12 + Number(parts[1]) : 0;
-}
-
-// ── Types ──
-
-interface PlayerRow {
-  name: string;
-  position: string;
-  season: number;
-  adp: number;
-  vor: number;    // VOR Score (z-score): (PPR − replacement_PPR − pos_mean) / pos_std — comparable across positions
-  isHit: boolean;
-  isBust: boolean;
-  features: Record<string, number>;
-}
-
-interface PositionModel {
-  position: string;
-  ridgeModel?: TrainedModel;
-  gbmModel?: TrainedGBM;
-  featureNames: string[];
-  featureLabels: string[];
-  n: number;
-  hitRate: number;
-  bustRate: number;
-  rSquared: number;     // unused legacy field
-  mae: number;          // unused legacy field
-  // Leave-one-season-out cross-validated metrics (honest out-of-sample)
-  cvR2Gbm: number;
-  cvMaeGbm: number;
-  cvR2Ridge: number;
-  cvMaeRidge: number;
-  cvR2GbmBaseline: number;  // CV R² without projection features
-}
-
-interface PredictionRow {
-  name: string;
-  position: string;
-  team: string;
-  adp: number;
-  headshotUrl?: string;
-  features: Record<string, number>;
-}
-
-// ── CV metric helpers ──
-function cvR2(actuals: number[], preds: number[]): number {
-  if (actuals.length < 4) return 0;
-  const mean = actuals.reduce((s, v) => s + v, 0) / actuals.length;
-  const ssTot = actuals.reduce((s, v) => s + (v - mean) ** 2, 0);
-  const ssRes = actuals.reduce((s, v, i) => s + (v - preds[i]) ** 2, 0);
-  return ssTot === 0 ? 0 : Math.round((1 - ssRes / ssTot) * 1000) / 1000;
-}
-function cvMae(actuals: number[], preds: number[]): number {
-  if (actuals.length === 0) return 0;
-  return Math.round(actuals.reduce((s, v, i) => s + Math.abs(v - preds[i]), 0) / actuals.length * 100) / 100;
-}
-
+// Types, constants, features, and helpers are imported from ../lib/featureTypes
 // ── Component ──
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -2471,8 +2217,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   }, [allRows, leagueSize, halfRounds, posThresholds]);
 
   // ── Draft Optimizer ──────────────────────────────────────────────────────
-  // Approximate PPR replacement levels (historical averages) for expected-pts conversion
-  const REP_PPR: Record<string, number> = { QB: 285, RB: 115, WR: 115, TE: 90 };
+  // REP_PPR imported from featureTypes
 
   const optimizerPlan = useMemo(() => {
     const allSlots = [...starterSlots, ...benchSlots];
