@@ -254,6 +254,16 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         }
 
         // Fall back to runtime pipeline
+        // In production, if precomputed data is missing, show a message instead
+        // of running the full pipeline (which will likely fail due to CORS)
+        const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+        if (IS_PROD) {
+          setError('Model data is still being built. Please try again in a few minutes — the build deploys every 2 hours.');
+          setLoading(false);
+          return;
+        }
+
+        setLoadingStatus('Building features (dev mode)...');
         const result = await buildFeatureMatrix({
           seasons: SEASONS,
           predictSeason: PREDICT_SEASON,
