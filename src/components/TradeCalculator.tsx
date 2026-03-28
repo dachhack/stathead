@@ -214,7 +214,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const filteredDates = dates.filter((d) => d >= cutoffStr);
 
     // Build running last-known values
-    return filteredDates.map((date) => {
+    const rows = filteredDates.map((date) => {
       let aTotal = 0;
       let bTotal = 0;
       for (const p of sideA) {
@@ -242,7 +242,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           bTotal += val;
         }
       }
-      return { date, 'Side A': aTotal, 'Side B': bTotal };
+      return { date, 'Side A': aTotal, 'Side B': bTotal } as Record<string, unknown>;
     });
 
     // Add projected dashed segment: bridge from last actual to 90-day projection
