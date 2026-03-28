@@ -102,6 +102,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const [roundOverrides, setRoundOverrides] = useState<Record<number, string>>({});
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
   const [vorBasis, setVorBasis] = useState<'total' | 'ppg'>('total');
+  const [precomputedPredictions, setPrecomputedPredictions] = useState<Array<{
+    name: string; team: string; adp: number; position: string;
+    headshotUrl?: string; predictedVor: number; hitProb: string;
+  }> | null>(null);
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -205,13 +209,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const cached = localStorage.getItem(cacheKey);
           if (cached) {
             setLoadingStatus('Loading cached data...');
-            const { rows, predRows, vorNorm, models } = JSON.parse(cached);
+            const { rows, predRows, vorNorm, models, predictions2026 } = JSON.parse(cached);
             if (rows?.length > 0) {
               const normMap = new Map<string, { mean: number; std: number }>(Object.entries(vorNorm));
               setAllRows(rows);
               setPredictionRows(predRows);
               setVorNormParams(normMap);
-              // Use cached models if available, otherwise retrain
+              if (predictions2026?.length > 0) setPrecomputedPredictions(predictions2026);
               if (models?.length > 0) {
                 setModels(models as PositionModel[]);
                 setLoading(false);
@@ -235,7 +239,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 setAllRows(data.rows);
                 setPredictionRows(data.predRows);
                 setVorNormParams(normMap);
-                // If precomputed models are included, use them directly
+                if (data.predictions2026?.length > 0) setPrecomputedPredictions(data.predictions2026);
                 if (data.models?.length > 0) {
                   setModels(data.models as PositionModel[]);
                   setLoading(false);
@@ -435,6 +439,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
 
   // All-position 2026 predictions (for the optimizer player suggestions)
   const allPredictions2026 = useMemo(() => {
+    // Use precomputed predictions if available (from build or cache)
+    if (precomputedPredictions && precomputedPredictions.length > 0) {
+      return precomputedPredictions.filter((p) => p.adp <= maxADP);
+    }
+    // Fall back to runtime prediction
     return models.flatMap((m) => {
       const posPlayers = predictionRows.filter((r) => r.position === m.position && r.adp <= maxADP);
       const model = m.gbmModel ?? m.ridgeModel;
@@ -458,7 +467,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, predictionRows, maxADP, posThresholds]);
+  }, [models, predictionRows, maxADP, posThresholds, precomputedPredictions]);
 
   const selected2026Prediction = useMemo(
     () => predictions2026.find((p) => p.name === selected2026Player) || null,

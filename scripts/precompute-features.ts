@@ -106,8 +106,55 @@ async function main() {
     console.log(`    ${pos}: n=${posRows.length}, CV R²=${models[models.length-1].cvR2Gbm}`);
   }
 
+  // Compute hit/bust thresholds per position
+  const posThresholds: Record<string, { hit: number; bust: number }> = {};
+  for (const pos of POSITIONS) {
+    const deltas = result.rows
+      .filter((r: PlayerRow) => r.position === pos)
+      .map((r: PlayerRow) => r.vor)
+      .sort((a: number, b: number) => a - b);
+    if (deltas.length < 6) continue;
+    posThresholds[pos] = {
+      hit:  deltas[Math.floor(deltas.length * 0.67)],
+      bust: deltas[Math.floor(deltas.length * 0.33)],
+    };
+  }
+
+  // Generate 2026 predictions for all players
+  console.log('  Generating 2026 predictions...');
+  const predictions2026: Array<{
+    name: string; team: string; adp: number; position: string;
+    headshotUrl?: string; predictedVor: number; hitProb: string;
+  }> = [];
+
+  for (const m of models) {
+    const pos = m.position as string;
+    const gbm = m.gbmModel as any;
+    const ridge = m.ridgeModel as any;
+    const posPlayers = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+    const threshold = posThresholds[pos];
+
+    for (const r of posPlayers) {
+      const pred = gbm
+        ? Math.round(predictGBM(gbm, r.features).predicted * 10) / 10
+        : ridge
+        ? Math.round(predict(ridge, r.features).predicted * 10) / 10
+        : 0;
+      const hitProb = threshold
+        ? pred >= threshold.hit ? 'Likely Hit'
+        : pred < threshold.bust ? 'Likely Bust'
+        : 'Middle'
+        : 'Middle';
+      predictions2026.push({
+        name: r.name, team: r.team, adp: r.adp, position: r.position,
+        headshotUrl: r.headshotUrl, predictedVor: pred, hitProb,
+      });
+    }
+  }
+  console.log(`  ${predictions2026.length} player predictions generated`);
+
   mkdirSync('public/data', { recursive: true });
-  const output = { ...result, models };
+  const output = { ...result, models, posThresholds, predictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
