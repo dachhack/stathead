@@ -104,15 +104,21 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     [activeScenarioId, savedScenarios],
   );
 
-  // Extracted model training — used both from cache and full pipeline
-  const trainModelsOnly = (rows: PlayerRow[], _predRows: PredictionRow[], _vorNorm: Map<string, { mean: number; std: number }>) => {
+  // Extracted model training — yields to UI between positions to prevent freeze
+  const trainModelsOnly = async (rows: PlayerRow[], _predRows: PredictionRow[], _vorNorm: Map<string, { mean: number; std: number }>) => {
     setLoadingStatus('Training models...');
+    // Yield to let React render the loading state
+    await new Promise((r) => setTimeout(r, 50));
+
     const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
     const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
     const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
 
     const posModels: PositionModel[] = [];
     for (const pos of POSITIONS) {
+      setLoadingStatus(`Training ${pos} model...`);
+      await new Promise((r) => setTimeout(r, 10)); // yield between positions
+
       const posRows = rows.filter((r) => r.position === pos && r.adp <= maxADP);
       if (posRows.length < 10) continue;
 
@@ -198,7 +204,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               setAllRows(rows);
               setPredictionRows(predRows);
               setVorNormParams(normMap);
-              trainModelsOnly(rows, predRows, normMap);
+              await trainModelsOnly(rows, predRows, normMap);
               return;
             }
           }
@@ -218,7 +224,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 setVorNormParams(normMap);
                 // Cache for even faster next load
                 try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
-                trainModelsOnly(data.rows, data.predRows, normMap);
+                await trainModelsOnly(data.rows, data.predRows, normMap);
                 return;
               }
             }
@@ -245,7 +251,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         // Cache for faster next load
         try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch {}
 
-        trainModelsOnly(result.rows, result.predRows, normMap);
+        await trainModelsOnly(result.rows, result.predRows, normMap);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to build models');
       } finally {
