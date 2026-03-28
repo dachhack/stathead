@@ -55,4 +55,8 @@ for season in 2026 2025 2024 2023 2022 2021; do
   fi
 done
 
+# ── Reddit Sentiment (via tsx script) ──
+echo "  Fetching Reddit sentiment data..."
+NODE_OPTIONS='--max-old-space-size=4096' npx tsx scripts/fetch-reddit-sentiment.ts || echo "Reddit sentiment fetch skipped"
+
 echo "Done! API data saved to $OUT/"

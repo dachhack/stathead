@@ -78,6 +78,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Personnel: '#0ea5e9',
   Vegas: '#22c55e',
   Projection: '#f97316',
+  Sentiment: '#e879f9',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -195,6 +196,15 @@ export const FEATURES: FeatureDef[] = [
   { key: 'projPlayerPPR', label: 'Proj Player PPR', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projPlayerVsExpected', label: 'Proj Player vs Expected', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projTargetShare', label: 'Proj Target Share', category: 'Projection', positions: ['RB', 'WR', 'TE'] },
+
+  // Reddit sentiment features (from r/fantasyfootball)
+  { key: 'redditMentions1w', label: 'Reddit Mentions (1wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditSentiment1w', label: 'Reddit Sentiment (1wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditHype1w', label: 'Reddit Hype (1wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditMentions4w', label: 'Reddit Mentions (4wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditSentiment4w', label: 'Reddit Sentiment (4wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditMentionVelocity', label: 'Reddit Mention Velocity', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'redditSentimentVelocity', label: 'Reddit Sentiment Velocity', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──

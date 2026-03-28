@@ -18,6 +18,61 @@ import {
 
 export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<FeatureMatrixResult> {
   const { seasons, predictSeason, vorBasis, scenario, onStatus } = config;
+
+        // Load Reddit sentiment data (precomputed by fetch-reddit-sentiment.ts)
+        let redditBuzz = new Map<string, { mentions: number; upvotes: number; sentiment: number; hype: number }>();
+        let redditWindowed = new Map<string, {
+          mentions_1w: number; sentiment_1w: number; hype_1w: number;
+          mentions_4w: number; sentiment_4w: number; hype_4w: number;
+          mention_velocity: number; sentiment_velocity: number;
+        }>();
+        try {
+          const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+          const baseUrl = IS_PROD ? (typeof import.meta !== 'undefined' ? import.meta.env?.BASE_URL || '/' : '/') : '/';
+          const sentimentUrl = IS_PROD
+            ? `${baseUrl}data/reddit_sentiment.json`
+            : typeof window !== 'undefined'
+            ? `${baseUrl}data/reddit_sentiment.json`
+            : 'public/data/reddit_sentiment.json'; // Node.js build-time path
+
+          // In Node, read from disk; in browser, fetch
+          let sentimentData: any = null;
+          if (typeof window === 'undefined') {
+            // Node.js
+            try {
+              const fs = await import('fs');
+              if (fs.existsSync('public/data/reddit_sentiment.json')) {
+                sentimentData = JSON.parse(fs.readFileSync('public/data/reddit_sentiment.json', 'utf-8'));
+              }
+            } catch { /* no sentiment data available */ }
+          } else {
+            // Browser
+            try {
+              const resp = await fetch(sentimentUrl);
+              if (resp.ok) sentimentData = await resp.json();
+            } catch { /* no sentiment data available */ }
+          }
+
+          if (sentimentData) {
+            // Build preseason buzz lookup: "player:season" -> buzz data
+            for (const b of (sentimentData.preseasonBuzz || [])) {
+              const key = `${normalizeName(b.player)}:${b.season}`;
+              redditBuzz.set(key, b);
+            }
+            // Build windowed lookup: "player:season" -> latest week-4 window
+            for (const w of (sentimentData.windowedSentiment || [])) {
+              if (w.week <= 4) { // Use early-season data as preseason proxy
+                const key = `${normalizeName(w.player)}:${w.season}`;
+                const existing = redditWindowed.get(key);
+                if (!existing || w.week > (existing as any)._week) {
+                  redditWindowed.set(key, { ...w, _week: w.week } as any);
+                }
+              }
+            }
+            onStatus?.(`Loaded Reddit sentiment: ${redditBuzz.size} player-seasons`);
+          }
+        } catch { /* Reddit data not available — features will be 0 */ }
+
         // Load combine + draft + games once (static)
         onStatus?.('Loading combine, draft & games data...');
         const [combineData, draftData, gamesData] = await Promise.all([
@@ -961,6 +1016,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   projTargetShare:      pf?.projTargetShare        ?? 0,
                 };
               })(),
+
+              // Reddit sentiment features
+              ...(() => {
+                const rKey = `${normalName}:${season}`;
+                const buzz = redditBuzz.get(rKey);
+                const win = redditWindowed.get(rKey);
+                return {
+                  redditMentions1w: win?.mentions_1w || 0,
+                  redditSentiment1w: win?.sentiment_1w || 0,
+                  redditHype1w: win?.hype_1w || 0,
+                  redditMentions4w: win?.mentions_4w || buzz?.mentions || 0,
+                  redditSentiment4w: win?.sentiment_4w || buzz?.sentiment || 0,
+                  redditMentionVelocity: win?.mention_velocity || 0,
+                  redditSentimentVelocity: win?.sentiment_velocity || 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1691,6 +1762,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     projPlayerPPR:        pf?.projPlayerPPR         ?? 0,
                     projPlayerVsExpected: pf?.projPlayerVsExpected  ?? 0,
                     projTargetShare:      pf?.projTargetShare        ?? 0,
+                  };
+                })(),
+
+                // Reddit sentiment features
+                ...(() => {
+                  const rKey = `${normalName}:${predSeason}`;
+                  const buzz = redditBuzz.get(rKey);
+                  const win = redditWindowed.get(rKey);
+                  return {
+                    redditMentions1w: win?.mentions_1w || 0,
+                    redditSentiment1w: win?.sentiment_1w || 0,
+                    redditHype1w: win?.hype_1w || 0,
+                    redditMentions4w: win?.mentions_4w || buzz?.mentions || 0,
+                    redditSentiment4w: win?.sentiment_4w || buzz?.sentiment || 0,
+                    redditMentionVelocity: win?.mention_velocity || 0,
+                    redditSentimentVelocity: win?.sentiment_velocity || 0,
                   };
                 })(),
               };
