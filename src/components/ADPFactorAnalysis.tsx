@@ -205,13 +205,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const cached = localStorage.getItem(cacheKey);
           if (cached) {
             setLoadingStatus('Loading cached data...');
-            const { rows, predRows, vorNorm } = JSON.parse(cached);
+            const { rows, predRows, vorNorm, models } = JSON.parse(cached);
             if (rows?.length > 0) {
               const normMap = new Map<string, { mean: number; std: number }>(Object.entries(vorNorm));
               setAllRows(rows);
               setPredictionRows(predRows);
               setVorNormParams(normMap);
-              await trainModelsOnly(rows, predRows, normMap);
+              // Use cached models if available, otherwise retrain
+              if (models?.length > 0) {
+                setModels(models as PositionModel[]);
+                setLoading(false);
+              } else {
+                await trainModelsOnly(rows, predRows, normMap);
+              }
               return;
             }
           }
@@ -222,16 +228,21 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           try {
             const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
             if (resp.ok) {
-              setLoadingStatus('Loading precomputed features...');
+              setLoadingStatus('Loading precomputed data...');
               const data = await resp.json();
               if (data.rows?.length > 0) {
                 const normMap = new Map<string, { mean: number; std: number }>(Object.entries(data.vorNorm));
                 setAllRows(data.rows);
                 setPredictionRows(data.predRows);
                 setVorNormParams(normMap);
-                // Cache for even faster next load
+                // If precomputed models are included, use them directly
+                if (data.models?.length > 0) {
+                  setModels(data.models as PositionModel[]);
+                  setLoading(false);
+                } else {
+                  await trainModelsOnly(data.rows, data.predRows, normMap);
+                }
                 try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
-                await trainModelsOnly(data.rows, data.predRows, normMap);
                 return;
               }
             }
