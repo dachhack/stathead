@@ -189,11 +189,11 @@ export function ModelDocumentation() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               {[
                 { label: 'Training Samples', value: model.n.toString(), color: 'var(--text-primary)' },
-                { label: 'GBM CV R²', value: model.cvR2Gbm.toFixed(3), color: model.cvR2Gbm > 0.1 ? '#22c55e' : model.cvR2Gbm > 0 ? '#facc15' : '#ef4444' },
-                { label: 'GBM CV MAE', value: model.cvMaeGbm.toFixed(3), color: 'var(--text-primary)' },
-                { label: 'Ridge CV R²', value: model.cvR2Ridge.toFixed(3), color: model.cvR2Ridge > 0.1 ? '#22c55e' : model.cvR2Ridge > 0 ? '#facc15' : '#ef4444' },
-                { label: 'Ridge CV MAE', value: model.cvMaeRidge.toFixed(3), color: 'var(--text-primary)' },
-                { label: 'Baseline R² (no proj)', value: model.cvR2GbmBaseline.toFixed(3), color: 'var(--text-muted)' },
+                { label: 'GBM CV R²', value: (model.cvR2Gbm ?? 0).toFixed(3), color: (model.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : (model.cvR2Gbm ?? 0) > 0 ? '#facc15' : '#ef4444' },
+                { label: 'GBM CV MAE', value: (model.cvMaeGbm ?? 0).toFixed(3), color: 'var(--text-primary)' },
+                { label: 'Ridge CV R²', value: (model.cvR2Ridge ?? 0).toFixed(3), color: (model.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : (model.cvR2Ridge ?? 0) > 0 ? '#facc15' : '#ef4444' },
+                { label: 'Ridge CV MAE', value: (model.cvMaeRidge ?? 0).toFixed(3), color: 'var(--text-primary)' },
+                { label: 'Baseline R² (no proj)', value: (model.cvR2GbmBaseline ?? 0).toFixed(3), color: 'var(--text-muted)' },
                 { label: 'Hit Rate', value: `${model.hitRate}%`, color: '#22c55e' },
                 { label: 'Bust Rate', value: `${model.bustRate}%`, color: '#ef4444' },
               ].map((m) => (
@@ -299,7 +299,7 @@ export function ModelDocumentation() {
                               <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)' }}>{f.key}</span>
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                              {f.importance.toFixed(4)}
+                              {(f.importance ?? 0).toFixed(4)}
                             </td>
                             <td>
                               <div style={{
@@ -341,11 +341,11 @@ export function ModelDocumentation() {
                     <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
                       <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
                       <td style={{ textAlign: 'right' }}>{m.n}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: m.cvR2Gbm > 0.1 ? '#22c55e' : '#facc15' }}>{m.cvR2Gbm.toFixed(3)}</td>
-                      <td style={{ textAlign: 'right' }}>{m.cvMaeGbm.toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', color: m.cvR2Ridge > 0.1 ? '#22c55e' : '#facc15' }}>{m.cvR2Ridge.toFixed(3)}</td>
-                      <td style={{ textAlign: 'right' }}>{m.cvMaeRidge.toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{m.cvR2GbmBaseline.toFixed(3)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right' }}>{(m.cvMaeRidge ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{(m.cvR2GbmBaseline ?? 0).toFixed(3)}</td>
                       <td style={{ textAlign: 'right' }}>{m.featureNames.length}</td>
                       <td style={{ textAlign: 'right', color: '#22c55e' }}>{m.hitRate}%</td>
                       <td style={{ textAlign: 'right', color: '#ef4444' }}>{m.bustRate}%</td>
