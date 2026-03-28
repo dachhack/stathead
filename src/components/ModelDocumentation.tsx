@@ -2,10 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { predictGBM } from '../lib/gbm';
 import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
-  type PlayerRow,
 } from '../lib/featureTypes';
 
 interface PositionModelData {
@@ -26,12 +24,12 @@ interface PositionModelData {
 
 export function ModelDocumentation() {
   const [data, setData] = useState<{
-    rows: PlayerRow[];
     models: PositionModelData[];
+    featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
-  const [modelType, setModelType] = useState<'gbm' | 'ridge'>('ridge'); // Ridge is default — instant, no crash
+  const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
 
   useEffect(() => {
     async function load() {
@@ -39,14 +37,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ rows: d.rows || [], models: d.models || [] });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {} });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ rows: d.rows || [], models: d.models || [] });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {} });
           }
         } catch {}
       }
@@ -60,38 +58,17 @@ export function ModelDocumentation() {
     [data, selectedPos],
   );
 
-  // Compute feature importance from GBM
+  // Feature importance — precomputed at build time (GBM), or from Ridge coefficients
   const featureImportance = useMemo(() => {
     if (!model || !data) return [];
 
-    if (modelType === 'gbm' && model.gbmModel) {
-      const posRows = data.rows.filter((r) => r.position === selectedPos && r.adp <= 150);
-      // Subsample to prevent mobile crashes — 150 rows is enough for stable importance estimates
-      const sampleSize = Math.min(150, posRows.length);
-      const step = Math.max(1, Math.floor(posRows.length / sampleSize));
-      const sampled = posRows.filter((_, i) => i % step === 0).slice(0, sampleSize);
-      const contribSums = new Array(model.featureNames.length).fill(0);
-      for (const row of sampled) {
-        const result = predictGBM(model.gbmModel as any, row.features);
-        for (const fc of result.featureContributions) {
-          const idx = model.featureNames.indexOf(fc.name);
-          if (idx >= 0) contribSums[idx] += Math.abs(fc.contribution);
-        }
-      }
-      const n = sampled.length || 1;
-      return model.featureNames
-        .map((key, i) => {
-          const def = FEATURES.find((f) => f.key === key);
-          return {
-            key,
-            label: model.featureLabels[i],
-            category: def?.category || 'Other',
-            importance: contribSums[i] / n,
-          };
-        })
-        .sort((a, b) => b.importance - a.importance);
+    if (modelType === 'gbm') {
+      // Use precomputed GBM importance (no runtime computation needed)
+      const precomputed = data.featureImportance[selectedPos];
+      if (precomputed && precomputed.length > 0) return precomputed;
     }
 
+    // Ridge: use coefficients directly (always instant)
     if (model.ridgeModel) {
       return model.featureNames
         .map((key, i) => {
@@ -158,7 +135,7 @@ export function ModelDocumentation() {
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Separate models are trained for each position (QB, RB, WR, TE) predicting <strong>VOR Score</strong> — a z-scored
             Value Over Replacement metric that's comparable across positions (+1.0 = 1 standard deviation above the positional mean).
-            Training data spans {data.rows.length} player-seasons from 2021-2025 with ADP ≤ 150.
+            Training data spans {data.models.reduce((s, m) => s + m.n, 0)} player-seasons from 2018-2025 with ADP ≤ 150.
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0' }}>
             Two model types are trained: <strong>Gradient Boosted Trees</strong> (150 estimators, depth 3, learning rate 0.08)

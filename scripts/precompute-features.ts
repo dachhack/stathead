@@ -106,6 +106,45 @@ async function main() {
     console.log(`    ${pos}: n=${posRows.length}, CV R²=${models[models.length-1].cvR2Gbm}`);
   }
 
+  // Precompute GBM feature importance per position (avoids runtime crash on mobile)
+  console.log('  Computing feature importance...');
+  const featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  for (const m of models) {
+    const pos = m.position as string;
+    const gbm = m.gbmModel as any;
+    const featureNames = m.featureNames as string[];
+    const featureLabels = m.featureLabels as string[];
+    if (!gbm) continue;
+
+    const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
+    // Subsample for speed (150 rows is enough for stable estimates)
+    const sampleSize = Math.min(150, posRows.length);
+    const step = Math.max(1, Math.floor(posRows.length / sampleSize));
+    const sampled = posRows.filter((_: PlayerRow, i: number) => i % step === 0).slice(0, sampleSize);
+
+    const contribSums = new Array(featureNames.length).fill(0);
+    for (const row of sampled) {
+      const pred = predictGBM(gbm, row.features);
+      for (const fc of pred.featureContributions) {
+        const idx = featureNames.indexOf(fc.name);
+        if (idx >= 0) contribSums[idx] += Math.abs(fc.contribution);
+      }
+    }
+    const n = sampled.length || 1;
+    featureImportance[pos] = featureNames
+      .map((key: string, i: number) => {
+        const def = FEATURES.find((f) => f.key === key);
+        return {
+          key,
+          label: featureLabels[i],
+          category: def?.category || 'Other',
+          importance: Math.round((contribSums[i] / n) * 10000) / 10000,
+        };
+      })
+      .sort((a, b) => b.importance - a.importance);
+    console.log(`    ${pos}: top feature = ${featureImportance[pos][0]?.key} (${featureImportance[pos][0]?.importance})`);
+  }
+
   // Compute hit/bust thresholds per position
   const posThresholds: Record<string, { hit: number; bust: number }> = {};
   for (const pos of POSITIONS) {
@@ -154,7 +193,7 @@ async function main() {
   console.log(`  ${predictions2026.length} player predictions generated`);
 
   mkdirSync('public/data', { recursive: true });
-  const output = { ...result, models, posThresholds, predictions2026 };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
