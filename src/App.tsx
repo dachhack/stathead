@@ -45,7 +45,6 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
       { id: 'prospects', label: 'Prospects' },
-      { id: 'draft-strategy', label: 'Draft Strategy' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
     ],
   },
@@ -219,7 +218,6 @@ function App() {
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
-        {tab === 'draft-strategy' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (

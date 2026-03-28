@@ -200,7 +200,6 @@ export type Tab =
   | 'ktc'
   | 'sportsdata'
   | 'prospects'
-  | 'draft-strategy'
   | 'draft-optimizer'
   | 'trade-calc';
 

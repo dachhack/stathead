@@ -334,6 +334,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
   const [roundOverrides, setRoundOverrides] = useState<Record<number, string>>({});
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
+  const [vorBasis, setVorBasis] = useState<'total' | 'ppg'>('total');
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -450,9 +451,27 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const currentTotals = aggregateToSeasonTotals(
             currentStats.filter((s) => s.season_type === 'REG')
           );
+
+          // Active games map: weeks where player scored >1 PPR point
+          const activeGamesMap = new Map<string, number>();
+          for (const w of currentStats.filter((s) => s.season_type === 'REG')) {
+            if ((w.fantasy_points_ppr || 0) > 1) {
+              const name = normalizeName(w.player_display_name);
+              activeGamesMap.set(name, (activeGamesMap.get(name) || 0) + 1);
+            }
+          }
+
+          // Helper: get player value based on vorBasis (total PPR or PPG)
+          const getPlayerValue = (p: SeasonTotals): number => {
+            const ppr = p.fantasy_points_ppr || 0;
+            if (vorBasis === 'total') return ppr;
+            const ag = activeGamesMap.get(normalizeName(p.player_display_name)) || 1;
+            return ag > 0 ? ppr / ag : 0;
+          };
+
           const allFantasy = currentTotals
             .filter((p) => POSITIONS.includes(p.position))
-            .sort((a, b) => b.fantasy_points_ppr - a.fantasy_points_ppr);
+            .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
           const overallRankMap = new Map<string, number>();
           allFantasy.forEach((p, i) => overallRankMap.set(normalizeName(p.player_display_name), i + 1));
 
@@ -461,9 +480,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           for (const pos of POSITIONS) {
             const sorted = currentTotals
               .filter((p) => p.position === pos)
-              .sort((a, b) => (b.fantasy_points_ppr || 0) - (a.fantasy_points_ppr || 0));
+              .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
             const idx = (REPLACEMENT_RANKS[pos] ?? 24) - 1;
-            vorReplacement[pos] = Math.round((sorted[idx]?.fantasy_points_ppr ?? 0) * 10) / 10;
+            vorReplacement[pos] = Math.round((sorted[idx] ? getPlayerValue(sorted[idx]) : 0) * 10) / 10;
           }
 
           // Prior season totals
@@ -989,9 +1008,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
-            const playerPPR = current.fantasy_points_ppr || 0;
+            const playerVal = getPlayerValue(current);
             const repLevel  = vorReplacement[adpPlayer.position] ?? 0;
-            const vor  = Math.round((playerPPR - repLevel) * 10) / 10;
+            const vor  = Math.round((playerVal - repLevel) * 10) / 10;
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -2113,7 +2132,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
 
     run();
     return () => { cancelled = true; };
-  }, [lambda, maxADP, activeScenario]);
+  }, [lambda, maxADP, activeScenario, vorBasis]);
 
   const currentModel = useMemo(
     () => models.find((m) => m.position === selectedPos),
@@ -2636,6 +2655,20 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         </div>
 
         <div className="control-group">
+          <label className="control-label">VOR Basis</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {([['total', 'Season Total'], ['ppg', 'Points/Game']] as const).map(([v, lbl]) => (
+              <button key={v} onClick={() => setVorBasis(v)} style={{
+                padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                border: `2px solid ${vorBasis === v ? '#6366f1' : 'var(--border)'}`,
+                background: vorBasis === v ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                color: vorBasis === v ? '#6366f1' : 'var(--text-secondary)',
+              }}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="control-group">
           <label className="control-label">Max ADP</label>
           <select value={maxADP} onChange={(e) => setMaxADP(Number(e.target.value))}>
             <option value={60}>Top 60</option>
@@ -2769,8 +2802,20 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   >{lbl}</button>
                 ))}
               </div>
+              {/* VOR Basis */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>VOR Basis</span>
+                {([['total', 'Season Total'], ['ppg', 'Pts/Game']] as const).map(([v, lbl]) => (
+                  <button key={v} onClick={() => setVorBasis(v)} style={{
+                    padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: `2px solid ${vorBasis === v ? '#6366f1' : 'var(--border)'}`,
+                    background: vorBasis === v ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                    color: vorBasis === v ? '#6366f1' : 'var(--text-secondary)',
+                  }}>{lbl}</button>
+                ))}
+              </div>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                {allRows.length} historical player-seasons · thresholds calibrated per position (≈33% hit / 33% bust)
+                {allRows.length} historical player-seasons · {vorBasis === 'ppg' ? 'PPG (games >1pt)' : 'season totals'} · thresholds per position (≈33% hit / 33% bust)
               </span>
             </div>
 
