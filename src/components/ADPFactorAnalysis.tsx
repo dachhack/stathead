@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS,
+  FEATURES, CATEGORY_COLORS, REP_PPG,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
@@ -732,11 +732,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           predictedVor: p.predictedVor,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
-          // Convert PPG z-score to estimated full-season PPR
-          // VOR z-score is standardized PPG: actual_ppg = mean_ppg + z * std_ppg
-          // estPPR = (mean_ppg + z * std_ppg) * 17 games
+          // Convert VOR z-score to estimated full-season PPR
+          // VOR = PPG over ADP-bin expected, z-scored by position
+          // To reconstruct PPG: expected_ppg_for_adp + mean_delta + z * std_delta
+          // Use position baseline PPG + z * std as approximation
           estPPR: norm2026
-            ? Math.round((norm2026.mean + p.predictedVor * norm2026.std) * 17)
+            ? Math.round((REP_PPG[best.pos] + norm2026.mean + p.predictedVor * norm2026.std) * 17)
             : 0,
           redditSentiment: (p as any).redditSentiment || 0,
           redditHype: (p as any).redditHype || 0,

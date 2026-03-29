@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v6.json'; // v6: PPG z-score target (no expected curve)
+const CACHE_PATH = 'public/data/training-rows-cache-v7.json'; // v7: PPG over ADP-bin expected (no leakage)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;

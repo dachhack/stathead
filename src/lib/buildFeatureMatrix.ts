@@ -259,6 +259,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
+          const leagueSize = 12; // for ADP bin calculation
+
+          // Build ADP-bin expected PPG from PRIOR completed seasons (no leakage)
+          // Uses accumulated historical data: "players drafted in round X at this
+          // position historically average Y PPG." This is known before the season.
+          // ADP bins: round 1 (1-12), round 2 (13-24), ..., round 10+ (109+)
+          const getADPBin = (adp: number) => Math.min(10, Math.ceil(adp / leagueSize));
+          // expectedPPGByBin is built from ALL rows already accumulated (prior seasons)
+          const expectedPPGByBin = new Map<string, number>(); // "pos:bin" → avg PPG
+          {
+            const binAccum = new Map<string, { total: number; count: number }>();
+            for (const row of rows) {
+              // rows from prior training seasons have raw PPG as vor (pre z-score)
+              const bin = getADPBin(row.adp);
+              const key = `${row.position}:${bin}`;
+              const acc = binAccum.get(key) || { total: 0, count: 0 };
+              acc.total += row.vor; // vor is raw PPG at this point
+              acc.count += 1;
+              binAccum.set(key, acc);
+            }
+            for (const [key, acc] of binAccum) {
+              expectedPPGByBin.set(key, acc.count >= 3 ? acc.total / acc.count : 0);
+            }
+          }
+
           const allFantasy = currentTotals
             .filter((p) => POSITIONS.includes(p.position))
             .sort((a, b) => getPPG(b) - getPPG(a));
@@ -1083,10 +1108,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
-            // Target: raw PPG, z-scored per position later
-            // ADP is a feature — let the model learn the ADP → PPG relationship
+            // Target: PPG over expected-for-ADP-bin, z-scored per position later
+            // Expected PPG comes from prior seasons' ADP-bin averages (no leakage)
             const playerPPG = getPPG(current);
-            const vor = Math.round(playerPPG * 10) / 10;
+            const adpBin = getADPBin(adpPlayer.adp);
+            const expectedPPG = expectedPPGByBin.get(`${adpPlayer.position}:${adpBin}`) || 0;
+            // For first training season (no prior data), use raw PPG
+            const vor = expectedPPG > 0
+              ? Math.round((playerPPG - expectedPPG) * 10) / 10
+              : Math.round(playerPPG * 10) / 10;
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -1572,8 +1602,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               season,
               adp: adpPlayer.adp,
               vor,
-              isHit: vor >= 0,   // above-average PPG for position (pre z-score; recalculated after)
-              isBust: vor < 0,   // below-average PPG (pre z-score; hit/bust labels refined by percentile thresholds)
+              isHit: vor >= 0,   // outscored ADP-bin expected PPG
+              isBust: vor < -3,  // 3+ PPG below ADP-bin expected (significant bust)
               features,
             });
           }
