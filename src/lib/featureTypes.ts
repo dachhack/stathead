@@ -18,7 +18,8 @@ export interface PlayerRow {
   position: string;
   season: number;
   adp: number;
-  vor: number;
+  vor: number;        // VOR (z-scored after all seasons built)
+  rawPPG: number;     // raw fantasy PPG (never z-scored, for PPG model)
   isHit: boolean;
   isBust: boolean;
   features: Record<string, number>;
@@ -333,7 +334,12 @@ export function parseHeight(ht: string | number): number {
   return parts.length === 2 ? Number(parts[0]) * 12 + Number(parts[1]) : 0;
 }
 
-// CV metric helpers
+// Features that are ADP-derived (excluded from ADP-independent models)
+export const ADP_FEATURES = new Set([
+  'adp', 'adpRound', 'adpTrend',
+  'adpXage', 'adpXyearsInLeague', 'adpXteamPassRate', 'adpXschemeShotgun',
+  'newArrivalBestADP',
+]);
 export function cvR2(actuals: number[], preds: number[]): number {
   if (actuals.length < 4) return 0;
   const mean = actuals.reduce((s, v) => s + v, 0) / actuals.length;

@@ -3,15 +3,17 @@
 // Outputs: public/data/feature-matrix.json (includes trained models)
 
 import { buildFeatureMatrix } from '../src/lib/buildFeatureMatrix';
-import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
+import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM } from '../src/lib/gbm';
+import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
+import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v9.json'; // v9: revert to total PPR over replacement
+const CACHE_PATH = 'public/data/training-rows-cache-v10.json'; // v10: ADP-free PPG model + volume projection
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -255,6 +257,127 @@ async function main() {
     console.log(`      Rookie/Vet R²: ${cvR2RookieVet}`);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADP-FREE PPG MODEL: predict raw PPG without any ADP information
+  // This gives us an ADP-independent view of player quality
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('\n  Training ADP-free PPG models...');
+
+  const ppgModels: Record<string, unknown>[] = [];
+  const ppgPredictions2026: Array<{
+    name: string; team: string; position: string; adp: number;
+    headshotUrl?: string;
+    predictedPPG: number; predictedSeasonPPR: number;
+  }> = [];
+
+  for (const pos of POSITIONS) {
+    const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
+    if (posRows.length < 10) continue;
+
+    // Features EXCLUDING ADP-derived ones
+    const posFeatures = FEATURES.filter((f) => f.positions.includes(pos) && !ADP_FEATURES.has(f.key));
+    let featureKeys = posFeatures.map((f) => f.key);
+    const featureLabels = posFeatures.map((f) => f.label);
+
+    // Feature selection
+    const ppgCfg = POS_CONFIG[pos] || POS_CONFIG.WR;
+    if (featureKeys.length > ppgCfg.maxFeatures) {
+      console.log(`      PPG Feature selection: ${featureKeys.length} → ${ppgCfg.maxFeatures}`);
+      const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+      const yAll = posRows.map((r: PlayerRow) => r.rawPPG);
+      const quickGbm = trainGBM(XAll, yAll, featureKeys, {
+        nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
+        minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
+      });
+      const importanceSums = new Array(featureKeys.length).fill(0);
+      const sStep = Math.max(1, Math.floor(posRows.length / 100));
+      for (let i = 0; i < posRows.length; i += sStep) {
+        const pred = predictGBM(quickGbm, posRows[i].features);
+        for (const fc of pred.featureContributions) {
+          const idx = featureKeys.indexOf(fc.name);
+          if (idx >= 0) importanceSums[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const ranked = featureKeys.map((k, i) => ({ key: k, imp: importanceSums[i] })).sort((a, b) => b.imp - a.imp);
+      const topKeys = new Set(ranked.slice(0, ppgCfg.maxFeatures).map((r) => r.key));
+      featureKeys = featureKeys.filter((k) => topKeys.has(k));
+    }
+
+    // Train PPG model (target = rawPPG, ADP-free features)
+    const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+    const y = posRows.map((r: PlayerRow) => r.rawPPG);
+    const msl = Math.max(3, Math.round(posRows.length * ppgCfg.minLeafPct));
+
+    const ppgGbm = trainGBM(X, y, featureKeys, {
+      nEstimators: ppgCfg.gbmEstimators, learningRate: ppgCfg.gbmLR,
+      maxDepth: ppgCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: msl,
+    });
+    const ppgRidge = trainRidgeRegression(X, y, featureKeys, ppgCfg.ridgeLambda);
+
+    // LOSO CV for PPG model
+    const uniqueSeasons = [...new Set(posRows.map((r: PlayerRow) => r.season))].sort();
+    const ppgLosoActuals: number[] = [];
+    const ppgLosoPredGbm: number[] = [];
+    const ppgLosoPredRidge: number[] = [];
+
+    if (uniqueSeasons.length >= 3) {
+      for (const held of uniqueSeasons) {
+        const trainR = posRows.filter((r: PlayerRow) => r.season !== held);
+        const testR = posRows.filter((r: PlayerRow) => r.season === held);
+        if (trainR.length < 8 || testR.length === 0) continue;
+
+        const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+        const ytr = trainR.map((r: PlayerRow) => r.rawPPG);
+        const foldMsl = Math.max(3, Math.round(trainR.length * ppgCfg.minLeafPct));
+
+        const foldGbm = trainGBM(Xtr, ytr, featureKeys, {
+          nEstimators: Math.min(80, ppgCfg.gbmEstimators), learningRate: ppgCfg.gbmLR + 0.02,
+          maxDepth: ppgCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl,
+        });
+        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ppgCfg.ridgeLambda);
+
+        for (const row of testR) {
+          ppgLosoActuals.push(row.rawPPG);
+          ppgLosoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
+          ppgLosoPredRidge.push(predict(foldRidge, row.features).predicted);
+        }
+      }
+    }
+
+    const hasPPGCV = ppgLosoActuals.length >= 10;
+    ppgModels.push({
+      position: pos,
+      gbmModel: ppgGbm,
+      ridgeModel: ppgRidge,
+      featureNames: featureKeys,
+      featureLabels: featureKeys.map((k) => {
+        const f = FEATURES.find((ff) => ff.key === k);
+        return f?.label || k;
+      }),
+      n: posRows.length,
+      cvR2Gbm: hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredGbm) : 0,
+      cvR2Ridge: hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredRidge) : 0,
+      cvMaeGbm: hasPPGCV ? cvMae(ppgLosoActuals, ppgLosoPredGbm) : 0,
+    });
+
+    console.log(`    ${pos}: PPG model n=${posRows.length}, features=${featureKeys.length}, CV R²=${hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredGbm).toFixed(3) : 'N/A'}`);
+
+    // Generate 2026 PPG predictions
+    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+    for (const r of posPredRows) {
+      const gbmPred = predictGBM(ppgGbm, r.features).predicted;
+      const ridgePred = predict(ppgRidge, r.features).predicted;
+      const ensemblePPG = Math.round((gbmPred * 0.7 + ridgePred * 0.3) * 10) / 10;
+      ppgPredictions2026.push({
+        name: r.name, team: r.team, position: r.position, adp: r.adp,
+        headshotUrl: r.headshotUrl,
+        predictedPPG: ensemblePPG,
+        predictedSeasonPPR: Math.round(ensemblePPG * 17),
+      });
+    }
+  }
+  console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
+
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)
   console.log('  Computing feature importance...');
   const featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
@@ -351,7 +474,7 @@ async function main() {
   console.log(`  ${predictions2026.length} player predictions generated`);
 
   mkdirSync('public/data', { recursive: true });
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 

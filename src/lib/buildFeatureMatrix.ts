@@ -1583,12 +1583,17 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               })(),
             };
 
+            // Compute raw PPG for the PPG prediction model
+            const playerGames = current.games || 1;
+            const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
+
             rows.push({
               name: adpPlayer.name,
               position: adpPlayer.position,
               season,
               adp: adpPlayer.adp,
               vor,
+              rawPPG,
               isHit: vor >= 0,   // beat replacement level
               isBust: vor < -50, // 50+ PPR pts below replacement
               features,
