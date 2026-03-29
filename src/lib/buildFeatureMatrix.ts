@@ -187,6 +187,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         const rows: PlayerRow[] = [];
 
+        // Track raw PPG per player for ADP-bin expected calculations
+        // This is separate from vor (which gets z-scored in-place)
+        const rawPPGHistory: Array<{ position: string; adp: number; ppg: number }> = [];
+
         // Cross-season player history for momentum features
         // Tracks prior season stats per player to compute 2-year trends
         interface PlayerHistory {
@@ -266,16 +270,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // position historically average Y PPG." This is known before the season.
           // ADP bins: round 1 (1-12), round 2 (13-24), ..., round 10+ (109+)
           const getADPBin = (adp: number) => Math.min(10, Math.ceil(adp / leagueSize));
-          // expectedPPGByBin is built from ALL rows already accumulated (prior seasons)
+          // expectedPPGByBin is built from raw PPG history (never z-scored)
           const expectedPPGByBin = new Map<string, number>(); // "pos:bin" → avg PPG
           {
             const binAccum = new Map<string, { total: number; count: number }>();
-            for (const row of rows) {
-              // rows from prior training seasons have raw PPG as vor (pre z-score)
-              const bin = getADPBin(row.adp);
-              const key = `${row.position}:${bin}`;
+            for (const h of rawPPGHistory) {
+              const bin = getADPBin(h.adp);
+              const key = `${h.position}:${bin}`;
               const acc = binAccum.get(key) || { total: 0, count: 0 };
-              acc.total += row.vor; // vor is raw PPG at this point
+              acc.total += h.ppg;
               acc.count += 1;
               binAccum.set(key, acc);
             }
@@ -1117,6 +1120,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const vor = expectedPPG > 0
               ? Math.round((playerPPG - expectedPPG) * 10) / 10
               : Math.round(playerPPG * 10) / 10;
+
+            // Track raw PPG for future seasons' ADP-bin expectations
+            rawPPGHistory.push({ position: adpPlayer.position, adp: adpPlayer.adp, ppg: playerPPG });
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
