@@ -251,48 +251,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             return ag > 0 ? ppr / ag : 0;
           };
 
-          // Current stats lookup (needed for expected PPG curve + position verification)
+          // Current stats lookup (needed for position verification)
           const currentByName = new Map<string, SeasonTotals>();
           for (const p of currentTotals) {
             if (POSITIONS.includes(p.position)) {
               currentByName.set(normalizeName(p.player_display_name), p);
             }
-          }
-
-          // Build expected PPG curve per position based on ADP
-          // For each position, fit a simple regression: expected_ppg = f(adp)
-          // Using all players with ADP data in this season
-          const expectedPPGByPosADP = new Map<string, (adp: number) => number>();
-          for (const pos of POSITIONS) {
-            // Collect (adp, ppg) pairs for this position
-            const pairs: Array<{ adp: number; ppg: number }> = [];
-            for (const adpPlayer of adpData) {
-              if (adpPlayer.position !== pos || adpPlayer.adp > 200) continue;
-              const name = normalizeName(adpPlayer.name);
-              const current = currentByName.get(name);
-              if (!current || current.position !== pos) continue;
-              const ppg = getPPG(current);
-              if (ppg > 0) pairs.push({ adp: adpPlayer.adp, ppg });
-            }
-            if (pairs.length < 5) {
-              expectedPPGByPosADP.set(pos, () => 0);
-              continue;
-            }
-            // Fit: expected_ppg = a / (adp + b) + c (diminishing returns curve)
-            // Simplified: use linear regression on log(adp) → ppg
-            const logAdps = pairs.map((p) => Math.log(p.adp + 1));
-            const ppgs = pairs.map((p) => p.ppg);
-            const n = pairs.length;
-            const meanLogAdp = logAdps.reduce((a, b) => a + b, 0) / n;
-            const meanPPG = ppgs.reduce((a, b) => a + b, 0) / n;
-            let num = 0, den = 0;
-            for (let i = 0; i < n; i++) {
-              num += (logAdps[i] - meanLogAdp) * (ppgs[i] - meanPPG);
-              den += (logAdps[i] - meanLogAdp) ** 2;
-            }
-            const slope = den > 0 ? num / den : 0;
-            const intercept = meanPPG - slope * meanLogAdp;
-            expectedPPGByPosADP.set(pos, (adp: number) => intercept + slope * Math.log(adp + 1));
           }
 
           const allFantasy = currentTotals
@@ -1119,9 +1083,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
+            // Target: raw PPG, z-scored per position later
+            // ADP is a feature — let the model learn the ADP → PPG relationship
             const playerPPG = getPPG(current);
-            const expectedPPG = expectedPPGByPosADP.get(adpPlayer.position)?.(adpPlayer.adp) ?? 0;
-            const vor = Math.round((playerPPG - expectedPPG) * 10) / 10;
+            const vor = Math.round(playerPPG * 10) / 10;
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -1607,8 +1572,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               season,
               adp: adpPlayer.adp,
               vor,
-              isHit: vor >= 0,   // beat expected PPG for ADP
-              isBust: vor < -3,  // 3+ PPG below expected (significant underperformance)
+              isHit: vor >= 0,   // above-average PPG for position (pre z-score; recalculated after)
+              isBust: vor < 0,   // below-average PPG (pre z-score; hit/bust labels refined by percentile thresholds)
               features,
             });
           }

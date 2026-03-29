@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v5.json'; // v5: volume projection + new features
+const CACHE_PATH = 'public/data/training-rows-cache-v6.json'; // v6: PPG z-score target (no expected curve)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -81,9 +81,9 @@ async function main() {
     minLeafPct: number;
   }> = {
     QB: { maxFeatures: 20, gbmEstimators: 80, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 15, minLeafPct: 0.10 },
-    RB: { maxFeatures: 50, gbmEstimators: 150, gbmLR: 0.08, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
-    WR: { maxFeatures: 40, gbmEstimators: 150, gbmLR: 0.08, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
-    TE: { maxFeatures: 15, gbmEstimators: 60, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 20, minLeafPct: 0.12 },
+    RB: { maxFeatures: 80, gbmEstimators: 150, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
+    WR: { maxFeatures: 60, gbmEstimators: 120, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 8, minLeafPct: 0.06 },
+    TE: { maxFeatures: 20, gbmEstimators: 60, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 20, minLeafPct: 0.12 },
   };
   const models: Record<string, unknown>[] = [];
   for (const pos of POSITIONS) {
