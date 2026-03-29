@@ -171,6 +171,10 @@ async function main() {
     const losoPredEnsemble: number[] = [];
     const losoPredGbmBase: number[] = [];
     const losoPredRookieVet: number[] = [];
+    const losoRookieActuals: number[] = [];
+    const losoRookiePreds: number[] = [];
+    const losoVetActuals: number[] = [];
+    const losoVetPreds: number[] = [];
 
     if (uniqueSeasons.length >= 3) {
       for (const held of uniqueSeasons) {
@@ -222,6 +226,14 @@ async function main() {
               ? predictGBM(foldRookieGbm, row.features).predicted
               : predictGBM(foldVetGbm, row.features).predicted;
             losoPredRookieVet.push(rvPred);
+            // Track separate rookie vs vet actuals/preds
+            if (isRookie) {
+              losoRookieActuals.push(row.vor);
+              losoRookiePreds.push(rvPred);
+            } else {
+              losoVetActuals.push(row.vor);
+              losoVetPreds.push(rvPred);
+            }
           } else {
             losoPredRookieVet.push(gbmPred);
           }
@@ -232,6 +244,10 @@ async function main() {
     const hasCV = losoActuals.length >= 10;
     const cvR2Ensemble = hasCV ? cvR2(losoActuals, losoPredEnsemble) : 0;
     const cvR2RookieVet = hasCV ? cvR2(losoActuals, losoPredRookieVet) : 0;
+    const cvR2RookieOnly = losoRookieActuals.length >= 5 ? cvR2(losoRookieActuals, losoRookiePreds) : 0;
+    const cvR2VetOnly = losoVetActuals.length >= 5 ? cvR2(losoVetActuals, losoVetPreds) : 0;
+    const cvMaeRookieOnly = losoRookieActuals.length >= 5 ? cvMae(losoRookieActuals, losoRookiePreds) : 0;
+    const cvMaeVetOnly = losoVetActuals.length >= 5 ? cvMae(losoVetActuals, losoVetPreds) : 0;
 
     models.push({
       position: pos, ridgeModel, gbmModel, gbmLower, gbmUpper,
@@ -248,13 +264,17 @@ async function main() {
       cvMaeRidge:      hasCV ? cvMae(losoActuals, losoPredRidge) : ridgeModel.mae,
       cvR2Ensemble:    cvR2Ensemble,
       cvR2RookieVet:   cvR2RookieVet,
+      cvR2RookieOnly:  cvR2RookieOnly,
+      cvMaeRookieOnly: cvMaeRookieOnly,
+      cvR2VetOnly:     cvR2VetOnly,
+      cvMaeVetOnly:    cvMaeVetOnly,
       cvR2GbmBaseline: hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
     });
     console.log(`    ${pos}: n=${posRows.length}`);
     console.log(`      GBM R²:        ${(models[models.length-1] as any).cvR2Gbm}`);
     console.log(`      Ridge R²:      ${(models[models.length-1] as any).cvR2Ridge}`);
     console.log(`      Ensemble R²:   ${cvR2Ensemble}`);
-    console.log(`      Rookie/Vet R²: ${cvR2RookieVet}`);
+    console.log(`      Rookie/Vet R²: ${cvR2RookieVet} (rookie-only: ${cvR2RookieOnly.toFixed(3)} n=${losoRookieActuals.length}, vet-only: ${cvR2VetOnly.toFixed(3)} n=${losoVetActuals.length})`);
   }
 
   // ═══════════════════════════════════════════════════════════════════════

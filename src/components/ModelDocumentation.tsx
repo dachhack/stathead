@@ -417,6 +417,52 @@ export function ModelDocumentation() {
                 </tbody>
               </table>
             </div>
+            {/* Rookie vs Veteran Model Comparison */}
+            <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Rookie vs Veteran Model Performance</h3>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+              Separate GBM models trained for rookies (≤1 year) vs veterans (2+ years). Rookies rely more on college stats,
+              draft capital, and combine data. Veterans rely more on prior NFL production, snap %, and target share.
+            </p>
+            <div className="table-container">
+              <table style={{ fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th style={{ textAlign: 'right' }}>Rookies N</th>
+                    <th style={{ textAlign: 'right' }}>Rookie R²</th>
+                    <th style={{ textAlign: 'right' }}>Rookie MAE</th>
+                    <th style={{ textAlign: 'right' }}>Vets N</th>
+                    <th style={{ textAlign: 'right' }}>Vet R²</th>
+                    <th style={{ textAlign: 'right' }}>Vet MAE</th>
+                    <th style={{ textAlign: 'right' }}>Combined R²</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.models.map((m) => {
+                    const ma = m as any;
+                    return (
+                      <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
+                        <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
+                        <td style={{ textAlign: 'right' }}>{ma.nRookies ?? '?'}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: (ma.cvR2RookieOnly ?? 0) > 0.1 ? '#22c55e' : (ma.cvR2RookieOnly ?? 0) > 0 ? '#facc15' : '#ef4444' }}>
+                          {(ma.cvR2RookieOnly ?? 0).toFixed(3)}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{(ma.cvMaeRookieOnly ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right' }}>{ma.nVets ?? '?'}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: (ma.cvR2VetOnly ?? 0) > 0.1 ? '#22c55e' : (ma.cvR2VetOnly ?? 0) > 0 ? '#facc15' : '#ef4444' }}>
+                          {(ma.cvR2VetOnly ?? 0).toFixed(3)}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{(ma.cvMaeVetOnly ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: ((ma.cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : '#facc15') }}>
+                          {(ma.cvR2RookieVet ?? 0).toFixed(3)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
             {/* PPG Model Comparison */}
             {data.ppgModels && data.ppgModels.length > 0 && (
               <>
