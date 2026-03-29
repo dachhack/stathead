@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v3
+          key: static-data-v4
           restore-keys: static-data-
 
       - run: npm ci

@@ -132,18 +132,28 @@ export function trainRidgeRegression(
   const targetMean = mean(y);
   const targetStd = std(y, targetMean);
 
-  // Build standardized X matrix (guard zero-variance features)
+  // Drop near-zero-variance features to prevent numerical instability
+  // in large feature matrices (e.g. 80+ features for RB/WR)
+  const MIN_STD = 1e-6;
+  const activeIdx: number[] = [];
+  for (let j = 0; j < p; j++) {
+    if (featureStds[j] > MIN_STD) activeIdx.push(j);
+  }
+
+  // Build standardized X matrix using only active features
   const Xs: number[][] = X.map((row) =>
-    row.map((v, j) => featureStds[j] > 0 ? (v - featureMeans[j]) / featureStds[j] : 0)
+    activeIdx.map((j) => (row[j] - featureMeans[j]) / featureStds[j])
   );
   const ys = y.map((v) => targetStd > 0 ? (v - targetMean) / targetStd : 0);
 
-  // X'X + λI
+  const pActive = activeIdx.length;
+
+  // X'X + λI (pActive x pActive)
   const Xt = transpose(Xs);
-  const XtX = matMul(Xt, Xs.map((row) => row.map((v) => v))); // p x p
+  const XtX = matMul(Xt, Xs.map((row) => [...row]));
 
   // Add regularization
-  for (let i = 0; i < p; i++) XtX[i][i] += lambda;
+  for (let i = 0; i < pActive; i++) XtX[i][i] += lambda;
 
   // Invert (X'X + λI)
   const XtXinv = invert(XtX);
@@ -156,12 +166,18 @@ export function trainRidgeRegression(
 
   // β = (X'X + λI)^(-1) X'y
   const betaMatrix = matMul(XtXinv, Xty);
-  const coefficients = betaMatrix.map((row) => row[0]);
+  const activeCoeffs = betaMatrix.map((row) => row[0]);
+
+  // Map active coefficients back to full feature space (0 for dropped features)
+  const coefficients = new Array(p).fill(0);
+  for (let k = 0; k < activeIdx.length; k++) {
+    coefficients[activeIdx[k]] = activeCoeffs[k];
+  }
 
   // Intercept in standardized space is 0 (since we centered)
   // Convert back: for each sample, predict in standardized space then unstandardize
   const predictions = Xs.map((row) => {
-    const predStd = row.reduce((s, v, j) => s + v * coefficients[j], 0);
+    const predStd = row.reduce((s, v, j) => s + v * activeCoeffs[j], 0);
     return predStd * targetStd + targetMean;
   });
 
@@ -169,15 +185,15 @@ export function trainRidgeRegression(
   const ssRes = y.reduce((s, actual, i) => s + (actual - predictions[i]) ** 2, 0);
   const ssTot = y.reduce((s, actual) => s + (actual - targetMean) ** 2, 0);
   const rSquared = ssTot > 0 ? 1 - ssRes / ssTot : 0;
-  const adjustedRSquared = n > p + 1
-    ? 1 - ((1 - rSquared) * (n - 1)) / (n - p - 1)
+  const adjustedRSquared = n > pActive + 1
+    ? 1 - ((1 - rSquared) * (n - 1)) / (n - pActive - 1)
     : rSquared;
   const mae = y.reduce((s, actual, i) => s + Math.abs(actual - predictions[i]), 0) / n;
   const rmse = Math.sqrt(ssRes / n);
 
   return {
     coefficients,
-    intercept: targetMean, // effectively, since standardized intercept is 0
+    intercept: targetMean,
     featureNames,
     featureMeans,
     featureStds,
