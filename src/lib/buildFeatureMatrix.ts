@@ -248,14 +248,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
-          // Compute PPG (points per active game) for each player
-          const getPPG = (p: SeasonTotals): number => {
-            const ppr = p.fantasy_points_ppr || 0;
-            const ag = activeGamesMap.get(normalizeName(p.player_display_name)) || p.games || 1;
-            return ag > 0 ? ppr / ag : 0;
+          // Compute player values for VOR
+          const getPlayerValue = (p: SeasonTotals): number => {
+            return p.fantasy_points_ppr || 0;
           };
 
-          // Current stats lookup (needed for position verification)
+          // Current stats lookup
           const currentByName = new Map<string, SeasonTotals>();
           for (const p of currentTotals) {
             if (POSITIONS.includes(p.position)) {
@@ -263,33 +261,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
-          const leagueSize = 12; // for ADP bin calculation
-
-          // Build ADP-bin expected PPG from PRIOR completed seasons (no leakage)
-          // Uses accumulated historical data: "players drafted in round X at this
-          // position historically average Y PPG." This is known before the season.
-          // ADP bins: round 1 (1-12), round 2 (13-24), ..., round 10+ (109+)
-          const getADPBin = (adp: number) => Math.min(10, Math.ceil(adp / leagueSize));
-          // expectedPPGByBin is built from raw PPG history (never z-scored)
-          const expectedPPGByBin = new Map<string, number>(); // "pos:bin" → avg PPG
-          {
-            const binAccum = new Map<string, { total: number; count: number }>();
-            for (const h of rawPPGHistory) {
-              const bin = getADPBin(h.adp);
-              const key = `${h.position}:${bin}`;
-              const acc = binAccum.get(key) || { total: 0, count: 0 };
-              acc.total += h.ppg;
-              acc.count += 1;
-              binAccum.set(key, acc);
-            }
-            for (const [key, acc] of binAccum) {
-              expectedPPGByBin.set(key, acc.count >= 3 ? acc.total / acc.count : 0);
-            }
+          // Per-position replacement levels for VOR (flat threshold)
+          const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
+          const vorReplacement: Record<string, number> = {};
+          for (const pos of POSITIONS) {
+            const sorted = currentTotals
+              .filter((p) => p.position === pos)
+              .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
+            const idx = (REPLACEMENT_RANKS[pos] ?? 24) - 1;
+            vorReplacement[pos] = Math.round((sorted[idx] ? getPlayerValue(sorted[idx]) : 0) * 10) / 10;
           }
 
           const allFantasy = currentTotals
             .filter((p) => POSITIONS.includes(p.position))
-            .sort((a, b) => getPPG(b) - getPPG(a));
+            .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
           const overallRankMap = new Map<string, number>();
           allFantasy.forEach((p, i) => overallRankMap.set(normalizeName(p.player_display_name), i + 1));
 
@@ -1111,18 +1096,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
-            // Target: PPG over expected-for-ADP-bin, z-scored per position later
-            // Expected PPG comes from prior seasons' ADP-bin averages (no leakage)
-            const playerPPG = getPPG(current);
-            const adpBin = getADPBin(adpPlayer.adp);
-            const expectedPPG = expectedPPGByBin.get(`${adpPlayer.position}:${adpBin}`) || 0;
-            // For first training season (no prior data), use raw PPG
-            const vor = expectedPPG > 0
-              ? Math.round((playerPPG - expectedPPG) * 10) / 10
-              : Math.round(playerPPG * 10) / 10;
+            // Target: total season PPR minus replacement level
+            // This is the original target that produced RB R² = 0.259
+            const playerPPR = getPlayerValue(current);
+            const repLevel = vorReplacement[adpPlayer.position] ?? 0;
+            const vor = Math.round((playerPPR - repLevel) * 10) / 10;
 
-            // Track raw PPG for future seasons' ADP-bin expectations
-            rawPPGHistory.push({ position: adpPlayer.position, adp: adpPlayer.adp, ppg: playerPPG });
+            // Track for history
+            rawPPGHistory.push({ position: adpPlayer.position, adp: adpPlayer.adp, ppg: current.games > 0 ? playerPPR / current.games : 0 });
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -1608,8 +1589,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               season,
               adp: adpPlayer.adp,
               vor,
-              isHit: vor >= 0,   // outscored ADP-bin expected PPG
-              isBust: vor < -3,  // 3+ PPG below ADP-bin expected (significant bust)
+              isHit: vor >= 0,   // beat replacement level
+              isBust: vor < -50, // 50+ PPR pts below replacement
               features,
             });
           }

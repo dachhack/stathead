@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v8.json'; // v8: fix ADP-bin leakage (raw PPG tracking)
+const CACHE_PATH = 'public/data/training-rows-cache-v9.json'; // v9: revert to total PPR over replacement
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
