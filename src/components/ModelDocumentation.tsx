@@ -26,6 +26,7 @@ export function ModelDocumentation() {
   const [data, setData] = useState<{
     models: PositionModelData[];
     featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+    ppgModels?: Array<{ position: string; n: number; cvR2Gbm: number; cvR2Ridge: number; cvMaeGbm: number; featureNames: string[] }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
@@ -37,14 +38,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {} });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {} });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels });
           }
         } catch {}
       }
@@ -131,21 +132,81 @@ export function ModelDocumentation() {
         <h2 style={{ margin: '0 0 16px', fontSize: 20 }}>Model Documentation</h2>
 
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Methodology</h3>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Overview</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            Separate models are trained for each position (QB, RB, WR, TE) predicting <strong>VOR Score</strong> — a z-scored
-            Value Over Replacement metric that's comparable across positions (+1.0 = 1 standard deviation above the positional mean).
+            StatHead uses a multi-stage prediction pipeline to evaluate fantasy football players.
+            The system combines team-level volume projections with player-level models to identify
+            players likely to outperform or underperform their draft position.
+          </p>
+        </div>
+
+        {/* Stage 1: Team Volume */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Stage 1: Team Volume Projections</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            Team-level volumes (pass attempts, rush attempts, targets, TDs) are projected using a
+            <strong> regression-to-mean blend</strong>: each team's prior-season totals are weighted against league
+            averages to produce stable baseline projections. A <strong>delta model</strong> (Ridge regression with 11 features)
+            predicts year-over-year volume changes from coaching changes, QB mobility, Vegas implied totals, and
+            offensive trends. The projected team volumes flow into player-level share models.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0' }}>
+            Key predictors of team volume changes: new QB (strongest signal), new head coach, QB rush attempts,
+            Vegas implied points per game, prior win percentage, and 2-year passing trend.
+          </p>
+        </div>
+
+        {/* Stage 2: Player VOR Model */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Stage 2: Player VOR Model</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            Separate models are trained per position (QB, RB, WR, TE) predicting <strong>VOR Score</strong> — total season
+            PPR fantasy points above a positional replacement level (QB12, RB24, WR24, TE12), z-scored to be
+            comparable across positions. +1.0σ = one standard deviation above the positional mean.
             Training data spans {data.models.reduce((s, m) => s + m.n, 0)} player-seasons from 2018-2025 with ADP ≤ 150.
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0' }}>
-            Two model types are trained: <strong>Gradient Boosted Trees</strong> (150 estimators, depth 3, learning rate 0.08)
-            and <strong>Ridge Regression</strong> (λ=5). All metrics use <strong>Leave-One-Season-Out cross-validation</strong> —
-            each season is held out while training on the others, providing honest out-of-sample estimates.
+            Position-specific tuning prevents overfitting: QB and TE use fewer features (20-24) with shallower
+            trees (depth 2) and higher regularization due to smaller sample sizes. RB and WR use 50-80 features
+            with deeper trees (depth 3). Feature selection uses a preliminary GBM to rank features by importance,
+            keeping only the top K per position.
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0' }}>
-            Features include {FEATURES.length} signals spanning prior stats, advanced metrics (WOPR, RACR, aDOT),
-            Next Gen Stats (separation, RYOE, CPOE), combine measurables, draft capital, injury history, roster competition,
-            coaching/scheme tendencies, Vegas lines, team projections, and Reddit sentiment.
+            Three model variants are evaluated: <strong>GBM</strong> (Gradient Boosted Trees),
+            <strong> Ridge Regression</strong>, and a <strong>70/30 GBM+Ridge ensemble</strong>.
+            A <strong>Rookie/Veteran split</strong> trains separate models for players with ≤1 year vs 2+ years in the league.
+            All metrics use <strong>Leave-One-Season-Out cross-validation</strong> for honest out-of-sample estimates.
+          </p>
+        </div>
+
+        {/* Stage 3: PPG Model */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Stage 3: ADP-Free PPG Model</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            A separate model predicts raw <strong>fantasy PPG</strong> (points per game) using all features
+            <strong> except ADP-derived ones</strong> (8 ADP features excluded). This provides an ADP-independent
+            assessment of player quality based purely on talent, situation, and opportunity signals.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '8px 0 0' }}>
+            Comparing PPG model predictions to ADP-implied PPG reveals <strong>value gaps</strong>: players whose
+            fundamentals predict higher PPG than their ADP suggests are potential values; players whose
+            fundamentals predict lower PPG than ADP implies are bust risks.
+          </p>
+        </div>
+
+        {/* Features overview */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Feature Categories ({FEATURES.length} total)</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            Prior season stats and efficiency metrics · Advanced analytics (WOPR, RACR, aDOT) ·
+            Next Gen Stats (separation, RYOE, CPOE) · Combine measurables · NFL draft capital ·
+            Injury history and recurrence risk · Roster competition and depth chart ·
+            Coaching scheme tendencies (pace, pass rate, personnel) · Vegas implied totals and win probability ·
+            Team projections (pass/rush volume) · Reddit sentiment (r/fantasyfootball mentions and hype) ·
+            Strength of schedule · College production · Contract value and years · Age and aging curves ·
+            2-year momentum trends · Feature interactions (ADP×age, PPG×snap%, etc.) ·
+            QB impact on skill positions (rushing tendencies, passer rating) ·
+            Weekly consistency (boom/bust rates) · Team environment (dome, O-line quality, roster turnover).
           </p>
         </div>
 
@@ -355,6 +416,76 @@ export function ModelDocumentation() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* PPG Model Comparison */}
+            {data.ppgModels && data.ppgModels.length > 0 && (
+              <>
+                <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>ADP-Free PPG Model Comparison</h3>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  Predicts raw fantasy PPG without any ADP information. Compares predicted PPG to ADP-implied PPG to find value.
+                </p>
+                <div className="table-container">
+                  <table style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th style={{ textAlign: 'right' }}>N</th>
+                        <th style={{ textAlign: 'right' }}>GBM R²</th>
+                        <th style={{ textAlign: 'right' }}>Ridge R²</th>
+                        <th style={{ textAlign: 'right' }}>GBM MAE</th>
+                        <th style={{ textAlign: 'right' }}>Features</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.ppgModels.map((m) => (
+                        <tr key={m.position}>
+                          <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
+                          <td style={{ textAlign: 'right' }}>{m.n}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : (m.cvR2Gbm ?? 0) > 0 ? '#facc15' : '#ef4444' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
+                          <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : (m.cvR2Ridge ?? 0) > 0 ? '#facc15' : '#ef4444' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
+                          <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(1)}</td>
+                          <td style={{ textAlign: 'right' }}>{m.featureNames?.length || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* Model Pipeline Diagram */}
+            <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Prediction Pipeline</h3>
+            <div style={{
+              background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px',
+              border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: 11,
+              lineHeight: 1.8, color: 'var(--text-secondary)', overflowX: 'auto',
+            }}>
+              <div>{'┌─────────────────────────────────────────────────────────────┐'}</div>
+              <div>{'│  Team Volume Projection (regression to mean + delta model)  │'}</div>
+              <div>{'│  → projected pass att, rush att, targets, TDs per team      │'}</div>
+              <div>{'└──────────────────────────┬──────────────────────────────────┘'}</div>
+              <div>{'                           │'}</div>
+              <div>{'                           ▼'}</div>
+              <div>{'┌─────────────────────────────────────────────────────────────┐'}</div>
+              <div>{'│  Player Share × Team Volume → Player Volume                 │'}</div>
+              <div>{'│  target_share × team_targets = projected_targets             │'}</div>
+              <div>{'│  rush_share × team_rushes = projected_carries                │'}</div>
+              <div>{'│  + prior efficiency rates → mlProjPlayerPPG                 │'}</div>
+              <div>{'└──────────────────────────┬──────────────────────────────────┘'}</div>
+              <div>{'                           │'}</div>
+              <div>{'              ┌────────────┴────────────┐'}</div>
+              <div>{'              ▼                         ▼'}</div>
+              <div>{'┌──────────────────────┐  ┌──────────────────────┐'}</div>
+              <div>{'│  VOR Model           │  │  PPG Model           │'}</div>
+              <div>{'│  (with ADP features) │  │  (ADP-free)          │'}</div>
+              <div>{'│  GBM + Ridge ensemble│  │  GBM + Ridge ensemble│'}</div>
+              <div>{'│  → will player beat  │  │  → what will player  │'}</div>
+              <div>{'│    replacement level?│  │    actually score?   │'}</div>
+              <div>{'└──────────┬───────────┘  └──────────┬───────────┘'}</div>
+              <div>{'           │                         │'}</div>
+              <div>{'           └────────────┬────────────┘'}</div>
+              <div>{'                        ▼'}</div>
+              <div>{'  Compare: PPG prediction vs ADP-implied PPG = VALUE or BUST'}</div>
             </div>
           </>
         )}
