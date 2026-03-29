@@ -90,6 +90,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Aging: '#fbbf24',
   Momentum: '#fb923c',
   Interaction: '#94a3b8',
+  'QB Impact': '#818cf8',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -274,6 +275,14 @@ export const FEATURES: FeatureDef[] = [
   { key: 'ageXcontractYears', label: 'Age × Contract Years Left', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'targetShareXteamPassRate', label: 'Target Share × Team Pass Rate', category: 'Interaction', positions: ['RB', 'WR', 'TE'] },
   { key: 'rushAttXageDecline', label: 'Rush Att × Age Decline', category: 'Interaction', positions: ['RB'] },
+
+  // Team QB rushing impact (how mobile QB affects skill positions)
+  { key: 'teamQBRushAtt', label: 'Team QB Rush Attempts', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamQBRushYds', label: 'Team QB Rush Yards', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamQBRushTDs', label: 'Team QB Rush TDs', category: 'QB Impact', positions: ['RB'] },
+  { key: 'teamQBRushShare', label: 'Team QB Rush Att Share', category: 'QB Impact', positions: ['RB'] },
+  { key: 'teamQBScrambleRate', label: 'Team QB Scramble Rate', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamQBPPG', label: 'Team QB Fantasy PPG', category: 'QB Impact', positions: ['WR', 'TE'] },
 ];
 
 // ── Helpers ──

@@ -712,6 +712,40 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             teamTotalTargets.set(team, (teamTotalTargets.get(team) || 0) + (p.targets || 0));
           }
 
+          // ── Team QB rushing impact on skill positions ──
+          const teamQBStats = new Map<string, {
+            rushAtt: number; rushYds: number; rushTDs: number;
+            rushShare: number; scrambleRate: number; ppg: number;
+          }>();
+          {
+            const qbByTeam = new Map<string, SeasonTotals>();
+            for (const p of priorTotals) {
+              if (p.position !== 'QB') continue;
+              const team = p.recent_team || '';
+              if (!team) continue;
+              const existing = qbByTeam.get(team);
+              if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
+                qbByTeam.set(team, p);
+              }
+            }
+            for (const [team, qb] of qbByTeam) {
+              const teamRushAtt = teamTotalCarries.get(team) || 1;
+              const qbGames = qb.games || 1;
+              const scheme = schemeByTeam.get(team);
+              const scrambleRate = scheme && scheme.passes > 0
+                ? (qb.carries || 0) / (scheme.passes + (qb.carries || 0))
+                : 0;
+              teamQBStats.set(team, {
+                rushAtt: qb.carries || 0,
+                rushYds: qb.rushing_yards || 0,
+                rushTDs: qb.rushing_tds || 0,
+                rushShare: (qb.carries || 0) / teamRushAtt,
+                scrambleRate: Math.round(scrambleRate * 1000) / 1000,
+                ppg: Math.round((qb.fantasy_points_ppr || 0) / qbGames * 10) / 10,
+              });
+            }
+          }
+
           // Prior season PPR by name + position (for quality-aware competition)
           const priorPPRByName = new Map<string, number>();
           const priorPosByName = new Map<string, string>();
@@ -1343,6 +1377,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   rushAttXageDecline: Math.round((prior?.carries || 0) * isDecline2),
                 };
               })(),
+
+              // Team QB rushing impact
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const qbs = teamQBStats.get(pTeam);
+                return {
+                  teamQBRushAtt: qbs?.rushAtt || 0,
+                  teamQBRushYds: qbs?.rushYds || 0,
+                  teamQBRushTDs: qbs?.rushTDs || 0,
+                  teamQBRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
+                  teamQBScrambleRate: qbs?.scrambleRate || 0,
+                  teamQBPPG: qbs?.ppg || 0,
+                };
+              })(),
             };
 
             rows.push({
@@ -1799,6 +1847,40 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             for (const [team, gameSet] of predPriorGamesByTeam) {
               const acc = predSchemeByTeam.get(team);
               if (acc) acc.games = gameSet.size;
+            }
+
+            // Team QB rushing impact for predictions
+            const predTeamQBStats = new Map<string, {
+              rushAtt: number; rushYds: number; rushTDs: number;
+              rushShare: number; scrambleRate: number; ppg: number;
+            }>();
+            {
+              const qbByTeam = new Map<string, SeasonTotals>();
+              for (const p of predPriorTotals) {
+                if (p.position !== 'QB') continue;
+                const team = p.recent_team || '';
+                if (!team) continue;
+                const existing = qbByTeam.get(team);
+                if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
+                  qbByTeam.set(team, p);
+                }
+              }
+              for (const [team, qb] of qbByTeam) {
+                const teamRushAtt = predTeamTotalCarries.get(team) || 1;
+                const qbGames = qb.games || 1;
+                const scheme = predSchemeByTeam.get(team);
+                const scrambleRate = scheme && scheme.passes > 0
+                  ? (qb.carries || 0) / (scheme.passes + (qb.carries || 0))
+                  : 0;
+                predTeamQBStats.set(team, {
+                  rushAtt: qb.carries || 0,
+                  rushYds: qb.rushing_yards || 0,
+                  rushTDs: qb.rushing_tds || 0,
+                  rushShare: (qb.carries || 0) / teamRushAtt,
+                  scrambleRate: Math.round(scrambleRate * 1000) / 1000,
+                  ppg: Math.round((qb.fantasy_points_ppr || 0) / qbGames * 10) / 10,
+                });
+              }
             }
 
             // Coach change detection for prediction season
@@ -2288,6 +2370,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ageXcontractYears: Math.round(playerAge2 * cYearsRem * 10) / 10,
                     targetShareXteamPassRate: Math.round(avgTgtShare * passRate * 1000) / 1000,
                     rushAttXageDecline: Math.round((prior?.carries || 0) * isDecline3),
+                  };
+                })(),
+
+                // Team QB rushing impact
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const qbs = predTeamQBStats.get(pTeam);
+                  return {
+                    teamQBRushAtt: qbs?.rushAtt || 0,
+                    teamQBRushYds: qbs?.rushYds || 0,
+                    teamQBRushTDs: qbs?.rushTDs || 0,
+                    teamQBRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
+                    teamQBScrambleRate: qbs?.scrambleRate || 0,
+                    teamQBPPG: qbs?.ppg || 0,
                   };
                 })(),
               };
