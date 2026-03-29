@@ -88,6 +88,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   College: '#a78bfa',
   Contract: '#34d399',
   Aging: '#fbbf24',
+  Momentum: '#fb923c',
+  Interaction: '#94a3b8',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -252,6 +254,26 @@ export const FEATURES: FeatureDef[] = [
   { key: 'ageCurveDelta', label: 'Age Curve Expected Delta', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'isPeakAge', label: 'Is Peak Age Window', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'isDeclineAge', label: 'Is Decline Age', category: 'Aging', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Momentum features (2-year trends)
+  { key: 'ppgTrend', label: 'PPG 2-Year Trend', category: 'Momentum', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'targetTrend', label: 'Target 2-Year Trend', category: 'Momentum', positions: ['RB', 'WR', 'TE'] },
+  { key: 'touchTrend', label: 'Touch 2-Year Trend', category: 'Momentum', positions: ['RB'] },
+  { key: 'adpTrend', label: 'ADP 2-Year Trend', category: 'Momentum', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'snapPctTrend', label: 'Snap % 2-Year Trend', category: 'Momentum', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'targetShareTrend', label: 'Target Share 2-Year Trend', category: 'Momentum', positions: ['RB', 'WR', 'TE'] },
+
+  // Interaction features (combinations that capture non-linear relationships)
+  { key: 'adpXage', label: 'ADP × Age', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'adpXyearsInLeague', label: 'ADP × Years in League', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'contractXdepthRank', label: 'Contract APY × Depth Rank', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorPPGXage', label: 'Prior PPG × Age', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'adpXteamPassRate', label: 'ADP × Team Pass Rate', category: 'Interaction', positions: ['QB', 'WR', 'TE'] },
+  { key: 'adpXschemeShotgun', label: 'ADP × Shotgun Rate', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorPPGXsnapPct', label: 'Prior PPG × Snap %', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'ageXcontractYears', label: 'Age × Contract Years Left', category: 'Interaction', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'targetShareXteamPassRate', label: 'Target Share × Team Pass Rate', category: 'Interaction', positions: ['RB', 'WR', 'TE'] },
+  { key: 'rushAttXageDecline', label: 'Rush Att × Age Decline', category: 'Interaction', positions: ['RB'] },
 ];
 
 // ── Helpers ──

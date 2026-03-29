@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v2.json'; // v2: PPG-over-expected target
+const CACHE_PATH = 'public/data/training-rows-cache-v3.json'; // v3: momentum + interaction features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;

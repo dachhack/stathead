@@ -187,6 +187,19 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         const rows: PlayerRow[] = [];
 
+        // Cross-season player history for momentum features
+        // Tracks prior season stats per player to compute 2-year trends
+        interface PlayerHistory {
+          season: number;
+          ppg: number;
+          targets: number;
+          touches: number;
+          snapPct: number;
+          targetShare: number;
+          adp: number;
+        }
+        const playerHistoryMap = new Map<string, PlayerHistory[]>(); // name → sorted history
+
         for (const season of seasons) {
           onStatus?.(`Building features for ${season}...`);
 
@@ -296,6 +309,28 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           for (const p of priorTotals) {
             if (POSITIONS.includes(p.position)) {
               priorByName.set(normalizeName(p.player_display_name), p);
+            }
+          }
+
+          // Build player history for momentum features
+          // Track prior season's stats for each player (season - 1 data)
+          for (const p of priorTotals) {
+            if (!POSITIONS.includes(p.position)) continue;
+            const name = normalizeName(p.player_display_name);
+            if (!playerHistoryMap.has(name)) playerHistoryMap.set(name, []);
+            const hist = playerHistoryMap.get(name)!;
+            // Avoid duplicate entries for the same season
+            if (!hist.some((h) => h.season === season - 1)) {
+              const ag = activeGamesMap.get(name) || p.games || 1;
+              hist.push({
+                season: season - 1,
+                ppg: ag > 0 ? (p.fantasy_points_ppr || 0) / ag : 0,
+                targets: p.targets || 0,
+                touches: (p.carries || 0) + (p.receptions || 0),
+                snapPct: 0, // will be filled from snap data
+                targetShare: 0, // will be filled from weekly data
+                adp: 0, // filled from ADP data
+              });
             }
           }
 
@@ -1250,6 +1285,64 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   isDeclineAge: isDecline,
                 };
               })(),
+
+              // Momentum features (2-year trends)
+              ...(() => {
+                const hist = playerHistoryMap.get(normalName) || [];
+                const sorted = hist.sort((a, b) => b.season - a.season);
+                const curr = sorted.find((h) => h.season === season - 1);
+                const prev = sorted.find((h) => h.season === season - 2);
+                if (!curr || !prev) return {
+                  ppgTrend: 0, targetTrend: 0, touchTrend: 0,
+                  adpTrend: 0, snapPctTrend: 0, targetShareTrend: 0,
+                };
+                return {
+                  ppgTrend: Math.round((curr.ppg - prev.ppg) * 10) / 10,
+                  targetTrend: curr.targets - prev.targets,
+                  touchTrend: curr.touches - prev.touches,
+                  adpTrend: prev.adp > 0 && curr.adp > 0 ? Math.round((prev.adp - curr.adp) * 10) / 10 : 0, // positive = rising
+                  snapPctTrend: Math.round((curr.snapPct - prev.snapPct) * 10) / 10,
+                  targetShareTrend: Math.round((curr.targetShare - prev.targetShare) * 1000) / 1000,
+                };
+              })(),
+
+              // Interaction features
+              ...(() => {
+                const a = adpPlayer.adp;
+                const draftAge = draft?.age || 0;
+                const draftYear = draft?.season || 0;
+                const playerAge = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 25;
+                const yil = draft ? season - draft.season : 0;
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                const scheme = schemeByTeam.get(pTeam);
+                const passRate = scheme && scheme.plays > 0 ? scheme.passes / scheme.plays : 0.5;
+                const shotgunRate = scheme && scheme.plays > 0 ? scheme.shotgunPlays / scheme.plays : 0.5;
+                const priorGames = prior?.games || 0;
+                const priorPPGVal = priorGames > 0 ? (prior?.fantasy_points_ppr || 0) / priorGames : 0;
+                const snapPctVal = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
+                const contract = contractByName.get(normalName);
+                const cAPY = contract ? contract.apy / 1_000_000 : 0;
+                const cYearsRem = contract ? Math.max(0, contract.years - (season - contract.year_signed)) : 0;
+                const depthRank = depthRankByName.get(normalName) || 99;
+                const adv = advByName.get(normalName);
+                const advWeeks = adv?.weeks || 1;
+                const avgTgtShare = adv ? adv.targetShare / advWeeks : 0;
+                const curve = AGING_CURVES[adpPlayer.position];
+                const isDecline2 = curve && playerAge >= curve.declineStart ? 1 : 0;
+
+                return {
+                  adpXage: Math.round(a * playerAge / 100) / 10,
+                  adpXyearsInLeague: Math.round(a * yil) / 10,
+                  contractXdepthRank: Math.round(cAPY * depthRank * 10) / 10,
+                  priorPPGXage: Math.round(priorPPGVal * playerAge * 10) / 10,
+                  adpXteamPassRate: Math.round(a * passRate * 10) / 10,
+                  adpXschemeShotgun: Math.round(a * shotgunRate * 10) / 10,
+                  priorPPGXsnapPct: Math.round(priorPPGVal * snapPctVal * 10) / 10,
+                  ageXcontractYears: Math.round(playerAge * cYearsRem * 10) / 10,
+                  targetShareXteamPassRate: Math.round(avgTgtShare * passRate * 1000) / 1000,
+                  rushAttXageDecline: Math.round((prior?.carries || 0) * isDecline2),
+                };
+              })(),
             };
 
             rows.push({
@@ -2136,6 +2229,65 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ageCurveDelta: Math.round(delta * 100) / 100,
                     isPeakAge: isPeak,
                     isDeclineAge: isDecline,
+                  };
+                })(),
+
+                // Momentum features (from player history)
+                ...(() => {
+                  const hist = playerHistoryMap.get(normalName) || [];
+                  const sorted = hist.sort((a, b) => b.season - a.season);
+                  const curr = sorted.find((h) => h.season === predSeason - 1);
+                  const prev = sorted.find((h) => h.season === predSeason - 2);
+                  if (!curr || !prev) return {
+                    ppgTrend: 0, targetTrend: 0, touchTrend: 0,
+                    adpTrend: 0, snapPctTrend: 0, targetShareTrend: 0,
+                  };
+                  return {
+                    ppgTrend: Math.round((curr.ppg - prev.ppg) * 10) / 10,
+                    targetTrend: curr.targets - prev.targets,
+                    touchTrend: curr.touches - prev.touches,
+                    adpTrend: prev.adp > 0 && curr.adp > 0 ? Math.round((prev.adp - curr.adp) * 10) / 10 : 0,
+                    snapPctTrend: Math.round((curr.snapPct - prev.snapPct) * 10) / 10,
+                    targetShareTrend: Math.round((curr.targetShare - prev.targetShare) * 1000) / 1000,
+                  };
+                })(),
+
+                // Interaction features
+                ...(() => {
+                  const a = adpPlayer.adp;
+                  const draftAge3 = draft?.age || 0;
+                  const draftYear3 = draft?.season || 0;
+                  const playerAge2 = draftAge3 > 0 && draftYear3 > 0 ? draftAge3 + (predSeason - draftYear3) : 25;
+                  const yil = draft ? predSeason - draft.season : 0;
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  const scheme = predSchemeByTeam.get(pTeam);
+                  const passRate = scheme && scheme.plays > 0 ? scheme.passes / scheme.plays : 0.5;
+                  const shotgunRate = scheme && scheme.plays > 0 ? scheme.shotgunPlays / scheme.plays : 0.5;
+                  const priorGames = prior?.games || 0;
+                  const priorPPGVal = priorGames > 0 ? (prior?.fantasy_points_ppr || 0) / priorGames : 0;
+                  const snapPctVal = predSnapAccum.get(normalName);
+                  const snapVal = snapPctVal && snapPctVal.count > 0 ? snapPctVal.total / snapPctVal.count : 0;
+                  const contract = contractByName.get(normalName);
+                  const cAPY = contract ? contract.apy / 1_000_000 : 0;
+                  const cYearsRem = contract ? Math.max(0, contract.years - (predSeason - contract.year_signed)) : 0;
+                  const depthRank = predDepthRankByName.get(normalName) || 99;
+                  const adv = predAdvByName.get(normalName);
+                  const advWeeks = adv?.weeks || 1;
+                  const avgTgtShare = adv ? adv.targetShare / advWeeks : 0;
+                  const curve = AGING_CURVES[adpPlayer.position];
+                  const isDecline3 = curve && playerAge2 >= curve.declineStart ? 1 : 0;
+
+                  return {
+                    adpXage: Math.round(a * playerAge2 / 100) / 10,
+                    adpXyearsInLeague: Math.round(a * yil) / 10,
+                    contractXdepthRank: Math.round(cAPY * depthRank * 10) / 10,
+                    priorPPGXage: Math.round(priorPPGVal * playerAge2 * 10) / 10,
+                    adpXteamPassRate: Math.round(a * passRate * 10) / 10,
+                    adpXschemeShotgun: Math.round(a * shotgunRate * 10) / 10,
+                    priorPPGXsnapPct: Math.round(priorPPGVal * snapVal * 10) / 10,
+                    ageXcontractYears: Math.round(playerAge2 * cYearsRem * 10) / 10,
+                    targetShareXteamPassRate: Math.round(avgTgtShare * passRate * 1000) / 1000,
+                    rushAttXageDecline: Math.round((prior?.carries || 0) * isDecline3),
                   };
                 })(),
               };
