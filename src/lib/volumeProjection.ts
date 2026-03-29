@@ -6,246 +6,311 @@
 // This module can be called from buildFeatureMatrix to replace the
 // simple blend projection with an ML-based one.
 
-import type { SeasonTotals, Game, PlayByPlay } from '../types';
+import type { SeasonTotals, Game } from '../types';
 import { trainRidgeRegression, predict } from './ridge';
+import { trainGBM, predictGBM } from './gbm';
 
 export interface TeamVolumeFeatures {
   team: string;
+  season: number;
   // Prior season volumes
   priorPassAtt: number;
   priorRushAtt: number;
   priorTargets: number;
   priorPassTD: number;
   priorRushTD: number;
+  priorTotalPlays: number;
   priorPPR: number;
+  // 2-year volume trends
+  passAttTrend: number;   // change from 2 years ago to 1 year ago
+  rushAttTrend: number;
+  targetsTrend: number;
   // Coaching
   newCoach: number;
   // Vegas
   vegasImpliedTotal: number;
   vegasWinPct: number;
+  vegasSpread: number;
   // Scheme from PBP
   passRate: number;
   neutralPassRate: number;
-  pace: number; // plays per game
+  pace: number;
   shotgunRate: number;
   noHuddleRate: number;
-  // QB rushing impact
-  qbRushAtt: number;
-  qbRushShare: number;
+  firstDownRunRate: number;
+  // QB impact
+  qbOwnRushAtt: number;
+  qbOwnScrambleRate: number;
+  teamPriorQBRushAtt: number;
+  // QB quality
+  qbPPG: number;
   // Personnel
   p11Rate: number;
   p12Rate: number;
-  // O-line
+  // O-line quality
   sackRate: number;
   rushYPC: number;
-}
-
-export interface PlayerShareFeatures {
-  name: string;
-  team: string;
-  position: string;
-  // Prior share
-  priorTargetShare: number;
-  priorRushShare: number;
-  priorSnapPct: number;
-  // Competition
-  depthChartRank: number;
-  teamSamePosCount: number;
-  newArrivals: number;
-  // Contract/investment
-  contractAPY: number;
-  draftCapital: number;
-  // Player quality
-  priorPPG: number;
-  age: number;
-  yearsInLeague: number;
-  // Team context
-  teamPassRate: number;
+  // Roster investment
+  offensiveDraftCapital: number; // sum of (8 - round) for offensive draft picks
+  rosterTurnover: number;
+  // RB/TE target rates
+  rbTargetRate: number;
+  teTargetRate: number;
 }
 
 interface TeamVolumeRow extends TeamVolumeFeatures {
-  // Targets (actuals)
   actualPassAtt: number;
   actualRushAtt: number;
   actualTargets: number;
   actualPassTD: number;
   actualRushTD: number;
+  actualTotalPlays: number;
 }
 
-export interface VolumeProjectionResult {
-  teamVolumes: Map<string, {
-    projPassAtt: number; projRushAtt: number; projTargets: number;
-    projPassTD: number; projRushTD: number;
-  }>;
+const VOLUME_FEATURE_KEYS: (keyof Omit<TeamVolumeFeatures, 'team' | 'season'>)[] = [
+  'priorPassAtt', 'priorRushAtt', 'priorTargets', 'priorPassTD', 'priorRushTD',
+  'priorTotalPlays', 'priorPPR',
+  'passAttTrend', 'rushAttTrend', 'targetsTrend',
+  'newCoach',
+  'vegasImpliedTotal', 'vegasWinPct', 'vegasSpread',
+  'passRate', 'neutralPassRate', 'pace', 'shotgunRate', 'noHuddleRate', 'firstDownRunRate',
+  'qbOwnRushAtt', 'qbOwnScrambleRate', 'teamPriorQBRushAtt',
+  'qbPPG',
+  'p11Rate', 'p12Rate',
+  'sackRate', 'rushYPC',
+  'offensiveDraftCapital', 'rosterTurnover',
+  'rbTargetRate', 'teTargetRate',
+];
+
+export interface TeamVolumePrediction {
+  projPassAtt: number;
+  projRushAtt: number;
+  projTargets: number;
+  projPassTD: number;
+  projRushTD: number;
+  projTotalPlays: number;
+}
+
+export interface TrainedTeamVolumeModel {
+  models: Record<string, unknown>; // target → trained model
+  featureKeys: string[];
+  cvMetrics: Record<string, { r2: number; mae: number }>;
 }
 
 /**
- * Build training data for the team volume model from historical seasons.
+ * Build team volume training data from aggregated season totals.
  */
-export function buildTeamVolumeTrainingData(
+export function buildTeamVolumeData(
   seasons: number[],
-  seasonData: Map<number, {
-    priorTotals: SeasonTotals[];
-    currentTotals: SeasonTotals[];
-    games: Game[];
-    pbp: PlayByPlay[];
-    coachChanges: Set<string>;
-    qbRushByTeam: Map<string, number>;
-    vegasByTeam: Map<string, { impliedTotal: number; winPct: number }>;
-    schemeByTeam: Map<string, { passRate: number; neutralPassRate: number; pace: number; shotgunRate: number; noHuddleRate: number; sackRate: number; rushYPC: number }>;
-    personnelByTeam: Map<string, { p11Rate: number; p12Rate: number }>;
-  }>,
+  allTotals: Map<number, SeasonTotals[]>, // season → totals
+  gamesData: Game[],
+  coachChanges: Map<number, Set<string>>, // season → teams with new coach
+  qbStats: Map<string, { rushAtt: number; scrambleRate: number; ppg: number }>, // "season:team" → QB stats
+  teamPriorQBRush: Map<string, number>, // "season:team" → prior team QB rush att
+  schemeData: Map<string, { passRate: number; neutralPassRate: number; pace: number; shotgunRate: number; noHuddleRate: number; firstDownRunRate: number; sackRate: number; rushYPC: number; rbTargetRate: number; teTargetRate: number }>,
+  personnelData: Map<string, { p11Rate: number; p12Rate: number }>,
+  draftCapital: Map<string, number>, // "season:team" → offensive draft capital
+  rosterTurnover: Map<string, number>, // "season:team" → turnover rate
 ): TeamVolumeRow[] {
   const rows: TeamVolumeRow[] = [];
 
   for (const season of seasons) {
-    const data = seasonData.get(season);
-    if (!data) continue;
+    const currentTotals = allTotals.get(season);
+    const priorTotals = allTotals.get(season - 1);
+    const prior2Totals = allTotals.get(season - 2);
+    if (!currentTotals || !priorTotals) continue;
 
-    // Prior team totals
-    const priorByTeam = new Map<string, { passAtt: number; rushAtt: number; targets: number; passTD: number; rushTD: number; ppr: number }>();
-    for (const p of data.priorTotals) {
-      const team = p.recent_team || '';
-      if (!team) continue;
-      const t = priorByTeam.get(team) || { passAtt: 0, rushAtt: 0, targets: 0, passTD: 0, rushTD: 0, ppr: 0 };
-      t.passAtt += p.attempts || 0;
-      t.rushAtt += p.carries || 0;
-      t.targets += p.targets || 0;
-      t.passTD += p.passing_tds || 0;
-      t.rushTD += p.rushing_tds || 0;
-      t.ppr += p.fantasy_points_ppr || 0;
-      priorByTeam.set(team, t);
+    // Aggregate to team level
+    const aggTeam = (totals: SeasonTotals[]) => {
+      const m = new Map<string, { passAtt: number; rushAtt: number; targets: number; passTD: number; rushTD: number; plays: number; ppr: number }>();
+      for (const p of totals) {
+        const team = p.recent_team || '';
+        if (!team) continue;
+        const t = m.get(team) || { passAtt: 0, rushAtt: 0, targets: 0, passTD: 0, rushTD: 0, plays: 0, ppr: 0 };
+        t.passAtt += p.attempts || 0;
+        t.rushAtt += p.carries || 0;
+        t.targets += p.targets || 0;
+        t.passTD += p.passing_tds || 0;
+        t.rushTD += p.rushing_tds || 0;
+        t.plays += (p.attempts || 0) + (p.carries || 0);
+        t.ppr += p.fantasy_points_ppr || 0;
+        m.set(team, t);
+      }
+      return m;
+    };
+
+    const current = aggTeam(currentTotals);
+    const prior = aggTeam(priorTotals);
+    const prior2 = prior2Totals ? aggTeam(prior2Totals) : null;
+
+    // Vegas data for this season
+    const vegasByTeam = new Map<string, { impliedTotal: number; winPct: number; spread: number }>();
+    for (const g of gamesData) {
+      if (g.game_type !== 'REG' || g.season !== season - 1) continue;
+      const tl = g.total_line || 0;
+      const sl = g.spread_line || 0;
+      if (tl <= 0) continue;
+      for (const [team, implied] of [[g.home_team, (tl - sl) / 2], [g.away_team, (tl + sl) / 2]] as [string, number][]) {
+        const v = vegasByTeam.get(team) || { impliedTotal: 0, winPct: 0, spread: 0 };
+        v.impliedTotal += implied;
+        v.spread += team === g.home_team ? sl : -sl;
+        if ((team === g.home_team && (g.home_score || 0) > (g.away_score || 0)) ||
+            (team === g.away_team && (g.away_score || 0) > (g.home_score || 0))) {
+          v.winPct += 1;
+        }
+        vegasByTeam.set(team, v);
+      }
+    }
+    // Normalize to per-game
+    for (const [team, v] of vegasByTeam) {
+      const games = gamesData.filter((g) => g.game_type === 'REG' && g.season === season - 1 && (g.home_team === team || g.away_team === team)).length || 1;
+      v.impliedTotal /= games;
+      v.winPct /= games;
+      v.spread /= games;
     }
 
-    // Actual current-season team totals
-    const actualByTeam = new Map<string, { passAtt: number; rushAtt: number; targets: number; passTD: number; rushTD: number }>();
-    for (const p of data.currentTotals) {
-      const team = p.recent_team || '';
-      if (!team) continue;
-      const t = actualByTeam.get(team) || { passAtt: 0, rushAtt: 0, targets: 0, passTD: 0, rushTD: 0 };
-      t.passAtt += p.attempts || 0;
-      t.rushAtt += p.carries || 0;
-      t.targets += p.targets || 0;
-      t.passTD += p.passing_tds || 0;
-      t.rushTD += p.rushing_tds || 0;
-      actualByTeam.set(team, t);
-    }
+    for (const [team, act] of current) {
+      const pr = prior.get(team);
+      if (!pr) continue;
 
-    for (const [team, actual] of actualByTeam) {
-      const prior = priorByTeam.get(team);
-      if (!prior) continue;
-
-      const vegas = data.vegasByTeam.get(team);
-      const scheme = data.schemeByTeam.get(team);
-      const personnel = data.personnelByTeam.get(team);
-      const qbRush = data.qbRushByTeam.get(team) || 0;
+      const pr2 = prior2?.get(team);
+      const vegas = vegasByTeam.get(team);
+      const cc = coachChanges.get(season);
+      const qb = qbStats.get(`${season}:${team}`);
+      const tpqr = teamPriorQBRush.get(`${season}:${team}`) || 0;
+      const scheme = schemeData.get(`${season - 1}:${team}`);
+      const pers = personnelData.get(`${season - 1}:${team}`);
+      const dc = draftCapital.get(`${season}:${team}`) || 0;
+      const rt = rosterTurnover.get(`${season}:${team}`) || 0;
 
       rows.push({
-        team,
-        priorPassAtt: prior.passAtt,
-        priorRushAtt: prior.rushAtt,
-        priorTargets: prior.targets,
-        priorPassTD: prior.passTD,
-        priorRushTD: prior.rushTD,
-        priorPPR: prior.ppr,
-        newCoach: data.coachChanges.has(team) ? 1 : 0,
+        team, season,
+        priorPassAtt: pr.passAtt, priorRushAtt: pr.rushAtt, priorTargets: pr.targets,
+        priorPassTD: pr.passTD, priorRushTD: pr.rushTD,
+        priorTotalPlays: pr.plays, priorPPR: pr.ppr,
+        passAttTrend: pr2 ? pr.passAtt - pr2.passAtt : 0,
+        rushAttTrend: pr2 ? pr.rushAtt - pr2.rushAtt : 0,
+        targetsTrend: pr2 ? pr.targets - pr2.targets : 0,
+        newCoach: cc?.has(team) ? 1 : 0,
         vegasImpliedTotal: vegas?.impliedTotal || 0,
         vegasWinPct: vegas?.winPct || 0,
-        passRate: scheme?.passRate || 0.5,
-        neutralPassRate: scheme?.neutralPassRate || 0.5,
+        vegasSpread: vegas?.spread || 0,
+        passRate: scheme?.passRate || 0.55,
+        neutralPassRate: scheme?.neutralPassRate || 0.55,
         pace: scheme?.pace || 64,
-        shotgunRate: scheme?.shotgunRate || 0.5,
-        noHuddleRate: scheme?.noHuddleRate || 0,
-        qbRushAtt: qbRush,
-        qbRushShare: prior.rushAtt > 0 ? qbRush / prior.rushAtt : 0,
-        p11Rate: personnel?.p11Rate || 0,
-        p12Rate: personnel?.p12Rate || 0,
+        shotgunRate: scheme?.shotgunRate || 0.55,
+        noHuddleRate: scheme?.noHuddleRate || 0.1,
+        firstDownRunRate: scheme?.firstDownRunRate || 0.45,
+        qbOwnRushAtt: qb?.rushAtt || 0,
+        qbOwnScrambleRate: qb?.scrambleRate || 0,
+        teamPriorQBRushAtt: tpqr,
+        qbPPG: qb?.ppg || 0,
+        p11Rate: pers?.p11Rate || 0,
+        p12Rate: pers?.p12Rate || 0,
         sackRate: scheme?.sackRate || 0.06,
         rushYPC: scheme?.rushYPC || 4.0,
-        actualPassAtt: actual.passAtt,
-        actualRushAtt: actual.rushAtt,
-        actualTargets: actual.targets,
-        actualPassTD: actual.passTD,
-        actualRushTD: actual.rushTD,
+        offensiveDraftCapital: dc,
+        rosterTurnover: rt,
+        rbTargetRate: scheme?.rbTargetRate || 0.15,
+        teTargetRate: scheme?.teTargetRate || 0.2,
+        actualPassAtt: act.passAtt, actualRushAtt: act.rushAtt,
+        actualTargets: act.targets, actualPassTD: act.passTD,
+        actualRushTD: act.rushTD, actualTotalPlays: act.plays,
       });
     }
   }
-
   return rows;
 }
 
 /**
- * Train the team volume model and return predictions for a target season.
+ * Train team volume models and return predictions.
+ * Uses GBM with LOSO CV for honest evaluation.
  */
 export function trainTeamVolumeModel(
   trainingRows: TeamVolumeRow[],
   predictionFeatures: TeamVolumeFeatures[],
-): Map<string, { projPassAtt: number; projRushAtt: number; projTargets: number; projPassTD: number; projRushTD: number }> {
-  const featureKeys: (keyof TeamVolumeFeatures)[] = [
-    'priorPassAtt', 'priorRushAtt', 'priorTargets', 'priorPassTD', 'priorRushTD', 'priorPPR',
-    'newCoach', 'vegasImpliedTotal', 'vegasWinPct',
-    'passRate', 'neutralPassRate', 'pace', 'shotgunRate', 'noHuddleRate',
-    'qbRushAtt', 'qbRushShare',
-    'p11Rate', 'p12Rate', 'sackRate', 'rushYPC',
-  ];
+): { predictions: Map<string, TeamVolumePrediction>; model: TrainedTeamVolumeModel } {
+  const featureKeys = VOLUME_FEATURE_KEYS as string[];
 
-  const results = new Map<string, { projPassAtt: number; projRushAtt: number; projTargets: number; projPassTD: number; projRushTD: number }>();
+  const predictions = new Map<string, TeamVolumePrediction>();
+  for (const pf of predictionFeatures) {
+    predictions.set(pf.team, { projPassAtt: 0, projRushAtt: 0, projTargets: 0, projPassTD: 0, projRushTD: 0, projTotalPlays: 0 });
+  }
 
-  const targets: { key: string; actual: keyof TeamVolumeRow }[] = [
+  const targets: { key: keyof TeamVolumePrediction; actual: keyof TeamVolumeRow }[] = [
     { key: 'projPassAtt', actual: 'actualPassAtt' },
     { key: 'projRushAtt', actual: 'actualRushAtt' },
     { key: 'projTargets', actual: 'actualTargets' },
     { key: 'projPassTD', actual: 'actualPassTD' },
     { key: 'projRushTD', actual: 'actualRushTD' },
+    { key: 'projTotalPlays', actual: 'actualTotalPlays' },
   ];
 
-  // Initialize results for each prediction team
-  for (const pf of predictionFeatures) {
-    results.set(pf.team, { projPassAtt: 0, projRushAtt: 0, projTargets: 0, projPassTD: 0, projRushTD: 0 });
-  }
+  const trainedModels: Record<string, unknown> = {};
+  const cvMetrics: Record<string, { r2: number; mae: number }> = {};
 
   for (const { key, actual } of targets) {
     const X = trainingRows.map((r) => featureKeys.map((k) => (r as unknown as Record<string, number>)[k] || 0));
     const y = trainingRows.map((r) => (r as unknown as Record<string, number>)[actual] || 0);
-
     if (X.length < 30) continue;
 
-    // Use Ridge for team-level (small N per season, ~32 teams)
-    const model = trainRidgeRegression(X, y, featureKeys as string[], 10);
+    // Use GBM for team volumes (more expressive than Ridge for 32 features × 256 rows)
+    const model = trainGBM(X, y, featureKeys, {
+      nEstimators: 80, learningRate: 0.05, maxDepth: 2,
+      subsample: 0.8, minSamplesLeaf: 8,
+    });
+    trainedModels[key] = model;
 
+    // Also train Ridge as ensemble partner
+    const ridgeModel = trainRidgeRegression(X, y, featureKeys, 10);
+
+    // LOSO CV
+    const uniqueSeasons = [...new Set(trainingRows.map((r) => r.season))].sort();
+    const actuals: number[] = [];
+    const preds: number[] = [];
+    if (uniqueSeasons.length >= 3) {
+      for (const held of uniqueSeasons) {
+        const trainR = trainingRows.filter((r) => r.season !== held);
+        const testR = trainingRows.filter((r) => r.season === held);
+        if (trainR.length < 30) continue;
+        const Xtr = trainR.map((r) => featureKeys.map((k) => (r as unknown as Record<string, number>)[k] || 0));
+        const ytr = trainR.map((r) => (r as unknown as Record<string, number>)[actual] || 0);
+        const foldGbm = trainGBM(Xtr, ytr, featureKeys, {
+          nEstimators: 60, learningRate: 0.06, maxDepth: 2, subsample: 0.8, minSamplesLeaf: 8,
+        });
+        for (const row of testR) {
+          actuals.push((row as unknown as Record<string, number>)[actual] || 0);
+          preds.push(predictGBM(foldGbm, row as unknown as Record<string, number>).predicted);
+        }
+      }
+    }
+
+    if (actuals.length >= 10) {
+      const mean = actuals.reduce((a, b) => a + b, 0) / actuals.length;
+      const ssTot = actuals.reduce((s, v) => s + (v - mean) ** 2, 0);
+      const ssRes = actuals.reduce((s, v, i) => s + (v - preds[i]) ** 2, 0);
+      const r2 = ssTot > 0 ? Math.round((1 - ssRes / ssTot) * 1000) / 1000 : 0;
+      const mae = Math.round(actuals.reduce((s, v, i) => s + Math.abs(v - preds[i]), 0) / actuals.length);
+      cvMetrics[key] = { r2, mae };
+    }
+
+    // Generate predictions (ensemble GBM + Ridge)
     for (const pf of predictionFeatures) {
-      const features: Record<string, number> = {};
-      for (const k of featureKeys) features[k as string] = (pf as unknown as Record<string, number>)[k] || 0;
-      const pred = predict(model, features);
-      const r = results.get(pf.team)!;
-      (r as unknown as Record<string, number>)[key] = Math.round(pred.predicted);
+      const features = pf as unknown as Record<string, number>;
+      const gbmPred = predictGBM(model, features).predicted;
+      const ridgePred = predict(ridgeModel, features).predicted;
+      const ensemble = Math.round(gbmPred * 0.6 + ridgePred * 0.4);
+      const result = predictions.get(pf.team)!;
+      (result as unknown as Record<string, number>)[key] = ensemble;
     }
   }
 
-  return results;
+  return { predictions, model: { models: trainedModels, featureKeys, cvMetrics } };
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // Stage 2: Player Share Model
-// Predicts what % of team volume each player will capture
 // ═══════════════════════════════════════════════════════════════════
-
-interface PlayerShareRow {
-  // Features
-  priorTargetShare: number;
-  priorRushShare: number;
-  priorSnapPct: number;
-  depthChartRank: number;
-  teamSamePosCount: number;
-  contractAPY: number;
-  age: number;
-  yearsInLeague: number;
-  priorPPG: number;
-  isRookie: number;
-  // Targets
-  actualTargetShare: number;
-  actualRushShare: number;
-}
 
 const SHARE_FEATURE_KEYS = [
   'priorTargetShare', 'priorRushShare', 'priorSnapPct',
@@ -253,106 +318,53 @@ const SHARE_FEATURE_KEYS = [
   'age', 'yearsInLeague', 'priorPPG', 'isRookie',
 ];
 
-export function buildPlayerShareTrainingData(
-  playerRows: Array<{
-    name: string; position: string; team: string; season: number;
-    features: Record<string, number>;
-    // We need actual shares — derived from current season stats
-    actualTargets: number; actualCarries: number;
-    teamTargets: number; teamCarries: number;
-  }>,
-): Map<string, PlayerShareRow[]> { // position → rows
-  const byPos = new Map<string, PlayerShareRow[]>();
-
-  for (const p of playerRows) {
-    if (!byPos.has(p.position)) byPos.set(p.position, []);
-    byPos.get(p.position)!.push({
-      priorTargetShare: p.features.priorTeamTargetShare || 0,
-      priorRushShare: p.features.priorTeamTouchShare || 0,
-      priorSnapPct: p.features.priorSnapPct || 0,
-      depthChartRank: p.features.depthChartRank || 99,
-      teamSamePosCount: p.features.teamSamePosCount || 0,
-      contractAPY: p.features.contractAPY || 0,
-      age: p.features.age || 25,
-      yearsInLeague: p.features.yearsInLeague || 0,
-      priorPPG: p.features.priorPPG || 0,
-      isRookie: (p.features.yearsInLeague || 0) <= 1 ? 1 : 0,
-      actualTargetShare: p.teamTargets > 0 ? p.actualTargets / p.teamTargets : 0,
-      actualRushShare: p.teamCarries > 0 ? p.actualCarries / p.teamCarries : 0,
-    });
-  }
-
-  return byPos;
-}
-
 export function trainPlayerShareModel(
-  trainingRows: PlayerShareRow[],
+  trainingRows: Array<Record<string, number>>,
   predictionFeatures: Array<Record<string, number>>,
-): Array<{ projTargetShare: number; projRushShare: number }> {
+  targetKey: string,
+): number[] {
   if (trainingRows.length < 20) {
-    return predictionFeatures.map(() => ({ projTargetShare: 0, projRushShare: 0 }));
+    return predictionFeatures.map(() => 0);
   }
 
-  const results: Array<{ projTargetShare: number; projRushShare: number }> = [];
+  const X = trainingRows.map((r) => SHARE_FEATURE_KEYS.map((k) => r[k] || 0));
+  const y = trainingRows.map((r) => r[targetKey] || 0);
+  const model = trainRidgeRegression(X, y, SHARE_FEATURE_KEYS, 5);
 
-  // Target share model
-  const XTgt = trainingRows.map((r) => SHARE_FEATURE_KEYS.map((k) => (r as unknown as Record<string, number>)[k] || 0));
-  const yTgt = trainingRows.map((r) => r.actualTargetShare);
-  const tgtModel = trainRidgeRegression(XTgt, yTgt, SHARE_FEATURE_KEYS, 5);
-
-  // Rush share model
-  const XRush = trainingRows.map((r) => SHARE_FEATURE_KEYS.map((k) => (r as unknown as Record<string, number>)[k] || 0));
-  const yRush = trainingRows.map((r) => r.actualRushShare);
-  const rushModel = trainRidgeRegression(XRush, yRush, SHARE_FEATURE_KEYS, 5);
-
-  for (const pf of predictionFeatures) {
-    const tgtPred = predict(tgtModel, pf);
-    const rushPred = predict(rushModel, pf);
-    results.push({
-      projTargetShare: Math.max(0, Math.min(1, Math.round(tgtPred.predicted * 1000) / 1000)),
-      projRushShare: Math.max(0, Math.min(1, Math.round(rushPred.predicted * 1000) / 1000)),
-    });
-  }
-
-  return results;
+  return predictionFeatures.map((pf) => {
+    const pred = predict(model, pf);
+    return Math.max(0, Math.min(1, Math.round(pred.predicted * 1000) / 1000));
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Stage 3: Combine team volumes × player shares → player PPG
+// Stage 3: Player PPG from team volumes × player shares
 // ═══════════════════════════════════════════════════════════════════
 
 export function projectPlayerPPG(
-  teamVolumes: Map<string, { projPassAtt: number; projRushAtt: number; projTargets: number; projPassTD: number; projRushTD: number }>,
+  teamVolumes: TeamVolumePrediction,
   playerShare: { projTargetShare: number; projRushShare: number },
-  team: string,
   position: string,
   priorEfficiency: { catchRate: number; ypr: number; ypc: number },
 ): number {
-  const tv = teamVolumes.get(team);
-  if (!tv) return 0;
-
+  const tv = teamVolumes;
   let ppg = 0;
 
   if (position === 'QB') {
-    // QB: passing production + rushing
-    const passYds = tv.projPassAtt * 7.0; // ~7 yards per attempt league avg
-    const passTD = tv.projPassTD;
-    const rushYds = tv.projRushAtt * playerShare.projRushShare * priorEfficiency.ypc;
-    const rushTD = tv.projRushTD * playerShare.projRushShare;
-    const seasonPPR = passYds * 0.04 + passTD * 4 + rushYds * 0.1 + rushTD * 6;
-    ppg = seasonPPR / 17;
+    const passYdsPerAtt = 7.0;
+    const ppgPass = tv.projPassAtt * passYdsPerAtt * 0.04 / 17 + tv.projPassTD * 4 / 17;
+    const rushAtt = tv.projRushAtt * playerShare.projRushShare;
+    const ppgRush = rushAtt * priorEfficiency.ypc * 0.1 / 17;
+    ppg = ppgPass + ppgRush;
   } else {
-    // RB/WR/TE: receiving + rushing share
     const projTargets = tv.projTargets * playerShare.projTargetShare;
     const projRec = projTargets * priorEfficiency.catchRate;
     const projRecYds = projRec * priorEfficiency.ypr;
-    const projRecTD = tv.projPassTD * playerShare.projTargetShare * 0.3; // ~30% of team pass TDs
-
+    const projRecTD = tv.projPassTD * playerShare.projTargetShare * 0.3;
     const projRushAtt = tv.projRushAtt * playerShare.projRushShare;
     const projRushYds = projRushAtt * priorEfficiency.ypc;
     const projRushTD = tv.projRushTD * playerShare.projRushShare;
-
-    const seasonPPR = projRec * 1 + projRecYds * 0.1 + projRecTD * 6
+    const seasonPPR = projRec + projRecYds * 0.1 + projRecTD * 6
       + projRushYds * 0.1 + projRushTD * 6;
     ppg = seasonPPR / 17;
   }

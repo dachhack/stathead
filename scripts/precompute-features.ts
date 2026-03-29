@@ -13,7 +13,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v11.json'; // v11: volume projections wired in
+const CACHE_PATH = 'public/data/training-rows-cache-v12.json'; // v12: ML team volume model
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
