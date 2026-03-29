@@ -224,3 +224,138 @@ export function trainTeamVolumeModel(
 
   return results;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Stage 2: Player Share Model
+// Predicts what % of team volume each player will capture
+// ═══════════════════════════════════════════════════════════════════
+
+interface PlayerShareRow {
+  // Features
+  priorTargetShare: number;
+  priorRushShare: number;
+  priorSnapPct: number;
+  depthChartRank: number;
+  teamSamePosCount: number;
+  contractAPY: number;
+  age: number;
+  yearsInLeague: number;
+  priorPPG: number;
+  isRookie: number;
+  // Targets
+  actualTargetShare: number;
+  actualRushShare: number;
+}
+
+const SHARE_FEATURE_KEYS = [
+  'priorTargetShare', 'priorRushShare', 'priorSnapPct',
+  'depthChartRank', 'teamSamePosCount', 'contractAPY',
+  'age', 'yearsInLeague', 'priorPPG', 'isRookie',
+];
+
+export function buildPlayerShareTrainingData(
+  playerRows: Array<{
+    name: string; position: string; team: string; season: number;
+    features: Record<string, number>;
+    // We need actual shares — derived from current season stats
+    actualTargets: number; actualCarries: number;
+    teamTargets: number; teamCarries: number;
+  }>,
+): Map<string, PlayerShareRow[]> { // position → rows
+  const byPos = new Map<string, PlayerShareRow[]>();
+
+  for (const p of playerRows) {
+    if (!byPos.has(p.position)) byPos.set(p.position, []);
+    byPos.get(p.position)!.push({
+      priorTargetShare: p.features.priorTeamTargetShare || 0,
+      priorRushShare: p.features.priorTeamTouchShare || 0,
+      priorSnapPct: p.features.priorSnapPct || 0,
+      depthChartRank: p.features.depthChartRank || 99,
+      teamSamePosCount: p.features.teamSamePosCount || 0,
+      contractAPY: p.features.contractAPY || 0,
+      age: p.features.age || 25,
+      yearsInLeague: p.features.yearsInLeague || 0,
+      priorPPG: p.features.priorPPG || 0,
+      isRookie: (p.features.yearsInLeague || 0) <= 1 ? 1 : 0,
+      actualTargetShare: p.teamTargets > 0 ? p.actualTargets / p.teamTargets : 0,
+      actualRushShare: p.teamCarries > 0 ? p.actualCarries / p.teamCarries : 0,
+    });
+  }
+
+  return byPos;
+}
+
+export function trainPlayerShareModel(
+  trainingRows: PlayerShareRow[],
+  predictionFeatures: Array<Record<string, number>>,
+): Array<{ projTargetShare: number; projRushShare: number }> {
+  if (trainingRows.length < 20) {
+    return predictionFeatures.map(() => ({ projTargetShare: 0, projRushShare: 0 }));
+  }
+
+  const results: Array<{ projTargetShare: number; projRushShare: number }> = [];
+
+  // Target share model
+  const XTgt = trainingRows.map((r) => SHARE_FEATURE_KEYS.map((k) => (r as unknown as Record<string, number>)[k] || 0));
+  const yTgt = trainingRows.map((r) => r.actualTargetShare);
+  const tgtModel = trainRidgeRegression(XTgt, yTgt, SHARE_FEATURE_KEYS, 5);
+
+  // Rush share model
+  const XRush = trainingRows.map((r) => SHARE_FEATURE_KEYS.map((k) => (r as unknown as Record<string, number>)[k] || 0));
+  const yRush = trainingRows.map((r) => r.actualRushShare);
+  const rushModel = trainRidgeRegression(XRush, yRush, SHARE_FEATURE_KEYS, 5);
+
+  for (const pf of predictionFeatures) {
+    const tgtPred = predict(tgtModel, pf);
+    const rushPred = predict(rushModel, pf);
+    results.push({
+      projTargetShare: Math.max(0, Math.min(1, Math.round(tgtPred.predicted * 1000) / 1000)),
+      projRushShare: Math.max(0, Math.min(1, Math.round(rushPred.predicted * 1000) / 1000)),
+    });
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Stage 3: Combine team volumes × player shares → player PPG
+// ═══════════════════════════════════════════════════════════════════
+
+export function projectPlayerPPG(
+  teamVolumes: Map<string, { projPassAtt: number; projRushAtt: number; projTargets: number; projPassTD: number; projRushTD: number }>,
+  playerShare: { projTargetShare: number; projRushShare: number },
+  team: string,
+  position: string,
+  priorEfficiency: { catchRate: number; ypr: number; ypc: number },
+): number {
+  const tv = teamVolumes.get(team);
+  if (!tv) return 0;
+
+  let ppg = 0;
+
+  if (position === 'QB') {
+    // QB: passing production + rushing
+    const passYds = tv.projPassAtt * 7.0; // ~7 yards per attempt league avg
+    const passTD = tv.projPassTD;
+    const rushYds = tv.projRushAtt * playerShare.projRushShare * priorEfficiency.ypc;
+    const rushTD = tv.projRushTD * playerShare.projRushShare;
+    const seasonPPR = passYds * 0.04 + passTD * 4 + rushYds * 0.1 + rushTD * 6;
+    ppg = seasonPPR / 17;
+  } else {
+    // RB/WR/TE: receiving + rushing share
+    const projTargets = tv.projTargets * playerShare.projTargetShare;
+    const projRec = projTargets * priorEfficiency.catchRate;
+    const projRecYds = projRec * priorEfficiency.ypr;
+    const projRecTD = tv.projPassTD * playerShare.projTargetShare * 0.3; // ~30% of team pass TDs
+
+    const projRushAtt = tv.projRushAtt * playerShare.projRushShare;
+    const projRushYds = projRushAtt * priorEfficiency.ypc;
+    const projRushTD = tv.projRushTD * playerShare.projRushShare;
+
+    const seasonPPR = projRec * 1 + projRecYds * 0.1 + projRecTD * 6
+      + projRushYds * 0.1 + projRushTD * 6;
+    ppg = seasonPPR / 17;
+  }
+
+  return Math.round(ppg * 10) / 10;
+}

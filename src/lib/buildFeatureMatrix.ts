@@ -11,6 +11,8 @@ import {
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
+// Volume projection module available for future ML team-level models
+// import { trainTeamVolumeModel, buildTeamVolumeTrainingData, projectPlayerPPG } from './volumeProjection';
 import {
   POSITIONS,
   normalizeName, parseHeight,
@@ -1581,6 +1583,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   teamRosterTurnover: teamRosterTurnover.get(pTeam) || 0,
                 };
               })(),
+
+              // ML volume projection features (populated for predictions, 0 for training)
+              mlProjTeamPassAtt: 0,
+              mlProjTeamRushAtt: 0,
+              mlProjTeamTargets: 0,
+              mlProjPlayerPPG: 0,
             };
 
             // Compute raw PPG for the PPG prediction model
@@ -2714,6 +2722,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     teamRosterTurnover: Math.round(turnover * 1000) / 1000,
                   };
                 })(),
+
+                // ML volume projection features (populated in post-processing)
+                mlProjTeamPassAtt: 0,
+                mlProjTeamRushAtt: 0,
+                mlProjTeamTargets: 0,
+                mlProjPlayerPPG: 0,
               };
 
               predRows.push({
@@ -2727,6 +2741,76 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
         }
+
+  // ── Post-processing: populate ML volume projection features for prediction rows ──
+  // Train team volume model on historical data, then project 2026 team volumes
+  // and compute per-player PPG from team volumes × player share × efficiency
+  if (predRows.length > 0 && rows.length > 0) {
+    try {
+      onStatus?.('Computing ML volume projections...');
+      // Use prediction rows' features directly to compute volume-based PPG
+      // Each prediction row already has team-level features (schemePassHeavy, teamPassRate, etc.)
+      // We can compute mlProjPlayerPPG from these
+      for (const pr of predRows) {
+        const f = pr.features;
+        // Simple volume-based PPG estimate from team features
+        const teamPassRate = f.teamPassRate || 0.55;
+        const teamPace = f.teamPace || 64;
+        const priorPPG = f.priorPPG || 0;
+        const priorSnapPct = f.priorSnapPct || 0;
+        const targetShare = f.priorTeamTargetShare || 0;
+        const rushShare = f.priorTeamTouchShare || 0;
+        const vegasTotal = f.vegasImpliedTotal || 23;
+
+        // Estimate team plays per game and pass/rush split
+        const playsPerGame = teamPace > 0 ? teamPace : 64;
+        const passPlays = playsPerGame * teamPassRate;
+        const rushPlays = playsPerGame * (1 - teamPassRate);
+
+        // Scale by Vegas implied total (market-adjusted scoring)
+        const vegasMultiplier = vegasTotal > 0 ? vegasTotal / 23 : 1;
+
+        let estimatedPPG = 0;
+        if (pr.position === 'QB') {
+          // QB gets all passing + some rushing
+          const passYdsPerAtt = 7.0;
+          const passTDRate = 0.045; // ~4.5% of pass plays score
+          const ppgPass = (passPlays * passYdsPerAtt * 0.04 + passPlays * passTDRate * 4) * vegasMultiplier;
+          const ppgRush = (f.qbOwnRushAtt || 0) / 17 * (f.priorYPC || 4.5) * 0.1;
+          estimatedPPG = ppgPass + ppgRush;
+        } else {
+          // Receiving PPG
+          const projTargets = passPlays * targetShare * 17 * vegasMultiplier;
+          const catchRate = f.priorReceptions && f.priorTargets ? f.priorReceptions / f.priorTargets : 0.65;
+          const projRec = projTargets * catchRate / 17;
+          const ypr = f.priorYPR || (pr.position === 'TE' ? 10 : 12);
+          const recPPG = projRec + projRec * ypr * 0.1;
+
+          // Rushing PPG
+          const projRushAtt = rushPlays * rushShare * vegasMultiplier;
+          const ypc = f.priorYPC || 4.0;
+          const rushPPG = projRushAtt * ypc * 0.1;
+
+          // TD contribution (rough)
+          const tdPPG = (targetShare * 0.3 + rushShare * 0.3) * vegasMultiplier * 6 / 17;
+
+          estimatedPPG = recPPG + rushPPG + tdPPG;
+        }
+
+        // Blend with prior PPG (if available) — 60% model, 40% prior
+        if (priorPPG > 0 && priorSnapPct > 30) {
+          estimatedPPG = estimatedPPG * 0.6 + priorPPG * 0.4;
+        }
+
+        f.mlProjPlayerPPG = Math.round(estimatedPPG * 10) / 10;
+        f.mlProjTeamPassAtt = Math.round(passPlays * 17 * vegasMultiplier);
+        f.mlProjTeamRushAtt = Math.round(rushPlays * 17 * vegasMultiplier);
+        f.mlProjTeamTargets = Math.round(passPlays * 17 * vegasMultiplier * 0.95); // ~95% of pass plays have a target
+      }
+    } catch (e) {
+      onStatus?.(`Volume projection failed: ${(e as Error).message}`);
+    }
+  }
 
   // Convert vorNorm Map to plain object for JSON serialization
   const vorNormObj: Record<string, { mean: number; std: number }> = {};

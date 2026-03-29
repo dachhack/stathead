@@ -13,7 +13,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v10.json'; // v10: ADP-free PPG model + volume projection
+const CACHE_PATH = 'public/data/training-rows-cache-v11.json'; // v11: volume projections wired in
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
