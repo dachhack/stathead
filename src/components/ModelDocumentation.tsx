@@ -193,6 +193,8 @@ export function ModelDocumentation() {
                 { label: 'GBM CV MAE', value: (model.cvMaeGbm ?? 0).toFixed(3), color: 'var(--text-primary)' },
                 { label: 'Ridge CV R²', value: (model.cvR2Ridge ?? 0).toFixed(3), color: (model.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : (model.cvR2Ridge ?? 0) > 0 ? '#facc15' : '#ef4444' },
                 { label: 'Ridge CV MAE', value: (model.cvMaeRidge ?? 0).toFixed(3), color: 'var(--text-primary)' },
+                { label: 'Ensemble R² (GBM+Ridge)', value: ((model as any).cvR2Ensemble ?? 0).toFixed(3), color: ((model as any).cvR2Ensemble ?? 0) > 0.1 ? '#22c55e' : ((model as any).cvR2Ensemble ?? 0) > 0 ? '#facc15' : '#ef4444' },
+                { label: 'Rookie/Vet R²', value: ((model as any).cvR2RookieVet ?? 0).toFixed(3), color: ((model as any).cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : ((model as any).cvR2RookieVet ?? 0) > 0 ? '#facc15' : '#ef4444' },
                 { label: 'Baseline R² (no proj)', value: (model.cvR2GbmBaseline ?? 0).toFixed(3), color: 'var(--text-muted)' },
                 { label: 'Hit Rate', value: `${model.hitRate}%`, color: '#22c55e' },
                 { label: 'Bust Rate', value: `${model.bustRate}%`, color: '#ef4444' },
@@ -329,8 +331,8 @@ export function ModelDocumentation() {
                     <th style={{ textAlign: 'right' }}>GBM R²</th>
                     <th style={{ textAlign: 'right' }}>GBM MAE</th>
                     <th style={{ textAlign: 'right' }}>Ridge R²</th>
-                    <th style={{ textAlign: 'right' }}>Ridge MAE</th>
-                    <th style={{ textAlign: 'right' }}>Baseline R²</th>
+                    <th style={{ textAlign: 'right' }}>Ensemble R²</th>
+                    <th style={{ textAlign: 'right' }}>R/V R²</th>
                     <th style={{ textAlign: 'right' }}>Features</th>
                     <th style={{ textAlign: 'right' }}>Hit %</th>
                     <th style={{ textAlign: 'right' }}>Bust %</th>
@@ -344,8 +346,8 @@ export function ModelDocumentation() {
                       <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
                       <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(3)}</td>
                       <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right' }}>{(m.cvMaeRidge ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{(m.cvR2GbmBaseline ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: ((m as any).cvR2Ensemble ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((m as any).cvR2Ensemble ?? 0).toFixed(3)}</td>
+                      <td style={{ textAlign: 'right', color: ((m as any).cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((m as any).cvR2RookieVet ?? 0).toFixed(3)}</td>
                       <td style={{ textAlign: 'right' }}>{m.featureNames.length}</td>
                       <td style={{ textAlign: 'right', color: '#22c55e' }}>{m.hitRate}%</td>
                       <td style={{ textAlign: 'right', color: '#ef4444' }}>{m.bustRate}%</td>
