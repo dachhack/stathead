@@ -210,6 +210,11 @@ export const FEATURES: FeatureDef[] = [
   { key: 'projPlayerPPR', label: 'Proj Player PPR', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projPlayerVsExpected', label: 'Proj Player vs Expected', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projTargetShare', label: 'Proj Target Share', category: 'Projection', positions: ['RB', 'WR', 'TE'] },
+  // ML-enhanced volume projections (from two-stage model)
+  { key: 'mlProjTeamPassAtt', label: 'ML Proj Team Pass Att', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'mlProjTeamRushAtt', label: 'ML Proj Team Rush Att', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'mlProjTeamTargets', label: 'ML Proj Team Targets', category: 'Projection', positions: ['RB', 'WR', 'TE'] },
+  { key: 'mlProjPlayerPPG', label: 'ML Proj Player PPG', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
 
   // Reddit sentiment features (from r/fantasyfootball)
   { key: 'redditMentions1w', label: 'Reddit Mentions (1wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },
