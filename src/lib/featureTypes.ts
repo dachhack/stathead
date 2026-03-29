@@ -91,6 +91,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Momentum: '#fb923c',
   Interaction: '#94a3b8',
   'QB Impact': '#818cf8',
+  Consistency: '#c084fc',
+  Environment: '#67e8f9',
 };
 
 export const FEATURES: FeatureDef[] = [
@@ -287,6 +289,30 @@ export const FEATURES: FeatureDef[] = [
   { key: 'teamPriorQBRushAtt', label: 'Team Prior QB Rush Att', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
   { key: 'teamPriorQBRushShare', label: 'Team Prior QB Rush Share', category: 'QB Impact', positions: ['RB'] },
   { key: 'teamPriorQBScrambleRate', label: 'Team Prior QB Scramble Rate', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+
+  // Weekly consistency (boom/bust profile)
+  { key: 'priorPPGStdDev', label: 'Prior PPG Std Dev', category: 'Consistency', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorBoomRate', label: 'Prior Boom Game Rate (>20pts)', category: 'Consistency', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'priorBustGameRate', label: 'Prior Dud Game Rate (<5pts)', category: 'Consistency', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Dome/weather team
+  { key: 'teamDomeGames', label: 'Team Home Dome Games', category: 'Environment', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Bye week timing
+  { key: 'byeWeek', label: 'Bye Week Number', category: 'Environment', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Team offensive line quality (from PBP)
+  { key: 'teamSackRate', label: 'Team Sack Rate Allowed', category: 'Environment', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'teamRushYPC', label: 'Team Rush Yards Per Carry', category: 'Environment', positions: ['RB'] },
+
+  // QB quality for receivers
+  { key: 'teamQBPassRating', label: 'Team QB Passer Rating', category: 'QB Impact', positions: ['WR', 'TE'] },
+
+  // Injury recurrence (same body part in consecutive years)
+  { key: 'injuryRecurrence', label: 'Injury Recurrence Risk', category: 'Injury', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Team offensive turnover rate
+  { key: 'teamRosterTurnover', label: 'Team Roster Turnover Rate', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──

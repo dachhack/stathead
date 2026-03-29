@@ -795,6 +795,136 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
+          // ── Weekly consistency features ──
+          const weeklyConsistency = new Map<string, { stdDev: number; boomRate: number; bustGameRate: number }>();
+          {
+            const playerWeeklyPts = new Map<string, number[]>();
+            for (const w of priorWeekly) {
+              if (!POSITIONS.includes(w.position)) continue;
+              const name = normalizeName(w.player_display_name);
+              if (!playerWeeklyPts.has(name)) playerWeeklyPts.set(name, []);
+              playerWeeklyPts.get(name)!.push(w.fantasy_points_ppr || 0);
+            }
+            for (const [name, pts] of playerWeeklyPts) {
+              if (pts.length < 3) continue;
+              const mean = pts.reduce((a, b) => a + b, 0) / pts.length;
+              const variance = pts.reduce((s, v) => s + (v - mean) ** 2, 0) / pts.length;
+              const stdDev = Math.sqrt(variance);
+              const boomRate = pts.filter((p) => p >= 20).length / pts.length;
+              const bustGameRate = pts.filter((p) => p < 5).length / pts.length;
+              weeklyConsistency.set(name, {
+                stdDev: Math.round(stdDev * 10) / 10,
+                boomRate: Math.round(boomRate * 1000) / 1000,
+                bustGameRate: Math.round(bustGameRate * 1000) / 1000,
+              });
+            }
+          }
+
+          // ── Environment features: dome, bye week, O-line quality ──
+          const teamDomeGames = new Map<string, number>();
+          const teamByeWeek = new Map<string, number>();
+          const teamSackRate = new Map<string, number>();
+          const teamRushYPC = new Map<string, number>();
+          {
+            for (const g of gamesData) {
+              if (g.game_type !== 'REG' || g.season !== season) continue;
+              // Dome games (home team)
+              if (g.roof === 'dome' || g.roof === 'closed') {
+                teamDomeGames.set(g.home_team, (teamDomeGames.get(g.home_team) || 0) + 1);
+              }
+            }
+            // Bye week from schedule gaps
+            const teamWeeks = new Map<string, number[]>();
+            for (const g of gamesData) {
+              if (g.game_type !== 'REG' || g.season !== season) continue;
+              for (const team of [g.home_team, g.away_team]) {
+                if (!teamWeeks.has(team)) teamWeeks.set(team, []);
+                teamWeeks.get(team)!.push(g.week);
+              }
+            }
+            for (const [team, weeks] of teamWeeks) {
+              const sorted = weeks.sort((a, b) => a - b);
+              for (let i = 1; i < sorted.length; i++) {
+                if (sorted[i] - sorted[i - 1] > 1) {
+                  teamByeWeek.set(team, sorted[i - 1] + 1);
+                  break;
+                }
+              }
+            }
+            // O-line: sack rate and rush YPC from prior PBP
+            const teamSacks = new Map<string, { sacks: number; dropbacks: number }>();
+            const teamRush = new Map<string, { yards: number; attempts: number }>();
+            for (const play of priorPbp) {
+              if (!play.posteam) continue;
+              if (play.play_type === 'pass' || play.qb_dropback === 1) {
+                const acc = teamSacks.get(play.posteam) || { sacks: 0, dropbacks: 0 };
+                acc.dropbacks += 1;
+                if (play.sack === 1) acc.sacks += 1;
+                teamSacks.set(play.posteam, acc);
+              }
+              if (play.play_type === 'run' && play.rushing_yards != null) {
+                const acc = teamRush.get(play.posteam) || { yards: 0, attempts: 0 };
+                acc.yards += play.rushing_yards;
+                acc.attempts += 1;
+                teamRush.set(play.posteam, acc);
+              }
+            }
+            for (const [team, s] of teamSacks) {
+              teamSackRate.set(team, s.dropbacks > 0 ? Math.round((s.sacks / s.dropbacks) * 1000) / 1000 : 0);
+            }
+            for (const [team, r] of teamRush) {
+              teamRushYPC.set(team, r.attempts > 0 ? Math.round((r.yards / r.attempts) * 10) / 10 : 0);
+            }
+          }
+
+          // ── QB passer rating for WR/TE value ──
+          const teamQBPassRating = new Map<string, number>();
+          {
+            for (const p of priorTotals) {
+              if (p.position !== 'QB') continue;
+              const team = p.recent_team || '';
+              if (!team || !p.attempts || p.attempts < 100) continue;
+              const existing = teamQBPassRating.get(team);
+              if (!existing || (p.fantasy_points_ppr || 0) > (existing || 0)) {
+                // Approximate passer rating from stats
+                const compPct = p.completions / p.attempts;
+                const ypa = p.passing_yards / p.attempts;
+                const tdPct = p.passing_tds / p.attempts;
+                const intPct = p.interceptions / p.attempts;
+                const a = Math.min(2.375, Math.max(0, (compPct - 0.3) * 5));
+                const b = Math.min(2.375, Math.max(0, (ypa - 3) * 0.25));
+                const c = Math.min(2.375, Math.max(0, tdPct * 20));
+                const d = Math.min(2.375, Math.max(0, 2.375 - intPct * 25));
+                teamQBPassRating.set(team, Math.round(((a + b + c + d) / 6) * 100 * 10) / 10);
+              }
+            }
+          }
+
+          // ── Injury recurrence ──
+          // Check if same injury type occurred in prior-prior season
+          const injuryRecurrence = new Map<string, number>();
+          // We only have current prior injuries — for recurrence we'd need 2-year history
+          // Use soft tissue + knee flags from prior injuries as a proxy for recurrence risk
+          for (const [name, inj] of priorInjByName) {
+            let risk = 0;
+            if (inj.softTissue) risk += 0.5;
+            if (inj.knee) risk += 0.5;
+            if (inj.gamesOut >= 4) risk += 0.5;
+            injuryRecurrence.set(name, Math.min(1, risk));
+          }
+
+          // ── Team roster turnover ──
+          const teamRosterTurnover = new Map<string, number>();
+          for (const [key, currentNames] of rosterByTeamPos) {
+            const [team] = key.split(':');
+            const priorNames = priorRosterByTeamPos.get(key);
+            if (!priorNames) continue;
+            const newPlayers = [...currentNames].filter((n) => !priorNames.has(n)).length;
+            const turnover = currentNames.size > 0 ? newPlayers / currentNames.size : 0;
+            const existing = teamRosterTurnover.get(team) || 0;
+            teamRosterTurnover.set(team, Math.max(existing, Math.round(turnover * 1000) / 1000));
+          }
+
           // Prior season PPR by name + position (for quality-aware competition)
           const priorPPRByName = new Map<string, number>();
           const priorPosByName = new Map<string, string>();
@@ -1443,6 +1573,30 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   teamPriorQBRushAtt: tpq?.rushAtt || 0,
                   teamPriorQBRushShare: Math.round((tpq?.rushShare || 0) * 1000) / 1000,
                   teamPriorQBScrambleRate: tpq?.scrambleRate || 0,
+                };
+              })(),
+
+              // Consistency features
+              ...(() => {
+                const wc = weeklyConsistency.get(normalName);
+                return {
+                  priorPPGStdDev: wc?.stdDev || 0,
+                  priorBoomRate: wc?.boomRate || 0,
+                  priorBustGameRate: wc?.bustGameRate || 0,
+                };
+              })(),
+
+              // Environment features
+              ...(() => {
+                const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                return {
+                  teamDomeGames: teamDomeGames.get(pTeam) || 0,
+                  byeWeek: teamByeWeek.get(pTeam) || 0,
+                  teamSackRate: teamSackRate.get(pTeam) || 0,
+                  teamRushYPC: teamRushYPC.get(pTeam) || 0,
+                  teamQBPassRating: teamQBPassRating.get(pTeam) || 0,
+                  injuryRecurrence: injuryRecurrence.get(normalName) || 0,
+                  teamRosterTurnover: teamRosterTurnover.get(pTeam) || 0,
                 };
               })(),
             };
@@ -2483,6 +2637,94 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     teamPriorQBRushAtt: tpq?.rushAtt || 0,
                     teamPriorQBRushShare: Math.round((tpq?.rushShare || 0) * 1000) / 1000,
                     teamPriorQBScrambleRate: tpq?.scrambleRate || 0,
+                  };
+                })(),
+
+                // Consistency (from prior weekly stats)
+                ...(() => {
+                  const pts: number[] = [];
+                  for (const w of predPriorWeekly) {
+                    if (normalizeName(w.player_display_name) === normalName) {
+                      pts.push(w.fantasy_points_ppr || 0);
+                    }
+                  }
+                  if (pts.length < 3) return { priorPPGStdDev: 0, priorBoomRate: 0, priorBustGameRate: 0 };
+                  const mean = pts.reduce((a, b) => a + b, 0) / pts.length;
+                  const stdDev = Math.sqrt(pts.reduce((s, v) => s + (v - mean) ** 2, 0) / pts.length);
+                  return {
+                    priorPPGStdDev: Math.round(stdDev * 10) / 10,
+                    priorBoomRate: Math.round((pts.filter((p) => p >= 20).length / pts.length) * 1000) / 1000,
+                    priorBustGameRate: Math.round((pts.filter((p) => p < 5).length / pts.length) * 1000) / 1000,
+                  };
+                })(),
+
+                // Environment (from games + PBP)
+                ...(() => {
+                  const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
+                  // Dome games for prediction season
+                  let domeCount = 0;
+                  let bye = 0;
+                  const weeks: number[] = [];
+                  for (const g of gamesData) {
+                    if (g.game_type !== 'REG' || g.season !== predSeason) continue;
+                    if (g.home_team === pTeam && (g.roof === 'dome' || g.roof === 'closed')) domeCount++;
+                    if (g.home_team === pTeam || g.away_team === pTeam) weeks.push(g.week);
+                  }
+                  const sw = weeks.sort((a, b) => a - b);
+                  for (let i = 1; i < sw.length; i++) {
+                    if (sw[i] - sw[i - 1] > 1) { bye = sw[i - 1] + 1; break; }
+                  }
+                  // O-line from prior PBP
+                  let sacks = 0, dropbacks = 0, rushYd = 0, rushAtt2 = 0;
+                  for (const play of predPriorPbp) {
+                    if (play.posteam !== pTeam) continue;
+                    if (play.play_type === 'pass' || play.qb_dropback === 1) {
+                      dropbacks++;
+                      if (play.sack === 1) sacks++;
+                    }
+                    if (play.play_type === 'run' && play.rushing_yards != null) {
+                      rushYd += play.rushing_yards;
+                      rushAtt2++;
+                    }
+                  }
+                  // QB passer rating
+                  let qbPR = 0;
+                  for (const p of predPriorTotals) {
+                    if (p.position !== 'QB' || (p.recent_team || '') !== pTeam || !p.attempts || p.attempts < 100) continue;
+                    const compPct = p.completions / p.attempts;
+                    const ypa = p.passing_yards / p.attempts;
+                    const tdPct = p.passing_tds / p.attempts;
+                    const intPct = p.interceptions / p.attempts;
+                    const a = Math.min(2.375, Math.max(0, (compPct - 0.3) * 5));
+                    const b = Math.min(2.375, Math.max(0, (ypa - 3) * 0.25));
+                    const c = Math.min(2.375, Math.max(0, tdPct * 20));
+                    const d = Math.min(2.375, Math.max(0, 2.375 - intPct * 25));
+                    qbPR = Math.round(((a + b + c + d) / 6) * 100 * 10) / 10;
+                  }
+                  // Injury recurrence
+                  const inj = predPriorInjByName.get(normalName);
+                  let injRisk = 0;
+                  if (inj) {
+                    if (inj.softTissue) injRisk += 0.5;
+                    if (inj.knee) injRisk += 0.5;
+                    if (inj.gamesOut >= 4) injRisk += 0.5;
+                  }
+                  // Roster turnover
+                  let turnover = 0;
+                  const curNames = predRosterByTeamPos.get(`${pTeam}:${adpPlayer.position}`);
+                  const prvNames = predPriorRosterByTeamPos.get(`${pTeam}:${adpPlayer.position}`);
+                  if (curNames && prvNames) {
+                    const newP = [...curNames].filter((n) => !prvNames.has(n)).length;
+                    turnover = curNames.size > 0 ? newP / curNames.size : 0;
+                  }
+                  return {
+                    teamDomeGames: domeCount,
+                    byeWeek: bye,
+                    teamSackRate: dropbacks > 0 ? Math.round((sacks / dropbacks) * 1000) / 1000 : 0,
+                    teamRushYPC: rushAtt2 > 0 ? Math.round((rushYd / rushAtt2) * 10) / 10 : 0,
+                    teamQBPassRating: qbPR,
+                    injuryRecurrence: Math.min(1, injRisk),
+                    teamRosterTurnover: Math.round(turnover * 1000) / 1000,
                   };
                 })(),
               };
