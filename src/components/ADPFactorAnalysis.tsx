@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS, REP_PPR,
+  FEATURES, CATEGORY_COLORS, REP_PPR, ROOKIE_FEATURES,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
@@ -139,13 +139,18 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
       const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
-      const y = posRows.map((r) => r.vor);
+      const y = posRows.map((r) => r.rawPPG);
 
       const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
       const gbmModel = trainGBM(X, y, featureKeys, {
         ...GBM_OPTS_FULL,
         minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
       });
+
+      // Rookie/veteran split
+      const rookieRows = posRows.filter((r) => (r.features.yearsInLeague || 0) <= 1);
+      const vetRows = posRows.filter((r) => (r.features.yearsInLeague || 0) > 1);
+      const hasRookieSplit = rookieRows.length >= 15 && vetRows.length >= 15;
 
       const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
       const losoActuals: number[] = [];
@@ -161,16 +166,44 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
 
           const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
           const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
-          const ytr  = trainR.map((r) => r.vor);
+          const ytr  = trainR.map((r) => r.rawPPG);
           const msl  = Math.max(3, Math.round(trainR.length * 0.05));
 
           const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
           const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
           const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
 
+          // Rookie/vet fold models
+          let foldRookieGbm: ReturnType<typeof trainGBM> | null = null;
+          let foldVetGbm: ReturnType<typeof trainGBM> | null = null;
+          if (hasRookieSplit) {
+            const rookieTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) <= 1);
+            const vetTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) > 1);
+            if (rookieTrain.length >= 10 && vetTrain.length >= 10) {
+              const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
+              const XrTr = rookieTrain.map((r) => rookieKeys.map((k) => r.features[k] || 0));
+              const yrTr = rookieTrain.map((r) => r.rawPPG);
+              const XvTr = vetTrain.map((r) => featureKeys.map((k) => r.features[k] || 0));
+              const yvTr = vetTrain.map((r) => r.rawPPG);
+              foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, {
+                nEstimators: 40, learningRate: 0.04, maxDepth: 1,
+                subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.15)),
+              });
+              foldVetGbm = trainGBM(XvTr, yvTr, featureKeys, { ...GBM_OPTS_CV, minSamplesLeaf: Math.max(3, Math.round(vetTrain.length * 0.08)) });
+            }
+          }
+
           for (const row of testR) {
-            losoActuals.push(row.vor);
-            losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
+            losoActuals.push(row.rawPPG);
+            // Use rookie/vet model if available, else full model
+            if (foldRookieGbm && foldVetGbm) {
+              const isRookie = (row.features.yearsInLeague || 0) <= 1;
+              losoPredGbm.push(isRookie
+                ? predictGBM(foldRookieGbm, row.features).predicted
+                : predictGBM(foldVetGbm, row.features).predicted);
+            } else {
+              losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
+            }
             losoPredRidge.push(predict(foldRidge, row.features).predicted);
             losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
           }

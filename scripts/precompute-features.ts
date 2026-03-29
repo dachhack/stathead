@@ -102,7 +102,7 @@ async function main() {
     if (featureKeys.length > cfg.maxFeatures) {
       console.log(`      Feature selection: ${featureKeys.length} → ${cfg.maxFeatures} (N=${posRows.length})`);
       const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-      const yAll = posRows.map((r: PlayerRow) => r.vor);
+      const yAll = posRows.map((r: PlayerRow) => r.rawPPG);
       const quickGbm = trainGBM(XAll, yAll, featureKeys, {
         nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
         minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
@@ -133,7 +133,7 @@ async function main() {
     const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
     const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-    const y = posRows.map((r: PlayerRow) => r.vor);
+    const y = posRows.map((r: PlayerRow) => r.rawPPG);
 
     const msl = Math.max(3, Math.round(posRows.length * cfg.minLeafPct));
 
@@ -184,7 +184,7 @@ async function main() {
 
         const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
         const Xtrb = trainR.map((r: PlayerRow) => baselineKeys.map((k) => r.features[k] || 0));
-        const ytr = trainR.map((r: PlayerRow) => r.vor);
+        const ytr = trainR.map((r: PlayerRow) => r.rawPPG);
         const foldMsl = Math.max(3, Math.round(trainR.length * cfg.minLeafPct));
 
         const cvGbmOpts = { nEstimators: Math.min(80, cfg.gbmEstimators), learningRate: cfg.gbmLR + 0.02, maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl };
@@ -201,9 +201,9 @@ async function main() {
             // Use handpicked minimal feature set for rookies (prevents overfitting)
             const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
             const XrTr = rookieTrain.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
-            const yrTr = rookieTrain.map((r: PlayerRow) => r.vor);
+            const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG);
             const XvTr = vetTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-            const yvTr = vetTrain.map((r: PlayerRow) => r.vor);
+            const yvTr = vetTrain.map((r: PlayerRow) => r.rawPPG);
             // Rookies: very conservative (depth 1, high regularization, few features)
             foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, {
               nEstimators: 40, learningRate: 0.04, maxDepth: 1,
@@ -217,7 +217,7 @@ async function main() {
           const gbmPred = predictGBM(foldGbm, row.features).predicted;
           const ridgePred = predict(foldRidge, row.features).predicted;
 
-          losoActuals.push(row.vor);
+          losoActuals.push(row.rawPPG);
           losoPredGbm.push(gbmPred);
           losoPredRidge.push(ridgePred);
           losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
@@ -234,10 +234,10 @@ async function main() {
             losoPredRookieVet.push(rvPred);
             // Track separate rookie vs vet actuals/preds
             if (isRookie) {
-              losoRookieActuals.push(row.vor);
+              losoRookieActuals.push(row.rawPPG);
               losoRookiePreds.push(rvPred);
             } else {
-              losoVetActuals.push(row.vor);
+              losoVetActuals.push(row.rawPPG);
               losoVetPreds.push(rvPred);
             }
           } else {
