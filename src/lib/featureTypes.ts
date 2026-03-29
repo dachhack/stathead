@@ -60,6 +60,10 @@ export const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
 };
 
+// Expected PPG at replacement level (used to convert VOR z-scores back to season PPR)
+// estPPR ≈ (REP_PPG + vorZ * std) * 17
+export const REP_PPG: Record<string, number> = { QB: 16.8, RB: 6.8, WR: 6.8, TE: 5.3 };
+// Legacy alias for backward compat
 export const REP_PPR: Record<string, number> = { QB: 285, RB: 115, WR: 115, TE: 90 };
 
 export const CATEGORY_COLORS: Record<string, string> = {

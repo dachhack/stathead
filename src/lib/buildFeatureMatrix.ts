@@ -12,13 +12,13 @@ import {
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 import {
-  POSITIONS, REPLACEMENT_RANKS,
+  POSITIONS,
   normalizeName, parseHeight,
   type PlayerRow, type PredictionRow, type FeatureMatrixConfig, type FeatureMatrixResult,
 } from './featureTypes';
 
 export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<FeatureMatrixResult> {
-  const { seasons, predictSeason, vorBasis, scenario, onStatus } = config;
+  const { seasons, predictSeason, scenario, onStatus } = config;
 
         // Load Reddit sentiment data (precomputed by fetch-reddit-sentiment.ts)
         let redditBuzz = new Map<string, { mentions: number; upvotes: number; sentiment: number; hype: number }>();
@@ -231,29 +231,62 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
-          // Helper: get player value based on vorBasis (total PPR or PPG)
-          const getPlayerValue = (p: SeasonTotals): number => {
+          // Compute PPG (points per active game) for each player
+          const getPPG = (p: SeasonTotals): number => {
             const ppr = p.fantasy_points_ppr || 0;
-            if (vorBasis === 'total') return ppr;
-            const ag = activeGamesMap.get(normalizeName(p.player_display_name)) || 1;
+            const ag = activeGamesMap.get(normalizeName(p.player_display_name)) || p.games || 1;
             return ag > 0 ? ppr / ag : 0;
           };
 
+          // Current stats lookup (needed for expected PPG curve + position verification)
+          const currentByName = new Map<string, SeasonTotals>();
+          for (const p of currentTotals) {
+            if (POSITIONS.includes(p.position)) {
+              currentByName.set(normalizeName(p.player_display_name), p);
+            }
+          }
+
+          // Build expected PPG curve per position based on ADP
+          // For each position, fit a simple regression: expected_ppg = f(adp)
+          // Using all players with ADP data in this season
+          const expectedPPGByPosADP = new Map<string, (adp: number) => number>();
+          for (const pos of POSITIONS) {
+            // Collect (adp, ppg) pairs for this position
+            const pairs: Array<{ adp: number; ppg: number }> = [];
+            for (const adpPlayer of adpData) {
+              if (adpPlayer.position !== pos || adpPlayer.adp > 200) continue;
+              const name = normalizeName(adpPlayer.name);
+              const current = currentByName.get(name);
+              if (!current || current.position !== pos) continue;
+              const ppg = getPPG(current);
+              if (ppg > 0) pairs.push({ adp: adpPlayer.adp, ppg });
+            }
+            if (pairs.length < 5) {
+              expectedPPGByPosADP.set(pos, () => 0);
+              continue;
+            }
+            // Fit: expected_ppg = a / (adp + b) + c (diminishing returns curve)
+            // Simplified: use linear regression on log(adp) → ppg
+            const logAdps = pairs.map((p) => Math.log(p.adp + 1));
+            const ppgs = pairs.map((p) => p.ppg);
+            const n = pairs.length;
+            const meanLogAdp = logAdps.reduce((a, b) => a + b, 0) / n;
+            const meanPPG = ppgs.reduce((a, b) => a + b, 0) / n;
+            let num = 0, den = 0;
+            for (let i = 0; i < n; i++) {
+              num += (logAdps[i] - meanLogAdp) * (ppgs[i] - meanPPG);
+              den += (logAdps[i] - meanLogAdp) ** 2;
+            }
+            const slope = den > 0 ? num / den : 0;
+            const intercept = meanPPG - slope * meanLogAdp;
+            expectedPPGByPosADP.set(pos, (adp: number) => intercept + slope * Math.log(adp + 1));
+          }
+
           const allFantasy = currentTotals
             .filter((p) => POSITIONS.includes(p.position))
-            .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
+            .sort((a, b) => getPPG(b) - getPPG(a));
           const overallRankMap = new Map<string, number>();
           allFantasy.forEach((p, i) => overallRankMap.set(normalizeName(p.player_display_name), i + 1));
-
-          // Per-position replacement levels for VOR
-          const vorReplacement: Record<string, number> = {};
-          for (const pos of POSITIONS) {
-            const sorted = currentTotals
-              .filter((p) => p.position === pos)
-              .sort((a, b) => getPlayerValue(b) - getPlayerValue(a));
-            const idx = (REPLACEMENT_RANKS[pos] ?? 24) - 1;
-            vorReplacement[pos] = Math.round((sorted[idx] ? getPlayerValue(sorted[idx]) : 0) * 10) / 10;
-          }
 
           // Prior season totals
           const priorTotals = aggregateToSeasonTotals(
@@ -594,13 +627,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             preseasonInjByName.set(name, acc);
           }
 
-          // Current stats lookup for position verification
-          const currentByName = new Map<string, SeasonTotals>();
-          for (const p of currentTotals) {
-            if (POSITIONS.includes(p.position)) {
-              currentByName.set(normalizeName(p.player_display_name), p);
-            }
-          }
+          // currentByName already built above (before expected PPG curve)
 
           // ── Roster competition features ──
 
@@ -844,9 +871,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const current = currentByName.get(normalName);
             if (!current || current.position !== adpPlayer.position) continue;
 
-            const playerVal = getPlayerValue(current);
-            const repLevel  = vorReplacement[adpPlayer.position] ?? 0;
-            const vor  = Math.round((playerVal - repLevel) * 10) / 10;
+            const playerPPG = getPPG(current);
+            const expectedPPG = expectedPPGByPosADP.get(adpPlayer.position)?.(adpPlayer.adp) ?? 0;
+            const vor = Math.round((playerPPG - expectedPPG) * 10) / 10;
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
@@ -1231,8 +1258,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               season,
               adp: adpPlayer.adp,
               vor,
-              isHit: vor >= 0,
-              isBust: vor < -50,
+              isHit: vor >= 0,   // beat expected PPG for ADP
+              isBust: vor < -3,  // 3+ PPG below expected (significant underperformance)
               features,
             });
           }

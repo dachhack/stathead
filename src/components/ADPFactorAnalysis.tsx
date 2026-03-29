@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS, REP_PPR,
+  FEATURES, CATEGORY_COLORS, REP_PPG,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
@@ -717,7 +717,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       const adpLower = Math.max(prevRoundPick, yourPick - leagueSize * 0.5);
       const adpUpper = yourPick + leagueSize * 1.5;
       const norm2026 = vorNormParams.get(best.pos);
-      const repPPR   = REP_PPR[best.pos] ?? 120;
+      const repPPG   = REP_PPG[best.pos] ?? 7;
       const suggestions: PlayerSuggestion[] = allPredictions2026
         .filter((p) =>
           p.position === best.pos &&
@@ -733,9 +733,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           predictedVor: p.predictedVor,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
-          // Convert z-score to estimated full-season PPR
+          // Convert PPG-based z-score to estimated full-season PPR
+          // estPPR = (replacement_ppg + mean_ppg_delta + z * std_ppg_delta) * 17 games
           estPPR: norm2026
-            ? Math.round(repPPR + norm2026.mean + p.predictedVor * norm2026.std)
+            ? Math.round((repPPG + norm2026.mean + p.predictedVor * norm2026.std) * 17)
             : 0,
           redditSentiment: (p as any).redditSentiment || 0,
           redditHype: (p as any).redditHype || 0,
