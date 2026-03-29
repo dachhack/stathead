@@ -105,6 +105,11 @@ export const FEATURES: FeatureDef[] = [
   { key: 'nflDraftPick', label: 'NFL Draft Pick', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'weight', label: 'Weight', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'forty', label: '40-Yard Dash', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
+  { key: 'bench', label: 'Bench Press Reps', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
+  { key: 'vertical', label: 'Vertical Jump', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
+  { key: 'broadJump', label: 'Broad Jump', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
+  { key: 'cone', label: '3-Cone Drill', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
+  { key: 'shuttle', label: '20-Yard Shuttle', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'bmi', label: 'BMI', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'priorPassYards', label: 'Prior Pass Yards', category: 'Prior Stats', positions: ['QB'] },
   { key: 'priorPassTDs', label: 'Prior Pass TDs', category: 'Prior Stats', positions: ['QB'] },
@@ -347,14 +352,21 @@ export function parseHeight(ht: string | number): number {
 // Handpicked rookie features per position (minimal set for small samples)
 // These are the highest-signal predictors for year-1 NFL production
 export const ROOKIE_FEATURES: Record<string, string[]> = {
-  QB: ['nflDraftRound', 'nflDraftPick', 'collegePassYds', 'collegePassTDs', 'collegeQBR',
-       'collegeRushYds', 'prospectGrade', 'vegasImpliedTotal', 'teamPassRate'],
-  RB: ['nflDraftRound', 'nflDraftPick', 'collegeRushYds', 'collegeRushYPC', 'collegeTotalTDs',
-       'collegeRecYds', 'prospectGrade', 'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  WR: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
-       'prospectGrade', 'forty', 'depthChartRank', 'teamSamePosCount', 'teamPassRate'],
-  TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
-       'prospectGrade', 'depthChartRank', 'teamSamePosCount', 'teamTETargetRate', 'schemeTEHeavy'],
+  QB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegePassYds', 'collegePassTDs', 'collegeQBR',
+       'collegeRushYds', 'collegeTotalTDs', 'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
+       'prospectGrade', 'prospectPosRank', 'vegasImpliedTotal', 'teamPassRate', 'contractAPY'],
+  RB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRushYds', 'collegeRushYPC', 'collegeTotalTDs',
+       'collegeRecYds', 'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
+       'prospectGrade', 'prospectPosRank', 'forty', 'weight', 'broadJump',
+       'depthChartRank', 'teamSamePosCount', 'contractAPY'],
+  WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
+       'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
+       'prospectGrade', 'prospectPosRank', 'forty', 'vertical', 'broadJump',
+       'depthChartRank', 'teamSamePosCount', 'teamPassRate', 'contractAPY'],
+  TE: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
+       'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
+       'prospectGrade', 'prospectPosRank', 'forty', 'weight',
+       'depthChartRank', 'teamSamePosCount', 'teamTETargetRate', 'schemeTEHeavy', 'contractAPY'],
 };
 
 // Features that are ADP-derived (excluded from ADP-independent models)
