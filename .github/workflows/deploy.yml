@@ -34,6 +34,9 @@ jobs:
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
+      - name: Backtest team projections (old vs new)
+        run: npm run test:projections
+        continue-on-error: true
       - name: Evaluate feature subsets per position
         run: npm run eval:features
         continue-on-error: true
