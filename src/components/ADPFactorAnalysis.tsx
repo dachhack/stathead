@@ -12,7 +12,7 @@ import {
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, ScenarioConfig } from '../types';
 import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
-import { trainGBM, predictGBM, type TrainedGBM } from '../lib/gbm';
+import { trainGBM, predictGBM, trainGBMWithCI, type TrainedGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 import { loadAllScenarios } from '../lib/scenarioEngine';
 
@@ -220,7 +220,30 @@ const FEATURES: FeatureDef[] = [
   { key: 'projPlayerPPR',       label: 'Proj Player PPR',          category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projPlayerVsExpected',label: 'Proj Player vs Expected',  category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projTargetShare',     label: 'Proj Target Share',        category: 'Projection', positions: ['RB', 'WR', 'TE'] },
+
+  // ── Missing-data indicators ──
+  // Binary flags so the model can distinguish "no data" from "zero value"
+  { key: 'hasPriorStats', label: 'Has Prior Stats', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'hasCombine',    label: 'Has Combine Data', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'hasNGS',        label: 'Has NGS Data',     category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
+
+// Categories that require prior-season NFL data (excluded from rookie models)
+const PRIOR_CATEGORIES = new Set([
+  'Prior Stats', 'Advanced', 'NGS', 'Route', 'Prior Fantasy', 'Workload',
+]);
+
+// Rookie models use only features available without prior NFL stats
+function getRookieFeatures(pos: string): FeatureDef[] {
+  return FEATURES.filter(
+    (f) => f.positions.includes(pos) && !PRIOR_CATEGORIES.has(f.category)
+  );
+}
+
+// Veteran models use all features
+function getVetFeatures(pos: string): FeatureDef[] {
+  return FEATURES.filter((f) => f.positions.includes(pos));
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   Draft: '#8b5cf6',
@@ -260,9 +283,13 @@ interface PlayerRow {
   position: string;
   season: number;
   adp: number;
-  vor: number;    // VOR Score (z-score): (PPR − replacement_PPR − pos_mean) / pos_std — comparable across positions
-  isHit: boolean;
-  isBust: boolean;
+  ppg: number;          // Actual fantasy PPG (PPR) — training target
+  adpExpectedPPG: number; // Historical average PPG for this ADP+position
+  vorRaw: number;       // Raw PPR-based VOR (legacy, used for strategy view)
+  vor: number;          // VOR z-score for display
+  isHit: boolean;       // ppg > adpExpectedPPG
+  isBust: boolean;      // ppg < adpExpectedPPG * bustThreshold
+  isRookie: boolean;
   features: Record<string, number>;
 }
 
@@ -270,6 +297,8 @@ interface PositionModel {
   position: string;
   ridgeModel?: TrainedModel;
   gbmModel?: TrainedGBM;
+  gbmLower?: TrainedGBM;   // 10th percentile quantile model
+  gbmUpper?: TrainedGBM;   // 90th percentile quantile model
   featureNames: string[];
   featureLabels: string[];
   n: number;
@@ -283,6 +312,19 @@ interface PositionModel {
   cvR2Ridge: number;
   cvMaeRidge: number;
   cvR2GbmBaseline: number;  // CV R² without projection features
+  // Rookie / veteran split models
+  rookieN: number;
+  vetN: number;
+  rookieGbm?: TrainedGBM;
+  vetGbm?: TrainedGBM;
+  rookieFeatureNames?: string[];
+  vetFeatureNames?: string[];
+  cvR2Rookie: number;
+  cvMaeRookie: number;
+  cvR2Vet: number;
+  cvMaeVet: number;
+  // ADP-expected PPG curve for this position
+  adpExpectedPPG: Map<number, number>; // ADP round → avg PPG
 }
 
 interface PredictionRow {
@@ -989,6 +1031,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             if (!current || current.position !== adpPlayer.position) continue;
 
             const playerPPR = current.fantasy_points_ppr || 0;
+            const playerGames = current.games || 0;
+            const ppg = playerGames > 0
+              ? Math.round((playerPPR / playerGames) * 100) / 100
+              : 0;
             const repLevel  = vorReplacement[adpPlayer.position] ?? 0;
             const vor  = Math.round((playerPPR - repLevel) * 10) / 10;
 
@@ -1272,29 +1318,69 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   projTargetShare:      pf?.projTargetShare        ?? 0,
                 };
               })(),
+
+              // ── Missing-data indicator flags ──
+              // Lets the model distinguish "no data" from "zero value"
+              hasPriorStats: priorGames > 0 ? 1 : 0,
+              hasCombine: combine ? 1 : 0,
+              hasNGS: (ngsRec || ngsRush || ngsPass) ? 1 : 0,
             };
+
+            const yearsInLeague = draft ? season - draft.season : 0;
+            const isRookie = yearsInLeague <= 0;
 
             rows.push({
               name: adpPlayer.name,
               position: adpPlayer.position,
               season,
               adp: adpPlayer.adp,
-              vor,
-              isHit: vor >= 0,
-              isBust: vor < -50,
+              ppg,
+              adpExpectedPPG: 0, // set after all rows are built
+              vorRaw: vor,
+              vor,         // will be overwritten with z-score below
+              isHit: false,  // set after ADP-expected PPG is computed
+              isBust: false,
+              isRookie,
               features,
             });
           }
         }
 
-        // ── Standardize VOR per position (z-score) ───────────────────────────
+        // ── Compute ADP-expected PPG per position × ADP round ───────────────
+        // For each (position, ADP round), compute the historical average PPG.
+        // This is the "market expectation" — what you'd expect from a player
+        // drafted at that ADP. Hit = outperformed, Bust = underperformed.
+        const adpExpectedMap = new Map<string, { total: number; count: number }>();
+        for (const row of rows) {
+          const round = Math.ceil(row.adp / 12);
+          const key = `${row.position}:${round}`;
+          const acc = adpExpectedMap.get(key) || { total: 0, count: 0 };
+          acc.total += row.ppg;
+          acc.count += 1;
+          adpExpectedMap.set(key, acc);
+        }
+        const adpExpected = new Map<string, number>();
+        for (const [key, acc] of adpExpectedMap) {
+          adpExpected.set(key, Math.round((acc.total / acc.count) * 100) / 100);
+        }
+
+        // Set adpExpectedPPG on each row and compute hit/bust
+        for (const row of rows) {
+          const round = Math.ceil(row.adp / 12);
+          const expected = adpExpected.get(`${row.position}:${round}`) || 0;
+          row.adpExpectedPPG = expected;
+          // Hit = beat expectation; Bust = underperformed by >20%
+          row.isHit  = row.ppg > expected;
+          row.isBust = expected > 0 && row.ppg < expected * 0.80;
+        }
+
+        // ── Standardize VOR per position (z-score) for display only ──────
         // Raw PPR-based VOR varies in scale across positions (QBs score far
-        // more than TEs in absolute terms). Standardising to z-scores makes
-        // the metric directly comparable across positions: +1.0 means 1 std
-        // above the mean for *that* position, regardless of which position.
+        // more than TEs in absolute terms). Z-scores make the metric
+        // comparable across positions. vorRaw is preserved for model training.
         const vorNorm = new Map<string, { mean: number; std: number }>();
         for (const pos of POSITIONS) {
-          const vals = rows.filter((r) => r.position === pos).map((r) => r.vor);
+          const vals = rows.filter((r) => r.position === pos).map((r) => r.vorRaw);
           if (vals.length < 4) continue;
           const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
           const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
@@ -1302,7 +1388,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           vorNorm.set(pos, { mean, std });
           for (const row of rows) {
             if (row.position === pos) {
-              row.vor = Math.round((row.vor - mean) / std * 100) / 100;
+              row.vor = Math.round((row.vorRaw - mean) / std * 100) / 100;
             }
           }
         }
@@ -2006,6 +2092,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     projTargetShare:      pf?.projTargetShare        ?? 0,
                   };
                 })(),
+
+                // ── Missing-data indicator flags ──
+                hasPriorStats: priorGames > 0 ? 1 : 0,
+                hasCombine: combine ? 1 : 0,
+                hasNGS: (ngsRec || ngsRush || ngsPass) ? 1 : 0,
               };
 
               predRows.push({
@@ -2022,11 +2113,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         setPredictionRows(predRows);
 
         // Train per-position models (both Ridge and GBM)
-        // Then compute leave-one-season-out cross-validated R² and MAE for
-        // honest out-of-sample performance estimates.
+        // KEY FIX: Use vorRaw (raw PPR deltas) as training target so Ridge/GBM
+        // can standardize internally. The z-scored `vor` is only for display.
+        //
+        // Also train separate rookie/veteran models: rookies lack prior-season
+        // stats (50+ features are all zero), so they get a smaller feature set
+        // with only pre-draft / team-context / competition features.
         const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
         const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
         const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
+
+        // Helper: build feature row, using ?? 0 to handle missing features
+        const buildX = (rows2: PlayerRow[], keys: string[]) =>
+          rows2.map((r) => keys.map((k) => r.features[k] ?? 0));
 
         const posModels: PositionModel[] = [];
         for (const pos of POSITIONS) {
@@ -2038,19 +2137,28 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const featureLabels = posFeatures.map((f) => f.label);
           const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
-          const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
-          const y = posRows.map((r) => r.vor);
+          // ── Target: PPG (fantasy points per game) ────────────────────────
+          const X = buildX(posRows, featureKeys);
+          const y = posRows.map((r) => r.ppg);
+
+          // Dynamic minSamplesLeaf: at least 8% of samples, floor 5
+          const mslFull = Math.max(5, Math.round(posRows.length * 0.08));
 
           // Full-data models (used for 2026 predictions and factor attributions)
           const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
           const gbmModel = trainGBM(X, y, featureKeys, {
             ...GBM_OPTS_FULL,
-            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
+            minSamplesLeaf: mslFull,
           });
 
+          // Quantile models for P(over) / P(bust) confidence intervals
+          const { lower: gbmLower, upper: gbmUpper } = trainGBMWithCI(
+            X, y, featureKeys,
+            { ...GBM_OPTS_FULL, minSamplesLeaf: mslFull },
+            0.80  // 80% CI → 10th and 90th percentile
+          );
+
           // ── Leave-one-season-out cross-validation ─────────────────────────
-          // For each held-out season, train on the remaining seasons and
-          // predict the held-out samples. Aggregate to get honest R² / MAE.
           const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
           const losoActuals: number[] = [];
           const losoPredGbm: number[] = [];
@@ -2063,22 +2171,108 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               const testR  = posRows.filter((r) => r.season === held);
               if (trainR.length < 8 || testR.length === 0) continue;
 
-              const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
-              const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
-              const ytr  = trainR.map((r) => r.vor);
-              const msl  = Math.max(3, Math.round(trainR.length * 0.05));
+              const Xtr  = buildX(trainR, featureKeys);
+              const Xtrb = buildX(trainR, baselineKeys);
+              const ytr  = trainR.map((r) => r.ppg);
+              const msl  = Math.max(5, Math.round(trainR.length * 0.08));
 
               const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
               const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
               const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
 
               for (const row of testR) {
-                losoActuals.push(row.vor);
-                // predictGBM / predict take Record<string, number> feature maps
+                losoActuals.push(row.ppg);
                 losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
                 losoPredRidge.push(predict(foldRidge, row.features).predicted);
                 losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
               }
+            }
+          }
+
+          // ── Rookie / Veteran split models ─────────────────────────────────
+          const rookieRows = posRows.filter((r) => r.isRookie);
+          const vetRows    = posRows.filter((r) => !r.isRookie);
+
+          const rookieFeatDefs = getRookieFeatures(pos);
+          const rookieKeys     = rookieFeatDefs.map((f) => f.key);
+          const vetFeatDefs    = getVetFeatures(pos);
+          const vetKeys        = vetFeatDefs.map((f) => f.key);
+
+          // Rookie LOSO CV
+          let cvR2Rookie = 0, cvMaeRookie = 0;
+          let rookieGbm: TrainedGBM | undefined;
+          if (rookieRows.length >= 10) {
+            const Xrook = buildX(rookieRows, rookieKeys);
+            const yRook = rookieRows.map((r) => r.ppg);
+            const rookMsl = Math.max(3, Math.round(rookieRows.length * 0.10));
+            rookieGbm = trainGBM(Xrook, yRook, rookieKeys, {
+              nEstimators: 60, learningRate: 0.10, maxDepth: 2, subsample: 0.8,
+              minSamplesLeaf: rookMsl,
+            });
+
+            const rookSeasons = [...new Set(rookieRows.map((r) => r.season))].sort();
+            if (rookSeasons.length >= 3) {
+              const rookActuals: number[] = [];
+              const rookPreds: number[] = [];
+              for (const held of rookSeasons) {
+                const tr = rookieRows.filter((r) => r.season !== held);
+                const te = rookieRows.filter((r) => r.season === held);
+                if (tr.length < 6 || te.length === 0) continue;
+                const fold = trainGBM(buildX(tr, rookieKeys), tr.map((r) => r.ppg), rookieKeys, {
+                  nEstimators: 50, learningRate: 0.12, maxDepth: 2, subsample: 0.8,
+                  minSamplesLeaf: Math.max(3, Math.round(tr.length * 0.10)),
+                });
+                for (const row of te) {
+                  rookActuals.push(row.ppg);
+                  rookPreds.push(predictGBM(fold, row.features).predicted);
+                }
+              }
+              if (rookActuals.length >= 6) {
+                cvR2Rookie  = cvR2(rookActuals, rookPreds);
+                cvMaeRookie = cvMae(rookActuals, rookPreds);
+              }
+            }
+          }
+
+          // Veteran LOSO CV
+          let cvR2Vet = 0, cvMaeVet = 0;
+          let vetGbm: TrainedGBM | undefined;
+          if (vetRows.length >= 10) {
+            const Xvet = buildX(vetRows, vetKeys);
+            const yVet = vetRows.map((r) => r.vorRaw);
+            const vetMsl = Math.max(5, Math.round(vetRows.length * 0.08));
+            vetGbm = trainGBM(Xvet, yVet, vetKeys, {
+              ...GBM_OPTS_FULL, minSamplesLeaf: vetMsl,
+            });
+
+            const vetSeasons = [...new Set(vetRows.map((r) => r.season))].sort();
+            if (vetSeasons.length >= 3) {
+              const vetActuals: number[] = [];
+              const vetPreds: number[] = [];
+              for (const held of vetSeasons) {
+                const tr = vetRows.filter((r) => r.season !== held);
+                const te = vetRows.filter((r) => r.season === held);
+                if (tr.length < 8 || te.length === 0) continue;
+                const fold = trainGBM(buildX(tr, vetKeys), tr.map((r) => r.ppg), vetKeys, {
+                  ...GBM_OPTS_CV, minSamplesLeaf: Math.max(5, Math.round(tr.length * 0.08)),
+                });
+                for (const row of te) {
+                  vetActuals.push(row.ppg);
+                  vetPreds.push(predictGBM(fold, row.features).predicted);
+                }
+              }
+              if (vetActuals.length >= 6) {
+                cvR2Vet  = cvR2(vetActuals, vetPreds);
+                cvMaeVet = cvMae(vetActuals, vetPreds);
+              }
+            }
+          }
+
+          // Build ADP-expected PPG map for this position
+          const posAdpExpected = new Map<number, number>();
+          for (const [key, val] of adpExpected) {
+            if (key.startsWith(`${pos}:`)) {
+              posAdpExpected.set(Number(key.split(':')[1]), val);
             }
           }
 
@@ -2087,6 +2281,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             position: pos,
             ridgeModel,
             gbmModel,
+            gbmLower,
+            gbmUpper,
             featureNames: featureKeys,
             featureLabels,
             n: posRows.length,
@@ -2099,6 +2295,18 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             cvR2Ridge:        hasCV ? cvR2(losoActuals, losoPredRidge) : ridgeModel.rSquared,
             cvMaeRidge:       hasCV ? cvMae(losoActuals, losoPredRidge): ridgeModel.mae,
             cvR2GbmBaseline:  hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
+            // Rookie / Veteran split
+            rookieN: rookieRows.length,
+            vetN: vetRows.length,
+            rookieGbm,
+            vetGbm,
+            rookieFeatureNames: rookieKeys,
+            vetFeatureNames: vetKeys,
+            cvR2Rookie,
+            cvMaeRookie,
+            cvR2Vet,
+            cvMaeVet,
+            adpExpectedPPG: posAdpExpected,
           });
         }
 
@@ -2211,18 +2419,35 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           contribution: fc.contribution,
         };
       });
+      const predictedPPG = Math.round(result.predicted * 100) / 100;
+      const expectedPPG = r.adpExpectedPPG;
+      const edge = Math.round((predictedPPG - expectedPPG) * 100) / 100;
+      // Compute P(over) using quantile models
+      const lowerPPG = currentModel.gbmLower ? predictGBM(currentModel.gbmLower, r.features).predicted : predictedPPG;
+      const upperPPG = currentModel.gbmUpper ? predictGBM(currentModel.gbmUpper, r.features).predicted : predictedPPG;
+      const ciWidth = Math.max(upperPPG - lowerPPG, 0.01);
+      // Approximate P(over) from where expectedPPG falls within the prediction CI
+      const pOver = Math.max(0, Math.min(100, Math.round(
+        (1 - Math.max(0, Math.min(1, (expectedPPG - lowerPPG) / ciWidth))) * 100
+      )));
       return {
         name: r.name,
         season: r.season,
         adp: r.adp,
+        actualPPG: r.ppg,
+        predictedPPG,
+        expectedPPG,
+        edge,
+        pOver,
+        pBust: 100 - pOver,
         actualVor: r.vor,
-        predictedVor: Math.round(result.predicted * 10) / 10,
-        isHit: isHitForPos(r.position, r.vor),
-        isBust: isBustForPos(r.position, r.vor),
+        predictedVor: predictedPPG, // compat alias
+        isHit: r.isHit,
+        isBust: r.isBust,
         factors,
       };
-    }).sort((a, b) => b.predictedVor - a.predictedVor);
-  }, [currentModel, allRows, selectedPos, maxADP, modelType, posThresholds]);
+    }).sort((a, b) => b.edge - a.edge);
+  }, [currentModel, allRows, selectedPos, maxADP, modelType]);
 
   const selectedPrediction = useMemo(
     () => playerPredictions.find((p) => p.name === selectedPlayerName) || null,
@@ -2249,49 +2474,75 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           contribution: fc.contribution,
         };
       });
-      const pred = Math.round(result.predicted * 10) / 10;
+      const predictedPPG = Math.round(result.predicted * 100) / 100;
+      const adpRound = Math.ceil(r.adp / 12);
+      const expectedPPG = model.adpExpectedPPG.get(adpRound) || 0;
+      const edge = Math.round((predictedPPG - expectedPPG) * 100) / 100;
+      const lowerPPG = model.gbmLower ? predictGBM(model.gbmLower, r.features).predicted : predictedPPG;
+      const upperPPG = model.gbmUpper ? predictGBM(model.gbmUpper, r.features).predicted : predictedPPG;
+      const ciWidth = Math.max(upperPPG - lowerPPG, 0.01);
+      const pOver = Math.max(0, Math.min(100, Math.round(
+        (1 - Math.max(0, Math.min(1, (expectedPPG - lowerPPG) / ciWidth))) * 100
+      )));
       return {
         name: r.name,
         team: r.team,
         adp: r.adp,
         position: r.position,
         headshotUrl: r.headshotUrl,
-        predictedVor: pred,
-        hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
-               : isBustForPos(r.position, pred) ? 'Likely Bust'
-               : 'Middle',
+        predictedPPG,
+        expectedPPG,
+        edge,
+        pOver,
+        pBust: 100 - pOver,
+        predictedVor: predictedPPG, // compat alias
+        hitProb: pOver >= 60 ? 'Likely Over'
+               : pOver <= 40 ? 'Likely Under'
+               : 'Toss-up',
         factors,
       };
-    }).sort((a, b) => b.predictedVor - a.predictedVor);
+    }).sort((a, b) => b.edge - a.edge);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, predictionRows, selectedPos, maxADP, modelType, posThresholds]);
+  }, [models, predictionRows, selectedPos, maxADP, modelType]);
 
   // All-position 2026 predictions (for the optimizer player suggestions)
   const allPredictions2026 = useMemo(() => {
     return models.flatMap((m) => {
       const posPlayers = predictionRows.filter((r) => r.position === m.position && r.adp <= maxADP);
-      const model = m.gbmModel ?? m.ridgeModel;
-      if (!model) return [];
+      if (!m.gbmModel && !m.ridgeModel) return [];
       return posPlayers.map((r) => {
         const result = m.gbmModel
           ? predictGBM(m.gbmModel, r.features)
           : predict(m.ridgeModel!, r.features);
-        const pred = Math.round(result.predicted * 10) / 10;
+        const predictedPPG = Math.round(result.predicted * 100) / 100;
+        const adpRound = Math.ceil(r.adp / 12);
+        const expectedPPG = m.adpExpectedPPG.get(adpRound) || 0;
+        const edge = Math.round((predictedPPG - expectedPPG) * 100) / 100;
+        const lowerPPG = m.gbmLower ? predictGBM(m.gbmLower, r.features).predicted : predictedPPG;
+        const upperPPG = m.gbmUpper ? predictGBM(m.gbmUpper, r.features).predicted : predictedPPG;
+        const ciWidth = Math.max(upperPPG - lowerPPG, 0.01);
+        const pOver = Math.max(0, Math.min(100, Math.round(
+          (1 - Math.max(0, Math.min(1, (expectedPPG - lowerPPG) / ciWidth))) * 100
+        )));
         return {
           name: r.name,
           team: r.team,
           adp: r.adp,
           position: r.position,
           headshotUrl: r.headshotUrl,
-          predictedVor: pred,
-          hitProb: isHitForPos(r.position, pred) ? 'Likely Hit'
-                 : isBustForPos(r.position, pred) ? 'Likely Bust'
-                 : 'Middle' as const,
+          predictedPPG,
+          expectedPPG,
+          edge,
+          pOver,
+          predictedVor: predictedPPG, // compat alias for optimizer
+          hitProb: pOver >= 60 ? 'Likely Over'
+                 : pOver <= 40 ? 'Likely Under'
+                 : 'Toss-up' as const,
         };
       });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, predictionRows, maxADP, posThresholds]);
+  }, [models, predictionRows, maxADP]);
 
   const selected2026Prediction = useMemo(
     () => predictions2026.find((p) => p.name === selected2026Player) || null,
@@ -2443,7 +2694,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     type PlayerSuggestion = {
       name: string; team: string; adp: number;
       predictedVor: number; hitProb: string; headshotUrl?: string;
-      estPPR: number;  // estimated full-season PPR (above replacement + historical mean)
+      edge?: number; pOver?: number;
+      estPPR: number;  // estimated full-season PPR (PPG × 17)
     };
     type PlanRow = {
       round: number; label: string; yourPick: number;
@@ -2513,7 +2765,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           p.adp >= yourPick - adpWindow &&
           p.adp <= yourPick + adpWindow
         )
-        .sort((a, b) => b.predictedVor - a.predictedVor)
+        .sort((a, b) => (b.edge ?? 0) - (a.edge ?? 0))
         .slice(0, 4)
         .map((p) => ({
           name:         p.name,
@@ -2522,10 +2774,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           predictedVor: p.predictedVor,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
-          // Convert z-score to estimated full-season PPR
-          estPPR: norm2026
-            ? Math.round(repPPR + norm2026.mean + p.predictedVor * norm2026.std)
-            : 0,
+          edge:         p.edge,
+          pOver:        p.pOver,
+          // Convert PPG to estimated full-season PPR (17 games)
+          estPPR: Math.round((p.predictedPPG ?? p.predictedVor) * 17),
         }));
 
       plan.push({
@@ -2576,7 +2828,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
-        Predicts VOR Score — a standardised (z-score) measure of Value Over Replacement, comparable across all positions (+1.0 = 1 std dev above the positional mean).
+        Predicts fantasy PPG (PPR points per game) and compares to ADP-expected PPG. Edge = predicted PPG minus what a player drafted at that ADP historically averages. P(Over) estimates probability of outperforming ADP expectation.
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>
 
@@ -3125,23 +3377,18 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                       <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
                                         <span style={{
                                           fontSize: 10, fontWeight: 700,
-                                          color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
+                                          color: (p.edge ?? 0) >= 0 ? '#10b981' : '#ef4444',
                                         }}>
-                                          {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                                          {(p.edge ?? 0) >= 0 ? '+' : ''}{(p.edge ?? 0).toFixed(1)} PPG
                                         </span>
-                                        {p.estPPR > 0 && (
-                                          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                                            ~{p.estPPR} PPR
-                                          </span>
-                                        )}
                                         <span style={{
                                           fontSize: 9, fontWeight: 700, padding: '1px 4px', borderRadius: 3,
-                                          background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)'
-                                            : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
-                                          color: p.hitProb === 'Likely Hit' ? '#10b981'
-                                            : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                                          background: p.hitProb === 'Likely Over' ? 'rgba(16,185,129,0.15)'
+                                            : p.hitProb === 'Likely Under' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                                          color: p.hitProb === 'Likely Over' ? '#10b981'
+                                            : p.hitProb === 'Likely Under' ? '#ef4444' : '#6b7280',
                                         }}>
-                                          {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : '~'}
+                                          {p.pOver != null ? `${p.pOver}%` : p.hitProb === 'Likely Over' ? 'OVER' : p.hitProb === 'Likely Under' ? 'UNDER' : '~'}
                                         </span>
                                       </div>
                                     </div>
@@ -3213,7 +3460,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         </span>
                       )}
                     </div>
-                    <div>CV MAE = <strong style={{ color: 'var(--text-primary)' }}>{cvMaeVal.toFixed(2)}σ</strong></div>
+                    <div>CV MAE = <strong style={{ color: 'var(--text-primary)' }}>{cvMaeVal.toFixed(1)} PPG</strong></div>
                     {(() => {
                       const t = posThresholds.get(m.position);
                       const posR = allRows.filter((r) => r.position === m.position);
@@ -3274,7 +3521,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             <span style={{ color: '#f59e0b', fontSize: 18 }}>{PREDICT_SEASON}</span>{' '}
             {selectedPos} Predictions
             <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              Model-predicted VOR Score (σ from positional mean) &middot; {predictions2026.length} players
+              Predicted PPG vs ADP-Expected PPG &middot; {predictions2026.length} players
             </span>
             {activeScenario && (
               <span style={{
@@ -3284,7 +3531,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             )}
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-            Trained on {SEASONS[0]}–{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. VOR Score is standardised per position: 0 = positional average, +1.0 = 1 std dev above.
+            Trained on {SEASONS[0]}–{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. Predicted PPG compared to historical average PPG at each ADP slot. P(Over) = probability of outperforming ADP expectation.
           </p>
           {vorNormParams.size > 0 && (
             <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -3316,8 +3563,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   <th>Player</th>
                   <th>Team</th>
                   <th>ADP</th>
-                  <th>Predicted VOR (σ)</th>
-                  <th>Outlook</th>
+                  <th>Pred PPG</th>
+                  <th>Exp PPG</th>
+                  <th>Edge</th>
+                  <th>P(Over)</th>
                 </tr>
               </thead>
               <tbody>
@@ -3342,11 +3591,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
                     <td>{p.adp.toFixed(1)}</td>
+                    <td style={{ fontWeight: 700 }}>{p.predictedPPG.toFixed(1)}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{p.expectedPPG.toFixed(1)}</td>
                     <td style={{
                       fontWeight: 700,
-                      color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
+                      color: p.edge >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                      {p.edge >= 0 ? '+' : ''}{p.edge.toFixed(1)}
                     </td>
                     <td>
                       <span style={{
@@ -3354,12 +3605,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: 4,
-                        background: p.hitProb === 'Likely Hit' ? 'rgba(16,185,129,0.15)'
-                          : p.hitProb === 'Likely Bust' ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)',
-                        color: p.hitProb === 'Likely Hit' ? '#10b981'
-                          : p.hitProb === 'Likely Bust' ? '#ef4444' : '#6b7280',
+                        background: p.pOver >= 60 ? 'rgba(16,185,129,0.15)'
+                          : p.pOver <= 40 ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                        color: p.pOver >= 60 ? '#10b981'
+                          : p.pOver <= 40 ? '#ef4444' : '#6b7280',
                       }}>
-                        {p.hitProb === 'Likely Hit' ? 'HIT' : p.hitProb === 'Likely Bust' ? 'BUST' : 'MID'}
+                        {p.pOver}%
                       </span>
                     </td>
                   </tr>
@@ -3381,9 +3632,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 {selected2026Prediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {PREDICT_SEASON} &middot; ADP {selected2026Prediction.adp.toFixed(1)} &middot;
-                  Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}σ
-                  </span>
+                  Pred {selected2026Prediction.predictedPPG.toFixed(1)} PPG vs Exp {selected2026Prediction.expectedPPG.toFixed(1)} &middot;
+                  Edge: <span style={{ color: selected2026Prediction.edge >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selected2026Prediction.edge >= 0 ? '+' : ''}{selected2026Prediction.edge.toFixed(1)}
+                  </span> &middot; P(Over): {selected2026Prediction.pOver}%
                 </span>
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
@@ -3574,7 +3826,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 </XAxis>
                 <YAxis type="number" dataKey="vor"
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}>
-                  <Label value="VOR Score (σ, pos-adjusted)" angle={-90} position="insideLeft" offset={10}
+                  <Label value="VOR Score (z-score)" angle={-90} position="insideLeft" offset={10}
                     style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
                 </YAxis>
                 <ReferenceLine y={0} stroke="var(--text-muted)" strokeDasharray="5 5" />
@@ -3632,9 +3884,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   <th>Player</th>
                   <th>Season</th>
                   <th>ADP</th>
-                  <th>Predicted VOR (σ)</th>
-                  <th>Actual VOR (σ)</th>
-                  <th>Result</th>
+                  <th>Pred PPG</th>
+                  <th>Actual PPG</th>
+                  <th>Exp PPG</th>
+                  <th>Edge</th>
+                  <th>P(Over)</th>
                 </tr>
               </thead>
               <tbody>
@@ -3661,17 +3915,14 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{p.season}</td>
                     <td>{p.adp.toFixed(1)}</td>
+                    <td style={{ fontWeight: 700 }}>{p.predictedPPG.toFixed(1)}</td>
+                    <td style={{ fontWeight: 700 }}>{p.actualPPG.toFixed(1)}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{p.expectedPPG.toFixed(1)}</td>
                     <td style={{
                       fontWeight: 700,
-                      color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
+                      color: p.edge >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
-                    </td>
-                    <td style={{
-                      fontWeight: 700,
-                      color: p.actualVor >= 0 ? '#10b981' : '#ef4444',
-                    }}>
-                      {p.actualVor >= 0 ? '+' : ''}{p.actualVor}σ
+                      {p.edge >= 0 ? '+' : ''}{p.edge.toFixed(1)}
                     </td>
                     <td>
                       <span style={{
@@ -3679,10 +3930,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: 4,
-                        background: p.isHit ? 'rgba(16,185,129,0.15)' : p.isBust ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.15)',
-                        color: p.isHit ? '#10b981' : p.isBust ? '#ef4444' : '#6b7280',
+                        background: p.pOver >= 60 ? 'rgba(16,185,129,0.15)' : p.pOver <= 40 ? 'rgba(239,68,68,0.15)' : 'rgba(107,114,128,0.1)',
+                        color: p.pOver >= 60 ? '#10b981' : p.pOver <= 40 ? '#ef4444' : '#6b7280',
                       }}>
-                        {p.isHit ? 'HIT' : p.isBust ? 'BUST' : 'MID'}
+                        {p.pOver}%
                       </span>
                     </td>
                   </tr>
@@ -3704,16 +3955,15 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 {selectedPrediction.name}
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {selectedPrediction.season} &middot; ADP {selectedPrediction.adp.toFixed(1)} &middot;
-                  Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}σ
-                  </span> &middot;
-                  Actual: <span style={{ color: selectedPrediction.actualVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.actualVor >= 0 ? '+' : ''}{selectedPrediction.actualVor}σ
-                  </span>
+                  Pred {selectedPrediction.predictedPPG.toFixed(1)} PPG &middot;
+                  Actual {selectedPrediction.actualPPG.toFixed(1)} PPG &middot;
+                  Edge: <span style={{ color: selectedPrediction.edge >= 0 ? '#10b981' : '#ef4444' }}>
+                    {selectedPrediction.edge >= 0 ? '+' : ''}{selectedPrediction.edge.toFixed(1)}
+                  </span> &middot; P(Over): {selectedPrediction.pOver}%
                 </span>
               </h4>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
-                Top factors driving this prediction (contribution to predicted VOR Score):
+                Top factors driving this prediction (contribution to predicted PPG):
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {selectedPrediction.factors.slice(0, 10).map((f) => {

@@ -23,6 +23,7 @@ import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
+import { ModelDocs } from './components/ModelDocs';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -76,6 +77,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'combine', label: 'Combine' },
       { id: 'draft', label: 'Draft History' },
       { id: 'charts', label: 'Chart Builder' },
+      { id: 'model-docs', label: 'Model Docs' },
     ],
   },
 ];
@@ -232,6 +234,7 @@ function App() {
           <PlayByPlayView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'charts' && <RookieRBChart />}
+        {tab === 'model-docs' && <ModelDocs />}
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
