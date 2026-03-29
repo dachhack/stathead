@@ -713,35 +713,59 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
 
           // ── Team QB rushing impact on skill positions ──
+          // Use the CURRENT season's starting QB (from rosters/depth charts),
+          // but look up THAT QB's prior rushing stats regardless of which team
+          // they played for. This handles QB trades correctly — if a mobile QB
+          // joins a new team, the rushing tendency follows the QB, not the team.
           const teamQBStats = new Map<string, {
             rushAtt: number; rushYds: number; rushTDs: number;
             rushShare: number; scrambleRate: number; ppg: number;
           }>();
           {
-            const qbByTeam = new Map<string, SeasonTotals>();
-            for (const p of priorTotals) {
-              if (p.position !== 'QB') continue;
-              const team = p.recent_team || '';
-              if (!team) continue;
-              const existing = qbByTeam.get(team);
-              if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
-                qbByTeam.set(team, p);
+            // Find current-season starting QB per team from depth charts or roster
+            const currentQBByTeam = new Map<string, string>(); // team → QB name
+            // Try depth charts first (most accurate)
+            for (const dc of dcLatest.values()) {
+              if (dc.pos_abb === 'QB' && (dc.pos_rank === 1 || dc.pos_slot === 1)) {
+                currentQBByTeam.set(dc.team, normalizeName(dc.player_name));
               }
             }
-            for (const [team, qb] of qbByTeam) {
-              const teamRushAtt = teamTotalCarries.get(team) || 1;
-              const qbGames = qb.games || 1;
-              const scheme = schemeByTeam.get(team);
-              const scrambleRate = scheme && scheme.passes > 0
-                ? (qb.carries || 0) / (scheme.passes + (qb.carries || 0))
+            // Fall back to roster QBs with highest ADP if no depth chart
+            if (currentQBByTeam.size < 20) {
+              const adpByName2 = new Map<string, number>();
+              for (const a of adpData) adpByName2.set(normalizeName(a.name), a.adp);
+              for (const r of seasonRosters) {
+                if (r.position !== 'QB' || r.status === 'Inactive') continue;
+                const name = normalizeName(r.full_name);
+                if (!currentQBByTeam.has(r.team)) {
+                  currentQBByTeam.set(r.team, name);
+                } else {
+                  // Prefer the QB with better ADP
+                  const existingAdp = adpByName2.get(currentQBByTeam.get(r.team)!) || 999;
+                  const thisAdp = adpByName2.get(name) || 999;
+                  if (thisAdp < existingAdp) currentQBByTeam.set(r.team, name);
+                }
+              }
+            }
+
+            // Look up each team's current QB's PRIOR rushing stats (from any team)
+            for (const [team, qbName] of currentQBByTeam) {
+              const qbPrior = priorByName.get(qbName);
+              if (!qbPrior) continue;
+              const qbGames = qbPrior.games || 1;
+              // Use the QB's prior team's total carries for rush share
+              const qbPriorTeam = qbPrior.recent_team || '';
+              const priorTeamRushAtt = teamTotalCarries.get(qbPriorTeam) || 1;
+              const scrambleRate = qbPrior.carries && qbPrior.attempts
+                ? (qbPrior.carries) / (qbPrior.attempts + qbPrior.carries)
                 : 0;
               teamQBStats.set(team, {
-                rushAtt: qb.carries || 0,
-                rushYds: qb.rushing_yards || 0,
-                rushTDs: qb.rushing_tds || 0,
-                rushShare: (qb.carries || 0) / teamRushAtt,
+                rushAtt: qbPrior.carries || 0,
+                rushYds: qbPrior.rushing_yards || 0,
+                rushTDs: qbPrior.rushing_tds || 0,
+                rushShare: (qbPrior.carries || 0) / priorTeamRushAtt,
                 scrambleRate: Math.round(scrambleRate * 1000) / 1000,
-                ppg: Math.round((qb.fantasy_points_ppr || 0) / qbGames * 10) / 10,
+                ppg: Math.round((qbPrior.fantasy_points_ppr || 0) / qbGames * 10) / 10,
               });
             }
           }
@@ -1850,35 +1874,51 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
 
             // Team QB rushing impact for predictions
+            // Uses CURRENT roster QB's prior stats (follows the QB, not the team)
             const predTeamQBStats = new Map<string, {
               rushAtt: number; rushYds: number; rushTDs: number;
               rushShare: number; scrambleRate: number; ppg: number;
             }>();
             {
-              const qbByTeam = new Map<string, SeasonTotals>();
-              for (const p of predPriorTotals) {
-                if (p.position !== 'QB') continue;
-                const team = p.recent_team || '';
-                if (!team) continue;
-                const existing = qbByTeam.get(team);
-                if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
-                  qbByTeam.set(team, p);
+              // Find current-season starting QB from prediction rosters/depth charts
+              const currentQBByTeam = new Map<string, string>();
+              for (const dc of predDcLatest.values()) {
+                if (dc.pos_abb === 'QB' && (dc.pos_rank === 1 || dc.pos_slot === 1)) {
+                  currentQBByTeam.set(dc.team, normalizeName(dc.player_name));
                 }
               }
-              for (const [team, qb] of qbByTeam) {
-                const teamRushAtt = predTeamTotalCarries.get(team) || 1;
-                const qbGames = qb.games || 1;
-                const scheme = predSchemeByTeam.get(team);
-                const scrambleRate = scheme && scheme.passes > 0
-                  ? (qb.carries || 0) / (scheme.passes + (qb.carries || 0))
+              if (currentQBByTeam.size < 20) {
+                const predAdpByName2 = new Map<string, number>();
+                for (const a of predAdpData) predAdpByName2.set(normalizeName(a.name), a.adp);
+                for (const r of predSeasonRosters) {
+                  if (r.position !== 'QB' || r.status === 'Inactive') continue;
+                  const name = normalizeName(r.full_name);
+                  if (!currentQBByTeam.has(r.team)) {
+                    currentQBByTeam.set(r.team, name);
+                  } else {
+                    const existingAdp = predAdpByName2.get(currentQBByTeam.get(r.team)!) || 999;
+                    const thisAdp = predAdpByName2.get(name) || 999;
+                    if (thisAdp < existingAdp) currentQBByTeam.set(r.team, name);
+                  }
+                }
+              }
+
+              for (const [team, qbName] of currentQBByTeam) {
+                const qbPrior = predPriorByName.get(qbName);
+                if (!qbPrior) continue;
+                const qbGames = qbPrior.games || 1;
+                const qbPriorTeam = qbPrior.recent_team || '';
+                const priorTeamRushAtt = predTeamTotalCarries.get(qbPriorTeam) || 1;
+                const scrambleRate = qbPrior.carries && qbPrior.attempts
+                  ? (qbPrior.carries) / (qbPrior.attempts + qbPrior.carries)
                   : 0;
                 predTeamQBStats.set(team, {
-                  rushAtt: qb.carries || 0,
-                  rushYds: qb.rushing_yards || 0,
-                  rushTDs: qb.rushing_tds || 0,
-                  rushShare: (qb.carries || 0) / teamRushAtt,
+                  rushAtt: qbPrior.carries || 0,
+                  rushYds: qbPrior.rushing_yards || 0,
+                  rushTDs: qbPrior.rushing_tds || 0,
+                  rushShare: (qbPrior.carries || 0) / priorTeamRushAtt,
                   scrambleRate: Math.round(scrambleRate * 1000) / 1000,
-                  ppg: Math.round((qb.fantasy_points_ppr || 0) / qbGames * 10) / 10,
+                  ppg: Math.round((qbPrior.fantasy_points_ppr || 0) / qbGames * 10) / 10,
                 });
               }
             }
