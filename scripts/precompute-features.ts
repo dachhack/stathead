@@ -13,7 +13,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v13.json'; // v13: college per-game + prospect grades + rookie features
+const CACHE_PATH = 'public/data/training-rows-cache-v14.json'; // v14: rawPPG target + Ridge fixes
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -102,7 +102,7 @@ async function main() {
     if (featureKeys.length > cfg.maxFeatures) {
       console.log(`      Feature selection: ${featureKeys.length} → ${cfg.maxFeatures} (N=${posRows.length})`);
       const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-      const yAll = posRows.map((r: PlayerRow) => r.rawPPG);
+      const yAll = posRows.map((r: PlayerRow) => r.rawPPG || 0);
       const quickGbm = trainGBM(XAll, yAll, featureKeys, {
         nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
         minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
@@ -133,7 +133,7 @@ async function main() {
     const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
     const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-    const y = posRows.map((r: PlayerRow) => r.rawPPG);
+    const y = posRows.map((r: PlayerRow) => r.rawPPG || 0);
 
     // Diagnostic: verify target data
     const yValid = y.filter((v) => v !== undefined && v !== null && !isNaN(v) && v !== 0);
@@ -196,7 +196,7 @@ async function main() {
 
         const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
         const Xtrb = trainR.map((r: PlayerRow) => baselineKeys.map((k) => r.features[k] || 0));
-        const ytr = trainR.map((r: PlayerRow) => r.rawPPG);
+        const ytr = trainR.map((r: PlayerRow) => r.rawPPG || 0);
         const foldMsl = Math.max(3, Math.round(trainR.length * cfg.minLeafPct));
 
         const cvGbmOpts = { nEstimators: Math.min(80, cfg.gbmEstimators), learningRate: cfg.gbmLR + 0.02, maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl };
@@ -213,9 +213,9 @@ async function main() {
             // Use handpicked minimal feature set for rookies (prevents overfitting)
             const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
             const XrTr = rookieTrain.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
-            const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG);
+            const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG || 0);
             const XvTr = vetTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-            const yvTr = vetTrain.map((r: PlayerRow) => r.rawPPG);
+            const yvTr = vetTrain.map((r: PlayerRow) => r.rawPPG || 0);
             // Rookies: very conservative (depth 1, high regularization, few features)
             foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, {
               nEstimators: 40, learningRate: 0.04, maxDepth: 1,
@@ -229,7 +229,7 @@ async function main() {
           const gbmPred = predictGBM(foldGbm, row.features).predicted;
           const ridgePred = predict(foldRidge, row.features).predicted;
 
-          losoActuals.push(row.rawPPG);
+          losoActuals.push(row.rawPPG || 0);
           losoPredGbm.push(gbmPred);
           losoPredRidge.push(ridgePred);
           losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
@@ -246,10 +246,10 @@ async function main() {
             losoPredRookieVet.push(rvPred);
             // Track separate rookie vs vet actuals/preds
             if (isRookie) {
-              losoRookieActuals.push(row.rawPPG);
+              losoRookieActuals.push(row.rawPPG || 0);
               losoRookiePreds.push(rvPred);
             } else {
-              losoVetActuals.push(row.rawPPG);
+              losoVetActuals.push(row.rawPPG || 0);
               losoVetPreds.push(rvPred);
             }
           } else {
@@ -322,7 +322,7 @@ async function main() {
     if (featureKeys.length > ppgCfg.maxFeatures) {
       console.log(`      PPG Feature selection: ${featureKeys.length} → ${ppgCfg.maxFeatures}`);
       const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-      const yAll = posRows.map((r: PlayerRow) => r.rawPPG);
+      const yAll = posRows.map((r: PlayerRow) => r.rawPPG || 0);
       const quickGbm = trainGBM(XAll, yAll, featureKeys, {
         nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
         minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
@@ -343,7 +343,7 @@ async function main() {
 
     // Train PPG model (target = rawPPG, ADP-free features)
     const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-    const y = posRows.map((r: PlayerRow) => r.rawPPG);
+    const y = posRows.map((r: PlayerRow) => r.rawPPG || 0);
     const msl = Math.max(3, Math.round(posRows.length * ppgCfg.minLeafPct));
 
     const ppgGbm = trainGBM(X, y, featureKeys, {
@@ -367,7 +367,7 @@ async function main() {
         if (trainR.length < 8 || testR.length === 0) continue;
 
         const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
-        const ytr = trainR.map((r: PlayerRow) => r.rawPPG);
+        const ytr = trainR.map((r: PlayerRow) => r.rawPPG || 0);
         const foldMsl = Math.max(3, Math.round(trainR.length * ppgCfg.minLeafPct));
 
         const foldGbm = trainGBM(Xtr, ytr, featureKeys, {
@@ -377,7 +377,7 @@ async function main() {
         const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ppgRidgeLambda);
 
         for (const row of testR) {
-          ppgLosoActuals.push(row.rawPPG);
+          ppgLosoActuals.push(row.rawPPG || 0);
           ppgLosoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
           ppgLosoPredRidge.push(predict(foldRidge, row.features).predicted);
         }
