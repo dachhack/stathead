@@ -34,6 +34,12 @@ function std(arr: number[], m: number): number {
   return Math.sqrt(variance);
 }
 
+function dot_static(a: number[], b: number[]): number {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+}
+
 /**
  * Solve (X'X + λI)β = X'y using conjugate gradient method.
  * Numerically stable for any dimensionality — no matrix inversion needed.
@@ -42,8 +48,8 @@ function solveRidgeCG(
   Xs: number[][], // n x p standardized feature matrix
   ys: number[],   // n x 1 standardized target
   lambda: number,
-  maxIter = 500,
-  tol = 1e-8,
+  maxIter = 2000,
+  tol = 1e-10,
 ): number[] {
   const n = Xs.length;
   const p = Xs[0]?.length || 0;
@@ -56,6 +62,10 @@ function solveRidgeCG(
       Xty[j] += Xs[i][j] * ys[i];
     }
   }
+
+  // Use relative tolerance based on ||X'y||
+  const rhs_norm = Math.sqrt(dot_static(Xty, Xty));
+  const absTol = Math.max(tol, tol * rhs_norm);
 
   // matvec: compute (X'X + λI) * v without forming X'X explicitly
   function matvec(v: number[]): number[] {
@@ -85,7 +95,7 @@ function solveRidgeCG(
   let d = r.slice();
   let rsOld = dot(r, r);
 
-  for (let iter = 0; iter < Math.min(maxIter, p); iter++) {
+  for (let iter = 0; iter < maxIter; iter++) {
     const Ad = matvec(d);
     const dAd = dot(d, Ad);
     if (dAd < 1e-15) break;
@@ -97,7 +107,7 @@ function solveRidgeCG(
     }
 
     const rsNew = dot(r, r);
-    if (rsNew < tol) break;
+    if (Math.sqrt(rsNew) < absTol) break;
 
     const betaCG = rsNew / rsOld;
     for (let j = 0; j < p; j++) d[j] = r[j] + betaCG * d[j];

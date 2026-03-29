@@ -135,6 +135,13 @@ async function main() {
     const X = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
     const y = posRows.map((r: PlayerRow) => r.rawPPG);
 
+    // Diagnostic: verify target data
+    const yValid = y.filter((v) => v !== undefined && v !== null && !isNaN(v) && v !== 0);
+    const yUndef = y.filter((v) => v === undefined || v === null).length;
+    const yNaN = y.filter((v) => typeof v === 'number' && isNaN(v)).length;
+    console.log(`      Target (rawPPG): ${y.length} total, ${yValid.length} non-zero, ${yUndef} undefined, ${yNaN} NaN`);
+    console.log(`      Target range: [${Math.min(...y)}, ${Math.max(...y)}], mean=${(y.reduce((a,b)=>a+(b||0),0)/y.length).toFixed(2)}`);
+
     const msl = Math.max(3, Math.round(posRows.length * cfg.minLeafPct));
 
     // === Improvement 1: Separate rookie vs veteran models ===
