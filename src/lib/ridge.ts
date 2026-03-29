@@ -132,11 +132,11 @@ export function trainRidgeRegression(
   const targetMean = mean(y);
   const targetStd = std(y, targetMean);
 
-  // Build standardized X matrix
+  // Build standardized X matrix (guard zero-variance features)
   const Xs: number[][] = X.map((row) =>
-    row.map((v, j) => (v - featureMeans[j]) / featureStds[j])
+    row.map((v, j) => featureStds[j] > 0 ? (v - featureMeans[j]) / featureStds[j] : 0)
   );
-  const ys = y.map((v) => (v - targetMean) / targetStd);
+  const ys = y.map((v) => targetStd > 0 ? (v - targetMean) / targetStd : 0);
 
   // X'X + λI
   const Xt = transpose(Xs);
@@ -205,7 +205,7 @@ export function predict(
   for (let j = 0; j < model.featureNames.length; j++) {
     const name = model.featureNames[j];
     const raw = features[name] ?? 0;
-    const standardized = (raw - model.featureMeans[j]) / model.featureStds[j];
+    const standardized = model.featureStds[j] > 0 ? (raw - model.featureMeans[j]) / model.featureStds[j] : 0;
     const contrib = standardized * model.coefficients[j] * model.targetStd;
     predStd += standardized * model.coefficients[j];
 
