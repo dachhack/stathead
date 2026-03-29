@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
 import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
 } from '../lib/featureTypes';
+import projectionConfig from '../generated/projection-config.json';
 
 interface PositionModelData {
   position: string;
@@ -154,6 +155,77 @@ export function ModelDocumentation() {
             Key predictors of team volume changes: new QB (strongest signal), new head coach, QB rush attempts,
             Vegas implied points per game, prior win percentage, and 2-year passing trend.
           </p>
+        </div>
+
+        {/* Stage 1b: Team Volume Evaluation */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Team Volume Projection Accuracy</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
+            Backtested over {projectionConfig.testSeasons.length} seasons ({projectionConfig.testSeasons[projectionConfig.testSeasons.length - 1]}–{projectionConfig.testSeasons[0]}).
+            Optimal blend: <strong>{Math.round(projectionConfig.winner.teamWeight * 100)}% team prior</strong> / <strong>{Math.round(projectionConfig.winner.leagueWeight * 100)}% league avg</strong> (selected
+            from {projectionConfig.configsTested} configurations). Average error: <strong>{projectionConfig.avgPctError}%</strong>.
+          </p>
+
+          {/* Bar chart */}
+          {(() => {
+            const STAT_LABELS: Record<string, string> = {
+              passAtt: 'Pass Att', passComp: 'Pass Comp', passYds: 'Pass Yds',
+              passTD: 'Pass TDs', int: 'INTs', rushAtt: 'Rush Att',
+              rushYds: 'Rush Yds', rushTD: 'Rush TDs', targets: 'Targets',
+              receptions: 'Receptions', recYds: 'Rec Yds', recTD: 'Rec TDs',
+            };
+            const detail = projectionConfig.perStatDetail as Record<string, { mae: number; rmse: number; meanActual: number; pctError: number }>;
+            const chartData = Object.entries(detail).map(([key, d]) => ({
+              stat: STAT_LABELS[key] || key,
+              pctError: d.pctError,
+              mae: d.mae,
+              meanActual: d.meanActual,
+            }));
+            const pctColor = (pct: number) => pct <= 10 ? '#22c55e' : pct <= 15 ? '#eab308' : pct <= 20 ? '#f97316' : '#ef4444';
+            return (
+              <>
+                <div style={{ width: '100%', height: 260, marginBottom: 12 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="stat" tick={{ fontSize: 10 }} interval={0} angle={-35} textAnchor="end" height={55} />
+                      <YAxis tick={{ fontSize: 10 }} domain={[0, 30]} unit="%" />
+                      <Tooltip
+                        contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                        formatter={(value: number, name: string) => name === 'pctError' ? [`${value}%`, '% Error'] : [value, name]}
+                      />
+                      <Bar dataKey="pctError" radius={[4, 4, 0, 0]}>
+                        {chartData.map((d, i) => <Cell key={i} fill={pctColor(d.pctError)} />)}
+                        <LabelList dataKey="pctError" position="top" fontSize={9} formatter={(v: number) => v != null ? `${v}%` : ''} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Per-stat table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                      <th style={{ textAlign: 'left', padding: '6px 8px' }}>Stat</th>
+                      <th style={{ textAlign: 'right', padding: '6px 8px' }}>MAE</th>
+                      <th style={{ textAlign: 'right', padding: '6px 8px' }}>Mean Actual</th>
+                      <th style={{ textAlign: 'right', padding: '6px 8px' }}>% Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chartData.map((d) => (
+                      <tr key={d.stat} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '5px 8px', fontWeight: 600 }}>{d.stat}</td>
+                        <td style={{ textAlign: 'right', padding: '5px 8px' }}>{d.mae}</td>
+                        <td style={{ textAlign: 'right', padding: '5px 8px' }}>{d.meanActual.toLocaleString()}</td>
+                        <td style={{ textAlign: 'right', padding: '5px 8px', color: pctColor(d.pctError), fontWeight: 700 }}>{d.pctError}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
         </div>
 
         {/* Stage 2: Player VOR Model */}
