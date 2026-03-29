@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS, REP_PPR, ROOKIE_FEATURES,
+  FEATURES, CATEGORY_COLORS, REP_PPR, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
@@ -173,22 +173,30 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
           const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
 
-          // Rookie/vet fold models
+          // Rookie/vet fold models (post-draft + pre-draft)
           let foldRookieGbm: ReturnType<typeof trainGBM> | null = null;
+          let foldPreDraftRookieGbm: ReturnType<typeof trainGBM> | null = null;
           let foldVetGbm: ReturnType<typeof trainGBM> | null = null;
           if (hasRookieSplit) {
             const rookieTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) <= 1);
             const vetTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) > 1);
             if (rookieTrain.length >= 10 && vetTrain.length >= 10) {
               const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
-              const XrTr = rookieTrain.map((r) => rookieKeys.map((k) => r.features[k] || 0));
+              const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
               const yrTr = rookieTrain.map((r) => r.rawPPG);
-              const XvTr = vetTrain.map((r) => featureKeys.map((k) => r.features[k] || 0));
-              const yvTr = vetTrain.map((r) => r.rawPPG);
-              foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, {
+              const rookieGbmOpts = {
                 nEstimators: 40, learningRate: 0.04, maxDepth: 1,
                 subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.15)),
-              });
+              };
+              // Post-draft (with team context)
+              const XrTr = rookieTrain.map((r) => rookieKeys.map((k) => r.features[k] || 0));
+              foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, rookieGbmOpts);
+              // Pre-draft (no team context)
+              const XrTrPre = rookieTrain.map((r) => preDraftKeys.map((k) => r.features[k] || 0));
+              foldPreDraftRookieGbm = trainGBM(XrTrPre, yrTr, preDraftKeys, rookieGbmOpts);
+              // Veterans
+              const XvTr = vetTrain.map((r) => featureKeys.map((k) => r.features[k] || 0));
+              const yvTr = vetTrain.map((r) => r.rawPPG);
               foldVetGbm = trainGBM(XvTr, yvTr, featureKeys, { ...GBM_OPTS_CV, minSamplesLeaf: Math.max(3, Math.round(vetTrain.length * 0.08)) });
             }
           }

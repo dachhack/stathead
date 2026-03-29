@@ -349,23 +349,33 @@ export function parseHeight(ht: string | number): number {
   return parts.length === 2 ? Number(parts[0]) * 12 + Number(parts[1]) : 0;
 }
 
-// Handpicked rookie features per position (minimal set for small samples)
-// These are the highest-signal predictors for year-1 NFL production
-export const ROOKIE_FEATURES: Record<string, string[]> = {
+// Pre-draft rookie features: college + combine + prospect grade only (no team context)
+// Used before the NFL draft when landing spot is unknown
+export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   QB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegePassYds', 'collegePassTDs', 'collegeQBR',
        'collegeRushYds', 'collegeTotalTDs', 'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
-       'prospectGrade', 'prospectPosRank', 'vegasImpliedTotal', 'teamPassRate', 'contractAPY'],
+       'prospectGrade', 'prospectPosRank'],
   RB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRushYds', 'collegeRushYPC', 'collegeTotalTDs',
        'collegeRecYds', 'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
-       'prospectGrade', 'prospectPosRank', 'forty', 'weight', 'broadJump',
-       'depthChartRank', 'teamSamePosCount', 'contractAPY'],
+       'prospectGrade', 'prospectPosRank', 'forty', 'weight', 'broadJump'],
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
        'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
-       'prospectGrade', 'prospectPosRank', 'forty', 'vertical', 'broadJump',
-       'depthChartRank', 'teamSamePosCount', 'teamPassRate', 'contractAPY'],
+       'prospectGrade', 'prospectPosRank', 'forty', 'vertical', 'broadJump'],
   TE: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs', 'collegeRecPerGame',
        'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeGames',
-       'prospectGrade', 'prospectPosRank', 'forty', 'weight',
+       'prospectGrade', 'prospectPosRank', 'forty', 'weight'],
+};
+
+// Post-draft rookie features: adds team context once landing spot is known
+// Includes depth chart, scheme, Vegas, positional competition, contract
+export const ROOKIE_FEATURES: Record<string, string[]> = {
+  QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
+       'vegasImpliedTotal', 'teamPassRate', 'contractAPY'],
+  RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
+       'depthChartRank', 'teamSamePosCount', 'contractAPY'],
+  WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
+       'depthChartRank', 'teamSamePosCount', 'teamPassRate', 'contractAPY'],
+  TE: [...PRE_DRAFT_ROOKIE_FEATURES.TE,
        'depthChartRank', 'teamSamePosCount', 'teamTETargetRate', 'schemeTEHeavy', 'contractAPY'],
 };
 
