@@ -276,13 +276,17 @@ export const FEATURES: FeatureDef[] = [
   { key: 'targetShareXteamPassRate', label: 'Target Share × Team Pass Rate', category: 'Interaction', positions: ['RB', 'WR', 'TE'] },
   { key: 'rushAttXageDecline', label: 'Rush Att × Age Decline', category: 'Interaction', positions: ['RB'] },
 
-  // Team QB rushing impact (how mobile QB affects skill positions)
-  { key: 'teamQBRushAtt', label: 'Team QB Rush Attempts', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
-  { key: 'teamQBRushYds', label: 'Team QB Rush Yards', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
-  { key: 'teamQBRushTDs', label: 'Team QB Rush TDs', category: 'QB Impact', positions: ['RB'] },
-  { key: 'teamQBRushShare', label: 'Team QB Rush Att Share', category: 'QB Impact', positions: ['RB'] },
-  { key: 'teamQBScrambleRate', label: 'Team QB Scramble Rate', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
-  { key: 'teamQBPPG', label: 'Team QB Fantasy PPG', category: 'QB Impact', positions: ['WR', 'TE'] },
+  // Team QB rushing impact — QB's own tendencies (follows the player)
+  { key: 'qbOwnRushAtt', label: 'QB Own Rush Attempts', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'qbOwnRushYds', label: 'QB Own Rush Yards', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'qbOwnRushTDs', label: 'QB Own Rush TDs', category: 'QB Impact', positions: ['RB'] },
+  { key: 'qbOwnRushShare', label: 'QB Own Rush Att Share', category: 'QB Impact', positions: ['RB'] },
+  { key: 'qbOwnScrambleRate', label: 'QB Own Scramble Rate', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'qbOwnPPG', label: 'QB Own Fantasy PPG', category: 'QB Impact', positions: ['WR', 'TE'] },
+  // Team QB rushing impact — team's coaching tendency (stays with the team)
+  { key: 'teamPriorQBRushAtt', label: 'Team Prior QB Rush Att', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
+  { key: 'teamPriorQBRushShare', label: 'Team Prior QB Rush Share', category: 'QB Impact', positions: ['RB'] },
+  { key: 'teamPriorQBScrambleRate', label: 'Team Prior QB Scramble Rate', category: 'QB Impact', positions: ['RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──

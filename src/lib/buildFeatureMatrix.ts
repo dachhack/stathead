@@ -770,6 +770,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
+          // Team's prior QB stats (coaching tendency — stays with team regardless of QB change)
+          const teamPriorQBStats = new Map<string, { rushAtt: number; rushShare: number; scrambleRate: number }>();
+          {
+            const priorQBByTeam = new Map<string, SeasonTotals>();
+            for (const p of priorTotals) {
+              if (p.position !== 'QB') continue;
+              const team = p.recent_team || '';
+              if (!team) continue;
+              const existing = priorQBByTeam.get(team);
+              if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
+                priorQBByTeam.set(team, p);
+              }
+            }
+            for (const [team, qb] of priorQBByTeam) {
+              const tRushAtt = teamTotalCarries.get(team) || 1;
+              const sch = schemeByTeam.get(team);
+              const sr = sch && sch.passes > 0 ? (qb.carries || 0) / (sch.passes + (qb.carries || 0)) : 0;
+              teamPriorQBStats.set(team, {
+                rushAtt: qb.carries || 0,
+                rushShare: (qb.carries || 0) / tRushAtt,
+                scrambleRate: Math.round(sr * 1000) / 1000,
+              });
+            }
+          }
+
           // Prior season PPR by name + position (for quality-aware competition)
           const priorPPRByName = new Map<string, number>();
           const priorPosByName = new Map<string, string>();
@@ -1402,17 +1427,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 };
               })(),
 
-              // Team QB rushing impact
+              // QB Impact: current QB's own tendencies (follows player across teams)
               ...(() => {
                 const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
                 const qbs = teamQBStats.get(pTeam);
+                const tpq = teamPriorQBStats.get(pTeam);
                 return {
-                  teamQBRushAtt: qbs?.rushAtt || 0,
-                  teamQBRushYds: qbs?.rushYds || 0,
-                  teamQBRushTDs: qbs?.rushTDs || 0,
-                  teamQBRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
-                  teamQBScrambleRate: qbs?.scrambleRate || 0,
-                  teamQBPPG: qbs?.ppg || 0,
+                  qbOwnRushAtt: qbs?.rushAtt || 0,
+                  qbOwnRushYds: qbs?.rushYds || 0,
+                  qbOwnRushTDs: qbs?.rushTDs || 0,
+                  qbOwnRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
+                  qbOwnScrambleRate: qbs?.scrambleRate || 0,
+                  qbOwnPPG: qbs?.ppg || 0,
+                  // Team's prior QB rushing tendency (coaching scheme signal)
+                  teamPriorQBRushAtt: tpq?.rushAtt || 0,
+                  teamPriorQBRushShare: Math.round((tpq?.rushShare || 0) * 1000) / 1000,
+                  teamPriorQBScrambleRate: tpq?.scrambleRate || 0,
                 };
               })(),
             };
@@ -1923,6 +1953,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               }
             }
 
+            // Team's prior QB stats for predictions (coaching tendency)
+            const predTeamPriorQBStats = new Map<string, { rushAtt: number; rushShare: number; scrambleRate: number }>();
+            {
+              const priorQBByTeam2 = new Map<string, SeasonTotals>();
+              for (const p of predPriorTotals) {
+                if (p.position !== 'QB') continue;
+                const team = p.recent_team || '';
+                if (!team) continue;
+                const existing = priorQBByTeam2.get(team);
+                if (!existing || (p.fantasy_points_ppr || 0) > (existing.fantasy_points_ppr || 0)) {
+                  priorQBByTeam2.set(team, p);
+                }
+              }
+              for (const [team, qb] of priorQBByTeam2) {
+                const tRushAtt = predTeamTotalCarries.get(team) || 1;
+                const sch = predSchemeByTeam.get(team);
+                const sr = sch && sch.passes > 0 ? (qb.carries || 0) / (sch.passes + (qb.carries || 0)) : 0;
+                predTeamPriorQBStats.set(team, {
+                  rushAtt: qb.carries || 0,
+                  rushShare: (qb.carries || 0) / tRushAtt,
+                  scrambleRate: Math.round(sr * 1000) / 1000,
+                });
+              }
+            }
+
             // Coach change detection for prediction season
             const predCoachChangeTeams = new Set<string>();
             for (const [key, coach] of coachBySeasonTeam) {
@@ -2413,17 +2468,21 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   };
                 })(),
 
-                // Team QB rushing impact
+                // QB Impact: current QB's own tendencies + team coaching tendency
                 ...(() => {
                   const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
                   const qbs = predTeamQBStats.get(pTeam);
+                  const tpq = predTeamPriorQBStats.get(pTeam);
                   return {
-                    teamQBRushAtt: qbs?.rushAtt || 0,
-                    teamQBRushYds: qbs?.rushYds || 0,
-                    teamQBRushTDs: qbs?.rushTDs || 0,
-                    teamQBRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
-                    teamQBScrambleRate: qbs?.scrambleRate || 0,
-                    teamQBPPG: qbs?.ppg || 0,
+                    qbOwnRushAtt: qbs?.rushAtt || 0,
+                    qbOwnRushYds: qbs?.rushYds || 0,
+                    qbOwnRushTDs: qbs?.rushTDs || 0,
+                    qbOwnRushShare: Math.round((qbs?.rushShare || 0) * 1000) / 1000,
+                    qbOwnScrambleRate: qbs?.scrambleRate || 0,
+                    qbOwnPPG: qbs?.ppg || 0,
+                    teamPriorQBRushAtt: tpq?.rushAtt || 0,
+                    teamPriorQBRushShare: Math.round((tpq?.rushShare || 0) * 1000) / 1000,
+                    teamPriorQBScrambleRate: tpq?.scrambleRate || 0,
                   };
                 })(),
               };
