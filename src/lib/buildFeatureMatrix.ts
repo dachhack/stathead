@@ -7,9 +7,9 @@ import {
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
-  fetchContracts, fetchCollegeStats, fetchCollegeQBR,
+  fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
 } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 // Volume projection module available for future ML team-level models
 // import { trainTeamVolumeModel, buildTeamVolumeTrainingData, projectPlayerPPG } from './volumeProjection';
@@ -78,13 +78,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Load combine + draft + games + contracts + college once (static)
         onStatus?.('Loading combine, draft, games, contracts & college data...');
-        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData] = await Promise.all([
+        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
           fetchContracts().catch(() => [] as Contract[]),
           fetchCollegeStats().catch(() => [] as CollegeStats[]),
           fetchCollegeQBR().catch(() => [] as CollegeQBR[]),
+          fetchDraftProspects().catch(() => [] as DraftProspect[]),
         ]);
 
         // Build lookup maps
@@ -125,6 +126,43 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const existing = collegeQBRByName.get(name) || 0;
           if (q.season >= existing || !collegeQBRByName.has(name)) {
             collegeQBRByName.set(name, q.total_qbr || 0);
+          }
+        }
+
+        // Draft prospect rankings/grades
+        const prospectByName = new Map<string, DraftProspect>();
+        for (const p of draftProspectData) {
+          const name = normalizeName(p.player_name);
+          if (!prospectByName.has(name)) prospectByName.set(name, p);
+        }
+
+        // Compute college per-game stats from the college stats data
+        const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number }>();
+        {
+          const collegeTotals = new Map<string, { games: number; receptions: number; recYds: number; rushYds: number; rushAtt: number; tds: number; passYds: number }>();
+          for (const cs of collegeStatsData) {
+            const name = normalizeName(cs.player_name);
+            if (!collegeTotals.has(name)) collegeTotals.set(name, { games: 0, receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
+            const t = collegeTotals.get(name)!;
+            const stat = (cs.statistic || '').toLowerCase();
+            if (stat.includes('game')) t.games = Math.max(t.games, cs.value || 0);
+            else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) t.receptions += cs.value || 0;
+            else if (stat.includes('receiving yard')) t.recYds += cs.value || 0;
+            else if (stat.includes('rushing yard')) t.rushYds += cs.value || 0;
+            else if (stat.includes('rushing attempt') || stat.includes('carries')) t.rushAtt += cs.value || 0;
+            else if (stat.includes('touchdown')) t.tds += cs.value || 0;
+            else if (stat.includes('passing yard')) t.passYds += cs.value || 0;
+          }
+          for (const [name, t] of collegeTotals) {
+            const games = t.games || 1;
+            const totalYds = t.recYds + t.rushYds + t.passYds;
+            collegePerGameByName.set(name, {
+              games: t.games,
+              recPerGame: Math.round((t.receptions / games) * 10) / 10,
+              ydsPerGame: Math.round((totalYds / games) * 10) / 10,
+              tdsPerGame: Math.round((t.tds / games) * 10) / 10,
+              rushYPC: t.rushAtt > 0 ? Math.round((t.rushYds / t.rushAtt) * 10) / 10 : 0,
+            });
           }
         }
 
@@ -1450,6 +1488,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
                   collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
                   collegeQBR: collegeQBRByName.get(normalName) || 0,
+                  // Additional college per-game metrics
+                  collegeGames: collegePerGameByName.get(normalName)?.games || 0,
+                  collegeRecPerGame: collegePerGameByName.get(normalName)?.recPerGame || 0,
+                  collegeYdsPerGame: collegePerGameByName.get(normalName)?.ydsPerGame || 0,
+                  collegeTDsPerGame: collegePerGameByName.get(normalName)?.tdsPerGame || 0,
+                  collegeRushYPC: collegePerGameByName.get(normalName)?.rushYPC || 0,
+                  // Prospect grades/rankings
+                  prospectGrade: prospectByName.get(normalName)?.grade || 0,
+                  prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
+                  prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
                 };
               })(),
 
@@ -2526,6 +2574,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
                     collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
                     collegeQBR: collegeQBRByName.get(normalName) || 0,
+                    collegeGames: collegePerGameByName.get(normalName)?.games || 0,
+                    collegeRecPerGame: collegePerGameByName.get(normalName)?.recPerGame || 0,
+                    collegeYdsPerGame: collegePerGameByName.get(normalName)?.ydsPerGame || 0,
+                    collegeTDsPerGame: collegePerGameByName.get(normalName)?.tdsPerGame || 0,
+                    collegeRushYPC: collegePerGameByName.get(normalName)?.rushYPC || 0,
+                    prospectGrade: prospectByName.get(normalName)?.grade || 0,
+                    prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
+                    prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
                   };
                 })(),
 

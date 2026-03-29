@@ -3,7 +3,7 @@
 // Outputs: public/data/feature-matrix.json (includes trained models)
 
 import { buildFeatureMatrix } from '../src/lib/buildFeatureMatrix';
-import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
+import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM } from '../src/lib/gbm';
@@ -13,7 +13,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v12.json'; // v12: ML team volume model
+const CACHE_PATH = 'public/data/training-rows-cache-v13.json'; // v13: college per-game + prospect grades + rookie features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -198,11 +198,17 @@ async function main() {
           const rookieTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
           const vetTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
           if (rookieTrain.length >= 10 && vetTrain.length >= 10) {
-            const XrTr = rookieTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+            // Use handpicked minimal feature set for rookies (prevents overfitting)
+            const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
+            const XrTr = rookieTrain.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
             const yrTr = rookieTrain.map((r: PlayerRow) => r.vor);
             const XvTr = vetTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
             const yvTr = vetTrain.map((r: PlayerRow) => r.vor);
-            foldRookieGbm = trainGBM(XrTr, yrTr, featureKeys, { ...cvGbmOpts, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.12)) });
+            // Rookies: very conservative (depth 1, high regularization, few features)
+            foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, {
+              nEstimators: 40, learningRate: 0.04, maxDepth: 1,
+              subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.15)),
+            });
             foldVetGbm = trainGBM(XvTr, yvTr, featureKeys, { ...cvGbmOpts, minSamplesLeaf: Math.max(3, Math.round(vetTrain.length * 0.08)) });
           }
         }
