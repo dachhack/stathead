@@ -220,7 +220,30 @@ const FEATURES: FeatureDef[] = [
   { key: 'projPlayerPPR',       label: 'Proj Player PPR',          category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projPlayerVsExpected',label: 'Proj Player vs Expected',  category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'projTargetShare',     label: 'Proj Target Share',        category: 'Projection', positions: ['RB', 'WR', 'TE'] },
+
+  // ── Missing-data indicators ──
+  // Binary flags so the model can distinguish "no data" from "zero value"
+  { key: 'hasPriorStats', label: 'Has Prior Stats', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'hasCombine',    label: 'Has Combine Data', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'hasNGS',        label: 'Has NGS Data',     category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
+
+// Categories that require prior-season NFL data (excluded from rookie models)
+const PRIOR_CATEGORIES = new Set([
+  'Prior Stats', 'Advanced', 'NGS', 'Route', 'Prior Fantasy', 'Workload',
+]);
+
+// Rookie models use only features available without prior NFL stats
+function getRookieFeatures(pos: string): FeatureDef[] {
+  return FEATURES.filter(
+    (f) => f.positions.includes(pos) && !PRIOR_CATEGORIES.has(f.category)
+  );
+}
+
+// Veteran models use all features
+function getVetFeatures(pos: string): FeatureDef[] {
+  return FEATURES.filter((f) => f.positions.includes(pos));
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   Draft: '#8b5cf6',
@@ -260,9 +283,11 @@ interface PlayerRow {
   position: string;
   season: number;
   adp: number;
-  vor: number;    // VOR Score (z-score): (PPR − replacement_PPR − pos_mean) / pos_std — comparable across positions
+  vorRaw: number;  // Raw PPR-based VOR (used as training target)
+  vor: number;     // VOR Score (z-score): (PPR − replacement_PPR − pos_mean) / pos_std — for display
   isHit: boolean;
   isBust: boolean;
+  isRookie: boolean;
   features: Record<string, number>;
 }
 
@@ -283,6 +308,17 @@ interface PositionModel {
   cvR2Ridge: number;
   cvMaeRidge: number;
   cvR2GbmBaseline: number;  // CV R² without projection features
+  // Rookie / veteran split models
+  rookieN: number;
+  vetN: number;
+  rookieGbm?: TrainedGBM;
+  vetGbm?: TrainedGBM;
+  rookieFeatureNames?: string[];
+  vetFeatureNames?: string[];
+  cvR2Rookie: number;
+  cvMaeRookie: number;
+  cvR2Vet: number;
+  cvMaeVet: number;
 }
 
 interface PredictionRow {
@@ -1272,29 +1308,53 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   projTargetShare:      pf?.projTargetShare        ?? 0,
                 };
               })(),
+
+              // ── Missing-data indicator flags ──
+              // Lets the model distinguish "no data" from "zero value"
+              hasPriorStats: priorGames > 0 ? 1 : 0,
+              hasCombine: combine ? 1 : 0,
+              hasNGS: (ngsRec || ngsRush || ngsPass) ? 1 : 0,
             };
+
+            const yearsInLeague = draft ? season - draft.season : 0;
+            const isRookie = yearsInLeague <= 0;
 
             rows.push({
               name: adpPlayer.name,
               position: adpPlayer.position,
               season,
               adp: adpPlayer.adp,
-              vor,
-              isHit: vor >= 0,
-              isBust: vor < -50,
+              vorRaw: vor,
+              vor,         // will be overwritten with z-score below
+              isHit: false,  // set after dynamic thresholds are computed
+              isBust: false,
+              isRookie,
               features,
             });
           }
         }
 
-        // ── Standardize VOR per position (z-score) ───────────────────────────
+        // ── Compute dynamic per-position hit/bust thresholds on raw VOR ──
+        // Use 67th/33rd percentile so top-third = hits, bottom-third = busts.
+        for (const pos of POSITIONS) {
+          const posRows = rows.filter((r) => r.position === pos);
+          const sorted = posRows.map((r) => r.vorRaw).sort((a, b) => a - b);
+          if (sorted.length < 6) continue;
+          const hitThresh  = sorted[Math.floor(sorted.length * 0.67)];
+          const bustThresh = sorted[Math.floor(sorted.length * 0.33)];
+          for (const row of posRows) {
+            row.isHit  = row.vorRaw >= hitThresh;
+            row.isBust = row.vorRaw < bustThresh;
+          }
+        }
+
+        // ── Standardize VOR per position (z-score) for display only ──────
         // Raw PPR-based VOR varies in scale across positions (QBs score far
-        // more than TEs in absolute terms). Standardising to z-scores makes
-        // the metric directly comparable across positions: +1.0 means 1 std
-        // above the mean for *that* position, regardless of which position.
+        // more than TEs in absolute terms). Z-scores make the metric
+        // comparable across positions. vorRaw is preserved for model training.
         const vorNorm = new Map<string, { mean: number; std: number }>();
         for (const pos of POSITIONS) {
-          const vals = rows.filter((r) => r.position === pos).map((r) => r.vor);
+          const vals = rows.filter((r) => r.position === pos).map((r) => r.vorRaw);
           if (vals.length < 4) continue;
           const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
           const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
@@ -1302,7 +1362,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           vorNorm.set(pos, { mean, std });
           for (const row of rows) {
             if (row.position === pos) {
-              row.vor = Math.round((row.vor - mean) / std * 100) / 100;
+              row.vor = Math.round((row.vorRaw - mean) / std * 100) / 100;
             }
           }
         }
@@ -2006,6 +2066,11 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                     projTargetShare:      pf?.projTargetShare        ?? 0,
                   };
                 })(),
+
+                // ── Missing-data indicator flags ──
+                hasPriorStats: priorGames > 0 ? 1 : 0,
+                hasCombine: combine ? 1 : 0,
+                hasNGS: (ngsRec || ngsRush || ngsPass) ? 1 : 0,
               };
 
               predRows.push({
@@ -2022,11 +2087,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         setPredictionRows(predRows);
 
         // Train per-position models (both Ridge and GBM)
-        // Then compute leave-one-season-out cross-validated R² and MAE for
-        // honest out-of-sample performance estimates.
+        // KEY FIX: Use vorRaw (raw PPR deltas) as training target so Ridge/GBM
+        // can standardize internally. The z-scored `vor` is only for display.
+        //
+        // Also train separate rookie/veteran models: rookies lack prior-season
+        // stats (50+ features are all zero), so they get a smaller feature set
+        // with only pre-draft / team-context / competition features.
         const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
         const GBM_OPTS_FULL = { nEstimators: 150, learningRate: 0.08, maxDepth: 3, subsample: 0.8 };
         const GBM_OPTS_CV   = { nEstimators: 80,  learningRate: 0.10, maxDepth: 3, subsample: 0.8 };
+
+        // Helper: build feature row, using ?? 0 to handle missing features
+        const buildX = (rows2: PlayerRow[], keys: string[]) =>
+          rows2.map((r) => keys.map((k) => r.features[k] ?? 0));
 
         const posModels: PositionModel[] = [];
         for (const pos of POSITIONS) {
@@ -2038,19 +2111,21 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           const featureLabels = posFeatures.map((f) => f.label);
           const baselineKeys = featureKeys.filter((k) => !PROJ_KEYS.includes(k));
 
-          const X = posRows.map((r) => featureKeys.map((k) => r.features[k] || 0));
-          const y = posRows.map((r) => r.vor);
+          // ── Use raw VOR as target (not z-scored) ──────────────────────────
+          const X = buildX(posRows, featureKeys);
+          const y = posRows.map((r) => r.vorRaw);
+
+          // Dynamic minSamplesLeaf: at least 8% of samples, floor 5
+          const mslFull = Math.max(5, Math.round(posRows.length * 0.08));
 
           // Full-data models (used for 2026 predictions and factor attributions)
           const ridgeModel = trainRidgeRegression(X, y, featureKeys, lambda);
           const gbmModel = trainGBM(X, y, featureKeys, {
             ...GBM_OPTS_FULL,
-            minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.05)),
+            minSamplesLeaf: mslFull,
           });
 
           // ── Leave-one-season-out cross-validation ─────────────────────────
-          // For each held-out season, train on the remaining seasons and
-          // predict the held-out samples. Aggregate to get honest R² / MAE.
           const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
           const losoActuals: number[] = [];
           const losoPredGbm: number[] = [];
@@ -2063,21 +2138,99 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
               const testR  = posRows.filter((r) => r.season === held);
               if (trainR.length < 8 || testR.length === 0) continue;
 
-              const Xtr  = trainR.map((r) => featureKeys.map((k)  => r.features[k] || 0));
-              const Xtrb = trainR.map((r) => baselineKeys.map((k) => r.features[k] || 0));
-              const ytr  = trainR.map((r) => r.vor);
-              const msl  = Math.max(3, Math.round(trainR.length * 0.05));
+              const Xtr  = buildX(trainR, featureKeys);
+              const Xtrb = buildX(trainR, baselineKeys);
+              const ytr  = trainR.map((r) => r.vorRaw);
+              const msl  = Math.max(5, Math.round(trainR.length * 0.08));
 
               const foldGbm   = trainGBM(Xtr,  ytr, featureKeys,  { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
               const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, lambda);
               const foldBase  = trainGBM(Xtrb, ytr, baselineKeys, { ...GBM_OPTS_CV,  minSamplesLeaf: msl });
 
               for (const row of testR) {
-                losoActuals.push(row.vor);
-                // predictGBM / predict take Record<string, number> feature maps
+                losoActuals.push(row.vorRaw);
                 losoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
                 losoPredRidge.push(predict(foldRidge, row.features).predicted);
                 losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
+              }
+            }
+          }
+
+          // ── Rookie / Veteran split models ─────────────────────────────────
+          const rookieRows = posRows.filter((r) => r.isRookie);
+          const vetRows    = posRows.filter((r) => !r.isRookie);
+
+          const rookieFeatDefs = getRookieFeatures(pos);
+          const rookieKeys     = rookieFeatDefs.map((f) => f.key);
+          const vetFeatDefs    = getVetFeatures(pos);
+          const vetKeys        = vetFeatDefs.map((f) => f.key);
+
+          // Rookie LOSO CV
+          let cvR2Rookie = 0, cvMaeRookie = 0;
+          let rookieGbm: TrainedGBM | undefined;
+          if (rookieRows.length >= 10) {
+            const Xrook = buildX(rookieRows, rookieKeys);
+            const yRook = rookieRows.map((r) => r.vorRaw);
+            const rookMsl = Math.max(3, Math.round(rookieRows.length * 0.10));
+            rookieGbm = trainGBM(Xrook, yRook, rookieKeys, {
+              nEstimators: 60, learningRate: 0.10, maxDepth: 2, subsample: 0.8,
+              minSamplesLeaf: rookMsl,
+            });
+
+            const rookSeasons = [...new Set(rookieRows.map((r) => r.season))].sort();
+            if (rookSeasons.length >= 3) {
+              const rookActuals: number[] = [];
+              const rookPreds: number[] = [];
+              for (const held of rookSeasons) {
+                const tr = rookieRows.filter((r) => r.season !== held);
+                const te = rookieRows.filter((r) => r.season === held);
+                if (tr.length < 6 || te.length === 0) continue;
+                const fold = trainGBM(buildX(tr, rookieKeys), tr.map((r) => r.vorRaw), rookieKeys, {
+                  nEstimators: 50, learningRate: 0.12, maxDepth: 2, subsample: 0.8,
+                  minSamplesLeaf: Math.max(3, Math.round(tr.length * 0.10)),
+                });
+                for (const row of te) {
+                  rookActuals.push(row.vorRaw);
+                  rookPreds.push(predictGBM(fold, row.features).predicted);
+                }
+              }
+              if (rookActuals.length >= 6) {
+                cvR2Rookie  = cvR2(rookActuals, rookPreds);
+                cvMaeRookie = cvMae(rookActuals, rookPreds);
+              }
+            }
+          }
+
+          // Veteran LOSO CV
+          let cvR2Vet = 0, cvMaeVet = 0;
+          let vetGbm: TrainedGBM | undefined;
+          if (vetRows.length >= 10) {
+            const Xvet = buildX(vetRows, vetKeys);
+            const yVet = vetRows.map((r) => r.vorRaw);
+            const vetMsl = Math.max(5, Math.round(vetRows.length * 0.08));
+            vetGbm = trainGBM(Xvet, yVet, vetKeys, {
+              ...GBM_OPTS_FULL, minSamplesLeaf: vetMsl,
+            });
+
+            const vetSeasons = [...new Set(vetRows.map((r) => r.season))].sort();
+            if (vetSeasons.length >= 3) {
+              const vetActuals: number[] = [];
+              const vetPreds: number[] = [];
+              for (const held of vetSeasons) {
+                const tr = vetRows.filter((r) => r.season !== held);
+                const te = vetRows.filter((r) => r.season === held);
+                if (tr.length < 8 || te.length === 0) continue;
+                const fold = trainGBM(buildX(tr, vetKeys), tr.map((r) => r.vorRaw), vetKeys, {
+                  ...GBM_OPTS_CV, minSamplesLeaf: Math.max(5, Math.round(tr.length * 0.08)),
+                });
+                for (const row of te) {
+                  vetActuals.push(row.vorRaw);
+                  vetPreds.push(predictGBM(fold, row.features).predicted);
+                }
+              }
+              if (vetActuals.length >= 6) {
+                cvR2Vet  = cvR2(vetActuals, vetPreds);
+                cvMaeVet = cvMae(vetActuals, vetPreds);
               }
             }
           }
@@ -2099,6 +2252,17 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             cvR2Ridge:        hasCV ? cvR2(losoActuals, losoPredRidge) : ridgeModel.rSquared,
             cvMaeRidge:       hasCV ? cvMae(losoActuals, losoPredRidge): ridgeModel.mae,
             cvR2GbmBaseline:  hasCV ? cvR2(losoActuals, losoPredGbmBase) : 0,
+            // Rookie / Veteran split
+            rookieN: rookieRows.length,
+            vetN: vetRows.length,
+            rookieGbm,
+            vetGbm,
+            rookieFeatureNames: rookieKeys,
+            vetFeatureNames: vetKeys,
+            cvR2Rookie,
+            cvMaeRookie,
+            cvR2Vet,
+            cvMaeVet,
           });
         }
 
