@@ -42,12 +42,33 @@ const NFLVERSE_REMOTE =
 // as a flat directory. Locally, fetch directly from GitHub releases.
 const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
 
+// In Node.js (build scripts), check if local files exist in public/data/
+const IS_NODE = typeof window === 'undefined';
+
+/** Read a local file in Node, returns null if not found */
+async function readLocalFile(filename: string): Promise<string | null> {
+  if (!IS_NODE) return null;
+  try {
+    const fs = await import('fs');
+    const path = `public/data/${filename}`;
+    if (fs.existsSync(path)) {
+      return fs.readFileSync(path, 'utf-8');
+    }
+  } catch {}
+  return null;
+}
+
 // CORS proxy for KeepTradeCut (Cloudflare Worker).
 // Deploy workers/ktc-proxy/ and set this to your worker URL.
 const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
+  // In Node, try local file first
+  const localText = await readLocalFile(filename);
+  if (localText) {
+    try { return JSON.parse(localText) as T; } catch { return null; }
+  }
   if (!IS_PROD) return null;
   try {
     const resp = await fetch(`${import.meta.env.BASE_URL}data/${filename}`);
@@ -89,6 +110,17 @@ function normalizePlayerRow(row: Record<string, unknown>): Record<string, unknow
 }
 
 export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
+  // In Node, try local file first
+  const localText = await readLocalFile(`player_stats_${season}.csv`);
+  if (localText) {
+    const result = Papa.parse<PlayerStats>(localText, {
+      header: true, dynamicTyping: true, skipEmptyLines: true,
+    });
+    const data = (result.data as unknown as Record<string, unknown>[])
+      .map(normalizePlayerRow) as unknown as PlayerStats[];
+    return data.filter((row) => row.season_type === 'REG');
+  }
+
   // In dev, try legacy release first then new stats_player release
   const urls = IS_PROD
     ? [nflUrl(`player_stats/player_stats_${season}.csv`)]
@@ -215,6 +247,19 @@ const csvCache = new Map<string, unknown[]>();
 async function fetchCsv<T>(url: string): Promise<T[]> {
   const cached = csvCache.get(url);
   if (cached) return cached as T[];
+
+  // In Node, try local file first (from public/data/)
+  const filename = url.split('/').pop()!;
+  const localText = await readLocalFile(filename);
+  if (localText) {
+    const result = Papa.parse<T>(localText, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+    });
+    csvCache.set(url, result.data);
+    return result.data;
+  }
 
   const response = await fetch(url);
   if (!response.ok) {
