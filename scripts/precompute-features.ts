@@ -144,7 +144,12 @@ async function main() {
     console.log(`      Rookie/Vet split: ${rookieRows.length} rookies, ${vetRows.length} vets (${hasRookieSplit ? 'enabled' : 'disabled — too few'})`);
 
     // Full-data models
-    const ridgeModel = trainRidgeRegression(X, y, featureKeys, cfg.ridgeLambda);
+    const ridgeLambda = Math.max(cfg.ridgeLambda, featureKeys.length * 0.5); // scale with features
+    console.log(`      Ridge: lambda=${ridgeLambda} (base=${cfg.ridgeLambda}, features=${featureKeys.length})`);
+    const ridgeModel = trainRidgeRegression(X, y, featureKeys, ridgeLambda);
+    console.log(`      Ridge in-sample R²=${ridgeModel.rSquared.toFixed(4)}, MAE=${ridgeModel.mae.toFixed(3)}`);
+    console.log(`      Ridge coeffs non-zero: ${ridgeModel.coefficients.filter(c => Math.abs(c) > 1e-10).length}/${ridgeModel.coefficients.length}`);
+    console.log(`      Ridge predictions range: [${Math.min(...ridgeModel.predictions).toFixed(2)}, ${Math.max(...ridgeModel.predictions).toFixed(2)}], target range: [${Math.min(...y).toFixed(2)}, ${Math.max(...y).toFixed(2)}]`);
     const gbmModel = trainGBM(X, y, featureKeys, {
       nEstimators: cfg.gbmEstimators, learningRate: cfg.gbmLR,
       maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: msl,
@@ -189,7 +194,7 @@ async function main() {
 
         const cvGbmOpts = { nEstimators: Math.min(80, cfg.gbmEstimators), learningRate: cfg.gbmLR + 0.02, maxDepth: cfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl };
         const foldGbm = trainGBM(Xtr, ytr, featureKeys, cvGbmOpts);
-        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, cfg.ridgeLambda);
+        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ridgeLambda);
         const foldBase = trainGBM(Xtrb, ytr, baselineKeys, cvGbmOpts);
 
         // Rookie/vet fold models
@@ -338,7 +343,9 @@ async function main() {
       nEstimators: ppgCfg.gbmEstimators, learningRate: ppgCfg.gbmLR,
       maxDepth: ppgCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: msl,
     });
-    const ppgRidge = trainRidgeRegression(X, y, featureKeys, ppgCfg.ridgeLambda);
+    const ppgRidgeLambda = Math.max(ppgCfg.ridgeLambda, featureKeys.length * 0.5);
+    const ppgRidge = trainRidgeRegression(X, y, featureKeys, ppgRidgeLambda);
+    console.log(`      PPG Ridge: lambda=${ppgRidgeLambda}, in-sample R²=${ppgRidge.rSquared.toFixed(4)}, coeffs non-zero: ${ppgRidge.coefficients.filter((c: number) => Math.abs(c) > 1e-10).length}/${ppgRidge.coefficients.length}`);
 
     // LOSO CV for PPG model
     const uniqueSeasons = [...new Set(posRows.map((r: PlayerRow) => r.season))].sort();
@@ -360,7 +367,7 @@ async function main() {
           nEstimators: Math.min(80, ppgCfg.gbmEstimators), learningRate: ppgCfg.gbmLR + 0.02,
           maxDepth: ppgCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl,
         });
-        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ppgCfg.ridgeLambda);
+        const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ppgRidgeLambda);
 
         for (const row of testR) {
           ppgLosoActuals.push(row.rawPPG);

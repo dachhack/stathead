@@ -31,7 +31,7 @@ function mean(arr: number[]): number {
 
 function std(arr: number[], m: number): number {
   const variance = arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length;
-  return Math.sqrt(variance) || 1;
+  return Math.sqrt(variance);
 }
 
 /**
@@ -135,10 +135,11 @@ export function trainRidgeRegression(
   }
 
   const targetMean = mean(y);
-  const targetStd = std(y, targetMean);
+  const targetStd = std(y, targetMean) || 1; // guard constant target
 
-  // Drop near-zero-variance features
-  const MIN_STD = 1e-6;
+  // Drop near-zero-variance features — features with tiny std produce
+  // enormous standardized values that cause numerical overflow in CG
+  const MIN_STD = 0.01;
   const activeIdx: number[] = [];
   for (let j = 0; j < p; j++) {
     if (featureStds[j] > MIN_STD) activeIdx.push(j);
@@ -224,4 +225,4 @@ export function predict(
   return { predicted, featureContributions: contributions };
 }
 
-const MIN_STD_PREDICT = 1e-6;
+const MIN_STD_PREDICT = 0.01;
