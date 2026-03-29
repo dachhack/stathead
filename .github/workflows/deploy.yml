@@ -23,26 +23,17 @@ jobs:
           node-version: 20
           cache: npm
 
-      # Cache static data files between builds (saves ~8 min of downloads)
+      # Cache static data files between builds
       - name: Cache static data
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v2
+          key: static-data-v3
           restore-keys: static-data-
 
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
-      - name: Backtest team projections (old vs new)
-        run: npm run test:projections
-        continue-on-error: true
-      - name: Evaluate feature subsets per position
-        run: npm run eval:features
-        continue-on-error: true
-      - name: Test Reddit sentiment features
-        run: npm run test:reddit
-        continue-on-error: true
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
