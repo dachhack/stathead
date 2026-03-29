@@ -34,6 +34,9 @@ jobs:
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
+      - name: Evaluate feature subsets per position
+        run: npm run eval:features
+        continue-on-error: true
       - name: Test Reddit sentiment features
         run: npm run test:reddit
         continue-on-error: true
