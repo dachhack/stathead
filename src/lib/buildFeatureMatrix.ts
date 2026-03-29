@@ -136,6 +136,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           if (!prospectByName.has(name)) prospectByName.set(name, p);
         }
 
+        // Projected draft position for incoming rookies (used as fallback before actual draft)
+        const projDraftByName = new Map<string, { projRound: number; projPick: number }>();
+        try {
+          const prospectGrades2026: { name: string; projRound: number; projPick: number }[] =
+            (await import('../data/prospect-grades-2026.json')).default;
+          for (const p of prospectGrades2026) {
+            projDraftByName.set(normalizeName(p.name), { projRound: p.projRound, projPick: p.projPick });
+          }
+        } catch { /* prospect grades not available */ }
+
         // Compute college per-game stats from the college stats data
         const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number }>();
         {
@@ -2308,8 +2318,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 adpRound: Math.ceil(adpPlayer.adp / 12),
                 age,
                 yearsInLeague: draft ? predSeason - draft.season : 0,
-                nflDraftRound: draft?.round || 8,
-                nflDraftPick: draft?.pick || 300,
+                nflDraftRound: draft?.round || projDraftByName.get(normalName)?.projRound || 8,
+                nflDraftPick: draft?.pick || projDraftByName.get(normalName)?.projPick || 300,
                 weight: wt,
                 forty: combine?.forty || 0,
                 bench: combine?.bench || 0,
