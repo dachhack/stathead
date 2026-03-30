@@ -151,7 +151,7 @@ async function main() {
     console.log(`      Rookie/Vet split: ${rookieRows.length} rookies, ${vetRows.length} vets (${hasRookieSplit ? 'enabled' : 'disabled — too few'})`);
 
     // Full-data models
-    const ridgeLambda = Math.max(cfg.ridgeLambda, featureKeys.length * 0.5); // scale with features
+    const ridgeLambda = Math.max(cfg.ridgeLambda, Math.sqrt(featureKeys.length)); // scale gently with features
     console.log(`      Ridge: lambda=${ridgeLambda} (base=${cfg.ridgeLambda}, features=${featureKeys.length})`);
     const ridgeModel = trainRidgeRegression(X, y, featureKeys, ridgeLambda);
     console.log(`      Ridge in-sample R²=${ridgeModel.rSquared.toFixed(4)}, MAE=${ridgeModel.mae.toFixed(3)}`);
@@ -384,7 +384,7 @@ async function main() {
       nEstimators: ppgCfg.gbmEstimators, learningRate: ppgCfg.gbmLR,
       maxDepth: ppgCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: msl,
     });
-    const ppgRidgeLambda = Math.max(ppgCfg.ridgeLambda, featureKeys.length * 0.5);
+    const ppgRidgeLambda = Math.max(ppgCfg.ridgeLambda, Math.sqrt(featureKeys.length));
     const ppgRidge = trainRidgeRegression(X, y, featureKeys, ppgRidgeLambda);
     console.log(`      PPG Ridge: lambda=${ppgRidgeLambda}, in-sample R²=${ppgRidge.rSquared.toFixed(4)}, coeffs non-zero: ${ppgRidge.coefficients.filter((c: number) => Math.abs(c) > 1e-10).length}/${ppgRidge.coefficients.length}`);
 

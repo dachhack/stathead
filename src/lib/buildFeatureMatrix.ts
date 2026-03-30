@@ -92,6 +92,21 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         const combineByName = new Map<string, CombineResult>();
         for (const c of combineData) combineByName.set(normalizeName(c.player_name), c);
 
+        // Compute position-average combine values for imputation (missing = 0 is misleading)
+        const combineAvg = new Map<string, { forty: number; bench: number; vertical: number; broadJump: number; cone: number; shuttle: number; weight: number }>();
+        for (const pos of POSITIONS) {
+          const posEntries = combineData.filter(c => c.pos === pos || c.pos === pos);
+          const avg = (field: keyof CombineResult) => {
+            const vals = posEntries.map(c => Number(c[field]) || 0).filter(v => v > 0);
+            return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100 : 0;
+          };
+          combineAvg.set(pos, {
+            forty: avg('forty'), bench: avg('bench'), vertical: avg('vertical'),
+            broadJump: avg('broad_jump'), cone: avg('cone'), shuttle: avg('shuttle'),
+            weight: avg('wt'),
+          });
+        }
+
         const draftByName = new Map<string, DraftPick>();
 
         // Contract lookup: player name → latest active contract
@@ -1206,13 +1221,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               yearsInLeague: draft ? season - draft.season : 0,
               nflDraftRound: draft?.round || 8,
               nflDraftPick: draft?.pick || 300,
-              weight: wt,
-              forty: combine?.forty || 0,
-              bench: combine?.bench || 0,
-              vertical: combine?.vertical || 0,
-              broadJump: combine?.broad_jump || 0,
-              cone: combine?.cone || 0,
-              shuttle: combine?.shuttle || 0,
+              weight: wt || combineAvg.get(adpPlayer.position)?.weight || 0,
+              forty: combine?.forty || combineAvg.get(adpPlayer.position)?.forty || 0,
+              bench: combine?.bench || combineAvg.get(adpPlayer.position)?.bench || 0,
+              vertical: combine?.vertical || combineAvg.get(adpPlayer.position)?.vertical || 0,
+              broadJump: combine?.broad_jump || combineAvg.get(adpPlayer.position)?.broadJump || 0,
+              cone: combine?.cone || combineAvg.get(adpPlayer.position)?.cone || 0,
+              shuttle: combine?.shuttle || combineAvg.get(adpPlayer.position)?.shuttle || 0,
               bmi: Math.round(bmi * 10) / 10,
               priorPassYards: prior?.passing_yards || 0,
               priorPassTDs: prior?.passing_tds || 0,
@@ -2320,13 +2335,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 yearsInLeague: draft ? predSeason - draft.season : 0,
                 nflDraftRound: draft?.round || projDraftByName.get(normalName)?.projRound || 8,
                 nflDraftPick: draft?.pick || projDraftByName.get(normalName)?.projPick || 300,
-                weight: wt,
-                forty: combine?.forty || 0,
-                bench: combine?.bench || 0,
-                vertical: combine?.vertical || 0,
-                broadJump: combine?.broad_jump || 0,
-                cone: combine?.cone || 0,
-                shuttle: combine?.shuttle || 0,
+                weight: wt || combineAvg.get(adpPlayer.position)?.weight || 0,
+                forty: combine?.forty || combineAvg.get(adpPlayer.position)?.forty || 0,
+                bench: combine?.bench || combineAvg.get(adpPlayer.position)?.bench || 0,
+                vertical: combine?.vertical || combineAvg.get(adpPlayer.position)?.vertical || 0,
+                broadJump: combine?.broad_jump || combineAvg.get(adpPlayer.position)?.broadJump || 0,
+                cone: combine?.cone || combineAvg.get(adpPlayer.position)?.cone || 0,
+                shuttle: combine?.shuttle || combineAvg.get(adpPlayer.position)?.shuttle || 0,
                 bmi: Math.round(bmi * 10) / 10,
                 priorPassYards: prior?.passing_yards || 0,
                 priorPassTDs: prior?.passing_tds || 0,
