@@ -27,6 +27,9 @@ export function ModelDocumentation() {
   const [data, setData] = useState<{
     models: PositionModelData[];
     featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+    rookieFeatureImportance?: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+    rookiePreDraftFeatureImportance?: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+    vetFeatureImportance?: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
     ppgModels?: Array<{ position: string; n: number; cvR2Gbm: number; cvR2Ridge: number; cvMaeGbm: number; featureNames: string[] }>;
     residualModels?: Array<{ position: string; n: number; bestAlpha: number; backtest: any }>;
     draftSim2025?: {
@@ -45,6 +48,7 @@ export function ModelDocumentation() {
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
+  const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
 
   useEffect(() => {
     async function load() {
@@ -52,14 +56,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
           }
         } catch {}
       }
@@ -78,13 +82,25 @@ export function ModelDocumentation() {
     if (!model || !data) return [];
 
     if (modelType === 'gbm') {
-      // Use precomputed GBM importance (no runtime computation needed)
-      const precomputed = data.featureImportance[selectedPos];
+      // Select the right importance map based on model view
+      let precomputed: typeof data.featureImportance[string] | undefined;
+      if (modelView === 'rookie') {
+        precomputed = data.rookieFeatureImportance?.[selectedPos];
+      } else if (modelView === 'rookie-predraft') {
+        precomputed = data.rookiePreDraftFeatureImportance?.[selectedPos];
+      } else if (modelView === 'veteran') {
+        precomputed = data.vetFeatureImportance?.[selectedPos];
+      } else {
+        precomputed = data.featureImportance[selectedPos];
+      }
       if (precomputed && precomputed.length > 0) return precomputed;
+      // Fall back to combined if selected view not available
+      const fallback = data.featureImportance[selectedPos];
+      if (fallback && fallback.length > 0) return fallback;
     }
 
-    // Ridge: use coefficients directly (always instant)
-    if (model.ridgeModel) {
+    // Ridge: use coefficients directly (always instant, only for combined view)
+    if (model.ridgeModel && modelView === 'combined') {
       return model.featureNames
         .map((key, i) => {
           const def = FEATURES.find((f) => f.key === key);
@@ -98,7 +114,7 @@ export function ModelDocumentation() {
         .sort((a, b) => b.importance - a.importance);
     }
     return [];
-  }, [model, data, selectedPos, modelType]);
+  }, [model, data, selectedPos, modelType, modelView]);
 
   // Group features by category
   const featuresByCategory = useMemo(() => {
@@ -316,7 +332,7 @@ export function ModelDocumentation() {
           {(['gbm', 'ridge'] as const).map((m) => (
             <button
               key={m}
-              onClick={() => setModelType(m)}
+              onClick={() => { setModelType(m); if (m === 'ridge') setModelView('combined'); }}
               style={{
                 padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 border: `2px solid ${modelType === m ? '#6366f1' : 'var(--border)'}`,
@@ -327,6 +343,41 @@ export function ModelDocumentation() {
               {m === 'gbm' ? 'GBM' : 'Ridge'}
             </button>
           ))}
+          {modelType === 'gbm' && (
+            <>
+              <span style={{ marginLeft: 16, fontSize: 13, color: 'var(--text-muted)' }}>View:</span>
+              {([
+                { key: 'combined' as const, label: 'Combined' },
+                { key: 'veteran' as const, label: 'Veteran' },
+                { key: 'rookie' as const, label: 'Rookie' },
+                { key: 'rookie-predraft' as const, label: 'Rookie (Pre-Draft)' },
+              ]).map(({ key, label }) => {
+                const hasData = key === 'combined'
+                  ? true
+                  : key === 'veteran'
+                  ? !!data?.vetFeatureImportance?.[selectedPos]
+                  : key === 'rookie'
+                  ? !!data?.rookieFeatureImportance?.[selectedPos]
+                  : !!data?.rookiePreDraftFeatureImportance?.[selectedPos];
+                return (
+                  <button
+                    key={key}
+                    onClick={() => hasData && setModelView(key)}
+                    style={{
+                      padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+                      cursor: hasData ? 'pointer' : 'not-allowed',
+                      opacity: hasData ? 1 : 0.4,
+                      border: `2px solid ${modelView === key ? '#14b8a6' : 'var(--border)'}`,
+                      background: modelView === key ? 'rgba(20,184,166,0.12)' : 'var(--bg-secondary)',
+                      color: modelView === key ? '#14b8a6' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
 
         {model && (
