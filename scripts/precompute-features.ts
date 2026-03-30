@@ -13,7 +13,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
-const CACHE_PATH = 'public/data/training-rows-cache-v14.json'; // v14: rawPPG target + Ridge fixes
+const CACHE_PATH = 'public/data/training-rows-cache-v15.json'; // v15: combine measurables + expanded rookie features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
