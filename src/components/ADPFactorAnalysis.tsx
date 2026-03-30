@@ -150,7 +150,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       // Rookie/veteran split
       const rookieRows = posRows.filter((r) => (r.features.yearsInLeague || 0) <= 1);
       const vetRows = posRows.filter((r) => (r.features.yearsInLeague || 0) > 1);
-      const hasRookieSplit = rookieRows.length >= 15 && vetRows.length >= 15;
+      const hasRookieSplit = rookieRows.length >= 30 && vetRows.length >= 30;
 
       const uniqueSeasons = [...new Set(posRows.map((r) => r.season))].sort();
       const losoActuals: number[] = [];
@@ -179,7 +179,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           if (hasRookieSplit) {
             const rookieTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) <= 1);
             const vetTrain = trainR.filter((r) => (r.features.yearsInLeague || 0) > 1);
-            if (rookieTrain.length >= 10 && vetTrain.length >= 10) {
+            if (rookieTrain.length >= 20 && vetTrain.length >= 20) {
               const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
               const yrTr = rookieTrain.map((r) => r.rawPPG);
               const rookieGbmOpts = {

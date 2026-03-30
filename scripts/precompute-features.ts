@@ -83,8 +83,8 @@ async function main() {
     minLeafPct: number;
   }> = {
     QB: { maxFeatures: 20, gbmEstimators: 80, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 15, minLeafPct: 0.10 },
-    RB: { maxFeatures: 80, gbmEstimators: 150, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 5, minLeafPct: 0.05 },
-    WR: { maxFeatures: 60, gbmEstimators: 120, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 8, minLeafPct: 0.06 },
+    RB: { maxFeatures: 40, gbmEstimators: 150, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 8, minLeafPct: 0.05 },
+    WR: { maxFeatures: 40, gbmEstimators: 120, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 8, minLeafPct: 0.06 },
     TE: { maxFeatures: 20, gbmEstimators: 60, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 20, minLeafPct: 0.12 },
   };
   const models: Record<string, unknown>[] = [];
@@ -147,7 +147,7 @@ async function main() {
     // === Improvement 1: Separate rookie vs veteran models ===
     const rookieRows = posRows.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
     const vetRows = posRows.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
-    const hasRookieSplit = rookieRows.length >= 15 && vetRows.length >= 15;
+    const hasRookieSplit = rookieRows.length >= 30 && vetRows.length >= 30;
     console.log(`      Rookie/Vet split: ${rookieRows.length} rookies, ${vetRows.length} vets (${hasRookieSplit ? 'enabled' : 'disabled — too few'})`);
 
     // Full-data models
@@ -227,7 +227,7 @@ async function main() {
         if (hasRookieSplit) {
           const rookieTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
           const vetTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
-          if (rookieTrain.length >= 10 && vetTrain.length >= 10) {
+          if (rookieTrain.length >= 20 && vetTrain.length >= 20) {
             const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
             const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
             const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG || 0);
