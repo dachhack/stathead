@@ -29,6 +29,14 @@ export function ModelDocumentation() {
     featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
     ppgModels?: Array<{ position: string; n: number; cvR2Gbm: number; cvR2Ridge: number; cvMaeGbm: number; featureNames: string[] }>;
     residualModels?: Array<{ position: string; n: number; bestAlpha: number; backtest: any }>;
+    draftSim2025?: {
+      adpTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean }>;
+      modelTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean }>;
+      adpLineupPPG: number; adpSeasonPPR: number;
+      modelLineupPPG: number; modelSeasonPPR: number;
+      adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
+      settings: { numTeams: number; pickPosition: number; rounds: number };
+    };
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
@@ -40,14 +48,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
           }
         } catch {}
       }
@@ -693,6 +701,93 @@ export function ModelDocumentation() {
                 </p>
               </>
             )}
+
+            {/* 2025 Draft Simulation */}
+            {data.draftSim2025 && data.draftSim2025.adpTeam.length > 0 && (() => {
+              const sim = data.draftSim2025!;
+              const ppgDelta = sim.modelLineupPPG - sim.adpLineupPPG;
+              const pprDelta = sim.modelSeasonPPR - sim.adpSeasonPPR;
+
+              const renderTeam = (team: typeof sim.adpTeam, label: string, lineupPPG: number, seasonPPR: number, hits: number, busts: number) => (
+                <div style={{ flex: 1, minWidth: 280 }}>
+                  <h4 style={{ fontSize: 13, margin: '0 0 6px', color: 'var(--text-secondary)' }}>{label}</h4>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                    Lineup: <strong style={{ color: 'var(--text-primary)' }}>{lineupPPG} PPG</strong> ({seasonPPR} season pts)
+                    &nbsp;|&nbsp; Hits: <span style={{ color: '#22c55e' }}>{hits}</span> Busts: <span style={{ color: '#ef4444' }}>{busts}</span>
+                  </div>
+                  <div className="table-container">
+                    <table style={{ fontSize: 11, width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th>Rd</th>
+                          <th>Player</th>
+                          <th>Pos</th>
+                          <th style={{ textAlign: 'right' }}>ADP</th>
+                          <th style={{ textAlign: 'right' }}>Actual PPG</th>
+                          <th style={{ textAlign: 'center' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {team.map((p, i) => (
+                          <tr key={i} style={{ opacity: i >= 7 ? 0.5 : 1 }}>
+                            <td>{p.round}</td>
+                            <td style={{ fontWeight: i < 7 ? 600 : 400, color: 'var(--text-primary)' }}>{p.name}</td>
+                            <td style={{ color: POS_COLORS[p.position] || 'var(--text-secondary)' }}>{p.position}</td>
+                            <td style={{ textAlign: 'right' }}>{Math.round(p.adp)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.actualPPG.toFixed(1)}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              {p.isHit ? <span style={{ color: '#22c55e' }}>&#x2713;</span> : p.isBust ? <span style={{ color: '#ef4444' }}>&#x2717;</span> : ''}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+
+              return (
+                <>
+                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated 2025 Draft</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    12-team snake draft, pick #{sim.settings.pickPosition}. ADP drafter always takes best available by ADP.
+                    Model drafter uses the ADP-residual model to find value. Other teams draft by ADP.
+                    Trained on 2018-2024, tested on 2025 (honest out-of-sample).
+                  </p>
+                  <div style={{
+                    display: 'flex', gap: 12, padding: '10px 12px', margin: '8px 0',
+                    borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                    fontSize: 13, fontWeight: 600,
+                  }}>
+                    <span>Lineup Delta:</span>
+                    <span style={{ color: ppgDelta > 0 ? '#22c55e' : ppgDelta < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
+                      {ppgDelta > 0 ? '+' : ''}{ppgDelta.toFixed(1)} PPG/week
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>|</span>
+                    <span style={{ color: pprDelta > 0 ? '#22c55e' : pprDelta < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
+                      {pprDelta > 0 ? '+' : ''}{pprDelta} season points
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>|</span>
+                    <span>
+                      Hits: <span style={{ color: sim.modelHits > sim.adpHits ? '#22c55e' : 'var(--text-secondary)' }}>{sim.modelHits}</span> vs {sim.adpHits}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>|</span>
+                    <span>
+                      Busts: <span style={{ color: sim.modelBusts < sim.adpBusts ? '#22c55e' : '#ef4444' }}>{sim.modelBusts}</span> vs {sim.adpBusts}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {renderTeam(sim.adpTeam, 'ADP Drafter', sim.adpLineupPPG, sim.adpSeasonPPR, sim.adpHits, sim.adpBusts)}
+                    {renderTeam(sim.modelTeam, 'Model Drafter', sim.modelLineupPPG, sim.modelSeasonPPR, sim.modelHits, sim.modelBusts)}
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                    Bold rows = starters (QB1, RB1-2, WR1-2, TE1, FLEX). Faded = bench.
+                    &#x2713; = hit (beat replacement), &#x2717; = bust (50+ PPR pts below replacement).
+                    Lineup PPG = sum of best starter PPGs.
+                  </p>
+                </>
+              );
+            })()}
 
             {/* Model Pipeline Diagram */}
             <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Prediction Pipeline</h3>

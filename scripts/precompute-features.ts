@@ -668,6 +668,12 @@ async function main() {
     // Also track hit/bust labels
     const resLosoIsHit: boolean[] = [];
     const resLosoIsBust: boolean[] = [];
+    // Capture 2025 player-level data for draft simulation
+    const players2025: Array<{
+      name: string; position: string; adp: number; actualPPG: number;
+      modelPPG: number; residual: number; adpImpliedPPG: number;
+      isHit: boolean; isBust: boolean;
+    }> = [];
 
     if (uniqueSeasons.length >= 3) {
       for (const held of uniqueSeasons) {
@@ -713,6 +719,18 @@ async function main() {
           resLosoAdpImplied.push(adpImplied);
           resLosoIsHit.push(!!row.isHit);
           resLosoIsBust.push(!!row.isBust);
+
+          // Capture 2025 player data for draft sim
+          if (held === 2025) {
+            players2025.push({
+              name: row.name, position: pos, adp: row.adp,
+              actualPPG: row.rawPPG || 0,
+              adpImpliedPPG: Math.round(adpImplied * 10) / 10,
+              residual: Math.round(residualPred * 100) / 100,
+              modelPPG: Math.round((adpImplied + residualPred) * 10) / 10,
+              isHit: !!row.isHit, isBust: !!row.isBust,
+            });
+          }
         }
       }
     }
@@ -841,6 +859,7 @@ async function main() {
       featureNames: featureKeys,
       n: posRows.length,
       backtest: residualBacktest,
+      players2025,
     });
 
     console.log(`    ${pos}: Residual model done (n=${posRows.length}, features=${featureKeys.length}, α=${bestAlpha})`);
@@ -876,6 +895,157 @@ async function main() {
     }
   }
   console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SIMULATED 2025 DRAFT: ADP team vs Model team in a 12-team snake draft
+  // Uses honest out-of-sample predictions (trained on 2018-2024, tested on 2025)
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('\n  Simulating 2025 draft...');
+
+  // Collect all 2025 players across positions
+  const allPlayers2025: Array<{
+    name: string; position: string; adp: number; actualPPG: number;
+    modelPPG: number; residual: number; adpImpliedPPG: number;
+    isHit: boolean; isBust: boolean;
+  }> = [];
+  for (const m of residualModels) {
+    const p2025 = (m as any).players2025 as typeof allPlayers2025;
+    if (p2025) allPlayers2025.push(...p2025);
+  }
+  // Sort by ADP for draft order
+  allPlayers2025.sort((a, b) => a.adp - b.adp);
+  console.log(`    ${allPlayers2025.length} players available for 2025 draft sim`);
+
+  // Snake draft simulation: 12 teams, 15 rounds
+  // Our drafter picks at position 6 (1-indexed)
+  const NUM_TEAMS = 12;
+  const NUM_ROUNDS = 15;
+  const OUR_PICK = 6; // 1-indexed draft position
+
+  // Roster requirements
+  const ROSTER_SLOTS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, BN_QB: 0, BN_RB: 2, BN_WR: 2, BN_TE: 1 };
+  // Total max per position: QB:1, RB:4, WR:4, TE:2, but flex can be RB/WR/TE
+  const MAX_POS = { QB: 2, RB: 5, WR: 5, TE: 2 };
+  const STARTER_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 }; // 7 starters + 8 bench
+
+  type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean };
+
+  function simulateDraft(useModel: boolean): DraftPick[] {
+    const available = [...allPlayers2025];
+    const ourTeam: DraftPick[] = [];
+    const ourPosCounts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+
+    // Determine our pick numbers in snake order
+    const ourPicks: number[] = [];
+    for (let round = 0; round < NUM_ROUNDS; round++) {
+      if (round % 2 === 0) {
+        ourPicks.push(round * NUM_TEAMS + (OUR_PICK - 1)); // 0-indexed
+      } else {
+        ourPicks.push(round * NUM_TEAMS + (NUM_TEAMS - OUR_PICK)); // snake back
+      }
+    }
+
+    let overallPick = 0;
+    for (let round = 0; round < NUM_ROUNDS; round++) {
+      const picksThisRound = round % 2 === 0
+        ? Array.from({ length: NUM_TEAMS }, (_, i) => i)
+        : Array.from({ length: NUM_TEAMS }, (_, i) => NUM_TEAMS - 1 - i);
+
+      for (const teamSlot of picksThisRound) {
+        if (available.length === 0) break;
+        const isOurPick = (round % 2 === 0 ? teamSlot === OUR_PICK - 1 : teamSlot === NUM_TEAMS - OUR_PICK);
+
+        if (isOurPick) {
+          // Our pick: choose best available
+          let bestIdx = 0;
+          if (useModel) {
+            // Model drafter: pick highest modelPPG, respecting roster limits
+            let bestScore = -Infinity;
+            for (let i = 0; i < available.length; i++) {
+              const p = available[i];
+              if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
+              // Positional scarcity: boost positions we still need starters for
+              let need = 0;
+              const starterNeed = STARTER_NEEDS[p.position as keyof typeof STARTER_NEEDS] || 0;
+              if (ourPosCounts[p.position] < starterNeed) need = 1;
+              // For flex, count if we have fewer than RB:2+WR:2+TE:1 + 1 flex
+              const score = p.modelPPG + (need ? 0.5 : 0);
+              if (score > bestScore) { bestScore = score; bestIdx = i; }
+            }
+          } else {
+            // ADP drafter: always pick best available by ADP (first in list, since sorted)
+            // But respect roster limits
+            for (let i = 0; i < available.length; i++) {
+              const p = available[i];
+              if ((ourPosCounts[p.position] || 0) < (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) {
+                bestIdx = i;
+                break;
+              }
+            }
+          }
+
+          const picked = available.splice(bestIdx, 1)[0];
+          ourPosCounts[picked.position] = (ourPosCounts[picked.position] || 0) + 1;
+          ourTeam.push({
+            name: picked.name, position: picked.position, adp: picked.adp,
+            actualPPG: picked.actualPPG, modelPPG: picked.modelPPG,
+            round: round + 1, pickNum: overallPick + 1,
+            isHit: picked.isHit, isBust: picked.isBust,
+          });
+        } else {
+          // Other teams draft by ADP (take first available)
+          if (available.length > 0) available.splice(0, 1);
+        }
+        overallPick++;
+      }
+    }
+    return ourTeam;
+  }
+
+  const adpTeam = simulateDraft(false);
+  const modelTeam = simulateDraft(true);
+
+  // Compute scoring for best lineup: QB1, RB1, RB2, WR1, WR2, TE1, FLEX
+  function bestLineupPPG(team: DraftPick[]): { starters: DraftPick[]; totalPPG: number; seasonPPR: number } {
+    const byPos: Record<string, DraftPick[]> = { QB: [], RB: [], WR: [], TE: [] };
+    for (const p of team) (byPos[p.position] || []).push(p);
+    for (const pos of Object.keys(byPos)) byPos[pos].sort((a, b) => b.actualPPG - a.actualPPG);
+
+    const starters: DraftPick[] = [];
+    const qb = byPos.QB.slice(0, 1); starters.push(...qb);
+    const rb = byPos.RB.slice(0, 2); starters.push(...rb);
+    const wr = byPos.WR.slice(0, 2); starters.push(...wr);
+    const te = byPos.TE.slice(0, 1); starters.push(...te);
+
+    // FLEX: best remaining RB/WR/TE
+    const flexCandidates = [...byPos.RB.slice(2), ...byPos.WR.slice(2), ...byPos.TE.slice(1)]
+      .sort((a, b) => b.actualPPG - a.actualPPG);
+    if (flexCandidates.length > 0) starters.push(flexCandidates[0]);
+
+    const totalPPG = Math.round(starters.reduce((s, p) => s + p.actualPPG, 0) * 10) / 10;
+    return { starters, totalPPG, seasonPPR: Math.round(totalPPG * 17) };
+  }
+
+  const adpLineup = bestLineupPPG(adpTeam);
+  const modelLineup = bestLineupPPG(modelTeam);
+
+  const draftSim2025 = {
+    adpTeam: adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust })),
+    modelTeam: modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust })),
+    adpLineupPPG: adpLineup.totalPPG,
+    adpSeasonPPR: adpLineup.seasonPPR,
+    modelLineupPPG: modelLineup.totalPPG,
+    modelSeasonPPR: modelLineup.seasonPPR,
+    adpHits: adpTeam.filter(p => p.isHit).length,
+    adpBusts: adpTeam.filter(p => p.isBust).length,
+    modelHits: modelTeam.filter(p => p.isHit).length,
+    modelBusts: modelTeam.filter(p => p.isBust).length,
+    settings: { numTeams: NUM_TEAMS, pickPosition: OUR_PICK, rounds: NUM_ROUNDS },
+  };
+
+  console.log(`    ADP team: ${adpLineup.totalPPG} PPG (${adpLineup.seasonPPR} season), ${draftSim2025.adpHits} hits, ${draftSim2025.adpBusts} busts`);
+  console.log(`    Model team: ${modelLineup.totalPPG} PPG (${modelLineup.seasonPPR} season), ${draftSim2025.modelHits} hits, ${draftSim2025.modelBusts} busts`);
+  console.log(`    Lineup delta: ${(modelLineup.totalPPG - adpLineup.totalPPG).toFixed(1)} PPG/week (${modelLineup.seasonPPR - adpLineup.seasonPPR} season points)`);
 
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)
   console.log('  Computing feature importance...');
@@ -987,7 +1157,12 @@ async function main() {
   console.log(`  ${predictions2026.length} player predictions generated`);
 
   mkdirSync('public/data', { recursive: true });
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026, residualModels, residualPredictions2026 };
+  // Strip players2025 and trained models from residualModels to reduce output size
+  const residualModelsOutput = residualModels.map((m: any) => ({
+    position: m.position, bestAlpha: m.bestAlpha, n: m.n, backtest: m.backtest,
+    adpSlope: m.adpSlope, adpIntercept: m.adpIntercept,
+  }));
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
