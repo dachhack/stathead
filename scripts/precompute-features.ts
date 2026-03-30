@@ -916,7 +916,16 @@ async function main() {
   for (const m of residualModels) {
     const pds = (m as any).playersDraftSim as typeof allDraftSimPlayers;
     const ls = (m as any).lastSeason as number;
+    const alpha = (m as any).bestAlpha as number;
     if (pds && pds.length > 0) {
+      // Apply position-specific bestAlpha to residual and modelPPG
+      const pos = (m as any).position as string;
+      for (const p of pds) {
+        p.residual = Math.round(p.residual * alpha * 100) / 100; // scale residual by alpha
+        p.modelPPG = Math.round((p.adpImpliedPPG + p.residual) * 10) / 10; // blended prediction
+      }
+      const avgRes = pds.reduce((s, p) => s + Math.abs(p.residual), 0) / pds.length;
+      console.log(`      ${pos}: α=${alpha}, ${pds.length} players, avg |residual|=${avgRes.toFixed(2)}`);
       allDraftSimPlayers.push(...pds);
       draftSimSeason = Math.max(draftSimSeason, ls || 0);
     }
@@ -970,10 +979,10 @@ async function main() {
 
           let bestIdx = 0;
           if (useModel) {
-            // Strategy: draft mostly by ADP but use model residual as buy/sell filter.
-            // Scan top candidates near ADP board position. Skip "sells" (negative residual),
-            // prefer "buys" (positive residual) among nearby options.
-            const WINDOW = 8; // look at top 8 eligible players by ADP
+            // Strategy: draft mostly by ADP but use alpha-scaled residual as buy/sell filter.
+            // Residual is already multiplied by position-specific bestAlpha (0.3-0.7).
+            // Scan top candidates near ADP, skip sells, prefer buys.
+            const WINDOW = 5; // look at top 5 eligible players by ADP
             const candidates: Array<{ idx: number; residual: number; need: number }> = [];
             for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
               const p = available[i];
@@ -984,17 +993,17 @@ async function main() {
               candidates.push({ idx: i, residual: p.residual, need });
             }
             if (candidates.length > 0) {
-              // Score each candidate: ADP position (lower = better) + residual filter + need + noise
+              // Score: strong ADP anchor + alpha-scaled residual as tiebreaker + need
               let bestScore = -Infinity;
               for (const c of candidates) {
-                // Base: penalize reaching past top of board (ADP ordering matters)
-                let score = -c.idx * 0.5;
-                // Buy/sell filter: boost buys, penalize sells
-                score += c.residual * 1.5;
+                // ADP position: heavy penalty for reaching (stays near top of board)
+                let score = -c.idx * 1.0;
+                // Residual (already alpha-scaled): direct buy/sell signal
+                score += c.residual;
                 // Positional need bonus
-                if (c.need) score += 1.0;
-                // Small noise for sim variance (±0.4)
-                score += (rng() - 0.5) * 0.8;
+                if (c.need) score += 0.5;
+                // Small noise for sim variance (±0.25)
+                score += (rng() - 0.5) * 0.5;
                 if (score > bestScore) { bestScore = score; bestIdx = c.idx; }
               }
             }
