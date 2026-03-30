@@ -121,9 +121,17 @@ export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
     return data.filter((row) => row.season_type === 'REG');
   }
 
-  // In dev, try legacy release first then new stats_player release
-  const urls = IS_PROD
-    ? [nflUrl(`player_stats/player_stats_${season}.csv`)]
+  // Try legacy release first then new stats_player release
+  const urls = IS_NODE
+    ? [
+        `${NFLVERSE_REMOTE}/player_stats/player_stats_${season}.csv`,
+        `${NFLVERSE_REMOTE}/stats_player/stats_player_week_${season}.csv`,
+      ]
+    : IS_PROD
+    ? [
+        nflUrl(`player_stats/player_stats_${season}.csv`),
+        nflUrl(`stats_player/stats_player_week_${season}.csv`),
+      ]
     : [
         `${NFLVERSE_REMOTE}/player_stats/player_stats_${season}.csv`,
         `${NFLVERSE_REMOTE}/stats_player/stats_player_week_${season}.csv`,
