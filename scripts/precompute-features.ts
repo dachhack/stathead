@@ -36,7 +36,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v20.json'; // v20: advanced college features (dominator, breakout age, market share, speed score)
+const CACHE_PATH = 'public/data/training-rows-cache-v20.json'; // v20: advanced college features + fixed rookie GBM (maxDepth 2, LOSO array fix)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -205,8 +205,8 @@ async function main() {
       const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
       const yrAll = rookieRows.map((r: PlayerRow) => r.rawPPG || 0);
       const rookieGbmOpts = {
-        nEstimators: 40, learningRate: 0.04, maxDepth: 1,
-        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieRows.length * 0.15)),
+        nEstimators: 60, learningRate: 0.05, maxDepth: 2,
+        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieRows.length * 0.12)),
       };
       const XrPost = rookieRows.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
       rookieGbmPostDraft = trainGBM(XrPost, yrAll, rookieKeys, rookieGbmOpts);
@@ -253,13 +253,13 @@ async function main() {
         if (hasRookieSplit) {
           const rookieTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
           const vetTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
-          if (rookieTrain.length >= 20 && vetTrain.length >= 20) {
+          if (rookieTrain.length >= 15 && vetTrain.length >= 15) {
             const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
             const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
             const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG || 0);
             const rookieGbmOpts = {
-              nEstimators: 40, learningRate: 0.04, maxDepth: 1,
-              subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.15)),
+              nEstimators: 60, learningRate: 0.05, maxDepth: 2,
+              subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(rookieTrain.length * 0.12)),
             };
             // Post-draft model (with team context)
             const XrTr = rookieTrain.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
@@ -288,8 +288,8 @@ async function main() {
           losoPredEnsemble.push(gbmPred * 0.7 + ridgePred * 0.3);
 
           // Rookie/vet prediction
+          const isRookie = (row.features.yearsInLeague || 0) <= 1;
           if (foldRookieGbm && foldVetGbm) {
-            const isRookie = (row.features.yearsInLeague || 0) <= 1;
             const rvPred = isRookie
               ? predictGBM(foldRookieGbm, row.features).predicted
               : predictGBM(foldVetGbm, row.features).predicted;
@@ -298,7 +298,6 @@ async function main() {
             if (isRookie) {
               losoRookieActuals.push(row.rawPPG || 0);
               losoRookiePreds.push(rvPred);
-              // Pre-draft model eval (no team context)
               losoPreDraftRookiePreds.push(
                 foldPreDraftRookieGbm
                   ? predictGBM(foldPreDraftRookieGbm, row.features).predicted
@@ -310,6 +309,15 @@ async function main() {
             }
           } else {
             losoPredRookieVet.push(gbmPred);
+            // Still track rookie/vet actuals with fallback general GBM pred
+            if (isRookie) {
+              losoRookieActuals.push(row.rawPPG || 0);
+              losoRookiePreds.push(gbmPred);
+              losoPreDraftRookiePreds.push(gbmPred);
+            } else {
+              losoVetActuals.push(row.rawPPG || 0);
+              losoVetPreds.push(gbmPred);
+            }
           }
         }
       }
@@ -1303,6 +1311,89 @@ async function main() {
     console.log(`    ${pos}: top feature = ${featureImportance[pos][0]?.key} (${featureImportance[pos][0]?.importance})`);
   }
 
+  // Precompute rookie/vet-specific feature importance
+  console.log('  Computing rookie/vet feature importance...');
+  const rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  const rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  const vetFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  for (const m of models) {
+    const pos = m.position as string;
+    const rookiePost = m.rookieGbmPostDraft as any;
+    const rookiePre = m.rookieGbmPreDraft as any;
+    const rookieKeys = ROOKIE_FEATURES[pos] || [];
+    const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || [];
+    const featureNames = m.featureNames as string[];
+    const gbm = m.gbmModel as any;
+
+    const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
+    const rookieRows = posRows.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
+    const vetRows = posRows.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
+
+    // Rookie post-draft feature importance
+    if (rookiePost && rookieRows.length >= 10) {
+      const sampled = rookieRows.slice(0, 100);
+      const contribs = new Array(rookieKeys.length).fill(0);
+      for (const row of sampled) {
+        const pred = predictGBM(rookiePost, row.features);
+        for (const fc of pred.featureContributions) {
+          const idx = rookieKeys.indexOf(fc.name);
+          if (idx >= 0) contribs[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const n = sampled.length || 1;
+      rookieFeatureImportance[pos] = rookieKeys
+        .map((key: string, i: number) => {
+          const def = FEATURES.find((f) => f.key === key);
+          return { key, label: def?.label || key, category: def?.category || 'Other', importance: Math.round((contribs[i] / n) * 10000) / 10000 };
+        })
+        .sort((a, b) => b.importance - a.importance);
+      console.log(`    ${pos} rookie (post-draft): top = ${rookieFeatureImportance[pos][0]?.key} (${rookieFeatureImportance[pos][0]?.importance})`);
+    }
+
+    // Rookie pre-draft feature importance
+    if (rookiePre && rookieRows.length >= 10) {
+      const sampled = rookieRows.slice(0, 100);
+      const contribs = new Array(preDraftKeys.length).fill(0);
+      for (const row of sampled) {
+        const pred = predictGBM(rookiePre, row.features);
+        for (const fc of pred.featureContributions) {
+          const idx = preDraftKeys.indexOf(fc.name);
+          if (idx >= 0) contribs[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const n = sampled.length || 1;
+      rookiePreDraftFeatureImportance[pos] = preDraftKeys
+        .map((key: string, i: number) => {
+          const def = FEATURES.find((f) => f.key === key);
+          return { key, label: def?.label || key, category: def?.category || 'Other', importance: Math.round((contribs[i] / n) * 10000) / 10000 };
+        })
+        .sort((a, b) => b.importance - a.importance);
+      console.log(`    ${pos} rookie (pre-draft): top = ${rookiePreDraftFeatureImportance[pos][0]?.key} (${rookiePreDraftFeatureImportance[pos][0]?.importance})`);
+    }
+
+    // Vet feature importance (same GBM as combined but scored on vets only)
+    if (gbm && vetRows.length >= 10) {
+      const sampled = vetRows.slice(0, 150);
+      const contribs = new Array(featureNames.length).fill(0);
+      for (const row of sampled) {
+        const pred = predictGBM(gbm, row.features);
+        for (const fc of pred.featureContributions) {
+          const idx = featureNames.indexOf(fc.name);
+          if (idx >= 0) contribs[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const n = sampled.length || 1;
+      vetFeatureImportance[pos] = featureNames
+        .map((key: string, i: number) => {
+          const def = FEATURES.find((f) => f.key === key);
+          return { key, label: def?.label || key, category: def?.category || 'Other', importance: Math.round((contribs[i] / n) * 10000) / 10000 };
+        })
+        .filter(f => f.importance > 0)
+        .sort((a, b) => b.importance - a.importance);
+      console.log(`    ${pos} vet: top = ${vetFeatureImportance[pos][0]?.key} (${vetFeatureImportance[pos][0]?.importance})`);
+    }
+  }
+
   // Compute hit/bust thresholds per position
   const posThresholds: Record<string, { hit: number; bust: number }> = {};
   for (const pos of POSITIONS) {
@@ -1379,7 +1470,7 @@ async function main() {
     position: m.position, bestAlpha: m.bestAlpha, n: m.n, backtest: m.backtest,
     adpSlope: m.adpSlope, adpIntercept: m.adpIntercept,
   }));
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025 };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
