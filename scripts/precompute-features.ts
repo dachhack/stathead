@@ -13,6 +13,29 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
+// Rank array (1-based, higher value = higher rank)
+function rankArray(arr: number[]): number[] {
+  const indexed = arr.map((v, i) => ({ v, i }));
+  indexed.sort((a, b) => a.v - b.v);
+  const ranks = new Array(arr.length);
+  for (let k = 0; k < indexed.length; k++) ranks[indexed[k].i] = k + 1;
+  return ranks;
+}
+
+// Spearman rank correlation
+function spearman(ranks1: number[], ranks2: number[]): number {
+  const n = ranks1.length;
+  if (n < 3) return 0;
+  const mean1 = ranks1.reduce((a, b) => a + b, 0) / n;
+  const mean2 = ranks2.reduce((a, b) => a + b, 0) / n;
+  let cov = 0, var1 = 0, var2 = 0;
+  for (let i = 0; i < n; i++) {
+    const d1 = ranks1[i] - mean1, d2 = ranks2[i] - mean2;
+    cov += d1 * d2; var1 += d1 * d1; var2 += d2 * d2;
+  }
+  return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
+}
+
 const CACHE_PATH = 'public/data/training-rows-cache-v15.json'; // v15: combine measurables + expanded rookie features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
@@ -206,6 +229,9 @@ async function main() {
     const losoVetActuals: number[] = [];
     const losoVetPreds: number[] = [];
 
+    // ADP value-add tracking: does the model help draft better than ADP alone?
+    const losoAdps: number[] = [];  // ADP for each test player (aligned with losoActuals)
+
     if (uniqueSeasons.length >= 3) {
       for (const held of uniqueSeasons) {
         const trainR = posRows.filter((r: PlayerRow) => r.season !== held);
@@ -253,6 +279,7 @@ async function main() {
           const ridgePred = predict(foldRidge, row.features).predicted;
 
           losoActuals.push(row.rawPPG || 0);
+          losoAdps.push(row.adp);
           losoPredGbm.push(gbmPred);
           losoPredRidge.push(ridgePred);
           losoPredGbmBase.push(predictGBM(foldBase, row.features).predicted);
@@ -298,9 +325,80 @@ async function main() {
     const cvMaePreDraftRookie = losoRookieActuals.length >= 5 ? cvMae(losoRookieActuals, losoPreDraftRookiePreds) : 0;
     const cvMaeVetOnly = losoVetActuals.length >= 5 ? cvMae(losoVetActuals, losoVetPreds) : 0;
 
+    // === ADP Value-Add Backtest ===
+    // Does the model help identify ADP mispricings?
+    let adpValueAdd = { adpRankCorr: 0, modelRankCorr: 0, liftPct: 0,
+      buyActualPPG: 0, sellActualPPG: 0, buyN: 0, sellN: 0,
+      topNModelHitRate: 0, topNAdpHitRate: 0, topN: 0 };
+    if (hasCV && losoAdps.length >= 20) {
+      // Spearman rank correlation: rank by ADP vs rank by model, compare to actual
+      const n = losoActuals.length;
+      const adpRanks = rankArray(losoAdps.map(a => -a)); // lower ADP = better rank
+      const modelRanks = rankArray(losoPredEnsemble);
+      const actualRanks = rankArray(losoActuals);
+      const adpRankCorr = spearman(adpRanks, actualRanks);
+      const modelRankCorr = spearman(modelRanks, actualRanks);
+
+      // Fit simple ADP→PPG curve: linear regression of actualPPG on ADP within position
+      const adpMean = losoAdps.reduce((a, b) => a + b, 0) / n;
+      const ppgMean = losoActuals.reduce((a, b) => a + b, 0) / n;
+      let ssAdp = 0, ssAdpPpg = 0;
+      for (let i = 0; i < n; i++) {
+        ssAdp += (losoAdps[i] - adpMean) ** 2;
+        ssAdpPpg += (losoAdps[i] - adpMean) * (losoActuals[i] - ppgMean);
+      }
+      const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
+      const intercept = ppgMean - slope * adpMean;
+      const adpImpliedPPG = losoAdps.map(a => intercept + slope * a);
+
+      // Split by model-vs-ADP disagreement
+      const edges = losoPredEnsemble.map((pred, i) => pred - adpImpliedPPG[i]);
+      const edgeSorted = [...edges].sort((a, b) => a - b);
+      const median = edgeSorted[Math.floor(edgeSorted.length / 2)];
+
+      let buyPPG = 0, buyExpected = 0, buyCount = 0;
+      let sellPPG = 0, sellExpected = 0, sellCount = 0;
+      for (let i = 0; i < n; i++) {
+        if (edges[i] >= median) {
+          buyPPG += losoActuals[i]; buyExpected += adpImpliedPPG[i]; buyCount++;
+        } else {
+          sellPPG += losoActuals[i]; sellExpected += adpImpliedPPG[i]; sellCount++;
+        }
+      }
+      const buyActualPPG = buyCount > 0 ? Math.round(buyPPG / buyCount * 100) / 100 : 0;
+      const sellActualPPG = sellCount > 0 ? Math.round(sellPPG / sellCount * 100) / 100 : 0;
+      const liftPct = sellActualPPG > 0
+        ? Math.round((buyActualPPG - sellActualPPG) / sellActualPPG * 1000) / 10
+        : 0;
+
+      // Top-N accuracy: among model's top picks, what % are actual top performers?
+      const topN = Math.max(5, Math.floor(n * 0.25));
+      const actualTopSet = new Set(
+        losoActuals.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i)
+      );
+      const modelTopIndices = losoPredEnsemble.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i);
+      const adpTopIndices = losoAdps.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v).slice(0, topN).map(x => x.i);
+      const modelHits = modelTopIndices.filter(i => actualTopSet.has(i)).length;
+      const adpHits = adpTopIndices.filter(i => actualTopSet.has(i)).length;
+
+      adpValueAdd = {
+        adpRankCorr: Math.round(adpRankCorr * 1000) / 1000,
+        modelRankCorr: Math.round(modelRankCorr * 1000) / 1000,
+        liftPct,
+        buyActualPPG, sellActualPPG, buyN: buyCount, sellN: sellCount,
+        topNModelHitRate: Math.round(modelHits / topN * 100),
+        topNAdpHitRate: Math.round(adpHits / topN * 100),
+        topN,
+      };
+      console.log(`      ADP Value-Add: rank corr ADP=${adpRankCorr.toFixed(3)} vs Model=${modelRankCorr.toFixed(3)}`);
+      console.log(`        Buy avg PPG=${buyActualPPG} (n=${buyCount}), Sell avg PPG=${sellActualPPG} (n=${sellCount}), lift=${liftPct}%`);
+      console.log(`        Top-${topN} accuracy: Model=${modelHits}/${topN} (${Math.round(modelHits/topN*100)}%), ADP=${adpHits}/${topN} (${Math.round(adpHits/topN*100)}%)`);
+    }
+
     models.push({
       position: pos, ridgeModel, gbmModel, gbmLower, gbmUpper,
       rookieGbmPostDraft, rookieGbmPreDraft,
+      adpValueAdd,
       featureNames: featureKeys, featureLabels,
       n: posRows.length,
       nRookies: rookieRows.length,

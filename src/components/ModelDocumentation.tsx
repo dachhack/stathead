@@ -571,6 +571,57 @@ export function ModelDocumentation() {
               </>
             )}
 
+            {/* ADP Value-Add Backtest */}
+            {data.models && data.models.some((m: any) => m.adpValueAdd?.modelRankCorr) && (
+              <>
+                <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Can the Model Beat ADP?</h3>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  LOSO cross-validated backtest: when the model disagrees with ADP, who&apos;s right?
+                  &quot;Buy&quot; = model says undervalued vs ADP. &quot;Sell&quot; = model says overvalued.
+                  Top-N = % of model&apos;s top picks that were actually top performers.
+                </p>
+                <div className="table-container">
+                  <table style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th style={{ textAlign: 'right' }}>ADP Rank Corr</th>
+                        <th style={{ textAlign: 'right' }}>Model Rank Corr</th>
+                        <th style={{ textAlign: 'right' }}>Buy PPG</th>
+                        <th style={{ textAlign: 'right' }}>Sell PPG</th>
+                        <th style={{ textAlign: 'right' }}>Lift</th>
+                        <th style={{ textAlign: 'right' }}>Top-N Model</th>
+                        <th style={{ textAlign: 'right' }}>Top-N ADP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.models.filter((m: any) => m.adpValueAdd?.modelRankCorr).map((m: any) => {
+                        const v = m.adpValueAdd;
+                        const modelBetter = v.modelRankCorr > v.adpRankCorr;
+                        return (
+                          <tr key={m.position}>
+                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
+                            <td style={{ textAlign: 'right' }}>{v.adpRankCorr.toFixed(3)}</td>
+                            <td style={{ textAlign: 'right', color: modelBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{v.modelRankCorr.toFixed(3)}</td>
+                            <td style={{ textAlign: 'right' }}>{v.buyActualPPG.toFixed(1)}</td>
+                            <td style={{ textAlign: 'right' }}>{v.sellActualPPG.toFixed(1)}</td>
+                            <td style={{ textAlign: 'right', color: v.liftPct > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{v.liftPct > 0 ? '+' : ''}{v.liftPct}%</td>
+                            <td style={{ textAlign: 'right', color: v.topNModelHitRate > v.topNAdpHitRate ? '#22c55e' : 'var(--text-secondary)' }}>{v.topNModelHitRate}%</td>
+                            <td style={{ textAlign: 'right' }}>{v.topNAdpHitRate}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Rank Corr = Spearman correlation with actual PPG (higher is better).
+                  Lift = % PPG difference between &quot;buy&quot; and &quot;sell&quot; groups.
+                  Top-N = % of top-25% picks that were actual top-25% performers.
+                </p>
+              </>
+            )}
+
             {/* Model Pipeline Diagram */}
             <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Prediction Pipeline</h3>
             <div style={{
