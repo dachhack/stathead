@@ -36,7 +36,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v18.json'; // v18: ADP quality validation
+const CACHE_PATH = 'public/data/training-rows-cache-v19.json'; // v19: real 2025 ADP data
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1002,11 +1002,13 @@ async function main() {
               }
             }
 
-            // VONA weight: dampen in early rounds, full power mid-draft
-            const vonaWeight = round < 2 ? 0.3 : round < 4 ? 0.8 : 1.0;
+            // Phase-based strategy:
+            // Rounds 1-2: Conservative BPA — premium picks too valuable to gamble
+            // Rounds 3-5: VONA kicks in for positional scarcity
+            // Rounds 6+: Aggressive upside hunting for late-round value
+            const vonaWeight = round < 2 ? 0.15 : round < 4 ? 0.7 : 1.0;
+            const WINDOW = round < 2 ? 3 : round < 5 ? 6 : 10;
 
-            // Score candidates: VONA + residual + roster composition
-            const WINDOW = round < 2 ? 5 : 8; // tighter window early (less reaching)
             const candidates: Array<{ idx: number; score: number }> = [];
             for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
               const p = available[i];
@@ -1027,16 +1029,21 @@ async function main() {
               // Buy/sell filter from model residual (already alpha-scaled)
               const residualBonus = p.residual;
 
-              // Early round bust avoidance: penalize negative residual in rounds 1-3
-              const bustPenalty = (round < 3 && p.residual < 0) ? p.residual * 1.5 : 0;
+              // Early round bust avoidance: HARD penalty for negative residual early
+              const bustPenalty = round < 2 ? (p.residual < 0 ? p.residual * 3.0 : 0)
+                : round < 4 ? (p.residual < 0 ? p.residual * 2.0 : 0)
+                : 0;
 
-              // ADP reach penalty: stronger early, lighter once VONA kicks in
-              const reachPenalty = i * (round < 2 ? 0.8 : 0.3);
+              // ADP reach penalty: very strong early (don't deviate from BPA), lighter later
+              const reachPenalty = i * (round < 2 ? 1.5 : round < 4 ? 0.5 : 0.2);
 
-              // Raw modelPPG component: matters more in early rounds as anchor
-              const rawPPG = round < 2 ? p.modelPPG * 0.3 : 0;
+              // Raw modelPPG anchor: dominant in early rounds to keep BPA discipline
+              const rawPPG = round < 2 ? p.modelPPG * 0.5 : 0;
 
-              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + (rng() - 0.5) * 0.3;
+              // Late-round upside bonus: reward positive residual sleepers in rounds 7+
+              const upsideBonus = round >= 6 && p.residual > 0 ? p.residual * 1.5 : 0;
+
+              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + upsideBonus + (rng() - 0.5) * 0.3;
               candidates.push({ idx: i, score });
             }
             if (candidates.length > 0) {
