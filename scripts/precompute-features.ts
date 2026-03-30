@@ -36,7 +36,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v16.json'; // v16: include 2025 season data
+const CACHE_PATH = 'public/data/training-rows-cache-v17.json'; // v17: ESPN ADP fallback for 2025
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;

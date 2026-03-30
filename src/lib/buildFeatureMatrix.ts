@@ -3,7 +3,7 @@
 // Works in both browser and Node.js (Node 18+ with native fetch).
 
 import {
-  fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
+  fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals, fetchEspnADP,
   fetchCombine, fetchDraftPicks, fetchSnapCounts, fetchInjuries,
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
@@ -274,7 +274,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
           // Fetch current + prior in parallel (including injuries, NGS, PBP)
           const [
-            adpData, currentStats, priorStats, priorSnaps,
+            ffcAdp, currentStats, priorStats, priorSnaps,
             priorInjuries, preseasonInjuries,
             priorNgsRec, priorNgsRush, priorNgsPass,
             priorPbp, priorParticipation,
@@ -297,7 +297,24 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           ]);
           
 
-          if (adpData.length === 0 || currentStats.length === 0) continue;
+          // Use FFC ADP, falling back to ESPN ADP if FFC is empty
+          let adpData = ffcAdp;
+          if (adpData.length === 0) {
+            onStatus?.(`FFC ADP empty for ${season}, trying ESPN ADP fallback...`);
+            try {
+              const espn = await fetchEspnADP(season);
+              // Convert ESPN format to FFC-compatible: need name, position, adp
+              adpData = espn.map(e => ({
+                name: e.name, position: e.position, team: e.team,
+                adp: e.adp, high: 0, low: 0, stdev: 0, timesDrafted: 0, bye: 0,
+              }));
+              onStatus?.(`ESPN ADP fallback: ${adpData.length} players for ${season}`);
+            } catch { /* ESPN also failed */ }
+          }
+          if (adpData.length === 0 || currentStats.length === 0) {
+            onStatus?.(`⚠ Skipping season ${season}: adpData=${adpData.length}, currentStats=${currentStats.length}`);
+            continue;
+          }
 
           // Current season totals + ranks
           const currentTotals = aggregateToSeasonTotals(
