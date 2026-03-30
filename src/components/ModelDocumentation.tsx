@@ -192,11 +192,11 @@ export function ModelDocumentation() {
                       <YAxis tick={{ fontSize: 10 }} domain={[0, 30]} unit="%" />
                       <Tooltip
                         contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                        formatter={(value: string | number | (string | number)[]) => [`${value}%`, '% Error']}
+                        formatter={((value: number) => [`${value}%`, '% Error']) as any}
                       />
                       <Bar dataKey="pctError" radius={[4, 4, 0, 0]}>
                         {chartData.map((d, i) => <Cell key={i} fill={pctColor(d.pctError)} />)}
-                        <LabelList dataKey="pctError" position="top" fontSize={9} formatter={(v: string | number) => v != null ? `${v}%` : ''} />
+                        <LabelList dataKey="pctError" position="top" fontSize={9} formatter={((v: number) => `${v}%`) as any} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
