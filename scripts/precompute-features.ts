@@ -1014,33 +1014,49 @@ async function main() {
   const adpTeam = simulateDraft(false);
   const modelTeam = simulateDraft(true);
 
-  // Compute scoring for best lineup: QB1, RB1, RB2, WR1, WR2, TE1, FLEX
-  function bestLineupPPG(team: DraftPick[]): { starters: DraftPick[]; totalPPG: number; seasonPPR: number } {
-    const byPos: Record<string, DraftPick[]> = { QB: [], RB: [], WR: [], TE: [] };
-    for (const p of team) (byPos[p.position] || []).push(p);
-    for (const pos of Object.keys(byPos)) byPos[pos].sort((a, b) => b.actualPPG - a.actualPPG);
-
+  // Build starting lineup by draft order: earliest-drafted players start at each slot
+  function draftOrderLineup(team: DraftPick[]): { starters: DraftPick[]; bench: DraftPick[]; totalPPG: number; seasonPPR: number } {
+    // Team is already in draft order (round 1 first)
+    const sorted = [...team].sort((a, b) => a.round - b.round || a.pickNum - b.pickNum);
     const starters: DraftPick[] = [];
-    const qb = byPos.QB.slice(0, 1); starters.push(...qb);
-    const rb = byPos.RB.slice(0, 2); starters.push(...rb);
-    const wr = byPos.WR.slice(0, 2); starters.push(...wr);
-    const te = byPos.TE.slice(0, 1); starters.push(...te);
+    const filled = { QB: 0, RB: 0, WR: 0, TE: 0, FLEX: 0 };
+    const STARTER_SLOTS = { QB: 1, RB: 2, WR: 2, TE: 1 };
 
-    // FLEX: best remaining RB/WR/TE
-    const flexCandidates = [...byPos.RB.slice(2), ...byPos.WR.slice(2), ...byPos.TE.slice(1)]
-      .sort((a, b) => b.actualPPG - a.actualPPG);
-    if (flexCandidates.length > 0) starters.push(flexCandidates[0]);
+    // First pass: fill primary position slots by draft order
+    for (const p of sorted) {
+      const need = STARTER_SLOTS[p.position as keyof typeof STARTER_SLOTS] || 0;
+      if (filled[p.position as keyof typeof filled] < need) {
+        starters.push(p);
+        filled[p.position as keyof typeof filled]++;
+      }
+    }
 
+    // Second pass: fill FLEX with earliest-drafted remaining RB/WR/TE
+    if (filled.FLEX === 0) {
+      const starterSet = new Set(starters);
+      for (const p of sorted) {
+        if (!starterSet.has(p) && ['RB', 'WR', 'TE'].includes(p.position)) {
+          starters.push(p);
+          filled.FLEX = 1;
+          break;
+        }
+      }
+    }
+
+    const starterSet = new Set(starters);
+    const bench = sorted.filter(p => !starterSet.has(p));
     const totalPPG = Math.round(starters.reduce((s, p) => s + p.actualPPG, 0) * 10) / 10;
-    return { starters, totalPPG, seasonPPR: Math.round(totalPPG * 17) };
+    return { starters, bench, totalPPG, seasonPPR: Math.round(totalPPG * 17) };
   }
 
-  const adpLineup = bestLineupPPG(adpTeam);
-  const modelLineup = bestLineupPPG(modelTeam);
+  const adpLineup = draftOrderLineup(adpTeam);
+  const modelLineup = draftOrderLineup(modelTeam);
 
+  const adpStarterNames = new Set(adpLineup.starters.map(p => p.name));
+  const modelStarterNames = new Set(modelLineup.starters.map(p => p.name));
   const draftSim2025 = {
-    adpTeam: adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust })),
-    modelTeam: modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust })),
+    adpTeam: adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: adpStarterNames.has(p.name) })),
+    modelTeam: modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: modelStarterNames.has(p.name) })),
     adpLineupPPG: adpLineup.totalPPG,
     adpSeasonPPR: adpLineup.seasonPPR,
     modelLineupPPG: modelLineup.totalPPG,

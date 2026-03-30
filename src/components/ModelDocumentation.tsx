@@ -30,8 +30,8 @@ export function ModelDocumentation() {
     ppgModels?: Array<{ position: string; n: number; cvR2Gbm: number; cvR2Ridge: number; cvMaeGbm: number; featureNames: string[] }>;
     residualModels?: Array<{ position: string; n: number; bestAlpha: number; backtest: any }>;
     draftSim2025?: {
-      adpTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean }>;
-      modelTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean }>;
+      adpTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean; isStarter?: boolean }>;
+      modelTeam: Array<{ name: string; position: string; adp: number; round: number; pick: number; actualPPG: number; modelPPG: number; isHit: boolean; isBust: boolean; isStarter?: boolean }>;
       adpLineupPPG: number; adpSeasonPPR: number;
       modelLineupPPG: number; modelSeasonPPR: number;
       adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
@@ -729,9 +729,9 @@ export function ModelDocumentation() {
                       </thead>
                       <tbody>
                         {team.map((p, i) => (
-                          <tr key={i} style={{ opacity: i >= 7 ? 0.5 : 1 }}>
+                          <tr key={i} style={{ opacity: p.isStarter !== false && p.isStarter ? 1 : 0.5 }}>
                             <td>{p.round}</td>
-                            <td style={{ fontWeight: i < 7 ? 600 : 400, color: 'var(--text-primary)' }}>{p.name}</td>
+                            <td style={{ fontWeight: p.isStarter ? 600 : 400, color: 'var(--text-primary)' }}>{p.name}</td>
                             <td style={{ color: POS_COLORS[p.position] || 'var(--text-secondary)' }}>{p.position}</td>
                             <td style={{ textAlign: 'right' }}>{Math.round(p.adp)}</td>
                             <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.actualPPG.toFixed(1)}</td>
@@ -781,9 +781,9 @@ export function ModelDocumentation() {
                     {renderTeam(sim.modelTeam, 'Model Drafter', sim.modelLineupPPG, sim.modelSeasonPPR, sim.modelHits, sim.modelBusts)}
                   </div>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                    Bold rows = starters (QB1, RB1-2, WR1-2, TE1, FLEX). Faded = bench.
-                    &#x2713; = hit (beat replacement), &#x2717; = bust (50+ PPR pts below replacement).
-                    Lineup PPG = sum of best starter PPGs.
+                    Bold = starters (QB1, RB1-2, WR1-2, TE1, FLEX) set by draft order — earliest picks start.
+                    Faded = bench. &#x2713; = hit (beat replacement), &#x2717; = bust (50+ PPR pts below replacement).
+                    Lineup PPG = sum of starter actual PPGs.
                   </p>
                 </>
               );
