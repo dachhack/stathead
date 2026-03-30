@@ -38,7 +38,7 @@ done
 # Static historical seasons: skip if cached
 for season in 2024 2023 2022 2021 2020 2019 2018; do
   outfile="$OUT/ffc_adp_ppr_${season}.json"
-  if [ -f "$outfile" ]; then
+  if [ -s "$outfile" ]; then
     echo "  [cached] $outfile"
   else
     echo "  Fetching FFC ADP ($season)..."

@@ -17,20 +17,21 @@ DYNAMIC_SEASON="2026"
 
 echo "Downloading nflverse data (cached static + fresh dynamic)..."
 
-# ── Static season files (skip if cached) ──
+# ── Static season files (skip if cached and non-empty) ──
 for s in $STATIC_SEASONS; do
-  # Player stats
-  if [ ! -f "$OUT/player_stats_${s}.csv" ]; then
+  # Player stats (check file exists AND is non-empty)
+  if [ ! -s "$OUT/player_stats_${s}.csv" ]; then
+    rm -f "$OUT/player_stats_${s}.csv"  # remove empty/corrupt file
     if [ "$s" -ge 2025 ]; then
       curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
     else
       curl -sfL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
     fi
   fi
-  [ -f "$OUT/snap_counts_${s}.csv" ] || curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
-  [ -f "$OUT/injuries_${s}.csv" ] || curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
-  [ -f "$OUT/roster_${s}.csv" ] || curl -sfL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv" &
-  [ -f "$OUT/depth_charts_${s}.csv" ] || curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
+  [ -s "$OUT/snap_counts_${s}.csv" ] || curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
+  [ -s "$OUT/injuries_${s}.csv" ] || curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
+  [ -s "$OUT/roster_${s}.csv" ] || curl -sfL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv" &
+  [ -s "$OUT/depth_charts_${s}.csv" ] || curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
 done
 
 # ── Dynamic season files (always re-download) ──

@@ -980,41 +980,33 @@ async function main() {
           let bestIdx = 0;
           if (useModel) {
             // ── OPTIMIZED DRAFTER: Value Over Next Available (VONA) ──
-            // Instead of greedy pick-by-pick, optimize for total draft composition.
-            // At each pick: estimate what will be available at our next turn,
-            // and draft the player whose positional value drops the most if we wait.
+            // Rounds 1-2: lean toward best available (premium picks are too valuable to gamble)
+            // Rounds 3+: full VONA optimization for roster composition
 
             // Compute picks until our next turn (snake draft math)
             let picksUntilNext: number;
             if (round >= NUM_ROUNDS - 1) {
               picksUntilNext = 999; // last round, no next pick
             } else if (round % 2 === 0) {
-              // Going 0→11: distance to end + distance back = 2*(NUM_TEAMS - pickPosition)
               picksUntilNext = 2 * (NUM_TEAMS - pickPosition);
             } else {
-              // Going 11→0: distance to end + distance back = 2*(pickPosition - 1) + 1
               picksUntilNext = 2 * pickPosition;
             }
 
             // Find best replacement at each position available ~picksUntilNext picks later
-            // Assumption: top picksUntilNext players by ADP will be taken by others
             const posReplacement: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-            const posTaken: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
             for (let i = 0; i < available.length; i++) {
               const p = available[i];
-              if (i < picksUntilNext) {
-                // This player will likely be gone — count position attrition
-                posTaken[p.position] = (posTaken[p.position] || 0) + 1;
-              } else {
-                // This player might be available at our next pick
-                if (posReplacement[p.position] === 0) {
-                  posReplacement[p.position] = p.modelPPG;
-                }
+              if (i >= picksUntilNext && posReplacement[p.position] === 0) {
+                posReplacement[p.position] = p.modelPPG;
               }
             }
 
+            // VONA weight: dampen in early rounds, full power mid-draft
+            const vonaWeight = round < 2 ? 0.3 : round < 4 ? 0.8 : 1.0;
+
             // Score candidates: VONA + residual + roster composition
-            const WINDOW = 8;
+            const WINDOW = round < 2 ? 5 : 8; // tighter window early (less reaching)
             const candidates: Array<{ idx: number; score: number }> = [];
             for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
               const p = available[i];
@@ -1033,12 +1025,18 @@ async function main() {
               const starterMult = isStarter ? 1.5 : 0.6;
 
               // Buy/sell filter from model residual (already alpha-scaled)
-              const residualBonus = p.residual * 0.8;
+              const residualBonus = p.residual;
 
-              // ADP reach penalty (lighter than before — VONA handles most positioning)
-              const reachPenalty = i * 0.3;
+              // Early round bust avoidance: penalize negative residual in rounds 1-3
+              const bustPenalty = (round < 3 && p.residual < 0) ? p.residual * 1.5 : 0;
 
-              const score = vona * starterMult + residualBonus - reachPenalty + (rng() - 0.5) * 0.4;
+              // ADP reach penalty: stronger early, lighter once VONA kicks in
+              const reachPenalty = i * (round < 2 ? 0.8 : 0.3);
+
+              // Raw modelPPG component: matters more in early rounds as anchor
+              const rawPPG = round < 2 ? p.modelPPG * 0.3 : 0;
+
+              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + (rng() - 0.5) * 0.3;
               candidates.push({ idx: i, score });
             }
             if (candidates.length > 0) {
