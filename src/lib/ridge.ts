@@ -229,10 +229,14 @@ export function predict(
 
   const predicted = predStd * model.targetStd + model.targetMean;
 
+  // Clamp predictions to reasonable range (within 4 std devs of target mean)
+  const maxDev = 4 * model.targetStd;
+  const clampedPredicted = Math.max(model.targetMean - maxDev, Math.min(model.targetMean + maxDev, predicted));
+
   // Sort by absolute contribution
   contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
 
-  return { predicted, featureContributions: contributions };
+  return { predicted: clampedPredicted, featureContributions: contributions };
 }
 
 const MIN_STD_PREDICT = 0.01;
