@@ -1,6 +1,6 @@
 /**
  * Ridge regression (L2 regularized linear regression) in pure TypeScript.
- * Solves: β = (X'X + λI)^(-1) X'y
+ * Uses conjugate gradient solver for numerical stability with large feature sets.
  * Features are standardized internally so coefficients are comparable.
  */
 
@@ -25,81 +25,96 @@ export interface PredictionResult {
   featureContributions: { name: string; value: number; contribution: number }[];
 }
 
-// Matrix operations
-function matMul(a: number[][], b: number[][]): number[][] {
-  const rows = a.length;
-  const cols = b[0].length;
-  const k = b.length;
-  const result: number[][] = Array.from({ length: rows }, () => new Array(cols).fill(0));
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      let sum = 0;
-      for (let l = 0; l < k; l++) sum += a[i][l] * b[l][j];
-      result[i][j] = sum;
-    }
-  }
-  return result;
-}
-
-function transpose(m: number[][]): number[][] {
-  const rows = m.length;
-  const cols = m[0].length;
-  const result: number[][] = Array.from({ length: cols }, () => new Array(rows));
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) result[j][i] = m[i][j];
-  }
-  return result;
-}
-
-// Gaussian elimination with partial pivoting for matrix inversion
-function invert(matrix: number[][]): number[][] | null {
-  const n = matrix.length;
-  // Augmented matrix [A | I]
-  const aug: number[][] = matrix.map((row, i) => {
-    const extended = new Array(2 * n).fill(0);
-    for (let j = 0; j < n; j++) extended[j] = row[j];
-    extended[n + i] = 1;
-    return extended;
-  });
-
-  for (let col = 0; col < n; col++) {
-    // Partial pivoting
-    let maxRow = col;
-    let maxVal = Math.abs(aug[col][col]);
-    for (let row = col + 1; row < n; row++) {
-      if (Math.abs(aug[row][col]) > maxVal) {
-        maxVal = Math.abs(aug[row][col]);
-        maxRow = row;
-      }
-    }
-    if (maxVal < 1e-12) return null; // Singular
-
-    if (maxRow !== col) {
-      [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
-    }
-
-    // Eliminate column
-    const pivot = aug[col][col];
-    for (let j = 0; j < 2 * n; j++) aug[col][j] /= pivot;
-
-    for (let row = 0; row < n; row++) {
-      if (row === col) continue;
-      const factor = aug[row][col];
-      for (let j = 0; j < 2 * n; j++) aug[row][j] -= factor * aug[col][j];
-    }
-  }
-
-  // Extract inverse
-  return aug.map((row) => row.slice(n));
-}
-
 function mean(arr: number[]): number {
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
 function std(arr: number[], m: number): number {
   const variance = arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length;
-  return Math.sqrt(variance) || 1; // avoid division by zero
+  return Math.sqrt(variance);
+}
+
+function dot_static(a: number[], b: number[]): number {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+}
+
+/**
+ * Solve (X'X + λI)β = X'y using conjugate gradient method.
+ * Numerically stable for any dimensionality — no matrix inversion needed.
+ */
+function solveRidgeCG(
+  Xs: number[][], // n x p standardized feature matrix
+  ys: number[],   // n x 1 standardized target
+  lambda: number,
+  maxIter = 2000,
+  tol = 1e-10,
+): number[] {
+  const n = Xs.length;
+  const p = Xs[0]?.length || 0;
+  if (p === 0) return [];
+
+  // Compute X'y (p x 1)
+  const Xty = new Array(p).fill(0);
+  for (let j = 0; j < p; j++) {
+    for (let i = 0; i < n; i++) {
+      Xty[j] += Xs[i][j] * ys[i];
+    }
+  }
+
+  // Use relative tolerance based on ||X'y||
+  const rhs_norm = Math.sqrt(dot_static(Xty, Xty));
+  const absTol = Math.max(tol, tol * rhs_norm);
+
+  // matvec: compute (X'X + λI) * v without forming X'X explicitly
+  function matvec(v: number[]): number[] {
+    // First compute Xv (n x 1)
+    const Xv = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < p; j++) Xv[i] += Xs[i][j] * v[j];
+    }
+    // Then X'(Xv) + λv
+    const result = new Array(p).fill(0);
+    for (let j = 0; j < p; j++) {
+      for (let i = 0; i < n; i++) result[j] += Xs[i][j] * Xv[i];
+      result[j] += lambda * v[j];
+    }
+    return result;
+  }
+
+  function dot(a: number[], b: number[]): number {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+    return s;
+  }
+
+  // CG iteration: solve Aβ = b where A = X'X + λI, b = X'y
+  const beta = new Array(p).fill(0);
+  let r = Xty.slice(); // r = b - A*0 = b
+  let d = r.slice();
+  let rsOld = dot(r, r);
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    const Ad = matvec(d);
+    const dAd = dot(d, Ad);
+    if (dAd < 1e-15) break;
+
+    const alpha = rsOld / dAd;
+    for (let j = 0; j < p; j++) {
+      beta[j] += alpha * d[j];
+      r[j] -= alpha * Ad[j];
+    }
+
+    const rsNew = dot(r, r);
+    if (Math.sqrt(rsNew) < absTol) break;
+
+    const betaCG = rsNew / rsOld;
+    for (let j = 0; j < p; j++) d[j] = r[j] + betaCG * d[j];
+    rsOld = rsNew;
+  }
+
+  return beta;
 }
 
 /**
@@ -130,38 +145,36 @@ export function trainRidgeRegression(
   }
 
   const targetMean = mean(y);
-  const targetStd = std(y, targetMean);
+  const targetStd = std(y, targetMean) || 1; // guard constant target
 
-  // Build standardized X matrix
-  const Xs: number[][] = X.map((row) =>
-    row.map((v, j) => (v - featureMeans[j]) / featureStds[j])
-  );
-  const ys = y.map((v) => (v - targetMean) / targetStd);
-
-  // X'X + λI
-  const Xt = transpose(Xs);
-  const XtX = matMul(Xt, Xs.map((row) => row.map((v) => v))); // p x p
-
-  // Add regularization
-  for (let i = 0; i < p; i++) XtX[i][i] += lambda;
-
-  // Invert (X'X + λI)
-  const XtXinv = invert(XtX);
-  if (!XtXinv) {
-    throw new Error('Matrix is singular, cannot train model');
+  // Drop near-zero-variance features — features with tiny std produce
+  // enormous standardized values that cause numerical overflow in CG
+  const MIN_STD = 0.01;
+  const activeIdx: number[] = [];
+  for (let j = 0; j < p; j++) {
+    if (featureStds[j] > MIN_STD) activeIdx.push(j);
   }
 
-  // X'y
-  const Xty: number[][] = Xt.map((row) => [row.reduce((s, v, i) => s + v * ys[i], 0)]);
+  // Build standardized X matrix using only active features
+  const Xs: number[][] = X.map((row) =>
+    activeIdx.map((j) => (row[j] - featureMeans[j]) / featureStds[j])
+  );
+  const ys = y.map((v) => targetStd > 0 ? (v - targetMean) / targetStd : 0);
 
-  // β = (X'X + λI)^(-1) X'y
-  const betaMatrix = matMul(XtXinv, Xty);
-  const coefficients = betaMatrix.map((row) => row[0]);
+  const pActive = activeIdx.length;
 
-  // Intercept in standardized space is 0 (since we centered)
-  // Convert back: for each sample, predict in standardized space then unstandardize
+  // Solve via conjugate gradient (numerically stable for any dimensionality)
+  const activeCoeffs = solveRidgeCG(Xs, ys, lambda);
+
+  // Map active coefficients back to full feature space
+  const coefficients = new Array(p).fill(0);
+  for (let k = 0; k < activeIdx.length; k++) {
+    coefficients[activeIdx[k]] = activeCoeffs[k];
+  }
+
+  // Predictions
   const predictions = Xs.map((row) => {
-    const predStd = row.reduce((s, v, j) => s + v * coefficients[j], 0);
+    const predStd = row.reduce((s, v, j) => s + v * activeCoeffs[j], 0);
     return predStd * targetStd + targetMean;
   });
 
@@ -169,15 +182,15 @@ export function trainRidgeRegression(
   const ssRes = y.reduce((s, actual, i) => s + (actual - predictions[i]) ** 2, 0);
   const ssTot = y.reduce((s, actual) => s + (actual - targetMean) ** 2, 0);
   const rSquared = ssTot > 0 ? 1 - ssRes / ssTot : 0;
-  const adjustedRSquared = n > p + 1
-    ? 1 - ((1 - rSquared) * (n - 1)) / (n - p - 1)
+  const adjustedRSquared = n > pActive + 1
+    ? 1 - ((1 - rSquared) * (n - 1)) / (n - pActive - 1)
     : rSquared;
   const mae = y.reduce((s, actual, i) => s + Math.abs(actual - predictions[i]), 0) / n;
   const rmse = Math.sqrt(ssRes / n);
 
   return {
     coefficients,
-    intercept: targetMean, // effectively, since standardized intercept is 0
+    intercept: targetMean,
     featureNames,
     featureMeans,
     featureStds,
@@ -205,7 +218,9 @@ export function predict(
   for (let j = 0; j < model.featureNames.length; j++) {
     const name = model.featureNames[j];
     const raw = features[name] ?? 0;
-    const standardized = (raw - model.featureMeans[j]) / model.featureStds[j];
+    const standardized = model.featureStds[j] > MIN_STD_PREDICT
+      ? (raw - model.featureMeans[j]) / model.featureStds[j]
+      : 0;
     const contrib = standardized * model.coefficients[j] * model.targetStd;
     predStd += standardized * model.coefficients[j];
 
@@ -214,8 +229,14 @@ export function predict(
 
   const predicted = predStd * model.targetStd + model.targetMean;
 
+  // Clamp predictions to reasonable range (within 4 std devs of target mean)
+  const maxDev = 4 * model.targetStd;
+  const clampedPredicted = Math.max(model.targetMean - maxDev, Math.min(model.targetMean + maxDev, predicted));
+
   // Sort by absolute contribution
   contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
 
-  return { predicted, featureContributions: contributions };
+  return { predicted: clampedPredicted, featureContributions: contributions };
 }
+
+const MIN_STD_PREDICT = 0.01;

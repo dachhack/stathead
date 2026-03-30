@@ -1,8 +1,10 @@
-name: Deploy to GitHub Pages
+name: Refresh Data
 
 on:
-  push:
-    branches: [main, "claude/nfl-fantasy-workbench-6D1yd"]
+  schedule:
+    # Every 2 hours, 7am-11pm EST (12:00-04:00 UTC)
+    - cron: '0 12,14,16,18,20,22,0,2,4 * * *'
+  workflow_dispatch: # Allow manual trigger
 
 permissions:
   contents: read
@@ -18,17 +20,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: claude/nfl-fantasy-workbench-6D1yd
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      # Cache static data files between builds
       - name: Cache static data
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v6
+          key: static-data-v3
           restore-keys: static-data-
 
       - run: npm ci

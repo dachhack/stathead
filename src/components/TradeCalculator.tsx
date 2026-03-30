@@ -214,7 +214,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const filteredDates = dates.filter((d) => d >= cutoffStr);
 
     // Build running last-known values
-    return filteredDates.map((date) => {
+    const rows = filteredDates.map((date) => {
       let aTotal = 0;
       let bTotal = 0;
       for (const p of sideA) {
@@ -242,8 +242,29 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           bTotal += val;
         }
       }
-      return { date, 'Side A': aTotal, 'Side B': bTotal };
+      return { date, 'Side A': aTotal, 'Side B': bTotal } as Record<string, unknown>;
     });
+
+    // Add projected dashed segment: bridge from last actual to 90-day projection
+    if (rows.length > 0 && (sideA.length > 0 || sideB.length > 0)) {
+      const last = rows[rows.length - 1];
+      // Tag the last actual point with projected values too (so the line connects)
+      const projATotal = sideA.reduce((sum, p) => sum + projectValue(getValue(p), p.trend30Day), 0);
+      const projBTotal = sideB.reduce((sum, p) => sum + projectValue(getValue(p), p.trend30Day), 0);
+      last['Side A Proj'] = last['Side A'];
+      last['Side B Proj'] = last['Side B'];
+
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 90);
+      const futureDateStr = futureDate.toISOString().slice(0, 10);
+      rows.push({
+        date: futureDateStr,
+        'Side A Proj': projATotal,
+        'Side B Proj': projBTotal,
+      } as any);
+    }
+
+    return rows;
   }, [sideA, sideB, historyData, format]);
 
   // Balance suggestions
@@ -442,7 +463,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       <div className="controls" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div className="control-group">
           <label className="control-label">Format</label>
-          <select value={format} onChange={(e) => { setFormat(e.target.value as FormatMode); setSideA([]); setSideB([]); }}>
+          <select value={format} onChange={(e) => setFormat(e.target.value as FormatMode)}>
             <option value="1qb">1QB</option>
             <option value="superflex">Superflex</option>
           </select>
@@ -585,7 +606,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       {hasPlayers && chartData.length > 5 && (
         <div style={{ padding: '16px' }}>
           <h4 style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)' }}>
-            Value History (12 months)
+            Value History + 90-Day Projection
             {historyLoading && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-muted)' }}>Loading...</span>}
           </h4>
           <ResponsiveContainer width="100%" height={220}>
@@ -602,13 +623,24 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               <Tooltip
                 contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
                 labelFormatter={(label) => fmtDate(String(label))}
-                formatter={(value: unknown, name: string) => [Number(value).toLocaleString(), name]}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={((value: any, name: any) => {
+                  const n = String(name);
+                  const label = n.replace(' Proj', '') + (n.includes('Proj') ? ' (Proj)' : '');
+                  return [Number(value).toLocaleString(), label];
+                }) as any}
               />
               {sideA.length > 0 && (
-                <Line type="monotone" dataKey="Side A" stroke={SIDE_A_COLOR} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="Side A" stroke={SIDE_A_COLOR} strokeWidth={2} dot={false} connectNulls={false} />
               )}
               {sideB.length > 0 && (
-                <Line type="monotone" dataKey="Side B" stroke={SIDE_B_COLOR} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="Side B" stroke={SIDE_B_COLOR} strokeWidth={2} dot={false} connectNulls={false} />
+              )}
+              {sideA.length > 0 && (
+                <Line type="monotone" dataKey="Side A Proj" stroke={SIDE_A_COLOR} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls={false} />
+              )}
+              {sideB.length > 0 && (
+                <Line type="monotone" dataKey="Side B Proj" stroke={SIDE_B_COLOR} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls={false} />
               )}
               <ReferenceLine y={0} stroke="var(--border)" />
               {tradeDate && (
@@ -618,11 +650,12 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           </ResponsiveContainer>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
             {sideA.length > 0 && (
-              <span><span style={{ color: SIDE_A_COLOR, fontWeight: 700 }}>&#9632;</span> Side A total value</span>
+              <span><span style={{ color: SIDE_A_COLOR, fontWeight: 700 }}>&#9632;</span> Side A</span>
             )}
             {sideB.length > 0 && (
-              <span><span style={{ color: SIDE_B_COLOR, fontWeight: 700 }}>&#9632;</span> Side B total value</span>
+              <span><span style={{ color: SIDE_B_COLOR, fontWeight: 700 }}>&#9632;</span> Side B</span>
             )}
+            <span><span style={{ opacity: 0.6 }}>- - -</span> 90-day projection</span>
           </div>
         </div>
       )}
