@@ -756,8 +756,9 @@ export function ModelDocumentation() {
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
                     {sim.settings.numTeams}-team snake draft run from all {sim.settings.numTeams} pick positions. Both drafters must take a QB before round {sim.settings.qbDeadline || 10}.
                     ADP drafter always takes best available by ADP.
-                    Model drafter uses the ADP-residual model. Other teams draft by ADP.
-                    Trained on all seasons except {season} (honest out-of-sample).
+                    Model drafter uses round-aware strategy: early rounds stay near ADP but avoid model-flagged busts,
+                    late rounds swing for model-identified sleepers (positive residual bonus).
+                    Other teams draft by ADP. Trained on all seasons except {season} (honest out-of-sample).
                   </p>
 
                   {/* Average results banner */}

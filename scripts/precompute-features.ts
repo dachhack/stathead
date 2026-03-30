@@ -959,13 +959,27 @@ async function main() {
           let bestIdx = 0;
           if (useModel) {
             let bestScore = -Infinity;
+            // Round-aware strategy:
+            //   Early rounds (1-4): penalize reaching past ADP → avoid busts
+            //   Mid rounds (5-8): balanced
+            //   Late rounds (9+): minimal ADP penalty → swing for model-identified sleepers
+            const reachPenalty = round < 4 ? 0.25 : round < 8 ? 0.10 : 0.02;
+            // Late-round bonus for positive model residual (hidden upside)
+            const upsideBonus = round >= 8 ? 0.4 : 0;
             for (let i = 0; i < available.length; i++) {
               const p = available[i];
               if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
               if (mustDraftQB && p.position !== 'QB') continue;
               const starterNeed = STARTER_NEEDS[p.position as keyof typeof STARTER_NEEDS] || 0;
               const need = ourPosCounts[p.position] < starterNeed ? 1 : 0;
-              const score = p.modelPPG + (need ? 0.5 : 0);
+              // Base: model PPG + positional need
+              let score = p.modelPPG + (need ? 0.5 : 0);
+              // Penalize reaching past ADP (index = how far down the ADP board)
+              score -= i * reachPenalty;
+              // Late-round bonus for players model sees as undervalued by ADP
+              if (upsideBonus > 0 && p.residual > 0) score += p.residual * upsideBonus;
+              // Early-round penalty for model-flagged overvalued players (bust avoidance)
+              if (round < 4 && p.residual < 0) score += p.residual * 0.3; // negative residual → score drops
               if (score > bestScore) { bestScore = score; bestIdx = i; }
             }
           } else {
