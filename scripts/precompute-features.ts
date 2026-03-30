@@ -979,32 +979,72 @@ async function main() {
 
           let bestIdx = 0;
           if (useModel) {
-            // Strategy: draft mostly by ADP but use alpha-scaled residual as buy/sell filter.
-            // Residual is already multiplied by position-specific bestAlpha (0.3-0.7).
-            // Scan top candidates near ADP, skip sells, prefer buys.
-            const WINDOW = 5; // look at top 5 eligible players by ADP
-            const candidates: Array<{ idx: number; residual: number; need: number }> = [];
+            // ── OPTIMIZED DRAFTER: Value Over Next Available (VONA) ──
+            // Instead of greedy pick-by-pick, optimize for total draft composition.
+            // At each pick: estimate what will be available at our next turn,
+            // and draft the player whose positional value drops the most if we wait.
+
+            // Compute picks until our next turn (snake draft math)
+            let picksUntilNext: number;
+            if (round >= NUM_ROUNDS - 1) {
+              picksUntilNext = 999; // last round, no next pick
+            } else if (round % 2 === 0) {
+              // Going 0→11: distance to end + distance back = 2*(NUM_TEAMS - pickPosition)
+              picksUntilNext = 2 * (NUM_TEAMS - pickPosition);
+            } else {
+              // Going 11→0: distance to end + distance back = 2*(pickPosition - 1) + 1
+              picksUntilNext = 2 * pickPosition;
+            }
+
+            // Find best replacement at each position available ~picksUntilNext picks later
+            // Assumption: top picksUntilNext players by ADP will be taken by others
+            const posReplacement: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+            const posTaken: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+            for (let i = 0; i < available.length; i++) {
+              const p = available[i];
+              if (i < picksUntilNext) {
+                // This player will likely be gone — count position attrition
+                posTaken[p.position] = (posTaken[p.position] || 0) + 1;
+              } else {
+                // This player might be available at our next pick
+                if (posReplacement[p.position] === 0) {
+                  posReplacement[p.position] = p.modelPPG;
+                }
+              }
+            }
+
+            // Score candidates: VONA + residual + roster composition
+            const WINDOW = 8;
+            const candidates: Array<{ idx: number; score: number }> = [];
             for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
               const p = available[i];
               if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
               if (mustDraftQB && p.position !== 'QB') continue;
+
+              // VONA: how much value we lose by waiting at this position
+              const vona = p.modelPPG - posReplacement[p.position];
+
+              // Starter marginal value: starters >> bench
               const starterNeed = STARTER_NEEDS[p.position as keyof typeof STARTER_NEEDS] || 0;
-              const need = ourPosCounts[p.position] < starterNeed ? 1 : 0;
-              candidates.push({ idx: i, residual: p.residual, need });
+              const flexEligible = ['RB', 'WR', 'TE'].includes(p.position);
+              const flexNeed = flexEligible && ourPosCounts.RB + ourPosCounts.WR + ourPosCounts.TE <
+                (STARTER_NEEDS.RB + STARTER_NEEDS.WR + STARTER_NEEDS.TE + STARTER_NEEDS.FLEX);
+              const isStarter = ourPosCounts[p.position] < starterNeed || (flexNeed && ourPosCounts[p.position] === starterNeed);
+              const starterMult = isStarter ? 1.5 : 0.6;
+
+              // Buy/sell filter from model residual (already alpha-scaled)
+              const residualBonus = p.residual * 0.8;
+
+              // ADP reach penalty (lighter than before — VONA handles most positioning)
+              const reachPenalty = i * 0.3;
+
+              const score = vona * starterMult + residualBonus - reachPenalty + (rng() - 0.5) * 0.4;
+              candidates.push({ idx: i, score });
             }
             if (candidates.length > 0) {
-              // Score: strong ADP anchor + alpha-scaled residual as tiebreaker + need
               let bestScore = -Infinity;
               for (const c of candidates) {
-                // ADP position: heavy penalty for reaching (stays near top of board)
-                let score = -c.idx * 1.0;
-                // Residual (already alpha-scaled): direct buy/sell signal
-                score += c.residual;
-                // Positional need bonus
-                if (c.need) score += 0.5;
-                // Small noise for sim variance (±0.25)
-                score += (rng() - 0.5) * 0.5;
-                if (score > bestScore) { bestScore = score; bestIdx = c.idx; }
+                if (c.score > bestScore) { bestScore = c.score; bestIdx = c.idx; }
               }
             }
           } else {
