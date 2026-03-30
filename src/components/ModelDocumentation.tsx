@@ -756,8 +756,8 @@ export function ModelDocumentation() {
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
                     {sim.settings.numTeams}-team snake draft, {sim.settings.simsPerPick || 1} sims per pick position ({sim.totalSims} total drafts) with variance around each pick.
                     QB required before round {sim.settings.qbDeadline || 10}.
-                    ADP drafter picks near top of board with slight noise. Model drafter uses round-aware strategy:
-                    early rounds stay safe near ADP (bust avoidance), late rounds swing for model-identified sleepers.
+                    ADP drafter picks near top of board with slight noise. Model drafter follows ADP order
+                    but uses residual as buy/sell filter: skips overvalued players, prefers undervalued ones nearby.
                     Other teams draft near ADP with variance. Trained on all seasons except {season} (honest out-of-sample).
                   </p>
 

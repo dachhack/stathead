@@ -970,26 +970,33 @@ async function main() {
 
           let bestIdx = 0;
           if (useModel) {
-            let bestScore = -Infinity;
-            // Round-aware strategy:
-            //   Early rounds (1-4): penalize reaching past ADP → avoid busts
-            //   Mid rounds (5-8): balanced
-            //   Late rounds (9+): minimal ADP penalty → swing for model-identified sleepers
-            const reachPenalty = round < 4 ? 0.25 : round < 8 ? 0.10 : 0.02;
-            const upsideBonus = round >= 8 ? 0.4 : 0;
-            for (let i = 0; i < available.length; i++) {
+            // Strategy: draft mostly by ADP but use model residual as buy/sell filter.
+            // Scan top candidates near ADP board position. Skip "sells" (negative residual),
+            // prefer "buys" (positive residual) among nearby options.
+            const WINDOW = 8; // look at top 8 eligible players by ADP
+            const candidates: Array<{ idx: number; residual: number; need: number }> = [];
+            for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
               const p = available[i];
               if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
               if (mustDraftQB && p.position !== 'QB') continue;
               const starterNeed = STARTER_NEEDS[p.position as keyof typeof STARTER_NEEDS] || 0;
               const need = ourPosCounts[p.position] < starterNeed ? 1 : 0;
-              let score = p.modelPPG + (need ? 0.5 : 0);
-              score -= i * reachPenalty;
-              if (upsideBonus > 0 && p.residual > 0) score += p.residual * upsideBonus;
-              if (round < 4 && p.residual < 0) score += p.residual * 0.3;
-              // Add small noise so sims aren't identical (±0.3 PPG)
-              score += (rng() - 0.5) * 0.6;
-              if (score > bestScore) { bestScore = score; bestIdx = i; }
+              candidates.push({ idx: i, residual: p.residual, need });
+            }
+            if (candidates.length > 0) {
+              // Score each candidate: ADP position (lower = better) + residual filter + need + noise
+              let bestScore = -Infinity;
+              for (const c of candidates) {
+                // Base: penalize reaching past top of board (ADP ordering matters)
+                let score = -c.idx * 0.5;
+                // Buy/sell filter: boost buys, penalize sells
+                score += c.residual * 1.5;
+                // Positional need bonus
+                if (c.need) score += 1.0;
+                // Small noise for sim variance (±0.4)
+                score += (rng() - 0.5) * 0.8;
+                if (score > bestScore) { bestScore = score; bestIdx = c.idx; }
+              }
             }
           } else {
             // ADP drafter: mostly follows ADP but with slight variance
