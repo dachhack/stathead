@@ -36,7 +36,7 @@ done
 
 # ── FFC ADP ──
 # Static historical seasons: skip if cached
-for season in 2024 2023 2022 2021 2020 2019 2018; do
+for season in 2025 2024 2023 2022 2021 2020 2019 2018; do
   outfile="$OUT/ffc_adp_ppr_${season}.json"
   if [ -s "$outfile" ]; then
     echo "  [cached] $outfile"
@@ -48,7 +48,7 @@ for season in 2024 2023 2022 2021 2020 2019 2018; do
   fi
 done
 # Dynamic current seasons: always refresh
-for season in 2026 2025; do
+for season in 2026; do
   outfile="$OUT/ffc_adp_ppr_${season}.json"
   echo "  Fetching FFC ADP ($season)..."
   curl -sL "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=12&year=${season}" \

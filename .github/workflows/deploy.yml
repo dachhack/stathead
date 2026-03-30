@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v9
+          key: static-data-v10
 
       - run: npm ci
       - run: bash scripts/download-data.sh
