@@ -191,6 +191,113 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         }
 
+        // ── Advanced college analytics: dominator rating, breakout age, market share ──
+        // Step 1: Build per-player per-season stats AND per-school per-season team totals
+        type PlayerSeasonStats = { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number; school: string; pos: string };
+        const playerSeasonStats = new Map<string, Map<number, PlayerSeasonStats>>(); // name → season → stats
+        const schoolSeasonTotals = new Map<string, { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number }>(); // "school:season" → totals
+        for (const cs of collegeStatsData) {
+          const name = normalizeName(cs.player_name);
+          const season = cs.season;
+          const school = (cs.school || cs.school_abbr || '').toLowerCase();
+          const stat = (cs.statistic || '').toLowerCase();
+
+          // Player per-season
+          if (!playerSeasonStats.has(name)) playerSeasonStats.set(name, new Map());
+          const seasons = playerSeasonStats.get(name)!;
+          if (!seasons.has(season)) seasons.set(season, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, school, pos: cs.pos_abbr || '' });
+          const ps = seasons.get(season)!;
+          if (stat.includes('receiving yard')) ps.recYds += cs.value || 0;
+          else if (stat.includes('receiving touchdown')) ps.recTDs += cs.value || 0;
+          else if (stat.includes('rushing yard')) ps.rushYds += cs.value || 0;
+          else if (stat.includes('rushing touchdown')) ps.rushTDs += cs.value || 0;
+          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) ps.receptions += cs.value || 0;
+          else if (stat.includes('rushing attempt') || stat.includes('carries')) ps.rushAtt += cs.value || 0;
+
+          // School per-season totals
+          const schoolKey = `${school}:${season}`;
+          if (!schoolSeasonTotals.has(schoolKey)) schoolSeasonTotals.set(schoolKey, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0 });
+          const st = schoolSeasonTotals.get(schoolKey)!;
+          if (stat.includes('receiving yard')) st.recYds += cs.value || 0;
+          else if (stat.includes('receiving touchdown')) st.recTDs += cs.value || 0;
+          else if (stat.includes('rushing yard')) st.rushYds += cs.value || 0;
+          else if (stat.includes('rushing touchdown')) st.rushTDs += cs.value || 0;
+          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) st.receptions += cs.value || 0;
+          else if (stat.includes('rushing attempt') || stat.includes('carries')) st.rushAtt += cs.value || 0;
+        }
+
+        // Step 2: Compute dominator rating, breakout age, and market share per player
+        const collegeAdvancedByName = new Map<string, { dominatorRating: number; breakoutAge: number; marketShare: number }>();
+        for (const [name, seasons] of playerSeasonStats) {
+          let bestDominator = 0;
+          let bestMarketShare = 0;
+          let breakoutAge = 0;
+
+          // Get draft age to compute per-season age
+          const draft = draftByName.get(name);
+          const draftAge = draft?.age || 0;
+          const draftYear = draft?.season || 0;
+
+          const sortedSeasons = [...seasons.entries()].sort((a, b) => a[0] - b[0]);
+          for (const [seasonYear, ps] of sortedSeasons) {
+            const schoolKey = `${ps.school}:${seasonYear}`;
+            const team = schoolSeasonTotals.get(schoolKey);
+            if (!team) continue;
+
+            // Dominator Rating: % of team receiving yards + receiving TDs
+            // For RBs: use rushing yards + rushing TDs share instead
+            let dominator = 0;
+            const pos = (ps.pos || '').toUpperCase();
+            if (pos === 'RB') {
+              const ydsShare = team.rushYds > 0 ? ps.rushYds / team.rushYds : 0;
+              const tdShare = team.rushTDs > 0 ? ps.rushTDs / team.rushTDs : 0;
+              dominator = ((ydsShare + tdShare) / 2) * 100;
+            } else {
+              // WR/TE: receiving dominator
+              const ydsShare = team.recYds > 0 ? ps.recYds / team.recYds : 0;
+              const tdShare = team.recTDs > 0 ? ps.recTDs / team.recTDs : 0;
+              dominator = ((ydsShare + tdShare) / 2) * 100;
+            }
+            bestDominator = Math.max(bestDominator, dominator);
+
+            // Market share: receptions/team receptions for WR/TE, rushAttempts/team for RB
+            let mktShare = 0;
+            if (pos === 'RB') {
+              mktShare = team.rushAtt > 0 ? (ps.rushAtt / team.rushAtt) * 100 : 0;
+            } else {
+              mktShare = team.receptions > 0 ? (ps.receptions / team.receptions) * 100 : 0;
+            }
+            bestMarketShare = Math.max(bestMarketShare, mktShare);
+
+            // Breakout age: first season with dominator rating > 20%
+            if (breakoutAge === 0 && dominator > 20 && draftAge > 0 && draftYear > 0) {
+              // Estimate age in that college season: draftAge - (draftYear - seasonYear)
+              const ageInSeason = draftAge - (draftYear - seasonYear);
+              if (ageInSeason > 17 && ageInSeason < 25) {
+                breakoutAge = ageInSeason;
+              }
+            }
+          }
+
+          collegeAdvancedByName.set(name, {
+            dominatorRating: Math.round(bestDominator * 10) / 10,
+            breakoutAge: breakoutAge,
+            marketShare: Math.round(bestMarketShare * 10) / 10,
+          });
+        }
+
+        // Step 3: Speed Score = (weight * 200) / (forty ^ 4)
+        // Higher = better (heavier player running same 40 = more valuable)
+        const speedScoreByName = new Map<string, number>();
+        for (const [name, combine] of combineByName) {
+          const wt = Number(combine.wt) || 0;
+          const ft = Number(combine.forty) || 0;
+          if (wt > 0 && ft > 0) {
+            const ss = (wt * 200) / Math.pow(ft, 4);
+            speedScoreByName.set(name, Math.round(ss * 10) / 10);
+          }
+        }
+
         // Aging curve constants (position → { peakStart, peakEnd, declineStart })
         const AGING_CURVES: Record<string, { peakStart: number; peakEnd: number; declineStart: number }> = {
           QB: { peakStart: 27, peakEnd: 32, declineStart: 35 },
@@ -1552,6 +1659,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   prospectGrade: prospectByName.get(normalName)?.grade || 0,
                   prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
                   prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
+                  // Advanced college analytics
+                  collegeDominatorRating: collegeAdvancedByName.get(normalName)?.dominatorRating || 0,
+                  collegeBreakoutAge: collegeAdvancedByName.get(normalName)?.breakoutAge || 0,
+                  collegeMarketShare: collegeAdvancedByName.get(normalName)?.marketShare || 0,
+                  speedScore: speedScoreByName.get(normalName) || 0,
                 };
               })(),
 
@@ -2641,6 +2753,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectGrade: prospectByName.get(normalName)?.grade || 0,
                     prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
                     prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
+                    collegeDominatorRating: collegeAdvancedByName.get(normalName)?.dominatorRating || 0,
+                    collegeBreakoutAge: collegeAdvancedByName.get(normalName)?.breakoutAge || 0,
+                    collegeMarketShare: collegeAdvancedByName.get(normalName)?.marketShare || 0,
+                    speedScore: speedScoreByName.get(normalName) || 0,
                   };
                 })(),
 

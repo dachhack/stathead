@@ -263,6 +263,11 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeYdsPerGame', label: 'College Yards/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeTDsPerGame', label: 'College TDs/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeRushYPC', label: 'College Rush YPC', category: 'College', positions: ['QB', 'RB'] },
+  // Advanced college analytics
+  { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeBreakoutAge', label: 'College Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeMarketShare', label: 'College Receiving/Rushing Share (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'speedScore', label: 'Speed Score (weight-adj 40)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   // Draft prospect grade/ranking
   { key: 'prospectGrade', label: 'Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'prospectPosRank', label: 'Prospect Position Rank', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
@@ -356,15 +361,18 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: ~24 rookies → 6 features
   QB: ['nflDraftRound', 'nflDraftPick', 'collegePassTDs', 'collegeQBR',
        'collegeRushYds', 'prospectGrade'],
-  // RB: ~142 rookies → 10 features
+  // RB: ~142 rookies → 13 features
   RB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRushYds', 'collegeRushYPC',
-       'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight'],
-  // WR: ~127 rookies → 9 features
+       'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight',
+       'speedScore', 'collegeDominatorRating', 'collegeMarketShare'],
+  // WR: ~127 rookies → 13 features
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
-       'collegeRecPerGame', 'prospectGrade', 'forty', 'collegeYdsPerGame'],
-  // TE: ~20 rookies → 5 features
+       'collegeRecPerGame', 'prospectGrade', 'forty', 'collegeYdsPerGame',
+       'speedScore', 'collegeDominatorRating', 'collegeBreakoutAge', 'collegeMarketShare'],
+  // TE: ~20 rookies → 7 features
   TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds',
-       'prospectGrade', 'collegeRecPerGame'],
+       'prospectGrade', 'collegeRecPerGame',
+       'collegeDominatorRating', 'collegeMarketShare'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known
