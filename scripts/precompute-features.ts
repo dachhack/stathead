@@ -668,8 +668,9 @@ async function main() {
     // Also track hit/bust labels
     const resLosoIsHit: boolean[] = [];
     const resLosoIsBust: boolean[] = [];
-    // Capture 2025 player-level data for draft simulation
-    const players2025: Array<{
+    // Capture last-season player-level data for draft simulation
+    const lastSeason = uniqueSeasons.length > 0 ? uniqueSeasons[uniqueSeasons.length - 1] : 0;
+    const playersDraftSim: Array<{
       name: string; position: string; adp: number; actualPPG: number;
       modelPPG: number; residual: number; adpImpliedPPG: number;
       isHit: boolean; isBust: boolean;
@@ -720,9 +721,9 @@ async function main() {
           resLosoIsHit.push(!!row.isHit);
           resLosoIsBust.push(!!row.isBust);
 
-          // Capture 2025 player data for draft sim
-          if (held === 2025) {
-            players2025.push({
+          // Capture last-season player data for draft sim
+          if (held === lastSeason) {
+            playersDraftSim.push({
               name: row.name, position: pos, adp: row.adp,
               actualPPG: row.rawPPG || 0,
               adpImpliedPPG: Math.round(adpImplied * 10) / 10,
@@ -859,8 +860,11 @@ async function main() {
       featureNames: featureKeys,
       n: posRows.length,
       backtest: residualBacktest,
-      players2025,
+      playersDraftSim,
+      lastSeason,
     });
+    console.log(`      Draft sim: ${playersDraftSim.length} players captured for season ${lastSeason} (uniqueSeasons: ${uniqueSeasons.join(',')})`);
+
 
     console.log(`    ${pos}: Residual model done (n=${posRows.length}, features=${featureKeys.length}, α=${bestAlpha})`);
   }
@@ -902,19 +906,24 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════
   console.log('\n  Simulating 2025 draft...');
 
-  // Collect all 2025 players across positions
-  const allPlayers2025: Array<{
+  // Collect all last-season players across positions
+  const allDraftSimPlayers: Array<{
     name: string; position: string; adp: number; actualPPG: number;
     modelPPG: number; residual: number; adpImpliedPPG: number;
     isHit: boolean; isBust: boolean;
   }> = [];
+  let draftSimSeason = 0;
   for (const m of residualModels) {
-    const p2025 = (m as any).players2025 as typeof allPlayers2025;
-    if (p2025) allPlayers2025.push(...p2025);
+    const pds = (m as any).playersDraftSim as typeof allDraftSimPlayers;
+    const ls = (m as any).lastSeason as number;
+    if (pds && pds.length > 0) {
+      allDraftSimPlayers.push(...pds);
+      draftSimSeason = Math.max(draftSimSeason, ls || 0);
+    }
   }
   // Sort by ADP for draft order
-  allPlayers2025.sort((a, b) => a.adp - b.adp);
-  console.log(`    ${allPlayers2025.length} players available for 2025 draft sim`);
+  allDraftSimPlayers.sort((a, b) => a.adp - b.adp);
+  console.log(`    ${allDraftSimPlayers.length} players available for ${draftSimSeason} draft sim`);
 
   // Snake draft simulation: 12 teams, 15 rounds
   // Our drafter picks at position 6 (1-indexed)
@@ -931,7 +940,7 @@ async function main() {
   type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean };
 
   function simulateDraft(useModel: boolean): DraftPick[] {
-    const available = [...allPlayers2025];
+    const available = [...allDraftSimPlayers];
     const ourTeam: DraftPick[] = [];
     const ourPosCounts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
 
@@ -1040,11 +1049,12 @@ async function main() {
     adpBusts: adpTeam.filter(p => p.isBust).length,
     modelHits: modelTeam.filter(p => p.isHit).length,
     modelBusts: modelTeam.filter(p => p.isBust).length,
-    settings: { numTeams: NUM_TEAMS, pickPosition: OUR_PICK, rounds: NUM_ROUNDS },
+    settings: { numTeams: NUM_TEAMS, pickPosition: OUR_PICK, rounds: NUM_ROUNDS, season: draftSimSeason },
   };
 
-  console.log(`    ADP team: ${adpLineup.totalPPG} PPG (${adpLineup.seasonPPR} season), ${draftSim2025.adpHits} hits, ${draftSim2025.adpBusts} busts`);
-  console.log(`    Model team: ${modelLineup.totalPPG} PPG (${modelLineup.seasonPPR} season), ${draftSim2025.modelHits} hits, ${draftSim2025.modelBusts} busts`);
+  console.log(`    Draft sim season: ${draftSimSeason}`);
+  console.log(`    ADP team (${adpTeam.length} picks): ${adpLineup.totalPPG} PPG (${adpLineup.seasonPPR} season), ${draftSim2025.adpHits} hits, ${draftSim2025.adpBusts} busts`);
+  console.log(`    Model team (${modelTeam.length} picks): ${modelLineup.totalPPG} PPG (${modelLineup.seasonPPR} season), ${draftSim2025.modelHits} hits, ${draftSim2025.modelBusts} busts`);
   console.log(`    Lineup delta: ${(modelLineup.totalPPG - adpLineup.totalPPG).toFixed(1)} PPG/week (${modelLineup.seasonPPR - adpLineup.seasonPPR} season points)`);
 
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)

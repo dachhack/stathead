@@ -35,7 +35,7 @@ export function ModelDocumentation() {
       adpLineupPPG: number; adpSeasonPPR: number;
       modelLineupPPG: number; modelSeasonPPR: number;
       adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
-      settings: { numTeams: number; pickPosition: number; rounds: number };
+      settings: { numTeams: number; pickPosition: number; rounds: number; season?: number };
     };
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -748,11 +748,11 @@ export function ModelDocumentation() {
 
               return (
                 <>
-                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated 2025 Draft</h3>
+                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated {sim.settings.season || 2025} Draft</h3>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
                     12-team snake draft, pick #{sim.settings.pickPosition}. ADP drafter always takes best available by ADP.
                     Model drafter uses the ADP-residual model to find value. Other teams draft by ADP.
-                    Trained on 2018-2024, tested on 2025 (honest out-of-sample).
+                    Trained on all seasons except {sim.settings.season || 2025}, tested on {sim.settings.season || 2025} (honest out-of-sample).
                   </p>
                   <div style={{
                     display: 'flex', gap: 12, padding: '10px 12px', margin: '8px 0',
