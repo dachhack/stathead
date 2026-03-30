@@ -606,6 +606,277 @@ async function main() {
   }
   console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADP-RESIDUAL MODEL: train to predict actual_PPG - ADP_implied_PPG
+  // This learns WHERE ADP is wrong instead of trying to replicate ADP's rankings.
+  // Final prediction = ADP_implied + alpha * model_residual
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('\n  Training ADP-residual models...');
+
+  const residualModels: Record<string, unknown>[] = [];
+
+  for (const pos of POSITIONS) {
+    const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
+    if (posRows.length < 10) continue;
+
+    // Use NON-ADP features — model should learn signal ADP doesn't capture
+    const posFeatures = FEATURES.filter((f) => f.positions.includes(pos) && !ADP_FEATURES.has(f.key));
+    let featureKeys = posFeatures.map((f) => f.key);
+
+    // Feature selection
+    const resCfg = POS_CONFIG[pos] || POS_CONFIG.WR;
+    // Fit position-level ADP→PPG curve (used to compute residuals)
+    const allAdps = posRows.map((r: PlayerRow) => r.adp);
+    const allPPG = posRows.map((r: PlayerRow) => r.rawPPG || 0);
+    const adpMeanAll = allAdps.reduce((a, b) => a + b, 0) / allAdps.length;
+    const ppgMeanAll = allPPG.reduce((a, b) => a + b, 0) / allPPG.length;
+    let ssAdpAll = 0, ssAdpPpgAll = 0;
+    for (let i = 0; i < allAdps.length; i++) {
+      ssAdpAll += (allAdps[i] - adpMeanAll) ** 2;
+      ssAdpPpgAll += (allAdps[i] - adpMeanAll) * (allPPG[i] - ppgMeanAll);
+    }
+    const slopeAll = ssAdpAll > 0 ? ssAdpPpgAll / ssAdpAll : 0;
+    const interceptAll = ppgMeanAll - slopeAll * adpMeanAll;
+    console.log(`    ${pos}: ADP→PPG curve: PPG = ${interceptAll.toFixed(2)} + ${slopeAll.toFixed(4)} * ADP`);
+
+    if (featureKeys.length > resCfg.maxFeatures) {
+      const XAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+      const yRes = posRows.map((r: PlayerRow) => (r.rawPPG || 0) - (interceptAll + slopeAll * r.adp));
+      const quickGbm = trainGBM(XAll, yRes, featureKeys, {
+        nEstimators: 50, learningRate: 0.1, maxDepth: 2, subsample: 0.7,
+        minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
+      });
+      const importanceSums = new Array(featureKeys.length).fill(0);
+      const sStep = Math.max(1, Math.floor(posRows.length / 100));
+      for (let i = 0; i < posRows.length; i += sStep) {
+        const pred = predictGBM(quickGbm, posRows[i].features);
+        for (const fc of pred.featureContributions) {
+          const idx = featureKeys.indexOf(fc.name);
+          if (idx >= 0) importanceSums[idx] += Math.abs(fc.contribution);
+        }
+      }
+      const ranked = featureKeys.map((k, i) => ({ key: k, imp: importanceSums[i] })).sort((a, b) => b.imp - a.imp);
+      featureKeys = ranked.slice(0, resCfg.maxFeatures).map((r) => r.key);
+    }
+
+    // LOSO CV: train residual model per fold, test blended prediction
+    const uniqueSeasons = [...new Set(posRows.map((r: PlayerRow) => r.season))].sort();
+    const resLosoActuals: number[] = [];
+    const resLosoAdps: number[] = [];
+    const resLosoResidualPreds: number[] = [];  // raw residual predictions
+    const resLosoAdpImplied: number[] = [];     // ADP-implied PPG per test player
+    // Also track hit/bust labels
+    const resLosoIsHit: boolean[] = [];
+    const resLosoIsBust: boolean[] = [];
+
+    if (uniqueSeasons.length >= 3) {
+      for (const held of uniqueSeasons) {
+        const trainR = posRows.filter((r: PlayerRow) => r.season !== held);
+        const testR = posRows.filter((r: PlayerRow) => r.season === held);
+        if (trainR.length < 8 || testR.length === 0) continue;
+
+        // Fit fold-specific ADP→PPG curve (honest: only uses training data)
+        const foldAdps = trainR.map((r: PlayerRow) => r.adp);
+        const foldPPGs = trainR.map((r: PlayerRow) => r.rawPPG || 0);
+        const foldAdpMean = foldAdps.reduce((a, b) => a + b, 0) / foldAdps.length;
+        const foldPpgMean = foldPPGs.reduce((a, b) => a + b, 0) / foldPPGs.length;
+        let ssAdpF = 0, ssApF = 0;
+        for (let i = 0; i < foldAdps.length; i++) {
+          ssAdpF += (foldAdps[i] - foldAdpMean) ** 2;
+          ssApF += (foldAdps[i] - foldAdpMean) * (foldPPGs[i] - foldPpgMean);
+        }
+        const foldSlope = ssAdpF > 0 ? ssApF / ssAdpF : 0;
+        const foldIntercept = foldPpgMean - foldSlope * foldAdpMean;
+
+        // Train residual model: target = actual_PPG - ADP_implied_PPG
+        const yResidual = trainR.map((r: PlayerRow) => (r.rawPPG || 0) - (foldIntercept + foldSlope * r.adp));
+        const Xtr = trainR.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+        const foldMsl = Math.max(3, Math.round(trainR.length * resCfg.minLeafPct));
+
+        const foldResGbm = trainGBM(Xtr, yResidual, featureKeys, {
+          nEstimators: Math.min(80, resCfg.gbmEstimators),
+          learningRate: resCfg.gbmLR + 0.02,
+          maxDepth: resCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: foldMsl,
+        });
+        const resLambda = Math.max(resCfg.ridgeLambda, Math.sqrt(featureKeys.length));
+        const foldResRidge = trainRidgeRegression(Xtr, yResidual, featureKeys, resLambda);
+
+        for (const row of testR) {
+          const adpImplied = foldIntercept + foldSlope * row.adp;
+          const gbmRes = predictGBM(foldResGbm, row.features).predicted;
+          const ridgeRes = predict(foldResRidge, row.features).predicted;
+          const residualPred = gbmRes * 0.7 + ridgeRes * 0.3;
+
+          resLosoActuals.push(row.rawPPG || 0);
+          resLosoAdps.push(row.adp);
+          resLosoResidualPreds.push(residualPred);
+          resLosoAdpImplied.push(adpImplied);
+          resLosoIsHit.push(!!row.isHit);
+          resLosoIsBust.push(!!row.isBust);
+        }
+      }
+    }
+
+    // Find optimal alpha: final_pred = ADP_implied + alpha * residual_pred
+    // Test alphas from 0 (pure ADP) to 1 (full model adjustment)
+    const hasResCV = resLosoActuals.length >= 20;
+    let bestAlpha = 0;
+    let bestBlendCorr = -1;
+    const alphaResults: Array<{ alpha: number; rankCorr: number; r2: number }> = [];
+
+    if (hasResCV) {
+      const actualRanks = rankArray(resLosoActuals);
+      const adpRanks = rankArray(resLosoAdps.map(a => -a));
+      const adpOnlyCorr = spearman(adpRanks, actualRanks);
+
+      for (let alpha = 0; alpha <= 1.01; alpha += 0.1) {
+        const blended = resLosoAdpImplied.map((imp, i) => imp + alpha * resLosoResidualPreds[i]);
+        const blendRanks = rankArray(blended);
+        const corr = spearman(blendRanks, actualRanks);
+        const r2 = cvR2(resLosoActuals, blended);
+        alphaResults.push({ alpha: Math.round(alpha * 10) / 10, rankCorr: corr, r2 });
+        if (corr > bestBlendCorr) {
+          bestBlendCorr = corr;
+          bestAlpha = Math.round(alpha * 10) / 10;
+        }
+      }
+      console.log(`    ${pos}: Best alpha=${bestAlpha} (rank corr=${bestBlendCorr.toFixed(3)} vs ADP-only=${adpOnlyCorr.toFixed(3)})`);
+      console.log(`      Alpha sweep: ${alphaResults.map(a => `${a.alpha}→${a.rankCorr.toFixed(3)}`).join(', ')}`);
+    }
+
+    // Compute backtest metrics at best alpha
+    let residualBacktest = {
+      adpRankCorr: 0, modelRankCorr: 0, bestAlpha: 0, blendedRankCorr: 0,
+      liftPct: 0, buyActualPPG: 0, sellActualPPG: 0, buyN: 0, sellN: 0,
+      buyHitRate: 0, sellHitRate: 0, buyBustRate: 0, sellBustRate: 0,
+      topNModelHitRate: 0, topNAdpHitRate: 0, topN: 0,
+    };
+    if (hasResCV) {
+      const n = resLosoActuals.length;
+      const adpRanks = rankArray(resLosoAdps.map(a => -a));
+      const actualRanks = rankArray(resLosoActuals);
+      const adpRankCorr = spearman(adpRanks, actualRanks);
+
+      // Blended predictions at best alpha
+      const blended = resLosoAdpImplied.map((imp, i) => imp + bestAlpha * resLosoResidualPreds[i]);
+      const blendRanks = rankArray(blended);
+      const blendedRankCorr = spearman(blendRanks, actualRanks);
+
+      // Raw model (alpha=1) for comparison
+      const rawModel = resLosoAdpImplied.map((imp, i) => imp + resLosoResidualPreds[i]);
+      const rawModelRanks = rankArray(rawModel);
+      const modelRankCorr = spearman(rawModelRanks, actualRanks);
+
+      // Buy/sell split: where does the model disagree with ADP?
+      // "Edge" = how much model thinks player is undervalued
+      const edges = resLosoResidualPreds.slice(); // positive = model says undervalued
+      const edgeSorted = [...edges].sort((a, b) => a - b);
+      const median = edgeSorted[Math.floor(edgeSorted.length / 2)];
+
+      let buyPPG = 0, buyCount = 0, sellPPG = 0, sellCount = 0;
+      let buyHits = 0, buyBusts = 0, sellHits = 0, sellBusts = 0;
+      for (let i = 0; i < n; i++) {
+        if (edges[i] >= median) {
+          buyPPG += resLosoActuals[i]; buyCount++;
+          if (resLosoIsHit[i]) buyHits++;
+          if (resLosoIsBust[i]) buyBusts++;
+        } else {
+          sellPPG += resLosoActuals[i]; sellCount++;
+          if (resLosoIsHit[i]) sellHits++;
+          if (resLosoIsBust[i]) sellBusts++;
+        }
+      }
+      const buyActualPPG = buyCount > 0 ? Math.round(buyPPG / buyCount * 100) / 100 : 0;
+      const sellActualPPG = sellCount > 0 ? Math.round(sellPPG / sellCount * 100) / 100 : 0;
+      const liftPct = sellActualPPG > 0
+        ? Math.round((buyActualPPG - sellActualPPG) / sellActualPPG * 1000) / 10 : 0;
+
+      // Top-N accuracy
+      const topN = Math.max(5, Math.floor(n * 0.25));
+      const actualTopSet = new Set(
+        resLosoActuals.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i)
+      );
+      const modelTopIndices = blended.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i);
+      const adpTopIndices = resLosoAdps.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v).slice(0, topN).map(x => x.i);
+      const modelHits = modelTopIndices.filter(i => actualTopSet.has(i)).length;
+      const adpHits = adpTopIndices.filter(i => actualTopSet.has(i)).length;
+
+      residualBacktest = {
+        adpRankCorr: Math.round(adpRankCorr * 1000) / 1000,
+        modelRankCorr: Math.round(modelRankCorr * 1000) / 1000,
+        bestAlpha,
+        blendedRankCorr: Math.round(blendedRankCorr * 1000) / 1000,
+        liftPct,
+        buyActualPPG, sellActualPPG, buyN: buyCount, sellN: sellCount,
+        buyHitRate: buyCount > 0 ? Math.round(buyHits / buyCount * 100) : 0,
+        sellHitRate: sellCount > 0 ? Math.round(sellHits / sellCount * 100) : 0,
+        buyBustRate: buyCount > 0 ? Math.round(buyBusts / buyCount * 100) : 0,
+        sellBustRate: sellCount > 0 ? Math.round(sellBusts / sellCount * 100) : 0,
+        topNModelHitRate: Math.round(modelHits / topN * 100),
+        topNAdpHitRate: Math.round(adpHits / topN * 100),
+        topN,
+      };
+      console.log(`      Residual backtest: ADP corr=${adpRankCorr.toFixed(3)}, Model(α=1)=${modelRankCorr.toFixed(3)}, Blended(α=${bestAlpha})=${blendedRankCorr.toFixed(3)}`);
+      console.log(`      Buy PPG=${buyActualPPG} (hits=${Math.round(buyHits/buyCount*100)}%, busts=${Math.round(buyBusts/buyCount*100)}%)`);
+      console.log(`      Sell PPG=${sellActualPPG} (hits=${Math.round(sellHits/sellCount*100)}%, busts=${Math.round(sellBusts/sellCount*100)}%)`);
+      console.log(`      Lift=${liftPct}%, Top-${topN}: Model=${modelHits}/${topN} (${Math.round(modelHits/topN*100)}%), ADP=${adpHits}/${topN} (${Math.round(adpHits/topN*100)}%)`);
+    }
+
+    // Train full-data residual model for 2026 predictions
+    const yResAll = posRows.map((r: PlayerRow) => (r.rawPPG || 0) - (interceptAll + slopeAll * r.adp));
+    const XResAll = posRows.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
+    const resMsl = Math.max(3, Math.round(posRows.length * resCfg.minLeafPct));
+    const resGbm = trainGBM(XResAll, yResAll, featureKeys, {
+      nEstimators: resCfg.gbmEstimators, learningRate: resCfg.gbmLR,
+      maxDepth: resCfg.gbmDepth, subsample: 0.8, minSamplesLeaf: resMsl,
+    });
+    const resLambda = Math.max(resCfg.ridgeLambda, Math.sqrt(featureKeys.length));
+    const resRidge = trainRidgeRegression(XResAll, yResAll, featureKeys, resLambda);
+
+    residualModels.push({
+      position: pos,
+      gbmModel: resGbm, ridgeModel: resRidge,
+      adpSlope: slopeAll, adpIntercept: interceptAll,
+      bestAlpha,
+      featureNames: featureKeys,
+      n: posRows.length,
+      backtest: residualBacktest,
+    });
+
+    console.log(`    ${pos}: Residual model done (n=${posRows.length}, features=${featureKeys.length}, α=${bestAlpha})`);
+  }
+
+  // Generate 2026 residual-model predictions
+  const residualPredictions2026: Array<{
+    name: string; team: string; position: string; adp: number;
+    headshotUrl?: string;
+    adpImpliedPPG: number; residualPred: number; blendedPPG: number;
+  }> = [];
+  for (const m of residualModels) {
+    const pos = m.position as string;
+    const resGbm = m.gbmModel as any;
+    const resRidge = m.ridgeModel as any;
+    const slope = m.adpSlope as number;
+    const intercept = m.adpIntercept as number;
+    const alpha = m.bestAlpha as number;
+    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+    for (const r of posPredRows) {
+      const adpImplied = intercept + slope * r.adp;
+      const gbmRes = predictGBM(resGbm, r.features).predicted;
+      const ridgeRes = predict(resRidge, r.features).predicted;
+      const residual = gbmRes * 0.7 + ridgeRes * 0.3;
+      const blended = Math.round((adpImplied + alpha * residual) * 10) / 10;
+      residualPredictions2026.push({
+        name: r.name, team: r.team, position: pos, adp: r.adp,
+        headshotUrl: r.headshotUrl,
+        adpImpliedPPG: Math.round(adpImplied * 10) / 10,
+        residualPred: Math.round(residual * 100) / 100,
+        blendedPPG: blended,
+      });
+    }
+  }
+  console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
+
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)
   console.log('  Computing feature importance...');
   const featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
@@ -716,7 +987,7 @@ async function main() {
   console.log(`  ${predictions2026.length} player predictions generated`);
 
   mkdirSync('public/data', { recursive: true });
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026 };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, ppgModels, ppgPredictions2026, residualModels, residualPredictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
