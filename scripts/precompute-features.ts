@@ -934,7 +934,7 @@ async function main() {
   // Roster requirements
   const ROSTER_SLOTS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, BN_QB: 0, BN_RB: 2, BN_WR: 2, BN_TE: 1 };
   // Total max per position: QB:1, RB:4, WR:4, TE:2, but flex can be RB/WR/TE
-  const MAX_POS = { QB: 2, RB: 5, WR: 5, TE: 2 };
+  const MAX_POS = { QB: 1, RB: 5, WR: 5, TE: 2 };
   const STARTER_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 }; // 7 starters + 8 bench
 
   type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean };
