@@ -35,7 +35,11 @@ export function ModelDocumentation() {
       adpLineupPPG: number; adpSeasonPPR: number;
       modelLineupPPG: number; modelSeasonPPR: number;
       adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
-      settings: { numTeams: number; pickPosition: number; rounds: number; season?: number };
+      avgAdpPPG?: number; avgModelPPG?: number; avgDeltaPPG?: number;
+      avgAdpHits?: number; avgAdpBusts?: number; avgModelHits?: number; avgModelBusts?: number;
+      winsCount?: number; totalSims?: number;
+      perPick?: Array<{ pick: number; adpPPG: number; modelPPG: number; delta: number; modelHits: number; adpHits: number; modelBusts: number; adpBusts: number }>;
+      settings: { numTeams: number; pickPosition?: number; rounds: number; season?: number; qbDeadline?: number };
     };
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -702,17 +706,17 @@ export function ModelDocumentation() {
               </>
             )}
 
-            {/* 2025 Draft Simulation */}
+            {/* Draft Simulation */}
             {data.draftSim2025 && data.draftSim2025.adpTeam.length > 0 && (() => {
               const sim = data.draftSim2025!;
-              const ppgDelta = sim.modelLineupPPG - sim.adpLineupPPG;
-              const pprDelta = sim.modelSeasonPPR - sim.adpSeasonPPR;
+              const season = sim.settings.season || 2025;
+              const hasAvg = sim.avgDeltaPPG !== undefined;
 
-              const renderTeam = (team: typeof sim.adpTeam, label: string, lineupPPG: number, seasonPPR: number, hits: number, busts: number) => (
+              const renderTeam = (team: typeof sim.adpTeam, label: string, lineupPPG: number, hits: number, busts: number) => (
                 <div style={{ flex: 1, minWidth: 280 }}>
                   <h4 style={{ fontSize: 13, margin: '0 0 6px', color: 'var(--text-secondary)' }}>{label}</h4>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                    Lineup: <strong style={{ color: 'var(--text-primary)' }}>{lineupPPG} PPG</strong> ({seasonPPR} season pts)
+                    Starters: <strong style={{ color: 'var(--text-primary)' }}>{lineupPPG} PPG</strong>
                     &nbsp;|&nbsp; Hits: <span style={{ color: '#22c55e' }}>{hits}</span> Busts: <span style={{ color: '#ef4444' }}>{busts}</span>
                   </div>
                   <div className="table-container">
@@ -729,7 +733,7 @@ export function ModelDocumentation() {
                       </thead>
                       <tbody>
                         {team.map((p, i) => (
-                          <tr key={i} style={{ opacity: p.isStarter !== false && p.isStarter ? 1 : 0.5 }}>
+                          <tr key={i} style={{ opacity: p.isStarter ? 1 : 0.5 }}>
                             <td>{p.round}</td>
                             <td style={{ fontWeight: p.isStarter ? 600 : 400, color: 'var(--text-primary)' }}>{p.name}</td>
                             <td style={{ color: POS_COLORS[p.position] || 'var(--text-secondary)' }}>{p.position}</td>
@@ -748,42 +752,101 @@ export function ModelDocumentation() {
 
               return (
                 <>
-                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated {sim.settings.season || 2025} Draft</h3>
+                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated {season} Draft</h3>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
-                    12-team snake draft, pick #{sim.settings.pickPosition}. ADP drafter always takes best available by ADP.
-                    Model drafter uses the ADP-residual model to find value. Other teams draft by ADP.
-                    Trained on all seasons except {sim.settings.season || 2025}, tested on {sim.settings.season || 2025} (honest out-of-sample).
+                    {sim.settings.numTeams}-team snake draft run from all {sim.settings.numTeams} pick positions. Both drafters must take a QB before round {sim.settings.qbDeadline || 10}.
+                    ADP drafter always takes best available by ADP.
+                    Model drafter uses the ADP-residual model. Other teams draft by ADP.
+                    Trained on all seasons except {season} (honest out-of-sample).
                   </p>
-                  <div style={{
-                    display: 'flex', gap: 12, padding: '10px 12px', margin: '8px 0',
-                    borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)',
-                    fontSize: 13, fontWeight: 600,
-                  }}>
-                    <span>Lineup Delta:</span>
-                    <span style={{ color: ppgDelta > 0 ? '#22c55e' : ppgDelta < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
-                      {ppgDelta > 0 ? '+' : ''}{ppgDelta.toFixed(1)} PPG/week
-                    </span>
-                    <span style={{ color: 'var(--text-muted)' }}>|</span>
-                    <span style={{ color: pprDelta > 0 ? '#22c55e' : pprDelta < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
-                      {pprDelta > 0 ? '+' : ''}{pprDelta} season points
-                    </span>
-                    <span style={{ color: 'var(--text-muted)' }}>|</span>
-                    <span>
-                      Hits: <span style={{ color: sim.modelHits > sim.adpHits ? '#22c55e' : 'var(--text-secondary)' }}>{sim.modelHits}</span> vs {sim.adpHits}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)' }}>|</span>
-                    <span>
-                      Busts: <span style={{ color: sim.modelBusts < sim.adpBusts ? '#22c55e' : '#ef4444' }}>{sim.modelBusts}</span> vs {sim.adpBusts}
-                    </span>
-                  </div>
+
+                  {/* Average results banner */}
+                  {hasAvg && (
+                    <div style={{
+                      padding: '12px 16px', margin: '8px 0',
+                      borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                    }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
+                        Average Across All {sim.totalSims} Pick Positions
+                      </div>
+                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13 }}>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)' }}>Starter PPG Delta: </span>
+                          <strong style={{ color: (sim.avgDeltaPPG || 0) > 0 ? '#22c55e' : '#ef4444' }}>
+                            {(sim.avgDeltaPPG || 0) > 0 ? '+' : ''}{sim.avgDeltaPPG} PPG/wk
+                          </strong>
+                          <span style={{ color: 'var(--text-muted)' }}> ({(sim.avgDeltaPPG || 0) > 0 ? '+' : ''}{Math.round((sim.avgDeltaPPG || 0) * 17)} season pts)</span>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)' }}>Model wins </span>
+                          <strong style={{ color: (sim.winsCount || 0) > (sim.totalSims || 1) / 2 ? '#22c55e' : '#ef4444' }}>
+                            {sim.winsCount}/{sim.totalSims}
+                          </strong>
+                          <span style={{ color: 'var(--text-muted)' }}> pick positions</span>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)' }}>Avg Hits: </span>
+                          <strong style={{ color: (sim.avgModelHits || 0) > (sim.avgAdpHits || 0) ? '#22c55e' : 'var(--text-secondary)' }}>{sim.avgModelHits}</strong>
+                          <span style={{ color: 'var(--text-muted)' }}> vs {sim.avgAdpHits}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)' }}>Avg Busts: </span>
+                          <strong style={{ color: (sim.avgModelBusts || 0) < (sim.avgAdpBusts || 0) ? '#22c55e' : '#ef4444' }}>{sim.avgModelBusts}</strong>
+                          <span style={{ color: 'var(--text-muted)' }}> vs {sim.avgAdpBusts}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Per-pick breakdown table */}
+                  {sim.perPick && sim.perPick.length > 0 && (
+                    <>
+                      <h4 style={{ fontSize: 13, margin: '12px 0 4px', color: 'var(--text-secondary)' }}>Results by Pick Position</h4>
+                      <div className="table-container">
+                        <table style={{ fontSize: 12 }}>
+                          <thead>
+                            <tr>
+                              <th>Pick</th>
+                              <th style={{ textAlign: 'right' }}>ADP Starter PPG</th>
+                              <th style={{ textAlign: 'right' }}>Model Starter PPG</th>
+                              <th style={{ textAlign: 'right' }}>Delta</th>
+                              <th style={{ textAlign: 'right' }}>Model Hits</th>
+                              <th style={{ textAlign: 'right' }}>ADP Hits</th>
+                              <th style={{ textAlign: 'right' }}>Model Busts</th>
+                              <th style={{ textAlign: 'right' }}>ADP Busts</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sim.perPick.map((r) => (
+                              <tr key={r.pick}>
+                                <td style={{ fontWeight: 600 }}>#{r.pick}</td>
+                                <td style={{ textAlign: 'right' }}>{r.adpPPG.toFixed(1)}</td>
+                                <td style={{ textAlign: 'right' }}>{r.modelPPG.toFixed(1)}</td>
+                                <td style={{ textAlign: 'right', color: r.delta > 0 ? '#22c55e' : r.delta < 0 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>
+                                  {r.delta > 0 ? '+' : ''}{r.delta.toFixed(1)}
+                                </td>
+                                <td style={{ textAlign: 'right', color: r.modelHits > r.adpHits ? '#22c55e' : 'var(--text-secondary)', fontWeight: r.modelHits > r.adpHits ? 600 : 400 }}>{r.modelHits}</td>
+                                <td style={{ textAlign: 'right' }}>{r.adpHits}</td>
+                                <td style={{ textAlign: 'right', color: r.modelBusts < r.adpBusts ? '#22c55e' : r.modelBusts > r.adpBusts ? '#ef4444' : 'var(--text-secondary)', fontWeight: r.modelBusts < r.adpBusts ? 600 : 400 }}>{r.modelBusts}</td>
+                                <td style={{ textAlign: 'right' }}>{r.adpBusts}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Example draft: pick #6 side-by-side */}
+                  <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Example Draft (Pick #6)</h4>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                    {renderTeam(sim.adpTeam, 'ADP Drafter', sim.adpLineupPPG, sim.adpSeasonPPR, sim.adpHits, sim.adpBusts)}
-                    {renderTeam(sim.modelTeam, 'Model Drafter', sim.modelLineupPPG, sim.modelSeasonPPR, sim.modelHits, sim.modelBusts)}
+                    {renderTeam(sim.adpTeam, 'ADP Drafter', sim.adpLineupPPG, sim.adpHits, sim.adpBusts)}
+                    {renderTeam(sim.modelTeam, 'Model Drafter', sim.modelLineupPPG, sim.modelHits, sim.modelBusts)}
                   </div>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
                     Bold = starters (QB1, RB1-2, WR1-2, TE1, FLEX) set by draft order — earliest picks start.
                     Faded = bench. &#x2713; = hit (beat replacement), &#x2717; = bust (50+ PPR pts below replacement).
-                    Lineup PPG = sum of starter actual PPGs.
+                    Starter PPG = sum of starters&apos; actual PPG. QB must be drafted before round {sim.settings.qbDeadline || 10}.
                   </p>
                 </>
               );

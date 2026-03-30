@@ -926,33 +926,21 @@ async function main() {
   console.log(`    ${allDraftSimPlayers.length} players available for ${draftSimSeason} draft sim`);
 
   // Snake draft simulation: 12 teams, 15 rounds
-  // Our drafter picks at position 6 (1-indexed)
+  // Run from ALL pick positions (1-12) and average results
   const NUM_TEAMS = 12;
   const NUM_ROUNDS = 15;
-  const OUR_PICK = 6; // 1-indexed draft position
 
   // Roster requirements
-  const ROSTER_SLOTS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, BN_QB: 0, BN_RB: 2, BN_WR: 2, BN_TE: 1 };
-  // Total max per position: QB:1, RB:4, WR:4, TE:2, but flex can be RB/WR/TE
   const MAX_POS = { QB: 1, RB: 5, WR: 5, TE: 2 };
-  const STARTER_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 }; // 7 starters + 8 bench
+  const STARTER_NEEDS = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 }; // 7 starters
+  const QB_DEADLINE = 10; // must draft a QB before this round
 
   type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean };
 
-  function simulateDraft(useModel: boolean): DraftPick[] {
+  function simulateDraft(useModel: boolean, pickPosition: number): DraftPick[] {
     const available = [...allDraftSimPlayers];
     const ourTeam: DraftPick[] = [];
     const ourPosCounts: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-
-    // Determine our pick numbers in snake order
-    const ourPicks: number[] = [];
-    for (let round = 0; round < NUM_ROUNDS; round++) {
-      if (round % 2 === 0) {
-        ourPicks.push(round * NUM_TEAMS + (OUR_PICK - 1)); // 0-indexed
-      } else {
-        ourPicks.push(round * NUM_TEAMS + (NUM_TEAMS - OUR_PICK)); // snake back
-      }
-    }
 
     let overallPick = 0;
     for (let round = 0; round < NUM_ROUNDS; round++) {
@@ -962,34 +950,31 @@ async function main() {
 
       for (const teamSlot of picksThisRound) {
         if (available.length === 0) break;
-        const isOurPick = (round % 2 === 0 ? teamSlot === OUR_PICK - 1 : teamSlot === NUM_TEAMS - OUR_PICK);
+        const isOurPick = (round % 2 === 0 ? teamSlot === pickPosition - 1 : teamSlot === NUM_TEAMS - pickPosition);
 
         if (isOurPick) {
-          // Our pick: choose best available
+          // Must draft QB before round QB_DEADLINE
+          const mustDraftQB = ourPosCounts.QB === 0 && round >= QB_DEADLINE - 1;
+
           let bestIdx = 0;
           if (useModel) {
-            // Model drafter: pick highest modelPPG, respecting roster limits
             let bestScore = -Infinity;
             for (let i = 0; i < available.length; i++) {
               const p = available[i];
               if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
-              // Positional scarcity: boost positions we still need starters for
-              let need = 0;
+              if (mustDraftQB && p.position !== 'QB') continue;
               const starterNeed = STARTER_NEEDS[p.position as keyof typeof STARTER_NEEDS] || 0;
-              if (ourPosCounts[p.position] < starterNeed) need = 1;
-              // For flex, count if we have fewer than RB:2+WR:2+TE:1 + 1 flex
+              const need = ourPosCounts[p.position] < starterNeed ? 1 : 0;
               const score = p.modelPPG + (need ? 0.5 : 0);
               if (score > bestScore) { bestScore = score; bestIdx = i; }
             }
           } else {
-            // ADP drafter: always pick best available by ADP (first in list, since sorted)
-            // But respect roster limits
             for (let i = 0; i < available.length; i++) {
               const p = available[i];
-              if ((ourPosCounts[p.position] || 0) < (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) {
-                bestIdx = i;
-                break;
-              }
+              if ((ourPosCounts[p.position] || 0) >= (MAX_POS[p.position as keyof typeof MAX_POS] || 0)) continue;
+              if (mustDraftQB && p.position !== 'QB') continue;
+              bestIdx = i;
+              break;
             }
           }
 
@@ -1002,7 +987,6 @@ async function main() {
             isHit: picked.isHit, isBust: picked.isBust,
           });
         } else {
-          // Other teams draft by ADP (take first available)
           if (available.length > 0) available.splice(0, 1);
         }
         overallPick++;
@@ -1010,9 +994,6 @@ async function main() {
     }
     return ourTeam;
   }
-
-  const adpTeam = simulateDraft(false);
-  const modelTeam = simulateDraft(true);
 
   // Build starting lineup by draft order: earliest-drafted players start at each slot
   function draftOrderLineup(team: DraftPick[]): { starters: DraftPick[]; bench: DraftPick[]; totalPPG: number; seasonPPR: number } {
@@ -1049,29 +1030,74 @@ async function main() {
     return { starters, bench, totalPPG, seasonPPR: Math.round(totalPPG * 17) };
   }
 
-  const adpLineup = draftOrderLineup(adpTeam);
-  const modelLineup = draftOrderLineup(modelTeam);
+  // Run from all 12 pick positions
+  const perPickResults: Array<{
+    pickPos: number;
+    adpPPG: number; modelPPG: number; deltaPPG: number;
+    adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
+    adpTeam: DraftPick[]; modelTeam: DraftPick[];
+    adpStarters: Set<string>; modelStarters: Set<string>;
+  }> = [];
 
-  const adpStarterNames = new Set(adpLineup.starters.map(p => p.name));
-  const modelStarterNames = new Set(modelLineup.starters.map(p => p.name));
-  const draftSim2025 = {
-    adpTeam: adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: adpStarterNames.has(p.name) })),
-    modelTeam: modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: modelStarterNames.has(p.name) })),
-    adpLineupPPG: adpLineup.totalPPG,
-    adpSeasonPPR: adpLineup.seasonPPR,
-    modelLineupPPG: modelLineup.totalPPG,
-    modelSeasonPPR: modelLineup.seasonPPR,
-    adpHits: adpTeam.filter(p => p.isHit).length,
-    adpBusts: adpTeam.filter(p => p.isBust).length,
-    modelHits: modelTeam.filter(p => p.isHit).length,
-    modelBusts: modelTeam.filter(p => p.isBust).length,
-    settings: { numTeams: NUM_TEAMS, pickPosition: OUR_PICK, rounds: NUM_ROUNDS, season: draftSimSeason },
-  };
+  for (let pick = 1; pick <= NUM_TEAMS; pick++) {
+    const adpTeam = simulateDraft(false, pick);
+    const modelTeam = simulateDraft(true, pick);
+    const adpLineup = draftOrderLineup(adpTeam);
+    const modelLineup = draftOrderLineup(modelTeam);
+    perPickResults.push({
+      pickPos: pick,
+      adpPPG: adpLineup.totalPPG, modelPPG: modelLineup.totalPPG,
+      deltaPPG: Math.round((modelLineup.totalPPG - adpLineup.totalPPG) * 10) / 10,
+      adpHits: adpTeam.filter(p => p.isHit).length, adpBusts: adpTeam.filter(p => p.isBust).length,
+      modelHits: modelTeam.filter(p => p.isHit).length, modelBusts: modelTeam.filter(p => p.isBust).length,
+      adpTeam, modelTeam,
+      adpStarters: new Set(adpLineup.starters.map(p => p.name)),
+      modelStarters: new Set(modelLineup.starters.map(p => p.name)),
+    });
+    console.log(`      Pick #${pick}: ADP=${adpLineup.totalPPG} vs Model=${modelLineup.totalPPG} (delta=${(modelLineup.totalPPG - adpLineup.totalPPG).toFixed(1)}, hits ${modelTeam.filter(p=>p.isHit).length}vs${adpTeam.filter(p=>p.isHit).length})`);
+  }
+
+  // Compute averages across all pick positions
+  const nSims = perPickResults.length;
+  const avgAdpPPG = Math.round(perPickResults.reduce((s, r) => s + r.adpPPG, 0) / nSims * 10) / 10;
+  const avgModelPPG = Math.round(perPickResults.reduce((s, r) => s + r.modelPPG, 0) / nSims * 10) / 10;
+  const avgDeltaPPG = Math.round((avgModelPPG - avgAdpPPG) * 10) / 10;
+  const avgAdpHits = Math.round(perPickResults.reduce((s, r) => s + r.adpHits, 0) / nSims * 10) / 10;
+  const avgAdpBusts = Math.round(perPickResults.reduce((s, r) => s + r.adpBusts, 0) / nSims * 10) / 10;
+  const avgModelHits = Math.round(perPickResults.reduce((s, r) => s + r.modelHits, 0) / nSims * 10) / 10;
+  const avgModelBusts = Math.round(perPickResults.reduce((s, r) => s + r.modelBusts, 0) / nSims * 10) / 10;
+  const winsCount = perPickResults.filter(r => r.modelPPG > r.adpPPG).length;
 
   console.log(`    Draft sim season: ${draftSimSeason}`);
-  console.log(`    ADP team (${adpTeam.length} picks): ${adpLineup.totalPPG} PPG (${adpLineup.seasonPPR} season), ${draftSim2025.adpHits} hits, ${draftSim2025.adpBusts} busts`);
-  console.log(`    Model team (${modelTeam.length} picks): ${modelLineup.totalPPG} PPG (${modelLineup.seasonPPR} season), ${draftSim2025.modelHits} hits, ${draftSim2025.modelBusts} busts`);
-  console.log(`    Lineup delta: ${(modelLineup.totalPPG - adpLineup.totalPPG).toFixed(1)} PPG/week (${modelLineup.seasonPPR - adpLineup.seasonPPR} season points)`);
+  console.log(`    Avg across ${nSims} picks: ADP=${avgAdpPPG} vs Model=${avgModelPPG} (delta=${avgDeltaPPG > 0 ? '+' : ''}${avgDeltaPPG})`);
+  console.log(`    Model wins ${winsCount}/${nSims} pick positions`);
+  console.log(`    Avg hits: Model ${avgModelHits} vs ADP ${avgAdpHits} | Avg busts: Model ${avgModelBusts} vs ADP ${avgAdpBusts}`);
+
+  // Use pick #6 as the example draft to display
+  const examplePick = perPickResults.find(r => r.pickPos === 6) || perPickResults[0];
+  const draftSim2025 = {
+    // Example draft (pick #6) for side-by-side display
+    adpTeam: examplePick.adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.adpStarters.has(p.name) })),
+    modelTeam: examplePick.modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.modelStarters.has(p.name) })),
+    adpLineupPPG: examplePick.adpPPG,
+    adpSeasonPPR: Math.round(examplePick.adpPPG * 17),
+    modelLineupPPG: examplePick.modelPPG,
+    modelSeasonPPR: Math.round(examplePick.modelPPG * 17),
+    adpHits: examplePick.adpHits,
+    adpBusts: examplePick.adpBusts,
+    modelHits: examplePick.modelHits,
+    modelBusts: examplePick.modelBusts,
+    // Averages across all 12 pick positions
+    avgAdpPPG, avgModelPPG, avgDeltaPPG,
+    avgAdpHits, avgAdpBusts, avgModelHits, avgModelBusts,
+    winsCount, totalSims: nSims,
+    // Per-pick breakdown
+    perPick: perPickResults.map(r => ({
+      pick: r.pickPos, adpPPG: r.adpPPG, modelPPG: r.modelPPG, delta: r.deltaPPG,
+      modelHits: r.modelHits, adpHits: r.adpHits, modelBusts: r.modelBusts, adpBusts: r.adpBusts,
+    })),
+    settings: { numTeams: NUM_TEAMS, rounds: NUM_ROUNDS, season: draftSimSeason, qbDeadline: QB_DEADLINE },
+  };
 
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)
   console.log('  Computing feature importance...');
