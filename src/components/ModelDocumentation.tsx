@@ -37,9 +37,9 @@ export function ModelDocumentation() {
       adpHits: number; adpBusts: number; modelHits: number; modelBusts: number;
       avgAdpPPG?: number; avgModelPPG?: number; avgDeltaPPG?: number;
       avgAdpHits?: number; avgAdpBusts?: number; avgModelHits?: number; avgModelBusts?: number;
-      winsCount?: number; totalSims?: number;
-      perPick?: Array<{ pick: number; adpPPG: number; modelPPG: number; delta: number; modelHits: number; adpHits: number; modelBusts: number; adpBusts: number }>;
-      settings: { numTeams: number; pickPosition?: number; rounds: number; season?: number; qbDeadline?: number };
+      winsCount?: number; totalSims?: number; avgWinRate?: number;
+      perPick?: Array<{ pick: number; adpPPG: number; modelPPG: number; delta: number; modelHits: number; adpHits: number; modelBusts: number; adpBusts: number; winRate?: number }>;
+      settings: { numTeams: number; pickPosition?: number; rounds: number; season?: number; qbDeadline?: number; simsPerPick?: number };
     };
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -754,11 +754,11 @@ export function ModelDocumentation() {
                 <>
                   <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated {season} Draft</h3>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
-                    {sim.settings.numTeams}-team snake draft run from all {sim.settings.numTeams} pick positions. Both drafters must take a QB before round {sim.settings.qbDeadline || 10}.
-                    ADP drafter always takes best available by ADP.
-                    Model drafter uses round-aware strategy: early rounds stay near ADP but avoid model-flagged busts,
-                    late rounds swing for model-identified sleepers (positive residual bonus).
-                    Other teams draft by ADP. Trained on all seasons except {season} (honest out-of-sample).
+                    {sim.settings.numTeams}-team snake draft, {sim.settings.simsPerPick || 1} sims per pick position ({sim.totalSims} total drafts) with variance around each pick.
+                    QB required before round {sim.settings.qbDeadline || 10}.
+                    ADP drafter picks near top of board with slight noise. Model drafter uses round-aware strategy:
+                    early rounds stay safe near ADP (bust avoidance), late rounds swing for model-identified sleepers.
+                    Other teams draft near ADP with variance. Trained on all seasons except {season} (honest out-of-sample).
                   </p>
 
                   {/* Average results banner */}
@@ -768,7 +768,10 @@ export function ModelDocumentation() {
                       borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)',
                     }}>
                       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
-                        Average Across All {sim.totalSims} Pick Positions
+                        Average Across {sim.totalSims} Simulated Drafts
+                        <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                          ({sim.settings.simsPerPick || 1} sims &times; {sim.settings.numTeams} pick positions)
+                        </span>
                       </div>
                       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13 }}>
                         <div>
@@ -779,11 +782,11 @@ export function ModelDocumentation() {
                           <span style={{ color: 'var(--text-muted)' }}> ({(sim.avgDeltaPPG || 0) > 0 ? '+' : ''}{Math.round((sim.avgDeltaPPG || 0) * 17)} season pts)</span>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--text-muted)' }}>Model wins </span>
-                          <strong style={{ color: (sim.winsCount || 0) > (sim.totalSims || 1) / 2 ? '#22c55e' : '#ef4444' }}>
-                            {sim.winsCount}/{sim.totalSims}
+                          <span style={{ color: 'var(--text-muted)' }}>Model win rate: </span>
+                          <strong style={{ color: (sim.avgWinRate || 0) > 50 ? '#22c55e' : '#ef4444' }}>
+                            {sim.avgWinRate || 0}%
                           </strong>
-                          <span style={{ color: 'var(--text-muted)' }}> pick positions</span>
+                          <span style={{ color: 'var(--text-muted)' }}> ({sim.winsCount}/{sim.settings.numTeams} picks avg better)</span>
                         </div>
                         <div>
                           <span style={{ color: 'var(--text-muted)' }}>Avg Hits: </span>
@@ -808,13 +811,12 @@ export function ModelDocumentation() {
                           <thead>
                             <tr>
                               <th>Pick</th>
-                              <th style={{ textAlign: 'right' }}>ADP Starter PPG</th>
-                              <th style={{ textAlign: 'right' }}>Model Starter PPG</th>
+                              <th style={{ textAlign: 'right' }}>ADP PPG</th>
+                              <th style={{ textAlign: 'right' }}>Model PPG</th>
                               <th style={{ textAlign: 'right' }}>Delta</th>
-                              <th style={{ textAlign: 'right' }}>Model Hits</th>
-                              <th style={{ textAlign: 'right' }}>ADP Hits</th>
-                              <th style={{ textAlign: 'right' }}>Model Busts</th>
-                              <th style={{ textAlign: 'right' }}>ADP Busts</th>
+                              <th style={{ textAlign: 'right' }}>Win%</th>
+                              <th style={{ textAlign: 'right' }}>Hits (M/A)</th>
+                              <th style={{ textAlign: 'right' }}>Busts (M/A)</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -826,10 +828,17 @@ export function ModelDocumentation() {
                                 <td style={{ textAlign: 'right', color: r.delta > 0 ? '#22c55e' : r.delta < 0 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>
                                   {r.delta > 0 ? '+' : ''}{r.delta.toFixed(1)}
                                 </td>
-                                <td style={{ textAlign: 'right', color: r.modelHits > r.adpHits ? '#22c55e' : 'var(--text-secondary)', fontWeight: r.modelHits > r.adpHits ? 600 : 400 }}>{r.modelHits}</td>
-                                <td style={{ textAlign: 'right' }}>{r.adpHits}</td>
-                                <td style={{ textAlign: 'right', color: r.modelBusts < r.adpBusts ? '#22c55e' : r.modelBusts > r.adpBusts ? '#ef4444' : 'var(--text-secondary)', fontWeight: r.modelBusts < r.adpBusts ? 600 : 400 }}>{r.modelBusts}</td>
-                                <td style={{ textAlign: 'right' }}>{r.adpBusts}</td>
+                                <td style={{ textAlign: 'right', color: (r.winRate || 0) > 50 ? '#22c55e' : (r.winRate || 0) < 50 ? '#ef4444' : 'var(--text-secondary)', fontWeight: 600 }}>
+                                  {r.winRate || 0}%
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <span style={{ color: r.modelHits > r.adpHits ? '#22c55e' : 'var(--text-secondary)', fontWeight: r.modelHits > r.adpHits ? 600 : 400 }}>{r.modelHits}</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>/{r.adpHits}</span>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <span style={{ color: r.modelBusts < r.adpBusts ? '#22c55e' : r.modelBusts > r.adpBusts ? '#ef4444' : 'var(--text-secondary)', fontWeight: r.modelBusts < r.adpBusts ? 600 : 400 }}>{r.modelBusts}</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>/{r.adpBusts}</span>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -839,7 +848,7 @@ export function ModelDocumentation() {
                   )}
 
                   {/* Example draft: pick #6 side-by-side */}
-                  <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Example Draft (Pick #6)</h4>
+                  <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Best Sim from Pick #6</h4>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {renderTeam(sim.adpTeam, 'ADP Drafter', sim.adpLineupPPG, sim.adpHits, sim.adpBusts)}
                     {renderTeam(sim.modelTeam, 'Model Drafter', sim.modelLineupPPG, sim.modelHits, sim.modelBusts)}
