@@ -28,6 +28,7 @@ export function ModelDocumentation() {
     models: PositionModelData[];
     featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
     ppgModels?: Array<{ position: string; n: number; cvR2Gbm: number; cvR2Ridge: number; cvMaeGbm: number; featureNames: string[] }>;
+    residualModels?: Array<{ position: string; n: number; bestAlpha: number; backtest: any }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
@@ -39,14 +40,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, ppgModels: d.ppgModels, residualModels: d.residualModels });
           }
         } catch {}
       }
@@ -571,76 +572,127 @@ export function ModelDocumentation() {
               </>
             )}
 
-            {/* ADP Value-Add Backtest */}
-            {data.models && data.models.some((m: any) => m.adpValueAdd?.modelRankCorr) && (() => {
-              const renderValueAddTable = (title: string, subtitle: string, modelList: any[]) => (
-                <>
-                  <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>{title}</h4>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{subtitle}</p>
-                  <div className="table-container">
-                    <table style={{ fontSize: 12 }}>
-                      <thead>
-                        <tr>
-                          <th>Position</th>
-                          <th style={{ textAlign: 'right' }}>ADP Rank Corr</th>
-                          <th style={{ textAlign: 'right' }}>Model Rank Corr</th>
-                          <th style={{ textAlign: 'right' }}>Buy PPG</th>
-                          <th style={{ textAlign: 'right' }}>Sell PPG</th>
-                          <th style={{ textAlign: 'right' }}>Lift</th>
-                          <th style={{ textAlign: 'right' }}>Top-N Model</th>
-                          <th style={{ textAlign: 'right' }}>Top-N ADP</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {modelList.filter((m: any) => m.adpValueAdd?.modelRankCorr).map((m: any) => {
-                          const v = m.adpValueAdd;
-                          const modelBetter = v.modelRankCorr > v.adpRankCorr;
-                          return (
-                            <tr key={m.position}>
-                              <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
-                              <td style={{ textAlign: 'right' }}>{v.adpRankCorr.toFixed(3)}</td>
-                              <td style={{ textAlign: 'right', color: modelBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{v.modelRankCorr.toFixed(3)}</td>
-                              <td style={{ textAlign: 'right' }}>{v.buyActualPPG.toFixed(1)}</td>
-                              <td style={{ textAlign: 'right' }}>{v.sellActualPPG.toFixed(1)}</td>
-                              <td style={{ textAlign: 'right', color: v.liftPct > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{v.liftPct > 0 ? '+' : ''}{v.liftPct}%</td>
-                              <td style={{ textAlign: 'right', color: v.topNModelHitRate > v.topNAdpHitRate ? '#22c55e' : 'var(--text-secondary)' }}>{v.topNModelHitRate}%</td>
-                              <td style={{ textAlign: 'right' }}>{v.topNAdpHitRate}%</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              );
-              return (
-                <>
-                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Can the Model Beat ADP?</h3>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                    LOSO cross-validated backtest: when the model disagrees with ADP, who&apos;s right?
-                    &quot;Buy&quot; = model says undervalued vs ADP-implied PPG. &quot;Sell&quot; = model says overvalued.
-                  </p>
-                  {renderValueAddTable(
-                    'Model with ADP Features (VOR Ensemble)',
-                    'Full model including ADP as a feature — tests if model can correct ADP mistakes.',
-                    data.models
-                  )}
-                  {data.ppgModels && data.ppgModels.some((m: any) => m.adpValueAdd?.modelRankCorr) &&
-                    renderValueAddTable(
-                      'Model without ADP Features (PPG Model)',
-                      'ADP-free model — tests if non-ADP signals alone can identify value.',
-                      data.ppgModels
-                    )
-                  }
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                    Rank Corr = Spearman correlation with actual PPG (higher is better).
-                    Lift = % PPG difference between &quot;buy&quot; and &quot;sell&quot; groups.
-                    Top-N = % of top-25% picks that were actual top-25% performers.
-                    Green = model outperforms ADP baseline.
-                  </p>
-                </>
-              );
-            })()}
+            {/* ADP-Residual Model Backtest */}
+            {data.residualModels && data.residualModels.some((m: any) => m.backtest?.blendedRankCorr) && (
+              <>
+                <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Can the Model Beat ADP?</h3>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  ADP-residual model: learns WHERE ADP is wrong, then adjusts.
+                  Final prediction = ADP-implied PPG + &alpha; &times; model residual.
+                  &alpha; is tuned per position via LOSO CV to maximize rank correlation.
+                </p>
+
+                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Ranking Accuracy (Spearman Correlation)</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  Does the blended prediction rank players better than ADP alone?
+                </p>
+                <div className="table-container">
+                  <table style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th style={{ textAlign: 'right' }}>ADP Alone</th>
+                        <th style={{ textAlign: 'right' }}>Model (&alpha;=1)</th>
+                        <th style={{ textAlign: 'right' }}>Best &alpha;</th>
+                        <th style={{ textAlign: 'right' }}>Blended</th>
+                        <th style={{ textAlign: 'right' }}>vs ADP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.residualModels.filter((m: any) => m.backtest?.blendedRankCorr).map((m: any) => {
+                        const b = m.backtest;
+                        const blendBetter = b.blendedRankCorr > b.adpRankCorr;
+                        const delta = b.blendedRankCorr - b.adpRankCorr;
+                        return (
+                          <tr key={m.position}>
+                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
+                            <td style={{ textAlign: 'right' }}>{b.adpRankCorr.toFixed(3)}</td>
+                            <td style={{ textAlign: 'right', color: b.modelRankCorr > b.adpRankCorr ? '#22c55e' : '#ef4444' }}>{b.modelRankCorr.toFixed(3)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.bestAlpha}</td>
+                            <td style={{ textAlign: 'right', color: blendBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.blendedRankCorr.toFixed(3)}</td>
+                            <td style={{ textAlign: 'right', color: blendBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{delta > 0 ? '+' : ''}{delta.toFixed(3)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Buy vs Sell: PPG and Hit/Bust Rates</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  When the model says &quot;buy&quot; (undervalued) or &quot;sell&quot; (overvalued) vs ADP, what actually happens?
+                </p>
+                <div className="table-container">
+                  <table style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th style={{ textAlign: 'right' }}>Buy PPG</th>
+                        <th style={{ textAlign: 'right' }}>Sell PPG</th>
+                        <th style={{ textAlign: 'right' }}>Lift</th>
+                        <th style={{ textAlign: 'right' }}>Buy Hit%</th>
+                        <th style={{ textAlign: 'right' }}>Sell Hit%</th>
+                        <th style={{ textAlign: 'right' }}>Buy Bust%</th>
+                        <th style={{ textAlign: 'right' }}>Sell Bust%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.residualModels.filter((m: any) => m.backtest?.blendedRankCorr).map((m: any) => {
+                        const b = m.backtest;
+                        return (
+                          <tr key={m.position}>
+                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
+                            <td style={{ textAlign: 'right', color: b.buyActualPPG > b.sellActualPPG ? '#22c55e' : 'var(--text-secondary)', fontWeight: 600 }}>{b.buyActualPPG.toFixed(1)}</td>
+                            <td style={{ textAlign: 'right' }}>{b.sellActualPPG.toFixed(1)}</td>
+                            <td style={{ textAlign: 'right', color: b.liftPct > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.liftPct > 0 ? '+' : ''}{b.liftPct}%</td>
+                            <td style={{ textAlign: 'right', color: b.buyHitRate > b.sellHitRate ? '#22c55e' : 'var(--text-secondary)', fontWeight: 600 }}>{b.buyHitRate}%</td>
+                            <td style={{ textAlign: 'right' }}>{b.sellHitRate}%</td>
+                            <td style={{ textAlign: 'right', color: b.buyBustRate < b.sellBustRate ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.buyBustRate}%</td>
+                            <td style={{ textAlign: 'right' }}>{b.sellBustRate}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Top-N Accuracy</h4>
+                <div className="table-container">
+                  <table style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Position</th>
+                        <th style={{ textAlign: 'right' }}>N</th>
+                        <th style={{ textAlign: 'right' }}>Model Hit Rate</th>
+                        <th style={{ textAlign: 'right' }}>ADP Hit Rate</th>
+                        <th style={{ textAlign: 'right' }}>Edge</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.residualModels.filter((m: any) => m.backtest?.topN).map((m: any) => {
+                        const b = m.backtest;
+                        const edge = b.topNModelHitRate - b.topNAdpHitRate;
+                        return (
+                          <tr key={m.position}>
+                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
+                            <td style={{ textAlign: 'right' }}>Top-{b.topN}</td>
+                            <td style={{ textAlign: 'right', color: edge > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.topNModelHitRate}%</td>
+                            <td style={{ textAlign: 'right' }}>{b.topNAdpHitRate}%</td>
+                            <td style={{ textAlign: 'right', color: edge > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{edge > 0 ? '+' : ''}{edge}pp</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                  &alpha; controls how much the model adjusts ADP (&alpha;=0 = pure ADP, &alpha;=1 = full model).
+                  Hit = beat replacement level (VOR &ge; 0). Bust = 50+ PPR points below replacement.
+                  Lift = % PPG difference between buy and sell groups. Green = model adds value vs ADP.
+                </p>
+              </>
+            )}
 
             {/* Model Pipeline Diagram */}
             <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Prediction Pipeline</h3>
@@ -662,19 +714,18 @@ export function ModelDocumentation() {
               <div>{'│  + prior efficiency rates → mlProjPlayerPPG                 │'}</div>
               <div>{'└──────────────────────────┬──────────────────────────────────┘'}</div>
               <div>{'                           │'}</div>
-              <div>{'              ┌────────────┴────────────┐'}</div>
-              <div>{'              ▼                         ▼'}</div>
-              <div>{'┌──────────────────────┐  ┌──────────────────────┐'}</div>
-              <div>{'│  VOR Model           │  │  PPG Model           │'}</div>
-              <div>{'│  (with ADP features) │  │  (ADP-free)          │'}</div>
-              <div>{'│  GBM + Ridge ensemble│  │  GBM + Ridge ensemble│'}</div>
-              <div>{'│  → will player beat  │  │  → what will player  │'}</div>
-              <div>{'│    replacement level?│  │    actually score?   │'}</div>
-              <div>{'└──────────┬───────────┘  └──────────┬───────────┘'}</div>
-              <div>{'           │                         │'}</div>
-              <div>{'           └────────────┬────────────┘'}</div>
-              <div>{'                        ▼'}</div>
-              <div>{'  Compare: PPG prediction vs ADP-implied PPG = VALUE or BUST'}</div>
+              <div>{'     ┌──────────────┴──────────────┬─────────────────────┐'}</div>
+              <div>{'     ▼                             ▼                     ▼'}</div>
+              <div>{'┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐'}</div>
+              <div>{'│  VOR Model      │  │  PPG Model      │  │  ADP-Residual Model │'}</div>
+              <div>{'│  (with ADP)     │  │  (ADP-free)     │  │  (learns ADP errors)│'}</div>
+              <div>{'│  GBM+Ridge      │  │  GBM+Ridge      │  │  target = actual -  │'}</div>
+              <div>{'│  ensemble       │  │  ensemble       │  │  ADP-implied PPG    │'}</div>
+              <div>{'└────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘'}</div>
+              <div>{'         │                    │                      │'}</div>
+              <div>{'         └─────────┬──────────┘            ADP + α × residual'}</div>
+              <div>{'                   ▼                      (α tuned per position)'}</div>
+              <div>{'  PPG prediction vs ADP-implied = VALUE or BUST'}</div>
             </div>
           </>
         )}
