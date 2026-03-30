@@ -121,7 +121,7 @@ export function ChatDrawer({ open, onClose, systemPrompt }: Props) {
 
         // Stream the response
         const stream = await client.messages.stream({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6-20250514',
           max_tokens: 4096,
           system: `${SYSTEM_PROMPT}\n\n${systemPrompt}`,
           messages: apiMessagesRef.current,

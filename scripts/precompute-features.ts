@@ -491,6 +491,7 @@ async function main() {
     const ppgLosoActuals: number[] = [];
     const ppgLosoPredGbm: number[] = [];
     const ppgLosoPredRidge: number[] = [];
+    const ppgLosoAdps: number[] = [];
 
     if (uniqueSeasons.length >= 3) {
       for (const held of uniqueSeasons) {
@@ -510,6 +511,7 @@ async function main() {
 
         for (const row of testR) {
           ppgLosoActuals.push(row.rawPPG || 0);
+          ppgLosoAdps.push(row.adp);
           ppgLosoPredGbm.push(predictGBM(foldGbm, row.features).predicted);
           ppgLosoPredRidge.push(predict(foldRidge, row.features).predicted);
         }
@@ -517,6 +519,59 @@ async function main() {
     }
 
     const hasPPGCV = ppgLosoActuals.length >= 10;
+
+    // ADP value-add for ADP-free model
+    let ppgAdpValueAdd = { adpRankCorr: 0, modelRankCorr: 0, liftPct: 0,
+      buyActualPPG: 0, sellActualPPG: 0, buyN: 0, sellN: 0,
+      topNModelHitRate: 0, topNAdpHitRate: 0, topN: 0 };
+    if (hasPPGCV && ppgLosoAdps.length >= 20) {
+      const nPPG = ppgLosoActuals.length;
+      const ppgEnsemble = ppgLosoPredGbm.map((g, i) => g * 0.7 + ppgLosoPredRidge[i] * 0.3);
+      const adpRanks = rankArray(ppgLosoAdps.map(a => -a));
+      const modelRanks = rankArray(ppgEnsemble);
+      const actualRanks = rankArray(ppgLosoActuals);
+      const adpRankCorr = spearman(adpRanks, actualRanks);
+      const modelRankCorr = spearman(modelRanks, actualRanks);
+
+      const adpMean = ppgLosoAdps.reduce((a, b) => a + b, 0) / nPPG;
+      const ppgMean = ppgLosoActuals.reduce((a, b) => a + b, 0) / nPPG;
+      let ssAdp = 0, ssAdpPpg = 0;
+      for (let i = 0; i < nPPG; i++) {
+        ssAdp += (ppgLosoAdps[i] - adpMean) ** 2;
+        ssAdpPpg += (ppgLosoAdps[i] - adpMean) * (ppgLosoActuals[i] - ppgMean);
+      }
+      const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
+      const intercept = ppgMean - slope * adpMean;
+      const adpImpliedPPG = ppgLosoAdps.map(a => intercept + slope * a);
+
+      const edges = ppgEnsemble.map((pred, i) => pred - adpImpliedPPG[i]);
+      const edgeSorted = [...edges].sort((a, b) => a - b);
+      const median = edgeSorted[Math.floor(edgeSorted.length / 2)];
+
+      let buyPPG = 0, buyCount = 0, sellPPG = 0, sellCount = 0;
+      for (let i = 0; i < nPPG; i++) {
+        if (edges[i] >= median) { buyPPG += ppgLosoActuals[i]; buyCount++; }
+        else { sellPPG += ppgLosoActuals[i]; sellCount++; }
+      }
+      const buyActualPPG = buyCount > 0 ? Math.round(buyPPG / buyCount * 100) / 100 : 0;
+      const sellActualPPG = sellCount > 0 ? Math.round(sellPPG / sellCount * 100) / 100 : 0;
+      const liftPct = sellActualPPG > 0 ? Math.round((buyActualPPG - sellActualPPG) / sellActualPPG * 1000) / 10 : 0;
+
+      const topN = Math.max(5, Math.floor(nPPG * 0.25));
+      const actualTopSet = new Set(ppgLosoActuals.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i));
+      const modelHits = ppgEnsemble.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v).slice(0, topN).map(x => x.i).filter(i => actualTopSet.has(i)).length;
+      const adpHits = ppgLosoAdps.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v).slice(0, topN).map(x => x.i).filter(i => actualTopSet.has(i)).length;
+
+      ppgAdpValueAdd = {
+        adpRankCorr: Math.round(adpRankCorr * 1000) / 1000,
+        modelRankCorr: Math.round(modelRankCorr * 1000) / 1000,
+        liftPct, buyActualPPG, sellActualPPG, buyN: buyCount, sellN: sellCount,
+        topNModelHitRate: Math.round(modelHits / topN * 100),
+        topNAdpHitRate: Math.round(adpHits / topN * 100), topN,
+      };
+      console.log(`      PPG ADP Value-Add: rank corr ADP=${adpRankCorr.toFixed(3)} vs Model=${modelRankCorr.toFixed(3)}, lift=${liftPct}%`);
+    }
+
     ppgModels.push({
       position: pos,
       gbmModel: ppgGbm,
@@ -530,6 +585,7 @@ async function main() {
       cvR2Gbm: hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredGbm) : 0,
       cvR2Ridge: hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredRidge) : 0,
       cvMaeGbm: hasPPGCV ? cvMae(ppgLosoActuals, ppgLosoPredGbm) : 0,
+      adpValueAdd: ppgAdpValueAdd,
     });
 
     console.log(`    ${pos}: PPG model n=${posRows.length}, features=${featureKeys.length}, CV R²=${hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredGbm).toFixed(3) : 'N/A'}`);
