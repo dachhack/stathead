@@ -199,17 +199,18 @@ async function main() {
     });
 
     // Train full-data rookie models (pre-draft + post-draft) for 2026 predictions
+    // Only for positions with enough data (RB/WR). QB/TE use combined model.
     let rookieGbmPostDraft: any = null, rookieGbmPreDraft: any = null;
     let rookieRidgePostDraft: any = null, rookieRidgePreDraft: any = null;
-    if (hasRookieSplit) {
+    const hasEnoughRookies = rookieRows.length >= 50; // QB~24, TE~20 → skip; RB~142, WR~127 → train
+    if (hasRookieSplit && hasEnoughRookies) {
       const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
       const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
       const yrAll = rookieRows.map((r: PlayerRow) => r.rawPPG || 0);
-      // Position-adaptive: more depth for larger samples (RB/WR), conservative for small (QB/TE)
-      const rookieDepth = rookieRows.length >= 100 ? 3 : 2;
+      // maxDepth=2: small samples need simple trees to avoid overfitting
       const rookieGbmOpts = {
-        nEstimators: 80, learningRate: 0.04, maxDepth: rookieDepth,
-        subsample: 0.7, minSamplesLeaf: Math.max(4, Math.round(rookieRows.length * 0.10)),
+        nEstimators: 80, learningRate: 0.04, maxDepth: 2,
+        subsample: 0.7, minSamplesLeaf: Math.max(5, Math.round(rookieRows.length * 0.08)),
       };
 
       // Log feature coverage for diagnostics
@@ -221,11 +222,13 @@ async function main() {
 
       const XrPost = rookieRows.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
       rookieGbmPostDraft = trainGBM(XrPost, yrAll, rookieKeys, rookieGbmOpts);
-      rookieRidgePostDraft = trainRidgeRegression(XrPost, yrAll, rookieKeys, LAMBDA * 2);
+      rookieRidgePostDraft = trainRidgeRegression(XrPost, yrAll, rookieKeys, LAMBDA * 3);
       const XrPre = rookieRows.map((r: PlayerRow) => preDraftKeys.map((k) => r.features[k] || 0));
       rookieGbmPreDraft = trainGBM(XrPre, yrAll, preDraftKeys, rookieGbmOpts);
-      rookieRidgePreDraft = trainRidgeRegression(XrPre, yrAll, preDraftKeys, LAMBDA * 2);
-      console.log(`      Rookie models: post-draft (${rookieKeys.length} features, depth=${rookieDepth}), pre-draft (${preDraftKeys.length} features), GBM+Ridge ensemble`);
+      rookieRidgePreDraft = trainRidgeRegression(XrPre, yrAll, preDraftKeys, LAMBDA * 3);
+      console.log(`      Rookie models: post-draft (${rookieKeys.length} features), pre-draft (${preDraftKeys.length} features), GBM+Ridge ensemble`);
+    } else if (hasRookieSplit) {
+      console.log(`      Skipping separate rookie model for ${pos} (only ${rookieRows.length} rookies — using combined model)`);
     }
 
     // LOSO cross-validation with ensemble + rookie/vet
@@ -261,30 +264,29 @@ async function main() {
         const foldRidge = trainRidgeRegression(Xtr, ytr, featureKeys, ridgeLambda);
         const foldBase = trainGBM(Xtrb, ytr, baselineKeys, cvGbmOpts);
 
-        // Rookie/vet fold models (post-draft with team context + pre-draft without)
+        // Rookie/vet fold models — only for positions with enough rookies (RB/WR)
         let foldRookieGbm: any = null, foldRookieRidge: any = null;
         let foldPreDraftRookieGbm: any = null, foldPreDraftRookieRidge: any = null;
         let foldVetGbm: any = null;
-        if (hasRookieSplit) {
+        if (hasRookieSplit && hasEnoughRookies) {
           const rookieTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) <= 1);
           const vetTrain = trainR.filter((r: PlayerRow) => (r.features.yearsInLeague || 0) > 1);
           if (rookieTrain.length >= 15 && vetTrain.length >= 15) {
             const rookieKeys = ROOKIE_FEATURES[pos] || featureKeys;
             const preDraftKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || rookieKeys;
             const yrTr = rookieTrain.map((r: PlayerRow) => r.rawPPG || 0);
-            const rookieDepth = rookieTrain.length >= 80 ? 3 : 2;
             const rookieGbmOpts = {
-              nEstimators: 80, learningRate: 0.04, maxDepth: rookieDepth,
-              subsample: 0.7, minSamplesLeaf: Math.max(4, Math.round(rookieTrain.length * 0.10)),
+              nEstimators: 80, learningRate: 0.04, maxDepth: 2,
+              subsample: 0.7, minSamplesLeaf: Math.max(5, Math.round(rookieTrain.length * 0.08)),
             };
             // Post-draft GBM + Ridge ensemble
             const XrTr = rookieTrain.map((r: PlayerRow) => rookieKeys.map((k) => r.features[k] || 0));
             foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, rookieGbmOpts);
-            foldRookieRidge = trainRidgeRegression(XrTr, yrTr, rookieKeys, LAMBDA * 2);
+            foldRookieRidge = trainRidgeRegression(XrTr, yrTr, rookieKeys, LAMBDA * 3);
             // Pre-draft GBM + Ridge ensemble
             const XrTrPre = rookieTrain.map((r: PlayerRow) => preDraftKeys.map((k) => r.features[k] || 0));
             foldPreDraftRookieGbm = trainGBM(XrTrPre, yrTr, preDraftKeys, rookieGbmOpts);
-            foldPreDraftRookieRidge = trainRidgeRegression(XrTrPre, yrTr, preDraftKeys, LAMBDA * 2);
+            foldPreDraftRookieRidge = trainRidgeRegression(XrTrPre, yrTr, preDraftKeys, LAMBDA * 3);
             // Veteran model
             const XvTr = vetTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
             const yvTr = vetTrain.map((r: PlayerRow) => r.rawPPG || 0);
@@ -312,7 +314,7 @@ async function main() {
             if (isRookie) {
               const gbmP = predictGBM(foldRookieGbm, row.features).predicted;
               const ridgeP = foldRookieRidge ? predict(foldRookieRidge, row.features).predicted : gbmP;
-              rvPred = gbmP * 0.6 + ridgeP * 0.4; // Ridge smooths GBM overfitting on small samples
+              rvPred = gbmP * 0.5 + ridgeP * 0.5; // Equal blend: Ridge prevents GBM overfitting
             } else {
               rvPred = predictGBM(foldVetGbm, row.features).predicted;
             }
@@ -320,11 +322,10 @@ async function main() {
             if (isRookie) {
               losoRookieActuals.push(row.rawPPG || 0);
               losoRookiePreds.push(rvPred);
-              // Pre-draft ensemble
               if (foldPreDraftRookieGbm) {
                 const gbmPre = predictGBM(foldPreDraftRookieGbm, row.features).predicted;
                 const ridgePre = foldPreDraftRookieRidge ? predict(foldPreDraftRookieRidge, row.features).predicted : gbmPre;
-                losoPreDraftRookiePreds.push(gbmPre * 0.6 + ridgePre * 0.4);
+                losoPreDraftRookiePreds.push(gbmPre * 0.5 + ridgePre * 0.5);
               } else {
                 losoPreDraftRookiePreds.push(rvPred);
               }
