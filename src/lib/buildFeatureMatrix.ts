@@ -303,16 +303,23 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             onStatus?.(`FFC ADP empty for ${season}, trying ESPN ADP fallback...`);
             try {
               const espn = await fetchEspnADP(season);
-              // Convert ESPN format to FFC-compatible: need name, position, adp
-              adpData = espn.map(e => ({
-                name: e.name, position: e.position, team: e.team,
-                adp: e.adp, high: 0, low: 0, stdev: 0, timesDrafted: 0, bye: 0,
-              }));
-              onStatus?.(`ESPN ADP fallback: ${adpData.length} players for ${season}`);
+              // Only use ESPN if it has real ADP values (not all zeros)
+              const validAdp = espn.filter(e => e.adp > 0);
+              if (validAdp.length > 50) {
+                adpData = validAdp.map(e => ({
+                  name: e.name, position: e.position, team: e.team,
+                  adp: e.adp, high: 0, low: 0, stdev: 0, timesDrafted: 0, bye: 0,
+                }));
+                onStatus?.(`ESPN ADP fallback: ${adpData.length} players with valid ADP for ${season}`);
+              } else {
+                onStatus?.(`ESPN ADP has only ${validAdp.length} valid entries for ${season} — skipping`);
+              }
             } catch { /* ESPN also failed */ }
           }
-          if (adpData.length === 0 || currentStats.length === 0) {
-            onStatus?.(`⚠ Skipping season ${season}: adpData=${adpData.length}, currentStats=${currentStats.length}`);
+          // Validate ADP quality: at least 50 players with ADP > 0
+          const validAdpCount = adpData.filter(p => p.adp > 0).length;
+          if (validAdpCount < 50 || currentStats.length === 0) {
+            onStatus?.(`⚠ Skipping season ${season}: validADP=${validAdpCount}/${adpData.length}, currentStats=${currentStats.length}`);
             continue;
           }
 
