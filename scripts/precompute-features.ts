@@ -36,7 +36,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v19.json'; // v19: real 2025 ADP data
+const CACHE_PATH = 'public/data/training-rows-cache-v20.json'; // v20: advanced college features (dominator, breakout age, market share, speed score)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
