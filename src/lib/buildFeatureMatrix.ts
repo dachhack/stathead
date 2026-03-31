@@ -1971,6 +1971,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const playerGames = current.games || 1;
             const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
 
+            // Hit/bust based on PPG vs replacement PPG (fair to injured players)
+            // Total-season VOR penalizes players who miss games even if they're elite per-game
+            const repPPG = REP_PPG[adpPlayer.position] || 6.8;
             rows.push({
               name: adpPlayer.name,
               position: adpPlayer.position,
@@ -1978,8 +1981,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               adp: adpPlayer.adp,
               vor,
               rawPPG,
-              isHit: vor >= 0,   // beat replacement level
-              isBust: vor < -50, // 50+ PPR pts below replacement
+              isHit: rawPPG >= repPPG,        // PPG beats replacement level
+              isBust: rawPPG < repPPG * 0.6,  // PPG < 60% of replacement (truly bad)
               features,
             });
           }

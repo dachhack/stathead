@@ -36,8 +36,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v22.json'; // v22: career-best college stats, breakout age fix, per-game games bug fix, data coverage audit
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v23.json'; // v23: TE rookie features tuned (dominator, breakout age, age; dropped indicators)
+const CACHE_PATH = 'public/data/training-rows-cache-v23.json'; // v23: PPG-based hit/bust labels (fair to injured players)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v24.json'; // v24: PPG-based hit/bust, TE rookie features tuned
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
