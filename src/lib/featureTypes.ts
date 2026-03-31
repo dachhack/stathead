@@ -221,6 +221,22 @@ export const FEATURES: FeatureDef[] = [
   { key: 'mlProjTeamRushAtt', label: 'ML Proj Team Rush Att', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'mlProjTeamTargets', label: 'ML Proj Team Targets', category: 'Projection', positions: ['RB', 'WR', 'TE'] },
   { key: 'mlProjPlayerPPG', label: 'ML Proj Player PPG', category: 'Projection', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Actual share targets (training data — predicted for 2026)
+  { key: 'actualTargetShare', label: 'Actual Target Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'actualRushShare', label: 'Actual Rush Share', category: 'Share', positions: ['RB'] },
+  { key: 'actualReceptionShare', label: 'Actual Reception Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'actualRecYdsShare', label: 'Actual Rec Yds Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'actualRushYdsShare', label: 'Actual Rush Yds Share', category: 'Share', positions: ['RB'] },
+  { key: 'actualPassTDShare', label: 'Actual Pass TD Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'actualRushTDShare', label: 'Actual Rush TD Share', category: 'Share', positions: ['RB'] },
+  // ML predicted shares (for 2026 projections)
+  { key: 'predTargetShare', label: 'Pred Target Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'predRushShare', label: 'Pred Rush Share', category: 'Share', positions: ['RB'] },
+  { key: 'predReceptionShare', label: 'Pred Reception Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'predRecYdsShare', label: 'Pred Rec Yds Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'predRushYdsShare', label: 'Pred Rush Yds Share', category: 'Share', positions: ['RB'] },
+  { key: 'predPassTDShare', label: 'Pred Pass TD Share', category: 'Share', positions: ['RB', 'WR', 'TE'] },
+  { key: 'predRushTDShare', label: 'Pred Rush TD Share', category: 'Share', positions: ['RB'] },
 
   // Reddit sentiment features (from r/fantasyfootball)
   { key: 'redditMentions1w', label: 'Reddit Mentions (1wk)', category: 'Sentiment', positions: ['QB', 'RB', 'WR', 'TE'] },

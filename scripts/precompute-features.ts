@@ -37,8 +37,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v23.json'; // v23: PPG-based hit/bust labels (fair to injured players)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v27.json'; // v27: bagged GBM (5 seeds) for rookie models
+const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v28.json'; // v28: player share prediction models
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -100,6 +100,7 @@ async function main() {
   let models: Record<string, unknown>[];
   let ppgModels: Record<string, unknown>[];
   let residualModels: Record<string, unknown>[];
+  let shareModels: Record<string, unknown>;
   let featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
@@ -119,6 +120,7 @@ async function main() {
     vetFeatureImportance = mc.vetFeatureImportance;
     draftSim2025 = mc.draftSim2025;
     posThresholds = mc.posThresholds;
+    shareModels = mc.shareModels || {};
     console.log(`  Cached: ${models.length} position models, skipping to 2026 scoring...`);
   } else {
 
@@ -1480,10 +1482,108 @@ async function main() {
     };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // SHARE PREDICTION MODELS
+  // For each position, predict player's share of team volume metrics.
+  // Features: prior share, snap%, depth chart, competition, contract, age, etc.
+  // Target: actual share in the prediction season (computed in buildFeatureMatrix).
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('\n  Training share prediction models...');
+
+  const SHARE_TARGETS: { key: string; positions: string[] }[] = [
+    { key: 'actualTargetShare', positions: ['RB', 'WR', 'TE'] },
+    { key: 'actualRushShare', positions: ['RB'] },
+    { key: 'actualReceptionShare', positions: ['RB', 'WR', 'TE'] },
+    { key: 'actualRecYdsShare', positions: ['RB', 'WR', 'TE'] },
+    { key: 'actualRushYdsShare', positions: ['RB'] },
+    { key: 'actualPassTDShare', positions: ['RB', 'WR', 'TE'] },
+    { key: 'actualRushTDShare', positions: ['RB'] },
+  ];
+
+  const SHARE_FEATURE_KEYS = [
+    'priorTeamTargetShare', 'priorTeamTouchShare', 'priorTargetShare',
+    'priorSnapPct', 'depthChartRank', 'teamSamePosCount',
+    'contractAPY', 'age', 'yearsInLeague', 'priorPPG',
+    'nflDraftPick', 'priorReceptions', 'priorTargets', 'priorCarries',
+    'teamTargetHHI', 'vegasImpliedTotal',
+  ];
+
+  shareModels = {};
+  for (const { key: targetKey, positions } of SHARE_TARGETS) {
+    const predKey = targetKey.replace('actual', 'pred'); // actualTargetShare → predTargetShare
+    for (const pos of positions) {
+      const posRows = result.rows.filter((r: PlayerRow) =>
+        r.position === pos && (r.features[targetKey] || 0) > 0 && r.features.priorPPG > 0
+      );
+      if (posRows.length < 20) {
+        console.log(`    ${pos} ${targetKey}: skipped (n=${posRows.length} < 20)`);
+        continue;
+      }
+
+      const uniqueSeasons = [...new Set(posRows.map((r: PlayerRow) => r.season))].sort();
+      const losoActuals: number[] = [];
+      const losoPreds: number[] = [];
+
+      // LOSO cross-validation
+      for (const held of uniqueSeasons) {
+        const trainR = posRows.filter((r: PlayerRow) => r.season !== held);
+        const testR = posRows.filter((r: PlayerRow) => r.season === held);
+        if (trainR.length < 15 || testR.length === 0) continue;
+
+        const Xtr = trainR.map((r: PlayerRow) => SHARE_FEATURE_KEYS.map(k => r.features[k] || 0));
+        const ytr = trainR.map((r: PlayerRow) => r.features[targetKey] || 0);
+
+        const ridgeModel = trainRidgeRegression(Xtr, ytr, SHARE_FEATURE_KEYS, 5);
+        const gbmModel = trainGBM(Xtr, ytr, SHARE_FEATURE_KEYS, {
+          nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
+          seed: 42,
+        });
+
+        for (const row of testR) {
+          const ridgeP = predict(ridgeModel, row.features).predicted;
+          const gbmP = predictGBM(gbmModel, row.features).predicted;
+          const ensemble = Math.max(0, Math.min(1, ridgeP * 0.4 + gbmP * 0.6));
+          losoActuals.push(row.features[targetKey] || 0);
+          losoPreds.push(ensemble);
+        }
+      }
+
+      // CV metrics
+      const n = losoActuals.length;
+      let r2 = 0, mae = 0;
+      if (n >= 10) {
+        const mean = losoActuals.reduce((a, b) => a + b, 0) / n;
+        const ssTot = losoActuals.reduce((s, v) => s + (v - mean) ** 2, 0);
+        const ssRes = losoActuals.reduce((s, v, i) => s + (v - losoPreds[i]) ** 2, 0);
+        r2 = ssTot > 0 ? Math.round((1 - ssRes / ssTot) * 1000) / 1000 : 0;
+        mae = Math.round(losoActuals.reduce((s, v, i) => s + Math.abs(v - losoPreds[i]), 0) / n * 1000) / 1000;
+      }
+      console.log(`    ${pos} ${targetKey}: n=${posRows.length}, LOSO R²=${r2.toFixed(3)}, MAE=${mae.toFixed(3)}`);
+
+      // Train final model on all data
+      const XAll = posRows.map((r: PlayerRow) => SHARE_FEATURE_KEYS.map(k => r.features[k] || 0));
+      const yAll = posRows.map((r: PlayerRow) => r.features[targetKey] || 0);
+      const finalRidge = trainRidgeRegression(XAll, yAll, SHARE_FEATURE_KEYS, 5);
+      const finalGBM = trainGBM(XAll, yAll, SHARE_FEATURE_KEYS, {
+        nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
+        seed: 42,
+      });
+
+      const modelKey = `${pos}_${predKey}`;
+      (shareModels as any)[modelKey] = {
+        ridgeModel: finalRidge, gbmModel: finalGBM,
+        featureKeys: SHARE_FEATURE_KEYS,
+        cvR2: r2, cvMAE: mae, n: posRows.length,
+      };
+    }
+  }
+
   // Save model cache for future builds (training data is static)
   console.log('  Saving trained model cache...');
   const modelCache = {
-    models, ppgModels, residualModels,
+    models, ppgModels, residualModels, shareModels,
     featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
     draftSim2025, posThresholds,
   };
@@ -1523,6 +1623,35 @@ async function main() {
     }
   }
   console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
+
+  // Share predictions for 2026
+  console.log('  Scoring 2026 share predictions...');
+  const SHARE_PRED_TARGETS = [
+    { actual: 'actualTargetShare', pred: 'predTargetShare', positions: ['RB', 'WR', 'TE'] },
+    { actual: 'actualRushShare', pred: 'predRushShare', positions: ['RB'] },
+    { actual: 'actualReceptionShare', pred: 'predReceptionShare', positions: ['RB', 'WR', 'TE'] },
+    { actual: 'actualRecYdsShare', pred: 'predRecYdsShare', positions: ['RB', 'WR', 'TE'] },
+    { actual: 'actualRushYdsShare', pred: 'predRushYdsShare', positions: ['RB'] },
+    { actual: 'actualPassTDShare', pred: 'predPassTDShare', positions: ['RB', 'WR', 'TE'] },
+    { actual: 'actualRushTDShare', pred: 'predRushTDShare', positions: ['RB'] },
+  ];
+  let sharePredCount = 0;
+  for (const { pred: predKey, positions } of SHARE_PRED_TARGETS) {
+    for (const pos of positions) {
+      const modelKey = `${pos}_${predKey}`;
+      const sm = (shareModels as any)?.[modelKey];
+      if (!sm) continue;
+      const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+      for (const r of posPredRows) {
+        const ridgeP = predict(sm.ridgeModel, r.features).predicted;
+        const gbmP = predictGBM(sm.gbmModel, r.features).predicted;
+        const ensemble = Math.max(0, Math.min(1, ridgeP * 0.4 + gbmP * 0.6));
+        r.features[predKey] = Math.round(ensemble * 1000) / 1000;
+        sharePredCount++;
+      }
+    }
+  }
+  console.log(`  Share predictions: ${sharePredCount} player-metric pairs`);
 
   // Residual-model predictions
   console.log('  Scoring 2026 residual predictions...');
@@ -1634,7 +1763,13 @@ async function main() {
     position: m.position, bestAlpha: m.bestAlpha, n: m.n, backtest: m.backtest,
     adpSlope: m.adpSlope, adpIntercept: m.adpIntercept,
   }));
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025 };
+  // Build share model summary for output (no trained model weights, just metrics)
+  const shareModelSummary: Record<string, { cvR2: number; cvMAE: number; n: number }> = {};
+  for (const [k, v] of Object.entries(shareModels as any)) {
+    shareModelSummary[k] = { cvR2: v.cvR2, cvMAE: v.cvMAE, n: v.n };
+  }
+
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 

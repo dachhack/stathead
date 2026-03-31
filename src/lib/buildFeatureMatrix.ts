@@ -1023,6 +1023,27 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             teamTotalTargets.set(team, (teamTotalTargets.get(team) || 0) + (p.targets || 0));
           }
 
+          // Current season team totals (for computing actual share targets in training)
+          const curTeamTotalCarries = new Map<string, number>();
+          const curTeamTotalTargets = new Map<string, number>();
+          const curTeamTotalReceptions = new Map<string, number>();
+          const curTeamTotalRushYds = new Map<string, number>();
+          const curTeamTotalRecYds = new Map<string, number>();
+          const curTeamTotalPassTD = new Map<string, number>();
+          const curTeamTotalRushTD = new Map<string, number>();
+          for (const p of currentTotals) {
+            if (!POSITIONS.includes(p.position)) continue;
+            const team = p.recent_team || '';
+            if (!team) continue;
+            curTeamTotalCarries.set(team, (curTeamTotalCarries.get(team) || 0) + (p.carries || 0));
+            curTeamTotalTargets.set(team, (curTeamTotalTargets.get(team) || 0) + (p.targets || 0));
+            curTeamTotalReceptions.set(team, (curTeamTotalReceptions.get(team) || 0) + (p.receptions || 0));
+            curTeamTotalRushYds.set(team, (curTeamTotalRushYds.get(team) || 0) + (p.rushing_yards || 0));
+            curTeamTotalRecYds.set(team, (curTeamTotalRecYds.get(team) || 0) + (p.receiving_yards || 0));
+            curTeamTotalPassTD.set(team, (curTeamTotalPassTD.get(team) || 0) + (p.receiving_tds || 0));
+            curTeamTotalRushTD.set(team, (curTeamTotalRushTD.get(team) || 0) + (p.rushing_tds || 0));
+          }
+
           // ── Team QB rushing impact on skill positions ──
           // Use the CURRENT season's starting QB (from rosters/depth charts),
           // but look up THAT QB's prior rushing stats regardless of which team
@@ -1966,6 +1987,23 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               mlProjTeamTargets: 0,
               mlProjPlayerPPG: 0,
             };
+
+            // Actual share targets for share prediction models (training data only)
+            const curTeam = current.recent_team || '';
+            const curTmTgt = curTeamTotalTargets.get(curTeam) || 1;
+            const curTmCarr = curTeamTotalCarries.get(curTeam) || 1;
+            const curTmRec = curTeamTotalReceptions.get(curTeam) || 1;
+            const curTmRecYds = curTeamTotalRecYds.get(curTeam) || 1;
+            const curTmRushYds = curTeamTotalRushYds.get(curTeam) || 1;
+            const curTmPassTD = curTeamTotalPassTD.get(curTeam) || 1;
+            const curTmRushTD = curTeamTotalRushTD.get(curTeam) || 1;
+            features.actualTargetShare = Math.round((current.targets || 0) / curTmTgt * 1000) / 1000;
+            features.actualRushShare = Math.round((current.carries || 0) / curTmCarr * 1000) / 1000;
+            features.actualReceptionShare = Math.round((current.receptions || 0) / curTmRec * 1000) / 1000;
+            features.actualRecYdsShare = Math.round((current.receiving_yards || 0) / curTmRecYds * 1000) / 1000;
+            features.actualRushYdsShare = Math.round((current.rushing_yards || 0) / curTmRushYds * 1000) / 1000;
+            features.actualPassTDShare = Math.round((current.receiving_tds || 0) / curTmPassTD * 1000) / 1000;
+            features.actualRushTDShare = Math.round((current.rushing_tds || 0) / curTmRushTD * 1000) / 1000;
 
             // Compute raw PPG for the PPG prediction model
             const playerGames = current.games || 1;
@@ -3229,13 +3267,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
       // We can compute mlProjPlayerPPG from these
       for (const pr of predRows) {
         const f = pr.features;
-        // Simple volume-based PPG estimate from team features
+        // Volume-based PPG estimate from team features
+        // Use ML-predicted shares when available, fall back to prior shares
         const teamPassRate = f.teamPassRate || 0.55;
         const teamPace = f.teamPace || 64;
         const priorPPG = f.priorPPG || 0;
         const priorSnapPct = f.priorSnapPct || 0;
-        const targetShare = f.priorTeamTargetShare || 0;
-        const rushShare = f.priorTeamTouchShare || 0;
+        const targetShare = f.predTargetShare || f.priorTeamTargetShare || 0;
+        const rushShare = f.predRushShare || f.priorTeamTouchShare || 0;
         const vegasTotal = f.vegasImpliedTotal || 23;
 
         // Estimate team plays per game and pass/rush split
@@ -3262,13 +3301,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const ypr = f.priorYPR || (pr.position === 'TE' ? 10 : 12);
           const recPPG = projRec + projRec * ypr * 0.1;
 
-          // Rushing PPG
+          // Rushing PPG: use predicted rush yards share if available
           const projRushAtt = rushPlays * rushShare * vegasMultiplier;
           const ypc = f.priorYPC || 4.0;
           const rushPPG = projRushAtt * ypc * 0.1;
 
-          // TD contribution (rough)
-          const tdPPG = (targetShare * 0.3 + rushShare * 0.3) * vegasMultiplier * 6 / 17;
+          // TD contribution: use predicted TD shares if available, else rough estimate
+          const passTDShare = f.predPassTDShare || targetShare * 0.3;
+          const rushTDShare = f.predRushTDShare || rushShare * 0.3;
+          const tdPPG = (passTDShare + rushTDShare) * vegasMultiplier * 6 / 17;
 
           estimatedPPG = recPPG + rushPPG + tdPPG;
         }
