@@ -3209,7 +3209,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predRows.push({
                 name: adpPlayer.name,
                 position: adpPlayer.position,
-                team: adpPlayer.team || '',
+                team: predPlayerTeamMap.get(normalName) || adpPlayer.team || '',
                 adp: adpPlayer.adp,
                 headshotUrl: predHeadshotByName.get(normalName) || predHeadshotByName.get(normalizeName(adpPlayer.name)) || undefined,
                 features,
