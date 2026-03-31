@@ -187,6 +187,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               ydsPerGame: Math.round((totalYds / games) * 10) / 10,
               tdsPerGame: Math.round((t.tds / games) * 10) / 10,
               rushYPC: t.rushAtt > 0 ? Math.round((t.rushYds / t.rushAtt) * 10) / 10 : 0,
+              ydsPerRec: t.receptions > 0 ? Math.round((t.recYds / t.receptions) * 10) / 10 : 0,
             });
           }
         }
@@ -307,7 +308,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             'collegePassYds', 'collegePassTDs', 'collegeRushYds', 'collegeRecYds',
             'collegeRecTDs', 'collegeTotalTDs', 'collegeQBR', 'collegeRecPerGame',
             'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeRushYPC',
-            'collegeDominatorRating', 'collegeMarketShare',
+            'collegeDominatorRating', 'collegeMarketShare', 'collegeYdsPerRec',
           ];
           // Iterate all players with college data, accumulate per-position averages
           for (const [name, cs] of collegeByName) {
@@ -333,6 +334,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               collegeYdsPerGame: pg?.ydsPerGame || 0,
               collegeTDsPerGame: pg?.tdsPerGame || 0,
               collegeRushYPC: pg?.rushYPC || 0,
+              collegeYdsPerRec: pg?.ydsPerRec || 0,
               collegeDominatorRating: adv?.dominatorRating || 0,
               collegeMarketShare: adv?.marketShare || 0,
             };
@@ -1722,6 +1724,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),
                   collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
                   collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
+                  collegeYdsPerRec: imp(pg?.ydsPerRec, 'collegeYdsPerRec'),
                   prospectGrade: prospect?.grade || 0,
                   prospectPosRank: prospect?.pos_rk || 0,
                   prospectOvlRank: prospect?.ovr_rk || 0,
@@ -2829,6 +2832,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),
                     collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
                     collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
+                    collegeYdsPerRec: imp(pg?.ydsPerRec, 'collegeYdsPerRec'),
                     prospectGrade: prospect?.grade || 0,
                     prospectPosRank: prospect?.pos_rk || 0,
                     prospectOvlRank: prospect?.ovr_rk || 0,

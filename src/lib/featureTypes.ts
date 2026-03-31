@@ -263,6 +263,7 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeYdsPerGame', label: 'College Yards/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeTDsPerGame', label: 'College TDs/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeRushYPC', label: 'College Rush YPC', category: 'College', positions: ['QB', 'RB'] },
+  { key: 'collegeYdsPerRec', label: 'College Yards/Reception', category: 'College', positions: ['WR', 'TE'] },
   // Advanced college analytics
   { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeBreakoutAge', label: 'College Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
@@ -373,11 +374,11 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight',
        'collegeDominatorRating', 'collegeMarketShare',
        'hasCollegeStats', 'hasCombineData'],
-  // WR: ~127 rookies → 12 features
+  // WR: ~127 rookies → 13 features
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
-       'collegeRecPerGame', 'prospectGrade', 'forty', 'collegeYdsPerGame',
-       'collegeDominatorRating',
-       'hasCollegeStats', 'hasCombineData'],
+       'collegeRecPerGame', 'prospectGrade', 'forty', 'weight',
+       'collegeDominatorRating', 'collegeMarketShare', 'collegeYdsPerRec',
+       'hasCollegeStats'],
   // TE: ~20 rookies → 7 features (Ridge-only model, no GBM)
   TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds',
        'prospectGrade', 'collegeRecPerGame',
@@ -393,7 +394,7 @@ export const ROOKIE_FEATURES: Record<string, string[]> = {
   // RB: 14 + 3 = 17 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 12 + 3 = 15 features
+  // WR: 13 + 3 = 16 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
   // TE: 7 + 2 = 9 features
