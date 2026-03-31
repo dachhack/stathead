@@ -36,7 +36,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v22.json'; // v22: career-best college stats, breakout age fix, per-game games bug fix, data coverage audit
+const CACHE_PATH = 'public/data/training-rows-cache-v23.json'; // v23: PPG-based hit/bust labels (fair to injured players)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v24.json'; // v24: PPG-based hit/bust, TE rookie features tuned
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -90,6 +91,36 @@ async function main() {
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // MODEL CACHING: Training data is static (2018-2025), so trained models,
+  // LOSO results, feature importance, and draft sim don't change between
+  // builds. Only 2026 predictions need to re-run (ADP/roster changes).
+  // ═══════════════════════════════════════════════════════════════════════
+  let models: Record<string, unknown>[];
+  let ppgModels: Record<string, unknown>[];
+  let residualModels: Record<string, unknown>[];
+  let featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+  let rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+  let rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+  let vetFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
+  let draftSim2025: any;
+  let posThresholds: Record<string, { hit: number; bust: number }>;
+
+  if (existsSync(MODEL_CACHE_PATH)) {
+    console.log('  Loading cached trained models (training data unchanged)...');
+    const mc = JSON.parse(readFileSync(MODEL_CACHE_PATH, 'utf-8'));
+    models = mc.models;
+    ppgModels = mc.ppgModels;
+    residualModels = mc.residualModels;
+    featureImportance = mc.featureImportance;
+    rookieFeatureImportance = mc.rookieFeatureImportance;
+    rookiePreDraftFeatureImportance = mc.rookiePreDraftFeatureImportance;
+    vetFeatureImportance = mc.vetFeatureImportance;
+    draftSim2025 = mc.draftSim2025;
+    posThresholds = mc.posThresholds;
+    console.log(`  Cached: ${models.length} position models, skipping to 2026 scoring...`);
+  } else {
+
   // Train models with position-specific tuning
   // QB (N≈140) and TE (N≈106) need fewer features and more regularization
   // to avoid overfitting. RB (N≈367) and WR (N≈408) can handle more features.
@@ -110,7 +141,7 @@ async function main() {
     WR: { maxFeatures: 40, gbmEstimators: 120, gbmLR: 0.06, gbmDepth: 3, ridgeLambda: 8, minLeafPct: 0.06 },
     TE: { maxFeatures: 20, gbmEstimators: 60, gbmLR: 0.05, gbmDepth: 2, ridgeLambda: 20, minLeafPct: 0.12 },
   };
-  const models: Record<string, unknown>[] = [];
+  models = [];
   for (const pos of POSITIONS) {
     console.log(`    Training ${pos}...`);
     const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
@@ -505,12 +536,7 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════
   console.log('\n  Training ADP-free PPG models...');
 
-  const ppgModels: Record<string, unknown>[] = [];
-  const ppgPredictions2026: Array<{
-    name: string; team: string; position: string; adp: number;
-    headshotUrl?: string;
-    predictedPPG: number; predictedSeasonPPR: number;
-  }> = [];
+  ppgModels = [];
 
   for (const pos of POSITIONS) {
     const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
@@ -662,21 +688,7 @@ async function main() {
 
     console.log(`    ${pos}: PPG model n=${posRows.length}, features=${featureKeys.length}, CV R²=${hasPPGCV ? cvR2(ppgLosoActuals, ppgLosoPredGbm).toFixed(3) : 'N/A'}`);
 
-    // Generate 2026 PPG predictions
-    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
-    for (const r of posPredRows) {
-      const gbmPred = predictGBM(ppgGbm, r.features).predicted;
-      const ridgePred = predict(ppgRidge, r.features).predicted;
-      const ensemblePPG = Math.round((gbmPred * 0.7 + ridgePred * 0.3) * 10) / 10;
-      ppgPredictions2026.push({
-        name: r.name, team: r.team, position: r.position, adp: r.adp,
-        headshotUrl: r.headshotUrl,
-        predictedPPG: ensemblePPG,
-        predictedSeasonPPR: Math.round(ensemblePPG * 17),
-      });
-    }
   }
-  console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
 
   // ═══════════════════════════════════════════════════════════════════════
   // ADP-RESIDUAL MODEL: train to predict actual_PPG - ADP_implied_PPG
@@ -685,7 +697,7 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════
   console.log('\n  Training ADP-residual models...');
 
-  const residualModels: Record<string, unknown>[] = [];
+  residualModels = [];
 
   for (const pos of POSITIONS) {
     const posRows = result.rows.filter((r: PlayerRow) => r.position === pos && r.adp <= MAX_ADP);
@@ -940,37 +952,6 @@ async function main() {
 
     console.log(`    ${pos}: Residual model done (n=${posRows.length}, features=${featureKeys.length}, α=${bestAlpha})`);
   }
-
-  // Generate 2026 residual-model predictions
-  const residualPredictions2026: Array<{
-    name: string; team: string; position: string; adp: number;
-    headshotUrl?: string;
-    adpImpliedPPG: number; residualPred: number; blendedPPG: number;
-  }> = [];
-  for (const m of residualModels) {
-    const pos = m.position as string;
-    const resGbm = m.gbmModel as any;
-    const resRidge = m.ridgeModel as any;
-    const slope = m.adpSlope as number;
-    const intercept = m.adpIntercept as number;
-    const alpha = m.bestAlpha as number;
-    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
-    for (const r of posPredRows) {
-      const adpImplied = intercept + slope * r.adp;
-      const gbmRes = predictGBM(resGbm, r.features).predicted;
-      const ridgeRes = predict(resRidge, r.features).predicted;
-      const residual = gbmRes * 0.7 + ridgeRes * 0.3;
-      const blended = Math.round((adpImplied + alpha * residual) * 10) / 10;
-      residualPredictions2026.push({
-        name: r.name, team: r.team, position: pos, adp: r.adp,
-        headshotUrl: r.headshotUrl,
-        adpImpliedPPG: Math.round(adpImplied * 10) / 10,
-        residualPred: Math.round(residual * 100) / 100,
-        blendedPPG: blended,
-      });
-    }
-  }
-  console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
 
   // ═══════════════════════════════════════════════════════════════════════
   // SIMULATED 2025 DRAFT: ADP team vs Model team in a 12-team snake draft
@@ -1311,7 +1292,7 @@ async function main() {
 
   // Use pick #6 as the example draft to display
   const examplePick = perPickResults.find(r => r.pickPos === 6) || perPickResults[0];
-  const draftSim2025 = {
+  draftSim2025 = {
     // Example draft (pick #6) for side-by-side display
     adpTeam: examplePick.adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.adpStarters.has(p.name) })),
     modelTeam: examplePick.modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.modelStarters.has(p.name) })),
@@ -1338,7 +1319,7 @@ async function main() {
 
   // Precompute GBM feature importance per position (avoids runtime crash on mobile)
   console.log('  Computing feature importance...');
-  const featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  featureImportance = {};
   for (const m of models) {
     const pos = m.position as string;
     const gbm = m.gbmModel as any;
@@ -1377,9 +1358,9 @@ async function main() {
 
   // Precompute rookie/vet-specific feature importance
   console.log('  Computing rookie/vet feature importance...');
-  const rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
-  const rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
-  const vetFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>> = {};
+  rookieFeatureImportance = {};
+  rookiePreDraftFeatureImportance = {};
+  vetFeatureImportance = {};
   for (const m of models) {
     const pos = m.position as string;
     const rookieGbmPost = m.rookieGbmPostDraft as any;
@@ -1485,7 +1466,7 @@ async function main() {
   }
 
   // Compute hit/bust thresholds per position
-  const posThresholds: Record<string, { hit: number; bust: number }> = {};
+  posThresholds = {};
   for (const pos of POSITIONS) {
     const deltas = result.rows
       .filter((r: PlayerRow) => r.position === pos)
@@ -1497,6 +1478,82 @@ async function main() {
       bust: deltas[Math.floor(deltas.length * 0.33)],
     };
   }
+
+  // Save model cache for future builds (training data is static)
+  console.log('  Saving trained model cache...');
+  const modelCache = {
+    models, ppgModels, residualModels,
+    featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
+    draftSim2025, posThresholds,
+  };
+  writeFileSync(MODEL_CACHE_PATH, JSON.stringify(modelCache));
+  const mcSize = (readFileSync(MODEL_CACHE_PATH).length / 1024 / 1024).toFixed(1);
+  console.log(`  Model cache saved (${mcSize} MB)`);
+
+  } // end of model training block (skipped when model cache exists)
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 2026 SCORING: Apply trained models to current prediction rows
+  // This always runs (even on cache hit) since ADP/roster data may change
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // PPG predictions (ADP-free model)
+  console.log('  Scoring 2026 PPG predictions...');
+  const ppgPredictions2026: Array<{
+    name: string; team: string; position: string; adp: number;
+    headshotUrl?: string;
+    predictedPPG: number; predictedSeasonPPR: number;
+  }> = [];
+  for (const m of ppgModels) {
+    const pos = m.position as string;
+    const ppgGbm = m.gbmModel as any;
+    const ppgRidge = m.ridgeModel as any;
+    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+    for (const r of posPredRows) {
+      const gbmPred = predictGBM(ppgGbm, r.features).predicted;
+      const ridgePred = predict(ppgRidge, r.features).predicted;
+      const ensemblePPG = Math.round((gbmPred * 0.7 + ridgePred * 0.3) * 10) / 10;
+      ppgPredictions2026.push({
+        name: r.name, team: r.team, position: r.position, adp: r.adp,
+        headshotUrl: r.headshotUrl,
+        predictedPPG: ensemblePPG,
+        predictedSeasonPPR: Math.round(ensemblePPG * 17),
+      });
+    }
+  }
+  console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
+
+  // Residual-model predictions
+  console.log('  Scoring 2026 residual predictions...');
+  const residualPredictions2026: Array<{
+    name: string; team: string; position: string; adp: number;
+    headshotUrl?: string;
+    adpImpliedPPG: number; residualPred: number; blendedPPG: number;
+  }> = [];
+  for (const m of residualModels) {
+    const pos = m.position as string;
+    const resGbm = m.gbmModel as any;
+    const resRidge = m.ridgeModel as any;
+    const slope = m.adpSlope as number;
+    const intercept = m.adpIntercept as number;
+    const alpha = m.bestAlpha as number;
+    const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
+    for (const r of posPredRows) {
+      const adpImplied = intercept + slope * r.adp;
+      const gbmRes = predictGBM(resGbm, r.features).predicted;
+      const ridgeRes = predict(resRidge, r.features).predicted;
+      const residual = gbmRes * 0.7 + ridgeRes * 0.3;
+      const blended = Math.round((adpImplied + alpha * residual) * 10) / 10;
+      residualPredictions2026.push({
+        name: r.name, team: r.team, position: pos, adp: r.adp,
+        headshotUrl: r.headshotUrl,
+        adpImpliedPPG: Math.round(adpImplied * 10) / 10,
+        residualPred: Math.round(residual * 100) / 100,
+        blendedPPG: blended,
+      });
+    }
+  }
+  console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
 
   // Generate 2026 predictions with ensemble + confidence intervals
   console.log('  Generating 2026 predictions (ensemble + CI)...');

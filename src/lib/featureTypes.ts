@@ -389,10 +389,9 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeBestRecYds', 'collegeBestRecTDs', 'collegeBestReceptions',
        'collegeSeasons',
        'hasCollegeStats'],
-  // TE: ~20 rookies → 7 features (Ridge-only model, no GBM)
-  TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds',
-       'prospectGrade', 'collegeRecPerGame',
-       'hasCollegeStats', 'hasProspectGrade'],
+  // TE: ~23 rookies → 7 features (Ridge-only model, no GBM)
+  TE: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds',
+       'prospectGrade', 'collegeDominatorRating', 'collegeBreakoutAge'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known

@@ -1978,11 +1978,71 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               adp: adpPlayer.adp,
               vor,
               rawPPG,
-              isHit: vor >= 0,   // beat replacement level
-              isBust: vor < -50, // 50+ PPR pts below replacement
+              isHit: false,   // set in post-processing pass below
+              isBust: false,  // set in post-processing pass below
               features,
             });
           }
+        }
+
+        // ── Hit/bust labels: actual PPR / expected PPR, then z-score ────────
+        // Expected PPR = ADP→PPG linear fit per position, scaled to season.
+        // Ratio = actual / expected. Z-score the ratio, then threshold.
+        // This means a round-1 RB at 15 PPG can be a bust (expected 18+),
+        // while a round-8 RB at 15 PPG is a hit (expected 8).
+        for (const pos of POSITIONS) {
+          const posRows = rows.filter((r) => r.position === pos);
+          if (posRows.length < 10) continue;
+
+          // Fit ADP→PPG linear curve for this position (across all seasons)
+          const adps = posRows.map((r) => r.adp);
+          const ppgs = posRows.map((r) => r.rawPPG);
+          const adpMean = adps.reduce((a, b) => a + b, 0) / adps.length;
+          const ppgMean = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
+          let ssAdp = 0, ssAdpPpg = 0;
+          for (let i = 0; i < adps.length; i++) {
+            ssAdp += (adps[i] - adpMean) ** 2;
+            ssAdpPpg += (adps[i] - adpMean) * (ppgs[i] - ppgMean);
+          }
+          const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
+          const intercept = ppgMean - slope * adpMean;
+
+          // Compute ratio = actual PPG / expected PPG for each player
+          const ratios: number[] = [];
+          for (const r of posRows) {
+            const expectedPPG = Math.max(1, intercept + slope * r.adp); // floor at 1 to avoid division issues
+            const ratio = r.rawPPG / expectedPPG;
+            ratios.push(ratio);
+          }
+
+          // Z-score the ratios
+          const ratioMean = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+          const ratioVar = ratios.reduce((s, v) => s + (v - ratioMean) ** 2, 0) / ratios.length;
+          const ratioStd = Math.sqrt(ratioVar) || 1;
+
+          // Label using z-score thresholds
+          const HIT_Z = 0.5;   // meaningfully above expectations
+          const BUST_Z = -0.5; // meaningfully below expectations
+          const zScores: number[] = [];
+          for (let i = 0; i < posRows.length; i++) {
+            const z = (ratios[i] - ratioMean) / ratioStd;
+            zScores.push(z);
+            posRows[i].isHit = z > HIT_Z;
+            posRows[i].isBust = z < BUST_Z;
+          }
+
+          // Diagnostic: show distribution at various thresholds
+          const n = posRows.length;
+          const countAbove = (t: number) => zScores.filter(z => z > t).length;
+          const countBelow = (t: number) => zScores.filter(z => z < t).length;
+          onStatus?.(`  ${pos} hit/bust (n=${n}): ` +
+            `ADP→PPG curve: PPG = ${intercept.toFixed(1)} + ${slope.toFixed(4)}*ADP | ` +
+            `z>0.0: ${countAbove(0)} (${Math.round(countAbove(0)/n*100)}%), ` +
+            `z>0.5: ${countAbove(0.5)} (${Math.round(countAbove(0.5)/n*100)}%), ` +
+            `z>1.0: ${countAbove(1)} (${Math.round(countAbove(1)/n*100)}%) | ` +
+            `z<0.0: ${countBelow(0)} (${Math.round(countBelow(0)/n*100)}%), ` +
+            `z<-0.5: ${countBelow(-0.5)} (${Math.round(countBelow(-0.5)/n*100)}%), ` +
+            `z<-1.0: ${countBelow(-1)} (${Math.round(countBelow(-1)/n*100)}%)`);
         }
 
         // ── Standardize VOR per position (z-score) ───────────────────────────
