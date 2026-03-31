@@ -6,7 +6,8 @@ import { buildFeatureMatrix } from '../src/lib/buildFeatureMatrix';
 import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
-import { trainGBM, predictGBM } from '../src/lib/gbm';
+import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
+import type { BaggedGBM } from '../src/lib/gbm';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
@@ -37,7 +38,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v23.json'; // v23: PPG-based hit/bust labels (fair to injured players)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v26.json'; // v26: deterministic GBM (seeded PRNG), drop prospectGrade
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v27.json'; // v27: bagged GBM (5 seeds) for rookie models
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -262,9 +263,9 @@ async function main() {
           nEstimators: 80, learningRate: 0.04, maxDepth: 2,
           subsample: 0.7, minSamplesLeaf: Math.max(5, Math.round(rookieRows.length * 0.08)),
         };
-        rookieGbmPostDraft = trainGBM(XrPost, yrAll, rookieKeys, rookieGbmOpts);
-        rookieGbmPreDraft = trainGBM(XrPre, yrAll, preDraftKeys, rookieGbmOpts);
-        console.log(`      Rookie models: post-draft (${rookieKeys.length} features), pre-draft (${preDraftKeys.length} features), GBM+Ridge ensemble`);
+        rookieGbmPostDraft = trainBaggedGBM(XrPost, yrAll, rookieKeys, rookieGbmOpts, 5);
+        rookieGbmPreDraft = trainBaggedGBM(XrPre, yrAll, preDraftKeys, rookieGbmOpts, 5);
+        console.log(`      Rookie models: post-draft (${rookieKeys.length} features), pre-draft (${preDraftKeys.length} features), Bagged(5) GBM+Ridge ensemble`);
       } else {
         // Ridge-only for small samples (QB/TE) — will be blended with combined model at prediction time
         console.log(`      Rookie models: post-draft (${rookieKeys.length} features), pre-draft (${preDraftKeys.length} features), Ridge-only (n=${rookieRows.length}, lambda=${rookieRidgeLambda})`);
@@ -334,8 +335,8 @@ async function main() {
                 nEstimators: 80, learningRate: 0.04, maxDepth: 2,
                 subsample: 0.7, minSamplesLeaf: Math.max(5, Math.round(rookieTrain.length * 0.08)),
               };
-              foldRookieGbm = trainGBM(XrTr, yrTr, rookieKeys, rookieGbmOpts);
-              foldPreDraftRookieGbm = trainGBM(XrTrPre, yrTr, preDraftKeys, rookieGbmOpts);
+              foldRookieGbm = trainBaggedGBM(XrTr, yrTr, rookieKeys, rookieGbmOpts, 5);
+              foldPreDraftRookieGbm = trainBaggedGBM(XrTrPre, yrTr, preDraftKeys, rookieGbmOpts, 5);
             }
             // Veteran model
             const XvTr = vetTrain.map((r: PlayerRow) => featureKeys.map((k) => r.features[k] || 0));
@@ -367,7 +368,7 @@ async function main() {
             if (isRookie) {
               if (foldRookieGbm) {
                 // Large sample: GBM+Ridge 50/50 ensemble (RB/WR)
-                const gbmP = predictGBM(foldRookieGbm, row.features).predicted;
+                const gbmP = predictBaggedGBM(foldRookieGbm, row.features).predicted;
                 const ridgeP = predict(foldRookieRidge, row.features).predicted;
                 rvPred = gbmP * 0.5 + ridgeP * 0.5;
               } else {
@@ -386,7 +387,7 @@ async function main() {
               losoRookiePreds.push(rvPred);
               if (foldPreDraftRookieGbm) {
                 // Large sample pre-draft: GBM+Ridge 50/50
-                const gbmPre = predictGBM(foldPreDraftRookieGbm, row.features).predicted;
+                const gbmPre = predictBaggedGBM(foldPreDraftRookieGbm, row.features).predicted;
                 const ridgePre = predict(foldPreDraftRookieRidge, row.features).predicted;
                 losoPreDraftRookiePreds.push(gbmPre * 0.5 + ridgePre * 0.5);
               } else if (foldPreDraftRookieRidge) {
@@ -1384,7 +1385,7 @@ async function main() {
         const sampled = rookieRows.slice(0, 100);
         const contribs = new Array(rookieKeys.length).fill(0);
         for (const row of sampled) {
-          const pred = predictGBM(rookieGbmPost, row.features);
+          const pred = rookieGbmPost.models ? predictBaggedGBM(rookieGbmPost, row.features) : predictGBM(rookieGbmPost, row.features);
           for (const fc of pred.featureContributions) {
             const idx = rookieKeys.indexOf(fc.name);
             if (idx >= 0) contribs[idx] += Math.abs(fc.contribution);
@@ -1416,7 +1417,7 @@ async function main() {
         const sampled = rookieRows.slice(0, 100);
         const contribs = new Array(preDraftKeys.length).fill(0);
         for (const row of sampled) {
-          const pred = predictGBM(rookieGbmPre, row.features);
+          const pred = rookieGbmPre.models ? predictBaggedGBM(rookieGbmPre, row.features) : predictGBM(rookieGbmPre, row.features);
           for (const fc of pred.featureContributions) {
             const idx = preDraftKeys.indexOf(fc.name);
             if (idx >= 0) contribs[idx] += Math.abs(fc.contribution);
@@ -1590,8 +1591,8 @@ async function main() {
       if (isRookie && rookieModelType === 'gbm+ridge' && rookieGbmPost && rookieGbmPre) {
         // Large sample: GBM+Ridge 50/50 ensemble (RB/WR)
         const rookieGbmPred = hasDraftData
-          ? predictGBM(rookieGbmPost, r.features).predicted
-          : predictGBM(rookieGbmPre, r.features).predicted;
+          ? (rookieGbmPost.models ? predictBaggedGBM(rookieGbmPost, r.features).predicted : predictGBM(rookieGbmPost, r.features).predicted)
+          : (rookieGbmPre.models ? predictBaggedGBM(rookieGbmPre, r.features).predicted : predictGBM(rookieGbmPre, r.features).predicted);
         const rookieRidgePred = hasDraftData
           ? predict(rookieRidgePost, r.features).predicted
           : predict(rookieRidgePre, r.features).predicted;
