@@ -369,44 +369,44 @@ export function parseHeight(ht: string | number): number {
 // Pre-draft rookie features: college + combine + prospect grade only (no team context)
 // Used before the NFL draft when landing spot is unknown
 // Feature count kept proportional to sample size (~1 feature per 10-15 samples)
-// Missing-data indicators (hasCollegeStats, hasProspectGrade, hasCombineData) added
-// to all positions — binary flags are cheap and help models distinguish missing vs zero
+// Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
+// — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: ~24 rookies → 8 features (Ridge-only model, no GBM)
+  // QB: ~24 rookies → 6 features (Ridge-only model, no GBM)
+  // nflDraftPick serves as grade proxy (uses projected pick pre-draft)
   QB: ['nflDraftRound', 'nflDraftPick', 'collegePassTDs', 'collegeQBR',
-       'collegeRushYds', 'prospectGrade',
-       'hasCollegeStats', 'hasProspectGrade'],
-  // RB: ~142 rookies → 14 features
+       'collegeRushYds', 'hasCollegeStats'],
+  // RB: ~142 rookies → 12 features
   RB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRushYds', 'collegeRushYPC',
-       'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight',
+       'collegeTotalTDs', 'collegeRecYds', 'forty', 'weight',
        'collegeDominatorRating', 'collegeMarketShare',
-       'hasCollegeStats', 'hasCombineData'],
-  // WR: ~127 rookies → 19 features
+       'hasCollegeStats'],
+  // WR: ~127 rookies → 18 features
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
-       'collegeRecPerGame', 'prospectGrade', 'forty', 'weight',
+       'collegeRecPerGame', 'forty', 'weight',
        'collegeDominatorRating', 'collegeBreakoutAge', 'collegeBreakoutAgeDelta',
        'collegeMarketShare', 'collegeYdsPerRec',
        'collegeBestRecYds', 'collegeBestRecTDs', 'collegeBestReceptions',
        'collegeSeasons',
        'hasCollegeStats'],
-  // TE: ~23 rookies → 7 features (Ridge-only model, no GBM)
+  // TE: ~23 rookies → 6 features (Ridge-only model, no GBM)
   TE: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds',
-       'prospectGrade', 'collegeDominatorRating', 'collegeBreakoutAge'],
+       'collegeDominatorRating', 'collegeBreakoutAge'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known
 // Includes depth chart, scheme, Vegas, positional competition, contract
 export const ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: 8 + 2 = 10 features
+  // QB: 6 + 2 = 8 features
   QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
        'vegasImpliedTotal', 'contractAPY'],
-  // RB: 14 + 3 = 17 features
+  // RB: 12 + 3 = 15 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 19 + 3 = 22 features
+  // WR: 18 + 3 = 21 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // TE: 7 + 2 = 9 features
+  // TE: 6 + 2 = 8 features
   TE: [...PRE_DRAFT_ROOKIE_FEATURES.TE,
        'depthChartRank', 'contractAPY'],
 };
