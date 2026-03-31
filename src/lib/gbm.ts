@@ -12,6 +12,7 @@ export interface GBMParams {
   subsample?: number;         // fraction of samples per tree (default 0.8)
   loss?: 'squared' | 'quantile';
   quantile?: number;          // quantile for quantile loss (e.g. 0.1, 0.9)
+  seed?: number;              // PRNG seed for reproducible subsampling (default 42)
 }
 
 export interface TrainedGBM {
@@ -172,13 +173,23 @@ function predictTree(tree: TreeNode, sample: number[]): number {
   return predictTree(tree.right!, sample);
 }
 
-// Subsample indices
-function subsampleIndices(n: number, fraction: number): number[] {
+// Seeded PRNG (mulberry32) for reproducible subsampling
+function mulberry32(seed: number): () => number {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// Subsample indices using seeded PRNG
+function subsampleIndices(n: number, fraction: number, rng: () => number): number[] {
   const size = Math.max(1, Math.round(n * fraction));
   const indices = Array.from({ length: n }, (_, i) => i);
   // Fisher-Yates shuffle then take first `size`
   for (let i = indices.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
   return indices.slice(0, size);
@@ -201,11 +212,13 @@ export function trainGBM(
     subsample = 0.8,
     loss = 'squared',
     quantile = 0.5,
+    seed = 42,
   } = params;
 
   const n = X.length;
   const nFeatures = featureNames.length;
   const q = loss === 'quantile' ? quantile : 0.5;
+  const rng = mulberry32(seed);
 
   // Initial prediction
   const initialPrediction = loss === 'quantile'
@@ -226,7 +239,7 @@ export function trainGBM(
     });
 
     // Subsample
-    const sampleIdx = subsample < 1 ? subsampleIndices(n, subsample) : Array.from({ length: n }, (_, i) => i);
+    const sampleIdx = subsample < 1 ? subsampleIndices(n, subsample, rng) : Array.from({ length: n }, (_, i) => i);
 
     // Fit tree to residuals
     const tree = buildTree(X, residuals, sampleIdx, 0, maxDepth, minSamplesLeaf, nFeatures, loss, q);

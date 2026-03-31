@@ -37,7 +37,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v23.json'; // v23: PPG-based hit/bust labels (fair to injured players)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v25.json'; // v25: drop prospectGrade (always 0 in training data)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v26.json'; // v26: deterministic GBM (seeded PRNG), drop prospectGrade
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
