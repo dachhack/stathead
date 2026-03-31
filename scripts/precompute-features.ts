@@ -37,7 +37,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v22.json'; // v22: career-best college stats, breakout age fix, per-game games bug fix, data coverage audit
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v22.json'; // Cached trained models + LOSO results (static data doesn't change)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v23.json'; // v23: TE rookie features tuned (dominator, breakout age, age; dropped indicators)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
