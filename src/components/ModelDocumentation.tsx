@@ -44,6 +44,7 @@ export function ModelDocumentation() {
       perPick?: Array<{ pick: number; adpPPG: number; modelPPG: number; delta: number; modelHits: number; adpHits: number; modelBusts: number; adpBusts: number; winRate?: number }>;
       settings: { numTeams: number; pickPosition?: number; rounds: number; season?: number; qbDeadline?: number; simsPerPick?: number };
     };
+    shareModelSummary?: Record<string, { cvR2: number; cvMAE: number; n: number }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
@@ -756,6 +757,78 @@ export function ModelDocumentation() {
                 </p>
               </>
             )}
+
+            {/* Share Prediction Models */}
+            {data.shareModelSummary && Object.keys(data.shareModelSummary).length > 0 && (() => {
+              const sm = data.shareModelSummary!;
+              // Group by share type
+              const shareTypes = [
+                { label: 'Target Share', suffix: 'predTargetShare', positions: ['RB', 'WR', 'TE'] },
+                { label: 'Rush Share', suffix: 'predRushShare', positions: ['RB'] },
+                { label: 'Reception Share', suffix: 'predReceptionShare', positions: ['RB', 'WR', 'TE'] },
+                { label: 'Rec Yds Share', suffix: 'predRecYdsShare', positions: ['RB', 'WR', 'TE'] },
+                { label: 'Rush Yds Share', suffix: 'predRushYdsShare', positions: ['RB'] },
+                { label: 'Pass TD Share', suffix: 'predPassTDShare', positions: ['RB', 'WR', 'TE'] },
+                { label: 'Rush TD Share', suffix: 'predRushTDShare', positions: ['RB'] },
+              ];
+              return (
+                <>
+                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Player Share Prediction Models</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                    Predict each player&apos;s share of team volume metrics (targets, carries, receptions, yards, TDs).
+                    Uses prior share, snap%, depth chart, competition, contract, age, and draft capital as features.
+                    LOSO cross-validated R&sup2; measures honest out-of-sample predictive power.
+                  </p>
+                  <div className="table-container">
+                    <table style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Share Metric</th>
+                          {['RB', 'WR', 'TE'].map(pos => (
+                            <th key={pos} colSpan={2} style={{ textAlign: 'center', color: POS_COLORS[pos] }}>{pos}</th>
+                          ))}
+                        </tr>
+                        <tr>
+                          <th></th>
+                          {['RB', 'WR', 'TE'].map(pos => (
+                            <>{/* eslint-disable-next-line react/jsx-key */}
+                              <th key={`${pos}-r2`} style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>R²</th>
+                              <th key={`${pos}-mae`} style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>MAE</th>
+                            </>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {shareTypes.map(({ label, suffix, positions }) => (
+                          <tr key={suffix}>
+                            <td style={{ fontWeight: 500 }}>{label}</td>
+                            {['RB', 'WR', 'TE'].map(pos => {
+                              const key = `${pos}_${suffix}`;
+                              const m = sm[key];
+                              if (!positions.includes(pos) || !m) {
+                                return <><td key={`${pos}-r2`} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td><td key={`${pos}-mae`} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td></>;
+                              }
+                              return (
+                                <>
+                                  <td key={`${pos}-r2`} style={{ textAlign: 'right', fontWeight: 700, color: m.cvR2 > 0.3 ? '#22c55e' : m.cvR2 > 0.1 ? '#facc15' : m.cvR2 > 0 ? '#fb923c' : '#ef4444' }}>
+                                    {m.cvR2.toFixed(3)}
+                                  </td>
+                                  <td key={`${pos}-mae`} style={{ textAlign: 'right' }}>{m.cvMAE.toFixed(3)}</td>
+                                </>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                    R&sup2; &gt; 0.3 indicates strong predictive power. Target share and rush share typically have the
+                    strongest signal due to year-over-year persistence. TD shares are noisier due to small counts.
+                  </p>
+                </>
+              );
+            })()}
 
             {/* Draft Simulation */}
             {data.draftSim2025 && data.draftSim2025.adpTeam.length > 0 && (() => {
