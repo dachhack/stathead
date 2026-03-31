@@ -1075,11 +1075,11 @@ async function main() {
             }
 
             // Phase-based strategy:
-            // Rounds 1-2: Conservative BPA — premium picks too valuable to gamble
+            // Rounds 1-2: Near-pure BPA — premium picks too valuable to gamble on model signal
             // Rounds 3-5: VONA kicks in for positional scarcity
             // Rounds 6+: Aggressive upside hunting for late-round value
-            const vonaWeight = round < 2 ? 0.15 : round < 4 ? 0.7 : 1.0;
-            const WINDOW = round < 2 ? 3 : round < 5 ? 6 : 10;
+            const vonaWeight = round < 2 ? 0.05 : round < 4 ? 0.6 : 1.0;
+            const WINDOW = round < 2 ? 2 : round < 5 ? 6 : 10;
 
             const candidates: Array<{ idx: number; score: number }> = [];
             for (let i = 0; i < available.length && candidates.length < WINDOW; i++) {
@@ -1101,21 +1101,21 @@ async function main() {
               // Buy/sell filter from model residual (already alpha-scaled)
               const residualBonus = p.residual;
 
-              // Early round bust avoidance: HARD penalty for negative residual early
-              const bustPenalty = round < 2 ? (p.residual < 0 ? p.residual * 3.0 : 0)
-                : round < 4 ? (p.residual < 0 ? p.residual * 2.0 : 0)
+              // Early round bust avoidance: near-absolute penalty for negative residual
+              const bustPenalty = round < 2 ? (p.residual < 0 ? p.residual * 5.0 : 0)
+                : round < 4 ? (p.residual < 0 ? p.residual * 2.5 : 0)
                 : 0;
 
-              // ADP reach penalty: very strong early (don't deviate from BPA), lighter later
-              const reachPenalty = i * (round < 2 ? 1.5 : round < 4 ? 0.5 : 0.2);
+              // ADP reach penalty: near-zero tolerance early, lighter later
+              const reachPenalty = i * (round < 2 ? 3.0 : round < 4 ? 0.6 : 0.15);
 
               // Raw modelPPG anchor: dominant in early rounds to keep BPA discipline
-              const rawPPG = round < 2 ? p.modelPPG * 0.5 : 0;
+              const rawPPG = round < 2 ? p.modelPPG * 0.7 : 0;
 
               // Late-round upside bonus: reward positive residual sleepers in rounds 7+
-              const upsideBonus = round >= 6 && p.residual > 0 ? p.residual * 1.5 : 0;
+              const upsideBonus = round >= 6 && p.residual > 0 ? p.residual * 2.0 : 0;
 
-              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + upsideBonus + (rng() - 0.5) * 0.3;
+              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + upsideBonus + (rng() - 0.5) * 0.2;
               candidates.push({ idx: i, score });
             }
             if (candidates.length > 0) {
