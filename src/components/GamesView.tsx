@@ -6,7 +6,7 @@ export function GamesView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) =
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [season, setSeason] = useState(2024);
+  const [season, setSeason] = useState(2025);
   const [week, setWeek] = useState(0); // 0 = all
   const [search, setSearch] = useState('');
 
