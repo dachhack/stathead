@@ -314,7 +314,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             // Try to determine position from draft data or prospect data
             const draft = draftByName.get(name);
             const prospect = prospectByName.get(name);
-            const pos = draft?.pos || prospect?.pos || '';
+            const pos = draft?.position || prospect?.position || '';
             const normPos = pos.toUpperCase();
             if (!POSITIONS.includes(normPos)) continue;
             if (!collegeSums.has(normPos)) collegeSums.set(normPos, {});
