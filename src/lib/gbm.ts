@@ -354,3 +354,50 @@ export function trainGBMWithCI(
 
   return { median, lower, upper };
 }
+
+// ── Bagged GBM: train multiple GBMs with different seeds and average predictions ──
+
+export interface BaggedGBM {
+  models: TrainedGBM[];
+}
+
+/** Train N GBMs with seeds 0..nBags-1 and bundle them for averaged predictions. */
+export function trainBaggedGBM(
+  X: number[][],
+  y: number[],
+  featureNames: string[],
+  params: GBMParams = {},
+  nBags = 5,
+): BaggedGBM {
+  const baseSeed = params.seed ?? 42;
+  const models: TrainedGBM[] = [];
+  for (let i = 0; i < nBags; i++) {
+    models.push(trainGBM(X, y, featureNames, { ...params, seed: baseSeed + i * 7 }));
+  }
+  return { models };
+}
+
+/** Predict by averaging across all bagged GBM models. */
+export function predictBaggedGBM(
+  bag: BaggedGBM,
+  features: Record<string, number>,
+): GBMPredictionResult {
+  const preds = bag.models.map(m => predictGBM(m, features));
+  const avgPred = preds.reduce((s, p) => s + p.predicted, 0) / preds.length;
+
+  // Average feature contributions across bags
+  const contribMap = new Map<string, { value: number; totalContrib: number }>();
+  for (const p of preds) {
+    for (const c of p.featureContributions) {
+      const cur = contribMap.get(c.name) || { value: c.value, totalContrib: 0 };
+      cur.totalContrib += c.contribution;
+      contribMap.set(c.name, cur);
+    }
+  }
+  const contributions = [...contribMap.entries()].map(([name, { value, totalContrib }]) => ({
+    name, value, contribution: totalContrib / preds.length,
+  }));
+  contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+
+  return { predicted: avgPred, featureContributions: contributions };
+}
