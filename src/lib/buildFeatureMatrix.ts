@@ -162,15 +162,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         } catch { /* prospect grades not available */ }
 
         // Compute college per-game stats from the college stats data
-        const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number }>();
+        const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number; ydsPerRec: number }>();
         {
-          const collegeTotals = new Map<string, { games: number; receptions: number; recYds: number; rushYds: number; rushAtt: number; tds: number; passYds: number }>();
+          // Track games per season separately to get true career total games
+          const collegeTotals = new Map<string, { gamesBySeason: Map<number, number>; receptions: number; recYds: number; rushYds: number; rushAtt: number; tds: number; passYds: number }>();
           for (const cs of collegeStatsData) {
             const name = normalizeName(cs.player_name);
-            if (!collegeTotals.has(name)) collegeTotals.set(name, { games: 0, receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
+            if (!collegeTotals.has(name)) collegeTotals.set(name, { gamesBySeason: new Map(), receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
             const t = collegeTotals.get(name)!;
             const stat = (cs.statistic || '').toLowerCase();
-            if (stat.includes('game')) t.games = Math.max(t.games, cs.value || 0);
+            if (stat.includes('game')) {
+              // Track games per season so we sum across seasons correctly
+              const cur = t.gamesBySeason.get(cs.season) || 0;
+              t.gamesBySeason.set(cs.season, Math.max(cur, cs.value || 0));
+            }
             else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) t.receptions += cs.value || 0;
             else if (stat.includes('receiving yard')) t.recYds += cs.value || 0;
             else if (stat.includes('rushing yard')) t.rushYds += cs.value || 0;
@@ -179,10 +184,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             else if (stat.includes('passing yard')) t.passYds += cs.value || 0;
           }
           for (const [name, t] of collegeTotals) {
-            const games = t.games || 1;
+            // Sum games across all seasons for true career total
+            let totalGames = 0;
+            for (const g of t.gamesBySeason.values()) totalGames += g;
+            const games = totalGames || 1;
             const totalYds = t.recYds + t.rushYds + t.passYds;
             collegePerGameByName.set(name, {
-              games: t.games,
+              games: totalGames,
               recPerGame: Math.round((t.receptions / games) * 10) / 10,
               ydsPerGame: Math.round((totalYds / games) * 10) / 10,
               tdsPerGame: Math.round((t.tds / games) * 10) / 10,
@@ -293,6 +301,26 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           });
         }
 
+        // Step 2b: Career-best single-season stats per player
+        // Complements final-season stats: captures peak production regardless of which year
+        const collegeBestSeasonByName = new Map<string, { bestRecYds: number; bestRecTDs: number; bestReceptions: number; bestRushYds: number; bestRushTDs: number; numSeasons: number }>();
+        for (const [name, seasons] of playerSeasonStats) {
+          let bestRecYds = 0, bestRecTDs = 0, bestReceptions = 0;
+          let bestRushYds = 0, bestRushTDs = 0;
+          for (const [, ps] of seasons) {
+            bestRecYds = Math.max(bestRecYds, ps.recYds);
+            bestRecTDs = Math.max(bestRecTDs, ps.recTDs);
+            bestReceptions = Math.max(bestReceptions, ps.receptions);
+            bestRushYds = Math.max(bestRushYds, ps.rushYds);
+            bestRushTDs = Math.max(bestRushTDs, ps.rushTDs);
+          }
+          collegeBestSeasonByName.set(name, {
+            bestRecYds, bestRecTDs, bestReceptions,
+            bestRushYds, bestRushTDs,
+            numSeasons: seasons.size,
+          });
+        }
+
         // Step 3: Speed Score = (weight * 200) / (forty ^ 4)
         // Higher = better (heavier player running same 40 = more valuable)
         const speedScoreByName = new Map<string, number>();
@@ -315,6 +343,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             'collegeRecTDs', 'collegeTotalTDs', 'collegeQBR', 'collegeRecPerGame',
             'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeRushYPC',
             'collegeDominatorRating', 'collegeBreakoutAge', 'collegeMarketShare', 'collegeYdsPerRec',
+            'collegeBestRecYds', 'collegeBestRecTDs', 'collegeBestReceptions', 'collegeBestRushYds',
           ];
           // Iterate all players with college data, accumulate per-position averages
           for (const [name, cs] of collegeByName) {
@@ -328,6 +357,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const sums = collegeSums.get(normPos)!;
             const pg = collegePerGameByName.get(name);
             const adv = collegeAdvancedByName.get(name);
+            const best = collegeBestSeasonByName.get(name);
             const vals: Record<string, number> = {
               collegePassYds: cs?.get('Passing Yards') || 0,
               collegePassTDs: cs?.get('Passing Touchdowns') || 0,
@@ -342,7 +372,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               collegeRushYPC: pg?.rushYPC || 0,
               collegeYdsPerRec: pg?.ydsPerRec || 0,
               collegeDominatorRating: adv?.dominatorRating || 0,
+              collegeBreakoutAge: adv?.breakoutAge || 0,
               collegeMarketShare: adv?.marketShare || 0,
+              collegeBestRecYds: best?.bestRecYds || 0,
+              collegeBestRecTDs: best?.bestRecTDs || 0,
+              collegeBestReceptions: best?.bestReceptions || 0,
+              collegeBestRushYds: best?.bestRushYds || 0,
             };
             for (const f of collegeFields) {
               if (vals[f] > 0) {
@@ -358,6 +393,46 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               avgs[f] = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
             }
             collegeAvgByPos.set(pos, avgs);
+          }
+        }
+
+        // ── Data coverage audit ──
+        {
+          const draftNames = new Set(draftByName.keys());
+          const collegeNames = new Set(collegeByName.keys());
+          const combineNames = new Set(combineByName.keys());
+          const prospectNames = new Set(prospectByName.keys());
+          const speedNames = new Set(speedScoreByName.keys());
+          const bestSeasonNames = new Set(collegeBestSeasonByName.keys());
+          // Count drafted players with each data source
+          let withCollege = 0, withCombine = 0, withProspect = 0, withSpeed = 0, withBest = 0;
+          for (const name of draftNames) {
+            if (collegeNames.has(name)) withCollege++;
+            if (combineNames.has(name)) withCombine++;
+            if (prospectNames.has(name)) withProspect++;
+            if (speedNames.has(name)) withSpeed++;
+            if (bestSeasonNames.has(name)) withBest++;
+          }
+          const total = draftNames.size;
+          const pct = (n: number) => total > 0 ? `${Math.round(n / total * 100)}%` : 'N/A';
+          onStatus?.(`📊 Data coverage (${total} drafted players): ` +
+            `college=${pct(withCollege)} (${withCollege}), ` +
+            `combine=${pct(withCombine)} (${withCombine}), ` +
+            `prospect=${pct(withProspect)} (${withProspect}), ` +
+            `speedScore=${pct(withSpeed)} (${withSpeed}), ` +
+            `careerBest=${pct(withBest)} (${withBest})`);
+          // Per-position breakdown for college data
+          for (const pos of POSITIONS) {
+            let posTotal = 0, posCollege = 0, posCombine = 0, posProspect = 0;
+            for (const [name, draft] of draftByName) {
+              if (draft.position?.toUpperCase() !== pos) continue;
+              posTotal++;
+              if (collegeNames.has(name)) posCollege++;
+              if (combineNames.has(name)) posCombine++;
+              if (prospectNames.has(name)) posProspect++;
+            }
+            const pp = (n: number) => posTotal > 0 ? `${Math.round(n / posTotal * 100)}%` : 'N/A';
+            onStatus?.(`  ${pos}: ${posTotal} drafted → college=${pp(posCollege)}, combine=${pp(posCombine)}, prospect=${pp(posProspect)}`);
           }
         }
 
@@ -1707,6 +1782,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 const cs = collegeByName.get(normalName);
                 const pg = collegePerGameByName.get(normalName);
                 const adv = collegeAdvancedByName.get(normalName);
+                const best = collegeBestSeasonByName.get(normalName);
                 const prospect = prospectByName.get(normalName);
                 const posAvg = collegeAvgByPos.get(adpPlayer.position) || {};
                 // Indicator features: 1 if data exists, 0 if imputed
@@ -1731,6 +1807,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
                   collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
                   collegeYdsPerRec: imp(pg?.ydsPerRec, 'collegeYdsPerRec'),
+                  // Career-best single-season stats (peak production)
+                  collegeBestRecYds: imp(best?.bestRecYds, 'collegeBestRecYds'),
+                  collegeBestRecTDs: imp(best?.bestRecTDs, 'collegeBestRecTDs'),
+                  collegeBestReceptions: imp(best?.bestReceptions, 'collegeBestReceptions'),
+                  collegeBestRushYds: imp(best?.bestRushYds, 'collegeBestRushYds'),
+                  collegeSeasons: best?.numSeasons || 0,
                   prospectGrade: prospect?.grade || 0,
                   prospectPosRank: prospect?.pos_rk || 0,
                   prospectOvlRank: prospect?.ovr_rk || 0,
@@ -2819,6 +2901,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const cs = collegeByName.get(normalName);
                   const pg = collegePerGameByName.get(normalName);
                   const adv = collegeAdvancedByName.get(normalName);
+                  const best = collegeBestSeasonByName.get(normalName);
                   const prospect = prospectByName.get(normalName);
                   const posAvg = collegeAvgByPos.get(adpPlayer.position) || {};
                   const _hasCollege = cs ? 1 : 0;
@@ -2841,6 +2924,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
                     collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
                     collegeYdsPerRec: imp(pg?.ydsPerRec, 'collegeYdsPerRec'),
+                    // Career-best single-season stats (peak production)
+                    collegeBestRecYds: imp(best?.bestRecYds, 'collegeBestRecYds'),
+                    collegeBestRecTDs: imp(best?.bestRecTDs, 'collegeBestRecTDs'),
+                    collegeBestReceptions: imp(best?.bestReceptions, 'collegeBestReceptions'),
+                    collegeBestRushYds: imp(best?.bestRushYds, 'collegeBestRushYds'),
+                    collegeSeasons: best?.numSeasons || 0,
                     prospectGrade: prospect?.grade || 0,
                     prospectPosRank: prospect?.pos_rk || 0,
                     prospectOvlRank: prospect?.ovr_rk || 0,

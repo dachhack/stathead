@@ -36,7 +36,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v21.json'; // v21: position-avg imputation, missing-data indicators, QB/TE hybrid rookie models
+const CACHE_PATH = 'public/data/training-rows-cache-v22.json'; // v22: career-best college stats, breakout age fix, per-game games bug fix, data coverage audit
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
