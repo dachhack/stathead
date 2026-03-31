@@ -298,6 +298,61 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         }
 
+        // ── Position-average college stats for imputation (missing ≠ zero) ──
+        // Compute averages across rookies who have data, per position
+        const collegeAvgByPos = new Map<string, Record<string, number>>();
+        {
+          const collegeSums = new Map<string, Record<string, { sum: number; count: number }>>();
+          const collegeFields = [
+            'collegePassYds', 'collegePassTDs', 'collegeRushYds', 'collegeRecYds',
+            'collegeRecTDs', 'collegeTotalTDs', 'collegeQBR', 'collegeRecPerGame',
+            'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeRushYPC',
+            'collegeDominatorRating', 'collegeMarketShare',
+          ];
+          // Iterate all players with college data, accumulate per-position averages
+          for (const [name, cs] of collegeByName) {
+            // Try to determine position from draft data or prospect data
+            const draft = draftByName.get(name);
+            const prospect = prospectByName.get(name);
+            const pos = draft?.pos || prospect?.pos || '';
+            const normPos = pos.toUpperCase();
+            if (!POSITIONS.includes(normPos)) continue;
+            if (!collegeSums.has(normPos)) collegeSums.set(normPos, {});
+            const sums = collegeSums.get(normPos)!;
+            const pg = collegePerGameByName.get(name);
+            const adv = collegeAdvancedByName.get(name);
+            const vals: Record<string, number> = {
+              collegePassYds: cs?.get('Passing Yards') || 0,
+              collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+              collegeRushYds: cs?.get('Rushing Yards') || 0,
+              collegeRecYds: cs?.get('Receiving Yards') || 0,
+              collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
+              collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
+              collegeQBR: collegeQBRByName.get(name) || 0,
+              collegeRecPerGame: pg?.recPerGame || 0,
+              collegeYdsPerGame: pg?.ydsPerGame || 0,
+              collegeTDsPerGame: pg?.tdsPerGame || 0,
+              collegeRushYPC: pg?.rushYPC || 0,
+              collegeDominatorRating: adv?.dominatorRating || 0,
+              collegeMarketShare: adv?.marketShare || 0,
+            };
+            for (const f of collegeFields) {
+              if (vals[f] > 0) {
+                if (!sums[f]) sums[f] = { sum: 0, count: 0 };
+                sums[f].sum += vals[f];
+                sums[f].count++;
+              }
+            }
+          }
+          for (const [pos, sums] of collegeSums) {
+            const avgs: Record<string, number> = {};
+            for (const [f, { sum, count }] of Object.entries(sums)) {
+              avgs[f] = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
+            }
+            collegeAvgByPos.set(pos, avgs);
+          }
+        }
+
         // Aging curve constants (position → { peakStart, peakEnd, declineStart })
         const AGING_CURVES: Record<string, { peakStart: number; peakEnd: number; declineStart: number }> = {
           QB: { peakStart: 27, peakEnd: 32, declineStart: 35 },
@@ -1639,31 +1694,45 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               })(),
 
               // College production (most impactful for rookies/young players)
+              // Uses position-average imputation for missing stats instead of zero-filling
               ...(() => {
                 const cs = collegeByName.get(normalName);
+                const pg = collegePerGameByName.get(normalName);
+                const adv = collegeAdvancedByName.get(normalName);
+                const prospect = prospectByName.get(normalName);
+                const posAvg = collegeAvgByPos.get(adpPlayer.position) || {};
+                // Indicator features: 1 if data exists, 0 if imputed
+                const _hasCollege = cs ? 1 : 0;
+                const _hasProspect = prospect?.grade ? 1 : 0;
+                const _hasCombine = combineByName.has(normalName) ? 1 : 0;
+                // Helper: use raw value if available, otherwise position average
+                const imp = (raw: number | undefined, field: string) => raw || posAvg[field] || 0;
                 return {
-                  collegePassYds: cs?.get('Passing Yards') || 0,
-                  collegePassTDs: cs?.get('Passing Touchdowns') || 0,
-                  collegeRushYds: cs?.get('Rushing Yards') || 0,
-                  collegeRecYds: cs?.get('Receiving Yards') || 0,
-                  collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
-                  collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
-                  collegeQBR: collegeQBRByName.get(normalName) || 0,
-                  // Additional college per-game metrics
-                  collegeGames: collegePerGameByName.get(normalName)?.games || 0,
-                  collegeRecPerGame: collegePerGameByName.get(normalName)?.recPerGame || 0,
-                  collegeYdsPerGame: collegePerGameByName.get(normalName)?.ydsPerGame || 0,
-                  collegeTDsPerGame: collegePerGameByName.get(normalName)?.tdsPerGame || 0,
-                  collegeRushYPC: collegePerGameByName.get(normalName)?.rushYPC || 0,
-                  // Prospect grades/rankings
-                  prospectGrade: prospectByName.get(normalName)?.grade || 0,
-                  prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
-                  prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
-                  // Advanced college analytics
-                  collegeDominatorRating: collegeAdvancedByName.get(normalName)?.dominatorRating || 0,
-                  collegeBreakoutAge: collegeAdvancedByName.get(normalName)?.breakoutAge || 0,
-                  collegeMarketShare: collegeAdvancedByName.get(normalName)?.marketShare || 0,
+                  collegePassYds: imp(cs?.get('Passing Yards'), 'collegePassYds'),
+                  collegePassTDs: imp(cs?.get('Passing Touchdowns'), 'collegePassTDs'),
+                  collegeRushYds: imp(cs?.get('Rushing Yards'), 'collegeRushYds'),
+                  collegeRecYds: imp(cs?.get('Receiving Yards'), 'collegeRecYds'),
+                  collegeRecTDs: imp(cs?.get('Receiving Touchdowns'), 'collegeRecTDs'),
+                  collegeTotalTDs: cs
+                    ? (cs.get('Passing Touchdowns') || 0) + (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0)
+                    : posAvg['collegeTotalTDs'] || 0,
+                  collegeQBR: imp(collegeQBRByName.get(normalName), 'collegeQBR'),
+                  collegeGames: pg?.games || 0,
+                  collegeRecPerGame: imp(pg?.recPerGame, 'collegeRecPerGame'),
+                  collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),
+                  collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
+                  collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
+                  prospectGrade: prospect?.grade || 0,
+                  prospectPosRank: prospect?.pos_rk || 0,
+                  prospectOvlRank: prospect?.ovr_rk || 0,
+                  collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
+                  collegeBreakoutAge: adv?.breakoutAge || 0,
+                  collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                   speedScore: speedScoreByName.get(normalName) || 0,
+                  // Missing-data indicators
+                  hasCollegeStats: _hasCollege,
+                  hasProspectGrade: _hasProspect,
+                  hasCombineData: _hasCombine,
                 };
               })(),
 
@@ -2734,29 +2803,42 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   };
                 })(),
 
-                // College production
+                // College production (with position-average imputation)
                 ...(() => {
                   const cs = collegeByName.get(normalName);
+                  const pg = collegePerGameByName.get(normalName);
+                  const adv = collegeAdvancedByName.get(normalName);
+                  const prospect = prospectByName.get(normalName);
+                  const posAvg = collegeAvgByPos.get(adpPlayer.position) || {};
+                  const _hasCollege = cs ? 1 : 0;
+                  const _hasProspect = prospect?.grade ? 1 : 0;
+                  const _hasCombine = combineByName.has(normalName) ? 1 : 0;
+                  const imp = (raw: number | undefined, field: string) => raw || posAvg[field] || 0;
                   return {
-                    collegePassYds: cs?.get('Passing Yards') || 0,
-                    collegePassTDs: cs?.get('Passing Touchdowns') || 0,
-                    collegeRushYds: cs?.get('Rushing Yards') || 0,
-                    collegeRecYds: cs?.get('Receiving Yards') || 0,
-                    collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
-                    collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
-                    collegeQBR: collegeQBRByName.get(normalName) || 0,
-                    collegeGames: collegePerGameByName.get(normalName)?.games || 0,
-                    collegeRecPerGame: collegePerGameByName.get(normalName)?.recPerGame || 0,
-                    collegeYdsPerGame: collegePerGameByName.get(normalName)?.ydsPerGame || 0,
-                    collegeTDsPerGame: collegePerGameByName.get(normalName)?.tdsPerGame || 0,
-                    collegeRushYPC: collegePerGameByName.get(normalName)?.rushYPC || 0,
-                    prospectGrade: prospectByName.get(normalName)?.grade || 0,
-                    prospectPosRank: prospectByName.get(normalName)?.pos_rk || 0,
-                    prospectOvlRank: prospectByName.get(normalName)?.ovr_rk || 0,
-                    collegeDominatorRating: collegeAdvancedByName.get(normalName)?.dominatorRating || 0,
-                    collegeBreakoutAge: collegeAdvancedByName.get(normalName)?.breakoutAge || 0,
-                    collegeMarketShare: collegeAdvancedByName.get(normalName)?.marketShare || 0,
+                    collegePassYds: imp(cs?.get('Passing Yards'), 'collegePassYds'),
+                    collegePassTDs: imp(cs?.get('Passing Touchdowns'), 'collegePassTDs'),
+                    collegeRushYds: imp(cs?.get('Rushing Yards'), 'collegeRushYds'),
+                    collegeRecYds: imp(cs?.get('Receiving Yards'), 'collegeRecYds'),
+                    collegeRecTDs: imp(cs?.get('Receiving Touchdowns'), 'collegeRecTDs'),
+                    collegeTotalTDs: cs
+                      ? (cs.get('Passing Touchdowns') || 0) + (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0)
+                      : posAvg['collegeTotalTDs'] || 0,
+                    collegeQBR: imp(collegeQBRByName.get(normalName), 'collegeQBR'),
+                    collegeGames: pg?.games || 0,
+                    collegeRecPerGame: imp(pg?.recPerGame, 'collegeRecPerGame'),
+                    collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),
+                    collegeTDsPerGame: imp(pg?.tdsPerGame, 'collegeTDsPerGame'),
+                    collegeRushYPC: imp(pg?.rushYPC, 'collegeRushYPC'),
+                    prospectGrade: prospect?.grade || 0,
+                    prospectPosRank: prospect?.pos_rk || 0,
+                    prospectOvlRank: prospect?.ovr_rk || 0,
+                    collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
+                    collegeBreakoutAge: adv?.breakoutAge || 0,
+                    collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                     speedScore: speedScoreByName.get(normalName) || 0,
+                    hasCollegeStats: _hasCollege,
+                    hasProspectGrade: _hasProspect,
+                    hasCombineData: _hasCombine,
                   };
                 })(),
 
