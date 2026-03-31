@@ -263,9 +263,17 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeYdsPerGame', label: 'College Yards/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeTDsPerGame', label: 'College TDs/Game', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeRushYPC', label: 'College Rush YPC', category: 'College', positions: ['QB', 'RB'] },
+  { key: 'collegeYdsPerRec', label: 'College Yards/Reception', category: 'College', positions: ['WR', 'TE'] },
+  // Career-best single-season stats (peak production across all college seasons)
+  { key: 'collegeBestRecYds', label: 'College Best Season Rec Yards', category: 'College', positions: ['WR', 'TE'] },
+  { key: 'collegeBestRecTDs', label: 'College Best Season Rec TDs', category: 'College', positions: ['WR', 'TE'] },
+  { key: 'collegeBestReceptions', label: 'College Best Season Receptions', category: 'College', positions: ['WR', 'TE'] },
+  { key: 'collegeBestRushYds', label: 'College Best Season Rush Yards', category: 'College', positions: ['RB'] },
+  { key: 'collegeSeasons', label: 'College Seasons Played', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   // Advanced college analytics
   { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeBreakoutAge', label: 'College Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeBreakoutAgeDelta', label: 'Draft Age − Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeMarketShare', label: 'College Receiving/Rushing Share (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'speedScore', label: 'Speed Score (weight-adj 40)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   // Draft prospect grade/ranking
@@ -373,11 +381,14 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight',
        'collegeDominatorRating', 'collegeMarketShare',
        'hasCollegeStats', 'hasCombineData'],
-  // WR: ~127 rookies → 12 features
+  // WR: ~127 rookies → 19 features
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
-       'collegeRecPerGame', 'prospectGrade', 'forty', 'collegeYdsPerGame',
-       'collegeDominatorRating',
-       'hasCollegeStats', 'hasCombineData'],
+       'collegeRecPerGame', 'prospectGrade', 'forty', 'weight',
+       'collegeDominatorRating', 'collegeBreakoutAge', 'collegeBreakoutAgeDelta',
+       'collegeMarketShare', 'collegeYdsPerRec',
+       'collegeBestRecYds', 'collegeBestRecTDs', 'collegeBestReceptions',
+       'collegeSeasons',
+       'hasCollegeStats'],
   // TE: ~20 rookies → 7 features (Ridge-only model, no GBM)
   TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds',
        'prospectGrade', 'collegeRecPerGame',
@@ -393,7 +404,7 @@ export const ROOKIE_FEATURES: Record<string, string[]> = {
   // RB: 14 + 3 = 17 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 12 + 3 = 15 features
+  // WR: 19 + 3 = 22 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
   // TE: 7 + 2 = 9 features
