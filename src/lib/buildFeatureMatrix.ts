@@ -2020,12 +2020,29 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const ratioVar = ratios.reduce((s, v) => s + (v - ratioMean) ** 2, 0) / ratios.length;
           const ratioStd = Math.sqrt(ratioVar) || 1;
 
-          // Label: hit = z > 0 (beat expectations), bust = z < -1 (well below expectations)
+          // Label using z-score thresholds
+          const HIT_Z = 0.5;   // meaningfully above expectations
+          const BUST_Z = -0.5; // meaningfully below expectations
+          const zScores: number[] = [];
           for (let i = 0; i < posRows.length; i++) {
             const z = (ratios[i] - ratioMean) / ratioStd;
-            posRows[i].isHit = z > 0;
-            posRows[i].isBust = z < -1;
+            zScores.push(z);
+            posRows[i].isHit = z > HIT_Z;
+            posRows[i].isBust = z < BUST_Z;
           }
+
+          // Diagnostic: show distribution at various thresholds
+          const n = posRows.length;
+          const countAbove = (t: number) => zScores.filter(z => z > t).length;
+          const countBelow = (t: number) => zScores.filter(z => z < t).length;
+          onStatus?.(`  ${pos} hit/bust (n=${n}): ` +
+            `ADP→PPG curve: PPG = ${intercept.toFixed(1)} + ${slope.toFixed(4)}*ADP | ` +
+            `z>0.0: ${countAbove(0)} (${Math.round(countAbove(0)/n*100)}%), ` +
+            `z>0.5: ${countAbove(0.5)} (${Math.round(countAbove(0.5)/n*100)}%), ` +
+            `z>1.0: ${countAbove(1)} (${Math.round(countAbove(1)/n*100)}%) | ` +
+            `z<0.0: ${countBelow(0)} (${Math.round(countBelow(0)/n*100)}%), ` +
+            `z<-0.5: ${countBelow(-0.5)} (${Math.round(countBelow(-0.5)/n*100)}%), ` +
+            `z<-1.0: ${countBelow(-1)} (${Math.round(countBelow(-1)/n*100)}%)`);
         }
 
         // ── Standardize VOR per position (z-score) ───────────────────────────
