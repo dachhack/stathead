@@ -1653,6 +1653,16 @@ async function main() {
   }
   console.log(`  Share predictions: ${sharePredCount} player-metric pairs`);
 
+  // Carry forward prior rush shares for WR/TE (low volume, not worth predicting)
+  for (const r of result.predRows as Array<{ position: string; adp: number; features: Record<string, number> }>) {
+    if (r.adp > MAX_ADP) continue;
+    if (r.position === 'WR' || r.position === 'TE') {
+      r.features.predRushShare = r.features.priorTeamTouchShare || 0;
+      r.features.predRushYdsShare = r.features.priorTeamTouchShare || 0;
+      r.features.predRushTDShare = 0; // WR/TE rush TDs are too rare to carry forward
+    }
+  }
+
   // Residual-model predictions
   console.log('  Scoring 2026 residual predictions...');
   const residualPredictions2026: Array<{
