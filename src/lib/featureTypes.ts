@@ -267,6 +267,7 @@ export const FEATURES: FeatureDef[] = [
   // Advanced college analytics
   { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeBreakoutAge', label: 'College Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeBreakoutAgeDelta', label: 'Draft Age − Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeMarketShare', label: 'College Receiving/Rushing Share (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'speedScore', label: 'Speed Score (weight-adj 40)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   // Draft prospect grade/ranking
@@ -374,10 +375,11 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeTotalTDs', 'collegeRecYds', 'prospectGrade', 'forty', 'weight',
        'collegeDominatorRating', 'collegeMarketShare',
        'hasCollegeStats', 'hasCombineData'],
-  // WR: ~127 rookies → 13 features
+  // WR: ~127 rookies → 15 features
   WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
        'collegeRecPerGame', 'prospectGrade', 'forty', 'weight',
-       'collegeDominatorRating', 'collegeMarketShare', 'collegeYdsPerRec',
+       'collegeDominatorRating', 'collegeBreakoutAge', 'collegeBreakoutAgeDelta',
+       'collegeMarketShare', 'collegeYdsPerRec',
        'hasCollegeStats'],
   // TE: ~20 rookies → 7 features (Ridge-only model, no GBM)
   TE: ['nflDraftRound', 'nflDraftPick', 'collegeRecYds',
@@ -394,7 +396,7 @@ export const ROOKIE_FEATURES: Record<string, string[]> = {
   // RB: 14 + 3 = 17 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 13 + 3 = 16 features
+  // WR: 15 + 3 = 18 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
   // TE: 7 + 2 = 9 features

@@ -280,6 +280,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
+          // If player never broke out (breakoutAge === 0), fall back to draft age
+          // so they get the worst-case breakout age rather than a misleading 0
+          if (breakoutAge === 0 && draftAge > 0) {
+            breakoutAge = draftAge;
+          }
+
           collegeAdvancedByName.set(name, {
             dominatorRating: Math.round(bestDominator * 10) / 10,
             breakoutAge: breakoutAge,
@@ -308,7 +314,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             'collegePassYds', 'collegePassTDs', 'collegeRushYds', 'collegeRecYds',
             'collegeRecTDs', 'collegeTotalTDs', 'collegeQBR', 'collegeRecPerGame',
             'collegeYdsPerGame', 'collegeTDsPerGame', 'collegeRushYPC',
-            'collegeDominatorRating', 'collegeMarketShare', 'collegeYdsPerRec',
+            'collegeDominatorRating', 'collegeBreakoutAge', 'collegeMarketShare', 'collegeYdsPerRec',
           ];
           // Iterate all players with college data, accumulate per-position averages
           for (const [name, cs] of collegeByName) {
@@ -1729,7 +1735,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   prospectPosRank: prospect?.pos_rk || 0,
                   prospectOvlRank: prospect?.ovr_rk || 0,
                   collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
-                  collegeBreakoutAge: adv?.breakoutAge || 0,
+                  collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
+                  collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
+                    ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
                   collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                   speedScore: speedScoreByName.get(normalName) || 0,
                   // Missing-data indicators
@@ -2837,7 +2845,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectPosRank: prospect?.pos_rk || 0,
                     prospectOvlRank: prospect?.ovr_rk || 0,
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
-                    collegeBreakoutAge: adv?.breakoutAge || 0,
+                    collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
+                    collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
+                      ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
                     collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                     speedScore: speedScoreByName.get(normalName) || 0,
                     hasCollegeStats: _hasCollege,
