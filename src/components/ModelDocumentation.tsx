@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
@@ -50,6 +50,7 @@ export function ModelDocumentation() {
   const [selectedPos, setSelectedPos] = useState('RB');
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
+  const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust'>('vor');
 
   useEffect(() => {
     async function load() {
@@ -57,14 +58,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025 });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary });
           }
         } catch {}
       }
@@ -312,78 +313,118 @@ export function ModelDocumentation() {
           </p>
         </div>
 
-        {/* Position selector */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 4 }}>Position:</span>
-          {POSITIONS.map((pos) => (
-            <button
-              key={pos}
-              onClick={() => setSelectedPos(pos)}
-              style={{
-                padding: '6px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                border: `2px solid ${selectedPos === pos ? POS_COLORS[pos] : 'var(--border)'}`,
-                background: selectedPos === pos ? POS_COLORS[pos] + '22' : 'var(--bg-secondary)',
-                color: selectedPos === pos ? POS_COLORS[pos] : 'var(--text-secondary)',
-              }}
-            >
-              {pos}
-            </button>
-          ))}
-          <span style={{ marginLeft: 16, fontSize: 13, color: 'var(--text-muted)' }}>Model:</span>
-          {(['gbm', 'ridge'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => { setModelType(m); if (m === 'ridge') setModelView('combined'); }}
-              style={{
-                padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                border: `2px solid ${modelType === m ? '#6366f1' : 'var(--border)'}`,
-                background: modelType === m ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
-                color: modelType === m ? '#6366f1' : 'var(--text-secondary)',
-              }}
-            >
-              {m === 'gbm' ? 'GBM' : 'Ridge'}
-            </button>
-          ))}
-          {modelType === 'gbm' && (
-            <>
-              <span style={{ marginLeft: 16, fontSize: 13, color: 'var(--text-muted)' }}>View:</span>
-              {([
-                { key: 'combined' as const, label: 'Combined' },
-                { key: 'veteran' as const, label: 'Veteran' },
-                { key: 'rookie' as const, label: 'Rookie' },
-                { key: 'rookie-predraft' as const, label: 'Rookie (Pre-Draft)' },
-              ]).map(({ key, label }) => {
-                const hasData = key === 'combined'
-                  ? true
-                  : key === 'veteran'
-                  ? !!data?.vetFeatureImportance?.[selectedPos]
-                  : key === 'rookie'
-                  ? !!data?.rookieFeatureImportance?.[selectedPos]
-                  : !!data?.rookiePreDraftFeatureImportance?.[selectedPos];
-                return (
+        {/* ── Model Evaluation Selector ── */}
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
+          {/* Row 1: Category selector */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 4, minWidth: 60 }}>Evaluate:</span>
+            {([
+              { key: 'vor' as const, label: 'VOR Score', desc: 'Value Over Replacement' },
+              { key: 'ppg' as const, label: 'PPG', desc: 'ADP-Free Points Per Game' },
+              { key: 'shares' as const, label: 'Player Shares', desc: 'Team Volume Shares' },
+              { key: 'hitbust' as const, label: 'Hit / Bust', desc: 'ADP-Residual Model' },
+            ]).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setModelCategory(key)}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                  border: `2px solid ${modelCategory === key ? '#a78bfa' : 'var(--border)'}`,
+                  background: modelCategory === key ? 'rgba(167,139,250,0.12)' : 'transparent',
+                  color: modelCategory === key ? '#a78bfa' : 'var(--text-secondary)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Row 2: Position selector */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 4, minWidth: 60 }}>Position:</span>
+            {POSITIONS.map((pos) => {
+              const disabled = modelCategory === 'shares' && pos === 'QB';
+              return (
+                <button
+                  key={pos}
+                  onClick={() => !disabled && setSelectedPos(pos)}
+                  style={{
+                    padding: '6px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.3 : 1,
+                    border: `2px solid ${selectedPos === pos && !disabled ? POS_COLORS[pos] : 'var(--border)'}`,
+                    background: selectedPos === pos && !disabled ? POS_COLORS[pos] + '22' : 'transparent',
+                    color: selectedPos === pos && !disabled ? POS_COLORS[pos] : 'var(--text-secondary)',
+                  }}
+                >
+                  {pos}
+                </button>
+              );
+            })}
+
+            {/* Model algo (VOR + PPG only) */}
+            {(modelCategory === 'vor' || modelCategory === 'ppg') && (
+              <>
+                <span style={{ marginLeft: 16, fontSize: 13, color: 'var(--text-muted)' }}>Model:</span>
+                {(['gbm', 'ridge'] as const).map((m) => (
                   <button
-                    key={key}
-                    onClick={() => hasData && setModelView(key)}
+                    key={m}
+                    onClick={() => { setModelType(m); if (m === 'ridge') setModelView('combined'); }}
                     style={{
-                      padding: '4px 12px', borderRadius: 5, fontSize: 12, fontWeight: 600,
-                      cursor: hasData ? 'pointer' : 'not-allowed',
-                      opacity: hasData ? 1 : 0.4,
-                      border: `2px solid ${modelView === key ? '#14b8a6' : 'var(--border)'}`,
-                      background: modelView === key ? 'rgba(20,184,166,0.12)' : 'var(--bg-secondary)',
-                      color: modelView === key ? '#14b8a6' : 'var(--text-secondary)',
+                      padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      border: `2px solid ${modelType === m ? '#6366f1' : 'var(--border)'}`,
+                      background: modelType === m ? 'rgba(99,102,241,0.12)' : 'transparent',
+                      color: modelType === m ? '#6366f1' : 'var(--text-secondary)',
                     }}
                   >
-                    {label}
+                    {m === 'gbm' ? 'GBM' : 'Ridge'}
                   </button>
-                );
-              })}
-            </>
-          )}
+                ))}
+              </>
+            )}
+
+            {/* View (VOR only, GBM only) */}
+            {modelCategory === 'vor' && modelType === 'gbm' && (
+              <>
+                <span style={{ marginLeft: 16, fontSize: 13, color: 'var(--text-muted)' }}>View:</span>
+                {([
+                  { key: 'combined' as const, label: 'Combined' },
+                  { key: 'veteran' as const, label: 'Veteran' },
+                  { key: 'rookie' as const, label: 'Rookie' },
+                  { key: 'rookie-predraft' as const, label: 'Rookie (Pre-Draft)' },
+                ]).map(({ key, label }) => {
+                  const hasData = key === 'combined'
+                    ? true
+                    : key === 'veteran'
+                    ? !!data?.vetFeatureImportance?.[selectedPos]
+                    : key === 'rookie'
+                    ? !!data?.rookieFeatureImportance?.[selectedPos]
+                    : !!data?.rookiePreDraftFeatureImportance?.[selectedPos];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => hasData && setModelView(key)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 700,
+                        cursor: hasData ? 'pointer' : 'not-allowed',
+                        opacity: hasData ? 1 : 0.3,
+                        border: `2px solid ${modelView === key ? '#14b8a6' : 'var(--border)'}`,
+                        background: modelView === key ? 'rgba(20,184,166,0.12)' : 'transparent',
+                        color: modelView === key ? '#14b8a6' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
         </div>
 
-        {model && (
+        {/* ── Metric Cards ── */}
+        {model && modelCategory === 'vor' && (
           <>
-            {/* Validation metrics */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               {[
                 { label: 'Training Samples', value: model.n.toString(), color: 'var(--text-primary)' },
@@ -518,8 +559,8 @@ export function ModelDocumentation() {
               </div>
             ))}
 
-            {/* Cross-position comparison */}
-            <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Cross-Position Model Comparison</h3>
+            {/* Cross-position VOR comparison table */}
+            <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Cross-Position Comparison</h3>
             <div className="table-container">
               <table style={{ fontSize: 12 }}>
                 <thead>
@@ -527,72 +568,30 @@ export function ModelDocumentation() {
                     <th>Position</th>
                     <th style={{ textAlign: 'right' }}>N</th>
                     <th style={{ textAlign: 'right' }}>GBM R²</th>
-                    <th style={{ textAlign: 'right' }}>GBM MAE</th>
                     <th style={{ textAlign: 'right' }}>Ridge R²</th>
                     <th style={{ textAlign: 'right' }}>Ensemble R²</th>
                     <th style={{ textAlign: 'right' }}>R/V R²</th>
-                    <th style={{ textAlign: 'right' }}>Features</th>
+                    <th style={{ textAlign: 'right' }}>Rookie R²</th>
+                    <th style={{ textAlign: 'right' }}>Vet R²</th>
                     <th style={{ textAlign: 'right' }}>Hit %</th>
                     <th style={{ textAlign: 'right' }}>Bust %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.models.map((m) => (
-                    <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
-                      <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
-                      <td style={{ textAlign: 'right' }}>{m.n}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: ((m as any).cvR2Ensemble ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((m as any).cvR2Ensemble ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right', color: ((m as any).cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((m as any).cvR2RookieVet ?? 0).toFixed(3)}</td>
-                      <td style={{ textAlign: 'right' }}>{m.featureNames.length}</td>
-                      <td style={{ textAlign: 'right', color: '#22c55e' }}>{m.hitRate}%</td>
-                      <td style={{ textAlign: 'right', color: '#ef4444' }}>{m.bustRate}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Rookie vs Veteran Model Comparison */}
-            <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Rookie vs Veteran Model Performance</h3>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Separate GBM models trained for rookies (≤1 year) vs veterans (2+ years). Rookies rely more on college stats,
-              draft capital, and combine data. Veterans rely more on prior NFL production, snap %, and target share.
-            </p>
-            <div className="table-container">
-              <table style={{ fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th style={{ textAlign: 'right' }}>Rookies N</th>
-                    <th style={{ textAlign: 'right' }}>Rookie R²</th>
-                    <th style={{ textAlign: 'right' }}>Rookie MAE</th>
-                    <th style={{ textAlign: 'right' }}>Vets N</th>
-                    <th style={{ textAlign: 'right' }}>Vet R²</th>
-                    <th style={{ textAlign: 'right' }}>Vet MAE</th>
-                    <th style={{ textAlign: 'right' }}>Combined R²</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.models.map((m) => {
                     const ma = m as any;
                     return (
-                      <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
+                      <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined, cursor: 'pointer' }} onClick={() => setSelectedPos(m.position)}>
                         <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
-                        <td style={{ textAlign: 'right' }}>{ma.nRookies ?? '?'}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: (ma.cvR2RookieOnly ?? 0) > 0.1 ? '#22c55e' : (ma.cvR2RookieOnly ?? 0) > 0 ? '#facc15' : '#ef4444' }}>
-                          {(ma.cvR2RookieOnly ?? 0).toFixed(3)}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>{(ma.cvMaeRookieOnly ?? 0).toFixed(3)}</td>
-                        <td style={{ textAlign: 'right' }}>{ma.nVets ?? '?'}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: (ma.cvR2VetOnly ?? 0) > 0.1 ? '#22c55e' : (ma.cvR2VetOnly ?? 0) > 0 ? '#facc15' : '#ef4444' }}>
-                          {(ma.cvR2VetOnly ?? 0).toFixed(3)}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>{(ma.cvMaeVetOnly ?? 0).toFixed(3)}</td>
-                        <td style={{ textAlign: 'right', color: ((ma.cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : '#facc15') }}>
-                          {(ma.cvR2RookieVet ?? 0).toFixed(3)}
-                        </td>
+                        <td style={{ textAlign: 'right' }}>{m.n}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: ((ma).cvR2Ensemble ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((ma).cvR2Ensemble ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: ((ma).cvR2RookieVet ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{((ma).cvR2RookieVet ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: (ma.cvR2RookieOnly ?? 0) > 0 ? '#22c55e' : '#ef4444' }}>{(ma.cvR2RookieOnly ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: (ma.cvR2VetOnly ?? 0) > 0.1 ? '#22c55e' : '#facc15' }}>{(ma.cvR2VetOnly ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: '#22c55e' }}>{m.hitRate}%</td>
+                        <td style={{ textAlign: 'right', color: '#ef4444' }}>{m.bustRate}%</td>
                       </tr>
                     );
                   })}
@@ -600,236 +599,256 @@ export function ModelDocumentation() {
               </table>
             </div>
 
-            {/* PPG Model Comparison */}
-            {data.ppgModels && data.ppgModels.length > 0 && (
-              <>
-                <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>ADP-Free PPG Model Comparison</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                  Predicts raw fantasy PPG without any ADP information. Compares predicted PPG to ADP-implied PPG to find value.
-                </p>
-                <div className="table-container">
-                  <table style={{ fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th>Position</th>
-                        <th style={{ textAlign: 'right' }}>N</th>
-                        <th style={{ textAlign: 'right' }}>GBM R²</th>
-                        <th style={{ textAlign: 'right' }}>Ridge R²</th>
-                        <th style={{ textAlign: 'right' }}>GBM MAE</th>
-                        <th style={{ textAlign: 'right' }}>Features</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.ppgModels.map((m) => (
-                        <tr key={m.position}>
-                          <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
-                          <td style={{ textAlign: 'right' }}>{m.n}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: (m.cvR2Gbm ?? 0) > 0.1 ? '#22c55e' : (m.cvR2Gbm ?? 0) > 0 ? '#facc15' : '#ef4444' }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
-                          <td style={{ textAlign: 'right', color: (m.cvR2Ridge ?? 0) > 0.1 ? '#22c55e' : (m.cvR2Ridge ?? 0) > 0 ? '#facc15' : '#ef4444' }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
-                          <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(1)}</td>
-                          <td style={{ textAlign: 'right' }}>{m.featureNames?.length || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
+          </>
+        )}
 
-            {/* ADP-Residual Model Backtest */}
-            {data.residualModels && data.residualModels.some((m: any) => m.backtest?.blendedRankCorr) && (
-              <>
-                <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Can the Model Beat ADP?</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                  ADP-residual model: learns WHERE ADP is wrong, then adjusts.
-                  Final prediction = ADP-implied PPG + &alpha; &times; model residual.
-                  &alpha; is tuned per position via LOSO CV to maximize rank correlation.
-                </p>
-
-                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Ranking Accuracy (Spearman Correlation)</h4>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                  Does the blended prediction rank players better than ADP alone?
-                </p>
-                <div className="table-container">
-                  <table style={{ fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th>Position</th>
-                        <th style={{ textAlign: 'right' }}>ADP Alone</th>
-                        <th style={{ textAlign: 'right' }}>Model (&alpha;=1)</th>
-                        <th style={{ textAlign: 'right' }}>Best &alpha;</th>
-                        <th style={{ textAlign: 'right' }}>Blended</th>
-                        <th style={{ textAlign: 'right' }}>vs ADP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.residualModels.filter((m: any) => m.backtest?.blendedRankCorr).map((m: any) => {
-                        const b = m.backtest;
-                        const blendBetter = b.blendedRankCorr > b.adpRankCorr;
-                        const delta = b.blendedRankCorr - b.adpRankCorr;
-                        return (
-                          <tr key={m.position}>
-                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
-                            <td style={{ textAlign: 'right' }}>{b.adpRankCorr.toFixed(3)}</td>
-                            <td style={{ textAlign: 'right', color: b.modelRankCorr > b.adpRankCorr ? '#22c55e' : '#ef4444' }}>{b.modelRankCorr.toFixed(3)}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.bestAlpha}</td>
-                            <td style={{ textAlign: 'right', color: blendBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.blendedRankCorr.toFixed(3)}</td>
-                            <td style={{ textAlign: 'right', color: blendBetter ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{delta > 0 ? '+' : ''}{delta.toFixed(3)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Buy vs Sell: PPG and Hit/Bust Rates</h4>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-                  When the model says &quot;buy&quot; (undervalued) or &quot;sell&quot; (overvalued) vs ADP, what actually happens?
-                </p>
-                <div className="table-container">
-                  <table style={{ fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th>Position</th>
-                        <th style={{ textAlign: 'right' }}>Buy PPG</th>
-                        <th style={{ textAlign: 'right' }}>Sell PPG</th>
-                        <th style={{ textAlign: 'right' }}>Lift</th>
-                        <th style={{ textAlign: 'right' }}>Buy Hit%</th>
-                        <th style={{ textAlign: 'right' }}>Sell Hit%</th>
-                        <th style={{ textAlign: 'right' }}>Buy Bust%</th>
-                        <th style={{ textAlign: 'right' }}>Sell Bust%</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.residualModels.filter((m: any) => m.backtest?.blendedRankCorr).map((m: any) => {
-                        const b = m.backtest;
-                        return (
-                          <tr key={m.position}>
-                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
-                            <td style={{ textAlign: 'right', color: b.buyActualPPG > b.sellActualPPG ? '#22c55e' : 'var(--text-secondary)', fontWeight: 600 }}>{b.buyActualPPG.toFixed(1)}</td>
-                            <td style={{ textAlign: 'right' }}>{b.sellActualPPG.toFixed(1)}</td>
-                            <td style={{ textAlign: 'right', color: b.liftPct > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.liftPct > 0 ? '+' : ''}{b.liftPct}%</td>
-                            <td style={{ textAlign: 'right', color: b.buyHitRate > b.sellHitRate ? '#22c55e' : 'var(--text-secondary)', fontWeight: 600 }}>{b.buyHitRate}%</td>
-                            <td style={{ textAlign: 'right' }}>{b.sellHitRate}%</td>
-                            <td style={{ textAlign: 'right', color: b.buyBustRate < b.sellBustRate ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.buyBustRate}%</td>
-                            <td style={{ textAlign: 'right' }}>{b.sellBustRate}%</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <h4 style={{ fontSize: 13, margin: '16px 0 4px', color: 'var(--text-secondary)' }}>Top-N Accuracy</h4>
-                <div className="table-container">
-                  <table style={{ fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th>Position</th>
-                        <th style={{ textAlign: 'right' }}>N</th>
-                        <th style={{ textAlign: 'right' }}>Model Hit Rate</th>
-                        <th style={{ textAlign: 'right' }}>ADP Hit Rate</th>
-                        <th style={{ textAlign: 'right' }}>Edge</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.residualModels.filter((m: any) => m.backtest?.topN).map((m: any) => {
-                        const b = m.backtest;
-                        const edge = b.topNModelHitRate - b.topNAdpHitRate;
-                        return (
-                          <tr key={m.position}>
-                            <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{m.position}</td>
-                            <td style={{ textAlign: 'right' }}>Top-{b.topN}</td>
-                            <td style={{ textAlign: 'right', color: edge > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{b.topNModelHitRate}%</td>
-                            <td style={{ textAlign: 'right' }}>{b.topNAdpHitRate}%</td>
-                            <td style={{ textAlign: 'right', color: edge > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{edge > 0 ? '+' : ''}{edge}pp</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                  &alpha; controls how much the model adjusts ADP (&alpha;=0 = pure ADP, &alpha;=1 = full model).
-                  Hit = beat replacement level (VOR &ge; 0). Bust = 50+ PPR points below replacement.
-                  Lift = % PPG difference between buy and sell groups. Green = model adds value vs ADP.
-                </p>
-              </>
-            )}
-
-            {/* Share Prediction Models */}
-            {data.shareModelSummary && Object.keys(data.shareModelSummary).length > 0 && (() => {
-              const sm = data.shareModelSummary!;
-              // Group by share type
-              const shareTypes = [
-                { label: 'Target Share', suffix: 'predTargetShare', positions: ['RB', 'WR', 'TE'] },
-                { label: 'Rush Share', suffix: 'predRushShare', positions: ['RB'] },
-                { label: 'Reception Share', suffix: 'predReceptionShare', positions: ['RB', 'WR', 'TE'] },
-                { label: 'Rec Yds Share', suffix: 'predRecYdsShare', positions: ['RB', 'WR', 'TE'] },
-                { label: 'Rush Yds Share', suffix: 'predRushYdsShare', positions: ['RB'] },
-                { label: 'Pass TD Share', suffix: 'predPassTDShare', positions: ['RB', 'WR', 'TE'] },
-                { label: 'Rush TD Share', suffix: 'predRushTDShare', positions: ['RB'] },
-              ];
-              return (
-                <>
-                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Player Share Prediction Models</h3>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                    Predict each player&apos;s share of team volume metrics (targets, carries, receptions, yards, TDs).
-                    Uses prior share, snap%, depth chart, competition, contract, age, and draft capital as features.
-                    LOSO cross-validated R&sup2; measures honest out-of-sample predictive power.
-                  </p>
-                  <div className="table-container">
-                    <table style={{ fontSize: 12 }}>
-                      <thead>
-                        <tr>
-                          <th>Share Metric</th>
-                          {['RB', 'WR', 'TE'].map(pos => (
-                            <th key={pos} colSpan={2} style={{ textAlign: 'center', color: POS_COLORS[pos] }}>{pos}</th>
-                          ))}
-                        </tr>
-                        <tr>
-                          <th></th>
-                          {['RB', 'WR', 'TE'].map(pos => (
-                            <>{/* eslint-disable-next-line react/jsx-key */}
-                              <th key={`${pos}-r2`} style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>R²</th>
-                              <th key={`${pos}-mae`} style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>MAE</th>
-                            </>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shareTypes.map(({ label, suffix, positions }) => (
-                          <tr key={suffix}>
-                            <td style={{ fontWeight: 500 }}>{label}</td>
-                            {['RB', 'WR', 'TE'].map(pos => {
-                              const key = `${pos}_${suffix}`;
-                              const m = sm[key];
-                              if (!positions.includes(pos) || !m) {
-                                return <><td key={`${pos}-r2`} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td><td key={`${pos}-mae`} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td></>;
-                              }
-                              return (
-                                <>
-                                  <td key={`${pos}-r2`} style={{ textAlign: 'right', fontWeight: 700, color: m.cvR2 > 0.3 ? '#22c55e' : m.cvR2 > 0.1 ? '#facc15' : m.cvR2 > 0 ? '#fb923c' : '#ef4444' }}>
-                                    {m.cvR2.toFixed(3)}
-                                  </td>
-                                  <td key={`${pos}-mae`} style={{ textAlign: 'right' }}>{m.cvMAE.toFixed(3)}</td>
-                                </>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+        {/* ── PPG Model Cards ── */}
+        {modelCategory === 'ppg' && (() => {
+          const ppgModel = data.ppgModels?.find((m) => m.position === selectedPos);
+          if (!ppgModel) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No PPG model data available for {selectedPos}.</p>;
+          const r2Color = (v: number) => v > 0.3 ? '#22c55e' : v > 0.1 ? '#facc15' : v > 0 ? '#fb923c' : '#ef4444';
+          return (
+            <>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Training Samples', value: ppgModel.n.toString(), color: 'var(--text-primary)' },
+                  { label: 'GBM CV R²', value: (ppgModel.cvR2Gbm ?? 0).toFixed(3), color: r2Color(ppgModel.cvR2Gbm ?? 0) },
+                  { label: 'Ridge CV R²', value: (ppgModel.cvR2Ridge ?? 0).toFixed(3), color: r2Color(ppgModel.cvR2Ridge ?? 0) },
+                  { label: 'GBM CV MAE', value: (ppgModel.cvMaeGbm ?? 0).toFixed(1), color: 'var(--text-primary)' },
+                  { label: 'Features', value: (ppgModel.featureNames?.length || 0).toString(), color: 'var(--text-primary)' },
+                ].map((m) => (
+                  <div key={m.label} style={{
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '10px 16px', minWidth: 120,
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{m.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: m.color }}>{m.value}</div>
                   </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                    R&sup2; &gt; 0.3 indicates strong predictive power. Target share and rush share typically have the
-                    strongest signal due to year-over-year persistence. TD shares are noisier due to small counts.
-                  </p>
-                </>
-              );
-            })()}
+                ))}
+              </div>
 
+              {/* Cross-position PPG table */}
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Cross-Position Comparison</h3>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>N</th>
+                      <th style={{ textAlign: 'right' }}>GBM R²</th>
+                      <th style={{ textAlign: 'right' }}>Ridge R²</th>
+                      <th style={{ textAlign: 'right' }}>GBM MAE</th>
+                      <th style={{ textAlign: 'right' }}>Features</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.ppgModels?.map((m) => (
+                      <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined, cursor: 'pointer' }} onClick={() => setSelectedPos(m.position)}>
+                        <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
+                        <td style={{ textAlign: 'right' }}>{m.n}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: r2Color(m.cvR2Gbm ?? 0) }}>{(m.cvR2Gbm ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right', color: r2Color(m.cvR2Ridge ?? 0) }}>{(m.cvR2Ridge ?? 0).toFixed(3)}</td>
+                        <td style={{ textAlign: 'right' }}>{(m.cvMaeGbm ?? 0).toFixed(1)}</td>
+                        <td style={{ textAlign: 'right' }}>{m.featureNames?.length || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ── Share Model Cards ── */}
+        {modelCategory === 'shares' && (() => {
+          const sm = data.shareModelSummary;
+          if (!sm || Object.keys(sm).length === 0) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No share model data available. Run a build to generate.</p>;
+          const pos = selectedPos === 'QB' ? 'RB' : selectedPos; // QB has no share models
+          const shareTypes = [
+            { label: 'Target Share', suffix: 'predTargetShare', positions: ['RB', 'WR', 'TE'] },
+            { label: 'Rush Share', suffix: 'predRushShare', positions: ['RB'] },
+            { label: 'Reception Share', suffix: 'predReceptionShare', positions: ['RB', 'WR', 'TE'] },
+            { label: 'Rec Yds Share', suffix: 'predRecYdsShare', positions: ['RB', 'WR', 'TE'] },
+            { label: 'Rush Yds Share', suffix: 'predRushYdsShare', positions: ['RB'] },
+            { label: 'Pass TD Share', suffix: 'predPassTDShare', positions: ['RB', 'WR', 'TE'] },
+            { label: 'Rush TD Share', suffix: 'predRushTDShare', positions: ['RB'] },
+          ];
+          const posShareTypes = shareTypes.filter(s => s.positions.includes(pos));
+          const r2Color = (v: number) => v > 0.3 ? '#22c55e' : v > 0.1 ? '#facc15' : v > 0 ? '#fb923c' : '#ef4444';
+          return (
+            <>
+              {/* Metric cards for selected position */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {posShareTypes.map(({ label, suffix }) => {
+                  const key = `${pos}_${suffix}`;
+                  const m = sm[key];
+                  if (!m) return null;
+                  return (
+                    <div key={key} style={{
+                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                      borderRadius: 8, padding: '10px 16px', minWidth: 140,
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
+                      <div style={{ display: 'flex', gap: 16, alignItems: 'baseline' }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>R²</div>
+                          <div style={{ fontSize: 20, fontWeight: 700, color: r2Color(m.cvR2) }}>{m.cvR2.toFixed(3)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>MAE</div>
+                          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{m.cvMAE.toFixed(3)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>N</div>
+                          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{m.n}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Full cross-position share grid */}
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>All Positions</h3>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Share Metric</th>
+                      {['RB', 'WR', 'TE'].map(p => (
+                        <th key={p} colSpan={2} style={{ textAlign: 'center', color: POS_COLORS[p] }}>{p}</th>
+                      ))}
+                    </tr>
+                    <tr>
+                      <th></th>
+                      {['RB', 'WR', 'TE'].map(p => (
+                        <React.Fragment key={p}>
+                          <th style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>R²</th>
+                          <th style={{ textAlign: 'right', fontSize: 10, color: 'var(--text-muted)' }}>MAE</th>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shareTypes.map(({ label, suffix, positions }) => (
+                      <tr key={suffix}>
+                        <td style={{ fontWeight: 500 }}>{label}</td>
+                        {['RB', 'WR', 'TE'].map(p => {
+                          const key = `${p}_${suffix}`;
+                          const m = sm[key];
+                          if (!positions.includes(p) || !m) {
+                            return (
+                              <React.Fragment key={p}>
+                                <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td>
+                                <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td>
+                              </React.Fragment>
+                            );
+                          }
+                          return (
+                            <React.Fragment key={p}>
+                              <td style={{ textAlign: 'right', fontWeight: 700, color: r2Color(m.cvR2) }}>{m.cvR2.toFixed(3)}</td>
+                              <td style={{ textAlign: 'right' }}>{m.cvMAE.toFixed(3)}</td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Ensemble model (40% Ridge + 60% GBM). LOSO cross-validated.
+                R² &gt; 0.3 = strong signal. TD shares are noisier due to small counts.
+                WR/TE rush shares are carried forward from prior season (not predicted).
+              </p>
+            </>
+          );
+        })()}
+
+        {/* ── Hit/Bust (Residual) Model Cards ── */}
+        {modelCategory === 'hitbust' && (() => {
+          const rm = data.residualModels?.find((m: any) => m.position === selectedPos) as any;
+          if (!rm?.backtest) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No residual model data available for {selectedPos}.</p>;
+          const b = rm.backtest;
+          const blendBetter = b.blendedRankCorr > b.adpRankCorr;
+          const delta = b.blendedRankCorr - b.adpRankCorr;
+          const edge = b.topNModelHitRate - b.topNAdpHitRate;
+          return (
+            <>
+              {/* Top-level metrics */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'ADP Rank Corr', value: b.adpRankCorr.toFixed(3), color: 'var(--text-secondary)' },
+                  { label: 'Blended Rank Corr', value: b.blendedRankCorr.toFixed(3), color: blendBetter ? '#22c55e' : '#ef4444' },
+                  { label: 'vs ADP', value: `${delta > 0 ? '+' : ''}${delta.toFixed(3)}`, color: blendBetter ? '#22c55e' : '#ef4444' },
+                  { label: `Best α`, value: b.bestAlpha.toString(), color: '#a78bfa' },
+                  { label: 'Buy PPG', value: b.buyActualPPG.toFixed(1), color: b.buyActualPPG > b.sellActualPPG ? '#22c55e' : 'var(--text-secondary)' },
+                  { label: 'Sell PPG', value: b.sellActualPPG.toFixed(1), color: 'var(--text-secondary)' },
+                  { label: 'PPG Lift', value: `${b.liftPct > 0 ? '+' : ''}${b.liftPct}%`, color: b.liftPct > 0 ? '#22c55e' : '#ef4444' },
+                  { label: 'Buy Hit Rate', value: `${b.buyHitRate}%`, color: '#22c55e' },
+                  { label: 'Sell Hit Rate', value: `${b.sellHitRate}%`, color: 'var(--text-secondary)' },
+                  { label: 'Buy Bust Rate', value: `${b.buyBustRate}%`, color: b.buyBustRate < b.sellBustRate ? '#22c55e' : '#ef4444' },
+                  { label: 'Sell Bust Rate', value: `${b.sellBustRate}%`, color: '#ef4444' },
+                  ...(b.topN ? [{ label: `Top-${b.topN} Edge`, value: `${edge > 0 ? '+' : ''}${edge}pp`, color: edge > 0 ? '#22c55e' : '#ef4444' }] : []),
+                ].map((m) => (
+                  <div key={m.label} style={{
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '10px 16px', minWidth: 120,
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{m.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: m.color }}>{m.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cross-position residual table */}
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Cross-Position Comparison</h3>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>ADP Corr</th>
+                      <th style={{ textAlign: 'right' }}>Blended</th>
+                      <th style={{ textAlign: 'right' }}>vs ADP</th>
+                      <th style={{ textAlign: 'right' }}>α</th>
+                      <th style={{ textAlign: 'right' }}>Lift</th>
+                      <th style={{ textAlign: 'right' }}>Buy Hit%</th>
+                      <th style={{ textAlign: 'right' }}>Sell Bust%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.residualModels?.filter((m: any) => m.backtest?.blendedRankCorr).map((m: any) => {
+                      const bt = m.backtest;
+                      const better = bt.blendedRankCorr > bt.adpRankCorr;
+                      const d = bt.blendedRankCorr - bt.adpRankCorr;
+                      return (
+                        <tr key={m.position} style={{ background: m.position === selectedPos ? 'var(--bg-tertiary)' : undefined, cursor: 'pointer' }} onClick={() => setSelectedPos(m.position)}>
+                          <td><strong style={{ color: POS_COLORS[m.position] }}>{m.position}</strong></td>
+                          <td style={{ textAlign: 'right' }}>{bt.adpRankCorr.toFixed(3)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: better ? '#22c55e' : '#ef4444' }}>{bt.blendedRankCorr.toFixed(3)}</td>
+                          <td style={{ textAlign: 'right', color: better ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{d > 0 ? '+' : ''}{d.toFixed(3)}</td>
+                          <td style={{ textAlign: 'right' }}>{bt.bestAlpha}</td>
+                          <td style={{ textAlign: 'right', color: bt.liftPct > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{bt.liftPct > 0 ? '+' : ''}{bt.liftPct}%</td>
+                          <td style={{ textAlign: 'right', color: '#22c55e' }}>{bt.buyHitRate}%</td>
+                          <td style={{ textAlign: 'right', color: '#ef4444' }}>{bt.sellBustRate}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                α controls how much the model adjusts ADP (α=0 = pure ADP, α=1 = full model).
+                Hit = beat replacement level (VOR ≥ 0). Bust = 50+ PPR points below replacement.
+                Lift = % PPG difference between buy and sell groups.
+              </p>
+            </>
+          );
+        })()}
+
+        {model && (
+          <>
             {/* Draft Simulation */}
             {data.draftSim2025 && data.draftSim2025.adpTeam.length > 0 && (() => {
               const sim = data.draftSim2025!;
