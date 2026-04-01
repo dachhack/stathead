@@ -45,12 +45,17 @@ export function ModelDocumentation() {
       settings: { numTeams: number; pickPosition?: number; rounds: number; season?: number; qbDeadline?: number; simsPerPick?: number };
     };
     shareModelSummary?: Record<string, { cvR2: number; cvMAE: number; n: number }>;
+    rookieCareerModels?: Record<string, {
+      n: number; cvR2: number; cvMAE: number; rankCorr: number; seasons: number;
+      featureKeys: string[];
+      topN: Record<number, { precision: number; recall: number; n: number }>;
+    }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPos, setSelectedPos] = useState('RB');
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
-  const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust'>('vor');
+  const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career'>('vor');
 
   useEffect(() => {
     async function load() {
@@ -58,14 +63,14 @@ export function ModelDocumentation() {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary });
+          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary, rookieCareerModels: d.rookieCareerModels });
         }
       } catch { /* fallback to localStorage */
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) {
             const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary });
+            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary, rookieCareerModels: d.rookieCareerModels });
           }
         } catch {}
       }
@@ -323,6 +328,7 @@ export function ModelDocumentation() {
               { key: 'ppg' as const, label: 'PPG', desc: 'ADP-Free Points Per Game' },
               { key: 'shares' as const, label: 'Player Shares', desc: 'Team Volume Shares' },
               { key: 'hitbust' as const, label: 'Hit / Bust', desc: 'ADP-Residual Model' },
+              { key: 'career' as const, label: 'Rookie Career', desc: 'Best 2-of-3 Seasons' },
             ]).map(({ key, label }) => (
               <button
                 key={key}
@@ -842,6 +848,122 @@ export function ModelDocumentation() {
                 α controls how much the model adjusts ADP (α=0 = pure ADP, α=1 = full model).
                 Hit = beat replacement level (VOR ≥ 0). Bust = 50+ PPR points below replacement.
                 Lift = % PPG difference between buy and sell groups.
+              </p>
+            </>
+          );
+        })()}
+
+        {/* ── Rookie Career Model Cards ── */}
+        {modelCategory === 'career' && (() => {
+          const cm = data.rookieCareerModels;
+          if (!cm || Object.keys(cm).length === 0) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No rookie career model data available. Run a build to generate.</p>;
+          const m = cm[selectedPos];
+          if (!m) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No career model for {selectedPos}.</p>;
+          const r2Color = (v: number) => v > 0.3 ? '#22c55e' : v > 0.1 ? '#facc15' : v > 0 ? '#fb923c' : '#ef4444';
+          return (
+            <>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Predicts the <strong>average of a rookie&apos;s best 2 PPG seasons</strong> in their first 3 NFL years
+                using only pre-draft data (college stats, combine, draft pick). No NFL stats used.
+                LOSO cross-validated across {m.seasons} draft classes.
+              </p>
+
+              {/* Regression metrics */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Rookies', value: m.n.toString(), color: 'var(--text-primary)' },
+                  { label: 'CV R²', value: m.cvR2.toFixed(3), color: r2Color(m.cvR2) },
+                  { label: 'CV MAE', value: m.cvMAE.toFixed(1), color: 'var(--text-primary)' },
+                  { label: 'Rank Corr (ρ)', value: m.rankCorr.toFixed(3), color: m.rankCorr > 0.3 ? '#22c55e' : m.rankCorr > 0.1 ? '#facc15' : '#ef4444' },
+                  { label: 'Features', value: m.featureKeys.length.toString(), color: 'var(--text-secondary)' },
+                ].map((c) => (
+                  <div key={c.label} style={{
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '10px 16px', minWidth: 120,
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{c.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top-N classification accuracy */}
+              <h3 style={{ fontSize: 15, margin: '0 0 8px' }}>Can We Predict Top Finishers?</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                For each draft class, we rank rookies by predicted PPG and check how many of our predicted
+                top-N actually finish top-N by actual PPG. Higher = better signal.
+              </p>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[12, 24, 36, 48, 60].map(t => {
+                  const topN = m.topN[t];
+                  if (!topN || topN.n === 0) return null;
+                  const pct = topN.precision;
+                  const baseline = Math.min(100, Math.round(t / (m.n / m.seasons) * 100)); // random baseline
+                  const color = pct > baseline * 1.5 ? '#22c55e' : pct > baseline ? '#facc15' : '#ef4444';
+                  return (
+                    <div key={t} style={{
+                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                      borderRadius: 8, padding: '10px 16px', minWidth: 130, textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Top-{t} Precision</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color }}>{pct}%</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                        random: ~{baseline}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Cross-position comparison */}
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Cross-Position Comparison</h3>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>N</th>
+                      <th style={{ textAlign: 'right' }}>R²</th>
+                      <th style={{ textAlign: 'right' }}>MAE</th>
+                      <th style={{ textAlign: 'right' }}>Rank ρ</th>
+                      {[12, 24, 36].map(t => (
+                        <th key={t} style={{ textAlign: 'right' }}>Top-{t}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['QB', 'RB', 'WR', 'TE'].map(pos => {
+                      const pm = cm[pos];
+                      if (!pm) return (
+                        <tr key={pos}>
+                          <td><strong style={{ color: POS_COLORS[pos] }}>{pos}</strong></td>
+                          <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>insufficient data</td>
+                        </tr>
+                      );
+                      return (
+                        <tr key={pos} style={{ background: pos === selectedPos ? 'var(--bg-tertiary)' : undefined, cursor: 'pointer' }} onClick={() => setSelectedPos(pos)}>
+                          <td><strong style={{ color: POS_COLORS[pos] }}>{pos}</strong></td>
+                          <td style={{ textAlign: 'right' }}>{pm.n}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: r2Color(pm.cvR2) }}>{pm.cvR2.toFixed(3)}</td>
+                          <td style={{ textAlign: 'right' }}>{pm.cvMAE.toFixed(1)}</td>
+                          <td style={{ textAlign: 'right', color: pm.rankCorr > 0.3 ? '#22c55e' : pm.rankCorr > 0.1 ? '#facc15' : '#ef4444' }}>{pm.rankCorr.toFixed(3)}</td>
+                          {[12, 24, 36].map(t => {
+                            const topN = pm.topN[t];
+                            return (
+                              <td key={t} style={{ textAlign: 'right', fontWeight: 600, color: topN && topN.n > 0 ? (topN.precision > 50 ? '#22c55e' : '#facc15') : 'var(--text-muted)' }}>
+                                {topN && topN.n > 0 ? `${topN.precision}%` : '—'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Target = average of best 2 PPG seasons in first 3 NFL years. Minimum 4 games per season to qualify.
+                Top-N precision = % of predicted top-N that actually finish top-N, averaged across draft classes.
               </p>
             </>
           );

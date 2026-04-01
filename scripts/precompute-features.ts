@@ -38,7 +38,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v28.json'; // v28: player share prediction models
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v29.json'; // v29: rookie career prediction models
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -101,6 +101,7 @@ async function main() {
   let ppgModels: Record<string, unknown>[];
   let residualModels: Record<string, unknown>[];
   let shareModels: Record<string, unknown>;
+  let rookieCareerModels: any;
   let featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
@@ -121,6 +122,7 @@ async function main() {
     draftSim2025 = mc.draftSim2025;
     posThresholds = mc.posThresholds;
     shareModels = mc.shareModels || {};
+    rookieCareerModels = mc.rookieCareerModels || {};
     console.log(`  Cached: ${models.length} position models, skipping to 2026 scoring...`);
   } else {
 
@@ -1580,10 +1582,209 @@ async function main() {
     }
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // ROOKIE CAREER PREDICTION MODEL
+  // Target: average of best 2 PPG seasons in first 3 NFL seasons
+  // Features: PRE_DRAFT_ROOKIE_FEATURES only (college, combine, draft)
+  // ══════════════════════════════════════════════════════════════
+  console.log('\n  Training rookie career prediction models...');
+  rookieCareerModels = {};
+
+  // Step 1: Group rows by player, build career PPG map
+  // Key = normalized name + position, Value = { draftSeason, features, seasonPPGs[] }
+  const careerMap = new Map<string, {
+    name: string; position: string; draftSeason: number;
+    features: Record<string, number>;
+    seasonPPGs: { season: number; ppg: number; games: number }[];
+  }>();
+
+  for (const row of result.rows) {
+    const key = `${row.name}::${row.position}`;
+    if (!careerMap.has(key)) {
+      careerMap.set(key, {
+        name: row.name, position: row.position,
+        draftSeason: 0, features: {},
+        seasonPPGs: [],
+      });
+    }
+    const entry = careerMap.get(key)!;
+    // Track this season's PPG
+    const games = row.features.gamesPlayed || (row.rawPPG > 0 ? Math.max(1, Math.round((row.features.fantasyPointsPPR || 0) / row.rawPPG)) : 0);
+    entry.seasonPPGs.push({ season: row.season, ppg: row.rawPPG, games });
+    // If this is their rookie season, save draft info and pre-draft features
+    const yil = row.features.yearsInLeague ?? 99;
+    if (yil <= 1 && (entry.draftSeason === 0 || row.season < entry.draftSeason)) {
+      entry.draftSeason = row.season;
+      entry.features = { ...row.features };
+    }
+  }
+
+  // Step 2: Compute best-2-of-3 target for each player
+  interface RookieCareerRow {
+    name: string;
+    position: string;
+    draftSeason: number;
+    best2of3PPG: number;
+    features: Record<string, number>;
+  }
+  const careerRows: RookieCareerRow[] = [];
+
+  for (const [, entry] of careerMap) {
+    if (entry.draftSeason === 0) continue; // no rookie season found
+    // Only include if they have at least 2 seasons in their first 3
+    const first3 = entry.seasonPPGs
+      .filter(s => s.season >= entry.draftSeason && s.season < entry.draftSeason + 3)
+      .sort((a, b) => b.ppg - a.ppg); // sort descending by PPG
+    if (first3.length < 2) continue;
+    // Must have played enough games (at least 4 in each counted season)
+    const qualifying = first3.filter(s => s.games >= 4);
+    if (qualifying.length < 2) continue;
+    // Best 2 of first 3 seasons
+    const best2 = qualifying.slice(0, 2);
+    const best2of3PPG = Math.round((best2[0].ppg + best2[1].ppg) / 2 * 100) / 100;
+
+    // Must be a rookie (yearsInLeague <= 1 in their draft season)
+    const yil = entry.features.yearsInLeague ?? 99;
+    if (yil > 1) continue;
+
+    careerRows.push({
+      name: entry.name,
+      position: entry.position,
+      draftSeason: entry.draftSeason,
+      best2of3PPG,
+      features: entry.features,
+    });
+  }
+  console.log(`    Career rows: ${careerRows.length} rookies with 2+ qualifying seasons`);
+
+  // Step 3: Per-position training with LOSO CV
+  const CAREER_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
+  const TOP_N_THRESHOLDS = [12, 24, 36, 48, 60];
+
+  for (const pos of CAREER_POSITIONS) {
+    const posRows = careerRows.filter(r => r.position === pos);
+    if (posRows.length < 10) {
+      console.log(`    ${pos}: only ${posRows.length} rows, skipping`);
+      continue;
+    }
+
+    const featureKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || [];
+    if (featureKeys.length === 0) continue;
+
+    // LOSO cross-validation
+    const seasons = [...new Set(posRows.map(r => r.draftSeason))].sort();
+    const losoActuals: number[] = [];
+    const losoPreds: number[] = [];
+    const losoSeasons: number[] = []; // track which season each prediction belongs to
+
+    for (const held of seasons) {
+      const trainR = posRows.filter(r => r.draftSeason !== held);
+      const testR = posRows.filter(r => r.draftSeason === held);
+      if (trainR.length < 10 || testR.length === 0) continue;
+
+      const Xtr = trainR.map(r => featureKeys.map(k => r.features[k] || 0));
+      const ytr = trainR.map(r => r.best2of3PPG);
+      const Xte = testR.map(r => featureKeys.map(k => r.features[k] || 0));
+
+      // Use Ridge for small samples, GBM+Ridge ensemble for larger
+      const ridgeModel = trainRidgeRegression(Xtr, ytr, featureKeys, 5);
+      let preds: number[];
+
+      if (trainR.length >= 40) {
+        const gbmModel = trainBaggedGBM(Xtr, ytr, featureKeys, {
+          nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
+          seed: 42,
+        }, 5);
+        preds = Xte.map((x, i) => {
+          const features: Record<string, number> = {};
+          featureKeys.forEach((k, j) => { features[k] = x[j]; });
+          const gbmP = predictBaggedGBM(gbmModel, features).predicted;
+          const ridgeP = predict(ridgeModel, testR[i].features).predicted;
+          return gbmP * 0.5 + ridgeP * 0.5;
+        });
+      } else {
+        preds = testR.map(r => predict(ridgeModel, r.features).predicted);
+      }
+
+      for (let i = 0; i < testR.length; i++) {
+        losoActuals.push(testR[i].best2of3PPG);
+        losoPreds.push(Math.max(0, preds[i]));
+        losoSeasons.push(held);
+      }
+    }
+
+    // Regression metrics
+    const r2 = losoActuals.length >= 5 ? cvR2(losoActuals, losoPreds) : 0;
+    const mae = losoActuals.length >= 5 ? cvMae(losoActuals, losoPreds) : 0;
+
+    // Top-N classification accuracy (per draft class, then averaged)
+    // For each held-out season: rank all rookies by predicted PPG,
+    // check what % of predicted top-N actually finish top-N by actual PPG
+    const topNResults: Record<number, { precision: number; recall: number; n: number }> = {};
+    for (const threshold of TOP_N_THRESHOLDS) {
+      let totalPrecision = 0, totalRecall = 0, classCount = 0;
+
+      for (const held of seasons) {
+        const classIdx = losoActuals
+          .map((_, i) => i)
+          .filter(i => losoSeasons[i] === held);
+        if (classIdx.length < threshold) continue;
+
+        // Actual top-N for this draft class
+        const actualRanked = classIdx
+          .map(i => ({ i, ppg: losoActuals[i] }))
+          .sort((a, b) => b.ppg - a.ppg);
+        const actualTopN = new Set(actualRanked.slice(0, threshold).map(x => x.i));
+
+        // Predicted top-N for this draft class
+        const predRanked = classIdx
+          .map(i => ({ i, ppg: losoPreds[i] }))
+          .sort((a, b) => b.ppg - a.ppg);
+        const predTopN = new Set(predRanked.slice(0, threshold).map(x => x.i));
+
+        // How many of our predicted top-N are actually top-N?
+        let overlap = 0;
+        for (const i of predTopN) if (actualTopN.has(i)) overlap++;
+        totalPrecision += overlap / threshold;
+        totalRecall += overlap / threshold; // same since |predTopN| = |actualTopN| = threshold
+        classCount++;
+      }
+
+      topNResults[threshold] = {
+        precision: classCount > 0 ? Math.round(totalPrecision / classCount * 1000) / 10 : 0,
+        recall: classCount > 0 ? Math.round(totalRecall / classCount * 1000) / 10 : 0,
+        n: classCount,
+      };
+    }
+
+    // Rank correlation
+    const predRanks = rankArray(losoPreds.map(p => -p)); // negate so higher PPG = rank 1
+    const actualRanks = rankArray(losoActuals.map(a => -a));
+    const rankCorr = spearman(predRanks, actualRanks);
+
+    console.log(`    ${pos}: n=${posRows.length}, R²=${r2.toFixed(3)}, MAE=${mae.toFixed(1)}, ρ=${rankCorr.toFixed(3)}`);
+    for (const t of TOP_N_THRESHOLDS) {
+      if (topNResults[t].n > 0) {
+        console.log(`      Top-${t}: ${topNResults[t].precision}% precision (${topNResults[t].n} classes)`);
+      }
+    }
+
+    rookieCareerModels[pos] = {
+      n: posRows.length,
+      cvR2: r2,
+      cvMAE: mae,
+      rankCorr: Math.round(rankCorr * 1000) / 1000,
+      topN: topNResults,
+      seasons: seasons.length,
+      featureKeys,
+    };
+  }
+
   // Save model cache for future builds (training data is static)
   console.log('  Saving trained model cache...');
   const modelCache = {
-    models, ppgModels, residualModels, shareModels,
+    models, ppgModels, residualModels, shareModels, rookieCareerModels,
     featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
     draftSim2025, posThresholds,
   };
@@ -1779,7 +1980,7 @@ async function main() {
     shareModelSummary[k] = { cvR2: v.cvR2, cvMAE: v.cvMAE, n: v.n };
   }
 
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
