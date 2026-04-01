@@ -77,6 +77,18 @@ export const PPG_THRESHOLD_CONFIG: Record<string, {
   },
 };
 
+export interface RookieCareerBacktestRow {
+  name: string;
+  position: string;
+  draftSeason: number;
+  actualPPG: number;        // best 2-of-3 actual
+  predictedPPG: number;     // LOSO prediction
+  combinedScore: number;
+  percentile: number;
+  modelTier: number;
+  thresholdProbs: Record<number, number>;
+}
+
 export interface RookieCareerModelResult {
   n: number;
   cvR2: number;
@@ -91,6 +103,7 @@ export interface RookieCareerModelResult {
     thresholds: number[];
     tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
   };
+  backtestRows: RookieCareerBacktestRow[];
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
 }
@@ -197,6 +210,7 @@ export function trainRookieCareerModels(
     const losoActuals: number[] = [];
     const losoPreds: number[] = [];
     const losoSeasons: number[] = [];
+    const losoNames: string[] = [];
 
     for (const held of seasons) {
       const trainR = posRows.filter(r => r.draftSeason !== held);
@@ -238,14 +252,16 @@ export function trainRookieCareerModels(
         losoActuals.push(testR[i].best2of3PPG);
         losoPreds.push(Math.max(0, preds[i]));
         losoSeasons.push(held);
+        losoNames.push(testR[i].name);
       }
     }
 
     // Filter out any NaN predictions before computing metrics
-    const validIdx = losoPreds.map((p, i) => ({ p, a: losoActuals[i], s: losoSeasons[i] })).filter(x => isFinite(x.p) && isFinite(x.a));
+    const validIdx = losoPreds.map((p, i) => ({ p, a: losoActuals[i], s: losoSeasons[i], name: losoNames[i] })).filter(x => isFinite(x.p) && isFinite(x.a));
     const cleanPreds = validIdx.map(x => x.p);
     const cleanActuals = validIdx.map(x => x.a);
     const cleanSeasons = validIdx.map(x => x.s);
+    const cleanNames = validIdx.map(x => x.name);
 
     // Metrics
     const r2 = cleanActuals.length >= 5 ? cvR2(cleanActuals, cleanPreds) : 0;
@@ -297,6 +313,44 @@ export function trainRookieCareerModels(
       thresholdTable.tiers.push({ label: tier.label, min: tier.min, max: tier.max, n, hitRates });
     }
 
+    // Build backtest rows with threshold probs, combined score, percentile, tier
+    const TIER_PERCENTILES = [95, 85, 70, 50, 30, 15];
+    const backtestRaw: RookieCareerBacktestRow[] = cleanPreds.map((pred, i) => {
+      const probs: Record<number, number> = {};
+      if (residualStd > 0) {
+        for (const t of thresholdConfig.thresholds) {
+          const z = (t - pred) / residualStd;
+          probs[t] = Math.round((1 - normalCdf(z)) * 1000) / 10;
+        }
+      }
+      const probValues = thresholdConfig.thresholds.map(t => probs[t] || 0);
+      const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
+      return {
+        name: cleanNames[i],
+        position: pos,
+        draftSeason: cleanSeasons[i],
+        actualPPG: Math.round(cleanActuals[i] * 10) / 10,
+        predictedPPG: Math.round(pred * 10) / 10,
+        combinedScore: Math.round((pred * 3 + meanProb * 0.3) * 10) / 10,
+        percentile: 0,
+        modelTier: 0,
+        thresholdProbs: probs,
+      };
+    });
+    // Sort by combined score, assign percentile and tier per draft class
+    backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
+    for (let i = 0; i < backtestRaw.length; i++) {
+      backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
+      const pct = backtestRaw[i].percentile;
+      if (pct >= TIER_PERCENTILES[0]) backtestRaw[i].modelTier = 1;
+      else if (pct >= TIER_PERCENTILES[1]) backtestRaw[i].modelTier = 2;
+      else if (pct >= TIER_PERCENTILES[2]) backtestRaw[i].modelTier = 3;
+      else if (pct >= TIER_PERCENTILES[3]) backtestRaw[i].modelTier = 4;
+      else if (pct >= TIER_PERCENTILES[4]) backtestRaw[i].modelTier = 5;
+      else if (pct >= TIER_PERCENTILES[5]) backtestRaw[i].modelTier = 6;
+      else backtestRaw[i].modelTier = 7;
+    }
+
     // Train final model on ALL data
     const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
     const yAll = posRows.map(r => r.best2of3PPG);
@@ -321,6 +375,7 @@ export function trainRookieCareerModels(
       residualStd: Math.round(residualStd * 100) / 100,
       thresholds: thresholdConfig.thresholds,
       thresholdTable,
+      backtestRows: backtestRaw,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
     };
