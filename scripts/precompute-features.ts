@@ -3,13 +3,14 @@
 // Outputs: public/data/feature-matrix.json (includes trained models)
 
 import { buildFeatureMatrix } from '../src/lib/buildFeatureMatrix';
-import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae } from '../src/lib/featureTypes';
+import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae, normalizeName, parseHeight } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
 import type { BaggedGBM } from '../src/lib/gbm';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
+import { fetchCombine, fetchCollegeStats } from '../src/data';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
@@ -38,7 +39,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v29.json'; // v29: rookie career prediction models
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v30.json'; // v30: career model games fix + prospect-based scoring
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1592,6 +1593,20 @@ async function main() {
 
   // Step 1: Group rows by player, build career PPG map
   // Key = normalized name + position, Value = { draftSeason, features, seasonPPGs[] }
+  //
+  // Games played per season: training rows don't store current-season games directly,
+  // but each row's priorGames = games played in the prior season. So we build a lookup
+  // from the *next* season's row to get games for the current season.
+  const careerGamesMap = new Map<string, number>();
+  for (const row of result.rows) {
+    // row.season is the current season; row.features.priorGames = games played in (row.season - 1)
+    const priorSeason = row.season - 1;
+    const key = `${row.name}::${row.position}::${priorSeason}`;
+    if (row.features.priorGames > 0) {
+      careerGamesMap.set(key, row.features.priorGames);
+    }
+  }
+
   const careerMap = new Map<string, {
     name: string; position: string; draftSeason: number;
     features: Record<string, number>;
@@ -1608,8 +1623,9 @@ async function main() {
       });
     }
     const entry = careerMap.get(key)!;
-    // Track this season's PPG
-    const games = row.features.gamesPlayed || (row.rawPPG > 0 ? Math.max(1, Math.round((row.features.fantasyPointsPPR || 0) / row.rawPPG)) : 0);
+    // Track this season's PPG — use games from next season's priorGames, fallback to 17
+    const gamesKey = `${row.name}::${row.position}::${row.season}`;
+    const games = careerGamesMap.get(gamesKey) || (row.rawPPG > 0 ? 17 : 0);
     entry.seasonPPGs.push({ season: row.season, ppg: row.rawPPG, games });
     // If this is their rookie season, save draft info and pre-draft features
     const yil = row.features.yearsInLeague ?? 99;
@@ -1912,34 +1928,184 @@ async function main() {
   console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
 
   // Score 2026 rookies with career prediction model
+  // Load prospect grades + combine + college stats directly (draft hasn't happened yet)
   console.log('  Scoring 2026 rookie career predictions...');
   const careerPredictions2026: Array<{
     name: string; position: string; team: string; adp: number;
     headshotUrl?: string; predictedCareerPPG: number;
   }> = [];
-  for (const pos of ['QB', 'RB', 'WR', 'TE']) {
-    const cm = (rookieCareerModels as any)[pos];
-    if (!cm?.ridgeModel) continue;
-    const featureKeys = cm.featureKeys as string[];
-    const posPredRows = result.predRows.filter((r: any) =>
-      r.position === pos && (r.features.yearsInLeague || 0) <= 1
-    );
-    for (const r of posPredRows) {
-      const ridgePred = predict(cm.ridgeModel, r.features).predicted;
+
+  // Load prospect grades from static JSON
+  let prospectGrades: Array<{ name: string; pos: string; school: string; grade: number; projRound: number; projPick: number; tier: string }> = [];
+  try {
+    prospectGrades = JSON.parse(readFileSync('src/data/prospect-grades-2026.json', 'utf-8'));
+    console.log(`    Loaded ${prospectGrades.length} prospect grades`);
+  } catch { console.log('    No prospect grades file found'); }
+
+  if (prospectGrades.length > 0) {
+    // Load combine and college stats for feature construction
+    const [combineData, collegeData] = await Promise.all([
+      fetchCombine().catch(() => []),
+      fetchCollegeStats().catch(() => []),
+    ]);
+
+    // Build combine lookup
+    const combineByProspect = new Map<string, any>();
+    for (const c of combineData) combineByProspect.set(normalizeName(c.player_name), c);
+
+    // Build college stats lookup (aggregate career totals)
+    // CollegeStats format: { player_name, season, statistic, value }
+    const collegeByProspect = new Map<string, Map<string, number>>();
+    const collegeSeasonsByProspect = new Map<string, Set<number>>();
+    for (const cs of collegeData) {
+      const name = normalizeName(cs.player_name);
+      if (!collegeByProspect.has(name)) collegeByProspect.set(name, new Map());
+      if (!collegeSeasonsByProspect.has(name)) collegeSeasonsByProspect.set(name, new Set());
+      const existing = collegeByProspect.get(name)!;
+      existing.set(cs.statistic, (existing.get(cs.statistic) || 0) + cs.value);
+      collegeSeasonsByProspect.get(name)!.add(cs.season);
+    }
+
+    // Build college per-game stats
+    const collegePerGame = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number; ydsPerRec: number }>();
+    for (const [name, totals] of collegeByProspect) {
+      const games = totals.get('Games Played') || 1;
+      const recYds = totals.get('Receiving Yards') || 0;
+      const rushYds = totals.get('Rushing Yards') || 0;
+      const recs = totals.get('Receptions') || 0;
+      const carries = totals.get('Rushing Attempts') || 0;
+      const tds = (totals.get('Rushing Touchdowns') || 0) + (totals.get('Receiving Touchdowns') || 0) + (totals.get('Passing Touchdowns') || 0);
+      collegePerGame.set(name, {
+        games,
+        recPerGame: recs / games,
+        ydsPerGame: (recYds + rushYds) / games,
+        tdsPerGame: tds / games,
+        rushYPC: carries > 0 ? rushYds / carries : 0,
+        ydsPerRec: recs > 0 ? recYds / recs : 0,
+      });
+    }
+
+    // College advanced metrics (dominator rating, market share — approximate)
+    const collegeAdvByProspect = new Map<string, { dominatorRating: number; breakoutAge: number; marketShare: number }>();
+    for (const [name, totals] of collegeByProspect) {
+      const recYds = totals.get('Receiving Yards') || 0;
+      const rushYds = totals.get('Rushing Yards') || 0;
+      const totalYds = recYds + rushYds;
+      const tds = (totals.get('Rushing Touchdowns') || 0) + (totals.get('Receiving Touchdowns') || 0);
+      // Approximate dominator: fraction of estimated team production
+      const estimatedTeamYds = totalYds * 3;
+      const dominatorRating = estimatedTeamYds > 0 ? (totalYds / estimatedTeamYds + tds / Math.max(1, tds * 3)) / 2 : 0;
+      collegeAdvByProspect.set(name, { dominatorRating, breakoutAge: 0, marketShare: dominatorRating });
+    }
+
+    // Combine averages by position for imputation
+    const combineAvg = new Map<string, Record<string, number>>();
+    const combineAccum = new Map<string, Record<string, { sum: number; count: number }>>();
+    for (const c of combineData) {
+      if (!c.pos) continue;
+      if (!combineAccum.has(c.pos)) combineAccum.set(c.pos, {});
+      const acc = combineAccum.get(c.pos)!;
+      for (const [k, v] of [['forty', c.forty], ['weight', c.wt], ['bench', c.bench], ['vertical', c.vertical], ['broadJump', c.broad_jump], ['cone', c.cone], ['shuttle', c.shuttle]] as [string, number][]) {
+        if (v && v > 0) {
+          if (!acc[k]) acc[k] = { sum: 0, count: 0 };
+          acc[k].sum += v;
+          acc[k].count += 1;
+        }
+      }
+    }
+    for (const [pos, acc] of combineAccum) {
+      const avg: Record<string, number> = {};
+      for (const [k, v] of Object.entries(acc)) avg[k] = Math.round((v.sum / v.count) * 100) / 100;
+      combineAvg.set(pos, avg);
+    }
+
+    // Build best single-season stats per player
+    const collegeBestByProspect = new Map<string, { bestRecYds: number; bestRecTDs: number; bestReceptions: number; bestRushYds: number; numSeasons: number }>();
+    {
+      // Group stats by player+season
+      const byPlayerSeason = new Map<string, Map<number, Map<string, number>>>();
+      for (const cs of collegeData) {
+        const name = normalizeName(cs.player_name);
+        if (!byPlayerSeason.has(name)) byPlayerSeason.set(name, new Map());
+        const seasons = byPlayerSeason.get(name)!;
+        if (!seasons.has(cs.season)) seasons.set(cs.season, new Map());
+        seasons.get(cs.season)!.set(cs.statistic, cs.value);
+      }
+      for (const [name, seasons] of byPlayerSeason) {
+        let bestRecYds = 0, bestRecTDs = 0, bestReceptions = 0, bestRushYds = 0;
+        for (const [, stats] of seasons) {
+          bestRecYds = Math.max(bestRecYds, stats.get('Receiving Yards') || 0);
+          bestRecTDs = Math.max(bestRecTDs, stats.get('Receiving Touchdowns') || 0);
+          bestReceptions = Math.max(bestReceptions, stats.get('Receptions') || 0);
+          bestRushYds = Math.max(bestRushYds, stats.get('Rushing Yards') || 0);
+        }
+        collegeBestByProspect.set(name, { bestRecYds, bestRecTDs, bestReceptions, bestRushYds, numSeasons: seasons.size });
+      }
+    }
+
+    // Score each prospect
+    const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
+    for (const prospect of prospectGrades) {
+      if (!FANTASY_POSITIONS.has(prospect.pos)) continue;
+      const pos = prospect.pos;
+      const cm = (rookieCareerModels as any)[pos];
+      if (!cm?.ridgeModel) continue;
+
+      const nName = normalizeName(prospect.name);
+      const combine = combineByProspect.get(nName);
+      const cs = collegeByProspect.get(nName);
+      const pg = collegePerGame.get(nName);
+      const adv = collegeAdvByProspect.get(nName);
+      const posAvg = combineAvg.get(pos) || {};
+
+      // Build feature vector matching PRE_DRAFT_ROOKIE_FEATURES
+      const features: Record<string, number> = {
+        nflDraftRound: prospect.projRound || 8,
+        nflDraftPick: prospect.projPick || 300,
+        age: 0, // unknown pre-draft
+        yearsInLeague: 0,
+        weight: combine?.wt || posAvg.weight || 0,
+        forty: combine?.forty || posAvg.forty || 0,
+        bench: combine?.bench || posAvg.bench || 0,
+        vertical: combine?.vertical || posAvg.vertical || 0,
+        broadJump: combine?.broad_jump || posAvg.broadJump || 0,
+        cone: combine?.cone || posAvg.cone || 0,
+        shuttle: combine?.shuttle || posAvg.shuttle || 0,
+        collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+        collegeQBR: 0,
+        collegeRushYds: cs?.get('Rushing Yards') || 0,
+        collegeRushYPC: pg?.rushYPC || 0,
+        collegeRecYds: cs?.get('Receiving Yards') || 0,
+        collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
+        collegeRecPerGame: pg?.recPerGame || 0,
+        collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
+        collegeDominatorRating: adv?.dominatorRating || 0,
+        collegeBreakoutAge: adv?.breakoutAge || 0,
+        collegeBreakoutAgeDelta: 0,
+        collegeMarketShare: adv?.marketShare || 0,
+        collegeYdsPerRec: pg?.ydsPerRec || 0,
+        collegeBestRecYds: collegeBestByProspect.get(nName)?.bestRecYds || 0,
+        collegeBestRecTDs: collegeBestByProspect.get(nName)?.bestRecTDs || 0,
+        collegeBestReceptions: collegeBestByProspect.get(nName)?.bestReceptions || 0,
+        collegeSeasons: collegeBestByProspect.get(nName)?.numSeasons || collegeSeasonsByProspect.get(nName)?.size || 0,
+        hasCollegeStats: cs ? 1 : 0,
+      };
+
+      const ridgePred = predict(cm.ridgeModel, features).predicted;
       let pred: number;
       if (cm.gbmModel) {
-        const gbmPred = predictBaggedGBM(cm.gbmModel, r.features).predicted;
+        const gbmPred = predictBaggedGBM(cm.gbmModel, features).predicted;
         pred = gbmPred * 0.5 + ridgePred * 0.5;
       } else {
         pred = ridgePred;
       }
       careerPredictions2026.push({
-        name: r.name, position: r.position, team: r.team, adp: r.adp,
-        headshotUrl: r.headshotUrl,
+        name: prospect.name, position: pos, team: '', adp: prospect.projPick,
         predictedCareerPPG: Math.round(Math.max(0, pred) * 10) / 10,
       });
     }
   }
+
   // Sort by predicted career PPG descending
   careerPredictions2026.sort((a, b) => b.predictedCareerPPG - a.predictedCareerPPG);
   console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);
