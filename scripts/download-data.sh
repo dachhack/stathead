@@ -35,12 +35,28 @@ for s in $STATIC_SEASONS; do
 done
 
 # ── Dynamic season files (always re-download) ──
+# Download to temp files first so failed downloads don't overwrite good cached data
 for s in $DYNAMIC_SEASON; do
-  curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
-  curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
-  curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
-  curl -sfL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv" &
-  curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv" &
+  (curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv.tmp" \
+    && [ -s "$OUT/player_stats_${s}.csv.tmp" ] \
+    && mv "$OUT/player_stats_${s}.csv.tmp" "$OUT/player_stats_${s}.csv" \
+    || echo "  WARNING: Failed to download player_stats_${s}.csv (keeping cached version)") &
+  (curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv.tmp" \
+    && [ -s "$OUT/snap_counts_${s}.csv.tmp" ] \
+    && mv "$OUT/snap_counts_${s}.csv.tmp" "$OUT/snap_counts_${s}.csv" \
+    || echo "  WARNING: Failed to download snap_counts_${s}.csv (keeping cached version)") &
+  (curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv.tmp" \
+    && [ -s "$OUT/injuries_${s}.csv.tmp" ] \
+    && mv "$OUT/injuries_${s}.csv.tmp" "$OUT/injuries_${s}.csv" \
+    || echo "  WARNING: Failed to download injuries_${s}.csv (keeping cached version)") &
+  (curl -sfL "$NFLVERSE/rosters/roster_${s}.csv" -o "$OUT/roster_${s}.csv.tmp" \
+    && [ -s "$OUT/roster_${s}.csv.tmp" ] \
+    && mv "$OUT/roster_${s}.csv.tmp" "$OUT/roster_${s}.csv" \
+    || echo "  WARNING: Failed to download roster_${s}.csv (keeping cached version)") &
+  (curl -sfL "$NFLVERSE/depth_charts/depth_charts_${s}.csv" -o "$OUT/depth_charts_${s}.csv.tmp" \
+    && [ -s "$OUT/depth_charts_${s}.csv.tmp" ] \
+    && mv "$OUT/depth_charts_${s}.csv.tmp" "$OUT/depth_charts_${s}.csv" \
+    || echo "  WARNING: Failed to download depth_charts_${s}.csv (keeping cached version)") &
 done
 
 # ── Cross-season static files (skip if cached) ──
@@ -98,6 +114,31 @@ DRAFTDATA="https://raw.githubusercontent.com/JackLich10/nfl-draft-data/main"
 [ -f "$OUT/college_qbr.csv" ] || curl -sfL "$DRAFTDATA/college_qbr.csv" -o "$OUT/college_qbr.csv" &
 
 wait
+
+# Clean up any leftover .tmp files from failed downloads
+rm -f "$OUT"/*.tmp
+
+# ── Validate critical dynamic files ──
+echo ""
+echo "=== Dynamic file validation ==="
+MISSING=0
+for s in $DYNAMIC_SEASON; do
+  for f in "roster_${s}.csv" "player_stats_${s}.csv"; do
+    if [ ! -s "$OUT/$f" ]; then
+      echo "  ERROR: $f is missing or empty!"
+      MISSING=$((MISSING + 1))
+    else
+      LINES=$(wc -l < "$OUT/$f")
+      SIZE=$(du -h "$OUT/$f" | cut -f1)
+      echo "  OK: $f ($LINES lines, $SIZE)"
+    fi
+  done
+done
+if [ "$MISSING" -gt 0 ]; then
+  echo "  WARNING: $MISSING critical dynamic files missing — predictions may use stale data"
+fi
+
+echo ""
 echo "Done! Data files in $OUT/"
 echo "Cached files: $(find $OUT -name '*.csv' -o -name '*.json' | wc -l)"
 ls -lhS "$OUT/" | head -20
