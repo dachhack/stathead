@@ -31,13 +31,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v3
+          key: static-data-v4
           restore-keys: static-data-
 
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
+
+      # Remove stale precomputed output so a failed precompute is never silently masked
+      - run: rm -f public/data/feature-matrix.json
       - run: npm run build
+
+      # Fail the build if precompute didn't produce output
+      - name: Verify precomputed features
+        run: |
+          if [ ! -s public/data/feature-matrix.json ]; then
+            echo "ERROR: feature-matrix.json was not generated — precompute likely failed"
+            exit 1
+          fi
+          echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
