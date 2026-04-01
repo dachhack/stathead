@@ -1714,7 +1714,10 @@ async function main() {
   const careerPredictions2026: Array<{
     name: string; position: string; team: string; adp: number;
     headshotUrl?: string; predictedCareerPPG: number;
-    thresholdProbs?: Record<number, number>; // P(actual >= threshold) for each threshold
+    thresholdProbs?: Record<number, number>;
+    combinedScore?: number;  // weighted composite score
+    percentile?: number;     // percentile rank within position (0-100)
+    modelTier?: number;      // 1-7 tier based on percentile cutoffs
   }> = [];
 
   // Load prospect grades from static JSON
@@ -1900,8 +1903,38 @@ async function main() {
     }
   }
 
-  // Sort by predicted career PPG descending
-  careerPredictions2026.sort((a, b) => b.predictedCareerPPG - a.predictedCareerPPG);
+  // Compute combined score per position: weighted average of predicted PPG and threshold probs
+  // Then percentile rank within position, then tier assignment
+  const TIER_PERCENTILES = [95, 85, 70, 50, 30, 15]; // Tier 1 = top 5%, Tier 7 = bottom 15%
+  for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+    const posRookies = careerPredictions2026.filter(r => r.position === pos);
+    if (posRookies.length === 0) continue;
+    const thresholds = (rookieCareerModels as any)[pos]?.thresholds as number[] || [];
+    // Combined score = predicted PPG + mean of threshold probs (rewards both level and upside)
+    for (const r of posRookies) {
+      const probs = r.thresholdProbs || {};
+      const probValues = thresholds.map(t => probs[t] || 0);
+      const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
+      r.combinedScore = Math.round((r.predictedCareerPPG * 3 + meanProb * 0.3) * 10) / 10;
+    }
+    // Sort by combined score descending, assign percentile
+    posRookies.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
+    for (let i = 0; i < posRookies.length; i++) {
+      posRookies[i].percentile = Math.round((1 - i / posRookies.length) * 100);
+    }
+    // Assign tiers from percentile
+    for (const r of posRookies) {
+      const pct = r.percentile || 0;
+      if (pct >= TIER_PERCENTILES[0]) r.modelTier = 1;
+      else if (pct >= TIER_PERCENTILES[1]) r.modelTier = 2;
+      else if (pct >= TIER_PERCENTILES[2]) r.modelTier = 3;
+      else if (pct >= TIER_PERCENTILES[3]) r.modelTier = 4;
+      else if (pct >= TIER_PERCENTILES[4]) r.modelTier = 5;
+      else if (pct >= TIER_PERCENTILES[5]) r.modelTier = 6;
+      else r.modelTier = 7;
+    }
+  }
+  careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
   console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);
 
   // Generate 2026 predictions with ensemble + confidence intervals

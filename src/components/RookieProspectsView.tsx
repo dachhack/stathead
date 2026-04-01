@@ -43,6 +43,10 @@ interface ProspectRow {
   predictedCareerPPG: number;
   // Threshold probabilities: P(best 2-of-3 PPG >= threshold)
   thresholdProbs: Record<number, number>;
+  // Combined score, percentile, and tier
+  combinedScore: number;
+  percentile: number;
+  modelTier: number; // 1-7
 }
 
 type SortField = keyof ProspectRow;
@@ -89,6 +93,16 @@ function fmtMeasurable(v: number | null | undefined): string {
   return v != null && !isNaN(v) && v > 0 ? v.toFixed(2) : '-';
 }
 
+function tierColor(tier: number): string {
+  if (tier === 1) return '#22c55e';
+  if (tier === 2) return '#4ade80';
+  if (tier === 3) return '#a3e635';
+  if (tier === 4) return '#facc15';
+  if (tier === 5) return '#fb923c';
+  if (tier === 6) return '#ef4444';
+  return '#991b1b';
+}
+
 export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
   const [rows, setRows] = useState<ProspectRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,12 +125,15 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     ])
       .then(([combine, fpRankings, ktcPlayers, featureData]) => {
         // Career predictions from model
-        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number> }>();
+        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number }>();
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
             careerMap.set(normalizeName(p.name), {
               ppg: p.predictedCareerPPG,
               thresholdProbs: p.thresholdProbs || {},
+              combinedScore: p.combinedScore || 0,
+              percentile: p.percentile || 0,
+              modelTier: p.modelTier || 0,
             });
           }
         }
@@ -184,6 +201,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             superflexValue: ktc?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
+            combinedScore: career?.combinedScore || 0,
+            percentile: career?.percentile || 0,
+            modelTier: career?.modelTier || 0,
           };
         });
 
@@ -251,7 +271,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile'];
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
@@ -285,6 +305,10 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       if (sortField === 'rookieEcr') {
         if ((aVal as number) >= 999) aVal = sortDir === 'asc' ? Infinity : -Infinity;
         if ((bVal as number) >= 999) bVal = sortDir === 'asc' ? Infinity : -Infinity;
+      }
+      if (sortField === 'modelTier') {
+        if ((aVal as number) === 0) aVal = sortDir === 'asc' ? Infinity : -Infinity;
+        if ((bVal as number) === 0) bVal = sortDir === 'asc' ? Infinity : -Infinity;
       }
       if (sortField === 'grade' || sortField === 'dynastyValue' || sortField === 'projPick') {
         if ((aVal as number) === 0) aVal = sortDir === 'desc' ? -Infinity : Infinity;
@@ -406,6 +430,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('predictedCareerPPG')} style={{ cursor: 'pointer' }}>
                 Model PPG{sortArrow('predictedCareerPPG')}
               </th>
+              <th onClick={() => handleSort('modelTier')} style={{ cursor: 'pointer' }}>
+                Tier{sortArrow('modelTier')}
+              </th>
+              <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }}>
+                Pctl{sortArrow('percentile')}
+              </th>
               {activeThresholds.map(t => (
                 <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
                   &gt;{t}
@@ -521,6 +551,24 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     }}>
                       {r.predictedCareerPPG.toFixed(1)}
                     </strong>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  {r.modelTier > 0 ? (
+                    <strong style={{ color: tierColor(r.modelTier), fontSize: 13 }}>
+                      {r.modelTier}
+                    </strong>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  {r.percentile > 0 ? (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
+                      {r.percentile}
+                    </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
