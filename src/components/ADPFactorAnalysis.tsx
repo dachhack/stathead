@@ -45,6 +45,14 @@ function fmtAdp(adp: number, leagueSize: number): string {
   return `${round}.${String(pick).padStart(2, '0')}`;
 }
 
+// Format VOR value based on source mode
+function fmtVor(vor: number, source: 'model' | 'ppg'): string {
+  if (source === 'ppg') {
+    return `${vor >= 0 ? '+' : ''}${vor.toFixed(1)} PPG`;
+  }
+  return `${vor >= 0 ? '+' : ''}${vor}σ`;
+}
+
 // ── Draft optimizer helpers ──
 const FLEX_POS  = new Set(['RB', 'WR', 'TE']);
 const SF_POS    = new Set(['QB', 'RB', 'WR', 'TE']);
@@ -105,7 +113,9 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const [precomputedPredictions, setPrecomputedPredictions] = useState<Array<{
     name: string; team: string; adp: number; position: string;
     headshotUrl?: string; predictedVor: number; hitProb: string;
+    predictedPPG?: number; ppgVor?: number;
   }> | null>(null);
+  const [vorSource, setVorSource] = useState<'model' | 'ppg'>('ppg');
 
   // ── Scenario selection (loaded from saved localStorage scenarios) ──
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>(() => loadAllScenarios());
@@ -489,8 +499,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       const featuresByName = new Map(predictionRows.map((r) => [r.name, r.features]));
       return precomputedPredictions.filter((p) => p.adp <= maxADP).map((p) => {
         const f = featuresByName.get(p.name);
+        // When vorSource is 'ppg', use PPG-based VOR if available
+        const effectiveVor = vorSource === 'ppg' && p.ppgVor != null ? p.ppgVor : p.predictedVor;
         return {
           ...p,
+          predictedVor: effectiveVor,
+          predictedPPG: p.predictedPPG,
+          ppgVor: p.ppgVor,
           redditMentions: f?.redditMentions4w || 0,
           redditSentiment: f?.redditSentiment4w || 0,
           redditHype: f?.redditHype1w || 0,
@@ -526,7 +541,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
       });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [models, predictionRows, maxADP, posThresholds, precomputedPredictions]);
+  }, [models, predictionRows, maxADP, posThresholds, precomputedPredictions, vorSource]);
 
   const selected2026Prediction = useMemo(
     () => predictions2026.find((p) => p.name === selected2026Player) || null,
@@ -766,11 +781,13 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           predictedVor: p.predictedVor,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
-          // Convert VOR z-score to estimated full-season PPR
-          // VOR is total PPR over replacement, z-scored by position
-          estPPR: norm2026
-            ? Math.round(REP_PPR[best.pos] + norm2026.mean + p.predictedVor * norm2026.std)
-            : 0,
+          // Estimated full-season PPR
+          // PPG mode: predictedPPG × 17 games; VOR mode: convert z-score back to PPR
+          estPPR: vorSource === 'ppg' && (p as any).predictedPPG
+            ? Math.round((p as any).predictedPPG * 17)
+            : norm2026
+              ? Math.round(REP_PPR[best.pos] + norm2026.mean + p.predictedVor * norm2026.std)
+              : 0,
           redditSentiment: (p as any).redditSentiment || 0,
           redditHype: (p as any).redditHype || 0,
         }));
@@ -1260,6 +1277,19 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   </div>
                 </div>
                 <div className="control-group">
+                  <label className="control-label">VOR Source</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {([['ppg','PPG VOR'],['model','Model VOR (σ)']] as const).map(([s, lbl]) => (
+                      <button key={s} onClick={() => setVorSource(s)} style={{
+                        padding: '4px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        border: `2px solid ${vorSource === s ? '#6366f1' : 'var(--border)'}`,
+                        background: vorSource === s ? 'rgba(99,102,241,0.12)' : 'var(--bg-secondary)',
+                        color: vorSource === s ? '#6366f1' : 'var(--text-secondary)',
+                      }}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="control-group">
                   <label className="control-label">Roster Preset</label>
                   <select onChange={(e) => {
                     const p = ROSTER_PRESETS[e.target.value];
@@ -1486,7 +1516,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                                           fontSize: 10, fontWeight: 700,
                                           color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                                         }}>
-                                          {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                                          {fmtVor(p.predictedVor, vorSource)}
                                         </span>
                                         {p.estPPR > 0 && (
                                           <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
@@ -1716,7 +1746,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                      {fmtVor(p.predictedVor, vorSource)}
                     </td>
                     <td>
                       <span style={{
@@ -1752,7 +1782,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {PREDICT_SEASON} &middot; ADP {fmtAdp(selected2026Prediction.adp, leagueSize)} &middot;
                   Predicted: <span style={{ color: selected2026Prediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selected2026Prediction.predictedVor >= 0 ? '+' : ''}{selected2026Prediction.predictedVor}σ
+                    {fmtVor(selected2026Prediction.predictedVor, vorSource)}
                   </span>
                 </span>
               </h4>
@@ -2036,7 +2066,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                       fontWeight: 700,
                       color: p.predictedVor >= 0 ? '#10b981' : '#ef4444',
                     }}>
-                      {p.predictedVor >= 0 ? '+' : ''}{p.predictedVor}σ
+                      {fmtVor(p.predictedVor, vorSource)}
                     </td>
                     <td style={{
                       fontWeight: 700,
@@ -2076,7 +2106,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                 <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {selectedPrediction.season} &middot; ADP {fmtAdp(selectedPrediction.adp, leagueSize)} &middot;
                   Predicted: <span style={{ color: selectedPrediction.predictedVor >= 0 ? '#10b981' : '#ef4444' }}>
-                    {selectedPrediction.predictedVor >= 0 ? '+' : ''}{selectedPrediction.predictedVor}σ
+                    {fmtVor(selectedPrediction.predictedVor, vorSource)}
                   </span> &middot;
                   Actual: <span style={{ color: selectedPrediction.actualVor >= 0 ? '#10b981' : '#ef4444' }}>
                     {selectedPrediction.actualVor >= 0 ? '+' : ''}{selectedPrediction.actualVor}σ

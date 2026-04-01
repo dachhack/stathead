@@ -2116,7 +2116,15 @@ async function main() {
     name: string; team: string; adp: number; position: string;
     headshotUrl?: string; predictedVor: number; hitProb: string;
     ciLower: number; ciUpper: number; isRookie: boolean;
+    predictedPPG?: number; ppgVor?: number;
   }> = [];
+
+  // Build PPG lookup for enriching predictions
+  const ppgByName = new Map<string, { ppg: number; seasonPPR: number }>();
+  for (const p of ppgPredictions2026) {
+    ppgByName.set(p.name, { ppg: p.predictedPPG, seasonPPR: p.predictedSeasonPPR });
+  }
+  const REP_PPG: Record<string, number> = { QB: 16.8, RB: 6.8, WR: 6.8, TE: 5.3 };
 
   for (const m of models) {
     const pos = m.position as string;
@@ -2177,6 +2185,14 @@ async function main() {
         headshotUrl: r.headshotUrl, predictedVor: pred, hitProb,
         ciLower: ciLow, ciUpper: ciUp, isRookie,
         rookieModelPhase: isRookie ? (hasDraftData ? 'post-draft' : 'pre-draft') : undefined,
+        // PPG-based VOR: predictedPPG over replacement-level PPG
+        ...(() => {
+          const ppg = ppgByName.get(r.name);
+          if (!ppg) return {};
+          const repPPG = REP_PPG[pos] || 6.8;
+          const ppgVor = Math.round((ppg.ppg - repPPG) * 10) / 10;
+          return { predictedPPG: ppg.ppg, ppgVor };
+        })(),
       });
     }
   }
