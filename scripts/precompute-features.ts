@@ -39,8 +39,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v30.json'; // v30: career model games fix + prospect-based scoring
+const CACHE_PATH = 'public/data/training-rows-cache-v25.json'; // v25: 2010-2025 seasons + ZAP features + SOS
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v31.json'; // v31: ZAP-inspired career features + expanded seasons
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
