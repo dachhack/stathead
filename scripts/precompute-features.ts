@@ -38,6 +38,18 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
+// Standard normal CDF approximation (Abramowitz & Stegun 26.2.17, |error| < 7.5e-8)
+function normalCdf(x: number): number {
+  if (x < -8) return 0;
+  if (x > 8) return 1;
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const t = 1 / (1 + p * Math.abs(x));
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x / 2);
+  return 0.5 * (1 + sign * y);
+}
+
 const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
 const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v30.json'; // v30: career model games fix + prospect-based scoring
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
@@ -1863,7 +1875,11 @@ async function main() {
         console.log(`      Top-${t}: ${topNResults[t].precision}% precision (${topNResults[t].n} classes)`);
       }
     }
-    console.log(`      Threshold tiers: ${thresholdTable.tiers.filter(t => t.n > 0).length} non-empty`);
+    // Residual standard deviation for probability calibration
+    const residuals = losoActuals.map((a, i) => a - losoPreds[i]);
+    const residualMean = residuals.reduce((s, r) => s + r, 0) / residuals.length;
+    const residualStd = Math.sqrt(residuals.reduce((s, r) => s + (r - residualMean) ** 2, 0) / residuals.length);
+    console.log(`      Threshold tiers: ${thresholdTable.tiers.filter(t => t.n > 0).length} non-empty, σ=${residualStd.toFixed(2)}`);
 
     // Train final model on ALL data for 2026 scoring
     const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
@@ -1889,6 +1905,8 @@ async function main() {
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
       thresholdTable,
+      residualStd: Math.round(residualStd * 100) / 100,
+      thresholds: thresholdConfig.thresholds,
     };
   }
 
@@ -2013,6 +2031,7 @@ async function main() {
   const careerPredictions2026: Array<{
     name: string; position: string; team: string; adp: number;
     headshotUrl?: string; predictedCareerPPG: number;
+    thresholdProbs?: Record<number, number>; // P(actual >= threshold) for each threshold
   }> = [];
 
   // Load prospect grades from static JSON
@@ -2179,9 +2198,21 @@ async function main() {
       } else {
         pred = ridgePred;
       }
+      const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
+      // Compute P(actual >= threshold) using normal CDF with LOSO residual σ
+      const sigma = cm.residualStd as number;
+      const posThresholds = cm.thresholds as number[];
+      const thresholdProbs: Record<number, number> = {};
+      if (sigma > 0 && posThresholds) {
+        for (const t of posThresholds) {
+          const z = (t - predictedPPG) / sigma;
+          thresholdProbs[t] = Math.round((1 - normalCdf(z)) * 1000) / 10; // % with 1 decimal
+        }
+      }
       careerPredictions2026.push({
         name: prospect.name, position: pos, team: '', adp: prospect.projPick,
-        predictedCareerPPG: Math.round(Math.max(0, pred) * 10) / 10,
+        predictedCareerPPG: predictedPPG,
+        thresholdProbs,
       });
     }
   }

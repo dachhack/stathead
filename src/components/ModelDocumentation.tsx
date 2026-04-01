@@ -49,6 +49,8 @@ export function ModelDocumentation() {
       n: number; cvR2: number; cvMAE: number; rankCorr: number; seasons: number;
       featureKeys: string[];
       topN: Record<number, { precision: number; recall: number; n: number }>;
+      residualStd?: number;
+      thresholds?: number[];
       thresholdTable?: {
         thresholds: number[];
         tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
@@ -959,6 +961,19 @@ export function ModelDocumentation() {
                     </table>
                   </div>
                 </>
+              )}
+
+              {/* Probability model explanation */}
+              {m.residualStd != null && m.residualStd > 0 && (
+                <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                  <h4 style={{ fontSize: 13, margin: '0 0 6px' }}>Threshold Probability Model</h4>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                    Individual rookie probabilities are derived from the regression model using:
+                    P(PPG &ge; T) = 1 - &Phi;((T - predicted) / &sigma;), where &sigma; = {m.residualStd.toFixed(2)} is
+                    the LOSO cross-validated residual standard deviation. The table above shows empirical hit rates
+                    by prediction tier; per-rookie probabilities on the Prospects tab use this normal approximation.
+                  </p>
+                </div>
               )}
 
               {/* Cross-position comparison */}
