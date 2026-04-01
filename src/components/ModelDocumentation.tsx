@@ -6,7 +6,6 @@ import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
 } from '../lib/featureTypes';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
-import type { RookieCareerModelResult } from '../lib/rookieCareerModel';
 import projectionConfig from '../generated/projection-config.json';
 
 interface PositionModelData {
