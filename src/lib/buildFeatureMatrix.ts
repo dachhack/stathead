@@ -202,9 +202,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // ── Advanced college analytics: dominator rating, breakout age, market share ──
         // Step 1: Build per-player per-season stats AND per-school per-season team totals
-        type PlayerSeasonStats = { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number; school: string; pos: string };
+        type PlayerSeasonStats = { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number; passAtt: number; completions: number; games: number; school: string; pos: string };
         const playerSeasonStats = new Map<string, Map<number, PlayerSeasonStats>>(); // name → season → stats
-        const schoolSeasonTotals = new Map<string, { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number }>(); // "school:season" → totals
+        const schoolSeasonTotals = new Map<string, { recYds: number; recTDs: number; rushYds: number; rushTDs: number; receptions: number; rushAtt: number; passAtt: number; completions: number; totalPlays: number }>(); // "school:season" → totals
         for (const cs of collegeStatsData) {
           const name = normalizeName(cs.player_name);
           const season = cs.season;
@@ -214,7 +214,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Player per-season
           if (!playerSeasonStats.has(name)) playerSeasonStats.set(name, new Map());
           const seasons = playerSeasonStats.get(name)!;
-          if (!seasons.has(season)) seasons.set(season, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, school, pos: cs.pos_abbr || '' });
+          if (!seasons.has(season)) seasons.set(season, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, passAtt: 0, completions: 0, games: 0, school, pos: cs.pos_abbr || '' });
           const ps = seasons.get(season)!;
           if (stat.includes('receiving yard')) ps.recYds += cs.value || 0;
           else if (stat.includes('receiving touchdown')) ps.recTDs += cs.value || 0;
@@ -222,17 +222,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           else if (stat.includes('rushing touchdown')) ps.rushTDs += cs.value || 0;
           else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) ps.receptions += cs.value || 0;
           else if (stat.includes('rushing attempt') || stat.includes('carries')) ps.rushAtt += cs.value || 0;
+          else if (stat.includes('passing attempt') || stat === 'pass attempts') ps.passAtt += cs.value || 0;
+          else if (stat.includes('completion') && !stat.includes('pct')) ps.completions += cs.value || 0;
+          else if (stat.includes('games played') || stat === 'games') ps.games = Math.max(ps.games, cs.value || 0);
 
-          // School per-season totals
+          // School per-season totals (aggregate all players' stats)
           const schoolKey = `${school}:${season}`;
-          if (!schoolSeasonTotals.has(schoolKey)) schoolSeasonTotals.set(schoolKey, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0 });
+          if (!schoolSeasonTotals.has(schoolKey)) schoolSeasonTotals.set(schoolKey, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, passAtt: 0, completions: 0, totalPlays: 0 });
           const st = schoolSeasonTotals.get(schoolKey)!;
           if (stat.includes('receiving yard')) st.recYds += cs.value || 0;
           else if (stat.includes('receiving touchdown')) st.recTDs += cs.value || 0;
           else if (stat.includes('rushing yard')) st.rushYds += cs.value || 0;
           else if (stat.includes('rushing touchdown')) st.rushTDs += cs.value || 0;
           else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) st.receptions += cs.value || 0;
-          else if (stat.includes('rushing attempt') || stat.includes('carries')) st.rushAtt += cs.value || 0;
+          else if (stat.includes('rushing attempt') || stat.includes('carries')) { st.rushAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
+          else if (stat.includes('passing attempt') || stat === 'pass attempts') { st.passAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
+          else if (stat.includes('completion') && !stat.includes('pct')) st.completions += cs.value || 0;
         }
 
         // Step 2: Compute dominator rating, breakout age, and market share per player
@@ -319,6 +324,122 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             bestRushYds, bestRushTDs,
             numSeasons: seasons.size,
           });
+        }
+
+        // Step 2c: ZAP-inspired features — per-team-normalized production, Breakout Score, etc.
+        const collegeZapByName = new Map<string, {
+          recYdsPerTeamPassAtt: number;   // best season rec yds / team pass att
+          receptionShare: number;          // best season receptions / team completions
+          ydsPerTeamPlay: number;          // best season total yds / team total plays
+          breakoutScore: number;           // continuous age-adjusted rec yds per team pass att
+          bestSeasonRecYdsPerTPA: number;  // raw best season value
+          rushProductionWR: number;        // capped rush yds for WRs (versatility signal)
+          earlyDeclare: number;            // 1 if left before senior year (<=3 seasons)
+        }>();
+
+        for (const [name, seasons] of playerSeasonStats) {
+          const draft = draftByName.get(name);
+          const draftAge = draft?.age || 0;
+          const draftYear = draft?.season || 0;
+
+          let bestRecYdsPerTPA = 0;
+          let bestReceptionShare = 0;
+          let bestYdsPerTeamPlay = 0;
+          let breakoutScore = 0;
+          let bestRushYdsSeason = 0;
+          const pos = (draft?.position || '').toUpperCase();
+
+          const sortedSeasons = [...seasons.entries()].sort((a, b) => a[0] - b[0]);
+          for (const [seasonYear, ps] of sortedSeasons) {
+            if (ps.games < 6) continue; // ZAP: exclude seasons with <6 games
+
+            const schoolKey = `${ps.school}:${seasonYear}`;
+            const team = schoolSeasonTotals.get(schoolKey);
+            if (!team) continue;
+
+            // Receiving yards per team pass attempt
+            const teamPA = team.passAtt > 0 ? team.passAtt : (team.completions > 0 ? team.completions * 1.6 : 0); // estimate if missing
+            const recYdsPerTPA = teamPA > 0 ? ps.recYds / teamPA : 0;
+            bestRecYdsPerTPA = Math.max(bestRecYdsPerTPA, recYdsPerTPA);
+
+            // Reception share (% of team completions)
+            const teamComp = team.completions > 0 ? team.completions : (team.receptions > 0 ? team.receptions : 0);
+            const recShare = teamComp > 0 ? ps.receptions / teamComp : 0;
+            bestReceptionShare = Math.max(bestReceptionShare, recShare);
+
+            // Total yards per team play
+            const totalYds = ps.recYds + ps.rushYds;
+            const teamPlays = team.totalPlays > 0 ? team.totalPlays : (teamPA + team.rushAtt);
+            const ydsPerTP = teamPlays > 0 ? totalYds / teamPlays : 0;
+            bestYdsPerTeamPlay = Math.max(bestYdsPerTeamPlay, ydsPerTP);
+
+            // Breakout Score: age-adjusted rec yds per team pass att
+            // Younger production weighted more heavily (age penalty: 0 at 20, +penalty for older)
+            if (draftAge > 0 && draftYear > 0) {
+              const ageInSeason = draftAge - (draftYear - seasonYear);
+              if (ageInSeason > 17 && ageInSeason < 25) {
+                // Age multiplier: 1.15 at 19, 1.0 at 21, 0.85 at 23
+                const ageMult = 1.0 + (21 - ageInSeason) * 0.075;
+                const adjRecPerTPA = recYdsPerTPA * ageMult;
+                breakoutScore = Math.max(breakoutScore, adjRecPerTPA);
+              }
+            } else {
+              breakoutScore = Math.max(breakoutScore, recYdsPerTPA);
+            }
+
+            // Rush production for WRs (capped at 500 yds — versatility signal)
+            if (pos === 'WR') {
+              bestRushYdsSeason = Math.max(bestRushYdsSeason, Math.min(ps.rushYds, 500));
+            }
+          }
+
+          const numSeasons = seasons.size;
+          const earlyDeclare = numSeasons <= 3 ? 1 : 0;
+
+          collegeZapByName.set(name, {
+            recYdsPerTeamPassAtt: Math.round(bestRecYdsPerTPA * 1000) / 1000,
+            receptionShare: Math.round(bestReceptionShare * 1000) / 1000,
+            ydsPerTeamPlay: Math.round(bestYdsPerTeamPlay * 1000) / 1000,
+            breakoutScore: Math.round(breakoutScore * 1000) / 1000,
+            bestSeasonRecYdsPerTPA: Math.round(bestRecYdsPerTPA * 1000) / 1000,
+            rushProductionWR: Math.round(bestRushYdsSeason),
+            earlyDeclare,
+          });
+        }
+
+        // Step 2d: Teammate Score — sum of draft capital (1/pick) for schoolmates drafted in same class or recent years
+        const teammateScoreByName = new Map<string, number>();
+        {
+          // Build school → list of drafted players with pick values
+          const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
+          for (const [name, draft] of draftByName) {
+            const playerSeasons = playerSeasonStats.get(name);
+            if (!playerSeasons) continue;
+            // Get the player's school from their last college season
+            let school = '';
+            for (const [, ps] of playerSeasons) { school = ps.school; }
+            if (!school || !draft.pick) continue;
+            if (!schoolDraftees.has(school)) schoolDraftees.set(school, []);
+            schoolDraftees.get(school)!.push({ name, season: draft.season || 0, pick: draft.pick });
+          }
+          // For each player, sum 1/pick for schoolmates drafted within ±2 years (excluding self)
+          for (const [name, draft] of draftByName) {
+            const playerSeasons = playerSeasonStats.get(name);
+            if (!playerSeasons) continue;
+            let school = '';
+            for (const [, ps] of playerSeasons) { school = ps.school; }
+            if (!school) continue;
+            const mates = schoolDraftees.get(school) || [];
+            const draftSeason = draft.season || 0;
+            let score = 0;
+            for (const m of mates) {
+              if (m.name === name) continue;
+              if (Math.abs(m.season - draftSeason) <= 2 && m.pick > 0) {
+                score += 1 / m.pick; // higher picks = more draft capital = higher teammate score
+              }
+            }
+            teammateScoreByName.set(name, Math.round(score * 1000) / 1000);
+          }
         }
 
         // Step 3: Speed Score = (weight * 200) / (forty ^ 4)
@@ -1843,6 +1964,34 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
                   collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                   speedScore: speedScoreByName.get(normalName) || 0,
+                  // ZAP-inspired per-team-normalized features
+                  ...(() => {
+                    const zap = collegeZapByName.get(normalName);
+                    const combine = combineByName.get(normalName);
+                    const draft = draftByName.get(normalName);
+                    const ts = teammateScoreByName.get(normalName) || 0;
+                    const wt = Number(combine?.wt) || 0;
+                    const ht = parseHeight(combine?.ht || '') || 0;
+                    const ft = Number(combine?.forty) || 0;
+                    const ss = speedScoreByName.get(normalName) || 0;
+                    // Height-adjusted Speed Score for TEs: penalize short TEs
+                    const htAdjSpeedScore = (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss; // 76" = 6'4" baseline
+                    // Draft capital × Speed Score interaction (for TEs)
+                    const draftPick = draft?.pick || 0;
+                    const draftCapXSpeed = (draftPick > 0 && ss > 0) ? Math.round((1 / draftPick) * ss * 1000) / 1000 : 0;
+                    return {
+                      collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
+                      collegeReceptionShare: zap?.receptionShare || 0,
+                      collegeYdsPerTeamPlay: zap?.ydsPerTeamPlay || 0,
+                      collegeBreakoutScore: zap?.breakoutScore || 0,
+                      collegeBestRecYdsPerTPA: zap?.bestSeasonRecYdsPerTPA || 0,
+                      collegeRushProductionWR: zap?.rushProductionWR || 0,
+                      collegeEarlyDeclare: zap?.earlyDeclare || 0,
+                      collegeTeammateScore: ts,
+                      heightAdjSpeedScore: htAdjSpeedScore,
+                      draftCapXSpeed,
+                    };
+                  })(),
                   // Missing-data indicators
                   hasCollegeStats: _hasCollege,
                   hasProspectGrade: _hasProspect,
@@ -3049,6 +3198,32 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
                     collegeMarketShare: imp(adv?.marketShare, 'collegeMarketShare'),
                     speedScore: speedScoreByName.get(normalName) || 0,
+                    // ZAP-inspired per-team-normalized features
+                    ...(() => {
+                      const zap = collegeZapByName.get(normalName);
+                      const draft = draftByName.get(normalName);
+                      const combine = combineByName.get(normalName);
+                      const ts = teammateScoreByName.get(normalName) || 0;
+                      const wt = Number(combine?.wt) || 0;
+                      const ht = parseHeight(combine?.ht || '') || 0;
+                      const ft = Number(combine?.forty) || 0;
+                      const ss = speedScoreByName.get(normalName) || 0;
+                      const htAdjSpeedScore = (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss;
+                      const draftPick = draft?.pick || 0;
+                      const draftCapXSpeed = (draftPick > 0 && ss > 0) ? Math.round((1 / draftPick) * ss * 1000) / 1000 : 0;
+                      return {
+                        collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
+                        collegeReceptionShare: zap?.receptionShare || 0,
+                        collegeYdsPerTeamPlay: zap?.ydsPerTeamPlay || 0,
+                        collegeBreakoutScore: zap?.breakoutScore || 0,
+                        collegeBestRecYdsPerTPA: zap?.bestSeasonRecYdsPerTPA || 0,
+                        collegeRushProductionWR: zap?.rushProductionWR || 0,
+                        collegeEarlyDeclare: zap?.earlyDeclare || 0,
+                        collegeTeammateScore: ts,
+                        heightAdjSpeedScore: htAdjSpeedScore,
+                        draftCapXSpeed,
+                      };
+                    })(),
                     hasCollegeStats: _hasCollege,
                     hasProspectGrade: _hasProspect,
                     hasCombineData: _hasCombine,
