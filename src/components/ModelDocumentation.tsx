@@ -892,7 +892,7 @@ export function ModelDocumentation() {
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
                 Predicts the <strong>average of a rookie&apos;s best 2 PPG seasons</strong> in their first 3 NFL years
                 using only pre-draft data (college stats, combine, draft pick). No NFL stats used.
-                LOSO cross-validated across {m.seasons} draft classes.
+                LOSO cross-validated across {m.seasons ?? '?'} draft classes.
               </p>
 
               {/* Regression metrics */}

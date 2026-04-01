@@ -304,6 +304,13 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const sortArrow = (field: SortField) =>
     field === sortField ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
 
+  // Get relevant thresholds for current position filter
+  const activeThresholds = useMemo(() => {
+    if (posFilter !== 'ALL' && posThresholds[posFilter]) return posThresholds[posFilter];
+    // When ALL positions, show RB/WR thresholds (most common)
+    return posThresholds['RB'] || posThresholds['WR'] || [];
+  }, [posFilter, posThresholds]);
+
   if (loading)
     return (
       <div className="loading">
@@ -320,13 +327,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     );
 
   const gradedCount = rows.filter((r) => r.grade > 0).length;
-
-  // Get relevant thresholds for current position filter
-  const activeThresholds = useMemo(() => {
-    if (posFilter !== 'ALL' && posThresholds[posFilter]) return posThresholds[posFilter];
-    // When ALL positions, show RB/WR thresholds (most common)
-    return posThresholds['RB'] || posThresholds['WR'] || [];
-  }, [posFilter, posThresholds]);
 
   // Heat color for probability cells
   const probColor = (pct: number): string => {
