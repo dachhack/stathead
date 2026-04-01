@@ -49,6 +49,7 @@ export function ModelDocumentation() {
     rookieCareerModels?: Record<string, {
       n: number; cvR2: number; cvMAE: number; rankCorr: number; seasons: number;
       featureKeys: string[];
+      featureImportance?: Array<{ key: string; importance: number }>;
       topN: Record<number, { precision: number; recall: number; n: number }>;
       residualStd?: number;
       thresholds?: number[];
@@ -980,6 +981,40 @@ export function ModelDocumentation() {
                   </div>
                 </>
               )}
+
+              {/* Feature importance */}
+              {m.featureImportance && m.featureImportance.length > 0 && (() => {
+                const fiData = m.featureImportance.map(f => {
+                  const def = FEATURES.find(fd => fd.key === f.key);
+                  return { name: def?.label || f.key, importance: f.importance, key: f.key };
+                });
+                return (
+                  <>
+                    <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Feature Contributions ({selectedPos})</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                      Normalized ridge coefficient magnitudes — larger bars indicate features with more influence on predicted PPG.
+                    </p>
+                    <div style={{ marginBottom: 20 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(180, fiData.length * 28)}>
+                        <BarChart data={fiData} layout="vertical" margin={{ left: 160, right: 20, top: 4, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                          <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={150} />
+                          <Tooltip
+                            contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                            formatter={(v: number) => [`${(v * 100).toFixed(1)}%`, 'Importance']}
+                          />
+                          <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
+                            {fiData.map((_, idx) => (
+                              <Cell key={idx} fill={idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1'} fillOpacity={1 - idx * 0.06} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Probability model explanation */}
               {m.residualStd != null && m.residualStd > 0 && (

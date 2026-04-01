@@ -97,6 +97,7 @@ export interface RookieCareerModelResult {
   topN: Record<number, { precision: number; recall: number; n: number }>;
   seasons: number;
   featureKeys: string[];
+  featureImportance: Array<{ key: string; importance: number }>;
   residualStd: number;
   thresholds: number[];
   thresholdTable: {
@@ -364,6 +365,17 @@ export function trainRookieCareerModels(
       }, 5);
     }
 
+    // Feature importance from ridge coefficients (|standardized coeff|)
+    const fi = featureKeys.map((key, i) => ({
+      key,
+      importance: Math.abs(finalRidge.coefficients[i] || 0),
+    })).sort((a, b) => b.importance - a.importance);
+    const fiTotal = fi.reduce((s, f) => s + f.importance, 0);
+    const featureImportance = fi.map(f => ({
+      key: f.key,
+      importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1000) / 1000 : 0,
+    }));
+
     results[pos] = {
       n: posRows.length,
       cvR2: r2,
@@ -372,6 +384,7 @@ export function trainRookieCareerModels(
       topN: topNResults,
       seasons: seasons.length,
       featureKeys,
+      featureImportance,
       residualStd: Math.round(residualStd * 100) / 100,
       thresholds: thresholdConfig.thresholds,
       thresholdTable,
