@@ -232,6 +232,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             superflexValue: ktc?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
+            combinedScore: career?.combinedScore || 0,
+            percentile: career?.percentile || 0,
+            modelTier: career?.modelTier || 0,
           });
         }
 
@@ -256,6 +259,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             superflexValue: ktc?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
+            combinedScore: career?.combinedScore || 0,
+            percentile: career?.percentile || 0,
+            modelTier: career?.modelTier || 0,
           });
         }
 
