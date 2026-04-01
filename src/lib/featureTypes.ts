@@ -52,7 +52,7 @@ export interface FeatureMatrixResult {
 
 // ── Constants ──
 
-export const SEASONS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
+export const SEASONS = [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 export const PREDICT_SEASON = 2026;
 export const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
 export const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
@@ -292,6 +292,17 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeBreakoutAgeDelta', label: 'Draft Age − Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeMarketShare', label: 'College Receiving/Rushing Share (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'speedScore', label: 'Speed Score (weight-adj 40)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  // ZAP-inspired per-team-normalized features
+  { key: 'collegeRecYdsPerTeamPassAtt', label: 'Rec Yds / Team Pass Att', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeReceptionShare', label: 'Reception Share (% team)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeYdsPerTeamPlay', label: 'Yards / Team Play', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'collegeBreakoutScore', label: 'Breakout Score (age-adj)', category: 'College', positions: ['WR', 'TE'] },
+  { key: 'collegeBestRecYdsPerTPA', label: 'Best Szn Rec Yds / Team PA', category: 'College', positions: ['WR', 'TE'] },
+  { key: 'collegeRushProductionWR', label: 'Rush Production (WR, capped)', category: 'College', positions: ['WR'] },
+  { key: 'collegeEarlyDeclare', label: 'Early Declare (≤3 yr)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'collegeTeammateScore', label: 'Teammate Score (draft cap)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'heightAdjSpeedScore', label: 'Height-Adj Speed Score', category: 'College', positions: ['TE'] },
+  { key: 'draftCapXSpeed', label: 'Draft Capital × Speed', category: 'College', positions: ['TE'] },
   // Draft prospect grade/ranking
   { key: 'prospectGrade', label: 'Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'prospectPosRank', label: 'Prospect Position Rank', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
@@ -388,26 +399,26 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: ~24 rookies → 6 features (Ridge-only model, no GBM)
-  // nflDraftPick serves as grade proxy (uses projected pick pre-draft)
+  // QB: ~50+ rookies with 2010-2025 → 8 features
   QB: ['nflDraftRound', 'nflDraftPick', 'collegePassTDs', 'collegeQBR',
-       'collegeRushYds', 'hasCollegeStats'],
-  // RB: ~142 rookies → 12 features
-  RB: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRushYds', 'collegeRushYPC',
-       'collegeTotalTDs', 'collegeRecYds', 'forty', 'weight',
-       'collegeDominatorRating', 'collegeMarketShare',
-       'hasCollegeStats'],
-  // WR: ~127 rookies → 18 features
-  WR: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds', 'collegeRecTDs',
-       'collegeRecPerGame', 'forty', 'weight',
-       'collegeDominatorRating', 'collegeBreakoutAge', 'collegeBreakoutAgeDelta',
-       'collegeMarketShare', 'collegeYdsPerRec',
-       'collegeBestRecYds', 'collegeBestRecTDs', 'collegeBestReceptions',
-       'collegeSeasons',
-       'hasCollegeStats'],
-  // TE: ~23 rookies → 6 features (Ridge-only model, no GBM)
-  TE: ['nflDraftRound', 'nflDraftPick', 'age', 'collegeRecYds',
-       'collegeDominatorRating', 'collegeBreakoutAge'],
+       'collegeRushYds', 'age', 'collegeEarlyDeclare', 'hasCollegeStats'],
+  // RB: ~200+ rookies → ZAP-inspired: reception share, per-team-play production, speed score
+  RB: ['nflDraftRound', 'nflDraftPick', 'age',
+       'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt', 'collegeYdsPerTeamPlay',
+       'speedScore', 'weight',
+       'collegeTeammateScore', 'collegeEarlyDeclare',
+       'collegeTotalTDs', 'hasCollegeStats'],
+  // WR: ~200+ rookies → ZAP-inspired: breakout score, per-team-normalized, early-declare
+  WR: ['nflDraftRound', 'nflDraftPick', 'age',
+       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt', 'collegeBestRecYdsPerTPA',
+       'collegeReceptionShare', 'collegeRushProductionWR',
+       'weight', 'collegeEarlyDeclare', 'collegeTeammateScore',
+       'collegeSeasons', 'hasCollegeStats'],
+  // TE: ~50+ rookies → ZAP-inspired: draft capital × athleticism interaction, breakout score
+  TE: ['nflDraftRound', 'nflDraftPick', 'age',
+       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
+       'heightAdjSpeedScore', 'draftCapXSpeed',
+       'collegeEarlyDeclare', 'hasCollegeStats'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known

@@ -1844,18 +1844,30 @@ async function main() {
       const posAvg = combineAvg.get(pos) || {};
 
       // Build feature vector matching PRE_DRAFT_ROOKIE_FEATURES
+      const numSeasons = collegeBestByProspect.get(nName)?.numSeasons || collegeSeasonsByProspect.get(nName)?.size || 0;
+      const wt = combine?.wt || posAvg.weight || 0;
+      const ft = combine?.forty || posAvg.forty || 0;
+      const ht = combine?.ht ? parseHeight(combine.ht) : 0;
+      const ss = (wt > 0 && ft > 0) ? Math.round((wt * 200) / Math.pow(ft, 4) * 10) / 10 : 0;
+      const htAdjSS = (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss;
+      const projPick = prospect.projPick || 300;
+      const draftCapXSpeed = (projPick > 0 && ss > 0) ? Math.round((1 / projPick) * ss * 1000) / 1000 : 0;
+
       const features: Record<string, number> = {
         nflDraftRound: prospect.projRound || 8,
-        nflDraftPick: prospect.projPick || 300,
-        age: 0, // unknown pre-draft
+        nflDraftPick: projPick,
+        age: 0,
         yearsInLeague: 0,
-        weight: combine?.wt || posAvg.weight || 0,
-        forty: combine?.forty || posAvg.forty || 0,
+        weight: wt,
+        forty: ft,
         bench: combine?.bench || posAvg.bench || 0,
         vertical: combine?.vertical || posAvg.vertical || 0,
         broadJump: combine?.broad_jump || posAvg.broadJump || 0,
         cone: combine?.cone || posAvg.cone || 0,
         shuttle: combine?.shuttle || posAvg.shuttle || 0,
+        speedScore: ss,
+        heightAdjSpeedScore: htAdjSS,
+        draftCapXSpeed,
         collegePassTDs: cs?.get('Passing Touchdowns') || 0,
         collegeQBR: 0,
         collegeRushYds: cs?.get('Rushing Yards') || 0,
@@ -1872,7 +1884,16 @@ async function main() {
         collegeBestRecYds: collegeBestByProspect.get(nName)?.bestRecYds || 0,
         collegeBestRecTDs: collegeBestByProspect.get(nName)?.bestRecTDs || 0,
         collegeBestReceptions: collegeBestByProspect.get(nName)?.bestReceptions || 0,
-        collegeSeasons: collegeBestByProspect.get(nName)?.numSeasons || collegeSeasonsByProspect.get(nName)?.size || 0,
+        collegeSeasons: numSeasons,
+        collegeEarlyDeclare: numSeasons <= 3 ? 1 : 0,
+        // Per-team normalized features (approximate from available data)
+        collegeRecYdsPerTeamPassAtt: 0, // computed below if data available
+        collegeReceptionShare: 0,
+        collegeYdsPerTeamPlay: 0,
+        collegeBreakoutScore: 0,
+        collegeBestRecYdsPerTPA: 0,
+        collegeRushProductionWR: pos === 'WR' ? Math.min(cs?.get('Rushing Yards') || 0, 500) : 0,
+        collegeTeammateScore: 0,
         hasCollegeStats: cs ? 1 : 0,
       };
 
