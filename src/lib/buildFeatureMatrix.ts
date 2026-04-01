@@ -2321,6 +2321,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predPlayerTeamMap.set(name, r.team);
               if (r.headshot_url) predHeadshotByName.set(name, r.headshot_url);
             }
+            // Name aliases: ADP sources sometimes use different names than nflverse rosters.
+            // Map alternative names → same team so predPlayerTeamMap lookups succeed.
+            const NAME_ALIASES: Record<string, string> = {
+              'hollywood brown': 'marquise brown',
+              'joshua palmer': 'josh palmer',
+            };
+            for (const [alias, canonical] of Object.entries(NAME_ALIASES)) {
+              const team = predPlayerTeamMap.get(canonical);
+              if (team && !predPlayerTeamMap.has(alias)) {
+                predPlayerTeamMap.set(alias, team);
+              }
+            }
             const predPriorRosterByTeamPos = new Map<string, Set<string>>();
             for (const r of predPriorRosters) {
               if (!POSITIONS.includes(r.position)) continue;
