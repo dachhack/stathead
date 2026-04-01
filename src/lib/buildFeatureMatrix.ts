@@ -8,6 +8,7 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
   fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
+  fetchCollegeGames,
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
@@ -78,7 +79,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Load combine + draft + games + contracts + college once (static)
         onStatus?.('Loading combine, draft, games, contracts & college data...');
-        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData] = await Promise.all([
+        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData, collegeGamesData] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
@@ -86,6 +87,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           fetchCollegeStats().catch(() => [] as CollegeStats[]),
           fetchCollegeQBR().catch(() => [] as CollegeQBR[]),
           fetchDraftProspects().catch(() => [] as DraftProspect[]),
+          fetchCollegeGames().catch(() => []),
         ]);
 
         // Build lookup maps
@@ -198,6 +200,55 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               ydsPerRec: t.receptions > 0 ? Math.round((t.recYds / t.receptions) * 10) / 10 : 0,
             });
           }
+        }
+
+        // ── College Strength of Schedule (derived from cfbfastR game results) ──
+        // For each team/season, compute SOS as average opponent win percentage
+        const collegeSOS = new Map<string, number>(); // "team_lower:season" → SOS multiplier
+        {
+          // Step 1: Compute each team's win count per season
+          const teamWins = new Map<string, { wins: number; losses: number }>();
+          for (const g of collegeGamesData) {
+            if (!g.home_points || !g.away_points || !g.home_team || !g.away_team) continue;
+            const hp = Number(g.home_points) || 0;
+            const ap = Number(g.away_points) || 0;
+            if (hp === 0 && ap === 0) continue;
+            const hKey = `${g.home_team.toLowerCase()}:${g.season}`;
+            const aKey = `${g.away_team.toLowerCase()}:${g.season}`;
+            if (!teamWins.has(hKey)) teamWins.set(hKey, { wins: 0, losses: 0 });
+            if (!teamWins.has(aKey)) teamWins.set(aKey, { wins: 0, losses: 0 });
+            if (hp > ap) { teamWins.get(hKey)!.wins++; teamWins.get(aKey)!.losses++; }
+            else if (ap > hp) { teamWins.get(aKey)!.wins++; teamWins.get(hKey)!.losses++; }
+          }
+          // Step 2: For each team/season, compute avg opponent win pct
+          const teamOpponents = new Map<string, string[]>(); // team:season → list of opponent keys
+          for (const g of collegeGamesData) {
+            if (!g.home_team || !g.away_team) continue;
+            const hKey = `${g.home_team.toLowerCase()}:${g.season}`;
+            const aKey = `${g.away_team.toLowerCase()}:${g.season}`;
+            if (!teamOpponents.has(hKey)) teamOpponents.set(hKey, []);
+            if (!teamOpponents.has(aKey)) teamOpponents.set(aKey, []);
+            teamOpponents.get(hKey)!.push(aKey);
+            teamOpponents.get(aKey)!.push(hKey);
+          }
+          for (const [teamKey, opps] of teamOpponents) {
+            if (opps.length === 0) continue;
+            let totalOppWinPct = 0;
+            let count = 0;
+            for (const oppKey of opps) {
+              const wr = teamWins.get(oppKey);
+              if (wr && (wr.wins + wr.losses) > 0) {
+                totalOppWinPct += wr.wins / (wr.wins + wr.losses);
+                count++;
+              }
+            }
+            if (count > 0) {
+              const avgOppWinPct = totalOppWinPct / count;
+              // Convert to multiplier: 0.5 avg → 1.0, 0.7 avg → 1.2, 0.3 avg → 0.8
+              collegeSOS.set(teamKey, 0.6 + avgOppWinPct * 0.8);
+            }
+          }
+          onStatus?.(`College SOS computed for ${collegeSOS.size} team-seasons`);
         }
 
         // ── Advanced college analytics: dominator rating, breakout age, market share ──
@@ -357,9 +408,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const team = schoolSeasonTotals.get(schoolKey);
             if (!team) continue;
 
-            // Receiving yards per team pass attempt
-            const teamPA = team.passAtt > 0 ? team.passAtt : (team.completions > 0 ? team.completions * 1.6 : 0); // estimate if missing
-            const recYdsPerTPA = teamPA > 0 ? ps.recYds / teamPA : 0;
+            // SOS multiplier for this school/season (1.0 = average, >1 = harder schedule)
+            const sosKey = `${ps.school}:${seasonYear}`;
+            const sosMult = collegeSOS.get(sosKey) || 1.0;
+
+            // Receiving yards per team pass attempt (SOS-adjusted)
+            const teamPA = team.passAtt > 0 ? team.passAtt : (team.completions > 0 ? team.completions * 1.6 : 0);
+            const recYdsPerTPA = teamPA > 0 ? (ps.recYds / teamPA) * sosMult : 0;
             bestRecYdsPerTPA = Math.max(bestRecYdsPerTPA, recYdsPerTPA);
 
             // Reception share (% of team completions)
@@ -367,20 +422,19 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const recShare = teamComp > 0 ? ps.receptions / teamComp : 0;
             bestReceptionShare = Math.max(bestReceptionShare, recShare);
 
-            // Total yards per team play
+            // Total yards per team play (SOS-adjusted)
             const totalYds = ps.recYds + ps.rushYds;
             const teamPlays = team.totalPlays > 0 ? team.totalPlays : (teamPA + team.rushAtt);
-            const ydsPerTP = teamPlays > 0 ? totalYds / teamPlays : 0;
+            const ydsPerTP = teamPlays > 0 ? (totalYds / teamPlays) * sosMult : 0;
             bestYdsPerTeamPlay = Math.max(bestYdsPerTeamPlay, ydsPerTP);
 
-            // Breakout Score: age-adjusted rec yds per team pass att
-            // Younger production weighted more heavily (age penalty: 0 at 20, +penalty for older)
+            // Breakout Score: age- and SOS-adjusted rec yds per team pass att
+            // Younger production weighted more, harder schedules weighted more
             if (draftAge > 0 && draftYear > 0) {
               const ageInSeason = draftAge - (draftYear - seasonYear);
               if (ageInSeason > 17 && ageInSeason < 25) {
-                // Age multiplier: 1.15 at 19, 1.0 at 21, 0.85 at 23
                 const ageMult = 1.0 + (21 - ageInSeason) * 0.075;
-                const adjRecPerTPA = recYdsPerTPA * ageMult;
+                const adjRecPerTPA = recYdsPerTPA * ageMult; // already SOS-adjusted above
                 breakoutScore = Math.max(breakoutScore, adjRecPerTPA);
               }
             } else {
