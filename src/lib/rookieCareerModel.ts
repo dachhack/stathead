@@ -216,7 +216,7 @@ export function trainRookieCareerModels(
           subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
           seed: 42,
         }, 5);
-        preds = Xte.map((x, i) => {
+        preds = Xte.map((x) => {
           // Build clean feature dict for predictions (only use featureKeys, default to 0)
           const feat: Record<string, number> = {};
           featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
