@@ -3253,11 +3253,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ...(() => {
                       const zap = collegeZapByName.get(normalName);
                       const draft = draftByName.get(normalName);
-                      const combine = combineByName.get(normalName);
                       const ts = teammateScoreByName.get(normalName) || 0;
-                      const wt = Number(combine?.wt) || 0;
-                      const ht = parseHeight(combine?.ht || '') || 0;
-                      const ft = Number(combine?.forty) || 0;
+                      const ht = parseHeight(combineByName.get(normalName)?.ht || '') || 0;
                       const ss = speedScoreByName.get(normalName) || 0;
                       const htAdjSpeedScore = (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss;
                       const draftPick = draft?.pick || 0;
