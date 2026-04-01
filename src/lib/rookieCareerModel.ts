@@ -217,14 +217,21 @@ export function trainRookieCareerModels(
           seed: 42,
         }, 5);
         preds = Xte.map((x, i) => {
-          const features: Record<string, number> = {};
-          featureKeys.forEach((k, j) => { features[k] = x[j]; });
-          const gbmP = predictBaggedGBM(gbmModel, features).predicted;
-          const ridgeP = predict(ridgeModel, testR[i].features).predicted;
-          return gbmP * 0.5 + ridgeP * 0.5;
+          // Build clean feature dict for predictions (only use featureKeys, default to 0)
+          const feat: Record<string, number> = {};
+          featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+          const gbmP = predictBaggedGBM(gbmModel, feat).predicted;
+          const ridgeP = predict(ridgeModel, feat).predicted;
+          const p = gbmP * 0.5 + ridgeP * 0.5;
+          return isFinite(p) ? p : 0;
         });
       } else {
-        preds = testR.map(r => predict(ridgeModel, r.features).predicted);
+        preds = testR.map(r => {
+          const feat: Record<string, number> = {};
+          featureKeys.forEach(k => { feat[k] = isFinite(r.features[k]) ? r.features[k] : 0; });
+          const p = predict(ridgeModel, feat).predicted;
+          return isFinite(p) ? p : 0;
+        });
       }
 
       for (let i = 0; i < testR.length; i++) {
@@ -234,19 +241,25 @@ export function trainRookieCareerModels(
       }
     }
 
+    // Filter out any NaN predictions before computing metrics
+    const validIdx = losoPreds.map((p, i) => ({ p, a: losoActuals[i], s: losoSeasons[i] })).filter(x => isFinite(x.p) && isFinite(x.a));
+    const cleanPreds = validIdx.map(x => x.p);
+    const cleanActuals = validIdx.map(x => x.a);
+    const cleanSeasons = validIdx.map(x => x.s);
+
     // Metrics
-    const r2 = losoActuals.length >= 5 ? cvR2(losoActuals, losoPreds) : 0;
-    const mae = losoActuals.length >= 5 ? cvMae(losoActuals, losoPreds) : 0;
+    const r2 = cleanActuals.length >= 5 ? cvR2(cleanActuals, cleanPreds) : 0;
+    const mae = cleanActuals.length >= 5 ? cvMae(cleanActuals, cleanPreds) : 0;
 
     // Top-N classification
     const topNResults: Record<number, { precision: number; recall: number; n: number }> = {};
     for (const threshold of TOP_N_THRESHOLDS) {
       let totalPrecision = 0, classCount = 0;
       for (const held of seasons) {
-        const classIdx = losoActuals.map((_, i) => i).filter(i => losoSeasons[i] === held);
+        const classIdx = cleanActuals.map((_, i) => i).filter(i => cleanSeasons[i] === held);
         if (classIdx.length < threshold) continue;
-        const actualTopN = new Set(classIdx.map(i => ({ i, ppg: losoActuals[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
-        const predTopN = new Set(classIdx.map(i => ({ i, ppg: losoPreds[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
+        const actualTopN = new Set(classIdx.map(i => ({ i, ppg: cleanActuals[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
+        const predTopN = new Set(classIdx.map(i => ({ i, ppg: cleanPreds[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
         let overlap = 0;
         for (const i of predTopN) if (actualTopN.has(i)) overlap++;
         totalPrecision += overlap / threshold;
@@ -260,12 +273,12 @@ export function trainRookieCareerModels(
     }
 
     // Rank correlation
-    const predRanks = rankArray(losoPreds.map(p => -p));
-    const actualRanks = rankArray(losoActuals.map(a => -a));
+    const predRanks = rankArray(cleanPreds.map(p => -p));
+    const actualRanks = rankArray(cleanActuals.map(a => -a));
     const rankCorr = spearman(predRanks, actualRanks);
 
     // Residual std
-    const residuals = losoActuals.map((a, i) => a - losoPreds[i]);
+    const residuals = cleanActuals.map((a, i) => a - cleanPreds[i]);
     const residualMean = residuals.reduce((s, r) => s + r, 0) / residuals.length;
     const residualStd = Math.sqrt(residuals.reduce((s, r) => s + (r - residualMean) ** 2, 0) / residuals.length);
 
@@ -275,7 +288,7 @@ export function trainRookieCareerModels(
       thresholds: thresholdConfig.thresholds, tiers: [],
     };
     for (const tier of thresholdConfig.tiers) {
-      const tierIdx = losoPreds.map((p, i) => ({ pred: p, actual: losoActuals[i] })).filter(x => x.pred >= tier.min && x.pred < tier.max);
+      const tierIdx = cleanPreds.map((p, i) => ({ pred: p, actual: cleanActuals[i] })).filter(x => x.pred >= tier.min && x.pred < tier.max);
       const n = tierIdx.length;
       const hitRates = thresholdConfig.thresholds.map(thresh => {
         if (n === 0) return 0;
