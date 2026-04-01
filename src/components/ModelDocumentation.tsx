@@ -5,6 +5,8 @@ import {
 import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
 } from '../lib/featureTypes';
+import { trainRookieCareerModels } from '../lib/rookieCareerModel';
+import type { RookieCareerModelResult } from '../lib/rookieCareerModel';
 import projectionConfig from '../generated/projection-config.json';
 
 interface PositionModelData {
@@ -65,20 +67,37 @@ export function ModelDocumentation() {
 
   useEffect(() => {
     async function load() {
+      let d: any = null;
       try {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
-        if (resp.ok) {
-          const d = await resp.json();
-          setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary, rookieCareerModels: d.rookieCareerModels });
-        }
-      } catch { /* fallback to localStorage */
+        if (resp.ok) d = await resp.json();
+      } catch { /* network error */ }
+
+      // Fallback to localStorage
+      if (!d || !d.models?.length) {
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
-          if (cached) {
-            const d = JSON.parse(cached);
-            setData({ models: d.models || [], featureImportance: d.featureImportance || {}, rookieFeatureImportance: d.rookieFeatureImportance, rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance, vetFeatureImportance: d.vetFeatureImportance, ppgModels: d.ppgModels, residualModels: d.residualModels, draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary, rookieCareerModels: d.rookieCareerModels });
-          }
+          if (cached) d = JSON.parse(cached);
         } catch {}
+      }
+
+      if (d) {
+        // Train career models at runtime if not present but rows are available
+        let careerModels = d.rookieCareerModels;
+        if ((!careerModels || Object.keys(careerModels).length === 0) && d.rows?.length > 0) {
+          try {
+            careerModels = trainRookieCareerModels(d.rows);
+          } catch { /* training failed */ }
+        }
+        setData({
+          models: d.models || [], featureImportance: d.featureImportance || {},
+          rookieFeatureImportance: d.rookieFeatureImportance,
+          rookiePreDraftFeatureImportance: d.rookiePreDraftFeatureImportance,
+          vetFeatureImportance: d.vetFeatureImportance,
+          ppgModels: d.ppgModels, residualModels: d.residualModels,
+          draftSim2025: d.draftSim2025, shareModelSummary: d.shareModelSummary,
+          rookieCareerModels: careerModels,
+        });
       }
       setLoading(false);
     }
