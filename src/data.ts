@@ -1109,6 +1109,22 @@ export async function fetchCollegeStats(): Promise<CollegeStats[]> {
   return fetchCsv<CollegeStats>(`${DRAFT_DATA}/college_statistics.csv`);
 }
 
+// College football game results (cfbfastR) — for deriving strength of schedule
+export interface CollegeGame {
+  game_id: number;
+  season: number;
+  home_team: string;
+  home_conference: string;
+  home_points: number;
+  away_team: string;
+  away_conference: string;
+  away_points: number;
+}
+const CFB_DATA = 'https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/schedules';
+export async function fetchCollegeGames(): Promise<CollegeGame[]> {
+  return fetchCsv<CollegeGame>(`${CFB_DATA}/cfb_games_info.csv`);
+}
+
 export async function fetchCollegeQBR(): Promise<CollegeQBR[]> {
   return fetchCsv<CollegeQBR>(`${DRAFT_DATA}/college_qbr.csv`);
 }
