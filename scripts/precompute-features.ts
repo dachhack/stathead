@@ -39,7 +39,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v29.json'; // v29: rookie career prediction models
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v30.json'; // v30: career model games fix + prospect-based scoring
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
