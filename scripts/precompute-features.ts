@@ -1770,6 +1770,19 @@ async function main() {
       }
     }
 
+    // Train final model on ALL data for 2026 scoring
+    const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
+    const yAll = posRows.map(r => r.best2of3PPG);
+    const finalRidge = trainRidgeRegression(XAll, yAll, featureKeys, 5);
+    let finalGBM: BaggedGBM | null = null;
+    if (posRows.length >= 40) {
+      finalGBM = trainBaggedGBM(XAll, yAll, featureKeys, {
+        nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
+        seed: 42,
+      }, 5);
+    }
+
     rookieCareerModels[pos] = {
       n: posRows.length,
       cvR2: r2,
@@ -1778,6 +1791,8 @@ async function main() {
       topN: topNResults,
       seasons: seasons.length,
       featureKeys,
+      ridgeModel: finalRidge,
+      gbmModel: finalGBM,
     };
   }
 
@@ -1896,6 +1911,39 @@ async function main() {
   }
   console.log(`  Residual predictions: ${residualPredictions2026.length} players`);
 
+  // Score 2026 rookies with career prediction model
+  console.log('  Scoring 2026 rookie career predictions...');
+  const careerPredictions2026: Array<{
+    name: string; position: string; team: string; adp: number;
+    headshotUrl?: string; predictedCareerPPG: number;
+  }> = [];
+  for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+    const cm = (rookieCareerModels as any)[pos];
+    if (!cm?.ridgeModel) continue;
+    const featureKeys = cm.featureKeys as string[];
+    const posPredRows = result.predRows.filter((r: any) =>
+      r.position === pos && (r.features.yearsInLeague || 0) <= 1
+    );
+    for (const r of posPredRows) {
+      const ridgePred = predict(cm.ridgeModel, r.features).predicted;
+      let pred: number;
+      if (cm.gbmModel) {
+        const gbmPred = predictBaggedGBM(cm.gbmModel, r.features).predicted;
+        pred = gbmPred * 0.5 + ridgePred * 0.5;
+      } else {
+        pred = ridgePred;
+      }
+      careerPredictions2026.push({
+        name: r.name, position: r.position, team: r.team, adp: r.adp,
+        headshotUrl: r.headshotUrl,
+        predictedCareerPPG: Math.round(Math.max(0, pred) * 10) / 10,
+      });
+    }
+  }
+  // Sort by predicted career PPG descending
+  careerPredictions2026.sort((a, b) => b.predictedCareerPPG - a.predictedCareerPPG);
+  console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);
+
   // Generate 2026 predictions with ensemble + confidence intervals
   console.log('  Generating 2026 predictions (ensemble + CI)...');
   const predictions2026: Array<{
@@ -1980,7 +2028,7 @@ async function main() {
     shareModelSummary[k] = { cvR2: v.cvR2, cvMAE: v.cvMAE, n: v.n };
   }
 
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, careerPredictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 

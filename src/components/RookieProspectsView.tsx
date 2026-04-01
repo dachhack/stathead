@@ -39,6 +39,8 @@ interface ProspectRow {
   // KTC dynasty
   dynastyValue: number;
   superflexValue: number;
+  // Career model prediction
+  predictedCareerPPG: number;
 }
 
 type SortField = keyof ProspectRow;
@@ -100,8 +102,18 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       fetchCombine(),
       fetchFantasyRankings(),
       fetchKTCRankings('1qb'),
+      fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null),
     ])
-      .then(([combine, fpRankings, ktcPlayers]) => {
+      .then(([combine, fpRankings, ktcPlayers, featureData]) => {
+        // Career predictions from model
+        const careerMap = new Map<string, number>();
+        if (featureData?.careerPredictions2026) {
+          for (const p of featureData.careerPredictions2026) {
+            careerMap.set(normalizeName(p.name), p.predictedCareerPPG);
+          }
+        }
         // Build prospect grade lookup
         const gradeMap = new Map<string, ProspectGrade>();
         for (const g of prospectGrades as ProspectGrade[]) {
@@ -156,6 +168,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
+            predictedCareerPPG: careerMap.get(nName) || 0,
           };
         });
 
@@ -181,6 +194,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
+            predictedCareerPPG: careerMap.get(normalizeName(pg.name)) || 0,
           });
         }
 
@@ -202,6 +216,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp.player_owned_avg || 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
+            predictedCareerPPG: careerMap.get(nName) || 0,
           });
         }
 
@@ -216,7 +231,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG'];
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
@@ -343,6 +358,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('dynastyValue')} style={{ cursor: 'pointer' }}>
                 Dynasty Val{sortArrow('dynastyValue')}
               </th>
+              <th onClick={() => handleSort('predictedCareerPPG')} style={{ cursor: 'pointer' }}>
+                Model PPG{sortArrow('predictedCareerPPG')}
+              </th>
               <th onClick={() => handleSort('ht')} style={{ cursor: 'pointer' }}>
                 Ht{sortArrow('ht')}
               </th>
@@ -439,6 +457,20 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     <span style={{ color: valueColor(r.dynastyValue), fontWeight: 600 }}>
                       {r.dynastyValue.toLocaleString()}
                     </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td>
+                  {r.predictedCareerPPG > 0 ? (
+                    <strong style={{
+                      color: r.predictedCareerPPG >= 15 ? '#22c55e'
+                        : r.predictedCareerPPG >= 10 ? '#a3e635'
+                        : r.predictedCareerPPG >= 6 ? '#facc15'
+                        : '#fb923c',
+                    }}>
+                      {r.predictedCareerPPG.toFixed(1)}
+                    </strong>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
