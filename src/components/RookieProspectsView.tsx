@@ -41,6 +41,8 @@ interface ProspectRow {
   superflexValue: number;
   // Career model prediction
   predictedCareerPPG: number;
+  // Threshold probabilities: P(best 2-of-3 PPG >= threshold)
+  thresholdProbs: Record<number, number>;
 }
 
 type SortField = keyof ProspectRow;
@@ -96,6 +98,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [sortField, setSortField] = useState<SortField>('grade');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [view, setView] = useState<'graded' | 'all'>('graded');
+  const [posThresholds, setPosThresholds] = useState<Record<string, number[]>>({});
 
   useEffect(() => {
     Promise.all([
@@ -108,10 +111,20 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     ])
       .then(([combine, fpRankings, ktcPlayers, featureData]) => {
         // Career predictions from model
-        const careerMap = new Map<string, number>();
+        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number> }>();
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
-            careerMap.set(normalizeName(p.name), p.predictedCareerPPG);
+            careerMap.set(normalizeName(p.name), {
+              ppg: p.predictedCareerPPG,
+              thresholdProbs: p.thresholdProbs || {},
+            });
+          }
+        }
+        // Position-specific thresholds from career models
+        const posThresholds: Record<string, number[]> = {};
+        if (featureData?.rookieCareerModels) {
+          for (const [pos, m] of Object.entries(featureData.rookieCareerModels as Record<string, any>)) {
+            if (m?.thresholds) posThresholds[pos] = m.thresholds;
           }
         }
         // Build prospect grade lookup
@@ -146,6 +159,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           if (fp) fpMap.delete(nName);
           if (ktc) ktcMap.delete(nName);
           if (pg) gradeMap.delete(nName);
+          const career = careerMap.get(nName);
           return {
             name: c.player_name,
             pos: pg?.pos || c.pos || '',
@@ -168,7 +182,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
-            predictedCareerPPG: careerMap.get(nName) || 0,
+            predictedCareerPPG: career?.ppg || 0,
+            thresholdProbs: career?.thresholdProbs || {},
           };
         });
 
@@ -179,6 +194,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           const ktc = ktcMap.get(nName);
           if (fp) fpMap.delete(nName);
           if (ktc) ktcMap.delete(nName);
+          const career = careerMap.get(nName);
           allRows.push({
             name: pg.name,
             pos: pg.pos,
@@ -194,7 +210,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp ? (fp.player_owned_avg || 0) : 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
-            predictedCareerPPG: careerMap.get(normalizeName(pg.name)) || 0,
+            predictedCareerPPG: career?.ppg || 0,
+            thresholdProbs: career?.thresholdProbs || {},
           });
         }
 
@@ -203,6 +220,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           const nName = normalizeName(fp.player);
           const ktc = ktcMap.get(nName);
           if (ktc) ktcMap.delete(nName);
+          const career = careerMap.get(nName);
           allRows.push({
             name: fp.player,
             pos: fp.pos || '',
@@ -216,11 +234,13 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             owned: fp.player_owned_avg || 0,
             dynastyValue: ktc?.value || 0,
             superflexValue: ktc?.superflexValue || 0,
-            predictedCareerPPG: careerMap.get(nName) || 0,
+            predictedCareerPPG: career?.ppg || 0,
+            thresholdProbs: career?.thresholdProbs || {},
           });
         }
 
         setRows(allRows);
+        setPosThresholds(posThresholds);
         onDataLoaded?.(allRows);
       })
       .catch((e) => setError(e.message))
@@ -301,6 +321,31 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
 
   const gradedCount = rows.filter((r) => r.grade > 0).length;
 
+  // Get relevant thresholds for current position filter
+  const activeThresholds = useMemo(() => {
+    if (posFilter !== 'ALL' && posThresholds[posFilter]) return posThresholds[posFilter];
+    // When ALL positions, show RB/WR thresholds (most common)
+    return posThresholds['RB'] || posThresholds['WR'] || [];
+  }, [posFilter, posThresholds]);
+
+  // Heat color for probability cells
+  const probColor = (pct: number): string => {
+    if (pct >= 70) return '#22c55e';
+    if (pct >= 50) return '#4ade80';
+    if (pct >= 30) return '#a3e635';
+    if (pct >= 15) return '#facc15';
+    if (pct >= 5) return '#fb923c';
+    return '#ef4444';
+  };
+  const probBg = (pct: number): string => {
+    if (pct >= 70) return 'rgba(34,197,94,0.25)';
+    if (pct >= 50) return 'rgba(34,197,94,0.15)';
+    if (pct >= 30) return 'rgba(163,230,53,0.12)';
+    if (pct >= 15) return 'rgba(250,204,21,0.10)';
+    if (pct >= 5) return 'rgba(251,146,60,0.10)';
+    return 'rgba(239,68,68,0.12)';
+  };
+
   return (
     <>
       <div className="controls">
@@ -361,6 +406,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('predictedCareerPPG')} style={{ cursor: 'pointer' }}>
                 Model PPG{sortArrow('predictedCareerPPG')}
               </th>
+              {activeThresholds.map(t => (
+                <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
+                  &gt;{t}
+                </th>
+              ))}
               <th onClick={() => handleSort('ht')} style={{ cursor: 'pointer' }}>
                 Ht{sortArrow('ht')}
               </th>
@@ -475,6 +525,19 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
                 </td>
+                {activeThresholds.map(t => {
+                  const prob = r.thresholdProbs?.[t];
+                  const hasProb = prob != null && prob > 0 && r.predictedCareerPPG > 0;
+                  return (
+                    <td key={t} style={{
+                      textAlign: 'center', fontSize: 12, fontWeight: 600, padding: '4px 3px',
+                      background: hasProb ? probBg(prob) : undefined,
+                      color: hasProb ? probColor(prob) : 'var(--text-muted)',
+                    }}>
+                      {hasProb ? `${prob.toFixed(0)}%` : '-'}
+                    </td>
+                  );
+                })}
                 <td>{r.ht || '-'}</td>
                 <td>{r.wt || '-'}</td>
                 <td className={r.forty ? '' : 'text-muted'}>

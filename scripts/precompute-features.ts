@@ -38,6 +38,18 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
+// Standard normal CDF approximation (Abramowitz & Stegun 26.2.17, |error| < 7.5e-8)
+function normalCdf(x: number): number {
+  if (x < -8) return 0;
+  if (x > 8) return 1;
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  const t = 1 / (1 + p * Math.abs(x));
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x / 2);
+  return 0.5 * (1 + sign * y);
+}
+
 const CACHE_PATH = 'public/data/training-rows-cache-v24.json'; // v24: actual share targets (target/rush/rec/TD shares)
 const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v30.json'; // v30: career model games fix + prospect-based scoring
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
@@ -1677,6 +1689,61 @@ async function main() {
   const CAREER_POSITIONS = ['QB', 'RB', 'WR', 'TE'];
   const TOP_N_THRESHOLDS = [12, 24, 36, 48, 60];
 
+  // PPG threshold hit-rate config per position (matching fantasy archetype tiers)
+  const PPG_THRESHOLD_CONFIG: Record<string, {
+    thresholds: number[];
+    tiers: Array<{ label: string; min: number; max: number }>;
+  }> = {
+    QB: {
+      thresholds: [14, 16, 18, 20, 22, 24],
+      tiers: [
+        { label: 'Legendary Performer', min: 20, max: Infinity },
+        { label: 'Elite Producer', min: 17, max: 20 },
+        { label: 'Weekly Starter', min: 15, max: 17 },
+        { label: 'Flex Play', min: 13, max: 15 },
+        { label: 'Benchwarmer', min: 11, max: 13 },
+        { label: 'Waiver Wire Add', min: 8, max: 11 },
+        { label: 'Dart Throw', min: 0, max: 8 },
+      ],
+    },
+    RB: {
+      thresholds: [10, 12, 14, 16, 18, 20],
+      tiers: [
+        { label: 'Legendary Performer', min: 16, max: Infinity },
+        { label: 'Elite Producer', min: 13, max: 16 },
+        { label: 'Weekly Starter', min: 10, max: 13 },
+        { label: 'Flex Play', min: 8, max: 10 },
+        { label: 'Benchwarmer', min: 6, max: 8 },
+        { label: 'Waiver Wire Add', min: 4, max: 6 },
+        { label: 'Dart Throw', min: 0, max: 4 },
+      ],
+    },
+    WR: {
+      thresholds: [10, 12, 14, 16, 18, 20],
+      tiers: [
+        { label: 'Legendary Performer', min: 16, max: Infinity },
+        { label: 'Elite Producer', min: 13, max: 16 },
+        { label: 'Weekly Starter', min: 10, max: 13 },
+        { label: 'Flex Play', min: 8, max: 10 },
+        { label: 'Benchwarmer', min: 6, max: 8 },
+        { label: 'Waiver Wire Add', min: 4, max: 6 },
+        { label: 'Dart Throw', min: 0, max: 4 },
+      ],
+    },
+    TE: {
+      thresholds: [7, 8, 9, 10, 11, 12],
+      tiers: [
+        { label: 'Legendary Performer', min: 12, max: Infinity },
+        { label: 'Elite Producer', min: 10, max: 12 },
+        { label: 'Weekly Starter', min: 8, max: 10 },
+        { label: 'Flex Play', min: 6, max: 8 },
+        { label: 'Benchwarmer', min: 5, max: 6 },
+        { label: 'Waiver Wire Add', min: 3, max: 5 },
+        { label: 'Dart Throw', min: 0, max: 3 },
+      ],
+    },
+  };
+
   for (const pos of CAREER_POSITIONS) {
     const posRows = careerRows.filter(r => r.position === pos);
     if (posRows.length < 10) {
@@ -1779,12 +1846,40 @@ async function main() {
     const actualRanks = rankArray(losoActuals.map(a => -a));
     const rankCorr = spearman(predRanks, actualRanks);
 
+    // PPG threshold hit-rate table (calibration by predicted tier)
+    const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
+    const thresholdTable: {
+      thresholds: number[];
+      tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
+    } = { thresholds: thresholdConfig.thresholds, tiers: [] };
+
+    for (const tier of thresholdConfig.tiers) {
+      // Find all LOSO predictions that fall in this tier
+      const tierIdx = losoPreds
+        .map((p, i) => ({ pred: p, actual: losoActuals[i], i }))
+        .filter(x => x.pred >= tier.min && x.pred < tier.max);
+      const n = tierIdx.length;
+      const hitRates = thresholdConfig.thresholds.map(thresh => {
+        if (n === 0) return 0;
+        const hits = tierIdx.filter(x => x.actual >= thresh).length;
+        return Math.round(hits / n * 1000) / 10; // one decimal %
+      });
+      thresholdTable.tiers.push({
+        label: tier.label, min: tier.min, max: tier.max, n, hitRates,
+      });
+    }
+
     console.log(`    ${pos}: n=${posRows.length}, R²=${r2.toFixed(3)}, MAE=${mae.toFixed(1)}, ρ=${rankCorr.toFixed(3)}`);
     for (const t of TOP_N_THRESHOLDS) {
       if (topNResults[t].n > 0) {
         console.log(`      Top-${t}: ${topNResults[t].precision}% precision (${topNResults[t].n} classes)`);
       }
     }
+    // Residual standard deviation for probability calibration
+    const residuals = losoActuals.map((a, i) => a - losoPreds[i]);
+    const residualMean = residuals.reduce((s, r) => s + r, 0) / residuals.length;
+    const residualStd = Math.sqrt(residuals.reduce((s, r) => s + (r - residualMean) ** 2, 0) / residuals.length);
+    console.log(`      Threshold tiers: ${thresholdTable.tiers.filter(t => t.n > 0).length} non-empty, σ=${residualStd.toFixed(2)}`);
 
     // Train final model on ALL data for 2026 scoring
     const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
@@ -1809,6 +1904,9 @@ async function main() {
       featureKeys,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
+      thresholdTable,
+      residualStd: Math.round(residualStd * 100) / 100,
+      thresholds: thresholdConfig.thresholds,
     };
   }
 
@@ -1933,6 +2031,7 @@ async function main() {
   const careerPredictions2026: Array<{
     name: string; position: string; team: string; adp: number;
     headshotUrl?: string; predictedCareerPPG: number;
+    thresholdProbs?: Record<number, number>; // P(actual >= threshold) for each threshold
   }> = [];
 
   // Load prospect grades from static JSON
@@ -2099,9 +2198,21 @@ async function main() {
       } else {
         pred = ridgePred;
       }
+      const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
+      // Compute P(actual >= threshold) using normal CDF with LOSO residual σ
+      const sigma = cm.residualStd as number;
+      const posThresholds = cm.thresholds as number[];
+      const thresholdProbs: Record<number, number> = {};
+      if (sigma > 0 && posThresholds) {
+        for (const t of posThresholds) {
+          const z = (t - predictedPPG) / sigma;
+          thresholdProbs[t] = Math.round((1 - normalCdf(z)) * 1000) / 10; // % with 1 decimal
+        }
+      }
       careerPredictions2026.push({
         name: prospect.name, position: pos, team: '', adp: prospect.projPick,
-        predictedCareerPPG: Math.round(Math.max(0, pred) * 10) / 10,
+        predictedCareerPPG: predictedPPG,
+        thresholdProbs,
       });
     }
   }
