@@ -1002,7 +1002,8 @@ export function ModelDocumentation() {
                           <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={150} />
                           <Tooltip
                             contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-                            formatter={(v: number) => [`${(v * 100).toFixed(1)}%`, 'Importance']}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={((v: any) => [`${(Number(v) * 100).toFixed(1)}%`, 'Importance']) as any}
                           />
                           <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
                             {fiData.map((_, idx) => (
