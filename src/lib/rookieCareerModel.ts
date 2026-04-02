@@ -410,8 +410,6 @@ export function trainRookieCareerModels(
     }
 
     // ── Backtest rows ──
-    // Tiers: top 10%, next 20%, middle 40%, next 20%, bottom 10%
-    const TIER_PERCENTILES = [90, 70, 30, 10];
     const backtestRaw: RookieCareerBacktestRow[] = clean.map(d => {
       const probValues = thresholdConfig.thresholds.map(t => d.threshProbs[t] || 0);
       const meanProb = probValues.reduce((s, v) => s + v, 0) / probValues.length;
@@ -421,7 +419,7 @@ export function trainRookieCareerModels(
         draftSeason: d.season,
         actualPPG: Math.round(d.actual * 10) / 10,
         predictedPPG: Math.round(d.regPred * 10) / 10,
-        combinedScore: Math.round(meanProb * 10) / 10, // now purely probability-based
+        combinedScore: Math.round(meanProb * 10) / 10,
         percentile: 0,
         modelTier: 0,
         thresholdProbs: d.threshProbs,
@@ -430,12 +428,15 @@ export function trainRookieCareerModels(
     backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
     for (let i = 0; i < backtestRaw.length; i++) {
       backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
-      const pct = backtestRaw[i].percentile;
-      if (pct >= TIER_PERCENTILES[0]) backtestRaw[i].modelTier = 1;
-      else if (pct >= TIER_PERCENTILES[1]) backtestRaw[i].modelTier = 2;
-      else if (pct >= TIER_PERCENTILES[2]) backtestRaw[i].modelTier = 3;
-      else if (pct >= TIER_PERCENTILES[3]) backtestRaw[i].modelTier = 4;
-      else backtestRaw[i].modelTier = 5;
+      // Score-based tier assignment (ZAP-style)
+      const s = backtestRaw[i].combinedScore;
+      if (s >= 80) backtestRaw[i].modelTier = 1;
+      else if (s >= 60) backtestRaw[i].modelTier = 2;
+      else if (s >= 45) backtestRaw[i].modelTier = 3;
+      else if (s >= 30) backtestRaw[i].modelTier = 4;
+      else if (s >= 20) backtestRaw[i].modelTier = 5;
+      else if (s >= 10) backtestRaw[i].modelTier = 6;
+      else backtestRaw[i].modelTier = 7;
     }
 
     // ── Train final models on ALL data (for 2026 scoring) ──

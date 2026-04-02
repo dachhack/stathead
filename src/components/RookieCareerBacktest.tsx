@@ -7,9 +7,21 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 function tierColor(tier: number): string {
   if (tier === 1) return '#22c55e';
   if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#facc15';
-  if (tier === 4) return '#fb923c';
-  return '#ef4444';
+  if (tier === 3) return '#a3e635';
+  if (tier === 4) return '#facc15';
+  if (tier === 5) return '#fb923c';
+  if (tier === 6) return '#ef4444';
+  return '#991b1b';
+}
+
+function tierLabel(tier: number): string {
+  if (tier === 1) return 'Legendary';
+  if (tier === 2) return 'Elite';
+  if (tier === 3) return 'Starter';
+  if (tier === 4) return 'Flex';
+  if (tier === 5) return 'Bench';
+  if (tier === 6) return 'Waiver';
+  return 'Dart Throw';
 }
 
 function probBg(pct: number): string {
@@ -209,8 +221,8 @@ export function RookieCareerBacktest() {
                   <td><span style={{ color: POS_COLORS[r.position] || 'var(--text-secondary)', fontWeight: 600 }}>{r.position}</span></td>
                   <td>{r.draftSeason}</td>
                   <td>
-                    <strong style={{ color: tierColor(r.modelTier), fontSize: 13 }}>{r.modelTier}</strong>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>({r.percentile}p)</span>
+                    <strong style={{ color: tierColor(r.modelTier), fontSize: 12 }}>{tierLabel(r.modelTier)}</strong>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>({r.combinedScore.toFixed(0)})</span>
                   </td>
                   <td style={{ fontWeight: 600 }}>{r.predictedPPG.toFixed(1)}</td>
                   <td style={{ fontWeight: 700, color: r.actualPPG >= 14 ? '#22c55e' : r.actualPPG >= 10 ? '#a3e635' : r.actualPPG >= 6 ? '#facc15' : '#fb923c' }}>

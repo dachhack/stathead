@@ -96,9 +96,21 @@ function fmtMeasurable(v: number | null | undefined): string {
 function tierColor(tier: number): string {
   if (tier === 1) return '#22c55e';
   if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#facc15';
-  if (tier === 4) return '#fb923c';
-  return '#ef4444';
+  if (tier === 3) return '#a3e635';
+  if (tier === 4) return '#facc15';
+  if (tier === 5) return '#fb923c';
+  if (tier === 6) return '#ef4444';
+  return '#991b1b';
+}
+
+function tierLabel(tier: number): string {
+  if (tier === 1) return 'Legendary';
+  if (tier === 2) return 'Elite';
+  if (tier === 3) return 'Starter';
+  if (tier === 4) return 'Flex';
+  if (tier === 5) return 'Bench';
+  if (tier === 6) return 'Waiver';
+  return 'Dart Throw';
 }
 
 export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {
@@ -561,9 +573,16 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 </td>
                 <td>
                   {r.modelTier > 0 ? (
-                    <strong style={{ color: tierColor(r.modelTier), fontSize: 13 }}>
-                      {r.modelTier}
-                    </strong>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <strong style={{ color: tierColor(r.modelTier), fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {tierLabel(r.modelTier)}
+                      </strong>
+                      {r.combinedScore > 0 && (
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {r.combinedScore.toFixed(0)}
+                        </span>
+                      )}
+                    </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}

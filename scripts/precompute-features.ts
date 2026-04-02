@@ -1949,33 +1949,33 @@ async function main() {
     }
   }
 
-  // Compute combined score per position: weighted average of predicted PPG and threshold probs
-  // Then percentile rank within position, then tier assignment
-  const TIER_PERCENTILES = [90, 70, 30, 10]; // top 10%, next 20%, mid 40%, next 20%, bottom 10%
+  // Compute ZAP-style 0-100 score per position and assign tier labels
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const posRookies = careerPredictions2026.filter(r => r.position === pos);
     if (posRookies.length === 0) continue;
     const thresholds = (rookieCareerModels as any)[pos]?.thresholds as number[] || [];
-    // Combined score = predicted PPG + mean of threshold probs (rewards both level and upside)
+    // Combined score = mean of threshold probs (already 0-100 scale)
     for (const r of posRookies) {
       const probs = r.thresholdProbs || {};
       const probValues = thresholds.map(t => probs[t] || 0);
       const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
-      r.combinedScore = Math.round((r.predictedCareerPPG * 3 + meanProb * 0.3) * 10) / 10;
+      r.combinedScore = Math.round(meanProb * 10) / 10;
     }
     // Sort by combined score descending, assign percentile
     posRookies.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
     for (let i = 0; i < posRookies.length; i++) {
       posRookies[i].percentile = Math.round((1 - i / posRookies.length) * 100);
     }
-    // Assign tiers from percentile
+    // Assign tier from score (ZAP-style labels)
     for (const r of posRookies) {
-      const pct = r.percentile || 0;
-      if (pct >= TIER_PERCENTILES[0]) r.modelTier = 1;
-      else if (pct >= TIER_PERCENTILES[1]) r.modelTier = 2;
-      else if (pct >= TIER_PERCENTILES[2]) r.modelTier = 3;
-      else if (pct >= TIER_PERCENTILES[3]) r.modelTier = 4;
-      else r.modelTier = 5;
+      const s = r.combinedScore || 0;
+      if (s >= 80) r.modelTier = 1;       // Legendary Performer
+      else if (s >= 60) r.modelTier = 2;  // Elite Producer
+      else if (s >= 45) r.modelTier = 3;  // Weekly Starter
+      else if (s >= 30) r.modelTier = 4;  // Flex Play
+      else if (s >= 20) r.modelTier = 5;  // Benchwarmer
+      else if (s >= 10) r.modelTier = 6;  // Waiver Wire Add
+      else r.modelTier = 7;               // Dart Throw
     }
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
