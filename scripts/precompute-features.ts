@@ -40,7 +40,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v26.json'; // v26: real NCAA team data (TeamRankings SOS + team pass/rush att)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v33.json'; // v33: per-team features with real NCAA denominators
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v34.json'; // v34: per-threshold binary classifiers
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1906,14 +1906,23 @@ async function main() {
         pred = ridgePred;
       }
       const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
-      // Compute P(actual >= threshold) using normal CDF with LOSO residual σ
-      const sigma = cm.residualStd as number;
+      // Use per-threshold classifiers for probability predictions (not normal approx)
       const posThresholds = cm.thresholds as number[];
+      const threshModels = cm.thresholdModels as Record<number, { ridge: any; gbm: any }>;
       const thresholdProbs: Record<number, number> = {};
-      if (sigma > 0 && posThresholds) {
+      if (posThresholds && threshModels) {
         for (const t of posThresholds) {
-          const z = (t - predictedPPG) / sigma;
-          thresholdProbs[t] = Math.round((1 - normalCdf(z)) * 1000) / 10; // % with 1 decimal
+          const tm = threshModels[t];
+          if (!tm?.ridge) continue;
+          const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
+          let prob: number;
+          if (tm.gbm) {
+            const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
+            prob = gbmP * 0.5 + ridgeP * 0.5;
+          } else {
+            prob = ridgeP;
+          }
+          thresholdProbs[t] = Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10;
         }
       }
       careerPredictions2026.push({

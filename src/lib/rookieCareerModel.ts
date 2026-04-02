@@ -1,7 +1,7 @@
 /**
- * Rookie career model: trains per-position models to predict best 2-of-3 PPG
- * in a rookie's first 3 NFL years using only pre-draft features.
- * Used by both the build-time precompute script and the runtime ModelDocumentation.
+ * Rookie career model: trains per-position, per-threshold binary classifiers
+ * to predict P(best 2-of-3 PPG >= threshold) in a rookie's first 3 NFL years.
+ * Uses only pre-draft features. Each threshold gets its own model.
  */
 
 import { trainRidgeRegression, predict } from './ridge';
@@ -81,32 +81,47 @@ export interface RookieCareerBacktestRow {
   name: string;
   position: string;
   draftSeason: number;
-  actualPPG: number;        // best 2-of-3 actual
-  predictedPPG: number;     // LOSO prediction
+  actualPPG: number;
+  predictedPPG: number;     // average of regression predictions (kept for display)
   combinedScore: number;
   percentile: number;
   modelTier: number;
-  thresholdProbs: Record<number, number>;
+  thresholdProbs: Record<number, number>;  // NOW from direct classification, not normal approx
+}
+
+export interface ThresholdModelMetrics {
+  threshold: number;
+  accuracy: number;    // % correct classification
+  precision: number;   // of those predicted >50%, how many actually hit
+  recall: number;      // of those who hit, how many were predicted >50%
+  brierScore: number;  // mean squared error of probability predictions (lower = better)
+  baseRate: number;    // % of rookies who actually hit this threshold
+  auc: number;         // approximate AUC-ROC
 }
 
 export interface RookieCareerModelResult {
   n: number;
-  cvR2: number;
+  cvR2: number;        // kept from regression model for comparison
   cvMAE: number;
   rankCorr: number;
-  topN: Record<number, { precision: number; recall: number; n: number }>;
   seasons: number;
   featureKeys: string[];
   featureImportance: Array<{ key: string; importance: number }>;
   residualStd: number;
   thresholds: number[];
+  thresholdMetrics: ThresholdModelMetrics[];  // per-threshold classification metrics
   thresholdTable: {
     thresholds: number[];
     tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
   };
   backtestRows: RookieCareerBacktestRow[];
+  // Per-threshold trained models for 2026 scoring
+  thresholdModels: Record<number, { ridge: unknown; gbm: BaggedGBM | null }>;
+  // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
+  // Legacy fields kept for compatibility
+  topN: Record<number, { precision: number; recall: number; n: number }>;
 }
 
 function rankArray(arr: number[]): number[] {
@@ -130,14 +145,36 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
+// Clamp prediction to [0, 1] range for probability outputs
+function clampProb(p: number): number {
+  return Math.max(0, Math.min(1, p));
+}
+
+// Approximate AUC from predicted probabilities and binary labels
+function approxAUC(probs: number[], labels: number[]): number {
+  const pairs = probs.map((p, i) => ({ p, label: labels[i] }));
+  pairs.sort((a, b) => b.p - a.p);
+  let tp = 0, fp = 0;
+  const totalPos = labels.filter(l => l === 1).length;
+  const totalNeg = labels.length - totalPos;
+  if (totalPos === 0 || totalNeg === 0) return 0.5;
+  let auc = 0;
+  let prevFPR = 0;
+  for (const pair of pairs) {
+    if (pair.label === 1) tp++;
+    else { fp++; const fpr = fp / totalNeg; auc += (fpr - prevFPR) * (tp / totalPos); prevFPR = fpr; }
+  }
+  return Math.min(1, Math.max(0, auc));
+}
+
 /**
- * Train rookie career prediction models from player rows.
- * Returns per-position model results with evaluation metrics and threshold tables.
+ * Train rookie career models: per-threshold binary classifiers + regression.
+ * For each position and each PPG threshold, trains a model to predict
+ * P(best 2-of-3 PPG >= threshold). Uses LOSO cross-validation.
  */
 export function trainRookieCareerModels(
   rows: PlayerRow[],
 ): Record<string, RookieCareerModelResult> {
-  const TOP_N_THRESHOLDS = [12, 24, 36, 48, 60];
 
   // Step 1: Build games lookup from priorGames
   const careerGamesMap = new Map<string, number>();
@@ -198,7 +235,7 @@ export function trainRookieCareerModels(
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: entry.features });
   }
 
-  // Step 4: Per-position training with LOSO CV
+  // Step 4: Per-position training
   const results: Record<string, RookieCareerModelResult> = {};
 
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
@@ -208,10 +245,14 @@ export function trainRookieCareerModels(
     if (featureKeys.length === 0) continue;
 
     const seasons = [...new Set(posRows.map(r => r.draftSeason))].sort();
-    const losoActuals: number[] = [];
-    const losoPreds: number[] = [];
-    const losoSeasons: number[] = [];
-    const losoNames: string[] = [];
+    const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
+
+    // ── LOSO CV: collect regression predictions AND per-threshold class probs ──
+    const losoData: Array<{
+      name: string; season: number; actual: number;
+      regPred: number; // regression prediction
+      threshProbs: Record<number, number>; // per-threshold predicted probability
+    }> = [];
 
     for (const held of seasons) {
       const trainR = posRows.filter(r => r.draftSeason !== held);
@@ -219,126 +260,168 @@ export function trainRookieCareerModels(
       if (trainR.length < 10 || testR.length === 0) continue;
 
       const Xtr = trainR.map(r => featureKeys.map(k => r.features[k] || 0));
-      const ytr = trainR.map(r => r.best2of3PPG);
       const Xte = testR.map(r => featureKeys.map(k => r.features[k] || 0));
 
-      const ridgeModel = trainRidgeRegression(Xtr, ytr, featureKeys, 5);
-      let preds: number[];
-
+      // Regression model (for predicted PPG display)
+      const ytrReg = trainR.map(r => r.best2of3PPG);
+      const ridgeReg = trainRidgeRegression(Xtr, ytrReg, featureKeys, 5);
+      let regPreds: number[];
       if (trainR.length >= 40) {
-        const gbmModel = trainBaggedGBM(Xtr, ytr, featureKeys, {
+        const gbmReg = trainBaggedGBM(Xtr, ytrReg, featureKeys, {
           nEstimators: 60, learningRate: 0.04, maxDepth: 2,
           subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
           seed: 42,
         }, 5);
-        preds = Xte.map((x) => {
-          // Build clean feature dict for predictions (only use featureKeys, default to 0)
+        regPreds = Xte.map((x) => {
           const feat: Record<string, number> = {};
           featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
-          const gbmP = predictBaggedGBM(gbmModel, feat).predicted;
-          const ridgeP = predict(ridgeModel, feat).predicted;
-          const p = gbmP * 0.5 + ridgeP * 0.5;
-          return isFinite(p) ? p : 0;
+          const p = predictBaggedGBM(gbmReg, feat).predicted * 0.5 + predict(ridgeReg, feat).predicted * 0.5;
+          return isFinite(p) ? Math.max(0, p) : 0;
         });
       } else {
-        preds = testR.map(r => {
+        regPreds = Xte.map((x) => {
           const feat: Record<string, number> = {};
-          featureKeys.forEach(k => { feat[k] = isFinite(r.features[k]) ? r.features[k] : 0; });
-          const p = predict(ridgeModel, feat).predicted;
-          return isFinite(p) ? p : 0;
+          featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+          const p = predict(ridgeReg, feat).predicted;
+          return isFinite(p) ? Math.max(0, p) : 0;
         });
+      }
+
+      // Per-threshold binary classifiers
+      const threshProbs: Record<number, number>[] = testR.map(() => ({}));
+
+      for (const thresh of thresholdConfig.thresholds) {
+        const ytrBin = trainR.map(r => r.best2of3PPG >= thresh ? 1 : 0);
+        const posRate = ytrBin.filter(y => y === 1).length / ytrBin.length;
+
+        // Skip if too imbalanced (< 5% or > 95% positive rate)
+        if (posRate < 0.05 || posRate > 0.95) {
+          for (let i = 0; i < testR.length; i++) {
+            threshProbs[i][thresh] = Math.round(posRate * 1000) / 10;
+          }
+          continue;
+        }
+
+        const ridgeBin = trainRidgeRegression(Xtr, ytrBin, featureKeys, 5);
+        let binPreds: number[];
+
+        if (trainR.length >= 40) {
+          const gbmBin = trainBaggedGBM(Xtr, ytrBin, featureKeys, {
+            nEstimators: 80, learningRate: 0.03, maxDepth: 2,
+            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainR.length * 0.1)),
+            seed: 42,
+          }, 5);
+          binPreds = Xte.map((x) => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            const gbmP = clampProb(predictBaggedGBM(gbmBin, feat).predicted);
+            const ridgeP = clampProb(predict(ridgeBin, feat).predicted);
+            return gbmP * 0.5 + ridgeP * 0.5;
+          });
+        } else {
+          binPreds = Xte.map((x) => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            return clampProb(predict(ridgeBin, feat).predicted);
+          });
+        }
+
+        for (let i = 0; i < testR.length; i++) {
+          threshProbs[i][thresh] = Math.round(clampProb(binPreds[i]) * 1000) / 10; // as percentage
+        }
       }
 
       for (let i = 0; i < testR.length; i++) {
-        losoActuals.push(testR[i].best2of3PPG);
-        losoPreds.push(Math.max(0, preds[i]));
-        losoSeasons.push(held);
-        losoNames.push(testR[i].name);
+        losoData.push({
+          name: testR[i].name,
+          season: held,
+          actual: testR[i].best2of3PPG,
+          regPred: regPreds[i],
+          threshProbs: threshProbs[i],
+        });
       }
     }
 
-    // Filter out any NaN predictions before computing metrics
-    const validIdx = losoPreds.map((p, i) => ({ p, a: losoActuals[i], s: losoSeasons[i], name: losoNames[i] })).filter(x => isFinite(x.p) && isFinite(x.a));
-    const cleanPreds = validIdx.map(x => x.p);
-    const cleanActuals = validIdx.map(x => x.a);
-    const cleanSeasons = validIdx.map(x => x.s);
-    const cleanNames = validIdx.map(x => x.name);
+    // Filter NaN
+    const clean = losoData.filter(d => isFinite(d.regPred) && isFinite(d.actual));
 
-    // Metrics
+    // ── Regression metrics (kept for comparison) ──
+    const cleanPreds = clean.map(d => d.regPred);
+    const cleanActuals = clean.map(d => d.actual);
     const r2 = cleanActuals.length >= 5 ? cvR2(cleanActuals, cleanPreds) : 0;
     const mae = cleanActuals.length >= 5 ? cvMae(cleanActuals, cleanPreds) : 0;
-
-    // Top-N classification
-    const topNResults: Record<number, { precision: number; recall: number; n: number }> = {};
-    for (const threshold of TOP_N_THRESHOLDS) {
-      let totalPrecision = 0, classCount = 0;
-      for (const held of seasons) {
-        const classIdx = cleanActuals.map((_, i) => i).filter(i => cleanSeasons[i] === held);
-        if (classIdx.length < threshold) continue;
-        const actualTopN = new Set(classIdx.map(i => ({ i, ppg: cleanActuals[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
-        const predTopN = new Set(classIdx.map(i => ({ i, ppg: cleanPreds[i] })).sort((a, b) => b.ppg - a.ppg).slice(0, threshold).map(x => x.i));
-        let overlap = 0;
-        for (const i of predTopN) if (actualTopN.has(i)) overlap++;
-        totalPrecision += overlap / threshold;
-        classCount++;
-      }
-      topNResults[threshold] = {
-        precision: classCount > 0 ? Math.round(totalPrecision / classCount * 1000) / 10 : 0,
-        recall: classCount > 0 ? Math.round(totalPrecision / classCount * 1000) / 10 : 0,
-        n: classCount,
-      };
-    }
-
-    // Rank correlation
     const predRanks = rankArray(cleanPreds.map(p => -p));
     const actualRanks = rankArray(cleanActuals.map(a => -a));
     const rankCorr = spearman(predRanks, actualRanks);
-
-    // Residual std
     const residuals = cleanActuals.map((a, i) => a - cleanPreds[i]);
     const residualMean = residuals.reduce((s, r) => s + r, 0) / residuals.length;
     const residualStd = Math.sqrt(residuals.reduce((s, r) => s + (r - residualMean) ** 2, 0) / residuals.length);
 
-    // Threshold hit-rate table
-    const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
+    // ── Per-threshold classification metrics ──
+    const thresholdMetrics: ThresholdModelMetrics[] = [];
+    for (const thresh of thresholdConfig.thresholds) {
+      const probs = clean.map(d => (d.threshProbs[thresh] || 0) / 100); // convert back to 0-1
+      const labels = clean.map(d => d.actual >= thresh ? 1 : 0);
+      const baseRate = labels.filter(l => l === 1).length / labels.length;
+
+      // Brier score: mean squared error of probability predictions
+      const brier = probs.reduce((s, p, i) => s + (p - labels[i]) ** 2, 0) / probs.length;
+
+      // Classification at 50% threshold
+      const predicted = probs.map(p => p >= 0.5 ? 1 : 0);
+      const tp = predicted.filter((p, i) => p === 1 && labels[i] === 1).length;
+      const fp = predicted.filter((p, i) => p === 1 && labels[i] === 0).length;
+      const fn = predicted.filter((p, i) => p === 0 && labels[i] === 1).length;
+      const correct = predicted.filter((p, i) => p === labels[i]).length;
+
+      thresholdMetrics.push({
+        threshold: thresh,
+        accuracy: Math.round(correct / labels.length * 1000) / 10,
+        precision: tp + fp > 0 ? Math.round(tp / (tp + fp) * 1000) / 10 : 0,
+        recall: tp + fn > 0 ? Math.round(tp / (tp + fn) * 1000) / 10 : 0,
+        brierScore: Math.round(brier * 1000) / 1000,
+        baseRate: Math.round(baseRate * 1000) / 10,
+        auc: Math.round(approxAUC(probs, labels) * 1000) / 10,
+      });
+    }
+
+    // ── Threshold hit-rate table (empirical calibration by tier) ──
+    // Use average threshold prob as the tier signal instead of regression prediction
     const thresholdTable: RookieCareerModelResult['thresholdTable'] = {
       thresholds: thresholdConfig.thresholds, tiers: [],
     };
+    // Compute average predicted probability across thresholds as the "score"
+    const scoredClean = clean.map(d => {
+      const avgProb = thresholdConfig.thresholds.reduce((s, t) => s + (d.threshProbs[t] || 0), 0) / thresholdConfig.thresholds.length;
+      return { ...d, avgProb };
+    });
     for (const tier of thresholdConfig.tiers) {
-      const tierIdx = cleanPreds.map((p, i) => ({ pred: p, actual: cleanActuals[i] })).filter(x => x.pred >= tier.min && x.pred < tier.max);
-      const n = tierIdx.length;
+      const tierRows = scoredClean.filter(d => d.regPred >= tier.min && d.regPred < tier.max);
+      const n = tierRows.length;
       const hitRates = thresholdConfig.thresholds.map(thresh => {
         if (n === 0) return 0;
-        return Math.round(tierIdx.filter(x => x.actual >= thresh).length / n * 1000) / 10;
+        return Math.round(tierRows.filter(d => d.actual >= thresh).length / n * 1000) / 10;
       });
       thresholdTable.tiers.push({ label: tier.label, min: tier.min, max: tier.max, n, hitRates });
     }
 
-    // Build backtest rows with threshold probs, combined score, percentile, tier
+    // ── Backtest rows ──
     const TIER_PERCENTILES = [95, 85, 70, 50, 30, 15];
-    const backtestRaw: RookieCareerBacktestRow[] = cleanPreds.map((pred, i) => {
-      const probs: Record<number, number> = {};
-      if (residualStd > 0) {
-        for (const t of thresholdConfig.thresholds) {
-          const z = (t - pred) / residualStd;
-          probs[t] = Math.round((1 - normalCdf(z)) * 1000) / 10;
-        }
-      }
-      const probValues = thresholdConfig.thresholds.map(t => probs[t] || 0);
-      const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
+    const backtestRaw: RookieCareerBacktestRow[] = clean.map(d => {
+      const probValues = thresholdConfig.thresholds.map(t => d.threshProbs[t] || 0);
+      const meanProb = probValues.reduce((s, v) => s + v, 0) / probValues.length;
       return {
-        name: cleanNames[i],
+        name: d.name,
         position: pos,
-        draftSeason: cleanSeasons[i],
-        actualPPG: Math.round(cleanActuals[i] * 10) / 10,
-        predictedPPG: Math.round(pred * 10) / 10,
-        combinedScore: Math.round((pred * 3 + meanProb * 0.3) * 10) / 10,
+        draftSeason: d.season,
+        actualPPG: Math.round(d.actual * 10) / 10,
+        predictedPPG: Math.round(d.regPred * 10) / 10,
+        combinedScore: Math.round(meanProb * 10) / 10, // now purely probability-based
         percentile: 0,
         modelTier: 0,
-        thresholdProbs: probs,
+        thresholdProbs: d.threshProbs,
       };
     });
-    // Sort by combined score, assign percentile and tier per draft class
     backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
     for (let i = 0; i < backtestRaw.length; i++) {
       backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
@@ -352,20 +435,41 @@ export function trainRookieCareerModels(
       else backtestRaw[i].modelTier = 7;
     }
 
-    // Train final model on ALL data
+    // ── Train final models on ALL data (for 2026 scoring) ──
     const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
-    const yAll = posRows.map(r => r.best2of3PPG);
-    const finalRidge = trainRidgeRegression(XAll, yAll, featureKeys, 5);
+    const yAllReg = posRows.map(r => r.best2of3PPG);
+
+    // Regression model (for predicted PPG display)
+    const finalRidge = trainRidgeRegression(XAll, yAllReg, featureKeys, 5);
     let finalGBM: BaggedGBM | null = null;
     if (posRows.length >= 40) {
-      finalGBM = trainBaggedGBM(XAll, yAll, featureKeys, {
+      finalGBM = trainBaggedGBM(XAll, yAllReg, featureKeys, {
         nEstimators: 60, learningRate: 0.04, maxDepth: 2,
         subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
         seed: 42,
       }, 5);
     }
 
-    // Feature importance from ridge coefficients (|standardized coeff|)
+    // Per-threshold classifiers
+    const thresholdModels: Record<number, { ridge: unknown; gbm: BaggedGBM | null }> = {};
+    for (const thresh of thresholdConfig.thresholds) {
+      const yBin = posRows.map(r => r.best2of3PPG >= thresh ? 1 : 0);
+      const posRate = yBin.filter(y => y === 1).length / yBin.length;
+      if (posRate < 0.03 || posRate > 0.97) continue; // skip extreme imbalance
+
+      const ridgeBin = trainRidgeRegression(XAll, yBin, featureKeys, 5);
+      let gbmBin: BaggedGBM | null = null;
+      if (posRows.length >= 40) {
+        gbmBin = trainBaggedGBM(XAll, yBin, featureKeys, {
+          nEstimators: 80, learningRate: 0.03, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
+          seed: 42,
+        }, 5);
+      }
+      thresholdModels[thresh] = { ridge: ridgeBin, gbm: gbmBin };
+    }
+
+    // Feature importance from ridge coefficients
     const fi = featureKeys.map((key, i) => ({
       key,
       importance: Math.abs(finalRidge.coefficients[i] || 0),
@@ -381,16 +485,18 @@ export function trainRookieCareerModels(
       cvR2: r2,
       cvMAE: mae,
       rankCorr: Math.round(rankCorr * 1000) / 1000,
-      topN: topNResults,
       seasons: seasons.length,
       featureKeys,
       featureImportance,
       residualStd: Math.round(residualStd * 100) / 100,
       thresholds: thresholdConfig.thresholds,
+      thresholdMetrics,
       thresholdTable,
       backtestRows: backtestRaw,
+      thresholdModels,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
+      topN: {}, // legacy, kept for compat
     };
   }
 
