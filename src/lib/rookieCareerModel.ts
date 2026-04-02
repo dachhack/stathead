@@ -379,23 +379,32 @@ export function trainRookieCareerModels(
     }
 
     // ── Threshold hit-rate table (empirical calibration by tier) ──
-    // Use average threshold prob as the tier signal instead of regression prediction
+    // Assign tiers by percentile of combined score (avg threshold probability)
+    // NOT by regression PPG ranges (which cluster in a narrow band)
     const thresholdTable: RookieCareerModelResult['thresholdTable'] = {
       thresholds: thresholdConfig.thresholds, tiers: [],
     };
-    // Compute average predicted probability across thresholds as the "score"
     const scoredClean = clean.map(d => {
       const avgProb = thresholdConfig.thresholds.reduce((s, t) => s + (d.threshProbs[t] || 0), 0) / thresholdConfig.thresholds.length;
       return { ...d, avgProb };
-    });
-    for (const tier of thresholdConfig.tiers) {
-      const tierRows = scoredClean.filter(d => d.regPred >= tier.min && d.regPred < tier.max);
+    }).sort((a, b) => b.avgProb - a.avgProb);
+
+    // Split into 5 equal groups by rank
+    const groupSize = Math.ceil(scoredClean.length / 5);
+    for (let tier = 1; tier <= 5; tier++) {
+      const start = (tier - 1) * groupSize;
+      const end = Math.min(tier * groupSize, scoredClean.length);
+      const tierRows = scoredClean.slice(start, end);
       const n = tierRows.length;
+      if (n === 0) continue;
+      const minScore = tierRows[n - 1].avgProb;
+      const maxScore = tierRows[0].avgProb;
       const hitRates = thresholdConfig.thresholds.map(thresh => {
-        if (n === 0) return 0;
         return Math.round(tierRows.filter(d => d.actual >= thresh).length / n * 1000) / 10;
       });
-      thresholdTable.tiers.push({ label: tier.label, min: tier.min, max: tier.max, n, hitRates });
+      thresholdTable.tiers.push({
+        label: `Tier ${tier}`, min: minScore, max: maxScore, n, hitRates,
+      });
     }
 
     // ── Backtest rows ──

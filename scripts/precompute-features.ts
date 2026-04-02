@@ -40,7 +40,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json'; // v28: download 2010-2014 + ZAP diagnostic
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v37.json'; // v37: focused thresholds + 5 equal tiers
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v38.json'; // v38: percentile-based tier table
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
