@@ -40,7 +40,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json'; // v28: download 2010-2014 + ZAP diagnostic
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v38.json'; // v38: percentile-based tier table
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v39.json'; // v39: conviction-weighted tiers (10/20/40/20/10)
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1951,7 +1951,7 @@ async function main() {
 
   // Compute combined score per position: weighted average of predicted PPG and threshold probs
   // Then percentile rank within position, then tier assignment
-  const TIER_PERCENTILES = [80, 60, 40, 20]; // 5 equal tiers of ~20% each
+  const TIER_PERCENTILES = [90, 70, 30, 10]; // top 10%, next 20%, mid 40%, next 20%, bottom 10%
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const posRookies = careerPredictions2026.filter(r => r.position === pos);
     if (posRookies.length === 0) continue;
