@@ -238,8 +238,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           'southern california': 'usc',
         };
         function normalizeSchool(school: string): string {
-          const s = school.toLowerCase().trim();
-          return schoolNameMap[s] || s;
+          const s = school.toLowerCase().trim()
+            .replace(/\buniversity\b/g, '').replace(/\bstate\b/g, 'st')
+            .replace(/\bnorthern\b/g, 'n').replace(/\bsouthern\b/g, 's')
+            .replace(/\beastern\b/g, 'e').replace(/\bwestern\b/g, 'w')
+            .replace(/\bcentral\b/g, 'c').replace(/\bmiddle\b/g, 'mid')
+            .replace(/\s+/g, ' ').trim();
+          return schoolNameMap[s] || schoolNameMap[school.toLowerCase().trim()] || s;
         }
 
         // Build SOS lookup: school_lower:season → multiplier (higher = harder schedule)
@@ -418,7 +423,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
           const sortedSeasons = [...seasons.entries()].sort((a, b) => a[0] - b[0]);
           for (const [seasonYear, ps] of sortedSeasons) {
-            if (ps.games < 6) continue; // ZAP: exclude seasons with <6 games
+            // ZAP: exclude seasons with <6 games
+            // If games data is missing (common in college_statistics.csv), assume full season
+            // if the player had meaningful production
+            const gamesPlayed = ps.games > 0 ? ps.games : (ps.recYds > 0 || ps.rushYds > 0 || ps.passAtt > 0 ? 13 : 0);
+            if (gamesPlayed < 6) continue;
 
             const schoolKey = `${ps.school}:${seasonYear}`;
             const team = schoolSeasonTotals.get(schoolKey);
