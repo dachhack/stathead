@@ -39,8 +39,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v27.json'; // v27: games field fix + school name normalization fix
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v35.json'; // v35: retrain with fixed ZAP features
+const CACHE_PATH = 'public/data/training-rows-cache-v28.json'; // v28: download 2010-2014 + ZAP diagnostic
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v36.json'; // v36: retrain with 2010-2014 data + ZAP features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -93,6 +93,22 @@ async function main() {
   }
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
+
+  // Diagnostic: check ZAP feature coverage for WR rookies
+  {
+    const wrRookies = result.rows.filter((r: any) => r.position === 'WR' && (r.features?.yearsInLeague ?? 99) <= 1);
+    const hasBreakout = wrRookies.filter((r: any) => r.features?.collegeBreakoutScore > 0).length;
+    const hasRecPerTPA = wrRookies.filter((r: any) => r.features?.collegeRecYdsPerTeamPassAtt > 0).length;
+    const hasDominator = wrRookies.filter((r: any) => r.features?.collegeDominatorRating > 0).length;
+    const hasTeammate = wrRookies.filter((r: any) => r.features?.collegeTeammateScore > 0).length;
+    const hasEarlyDec = wrRookies.filter((r: any) => r.features?.collegeEarlyDeclare > 0).length;
+    console.log(`  ZAP feature coverage for ${wrRookies.length} WR rookies:`);
+    console.log(`    collegeBreakoutScore > 0: ${hasBreakout} (${Math.round(hasBreakout/wrRookies.length*100)}%)`);
+    console.log(`    collegeRecYdsPerTeamPassAtt > 0: ${hasRecPerTPA} (${Math.round(hasRecPerTPA/wrRookies.length*100)}%)`);
+    console.log(`    collegeDominatorRating > 0: ${hasDominator} (${Math.round(hasDominator/wrRookies.length*100)}%)`);
+    console.log(`    collegeTeammateScore > 0: ${hasTeammate} (${Math.round(hasTeammate/wrRookies.length*100)}%)`);
+    console.log(`    collegeEarlyDeclare > 0: ${hasEarlyDec} (${Math.round(hasEarlyDec/wrRookies.length*100)}%)`);
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // MODEL CACHING: Training data is static (2018-2025), so trained models,
