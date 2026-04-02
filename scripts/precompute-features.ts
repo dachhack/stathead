@@ -39,8 +39,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v25.json'; // v25: 2010-2025 seasons + ZAP features + SOS
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v32.json'; // v32: cleaned features — removed noisy per-team stats, reduced QB/TE features
+const CACHE_PATH = 'public/data/training-rows-cache-v26.json'; // v26: real NCAA team data (TeamRankings SOS + team pass/rush att)
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v33.json'; // v33: per-team features with real NCAA denominators
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
