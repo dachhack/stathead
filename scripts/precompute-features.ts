@@ -39,8 +39,11 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v28.json'; // v28: download 2010-2014 + ZAP diagnostic
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v39.json'; // v39: conviction-weighted tiers (10/20/40/20/10)
+// TRAINING ROWS CACHE: Only bump when features/data sources change (triggers 40min rebuild)
+// Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
+const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
+// MODEL CACHE: Bump when model training logic, thresholds, or tiers change
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v39.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;

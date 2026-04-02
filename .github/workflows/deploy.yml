@@ -28,7 +28,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: public/data
-          key: static-data-v12
+          key: static-data-v12-${{ hashFiles('scripts/precompute-features.ts') }}
+          restore-keys: |
+            static-data-v12-
 
       - run: npm ci
       - run: bash scripts/download-data.sh
