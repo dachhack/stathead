@@ -379,8 +379,8 @@ export function trainRookieCareerModels(
     }
 
     // ── Threshold hit-rate table (empirical calibration by tier) ──
-    // Assign tiers by percentile of combined score (avg threshold probability)
-    // NOT by regression PPG ranges (which cluster in a narrow band)
+    // Tiers weighted toward extremes where model has most conviction
+    // Top 10% | Next 20% | Middle 40% | Next 20% | Bottom 10%
     const thresholdTable: RookieCareerModelResult['thresholdTable'] = {
       thresholds: thresholdConfig.thresholds, tiers: [],
     };
@@ -389,27 +389,29 @@ export function trainRookieCareerModels(
       return { ...d, avgProb };
     }).sort((a, b) => b.avgProb - a.avgProb);
 
-    // Split into 5 equal groups by rank
-    const groupSize = Math.ceil(scoredClean.length / 5);
-    for (let tier = 1; tier <= 5; tier++) {
-      const start = (tier - 1) * groupSize;
-      const end = Math.min(tier * groupSize, scoredClean.length);
-      const tierRows = scoredClean.slice(start, end);
+    const total = scoredClean.length;
+    const tierCuts = [
+      { label: 'Tier 1', start: 0, end: Math.round(total * 0.10) },
+      { label: 'Tier 2', start: Math.round(total * 0.10), end: Math.round(total * 0.30) },
+      { label: 'Tier 3', start: Math.round(total * 0.30), end: Math.round(total * 0.70) },
+      { label: 'Tier 4', start: Math.round(total * 0.70), end: Math.round(total * 0.90) },
+      { label: 'Tier 5', start: Math.round(total * 0.90), end: total },
+    ];
+    for (const cut of tierCuts) {
+      const tierRows = scoredClean.slice(cut.start, cut.end);
       const n = tierRows.length;
       if (n === 0) continue;
-      const minScore = tierRows[n - 1].avgProb;
-      const maxScore = tierRows[0].avgProb;
       const hitRates = thresholdConfig.thresholds.map(thresh => {
         return Math.round(tierRows.filter(d => d.actual >= thresh).length / n * 1000) / 10;
       });
       thresholdTable.tiers.push({
-        label: `Tier ${tier}`, min: minScore, max: maxScore, n, hitRates,
+        label: cut.label, min: tierRows[n - 1].avgProb, max: tierRows[0].avgProb, n, hitRates,
       });
     }
 
     // ── Backtest rows ──
-    // 5 equal tiers of ~20% each for better distribution
-    const TIER_PERCENTILES = [80, 60, 40, 20];
+    // Tiers: top 10%, next 20%, middle 40%, next 20%, bottom 10%
+    const TIER_PERCENTILES = [90, 70, 30, 10];
     const backtestRaw: RookieCareerBacktestRow[] = clean.map(d => {
       const probValues = thresholdConfig.thresholds.map(t => d.threshProbs[t] || 0);
       const meanProb = probValues.reduce((s, v) => s + v, 0) / probValues.length;
