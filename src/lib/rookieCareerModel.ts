@@ -428,15 +428,15 @@ export function trainRookieCareerModels(
     backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
     for (let i = 0; i < backtestRaw.length; i++) {
       backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
-      // Score-based tier assignment (ZAP-style)
+      // Score-based tier assignment (ZAP-style bands)
       const s = backtestRaw[i].combinedScore;
-      if (s >= 80) backtestRaw[i].modelTier = 1;
-      else if (s >= 60) backtestRaw[i].modelTier = 2;
-      else if (s >= 45) backtestRaw[i].modelTier = 3;
-      else if (s >= 30) backtestRaw[i].modelTier = 4;
-      else if (s >= 20) backtestRaw[i].modelTier = 5;
-      else if (s >= 10) backtestRaw[i].modelTier = 6;
-      else backtestRaw[i].modelTier = 7;
+      if (s >= 90) backtestRaw[i].modelTier = 1;       // Legendary Performer
+      else if (s >= 75) backtestRaw[i].modelTier = 2;  // Elite Producer
+      else if (s >= 60) backtestRaw[i].modelTier = 3;  // Weekly Starter
+      else if (s >= 40) backtestRaw[i].modelTier = 4;  // Flex Play
+      else if (s >= 30) backtestRaw[i].modelTier = 5;  // Benchwarmer
+      else if (s >= 20) backtestRaw[i].modelTier = 6;  // Waiver Wire Add
+      else backtestRaw[i].modelTier = 7;               // Dart Throw
     }
 
     // ── Train final models on ALL data (for 2026 scoring) ──

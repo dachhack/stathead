@@ -1969,12 +1969,12 @@ async function main() {
     // Assign tier from score (ZAP-style labels)
     for (const r of posRookies) {
       const s = r.combinedScore || 0;
-      if (s >= 80) r.modelTier = 1;       // Legendary Performer
-      else if (s >= 60) r.modelTier = 2;  // Elite Producer
-      else if (s >= 45) r.modelTier = 3;  // Weekly Starter
-      else if (s >= 30) r.modelTier = 4;  // Flex Play
-      else if (s >= 20) r.modelTier = 5;  // Benchwarmer
-      else if (s >= 10) r.modelTier = 6;  // Waiver Wire Add
+      if (s >= 90) r.modelTier = 1;       // Legendary Performer
+      else if (s >= 75) r.modelTier = 2;  // Elite Producer
+      else if (s >= 60) r.modelTier = 3;  // Weekly Starter
+      else if (s >= 40) r.modelTier = 4;  // Flex Play
+      else if (s >= 30) r.modelTier = 5;  // Benchwarmer
+      else if (s >= 20) r.modelTier = 6;  // Waiver Wire Add
       else r.modelTier = 7;               // Dart Throw
     }
   }
