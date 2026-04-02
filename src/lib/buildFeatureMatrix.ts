@@ -235,7 +235,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           'miami (fl)': 'miami', 'miami (oh)': 'miami oh',
           'uab': 'uab', 'ucf': 'ucf', 'utep': 'utep', 'utsa': 'utsa', 'unlv': 'unlv',
           'connecticut': 'uconn', 'massachusetts': 'umass',
-          'southern california': 'usc', 'south carolina': 's carolina',
+          'southern california': 'usc',
         };
         function normalizeSchool(school: string): string {
           const s = school.toLowerCase().trim();
