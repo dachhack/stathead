@@ -39,8 +39,8 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-const CACHE_PATH = 'public/data/training-rows-cache-v26.json'; // v26: real NCAA team data (TeamRankings SOS + team pass/rush att)
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v34.json'; // v34: per-threshold binary classifiers
+const CACHE_PATH = 'public/data/training-rows-cache-v27.json'; // v27: games field fix + school name normalization fix
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v35.json'; // v35: retrain with fixed ZAP features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
