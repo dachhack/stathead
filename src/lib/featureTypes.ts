@@ -400,23 +400,23 @@ export function parseHeight(ht: string | number): number {
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: n=34 → 4 features only (Ridge-only, can't support more)
-  // Draft capital dominates; rushing upside is the secondary signal
   QB: ['nflDraftPick', 'collegePassTDs', 'collegeRushYds', 'collegeEarlyDeclare'],
-  // RB: n=142 → 8 features
-  // ZAP insight: receiving is the key differentiator for RBs, not rushing
-  // Draft capital + receiving profile + speed + age
+  // RB: n=142 → 10 features
+  // ZAP: receiving is THE key differentiator + speed score + per-team production (now with real team data)
   RB: ['nflDraftRound', 'nflDraftPick', 'age',
-       'collegeRecYds', 'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeEarlyDeclare'],
-  // WR: n=137 → 10 features
-  // Draft capital + raw production + dominator + age + size + early declare
+       'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
+       'collegeTotalTDs', 'speedScore', 'weight',
+       'collegeEarlyDeclare', 'collegeTeammateScore'],
+  // WR: n=137 → 11 features
+  // ZAP: breakout score (age+SOS adjusted) + per-team production + early declare + teammate score
   WR: ['nflDraftRound', 'nflDraftPick', 'age',
-       'collegeRecYds', 'collegeRecTDs', 'collegeDominatorRating',
-       'collegeBestRecYds', 'weight',
+       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
+       'collegeDominatorRating', 'collegeBestRecYds',
+       'collegeRushProductionWR', 'weight',
        'collegeEarlyDeclare', 'collegeTeammateScore'],
   // TE: n=29 → 5 features (Ridge-only)
-  // Draft capital × athleticism interaction is key per ZAP
-  TE: ['nflDraftPick', 'age', 'collegeRecYds',
+  // ZAP: draft capital × athleticism interaction
+  TE: ['nflDraftPick', 'age', 'collegeRecYdsPerTeamPassAtt',
        'heightAdjSpeedScore', 'collegeEarlyDeclare'],
 };
 

@@ -8,7 +8,6 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
   fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
-  fetchCollegeGames,
 } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
@@ -19,6 +18,7 @@ import {
   normalizeName, parseHeight,
   type PlayerRow, type PredictionRow, type FeatureMatrixConfig, type FeatureMatrixResult,
 } from './featureTypes';
+import ncaaTeamData from '../data/ncaa-team-data.json';
 
 export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<FeatureMatrixResult> {
   const { seasons, predictSeason, scenario, onStatus } = config;
@@ -79,7 +79,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Load combine + draft + games + contracts + college once (static)
         onStatus?.('Loading combine, draft, games, contracts & college data...');
-        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData, collegeGamesData] = await Promise.all([
+        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
@@ -87,7 +87,6 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           fetchCollegeStats().catch(() => [] as CollegeStats[]),
           fetchCollegeQBR().catch(() => [] as CollegeQBR[]),
           fetchDraftProspects().catch(() => [] as DraftProspect[]),
-          fetchCollegeGames().catch(() => []),
         ]);
 
         // Build lookup maps
@@ -202,54 +201,71 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         }
 
-        // ── College Strength of Schedule (derived from cfbfastR game results) ──
-        // For each team/season, compute SOS as average opponent win percentage
-        const collegeSOS = new Map<string, number>(); // "team_lower:season" → SOS multiplier
-        {
-          // Step 1: Compute each team's win count per season
-          const teamWins = new Map<string, { wins: number; losses: number }>();
-          for (const g of collegeGamesData) {
-            if (!g.home_points || !g.away_points || !g.home_team || !g.away_team) continue;
-            const hp = Number(g.home_points) || 0;
-            const ap = Number(g.away_points) || 0;
-            if (hp === 0 && ap === 0) continue;
-            const hKey = `${g.home_team.toLowerCase()}:${g.season}`;
-            const aKey = `${g.away_team.toLowerCase()}:${g.season}`;
-            if (!teamWins.has(hKey)) teamWins.set(hKey, { wins: 0, losses: 0 });
-            if (!teamWins.has(aKey)) teamWins.set(aKey, { wins: 0, losses: 0 });
-            if (hp > ap) { teamWins.get(hKey)!.wins++; teamWins.get(aKey)!.losses++; }
-            else if (ap > hp) { teamWins.get(aKey)!.wins++; teamWins.get(hKey)!.losses++; }
-          }
-          // Step 2: For each team/season, compute avg opponent win pct
-          const teamOpponents = new Map<string, string[]>(); // team:season → list of opponent keys
-          for (const g of collegeGamesData) {
-            if (!g.home_team || !g.away_team) continue;
-            const hKey = `${g.home_team.toLowerCase()}:${g.season}`;
-            const aKey = `${g.away_team.toLowerCase()}:${g.season}`;
-            if (!teamOpponents.has(hKey)) teamOpponents.set(hKey, []);
-            if (!teamOpponents.has(aKey)) teamOpponents.set(aKey, []);
-            teamOpponents.get(hKey)!.push(aKey);
-            teamOpponents.get(aKey)!.push(hKey);
-          }
-          for (const [teamKey, opps] of teamOpponents) {
-            if (opps.length === 0) continue;
-            let totalOppWinPct = 0;
-            let count = 0;
-            for (const oppKey of opps) {
-              const wr = teamWins.get(oppKey);
-              if (wr && (wr.wins + wr.losses) > 0) {
-                totalOppWinPct += wr.wins / (wr.wins + wr.losses);
-                count++;
-              }
-            }
-            if (count > 0) {
-              const avgOppWinPct = totalOppWinPct / count;
-              // Convert to multiplier: 0.5 avg → 1.0, 0.7 avg → 1.2, 0.3 avg → 0.8
-              collegeSOS.set(teamKey, 0.6 + avgOppWinPct * 0.8);
-            }
-          }
-          onStatus?.(`College SOS computed for ${collegeSOS.size} team-seasons`);
+        // ── NCAA Team Data (TeamRankings SOS + team pass/rush attempts) ──
+        // Real team-level data replaces incomplete aggregations from player-level stats
+        const ncaaSOS = ncaaTeamData.sos as Record<string, number>;
+        const ncaaPassAttPerGame = ncaaTeamData.teamPassAttPerGame as Record<string, number>;
+        const ncaaRushAttPerGame = ncaaTeamData.teamRushAttPerGame as Record<string, number>;
+
+        // School name normalization: map college_statistics.csv school names to NCAA data names
+        // NCAA data uses abbreviations like "c michigan", "e carolina", "fla atlantic"
+        const schoolNameMap: Record<string, string> = {
+          'central michigan': 'c michigan', 'eastern michigan': 'e michigan',
+          'eastern carolina': 'e carolina', 'east carolina': 'e carolina',
+          'western michigan': 'w michigan', 'western kentucky': 'w kentucky',
+          'northern illinois': 'n illinois', 'middle tennessee': 'mid tennessee',
+          'florida atlantic': 'fla atlantic', 'florida international': 'fla international',
+          'florida state': 'florida st', 'ohio state': 'ohio st', 'michigan state': 'michigan st',
+          'penn state': 'penn st', 'oklahoma state': 'oklahoma st', 'oregon state': 'oregon st',
+          'washington state': 'washington st', 'iowa state': 'iowa st', 'kansas state': 'kansas st',
+          'mississippi state': 'mississippi st', 'arizona state': 'arizona st',
+          'colorado state': 'colorado st', 'fresno state': 'fresno st', 'boise state': 'boise st',
+          'san diego state': 'san diego st', 'san jose state': 'san jose st',
+          'arkansas state': 'arkansas st', 'ball state': 'ball st', 'kent state': 'kent st',
+          'appalachian state': 'app state', 'coastal carolina': 'coastal car',
+          'georgia state': 'georgia st', 'georgia southern': 'ga southern',
+          'north carolina state': 'nc state', 'north carolina': 'n carolina',
+          'south carolina': 's carolina', 'south florida': 's florida',
+          'north texas': 'n texas', 'louisiana tech': 'la tech',
+          'louisiana-lafayette': 'louisiana', 'louisiana-monroe': 'la monroe',
+          'southern mississippi': 's mississippi', 'southern methodist': 'smu',
+          'brigham young': 'byu', 'texas christian': 'tcu',
+          'texas a&m': 'texas a&m', 'texas tech': 'texas tech',
+          'virginia tech': 'virginia tech', 'georgia tech': 'georgia tech',
+          'miami (fl)': 'miami', 'miami (oh)': 'miami oh',
+          'uab': 'uab', 'ucf': 'ucf', 'utep': 'utep', 'utsa': 'utsa', 'unlv': 'unlv',
+          'connecticut': 'uconn', 'massachusetts': 'umass',
+          'southern california': 'usc', 'south carolina': 's carolina',
+        };
+        function normalizeSchool(school: string): string {
+          const s = school.toLowerCase().trim();
+          return schoolNameMap[s] || s;
         }
+
+        // Build SOS lookup: school_lower:season → multiplier (higher = harder schedule)
+        // Rating range is roughly -17 to +7, convert to multiplier centered on 1.0
+        const collegeSOS = new Map<string, number>();
+        for (const [key, rating] of Object.entries(ncaaSOS)) {
+          // rating ~[-17, +7], mean ~0. Convert: 0 → 1.0, +7 → 1.35, -7 → 0.65
+          collegeSOS.set(key, 1.0 + (rating / 20));
+        }
+
+        // Build team pass/rush attempts per season lookup
+        const ncaaTeamPassAtt = new Map<string, number>(); // team:season → total season pass attempts
+        const ncaaTeamRushAtt = new Map<string, number>();
+        const ncaaTeamTotalPlays = new Map<string, number>();
+        for (const [key, avgPerGame] of Object.entries(ncaaPassAttPerGame)) {
+          ncaaTeamPassAtt.set(key, Math.round(avgPerGame * 13)); // ~13 games per season
+        }
+        for (const [key, avgPerGame] of Object.entries(ncaaRushAttPerGame)) {
+          ncaaTeamRushAtt.set(key, Math.round(avgPerGame * 13));
+        }
+        for (const key of ncaaTeamPassAtt.keys()) {
+          const pa = ncaaTeamPassAtt.get(key) || 0;
+          const ra = ncaaTeamRushAtt.get(key) || 0;
+          if (pa + ra > 0) ncaaTeamTotalPlays.set(key, pa + ra);
+        }
+        onStatus?.(`NCAA data loaded: ${collegeSOS.size} SOS, ${ncaaTeamPassAtt.size} team stats`);
 
         // ── Advanced college analytics: dominator rating, breakout age, market share ──
         // Step 1: Build per-player per-season stats AND per-school per-season team totals
@@ -408,33 +424,34 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const team = schoolSeasonTotals.get(schoolKey);
             if (!team) continue;
 
-            // SOS multiplier for this school/season (1.0 = average, >1 = harder schedule)
-            const sosKey = `${ps.school}:${seasonYear}`;
-            const sosMult = collegeSOS.get(sosKey) || 1.0;
+            // Use REAL NCAA team data for denominators (not incomplete player aggregation)
+            const ncaaKey = `${normalizeSchool(ps.school)}:${seasonYear}`;
+            const sosMult = collegeSOS.get(ncaaKey) || 1.0;
+            // Real team pass attempts from TeamRankings (falls back to player-aggregated)
+            const realTeamPA = ncaaTeamPassAtt.get(ncaaKey) || (team.passAtt > 0 ? team.passAtt : 0);
+            const realTeamPlays = ncaaTeamTotalPlays.get(ncaaKey) || (realTeamPA + (ncaaTeamRushAtt.get(ncaaKey) || team.rushAtt || 0));
+            // Estimate team completions: ~63% completion rate × pass attempts
+            const estTeamComp = realTeamPA > 0 ? Math.round(realTeamPA * 0.63) : (team.completions > 0 ? team.completions : 0);
 
             // Receiving yards per team pass attempt (SOS-adjusted)
-            const teamPA = team.passAtt > 0 ? team.passAtt : (team.completions > 0 ? team.completions * 1.6 : 0);
-            const recYdsPerTPA = teamPA > 0 ? (ps.recYds / teamPA) * sosMult : 0;
+            const recYdsPerTPA = realTeamPA > 0 ? (ps.recYds / realTeamPA) * sosMult : 0;
             bestRecYdsPerTPA = Math.max(bestRecYdsPerTPA, recYdsPerTPA);
 
             // Reception share (% of team completions)
-            const teamComp = team.completions > 0 ? team.completions : (team.receptions > 0 ? team.receptions : 0);
-            const recShare = teamComp > 0 ? ps.receptions / teamComp : 0;
+            const recShare = estTeamComp > 0 ? ps.receptions / estTeamComp : 0;
             bestReceptionShare = Math.max(bestReceptionShare, recShare);
 
             // Total yards per team play (SOS-adjusted)
             const totalYds = ps.recYds + ps.rushYds;
-            const teamPlays = team.totalPlays > 0 ? team.totalPlays : (teamPA + team.rushAtt);
-            const ydsPerTP = teamPlays > 0 ? (totalYds / teamPlays) * sosMult : 0;
+            const ydsPerTP = realTeamPlays > 0 ? (totalYds / realTeamPlays) * sosMult : 0;
             bestYdsPerTeamPlay = Math.max(bestYdsPerTeamPlay, ydsPerTP);
 
             // Breakout Score: age- and SOS-adjusted rec yds per team pass att
-            // Younger production weighted more, harder schedules weighted more
             if (draftAge > 0 && draftYear > 0) {
               const ageInSeason = draftAge - (draftYear - seasonYear);
               if (ageInSeason > 17 && ageInSeason < 25) {
                 const ageMult = 1.0 + (21 - ageInSeason) * 0.075;
-                const adjRecPerTPA = recYdsPerTPA * ageMult; // already SOS-adjusted above
+                const adjRecPerTPA = recYdsPerTPA * ageMult;
                 breakoutScore = Math.max(breakoutScore, adjRecPerTPA);
               }
             } else {
