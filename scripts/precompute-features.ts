@@ -40,7 +40,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json'; // v28: download 2010-2014 + ZAP diagnostic
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v36.json'; // v36: retrain with 2010-2014 data + ZAP features
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v37.json'; // v37: focused thresholds + 5 equal tiers
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1951,7 +1951,7 @@ async function main() {
 
   // Compute combined score per position: weighted average of predicted PPG and threshold probs
   // Then percentile rank within position, then tier assignment
-  const TIER_PERCENTILES = [95, 85, 70, 50, 30, 15]; // Tier 1 = top 5%, Tier 7 = bottom 15%
+  const TIER_PERCENTILES = [80, 60, 40, 20]; // 5 equal tiers of ~20% each
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const posRookies = careerPredictions2026.filter(r => r.position === pos);
     if (posRookies.length === 0) continue;
@@ -1975,9 +1975,7 @@ async function main() {
       else if (pct >= TIER_PERCENTILES[1]) r.modelTier = 2;
       else if (pct >= TIER_PERCENTILES[2]) r.modelTier = 3;
       else if (pct >= TIER_PERCENTILES[3]) r.modelTier = 4;
-      else if (pct >= TIER_PERCENTILES[4]) r.modelTier = 5;
-      else if (pct >= TIER_PERCENTILES[5]) r.modelTier = 6;
-      else r.modelTier = 7;
+      else r.modelTier = 5;
     }
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));

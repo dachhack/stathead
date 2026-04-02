@@ -22,57 +22,50 @@ export function normalCdf(x: number): number {
   return 0.5 * (1 + sign * y);
 }
 
-// Position-specific PPG thresholds and prediction tiers
+// Position-specific PPG thresholds — focused on where classifiers have signal
+// Dropped thresholds where base rate > 70% (too easy) or < 5% (too rare)
 export const PPG_THRESHOLD_CONFIG: Record<string, {
   thresholds: number[];
   tiers: Array<{ label: string; min: number; max: number }>;
 }> = {
   QB: {
-    thresholds: [14, 16, 18, 20, 22, 24],
+    thresholds: [16, 18, 20, 22],
     tiers: [
       { label: 'Tier 1', min: 20, max: Infinity },
       { label: 'Tier 2', min: 17, max: 20 },
-      { label: 'Tier 3', min: 15, max: 17 },
-      { label: 'Tier 4', min: 13, max: 15 },
-      { label: 'Tier 5', min: 11, max: 13 },
-      { label: 'Tier 6', min: 8, max: 11 },
-      { label: 'Tier 7', min: 0, max: 8 },
+      { label: 'Tier 3', min: 14, max: 17 },
+      { label: 'Tier 4', min: 11, max: 14 },
+      { label: 'Tier 5', min: 0, max: 11 },
     ],
   },
   RB: {
-    thresholds: [10, 12, 14, 16, 18, 20],
+    thresholds: [12, 14, 16, 18],
     tiers: [
-      { label: 'Tier 1', min: 16, max: Infinity },
-      { label: 'Tier 2', min: 13, max: 16 },
-      { label: 'Tier 3', min: 10, max: 13 },
-      { label: 'Tier 4', min: 8, max: 10 },
-      { label: 'Tier 5', min: 6, max: 8 },
-      { label: 'Tier 6', min: 4, max: 6 },
-      { label: 'Tier 7', min: 0, max: 4 },
+      { label: 'Tier 1', min: 14, max: Infinity },
+      { label: 'Tier 2', min: 11, max: 14 },
+      { label: 'Tier 3', min: 8, max: 11 },
+      { label: 'Tier 4', min: 5, max: 8 },
+      { label: 'Tier 5', min: 0, max: 5 },
     ],
   },
   WR: {
-    thresholds: [10, 12, 14, 16, 18, 20],
+    thresholds: [12, 14, 16, 18],
     tiers: [
-      { label: 'Tier 1', min: 16, max: Infinity },
-      { label: 'Tier 2', min: 13, max: 16 },
-      { label: 'Tier 3', min: 10, max: 13 },
-      { label: 'Tier 4', min: 8, max: 10 },
-      { label: 'Tier 5', min: 6, max: 8 },
-      { label: 'Tier 6', min: 4, max: 6 },
-      { label: 'Tier 7', min: 0, max: 4 },
+      { label: 'Tier 1', min: 14, max: Infinity },
+      { label: 'Tier 2', min: 11, max: 14 },
+      { label: 'Tier 3', min: 8, max: 11 },
+      { label: 'Tier 4', min: 5, max: 8 },
+      { label: 'Tier 5', min: 0, max: 5 },
     ],
   },
   TE: {
-    thresholds: [7, 8, 9, 10, 11, 12],
+    thresholds: [8, 9, 10, 11],
     tiers: [
-      { label: 'Tier 1', min: 12, max: Infinity },
-      { label: 'Tier 2', min: 10, max: 12 },
-      { label: 'Tier 3', min: 8, max: 10 },
-      { label: 'Tier 4', min: 6, max: 8 },
-      { label: 'Tier 5', min: 5, max: 6 },
-      { label: 'Tier 6', min: 3, max: 5 },
-      { label: 'Tier 7', min: 0, max: 3 },
+      { label: 'Tier 1', min: 10, max: Infinity },
+      { label: 'Tier 2', min: 8, max: 10 },
+      { label: 'Tier 3', min: 6, max: 8 },
+      { label: 'Tier 4', min: 4, max: 6 },
+      { label: 'Tier 5', min: 0, max: 4 },
     ],
   },
 };
@@ -406,7 +399,8 @@ export function trainRookieCareerModels(
     }
 
     // ── Backtest rows ──
-    const TIER_PERCENTILES = [95, 85, 70, 50, 30, 15];
+    // 5 equal tiers of ~20% each for better distribution
+    const TIER_PERCENTILES = [80, 60, 40, 20];
     const backtestRaw: RookieCareerBacktestRow[] = clean.map(d => {
       const probValues = thresholdConfig.thresholds.map(t => d.threshProbs[t] || 0);
       const meanProb = probValues.reduce((s, v) => s + v, 0) / probValues.length;
@@ -430,9 +424,7 @@ export function trainRookieCareerModels(
       else if (pct >= TIER_PERCENTILES[1]) backtestRaw[i].modelTier = 2;
       else if (pct >= TIER_PERCENTILES[2]) backtestRaw[i].modelTier = 3;
       else if (pct >= TIER_PERCENTILES[3]) backtestRaw[i].modelTier = 4;
-      else if (pct >= TIER_PERCENTILES[4]) backtestRaw[i].modelTier = 5;
-      else if (pct >= TIER_PERCENTILES[5]) backtestRaw[i].modelTier = 6;
-      else backtestRaw[i].modelTier = 7;
+      else backtestRaw[i].modelTier = 5;
     }
 
     // ── Train final models on ALL data (for 2026 scoring) ──
