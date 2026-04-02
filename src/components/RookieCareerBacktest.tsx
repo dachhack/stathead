@@ -204,6 +204,8 @@ export function RookieCareerBacktest() {
               <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer' }}>Pred PPG{sortArrow('predictedPPG')}</th>
               <th onClick={() => handleSort('actualPPG')} style={{ cursor: 'pointer' }}>Actual PPG{sortArrow('actualPPG')}</th>
               <th onClick={() => handleSort('error')} style={{ cursor: 'pointer' }}>Error{sortArrow('error')}</th>
+              <th style={{ textAlign: 'center', fontSize: 11 }}>Boom%</th>
+              <th style={{ textAlign: 'center', fontSize: 11 }}>Bust%</th>
               {thresholds.map(t => (
                 <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
                   &gt;{t}
@@ -233,6 +235,14 @@ export function RookieCareerBacktest() {
                     color: Math.abs(err) <= 2 ? '#22c55e' : Math.abs(err) <= 4 ? '#facc15' : '#ef4444',
                   }}>
                     {err >= 0 ? '+' : ''}{err.toFixed(1)}
+                  </td>
+                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomProb > 30 ? '#22c55e' : r.boomProb > 15 ? '#a3e635' : 'var(--text-muted)' }}>
+                    {r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-'}
+                    {err > 0 && r.boomProb > 20 && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
+                  </td>
+                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustProb > 30 ? '#ef4444' : r.bustProb > 15 ? '#fb923c' : 'var(--text-muted)' }}>
+                    {r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-'}
+                    {err < 0 && r.bustProb > 20 && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
                   </td>
                   {thresholds.map(t => {
                     const prob = r.thresholdProbs?.[t];

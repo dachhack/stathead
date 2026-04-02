@@ -46,7 +46,9 @@ interface ProspectRow {
   // Combined score, percentile, and tier
   combinedScore: number;
   percentile: number;
-  modelTier: number; // 1-7
+  modelTier: number;
+  boomProb: number;
+  bustProb: number;
 }
 
 type SortField = keyof ProspectRow;
@@ -135,7 +137,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     ])
       .then(([combine, fpRankings, ktcPlayers, featureData]) => {
         // Career predictions from model
-        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number }>();
+        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number }>();
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
             careerMap.set(normalizeName(p.name), {
@@ -144,6 +146,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               combinedScore: p.combinedScore || 0,
               percentile: p.percentile || 0,
               modelTier: p.modelTier || 0,
+              boomProb: p.boomProb || 0,
+              bustProb: p.bustProb || 0,
             });
           }
         }
@@ -214,6 +218,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             combinedScore: career?.combinedScore || 0,
             percentile: career?.percentile || 0,
             modelTier: career?.modelTier || 0,
+            boomProb: career?.boomProb || 0,
+            bustProb: career?.bustProb || 0,
           };
         });
 
@@ -245,6 +251,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             combinedScore: career?.combinedScore || 0,
             percentile: career?.percentile || 0,
             modelTier: career?.modelTier || 0,
+            boomProb: career?.boomProb || 0,
+            bustProb: career?.bustProb || 0,
           });
         }
 
@@ -272,6 +280,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             combinedScore: career?.combinedScore || 0,
             percentile: career?.percentile || 0,
             modelTier: career?.modelTier || 0,
+            boomProb: career?.boomProb || 0,
+            bustProb: career?.bustProb || 0,
           });
         }
 
@@ -452,6 +462,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }}>
                 Pctl{sortArrow('percentile')}
               </th>
+              <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }}>Boom</th>
+              <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }}>Bust</th>
               {activeThresholds.map(t => (
                 <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
                   &gt;{t}
@@ -595,6 +607,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
+                </td>
+                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomProb > 30 ? '#22c55e' : r.boomProb > 15 ? '#a3e635' : 'var(--text-muted)' }}>
+                  {r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-'}
+                </td>
+                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustProb > 30 ? '#ef4444' : r.bustProb > 15 ? '#fb923c' : 'var(--text-muted)' }}>
+                  {r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-'}
                 </td>
                 {activeThresholds.map(t => {
                   const prob = r.thresholdProbs?.[t];

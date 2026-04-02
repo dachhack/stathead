@@ -75,11 +75,13 @@ export interface RookieCareerBacktestRow {
   position: string;
   draftSeason: number;
   actualPPG: number;
-  predictedPPG: number;     // average of regression predictions (kept for display)
+  predictedPPG: number;
   combinedScore: number;
   percentile: number;
   modelTier: number;
-  thresholdProbs: Record<number, number>;  // NOW from direct classification, not normal approx
+  thresholdProbs: Record<number, number>;
+  boomProb: number;  // P(actual > predicted + MAE) — outperform probability
+  bustProb: number;  // P(actual < predicted - MAE) — underperform probability
 }
 
 export interface ThresholdModelMetrics {
@@ -110,6 +112,11 @@ export interface RookieCareerModelResult {
   backtestRows: RookieCareerBacktestRow[];
   // Per-threshold trained models for 2026 scoring
   thresholdModels: Record<number, { ridge: unknown; gbm: BaggedGBM | null }>;
+  // Boom/bust overlay models
+  boomModel?: { ridge: unknown; gbm: BaggedGBM | null };
+  bustModel?: { ridge: unknown; gbm: BaggedGBM | null };
+  boomRate: number;   // base rate of booms in training data
+  bustRate: number;   // base rate of busts in training data
   // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
@@ -243,8 +250,11 @@ export function trainRookieCareerModels(
     // ── LOSO CV: collect regression predictions AND per-threshold class probs ──
     const losoData: Array<{
       name: string; season: number; actual: number;
-      regPred: number; // regression prediction
-      threshProbs: Record<number, number>; // per-threshold predicted probability
+      regPred: number;
+      threshProbs: Record<number, number>;
+      boomProb: number;  // filled in second pass
+      bustProb: number;
+      features: number[];  // raw feature vector for boom/bust training
     }> = [];
 
     for (const held of seasons) {
@@ -331,12 +341,89 @@ export function trainRookieCareerModels(
           actual: testR[i].best2of3PPG,
           regPred: regPreds[i],
           threshProbs: threshProbs[i],
+          boomProb: 0,
+          bustProb: 0,
+          features: Xte[i],
         });
       }
     }
 
     // Filter NaN
     const clean = losoData.filter(d => isFinite(d.regPred) && isFinite(d.actual));
+
+    // ── Boom/Bust overlay: second-pass LOSO classification ──
+    // Define boom = actual > predicted + MAE, bust = actual < predicted - MAE
+    const quickMAE = clean.reduce((s, d) => s + Math.abs(d.actual - d.regPred), 0) / clean.length;
+    const boomThresh = quickMAE;  // outperform by more than 1 MAE
+    const bustThresh = quickMAE;  // underperform by more than 1 MAE
+
+    // Second LOSO pass for boom/bust classifiers
+    for (const held of seasons) {
+      const trainIdx = clean.filter(d => d.season !== held);
+      const testIdx = clean.filter(d => d.season === held);
+      if (trainIdx.length < 15 || testIdx.length === 0) continue;
+
+      const XtrBB = trainIdx.map(d => d.features);
+      const XteBB = testIdx.map(d => d.features);
+
+      // Boom classifier: actual - predicted > MAE
+      const yBoom = trainIdx.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
+      const boomRate = yBoom.filter(y => y === 1).length / yBoom.length;
+      if (boomRate > 0.05 && boomRate < 0.95) {
+        const ridgeBoom = trainRidgeRegression(XtrBB, yBoom, featureKeys, 5);
+        let boomPreds: number[];
+        if (trainIdx.length >= 40) {
+          const gbmBoom = trainBaggedGBM(XtrBB, yBoom, featureKeys, {
+            nEstimators: 60, learningRate: 0.03, maxDepth: 2,
+            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainIdx.length * 0.1)),
+            seed: 42,
+          }, 5);
+          boomPreds = XteBB.map(x => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            return clampProb(predictBaggedGBM(gbmBoom, feat).predicted * 0.5 + clampProb(predict(ridgeBoom, feat).predicted) * 0.5);
+          });
+        } else {
+          boomPreds = XteBB.map(x => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            return clampProb(predict(ridgeBoom, feat).predicted);
+          });
+        }
+        for (let i = 0; i < testIdx.length; i++) {
+          testIdx[i].boomProb = Math.round(boomPreds[i] * 1000) / 10;
+        }
+      }
+
+      // Bust classifier: predicted - actual > MAE
+      const yBust = trainIdx.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
+      const bustRate = yBust.filter(y => y === 1).length / yBust.length;
+      if (bustRate > 0.05 && bustRate < 0.95) {
+        const ridgeBust = trainRidgeRegression(XtrBB, yBust, featureKeys, 5);
+        let bustPreds: number[];
+        if (trainIdx.length >= 40) {
+          const gbmBust = trainBaggedGBM(XtrBB, yBust, featureKeys, {
+            nEstimators: 60, learningRate: 0.03, maxDepth: 2,
+            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainIdx.length * 0.1)),
+            seed: 42,
+          }, 5);
+          bustPreds = XteBB.map(x => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            return clampProb(predictBaggedGBM(gbmBust, feat).predicted * 0.5 + clampProb(predict(ridgeBust, feat).predicted) * 0.5);
+          });
+        } else {
+          bustPreds = XteBB.map(x => {
+            const feat: Record<string, number> = {};
+            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            return clampProb(predict(ridgeBust, feat).predicted);
+          });
+        }
+        for (let i = 0; i < testIdx.length; i++) {
+          testIdx[i].bustProb = Math.round(bustPreds[i] * 1000) / 10;
+        }
+      }
+    }
 
     // ── Regression metrics (kept for comparison) ──
     const cleanPreds = clean.map(d => d.regPred);
@@ -423,6 +510,8 @@ export function trainRookieCareerModels(
         percentile: 0,
         modelTier: 0,
         thresholdProbs: d.threshProbs,
+        boomProb: d.boomProb,
+        bustProb: d.bustProb,
       };
     });
     backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
@@ -473,6 +562,40 @@ export function trainRookieCareerModels(
       thresholdModels[thresh] = { ridge: ridgeBin, gbm: gbmBin };
     }
 
+    // Boom/bust final models (trained on all data using full-data regression residuals)
+    // Use leave-one-out residuals from LOSO to define boom/bust labels
+    let boomModel: { ridge: unknown; gbm: BaggedGBM | null } | undefined;
+    let bustModel: { ridge: unknown; gbm: BaggedGBM | null } | undefined;
+    const cleanBoomLabels = clean.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
+    const cleanBustLabels = clean.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
+    const finalBoomRate = cleanBoomLabels.filter(y => y === 1).length / cleanBoomLabels.length;
+    const finalBustRate = cleanBustLabels.filter(y => y === 1).length / cleanBustLabels.length;
+    const XAllClean = clean.map(d => d.features);
+    if (finalBoomRate > 0.05 && finalBoomRate < 0.95 && XAllClean.length >= 15) {
+      const ridgeBoom = trainRidgeRegression(XAllClean, cleanBoomLabels, featureKeys, 5);
+      let gbmBoom: BaggedGBM | null = null;
+      if (XAllClean.length >= 40) {
+        gbmBoom = trainBaggedGBM(XAllClean, cleanBoomLabels, featureKeys, {
+          nEstimators: 60, learningRate: 0.03, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(XAllClean.length * 0.1)),
+          seed: 42,
+        }, 5);
+      }
+      boomModel = { ridge: ridgeBoom, gbm: gbmBoom };
+    }
+    if (finalBustRate > 0.05 && finalBustRate < 0.95 && XAllClean.length >= 15) {
+      const ridgeBust = trainRidgeRegression(XAllClean, cleanBustLabels, featureKeys, 5);
+      let gbmBust: BaggedGBM | null = null;
+      if (XAllClean.length >= 40) {
+        gbmBust = trainBaggedGBM(XAllClean, cleanBustLabels, featureKeys, {
+          nEstimators: 60, learningRate: 0.03, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(XAllClean.length * 0.1)),
+          seed: 42,
+        }, 5);
+      }
+      bustModel = { ridge: ridgeBust, gbm: gbmBust };
+    }
+
     // Feature importance from ridge coefficients
     const fi = featureKeys.map((key, i) => ({
       key,
@@ -498,9 +621,13 @@ export function trainRookieCareerModels(
       thresholdTable,
       backtestRows: backtestRaw,
       thresholdModels,
+      boomModel,
+      bustModel,
+      boomRate: Math.round(finalBoomRate * 1000) / 10,
+      bustRate: Math.round(finalBustRate * 1000) / 10,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
-      topN: {}, // legacy, kept for compat
+      topN: {},
     };
   }
 

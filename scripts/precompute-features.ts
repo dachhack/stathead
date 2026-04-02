@@ -43,7 +43,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
 // MODEL CACHE: Bump when model training logic, thresholds, or tiers change
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v39.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v40.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1734,9 +1734,11 @@ async function main() {
     name: string; position: string; team: string; adp: number;
     headshotUrl?: string; predictedCareerPPG: number;
     thresholdProbs?: Record<number, number>;
-    combinedScore?: number;  // weighted composite score
-    percentile?: number;     // percentile rank within position (0-100)
-    modelTier?: number;      // 1-7 tier based on percentile cutoffs
+    combinedScore?: number;
+    percentile?: number;
+    modelTier?: number;
+    boomProb?: number;       // P(outperform by > MAE)
+    bustProb?: number;       // P(underperform by > MAE)
   }> = [];
 
   // Load prospect grades from static JSON
@@ -1944,10 +1946,29 @@ async function main() {
           thresholdProbs[t] = Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10;
         }
       }
+      // Boom/bust probabilities from overlay models
+      let boomProb = 0, bustProb = 0;
+      const boomM = cm.boomModel as any;
+      const bustM = cm.bustModel as any;
+      if (boomM?.ridge) {
+        const rp = Math.max(0, Math.min(1, predict(boomM.ridge, features).predicted));
+        boomProb = boomM.gbm
+          ? Math.max(0, Math.min(1, predictBaggedGBM(boomM.gbm, features).predicted)) * 0.5 + rp * 0.5
+          : rp;
+      }
+      if (bustM?.ridge) {
+        const rp = Math.max(0, Math.min(1, predict(bustM.ridge, features).predicted));
+        bustProb = bustM.gbm
+          ? Math.max(0, Math.min(1, predictBaggedGBM(bustM.gbm, features).predicted)) * 0.5 + rp * 0.5
+          : rp;
+      }
+
       careerPredictions2026.push({
         name: prospect.name, position: pos, team: '', adp: prospect.projPick,
         predictedCareerPPG: predictedPPG,
         thresholdProbs,
+        boomProb: Math.round(boomProb * 1000) / 10,
+        bustProb: Math.round(bustProb * 1000) / 10,
       });
     }
   }
