@@ -50,9 +50,13 @@ export function ModelDocumentation() {
       n: number; cvR2: number; cvMAE: number; rankCorr: number; seasons: number;
       featureKeys: string[];
       featureImportance?: Array<{ key: string; importance: number }>;
-      topN: Record<number, { precision: number; recall: number; n: number }>;
+      topN?: Record<number, { precision: number; recall: number; n: number }>;
       residualStd?: number;
       thresholds?: number[];
+      thresholdMetrics?: Array<{
+        threshold: number; accuracy: number; precision: number; recall: number;
+        brierScore: number; baseRate: number; auc: number;
+      }>;
       thresholdTable?: {
         thresholds: number[];
         tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
@@ -932,6 +936,45 @@ export function ModelDocumentation() {
                   </div>
                 ))}
               </div>
+
+              {/* Per-Threshold Classifier Metrics */}
+              {m.thresholdMetrics && m.thresholdMetrics.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 15, margin: '0 0 8px' }}>Threshold Classifier Performance</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Separate binary classifiers trained per threshold. AUC &gt; 50% = better than random.
+                    Brier score closer to 0 = better calibrated probabilities.
+                  </p>
+                  <div className="table-container" style={{ marginBottom: 20 }}>
+                    <table style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Threshold</th>
+                          <th style={{ textAlign: 'right' }}>Base Rate</th>
+                          <th style={{ textAlign: 'right' }}>AUC</th>
+                          <th style={{ textAlign: 'right' }}>Accuracy</th>
+                          <th style={{ textAlign: 'right' }}>Precision</th>
+                          <th style={{ textAlign: 'right' }}>Recall</th>
+                          <th style={{ textAlign: 'right' }}>Brier</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {m.thresholdMetrics.map(tm => (
+                          <tr key={tm.threshold}>
+                            <td style={{ fontWeight: 700 }}>&gt;{tm.threshold} PPG</td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{tm.baseRate}%</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: tm.auc > 60 ? '#22c55e' : tm.auc > 50 ? '#facc15' : '#ef4444' }}>{tm.auc}%</td>
+                            <td style={{ textAlign: 'right' }}>{tm.accuracy}%</td>
+                            <td style={{ textAlign: 'right' }}>{tm.precision}%</td>
+                            <td style={{ textAlign: 'right' }}>{tm.recall}%</td>
+                            <td style={{ textAlign: 'right', color: tm.brierScore < 0.2 ? '#22c55e' : tm.brierScore < 0.3 ? '#facc15' : '#ef4444' }}>{tm.brierScore.toFixed(3)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
 
               {/* PPG Threshold Hit-Rate Table */}
               {m.thresholdTable && m.thresholdTable.tiers.some(t => t.n > 0) && (
