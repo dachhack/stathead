@@ -40,7 +40,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 }
 
 const CACHE_PATH = 'public/data/training-rows-cache-v25.json'; // v25: 2010-2025 seasons + ZAP features + SOS
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v31.json'; // v31: ZAP-inspired career features + expanded seasons
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v32.json'; // v32: cleaned features — removed noisy per-team stats, reduced QB/TE features
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;

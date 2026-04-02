@@ -399,26 +399,25 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: ~50+ rookies with 2010-2025 → 8 features
-  QB: ['nflDraftRound', 'nflDraftPick', 'collegePassTDs', 'collegeQBR',
-       'collegeRushYds', 'age', 'collegeEarlyDeclare', 'hasCollegeStats'],
-  // RB: ~200+ rookies → ZAP-inspired: reception share, per-team-play production, speed score
+  // QB: n=34 → 4 features only (Ridge-only, can't support more)
+  // Draft capital dominates; rushing upside is the secondary signal
+  QB: ['nflDraftPick', 'collegePassTDs', 'collegeRushYds', 'collegeEarlyDeclare'],
+  // RB: n=142 → 8 features
+  // ZAP insight: receiving is the key differentiator for RBs, not rushing
+  // Draft capital + receiving profile + speed + age
   RB: ['nflDraftRound', 'nflDraftPick', 'age',
-       'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt', 'collegeYdsPerTeamPlay',
-       'speedScore', 'weight',
-       'collegeTeammateScore', 'collegeEarlyDeclare',
-       'collegeTotalTDs', 'hasCollegeStats'],
-  // WR: ~200+ rookies → ZAP-inspired: breakout score, per-team-normalized, early-declare
+       'collegeRecYds', 'collegeTotalTDs', 'speedScore', 'weight',
+       'collegeEarlyDeclare'],
+  // WR: n=137 → 10 features
+  // Draft capital + raw production + dominator + age + size + early declare
   WR: ['nflDraftRound', 'nflDraftPick', 'age',
-       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt', 'collegeBestRecYdsPerTPA',
-       'collegeReceptionShare', 'collegeRushProductionWR',
-       'weight', 'collegeEarlyDeclare', 'collegeTeammateScore',
-       'collegeSeasons', 'hasCollegeStats'],
-  // TE: ~50+ rookies → ZAP-inspired: draft capital × athleticism interaction, breakout score
-  TE: ['nflDraftRound', 'nflDraftPick', 'age',
-       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
-       'heightAdjSpeedScore', 'draftCapXSpeed',
-       'collegeEarlyDeclare', 'hasCollegeStats'],
+       'collegeRecYds', 'collegeRecTDs', 'collegeDominatorRating',
+       'collegeBestRecYds', 'weight',
+       'collegeEarlyDeclare', 'collegeTeammateScore'],
+  // TE: n=29 → 5 features (Ridge-only)
+  // Draft capital × athleticism interaction is key per ZAP
+  TE: ['nflDraftPick', 'age', 'collegeRecYds',
+       'heightAdjSpeedScore', 'collegeEarlyDeclare'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known
