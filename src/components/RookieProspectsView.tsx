@@ -96,11 +96,9 @@ function fmtMeasurable(v: number | null | undefined): string {
 function tierColor(tier: number): string {
   if (tier === 1) return '#22c55e';
   if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#a3e635';
-  if (tier === 4) return '#facc15';
-  if (tier === 5) return '#fb923c';
-  if (tier === 6) return '#ef4444';
-  return '#991b1b';
+  if (tier === 3) return '#facc15';
+  if (tier === 4) return '#fb923c';
+  return '#ef4444';
 }
 
 export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {

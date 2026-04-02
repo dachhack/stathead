@@ -7,11 +7,9 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 function tierColor(tier: number): string {
   if (tier === 1) return '#22c55e';
   if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#a3e635';
-  if (tier === 4) return '#facc15';
-  if (tier === 5) return '#fb923c';
-  if (tier === 6) return '#ef4444';
-  return '#991b1b';
+  if (tier === 3) return '#facc15';
+  if (tier === 4) return '#fb923c';
+  return '#ef4444';
 }
 
 function probBg(pct: number): string {
@@ -178,7 +176,8 @@ export function RookieCareerBacktest() {
       )}
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        {filtered.length} rookies &middot; LOSO cross-validated predictions vs actual best 2-of-3 PPG (years 1-3)
+        {filtered.length} rookies &middot; LOSO cross-validated: each rookie scored using a model trained WITHOUT their draft class &middot;
+        Only includes rookies with 2+ qualifying seasons in years 1-3 (draft classes {seasons.length > 0 ? `${seasons[0]}-${seasons[seasons.length - 1]}` : '?'})
       </div>
 
       <div className="table-container">
