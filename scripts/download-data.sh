@@ -11,7 +11,7 @@ mkdir -p "$OUT"
 
 # ── Configuration ──
 # Completed seasons: data never changes, cached indefinitely
-STATIC_SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015"
+STATIC_SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2010"
 # Current/upcoming season: data changes regularly, always re-download
 DYNAMIC_SEASON="2026"
 
