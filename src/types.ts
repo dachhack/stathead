@@ -203,7 +203,8 @@ export type Tab =
   | 'draft-optimizer'
   | 'trade-calc'
   | 'model-docs'
-  | 'career-backtest';
+  | 'career-backtest'
+  | 'zap-compare';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
