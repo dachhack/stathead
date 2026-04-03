@@ -11,8 +11,9 @@ import type { BaggedGBM } from '../src/lib/gbm';
 import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG } from '../src/lib/rookieCareerModel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
-import { fetchCombine, fetchCollegeStats } from '../src/data';
+import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
+import ncaaTeamData from '../src/data/ncaa-team-data.json';
 
 if (global.gc) console.log('GC exposed — will collect between seasons');
 
@@ -43,7 +44,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
 // MODEL CACHE: Bump when model training logic, thresholds, or tiers change
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v41.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v42.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -1849,6 +1850,141 @@ async function main() {
       }
     }
 
+    // ── Compute ZAP features for 2026 prospects ──
+    // Build per-player per-season stats for breakoutScore, recYdsPerTeamPassAtt
+    const ncaaSOS = ncaaTeamData.sos as Record<string, number>;
+    const ncaaPassAtt = ncaaTeamData.teamPassAttPerGame as Record<string, number>;
+    const ncaaRushAtt = ncaaTeamData.teamRushAttPerGame as Record<string, number>;
+
+    // School name normalizer (same as buildFeatureMatrix)
+    const schoolNameMap: Record<string, string> = {
+      'florida state': 'florida st', 'ohio state': 'ohio st', 'michigan state': 'michigan st',
+      'penn state': 'penn st', 'oklahoma state': 'oklahoma st', 'oregon state': 'oregon st',
+      'washington state': 'washington st', 'iowa state': 'iowa st', 'kansas state': 'kansas st',
+      'mississippi state': 'mississippi st', 'arizona state': 'arizona st',
+      'colorado state': 'colorado st', 'fresno state': 'fresno st', 'boise state': 'boise st',
+      'san diego state': 'san diego st', 'appalachian state': 'app state',
+      'north carolina state': 'nc state', 'brigham young': 'byu', 'southern california': 'usc',
+      'connecticut': 'uconn', 'massachusetts': 'umass', 'texas christian': 'tcu',
+      'southern methodist': 'smu', 'central florida': 'ucf',
+    };
+    function normSchool(s: string): string {
+      const low = s.toLowerCase().trim()
+        .replace(/\buniversity\b/g, '').replace(/\bstate\b/g, 'st')
+        .replace(/\bnorthern\b/g, 'n').replace(/\bsouthern\b/g, 's')
+        .replace(/\beastern\b/g, 'e').replace(/\bwestern\b/g, 'w')
+        .replace(/\bcentral\b/g, 'c').replace(/\bmiddle\b/g, 'mid')
+        .replace(/\s+/g, ' ').trim();
+      return schoolNameMap[low] || schoolNameMap[s.toLowerCase().trim()] || low;
+    }
+
+    // Per-player per-season stats from college data
+    type ProspectSeasonStats = { recYds: number; receptions: number; rushYds: number; school: string; season: number };
+    const prospectSeasonStats = new Map<string, ProspectSeasonStats[]>();
+    for (const cs of collegeData) {
+      const name = normalizeName(cs.player_name);
+      const stat = (cs.statistic || '').toLowerCase();
+      if (!prospectSeasonStats.has(name)) prospectSeasonStats.set(name, []);
+      const seasons = prospectSeasonStats.get(name)!;
+      let entry = seasons.find(s => s.season === cs.season);
+      if (!entry) {
+        entry = { recYds: 0, receptions: 0, rushYds: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season };
+        seasons.push(entry);
+      }
+      if (stat.includes('receiving yard')) entry.recYds += cs.value || 0;
+      else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) entry.receptions += cs.value || 0;
+      else if (stat.includes('rushing yard')) entry.rushYds += cs.value || 0;
+    }
+
+    // Compute ZAP features per prospect
+    const prospectZap = new Map<string, {
+      breakoutScore: number; recYdsPerTeamPassAtt: number; receptionShare: number;
+      rushProductionWR: number; teammateScore: number;
+    }>();
+
+    // Load draft picks for teammate score
+    let draftPicks: Array<{ player_name: string; season: number; pick: number; team: string }> = [];
+    try {
+      draftPicks = (await fetchDraftPicks().catch(() => [])) as any[];
+    } catch {}
+    // School → drafted players lookup
+    const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
+    for (const dp of draftPicks) {
+      if (!dp.player_name || !dp.pick) continue;
+      const name = normalizeName(dp.player_name);
+      // Find school from college data
+      const pss = prospectSeasonStats.get(name);
+      if (!pss || pss.length === 0) continue;
+      const school = pss[pss.length - 1].school;
+      if (!school) continue;
+      if (!schoolDraftees.has(school)) schoolDraftees.set(school, []);
+      schoolDraftees.get(school)!.push({ name, season: dp.season || 0, pick: dp.pick });
+    }
+
+    for (const prospect of prospectGrades) {
+      const nName = normalizeName(prospect.name);
+      const pss = prospectSeasonStats.get(nName);
+      if (!pss || pss.length === 0) {
+        prospectZap.set(nName, { breakoutScore: 0, recYdsPerTeamPassAtt: 0, receptionShare: 0, rushProductionWR: 0, teammateScore: 0 });
+        continue;
+      }
+
+      let bestRecYdsPerTPA = 0;
+      let bestReceptionShare = 0;
+      let bestBreakoutScore = 0;
+      let bestRushYds = 0;
+
+      for (const ps of pss) {
+        if (ps.recYds === 0 && ps.rushYds === 0) continue;
+        const ncaaKey = `${normSchool(ps.school)}:${ps.season}`;
+        const teamPA = (ncaaPassAtt[ncaaKey] || 0) * 13; // per game → season
+        const sosMult = ncaaSOS[ncaaKey] ? 1.0 + (ncaaSOS[ncaaKey] / 20) : 1.0;
+
+        if (teamPA > 0) {
+          const recPerTPA = (ps.recYds / teamPA) * sosMult;
+          bestRecYdsPerTPA = Math.max(bestRecYdsPerTPA, recPerTPA);
+
+          // Breakout score: age-adjusted (estimate age as draft year - season years)
+          const seasonsAgo = 2026 - ps.season;
+          const estAge = 22 - seasonsAgo; // rough estimate
+          if (estAge > 17 && estAge < 25) {
+            const ageMult = 1.0 + (21 - estAge) * 0.075;
+            bestBreakoutScore = Math.max(bestBreakoutScore, recPerTPA * ageMult);
+          } else {
+            bestBreakoutScore = Math.max(bestBreakoutScore, recPerTPA);
+          }
+        }
+
+        // Reception share
+        const teamComp = teamPA > 0 ? Math.round(teamPA * 0.63) : 0;
+        if (teamComp > 0) {
+          bestReceptionShare = Math.max(bestReceptionShare, ps.receptions / teamComp);
+        }
+
+        bestRushYds = Math.max(bestRushYds, Math.min(ps.rushYds, 500));
+      }
+
+      // Teammate score
+      const school = pss[pss.length - 1].school;
+      const mates = schoolDraftees.get(school) || [];
+      let teammateScore = 0;
+      for (const m of mates) {
+        if (m.name === nName) continue;
+        if (Math.abs(m.season - 2026) <= 2 && m.pick > 0) {
+          teammateScore += 1 / m.pick;
+        }
+      }
+
+      prospectZap.set(nName, {
+        breakoutScore: Math.round(bestBreakoutScore * 1000) / 1000,
+        recYdsPerTeamPassAtt: Math.round(bestRecYdsPerTPA * 1000) / 1000,
+        receptionShare: Math.round(bestReceptionShare * 1000) / 1000,
+        rushProductionWR: bestRushYds,
+        teammateScore: Math.round(teammateScore * 1000) / 1000,
+      });
+    }
+    console.log(`    ZAP features computed for ${prospectZap.size} prospects`);
+
     // Score each prospect
     const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
     for (const prospect of prospectGrades) {
@@ -1907,14 +2043,19 @@ async function main() {
         collegeBestReceptions: collegeBestByProspect.get(nName)?.bestReceptions || 0,
         collegeSeasons: numSeasons,
         collegeEarlyDeclare: numSeasons <= 3 ? 1 : 0,
-        // Per-team normalized features (approximate from available data)
-        collegeRecYdsPerTeamPassAtt: 0, // computed below if data available
-        collegeReceptionShare: 0,
-        collegeYdsPerTeamPlay: 0,
-        collegeBreakoutScore: 0,
-        collegeBestRecYdsPerTPA: 0,
-        collegeRushProductionWR: pos === 'WR' ? Math.min(cs?.get('Rushing Yards') || 0, 500) : 0,
-        collegeTeammateScore: 0,
+        // Per-team normalized features from ZAP computation
+        ...(() => {
+          const zap = prospectZap.get(nName);
+          return {
+            collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
+            collegeReceptionShare: zap?.receptionShare || 0,
+            collegeYdsPerTeamPlay: 0, // not used in current feature set
+            collegeBreakoutScore: zap?.breakoutScore || 0,
+            collegeBestRecYdsPerTPA: zap?.recYdsPerTeamPassAtt || 0,
+            collegeRushProductionWR: pos === 'WR' ? (zap?.rushProductionWR || Math.min(cs?.get('Rushing Yards') || 0, 500)) : 0,
+            collegeTeammateScore: zap?.teammateScore || 0,
+          };
+        })(),
         hasCollegeStats: cs ? 1 : 0,
       };
 
