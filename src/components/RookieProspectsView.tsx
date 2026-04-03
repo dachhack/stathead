@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
 import prospectGrades from '../data/prospect-grades-2026.json';
+import zapScores from '../data/zap-scores-2026.json';
 
 interface ProspectGrade {
   name: string;
@@ -49,6 +50,7 @@ interface ProspectRow {
   modelTier: number;
   boomProb: number;
   bustProb: number;
+  zapScore: number;
 }
 
 type SortField = keyof ProspectRow;
@@ -152,6 +154,14 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             });
           }
         }
+        // ZAP score lookup
+        const zapMap = new Map<string, number>();
+        for (const pos of ['WR', 'RB', 'TE'] as const) {
+          for (const z of (zapScores as any)[pos] || []) {
+            zapMap.set(normalizeName(z.name), z.zap);
+          }
+        }
+
         // Position-specific thresholds from career models
         const posThresholds: Record<string, number[]> = {};
         if (featureData?.rookieCareerModels) {
@@ -221,6 +231,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            zapScore: zapMap.get(nName) || 0,
           };
         });
 
@@ -254,6 +265,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            zapScore: zapMap.get(nName) || 0,
           });
         }
 
@@ -283,6 +295,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            zapScore: zapMap.get(nName) || 0,
           });
         }
 
@@ -298,7 +311,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile', 'zapScore'];
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
@@ -463,6 +476,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }}>
                 Pctl{sortArrow('percentile')}
               </th>
+              <th onClick={() => handleSort('zapScore')} style={{ cursor: 'pointer', fontSize: 11 }}>
+                ZAP{sortArrow('zapScore')}
+              </th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }}>Boom</th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }}>Bust</th>
               {activeThresholds.map(t => (
@@ -608,6 +624,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
+                </td>
+                <td style={{ fontSize: 12, fontWeight: 600, color: r.zapScore >= 75 ? '#22c55e' : r.zapScore >= 60 ? '#4ade80' : r.zapScore >= 40 ? '#facc15' : r.zapScore > 0 ? '#fb923c' : 'var(--text-muted)' }}>
+                  {r.zapScore > 0 ? r.zapScore.toFixed(1) : '-'}
                 </td>
                 <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomProb > 30 ? '#22c55e' : r.boomProb > 15 ? '#a3e635' : 'var(--text-muted)' }}>
                   {r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-'}
