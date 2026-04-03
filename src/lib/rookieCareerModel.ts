@@ -236,7 +236,13 @@ export function trainRookieCareerModels(
     const best2of3PPG = Math.round((best2[0].ppg + best2[1].ppg) / 2 * 100) / 100;
     const yil = entry.features.yearsInLeague ?? 99;
     if (yil > 1) continue;
-    careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: entry.features });
+    // Compute derived features from existing ones (avoids cache rebuild)
+    const f = { ...entry.features };
+    const pick = f.nflDraftPick || 300;
+    f.logDraftPick = Math.log(pick);
+    f.invDraftPick = 1 / pick;
+    f.draftPickXEarlyDeclare = (f.collegeEarlyDeclare || 0) * (1 / pick);
+    careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
   // Step 4: Per-position training
@@ -355,93 +361,13 @@ export function trainRookieCareerModels(
     // Filter NaN
     const clean = losoData.filter(d => isFinite(d.regPred) && isFinite(d.actual));
 
-    // ── Boom/Bust overlay: second-pass LOSO classification ──
-    // Define boom/bust using 0.75× MAE threshold (1× MAE was too strict)
+    // Boom/bust rates (computed but classifiers disabled — AUC was sub-50%)
     const quickMAE = clean.reduce((s, d) => s + Math.abs(d.actual - d.regPred), 0) / clean.length;
     const boomThresh = quickMAE * 0.75;
-    const bustThresh = quickMAE * 0.75;
-
-    // Count how many boom/bust in full dataset for diagnostics
     const nBooms = clean.filter(d => (d.actual - d.regPred) > boomThresh).length;
-    const nBusts = clean.filter(d => (d.regPred - d.actual) > bustThresh).length;
-    if (typeof console !== 'undefined') {
-      console.log(`    ${pos} boom/bust: MAE=${quickMAE.toFixed(1)}, thresh=${boomThresh.toFixed(1)}, booms=${nBooms}/${clean.length} (${Math.round(nBooms/clean.length*100)}%), busts=${nBusts}/${clean.length} (${Math.round(nBusts/clean.length*100)}%)`);
-    }
-
-    // Second LOSO pass for boom/bust classifiers
-    for (const held of seasons) {
-      const trainIdx = clean.filter(d => d.season !== held);
-      const testIdx = clean.filter(d => d.season === held);
-      if (trainIdx.length < 15 || testIdx.length === 0) continue;
-
-      const XtrBB = trainIdx.map(d => d.features);
-      const XteBB = testIdx.map(d => d.features);
-
-      // Boom classifier: actual - predicted > MAE
-      const yBoom = trainIdx.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
-      const boomRate = yBoom.filter(y => y === 1).length / yBoom.length;
-      if (boomRate > 0.05 && boomRate < 0.95) {
-        const ridgeBoom = trainRidgeRegression(XtrBB, yBoom, featureKeys, 5);
-        let boomPreds: number[];
-        if (trainIdx.length >= 40) {
-          const gbmBoom = trainBaggedGBM(XtrBB, yBoom, featureKeys, {
-            nEstimators: 60, learningRate: 0.03, maxDepth: 2,
-            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainIdx.length * 0.1)),
-            seed: 42,
-          }, 5);
-          boomPreds = XteBB.map(x => {
-            const feat: Record<string, number> = {};
-            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
-            return clampProb(predictBaggedGBM(gbmBoom, feat).predicted * 0.5 + clampProb(predict(ridgeBoom, feat).predicted) * 0.5);
-          });
-        } else {
-          boomPreds = XteBB.map(x => {
-            const feat: Record<string, number> = {};
-            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
-            return clampProb(predict(ridgeBoom, feat).predicted);
-          });
-        }
-        for (let i = 0; i < testIdx.length; i++) {
-          testIdx[i].boomProb = Math.round(boomPreds[i] * 1000) / 10;
-        }
-      }
-
-      // Bust classifier: predicted - actual > MAE
-      const yBust = trainIdx.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
-      const bustRate = yBust.filter(y => y === 1).length / yBust.length;
-      if (bustRate > 0.05 && bustRate < 0.95) {
-        const ridgeBust = trainRidgeRegression(XtrBB, yBust, featureKeys, 5);
-        let bustPreds: number[];
-        if (trainIdx.length >= 40) {
-          const gbmBust = trainBaggedGBM(XtrBB, yBust, featureKeys, {
-            nEstimators: 60, learningRate: 0.03, maxDepth: 2,
-            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainIdx.length * 0.1)),
-            seed: 42,
-          }, 5);
-          bustPreds = XteBB.map(x => {
-            const feat: Record<string, number> = {};
-            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
-            return clampProb(predictBaggedGBM(gbmBust, feat).predicted * 0.5 + clampProb(predict(ridgeBust, feat).predicted) * 0.5);
-          });
-        } else {
-          bustPreds = XteBB.map(x => {
-            const feat: Record<string, number> = {};
-            featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
-            return clampProb(predict(ridgeBust, feat).predicted);
-          });
-        }
-        for (let i = 0; i < testIdx.length; i++) {
-          testIdx[i].bustProb = Math.round(bustPreds[i] * 1000) / 10;
-        }
-      }
-    }
-
-    // Diagnostic: check how many LOSO predictions are non-zero
-    const nBoomPreds = clean.filter(d => d.boomProb > 0).length;
-    const nBustPreds = clean.filter(d => d.bustProb > 0).length;
-    if (typeof console !== 'undefined') {
-      console.log(`    ${pos} LOSO boom/bust preds: ${nBoomPreds} boom>0, ${nBustPreds} bust>0 out of ${clean.length}`);
-    }
+    const nBusts = clean.filter(d => (d.regPred - d.actual) > boomThresh).length;
+    const finalBoomRate = nBooms / clean.length;
+    const finalBustRate = nBusts / clean.length;
 
     // ── Regression metrics (kept for comparison) ──
     const cleanPreds = clean.map(d => d.regPred);
@@ -580,39 +506,13 @@ export function trainRookieCareerModels(
       thresholdModels[thresh] = { ridge: ridgeBin, gbm: gbmBin };
     }
 
-    // Boom/bust final models (trained on all data using full-data regression residuals)
-    // Use leave-one-out residuals from LOSO to define boom/bust labels
-    let boomModel: { ridge: unknown; gbm: BaggedGBM | null } | undefined;
-    let bustModel: { ridge: unknown; gbm: BaggedGBM | null } | undefined;
-    const cleanBoomLabels = clean.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
-    const cleanBustLabels = clean.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
-    const finalBoomRate = cleanBoomLabels.filter(y => y === 1).length / cleanBoomLabels.length;
-    const finalBustRate = cleanBustLabels.filter(y => y === 1).length / cleanBustLabels.length;
-    const XAllClean = clean.map(d => d.features);
-    if (finalBoomRate > 0.05 && finalBoomRate < 0.95 && XAllClean.length >= 15) {
-      const ridgeBoom = trainRidgeRegression(XAllClean, cleanBoomLabels, featureKeys, 5);
-      let gbmBoom: BaggedGBM | null = null;
-      if (XAllClean.length >= 40) {
-        gbmBoom = trainBaggedGBM(XAllClean, cleanBoomLabels, featureKeys, {
-          nEstimators: 60, learningRate: 0.03, maxDepth: 2,
-          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(XAllClean.length * 0.1)),
-          seed: 42,
-        }, 5);
-      }
-      boomModel = { ridge: ridgeBoom, gbm: gbmBoom };
-    }
-    if (finalBustRate > 0.05 && finalBustRate < 0.95 && XAllClean.length >= 15) {
-      const ridgeBust = trainRidgeRegression(XAllClean, cleanBustLabels, featureKeys, 5);
-      let gbmBust: BaggedGBM | null = null;
-      if (XAllClean.length >= 40) {
-        gbmBust = trainBaggedGBM(XAllClean, cleanBustLabels, featureKeys, {
-          nEstimators: 60, learningRate: 0.03, maxDepth: 2,
-          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(XAllClean.length * 0.1)),
-          seed: 42,
-        }, 5);
-      }
-      bustModel = { ridge: ridgeBust, gbm: gbmBust };
-    }
+    // Boom/bust classifiers disabled (AUC was sub-50%)
+    const boomModel = undefined;
+    const bustModel = undefined;
+    const boomMetrics = undefined;
+    const bustMetrics = undefined;
+    const boomFeatureImportance = undefined;
+    const bustFeatureImportance = undefined;
 
     // Feature importance from ridge coefficients (with direction from sign)
     const fi = featureKeys.map((key, i) => ({
@@ -626,42 +526,6 @@ export function trainRookieCareerModels(
       importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1000) / 1000 : 0,
       direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
     }));
-
-    // Boom/bust LOSO metrics from backtest
-    const boomLabels = clean.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
-    const bustLabels = clean.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
-    const boomProbsCV = clean.map(d => (d.boomProb || 0) / 100);
-    const bustProbsCV = clean.map(d => (d.bustProb || 0) / 100);
-
-    function computeOverlayMetrics(probs: number[], labels: number[]) {
-      const predicted = probs.map(p => p >= 0.5 ? 1 : 0);
-      const tp = predicted.filter((p, i) => p === 1 && labels[i] === 1).length;
-      const fp = predicted.filter((p, i) => p === 1 && labels[i] === 0).length;
-      const fn = predicted.filter((p, i) => p === 0 && labels[i] === 1).length;
-      const correct = predicted.filter((p, i) => p === labels[i]).length;
-      return {
-        auc: Math.round(approxAUC(probs, labels) * 1000) / 10,
-        accuracy: Math.round(correct / labels.length * 1000) / 10,
-        precision: tp + fp > 0 ? Math.round(tp / (tp + fp) * 1000) / 10 : 0,
-        recall: tp + fn > 0 ? Math.round(tp / (tp + fn) * 1000) / 10 : 0,
-      };
-    }
-    const boomMetrics = boomProbsCV.some(p => p > 0) ? computeOverlayMetrics(boomProbsCV, boomLabels) : undefined;
-    const bustMetrics = bustProbsCV.some(p => p > 0) ? computeOverlayMetrics(bustProbsCV, bustLabels) : undefined;
-
-    // Feature importance for boom/bust models (from final ridge coefficients)
-    function ridgeFI(model: { ridge: any } | undefined): Array<{ key: string; importance: number; direction: 'positive' | 'negative' }> | undefined {
-      if (!model?.ridge?.coefficients) return undefined;
-      const raw = featureKeys.map((key, i) => ({
-        key, rawCoeff: model.ridge.coefficients[i] || 0, importance: Math.abs(model.ridge.coefficients[i] || 0),
-      })).sort((a, b) => b.importance - a.importance);
-      const total = raw.reduce((s, f) => s + f.importance, 0);
-      return raw.map(f => ({
-        key: f.key,
-        importance: total > 0 ? Math.round(f.importance / total * 1000) / 1000 : 0,
-        direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
-      }));
-    }
 
     results[pos] = {
       n: posRows.length,

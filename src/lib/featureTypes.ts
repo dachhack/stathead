@@ -103,6 +103,9 @@ export const FEATURES: FeatureDef[] = [
   { key: 'yearsInLeague', label: 'Years in League', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'nflDraftRound', label: 'NFL Draft Round', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'nflDraftPick', label: 'NFL Draft Pick', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'logDraftPick', label: 'Log(Draft Pick)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'invDraftPick', label: '1/Draft Pick (capital)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'draftPickXEarlyDeclare', label: 'Draft Capital × Early Declare', category: 'Profile', positions: ['RB', 'WR', 'TE'] },
   { key: 'weight', label: 'Weight', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'forty', label: '40-Yard Dash', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'bench', label: 'Bench Press Reps', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
@@ -399,25 +402,21 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=34 → 4 features only (Ridge-only, can't support more)
-  QB: ['nflDraftPick', 'collegePassTDs', 'collegeRushYds', 'collegeEarlyDeclare'],
-  // RB: n=142 → 10 features
-  // ZAP: receiving is THE key differentiator + speed score + per-team production (now with real team data)
-  RB: ['nflDraftRound', 'nflDraftPick', 'age',
+  // QB: n=34 → 3 features (Ridge-only). Draft capital dominates.
+  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare'],
+  // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
+  RB: ['logDraftPick', 'invDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeEarlyDeclare', 'collegeTeammateScore'],
-  // WR: n=137 → 11 features
-  // ZAP: breakout score (age+SOS adjusted) + per-team production + early declare + teammate score
-  WR: ['nflDraftRound', 'nflDraftPick', 'age',
+       'draftPickXEarlyDeclare', 'collegeTeammateScore'],
+  // WR: n=137 → 10 features. Breakout score + per-team + draft interactions
+  WR: ['logDraftPick', 'invDraftPick', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeDominatorRating', 'collegeBestRecYds',
-       'collegeRushProductionWR', 'weight',
-       'collegeEarlyDeclare', 'collegeTeammateScore'],
-  // TE: n=29 → 5 features (Ridge-only)
-  // ZAP: draft capital × athleticism interaction
-  TE: ['nflDraftPick', 'age', 'collegeRecYdsPerTeamPassAtt',
-       'heightAdjSpeedScore', 'collegeEarlyDeclare'],
+       'weight', 'draftPickXEarlyDeclare', 'collegeTeammateScore'],
+  // TE: n=29 → 4 features (Ridge-only). Simpler = better for small N.
+  TE: ['logDraftPick', 'age', 'collegeRecYdsPerTeamPassAtt',
+       'heightAdjSpeedScore'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known

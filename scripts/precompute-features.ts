@@ -44,7 +44,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
 // MODEL CACHE: Bump when model training logic, thresholds, or tiers change
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v42.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v43.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
@@ -2013,6 +2013,8 @@ async function main() {
       const features: Record<string, number> = {
         nflDraftRound: prospect.projRound || 8,
         nflDraftPick: projPick,
+        logDraftPick: Math.log(projPick),
+        invDraftPick: 1 / projPick,
         age: 0,
         yearsInLeague: 0,
         weight: wt,
@@ -2043,6 +2045,7 @@ async function main() {
         collegeBestReceptions: collegeBestByProspect.get(nName)?.bestReceptions || 0,
         collegeSeasons: numSeasons,
         collegeEarlyDeclare: numSeasons <= 3 ? 1 : 0,
+        draftPickXEarlyDeclare: (numSeasons <= 3 ? 1 : 0) * (1 / projPick),
         // Per-team normalized features from ZAP computation
         ...(() => {
           const zap = prospectZap.get(nName);
