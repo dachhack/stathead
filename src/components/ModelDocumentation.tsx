@@ -92,9 +92,11 @@ export function ModelDocumentation() {
       }
 
       if (d) {
-        // Train career models at runtime if not present but rows are available
+        // Train career models at runtime if not present or missing boom/bust overlay
         let careerModels = d.rookieCareerModels;
-        if ((!careerModels || Object.keys(careerModels).length === 0) && d.rows?.length > 0) {
+        const needsRetrain = !careerModels || Object.keys(careerModels).length === 0
+          || !Object.values(careerModels as Record<string, any>).some((m: any) => m.boomRate != null);
+        if (needsRetrain && d.rows?.length > 0) {
           try {
             careerModels = trainRookieCareerModels(d.rows);
           } catch { /* training failed */ }
