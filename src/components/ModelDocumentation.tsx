@@ -95,7 +95,7 @@ export function ModelDocumentation() {
         // Train career models at runtime if not present or missing boom/bust overlay
         let careerModels = d.rookieCareerModels;
         const needsRetrain = !careerModels || Object.keys(careerModels).length === 0
-          || !Object.values(careerModels as Record<string, any>).some((m: any) => m.boomRate != null);
+          || !Object.values(careerModels as Record<string, any>).some((m: any) => m.boomMetrics != null);
         if (needsRetrain && d.rows?.length > 0) {
           try {
             careerModels = trainRookieCareerModels(d.rows);
