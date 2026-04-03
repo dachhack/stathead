@@ -115,8 +115,12 @@ export interface RookieCareerModelResult {
   // Boom/bust overlay models
   boomModel?: { ridge: unknown; gbm: BaggedGBM | null };
   bustModel?: { ridge: unknown; gbm: BaggedGBM | null };
-  boomRate: number;   // base rate of booms in training data
-  bustRate: number;   // base rate of busts in training data
+  boomRate: number;
+  bustRate: number;
+  boomMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
+  bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
+  boomFeatureImportance?: Array<{ key: string; importance: number }>;
+  bustFeatureImportance?: Array<{ key: string; importance: number }>;
   // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
@@ -607,6 +611,38 @@ export function trainRookieCareerModels(
       importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1000) / 1000 : 0,
     }));
 
+    // Boom/bust LOSO metrics from backtest
+    const boomLabels = clean.map(d => (d.actual - d.regPred) > boomThresh ? 1 : 0);
+    const bustLabels = clean.map(d => (d.regPred - d.actual) > bustThresh ? 1 : 0);
+    const boomProbsCV = clean.map(d => (d.boomProb || 0) / 100);
+    const bustProbsCV = clean.map(d => (d.bustProb || 0) / 100);
+
+    function computeOverlayMetrics(probs: number[], labels: number[]) {
+      const predicted = probs.map(p => p >= 0.5 ? 1 : 0);
+      const tp = predicted.filter((p, i) => p === 1 && labels[i] === 1).length;
+      const fp = predicted.filter((p, i) => p === 1 && labels[i] === 0).length;
+      const fn = predicted.filter((p, i) => p === 0 && labels[i] === 1).length;
+      const correct = predicted.filter((p, i) => p === labels[i]).length;
+      return {
+        auc: Math.round(approxAUC(probs, labels) * 1000) / 10,
+        accuracy: Math.round(correct / labels.length * 1000) / 10,
+        precision: tp + fp > 0 ? Math.round(tp / (tp + fp) * 1000) / 10 : 0,
+        recall: tp + fn > 0 ? Math.round(tp / (tp + fn) * 1000) / 10 : 0,
+      };
+    }
+    const boomMetrics = boomProbsCV.some(p => p > 0) ? computeOverlayMetrics(boomProbsCV, boomLabels) : undefined;
+    const bustMetrics = bustProbsCV.some(p => p > 0) ? computeOverlayMetrics(bustProbsCV, bustLabels) : undefined;
+
+    // Feature importance for boom/bust models (from final ridge coefficients)
+    function ridgeFI(model: { ridge: any } | undefined): Array<{ key: string; importance: number }> | undefined {
+      if (!model?.ridge?.coefficients) return undefined;
+      const raw = featureKeys.map((key, i) => ({
+        key, importance: Math.abs(model.ridge.coefficients[i] || 0),
+      })).sort((a, b) => b.importance - a.importance);
+      const total = raw.reduce((s, f) => s + f.importance, 0);
+      return raw.map(f => ({ key: f.key, importance: total > 0 ? Math.round(f.importance / total * 1000) / 1000 : 0 }));
+    }
+
     results[pos] = {
       n: posRows.length,
       cvR2: r2,
@@ -625,6 +661,10 @@ export function trainRookieCareerModels(
       bustModel,
       boomRate: Math.round(finalBoomRate * 1000) / 10,
       bustRate: Math.round(finalBustRate * 1000) / 10,
+      boomMetrics,
+      bustMetrics,
+      boomFeatureImportance: ridgeFI(boomModel),
+      bustFeatureImportance: ridgeFI(bustModel),
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
       topN: {},
