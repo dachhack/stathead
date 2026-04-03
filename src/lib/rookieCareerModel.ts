@@ -101,7 +101,7 @@ export interface RookieCareerModelResult {
   rankCorr: number;
   seasons: number;
   featureKeys: string[];
-  featureImportance: Array<{ key: string; importance: number }>;
+  featureImportance: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
   residualStd: number;
   thresholds: number[];
   thresholdMetrics: ThresholdModelMetrics[];  // per-threshold classification metrics
@@ -119,8 +119,8 @@ export interface RookieCareerModelResult {
   bustRate: number;
   boomMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
   bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
-  boomFeatureImportance?: Array<{ key: string; importance: number }>;
-  bustFeatureImportance?: Array<{ key: string; importance: number }>;
+  boomFeatureImportance?: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
+  bustFeatureImportance?: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
   // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
@@ -600,15 +600,17 @@ export function trainRookieCareerModels(
       bustModel = { ridge: ridgeBust, gbm: gbmBust };
     }
 
-    // Feature importance from ridge coefficients
+    // Feature importance from ridge coefficients (with direction from sign)
     const fi = featureKeys.map((key, i) => ({
       key,
+      rawCoeff: finalRidge.coefficients[i] || 0,
       importance: Math.abs(finalRidge.coefficients[i] || 0),
     })).sort((a, b) => b.importance - a.importance);
     const fiTotal = fi.reduce((s, f) => s + f.importance, 0);
     const featureImportance = fi.map(f => ({
       key: f.key,
       importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1000) / 1000 : 0,
+      direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
     }));
 
     // Boom/bust LOSO metrics from backtest
@@ -634,13 +636,17 @@ export function trainRookieCareerModels(
     const bustMetrics = bustProbsCV.some(p => p > 0) ? computeOverlayMetrics(bustProbsCV, bustLabels) : undefined;
 
     // Feature importance for boom/bust models (from final ridge coefficients)
-    function ridgeFI(model: { ridge: any } | undefined): Array<{ key: string; importance: number }> | undefined {
+    function ridgeFI(model: { ridge: any } | undefined): Array<{ key: string; importance: number; direction: 'positive' | 'negative' }> | undefined {
       if (!model?.ridge?.coefficients) return undefined;
       const raw = featureKeys.map((key, i) => ({
-        key, importance: Math.abs(model.ridge.coefficients[i] || 0),
+        key, rawCoeff: model.ridge.coefficients[i] || 0, importance: Math.abs(model.ridge.coefficients[i] || 0),
       })).sort((a, b) => b.importance - a.importance);
       const total = raw.reduce((s, f) => s + f.importance, 0);
-      return raw.map(f => ({ key: f.key, importance: total > 0 ? Math.round(f.importance / total * 1000) / 1000 : 0 }));
+      return raw.map(f => ({
+        key: f.key,
+        importance: total > 0 ? Math.round(f.importance / total * 1000) / 1000 : 0,
+        direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
+      }));
     }
 
     results[pos] = {

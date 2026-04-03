@@ -49,7 +49,7 @@ export function ModelDocumentation() {
     rookieCareerModels?: Record<string, {
       n: number; cvR2: number; cvMAE: number; rankCorr: number; seasons: number;
       featureKeys: string[];
-      featureImportance?: Array<{ key: string; importance: number }>;
+      featureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
       topN?: Record<number, { precision: number; recall: number; n: number }>;
       residualStd?: number;
       thresholds?: number[];
@@ -65,8 +65,8 @@ export function ModelDocumentation() {
       bustRate?: number;
       boomMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
       bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
-      boomFeatureImportance?: Array<{ key: string; importance: number }>;
-      bustFeatureImportance?: Array<{ key: string; importance: number }>;
+      boomFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
+      bustFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
     }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1036,7 +1036,8 @@ export function ModelDocumentation() {
               {m.featureImportance && m.featureImportance.length > 0 && (() => {
                 const fiData = m.featureImportance.map(f => {
                   const def = FEATURES.find(fd => fd.key === f.key);
-                  return { name: def?.label || f.key, importance: f.importance, key: f.key };
+                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                  return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
                 });
                 return (
                   <>
@@ -1193,12 +1194,16 @@ export function ModelDocumentation() {
                         <h4 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--text-secondary)' }}>Feature Importance (Boom)</h4>
                         {m.boomFeatureImportance.slice(0, 8).map((f: any) => {
                           const def = FEATURES.find(fd => fd.key === f.key);
+                          const dir = f.direction === 'positive' ? '↑ higher' : '↓ lower';
+                          const dirColor = f.direction === 'positive' ? '#4ade80' : '#fb923c';
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                               <div style={{ width: Math.max(4, Math.round(f.importance * 250)), height: 10, borderRadius: 5, background: '#22c55e' }} />
                               <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                {def?.label || f.key} <span style={{ color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
+                                {def?.label || f.key}
                               </span>
+                              <span style={{ fontSize: 9, color: dirColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{dir}</span>
+                              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
                             </div>
                           );
                         })}
@@ -1231,12 +1236,16 @@ export function ModelDocumentation() {
                         <h4 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--text-secondary)' }}>Feature Importance (Bust)</h4>
                         {m.bustFeatureImportance.slice(0, 8).map((f: any) => {
                           const def = FEATURES.find(fd => fd.key === f.key);
+                          const dir = f.direction === 'positive' ? '↑ higher' : '↓ lower';
+                          const dirColor = f.direction === 'positive' ? '#fb923c' : '#4ade80';
                           return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                               <div style={{ width: Math.max(4, Math.round(f.importance * 250)), height: 10, borderRadius: 5, background: '#ef4444' }} />
                               <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                {def?.label || f.key} <span style={{ color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
+                                {def?.label || f.key}
                               </span>
+                              <span style={{ fontSize: 9, color: dirColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{dir}</span>
+                              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
                             </div>
                           );
                         })}
