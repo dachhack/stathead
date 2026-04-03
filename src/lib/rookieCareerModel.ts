@@ -511,8 +511,6 @@ export function trainRookieCareerModels(
     const bustModel = undefined;
     const boomMetrics = undefined;
     const bustMetrics = undefined;
-    const boomFeatureImportance = undefined;
-    const bustFeatureImportance = undefined;
 
     // Feature importance from ridge coefficients (with direction from sign)
     const fi = featureKeys.map((key, i) => ({
@@ -547,8 +545,8 @@ export function trainRookieCareerModels(
       bustRate: Math.round(finalBustRate * 1000) / 10,
       boomMetrics,
       bustMetrics,
-      boomFeatureImportance: ridgeFI(boomModel),
-      bustFeatureImportance: ridgeFI(bustModel),
+      boomFeatureImportance: undefined,
+      bustFeatureImportance: undefined,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
       topN: {},
