@@ -25,6 +25,7 @@ import { TradeCalculator } from './components/TradeCalculator';
 import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
 import { ModelDocumentation } from './components/ModelDocumentation';
 import { RookieCareerBacktest } from './components/RookieCareerBacktest';
+import { ZapComparison } from './components/ZapComparison';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -78,6 +79,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'draft', label: 'Draft History' },
       { id: 'charts', label: 'Chart Builder' },
       { id: 'career-backtest', label: 'Career Backtest' },
+      { id: 'zap-compare', label: 'ZAP Compare' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
   },
@@ -238,6 +240,7 @@ function App() {
         )}
         {tab === 'charts' && <RookieRBChart />}
         {tab === 'career-backtest' && <RookieCareerBacktest />}
+        {tab === 'zap-compare' && <ZapComparison />}
         {tab === 'model-docs' && <ModelDocumentation />}
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
