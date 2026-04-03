@@ -61,6 +61,12 @@ export function ModelDocumentation() {
         thresholds: number[];
         tiers: Array<{ label: string; min: number; max: number; n: number; hitRates: number[] }>;
       };
+      boomRate?: number;
+      bustRate?: number;
+      boomMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
+      bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
+      boomFeatureImportance?: Array<{ key: string; importance: number }>;
+      bustFeatureImportance?: Array<{ key: string; importance: number }>;
     }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1059,6 +1065,83 @@ export function ModelDocumentation() {
                   </>
                 );
               })()}
+
+              {/* Boom/Bust Overlay Models */}
+              {(m.boomMetrics || m.bustMetrics) && (
+                <>
+                  <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Boom / Bust Overlay Models</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Predicts which rookies will significantly outperform (boom) or underperform (bust) their base projection.
+                    Boom = actual &gt; predicted + MAE. Bust = actual &lt; predicted - MAE.
+                  </p>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {m.boomMetrics && (
+                      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, flex: 1, minWidth: 260 }}>
+                        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: '#22c55e' }}>Boom Model (base rate: {m.boomRate ?? '?'}%)</h4>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                          {[
+                            { label: 'AUC', value: `${m.boomMetrics.auc}%`, color: m.boomMetrics.auc > 55 ? '#22c55e' : m.boomMetrics.auc > 50 ? '#facc15' : '#ef4444' },
+                            { label: 'Accuracy', value: `${m.boomMetrics.accuracy}%`, color: 'var(--text-primary)' },
+                            { label: 'Precision', value: `${m.boomMetrics.precision}%`, color: 'var(--text-primary)' },
+                            { label: 'Recall', value: `${m.boomMetrics.recall}%`, color: 'var(--text-primary)' },
+                          ].map(c => (
+                            <div key={c.label}>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.label}</div>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: c.color }}>{c.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {m.boomFeatureImportance && m.boomFeatureImportance.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Top features driving boom prediction:</div>
+                            {m.boomFeatureImportance.slice(0, 5).map(f => {
+                              const def = FEATURES.find(fd => fd.key === f.key);
+                              return (
+                                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                  <div style={{ width: Math.round(f.importance * 200), height: 8, borderRadius: 4, background: '#22c55e', minWidth: 4 }} />
+                                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{def?.label || f.key} ({(f.importance * 100).toFixed(0)}%)</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {m.bustMetrics && (
+                      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, flex: 1, minWidth: 260 }}>
+                        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: '#ef4444' }}>Bust Model (base rate: {m.bustRate ?? '?'}%)</h4>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                          {[
+                            { label: 'AUC', value: `${m.bustMetrics.auc}%`, color: m.bustMetrics.auc > 55 ? '#22c55e' : m.bustMetrics.auc > 50 ? '#facc15' : '#ef4444' },
+                            { label: 'Accuracy', value: `${m.bustMetrics.accuracy}%`, color: 'var(--text-primary)' },
+                            { label: 'Precision', value: `${m.bustMetrics.precision}%`, color: 'var(--text-primary)' },
+                            { label: 'Recall', value: `${m.bustMetrics.recall}%`, color: 'var(--text-primary)' },
+                          ].map(c => (
+                            <div key={c.label}>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.label}</div>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: c.color }}>{c.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {m.bustFeatureImportance && m.bustFeatureImportance.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Top features driving bust prediction:</div>
+                            {m.bustFeatureImportance.slice(0, 5).map(f => {
+                              const def = FEATURES.find(fd => fd.key === f.key);
+                              return (
+                                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                  <div style={{ width: Math.round(f.importance * 200), height: 8, borderRadius: 4, background: '#ef4444', minWidth: 4 }} />
+                                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{def?.label || f.key} ({(f.importance * 100).toFixed(0)}%)</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Probability model explanation */}
               {m.residualStd != null && m.residualStd > 0 && (
