@@ -356,10 +356,17 @@ export function trainRookieCareerModels(
     const clean = losoData.filter(d => isFinite(d.regPred) && isFinite(d.actual));
 
     // ── Boom/Bust overlay: second-pass LOSO classification ──
-    // Define boom = actual > predicted + MAE, bust = actual < predicted - MAE
+    // Define boom/bust using 0.75× MAE threshold (1× MAE was too strict)
     const quickMAE = clean.reduce((s, d) => s + Math.abs(d.actual - d.regPred), 0) / clean.length;
-    const boomThresh = quickMAE;  // outperform by more than 1 MAE
-    const bustThresh = quickMAE;  // underperform by more than 1 MAE
+    const boomThresh = quickMAE * 0.75;
+    const bustThresh = quickMAE * 0.75;
+
+    // Count how many boom/bust in full dataset for diagnostics
+    const nBooms = clean.filter(d => (d.actual - d.regPred) > boomThresh).length;
+    const nBusts = clean.filter(d => (d.regPred - d.actual) > bustThresh).length;
+    if (typeof console !== 'undefined') {
+      console.log(`    ${pos} boom/bust: MAE=${quickMAE.toFixed(1)}, thresh=${boomThresh.toFixed(1)}, booms=${nBooms}/${clean.length} (${Math.round(nBooms/clean.length*100)}%), busts=${nBusts}/${clean.length} (${Math.round(nBusts/clean.length*100)}%)`);
+    }
 
     // Second LOSO pass for boom/bust classifiers
     for (const held of seasons) {
@@ -427,6 +434,13 @@ export function trainRookieCareerModels(
           testIdx[i].bustProb = Math.round(bustPreds[i] * 1000) / 10;
         }
       }
+    }
+
+    // Diagnostic: check how many LOSO predictions are non-zero
+    const nBoomPreds = clean.filter(d => d.boomProb > 0).length;
+    const nBustPreds = clean.filter(d => d.bustProb > 0).length;
+    if (typeof console !== 'undefined') {
+      console.log(`    ${pos} LOSO boom/bust preds: ${nBoomPreds} boom>0, ${nBustPreds} bust>0 out of ${clean.length}`);
     }
 
     // ── Regression metrics (kept for comparison) ──

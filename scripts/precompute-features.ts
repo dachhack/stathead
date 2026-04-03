@@ -43,7 +43,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
 const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
 // MODEL CACHE: Bump when model training logic, thresholds, or tiers change
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v40.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v41.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 150;
