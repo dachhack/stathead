@@ -59,7 +59,8 @@ const DRAFT_YEAR = 2026;
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[.\-']/g, '')
+    .replace(/[.\-''`]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
