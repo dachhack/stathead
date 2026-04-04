@@ -5,6 +5,7 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
+import { normalizeName, POSITIONS } from '../../featureTypes';
 
 export const consistencyGroup: FeatureGroup = {
   def: {
@@ -17,29 +18,32 @@ export const consistencyGroup: FeatureGroup = {
   compute: (ctx, _season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
 
-    // advByName contains weekly aggregation data
-    // For boom/bust we need per-week PPR values from the raw weekly stats.
-    // The advByName has receptions, targets but not per-week PPR split.
-    // We use priorByName's games + PPR to estimate stdDev as fallback,
-    // and boom/bust rates from the weekly data stored in advByName.
+    // Build per-player weekly PPR values from advByName's weekly data
+    // The context builder stores weekly PPR in a special weeklyPPR map
+    const weeklyPPR = ctx.data.weeklyPPRByName as Map<string, number[]> | undefined;
+
+    // Build consistency metrics
+    const consistency = new Map<string, { stdDev: number; boomRate: number; bustGameRate: number }>();
+    if (weeklyPPR) {
+      for (const [name, pts] of weeklyPPR) {
+        if (pts.length < 3) continue;
+        const mean = pts.reduce((a, b) => a + b, 0) / pts.length;
+        const variance = pts.reduce((s, v) => s + (v - mean) ** 2, 0) / pts.length;
+        const stdDev = Math.sqrt(variance);
+        consistency.set(name, {
+          stdDev: Math.round(stdDev * 10) / 10,
+          boomRate: Math.round(pts.filter(p => p >= 20).length / pts.length * 1000) / 1000,
+          bustGameRate: Math.round(pts.filter(p => p < 5).length / pts.length * 1000) / 1000,
+        });
+      }
+    }
+
     for (const [pk, player] of ctx.players) {
-      const adv = ctx.data.advByName.get(player.normalName);
-      const prior = ctx.data.priorByName.get(player.normalName);
-      const priorGames = prior?.games || 0;
-      const priorPPR = prior?.fantasy_points_ppr || 0;
-      const avgPPG = priorGames > 0 ? priorPPR / priorGames : 0;
-
-      // Estimate std dev from weekly data if available
-      // advByName.weeks tells us how many weeks of data we have
-      const weeks = adv?.weeks || 0;
-
-      // Without per-week PPR in the context, we use the legacy bridge values
-      // (populated from buildFeatureMatrix via populateFromLegacy).
-      // Full extraction requires storing weekly PPR values in the context.
+      const wc = consistency.get(player.normalName);
       results.set(pk, {
-        priorPPGStdDev: 0,
-        priorBoomRate: 0,
-        priorBustGameRate: 0,
+        priorPPGStdDev: wc?.stdDev || 0,
+        priorBoomRate: wc?.boomRate || 0,
+        priorBustGameRate: wc?.bustGameRate || 0,
       });
     }
     return results;

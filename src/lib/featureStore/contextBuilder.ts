@@ -200,6 +200,16 @@ export async function buildSharedContext(opts: {
       a.rushEPA += w.rushing_epa || 0;
       a.weeks += 1;
     }
+
+    // Weekly PPR for consistency features (boom/bust/stddev)
+    const weeklyPPRByName = new Map<string, number[]>();
+    for (const w of weeklyPrior) {
+      if (!POSITIONS.includes(w.position)) continue;
+      const name = normalizeName(w.player_display_name);
+      if (!weeklyPPRByName.has(name)) weeklyPPRByName.set(name, []);
+      weeklyPPRByName.get(name)!.push(w.fantasy_points_ppr || 0);
+    }
+    (data as any).weeklyPPRByName = weeklyPPRByName;
   }
 
   // NGS lookups
@@ -312,6 +322,59 @@ export async function buildSharedContext(opts: {
   const pbp = pbpRaw as any[];
   if (pbp.length > 0) {
     buildSchemeAndPersonnel(pbp, data, season);
+
+    // Environment maps from PBP: sack rate, rush YPC
+    const teamSacks = new Map<string, { sacks: number; dropbacks: number }>();
+    const teamRush = new Map<string, { yards: number; attempts: number }>();
+    for (const play of pbp) {
+      if (!play.posteam) continue;
+      if (play.play_type === 'pass' || play.qb_dropback === 1) {
+        const acc = teamSacks.get(play.posteam) || { sacks: 0, dropbacks: 0 };
+        acc.dropbacks += 1;
+        if (play.sack === 1) acc.sacks += 1;
+        teamSacks.set(play.posteam, acc);
+      }
+      if (play.play_type === 'run' && play.rushing_yards != null) {
+        const acc = teamRush.get(play.posteam) || { yards: 0, attempts: 0 };
+        acc.yards += play.rushing_yards;
+        acc.attempts += 1;
+        teamRush.set(play.posteam, acc);
+      }
+    }
+    const teamSackRate = new Map<string, number>();
+    const teamRushYPC = new Map<string, number>();
+    for (const [team, s] of teamSacks) {
+      teamSackRate.set(team, s.dropbacks > 0 ? Math.round((s.sacks / s.dropbacks) * 1000) / 1000 : 0);
+    }
+    for (const [team, r] of teamRush) {
+      teamRushYPC.set(team, r.attempts > 0 ? Math.round((r.yards / r.attempts) * 10) / 10 : 0);
+    }
+
+    // Dome games and bye weeks from games data
+    const teamDomeGames = new Map<string, number>();
+    const teamByeWeek = new Map<string, number>();
+    const teamWeeksPlayed = new Map<string, number[]>();
+    for (const g of (gamesRaw as any[])) {
+      if (g.game_type !== 'REG' || g.season !== season) continue;
+      if (g.roof === 'dome' || g.roof === 'closed') {
+        teamDomeGames.set(g.home_team, (teamDomeGames.get(g.home_team) || 0) + 1);
+      }
+      for (const team of [g.home_team, g.away_team]) {
+        if (!teamWeeksPlayed.has(team)) teamWeeksPlayed.set(team, []);
+        teamWeeksPlayed.get(team)!.push(g.week);
+      }
+    }
+    for (const [team, weeks] of teamWeeksPlayed) {
+      const sorted = weeks.sort((a: number, b: number) => a - b);
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] - sorted[i - 1] > 1) {
+          teamByeWeek.set(team, sorted[i - 1] + 1);
+          break;
+        }
+      }
+    }
+
+    (data as any).environmentMaps = { teamDomeGames, teamByeWeek, teamSackRate, teamRushYPC };
   }
 
   // Routes from participation
@@ -320,8 +383,9 @@ export async function buildSharedContext(opts: {
     buildRoutes(participation, pbp, priorStats, data);
   }
 
-  // Build player index
+  // Build player index — primary pass (ADP players)
   const players = new Map<PlayerKey, PlayerInfo>();
+  const indexedNames = new Set<string>();
   for (const adp of (adpData as any[])) {
     if (!POSITIONS.includes(adp.position)) continue;
     if (adp.adp > 400) continue;
@@ -329,14 +393,38 @@ export async function buildSharedContext(opts: {
     const pk = makePlayerKey(normalName, season);
     const team = data.playerTeamMap.get(normalName) || adp.team || '';
     players.set(pk, {
-      name: adp.name,
-      normalName,
-      position: adp.position,
-      season,
-      adp: adp.adp,
-      team,
+      name: adp.name, normalName, position: adp.position,
+      season, adp: adp.adp, team,
     });
+    indexedNames.add(normalName);
   }
+
+  // Second pass: drafted players without ADP (for career model completeness)
+  if (data.draftByName.size > 0 && data.currentByName.size > 0) {
+    for (const [draftName, draft] of data.draftByName) {
+      if (!draft.pick) continue;
+      const yearsFromDraft = season - (draft.season || season);
+      if (yearsFromDraft < 0 || yearsFromDraft > 2) continue;
+      if (!POSITIONS.includes(draft.position || '')) continue;
+      if (indexedNames.has(draftName)) continue;
+      const current = data.currentByName.get(draftName);
+      if (!current || current.position !== draft.position) continue;
+
+      const pk = makePlayerKey(draftName, season);
+      const team = data.playerTeamMap.get(draftName) || current.recent_team || '';
+      players.set(pk, {
+        name: current.player_display_name || draftName,
+        normalName: draftName,
+        position: draft.position,
+        season,
+        adp: draft.pick, // proxy ADP
+        team,
+      });
+      indexedNames.add(draftName);
+    }
+  }
+
+  log(`  Player index: ${players.size} players (${indexedNames.size} unique)`);
 
   return {
     players,

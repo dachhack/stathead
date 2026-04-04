@@ -258,8 +258,12 @@ export class FeatureStoreBuilder {
    * Assemble all shards back into PlayerRow[] format.
    * This produces the same structure that downstream consumers
    * (model training, UI components) expect.
+   *
+   * If computeOutcomes is true, VOR is z-scored per position and
+   * hit/bust labels are computed from ADP→PPG residuals.
+   * Otherwise, uses cached values from _meta shard.
    */
-  assemblePlayerRows(): PlayerRow[] {
+  assemblePlayerRows(opts?: { computeOutcomes?: boolean }): PlayerRow[] {
     const groupIds = getAllGroupIds();
     const allFeatures = this.store.assembleFeatures(groupIds);
     const metaShard = this.store.loadShard('_meta');
@@ -283,7 +287,77 @@ export class FeatureStoreBuilder {
       });
     }
 
+    // Optionally recompute VOR + hit/bust labels from features
+    if (opts?.computeOutcomes) {
+      this.computeVOR(rows);
+      this.computeHitBust(rows);
+    }
+
     return rows;
+  }
+
+  /**
+   * Z-score VOR per position so it's comparable across positions.
+   * VOR = raw season PPR minus replacement level, then z-scored.
+   */
+  private computeVOR(rows: PlayerRow[]): Record<string, { mean: number; std: number }> {
+    const { POSITIONS, REPLACEMENT_RANKS } = require('../featureTypes');
+    const vorNorm: Record<string, { mean: number; std: number }> = {};
+
+    for (const pos of POSITIONS) {
+      const posRows = rows.filter(r => r.position === pos);
+      if (posRows.length < 4) continue;
+
+      const vals = posRows.map(r => r.vor);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+      const std = Math.sqrt(variance) || 1;
+      vorNorm[pos] = { mean, std };
+
+      for (const row of posRows) {
+        row.vor = Math.round((row.vor - mean) / std * 100) / 100;
+      }
+    }
+    return vorNorm;
+  }
+
+  /**
+   * Compute hit/bust labels using ADP→PPG residual z-scores.
+   */
+  private computeHitBust(rows: PlayerRow[]): void {
+    const { POSITIONS } = require('../featureTypes');
+    const HIT_Z = 0.5;
+    const BUST_Z = -0.5;
+
+    for (const pos of POSITIONS) {
+      const posRows = rows.filter(r => r.position === pos);
+      if (posRows.length < 10) continue;
+
+      // Fit ADP→PPG linear curve
+      const adps = posRows.map(r => r.adp);
+      const ppgs = posRows.map(r => r.rawPPG);
+      const adpMean = adps.reduce((a, b) => a + b, 0) / adps.length;
+      const ppgMean = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
+      let ssAdp = 0, ssAdpPpg = 0;
+      for (let i = 0; i < adps.length; i++) {
+        ssAdp += (adps[i] - adpMean) ** 2;
+        ssAdpPpg += (adps[i] - adpMean) * (ppgs[i] - ppgMean);
+      }
+      const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
+      const intercept = ppgMean - slope * adpMean;
+
+      // Compute ratios and z-scores
+      const ratios = posRows.map(r => r.rawPPG / Math.max(1, intercept + slope * r.adp));
+      const ratioMean = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+      const ratioVar = ratios.reduce((s, v) => s + (v - ratioMean) ** 2, 0) / ratios.length;
+      const ratioStd = Math.sqrt(ratioVar) || 1;
+
+      for (let i = 0; i < posRows.length; i++) {
+        const z = (ratios[i] - ratioMean) / ratioStd;
+        posRows[i].isHit = z > HIT_Z;
+        posRows[i].isBust = z < BUST_Z;
+      }
+    }
   }
 
   /**
