@@ -33,8 +33,14 @@ export const routesGroup: FeatureGroup = {
           ? Math.round((rt.snaps11 / rt.totalSnaps) * 1000) / 1000 : 0,
         priorPct12Personnel: rt && rt.totalSnaps > 0
           ? Math.round((rt.snaps12 / rt.totalSnaps) * 1000) / 1000 : 0,
-        priorPassLocationLeft: 0, // filled from PBP pass location data
-        priorPassLocationMiddle: 0,
+        priorPassLocationLeft: (() => {
+          const loc = (ctx.data as any).locByReceiver?.get(player.normalName);
+          return loc && loc.total > 0 ? Math.round((loc.left / loc.total) * 1000) / 1000 : 0;
+        })(),
+        priorPassLocationMiddle: (() => {
+          const loc = (ctx.data as any).locByReceiver?.get(player.normalName);
+          return loc && loc.total > 0 ? Math.round((loc.middle / loc.total) * 1000) / 1000 : 0;
+        })(),
       });
     }
     return results;

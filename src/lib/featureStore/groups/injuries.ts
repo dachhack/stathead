@@ -30,7 +30,7 @@ export const injuriesGroup: FeatureGroup = {
         preseasonInjWeeks: preInj?.weeks || 0,
         priorSoftTissue: inj?.softTissue ? 1 : 0,
         priorKneeInjury: inj?.knee ? 1 : 0,
-        injuryRecurrence: 0, // filled from cross-season injury tracking
+        injuryRecurrence: (ctx.data as any).injuryRecurrence?.get(player.normalName) || 0,
       });
     }
     return results;

@@ -58,7 +58,15 @@ export const coachingGroup: FeatureGroup = {
 
       results.set(pk, {
         newHeadCoach: coachChangeTeams.has(team) ? 1 : 0,
-        coachPriorTeamPPR: 0, // requires full team PPR aggregation
+        coachPriorTeamPPR: (() => {
+          let totalPPR = 0;
+          for (const [, prior] of d.priorByName) {
+            if (prior.recent_team === team && ['QB', 'RB', 'WR', 'TE'].includes(prior.position)) {
+              totalPPR += prior.fantasy_points_ppr || 0;
+            }
+          }
+          return Math.round(totalPPR * 10) / 10;
+        })(),
         teamPassRate: scheme ? Math.round(passRate * 1000) / 1000 : 0,
         teamNeutralPassRate: scheme && scheme.neutralPlays > 0
           ? Math.round((scheme.neutralPasses / scheme.neutralPlays) * 1000) / 1000 : 0,

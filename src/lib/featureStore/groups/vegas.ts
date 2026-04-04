@@ -34,10 +34,10 @@ export const vegasGroup: FeatureGroup = {
         vegasActualPtsPerGame: v ? Math.round((v.actualPts / vGames) * 10) / 10 : 0,
         vegasSeasonWinTotal: vp?.winTotal || 0,
         vegasSeasonOverUnder: vp?.avgOU || 0,
-        sosDefPassYdg: 0,
-        sosDefRushYdg: 0,
-        sosDefPPG: 0,
-        sosAvgSpread: 0,
+        sosDefPassYdg: (ctx.data as any).sosDefPPG?.get(player.team) || 0,
+        sosDefRushYdg: 0, // needs rushing defense data
+        sosDefPPG: (ctx.data as any).sosDefPPG?.get(player.team) || 0,
+        sosAvgSpread: (ctx.data as any).sosAvgSpread?.get(player.team) || 0,
       });
     }
     return results;

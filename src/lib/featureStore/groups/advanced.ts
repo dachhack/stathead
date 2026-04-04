@@ -30,8 +30,11 @@ export const advancedGroup: FeatureGroup = {
       const airYardsPerTarget = adv && adv.targets > 0 ? adv.airYards / adv.targets : 0;
 
       // PBP derived (aDOT, deep %, RZ target share)
-      const pbp = ctx.data.pbpByTeam?.get(player.normalName); // player-level PBP lookup
-      const adot = adv && adv.targets > 0 ? adv.airYards / adv.targets : 0;
+      const pbpRec = (ctx.data as any).pbpByReceiver?.get(player.normalName);
+      const adot = pbpRec && pbpRec.targets > 0 ? pbpRec.airYards / pbpRec.targets : (adv && adv.targets > 0 ? adv.airYards / adv.targets : 0);
+      const deepPct = pbpRec && pbpRec.targets > 0 ? pbpRec.deepTargets / pbpRec.targets : 0;
+      const teamRZ = (ctx.data as any).teamRZTargets?.get(player.team) || 1;
+      const rzTargetShare = pbpRec ? pbpRec.rzTargets / teamRZ : 0;
 
       results.set(pk, {
         priorTargetShare: Math.round(avgTargetShare * 1000) / 1000,
@@ -43,8 +46,8 @@ export const advancedGroup: FeatureGroup = {
         priorRecEPA: Math.round((adv?.recEPA || 0) * 10) / 10,
         priorRushEPA: Math.round((adv?.rushEPA || 0) * 10) / 10,
         priorADOT: Math.round(adot * 10) / 10,
-        priorDeepTargetPct: 0, // filled from PBP when available
-        priorRZTargetShare: 0, // filled from PBP when available
+        priorDeepTargetPct: Math.round(deepPct * 1000) / 1000,
+        priorRZTargetShare: Math.round(rzTargetShare * 1000) / 1000,
       });
     }
     return results;

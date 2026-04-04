@@ -18,6 +18,7 @@ import {
   fetchCollegeQBR,
 } from '../../data';
 import { normalizeName, parseHeight, POSITIONS } from '../featureTypes';
+import { buildCollegeAnalytics } from '../collegeAnalytics';
 
 // ── Types for intermediate aggregations ─────────────────────────────
 
@@ -255,6 +256,51 @@ export async function buildSharedContext(opts: {
     a.weeks += 1;
   }
 
+  // Injury recurrence (proxy from soft tissue + knee flags)
+  const injuryRecurrence = new Map<string, number>();
+  for (const [name, inj] of data.injuryByName) {
+    let risk = 0;
+    if (inj.softTissue) risk += 0.5;
+    if (inj.knee) risk += 0.5;
+    if (inj.gamesOut >= 4) risk += 0.5;
+    injuryRecurrence.set(name, Math.min(1, risk));
+  }
+  (data as any).injuryRecurrence = injuryRecurrence;
+
+  // SOS (strength of schedule) from game schedule + prior season Vegas
+  const games = gamesRaw as any[];
+  if (games.length > 0) {
+    const teamOpponents = new Map<string, string[]>();
+    for (const g of games) {
+      if (g.game_type !== 'REG' || g.season !== season) continue;
+      if (!teamOpponents.has(g.home_team)) teamOpponents.set(g.home_team, []);
+      if (!teamOpponents.has(g.away_team)) teamOpponents.set(g.away_team, []);
+      teamOpponents.get(g.home_team)!.push(g.away_team);
+      teamOpponents.get(g.away_team)!.push(g.home_team);
+    }
+    const sosDefPPG = new Map<string, number>();
+    const sosAvgSpread = new Map<string, number>();
+    for (const [team, opponents] of teamOpponents) {
+      let totalPPG = 0, totalSpread = 0, count = 0;
+      for (const opp of opponents) {
+        const vKey = `${season - 1}:${opp}`;
+        const v = data.vegasBySeasonTeam.get(vKey);
+        if (v) {
+          const vGames = (v as any).games || 1;
+          totalPPG += (v as any).actualPts / vGames;
+          totalSpread += (v as any).spread / vGames;
+          count++;
+        }
+      }
+      if (count > 0) {
+        sosDefPPG.set(team, Math.round(totalPPG / count * 10) / 10);
+        sosAvgSpread.set(team, Math.round(totalSpread / count * 10) / 10);
+      }
+    }
+    (data as any).sosDefPPG = sosDefPPG;
+    (data as any).sosAvgSpread = sosAvgSpread;
+  }
+
   // Roster maps
   const rosters = rostersRaw as any[];
   const priorRosters = priorRostersRaw as any[];
@@ -322,6 +368,42 @@ export async function buildSharedContext(opts: {
   const pbp = pbpRaw as any[];
   if (pbp.length > 0) {
     buildSchemeAndPersonnel(pbp, data, season);
+
+    // PBP player-level aggregation: deep targets, RZ targets, pass location
+    const pbpByReceiver = new Map<string, { airYards: number; targets: number; deepTargets: number; rzTargets: number }>();
+    const locByReceiver = new Map<string, { left: number; middle: number; right: number; total: number }>();
+    const teamRZTargets = new Map<string, number>();
+
+    for (const play of pbp) {
+      if (play.play_type !== 'pass') continue;
+      const recName = play.receiver_player_name ? normalizeName(play.receiver_player_name) : '';
+      if (!recName) continue;
+
+      if (!pbpByReceiver.has(recName)) pbpByReceiver.set(recName, { airYards: 0, targets: 0, deepTargets: 0, rzTargets: 0 });
+      const r = pbpByReceiver.get(recName)!;
+      r.targets += 1;
+      r.airYards += play.air_yards || 0;
+      if ((play.air_yards || 0) >= 15) r.deepTargets += 1;
+      if ((play.yardline_100 || 100) <= 20) {
+        r.rzTargets += 1;
+        const team = play.posteam || '';
+        teamRZTargets.set(team, (teamRZTargets.get(team) || 0) + 1);
+      }
+
+      // Pass location tracking
+      const loc = play.pass_location;
+      if (loc) {
+        if (!locByReceiver.has(recName)) locByReceiver.set(recName, { left: 0, middle: 0, right: 0, total: 0 });
+        const l = locByReceiver.get(recName)!;
+        l.total += 1;
+        if (loc === 'left') l.left += 1;
+        else if (loc === 'middle') l.middle += 1;
+        else if (loc === 'right') l.right += 1;
+      }
+    }
+    (data as any).pbpByReceiver = pbpByReceiver;
+    (data as any).locByReceiver = locByReceiver;
+    (data as any).teamRZTargets = teamRZTargets;
 
     // Environment maps from PBP: sack rate, rush YPC
     const teamSacks = new Map<string, { sacks: number; dropbacks: number }>();
@@ -647,22 +729,38 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
     }
   }
 
-  log(`  Static: ${combineByName.size} combine, ${draftByName.size} draft, ${collegeByName.size} college`);
+  // Prospect data
+  const [prospectData] = await Promise.all([
+    fetchDraftProspects().catch(() => []),
+  ]);
+  const prospectByName = new Map<string, any>();
+  for (const p of prospectData) {
+    const name = normalizeName(p.player_name || p.pfr_player_name);
+    if (!prospectByName.has(name)) prospectByName.set(name, p);
+  }
+
+  // College analytics: dominator, breakout age, ZAP, teammate scores, etc.
+  log('  Building college analytics...');
+  const college = buildCollegeAnalytics(
+    collegeStatsData, draftByName, collegeByName, prospectByName,
+  );
+
+  log(`  Static: ${combineByName.size} combine, ${draftByName.size} draft, ${collegeByName.size} college, ${college.collegeZapByName.size} ZAP`);
 
   return {
     combineByName,
     combineAvg,
     draftByName,
     collegeByName,
-    collegeAdvancedByName: new Map(), // populated from NCAA data
-    collegeBestSeasonByName: new Map(),
-    collegeZapByName: new Map(),
-    collegePerGameByName: new Map(),
-    teammateScoreByName: new Map(),
+    collegeAdvancedByName: college.collegeAdvancedByName,
+    collegeBestSeasonByName: college.collegeBestSeasonByName,
+    collegeZapByName: college.collegeZapByName,
+    collegePerGameByName: college.collegePerGameByName,
+    teammateScoreByName: college.teammateScoreByName,
     speedScoreByName,
-    collegeAvgByPos: new Map(),
-    prospectByName: new Map(),
-    collegeSOS: new Map(),
+    collegeAvgByPos: college.collegeAvgByPos,
+    prospectByName,
+    collegeSOS: college.collegeSOS,
     playerHistoryMap: new Map(),
   };
 }

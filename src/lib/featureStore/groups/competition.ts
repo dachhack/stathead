@@ -24,7 +24,7 @@ export const competitionGroup: FeatureGroup = {
     dataDeps: ['rosters', 'depthCharts', 'priorStats', 'draft', 'adp'],
     scope: 'seasonal',
   },
-  compute: (ctx, _season) => {
+  compute: (ctx, season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
     const d = ctx.data;
 
@@ -82,6 +82,11 @@ export const competitionGroup: FeatureGroup = {
     // New arrival analysis
     const newArrivalBestPPR = new Map<string, number>();
     const newArrivalBestADP = new Map<string, number>();
+    // Build ADP lookup for new arrival ADP tracking
+    const adpByName = new Map<string, number>();
+    for (const [pk, player] of ctx.players) {
+      adpByName.set(player.normalName, player.adp);
+    }
     for (const [posKey, currentNames] of d.rosterByTeam) {
       const priorNames = d.priorRosterByTeam.get(posKey);
       if (!priorNames) continue;
@@ -89,7 +94,23 @@ export const competitionGroup: FeatureGroup = {
         if (priorNames.has(name)) continue;
         const ppr = priorPPRByName.get(name) || 0;
         if (ppr > (newArrivalBestPPR.get(posKey) || 0)) newArrivalBestPPR.set(posKey, ppr);
+        const adp = adpByName.get(name) || 999;
+        if (adp < (newArrivalBestADP.get(posKey) || 999)) newArrivalBestADP.set(posKey, adp);
       }
+    }
+
+    // Draft capital at same position
+    const teamDraftedPos = new Map<string, { count: number; bestPick: number }>();
+    for (const [draftName, draft] of d.draftByName) {
+      if (!draft.pick || draft.season !== season) continue;
+      if (!POSITIONS.includes(draft.position || '')) continue;
+      const team = d.playerTeamMap.get(draftName) || '';
+      if (!team) continue;
+      const posKey = `${team}:${draft.position}`;
+      const existing = teamDraftedPos.get(posKey) || { count: 0, bestPick: 999 };
+      existing.count += 1;
+      existing.bestPick = Math.min(existing.bestPick, draft.pick);
+      teamDraftedPos.set(posKey, existing);
     }
 
     // Roster turnover per team
@@ -137,8 +158,11 @@ export const competitionGroup: FeatureGroup = {
         priorTeamTouchShare: Math.round(touchShare * 1000) / 1000,
         priorTeamTargetShare: Math.round(targetShare * 1000) / 1000,
         newSamePosAdded: newArrivals,
-        teamDraftedSamePos: 0, // requires draft data for current season
-        draftCapitalSamePos: 0,
+        teamDraftedSamePos: teamDraftedPos.get(posKey)?.count || 0,
+        draftCapitalSamePos: (() => {
+          const dp = teamDraftedPos.get(posKey);
+          return dp ? Math.max(0, 8 - Math.ceil(dp.bestPick / 32)) : 0;
+        })(),
         teammatePriorPPR: Math.round(bestTeammatePPR * 10) / 10,
         teamWRElitePPR: Math.round((teamPosAgg.get(`${team}:WR`)?.bestPPR || 0) * 10) / 10,
         teamWRTop12: (teamPosAgg.get(`${team}:WR`)?.hasTop12 || false) ? 1 : 0,
