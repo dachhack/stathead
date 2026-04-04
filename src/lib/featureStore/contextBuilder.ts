@@ -9,12 +9,15 @@
 import type { SharedContext, SharedContextData, DataDep, PlayerKey, PlayerInfo } from './types';
 import { makePlayerKey } from './types';
 import {
-  fetchNflverseCSV, fetchFfcADP,
+  fetchPlayerStats, fetchFfcADP, fetchSnapCounts,
+  fetchInjuries, fetchNextGenStats, fetchPlayByPlay,
+  fetchPbpParticipation, fetchRosters, fetchDepthCharts,
+  fetchGames, fetchContracts, fetchDraftProspects,
   aggregateToSeasonTotals,
   fetchCombine, fetchCollegeStats, fetchDraftPicks,
+  fetchCollegeQBR,
 } from '../../data';
 import { normalizeName, parseHeight, POSITIONS } from '../featureTypes';
-import { computePlayerProjectionFeatures } from '../playerProjection';
 
 // ── Types for intermediate aggregations ─────────────────────────────
 
@@ -95,78 +98,55 @@ export async function buildSharedContext(opts: {
   // ── Fetch seasonal data sources in parallel ──────────────────────
   log(`  Fetching data for season ${season}...`);
 
-  const fetches: Promise<any>[] = [];
-  const fetchLabels: string[] = [];
+  // Build fetch plan based on required data deps
+  const needStats = dataDeps.has('currentStats') || dataDeps.has('priorStats');
+  const needSnaps = dataDeps.has('priorSnaps');
+  const needInj = dataDeps.has('injuries');
+  const needNgs = dataDeps.has('ngs');
+  const needPbp = dataDeps.has('pbp');
+  const needPart = dataDeps.has('participation');
+  const needRosters = dataDeps.has('rosters') || dataDeps.has('depthCharts');
+  const needAdp = dataDeps.has('adp');
+  const needGames = dataDeps.has('games');
 
-  // ADP
-  if (dataDeps.has('adp')) {
-    fetches.push(fetchFfcADP(season, 'ppr', 12).catch(() => []));
-    fetchLabels.push('adp');
-  }
-  // Current + prior stats
-  if (dataDeps.has('currentStats') || dataDeps.has('priorStats')) {
-    fetches.push(
-      fetchNflverseCSV('player_stats', season).catch(() => []),
-      fetchNflverseCSV('player_stats', season - 1).catch(() => []),
-    );
-    fetchLabels.push('currentStats', 'priorStats');
-  }
-  // Snaps
-  if (dataDeps.has('priorSnaps')) {
-    fetches.push(fetchNflverseCSV('snap_counts', season - 1).catch(() => []));
-    fetchLabels.push('priorSnaps');
-  }
-  // Injuries
-  if (dataDeps.has('injuries')) {
-    fetches.push(
-      fetchNflverseCSV('injuries', season - 1).catch(() => []),
-      fetchNflverseCSV('injuries', season).catch(() => []),
-    );
-    fetchLabels.push('priorInjuries', 'preseasonInjuries');
-  }
-  // NGS
-  if (dataDeps.has('ngs')) {
-    fetches.push(
-      fetchNflverseCSV('ngs_receiving', season - 1).catch(() => []),
-      fetchNflverseCSV('ngs_rushing', season - 1).catch(() => []),
-      fetchNflverseCSV('ngs_passing', season - 1).catch(() => []),
-    );
-    fetchLabels.push('ngsRec', 'ngsRush', 'ngsPass');
-  }
-  // PBP
-  if (dataDeps.has('pbp')) {
-    fetches.push(fetchNflverseCSV('pbp', season - 1).catch(() => []));
-    fetchLabels.push('pbp');
-  }
-  // Participation
-  if (dataDeps.has('participation')) {
-    fetches.push(fetchNflverseCSV('pbp_participation', season - 1).catch(() => []));
-    fetchLabels.push('participation');
-  }
-  // Rosters + depth charts
-  if (dataDeps.has('rosters') || dataDeps.has('depthCharts')) {
-    fetches.push(
-      fetchNflverseCSV('rosters', season).catch(() => []),
-      fetchNflverseCSV('rosters', season - 1).catch(() => []),
-      fetchNflverseCSV('depth_charts', season).catch(() => []),
-    );
-    fetchLabels.push('rosters', 'priorRosters', 'depthCharts');
-  }
+  const [
+    adpData,
+    currentStatsRaw, priorStatsRaw,
+    priorSnapsRaw,
+    priorInjuriesRaw, preseasonInjuriesRaw,
+    ngsRecRaw, ngsRushRaw, ngsPassRaw,
+    pbpRaw, participationRaw,
+    rostersRaw, priorRostersRaw, depthChartsRaw,
+    gamesRaw,
+  ] = await Promise.all([
+    needAdp ? fetchFfcADP(season, 'ppr', 12).catch(() => []) : [],
+    needStats ? fetchPlayerStats(season).catch(() => []) : [],
+    needStats ? fetchPlayerStats(season - 1).catch(() => []) : [],
+    needSnaps ? fetchSnapCounts(season - 1).catch(() => []) : [],
+    needInj ? fetchInjuries(season - 1).catch(() => []) : [],
+    needInj ? fetchInjuries(season).catch(() => []) : [],
+    needNgs ? fetchNextGenStats(season - 1, 'receiving').catch(() => []) : [],
+    needNgs ? fetchNextGenStats(season - 1, 'rushing').catch(() => []) : [],
+    needNgs ? fetchNextGenStats(season - 1, 'passing').catch(() => []) : [],
+    needPbp ? fetchPlayByPlay(season - 1).catch(() => []) : [],
+    needPart ? fetchPbpParticipation(season - 1).catch(() => []) : [],
+    needRosters ? fetchRosters(season).catch(() => []) : [],
+    needRosters ? fetchRosters(season - 1).catch(() => []) : [],
+    needRosters ? fetchDepthCharts(season).catch(() => []) : [],
+    needGames ? fetchGames().catch(() => []) : [],
+  ]);
 
-  const results = await Promise.all(fetches);
-  log(`  Fetched ${results.length} data sources`);
-
-  // Map results back to labels
-  const dataByLabel = new Map<string, any>();
-  for (let i = 0; i < fetchLabels.length; i++) {
-    dataByLabel.set(fetchLabels[i], results[i]);
-  }
+  let fetchCount = 0;
+  if (needAdp) fetchCount++; if (needStats) fetchCount += 2; if (needSnaps) fetchCount++;
+  if (needInj) fetchCount += 2; if (needNgs) fetchCount += 3; if (needPbp) fetchCount++;
+  if (needPart) fetchCount++; if (needRosters) fetchCount += 3; if (needGames) fetchCount++;
+  log(`  Fetched ${fetchCount} data sources`);
 
   // ── Build intermediate lookup maps ────────────────────────────────
 
-  const currentStats = dataByLabel.get('currentStats') || [];
-  const priorStats = dataByLabel.get('priorStats') || [];
-  const priorSnaps = dataByLabel.get('priorSnaps') || [];
+  const currentStats = currentStatsRaw as any[];
+  const priorStats = priorStatsRaw as any[];
+  const priorSnaps = priorSnapsRaw as any[];
 
   // Current/prior totals
   if (currentStats.length > 0) {
@@ -223,9 +203,9 @@ export async function buildSharedContext(opts: {
   }
 
   // NGS lookups
-  const ngsRec = dataByLabel.get('ngsRec') || [];
-  const ngsRush = dataByLabel.get('ngsRush') || [];
-  const ngsPass = dataByLabel.get('ngsPass') || [];
+  const ngsRec = ngsRecRaw as any[];
+  const ngsRush = ngsRushRaw as any[];
+  const ngsPass = ngsPassRaw as any[];
   for (const r of ngsRec) {
     if (r.week === 0 && r.season_type === 'REG') {
       data.ngsRecByName.set(normalizeName(r.player_display_name), r);
@@ -239,8 +219,8 @@ export async function buildSharedContext(opts: {
   }
 
   // Injury maps
-  const priorInjuries = dataByLabel.get('priorInjuries') || [];
-  const preseasonInjuries = dataByLabel.get('preseasonInjuries') || [];
+  const priorInjuries = priorInjuriesRaw as any[];
+  const preseasonInjuries = preseasonInjuriesRaw as any[];
   const SOFT_TISSUE = /hamstring|groin|calf|quad|hip|ankle|achilles|foot|toe/i;
   const KNEE = /knee|acl|mcl|pcl/i;
   for (const inj of priorInjuries) {
@@ -266,8 +246,8 @@ export async function buildSharedContext(opts: {
   }
 
   // Roster maps
-  const rosters = dataByLabel.get('rosters') || [];
-  const priorRosters = dataByLabel.get('priorRosters') || [];
+  const rosters = rostersRaw as any[];
+  const priorRosters = priorRostersRaw as any[];
   for (const r of rosters) {
     if (!POSITIONS.includes(r.position)) continue;
     const name = normalizeName(r.player_name || r.full_name);
@@ -285,7 +265,7 @@ export async function buildSharedContext(opts: {
   }
 
   // Depth chart ranks
-  const depthCharts = dataByLabel.get('depthCharts') || [];
+  const depthCharts = depthChartsRaw as any[];
   const dcLatest = new Map<string, number>();
   for (const dc of depthCharts) {
     if (!POSITIONS.includes(dc.position)) continue;
@@ -298,22 +278,51 @@ export async function buildSharedContext(opts: {
     }
   }
 
+  // Games data: Vegas lines, coach tracking
+  const games = gamesRaw as any[];
+  if (games.length > 0) {
+    // Build Vegas by season-team from game lines
+    for (const g of games) {
+      if (g.game_type !== 'REG') continue;
+      const tl = g.total_line || 0;
+      const sl = g.spread_line || 0;
+      for (const [team, implied, spread, score, isWin] of [
+        [g.home_team, tl > 0 ? (tl - sl) / 2 : 0, sl, g.home_score || 0, (g.home_score || 0) > (g.away_score || 0)],
+        [g.away_team, tl > 0 ? (tl + sl) / 2 : 0, -sl, g.away_score || 0, (g.away_score || 0) > (g.home_score || 0)],
+      ] as [string, number, number, number, boolean][]) {
+        const key = `${g.season}:${team}`;
+        if (!data.vegasBySeasonTeam.has(key)) {
+          data.vegasBySeasonTeam.set(key, { impliedTotal: 0, spread: 0, gameTotal: 0, actualPts: 0, games: 0, wins: 0 });
+        }
+        const v = data.vegasBySeasonTeam.get(key)!;
+        v.impliedTotal += implied;
+        v.gameTotal += tl;
+        v.spread += spread;
+        v.actualPts += score;
+        v.games += 1;
+        if (isWin) v.wins += 1;
+      }
+      // Coach tracking
+      if (g.home_coach) data.coachBySeasonTeam.set(`${g.season}:${g.home_team}`, g.home_coach);
+      if (g.away_coach) data.coachBySeasonTeam.set(`${g.season}:${g.away_team}`, g.away_coach);
+    }
+  }
+
   // PBP-derived scheme and personnel maps
-  const pbp = dataByLabel.get('pbp') || [];
+  const pbp = pbpRaw as any[];
   if (pbp.length > 0) {
     buildSchemeAndPersonnel(pbp, data, season);
   }
 
   // Routes from participation
-  const participation = dataByLabel.get('participation') || [];
+  const participation = participationRaw as any[];
   if (participation.length > 0 && pbp.length > 0) {
     buildRoutes(participation, pbp, priorStats, data);
   }
 
   // Build player index
   const players = new Map<PlayerKey, PlayerInfo>();
-  const adpData = dataByLabel.get('adp') || [];
-  for (const adp of adpData) {
+  for (const adp of (adpData as any[])) {
     if (!POSITIONS.includes(adp.position)) continue;
     if (adp.adp > 400) continue;
     const normalName = normalizeName(adp.name);

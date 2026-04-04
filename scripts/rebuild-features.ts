@@ -10,7 +10,13 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { FeatureStoreBuilder, getAllGroupIds, getComputeOrder, collectDataDeps } from '../src/lib/featureStore';
+import {
+  FeatureStoreBuilder,
+  getAllGroupIds,
+  getComputeOrder,
+  collectDataDeps,
+  getDependents,
+} from '../src/lib/featureStore';
 import { buildSharedContext, loadStaticData } from '../src/lib/featureStore/contextBuilder';
 import { SEASONS } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
@@ -56,7 +62,6 @@ async function main() {
     builder.populateFromLegacy(cached.rows as PlayerRow[]);
     console.log(`Done in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 
-    // Show summary
     const summary = builder.getSummary();
     console.log(`\nFeature store: ${summary.totalRows} rows across ${summary.groups.length} groups`);
     return;
@@ -67,67 +72,76 @@ async function main() {
     ? flagSeasons.split(',').map(Number).filter(n => !isNaN(n))
     : SEASONS;
 
-  const groupIds = flagGroups
+  const requestedGroupIds = flagGroups
     ? flagGroups.split(',')
-    : undefined;
+    : getAllGroupIds();
+
+  // Add transitive dependents
+  const dependents = getDependents(requestedGroupIds);
+  const allGroupIds = [...new Set([...requestedGroupIds, ...dependents])];
+  const ordered = getComputeOrder(allGroupIds);
+  const dataDeps = collectDataDeps(allGroupIds);
 
   console.log(`\nIncremental rebuild:`);
   console.log(`  Seasons: ${seasons.join(', ')}`);
-  console.log(`  Groups: ${groupIds ? groupIds.join(', ') : 'all'}`);
+  console.log(`  Groups: ${ordered.map(g => g.def.id).join(' → ')}`);
+  console.log(`  Data deps: ${[...dataDeps].join(', ')}`);
   console.log();
 
-  // Determine compute order and data deps
-  const ordered = getComputeOrder(groupIds);
-  const dataDeps = collectDataDeps(ordered.map(g => g.def.id));
-
-  console.log(`Compute order: ${ordered.map(g => g.def.id).join(' → ')}`);
-  console.log(`Data deps: ${[...dataDeps].join(', ')}`);
-  console.log();
-
-  // Load static data once
+  // Load static data once (combine, draft, college)
   const staticData = await loadStaticData((msg) => console.log(msg));
 
-  // Rebuild for each season
-  builder.rebuildGroups(
-    groupIds || getAllGroupIds(),
-    seasons,
-    (season) => {
-      // Build context synchronously from cached data
-      // For full async context building, use buildSharedContext
-      console.log(`  Building context for season ${season}...`);
-      return {
-        players: new Map(), // populated by the context builder
-        data: {
-          ...staticData,
-          // Seasonal maps would be populated here
-          currentByName: new Map(),
-          priorByName: new Map(),
-          advByName: new Map(),
-          snapAccum: new Map(),
-          injuryByName: new Map(),
-          preseasonInjuryByName: new Map(),
-          ngsRecByName: new Map(),
-          ngsRushByName: new Map(),
-          ngsPassByName: new Map(),
-          pbpByTeam: new Map(),
-          schemeByTeam: new Map(),
-          personnelByTeam: new Map(),
-          routesByName: new Map(),
-          depthChartByName: new Map(),
-          rosterByTeam: new Map(),
-          priorRosterByTeam: new Map(),
-          playerTeamMap: new Map(),
-          vorReplacement: {},
-        } as any,
-        priorFeatures: new Map(),
-      };
-    },
-  );
+  const store = builder.getStore();
+
+  // Rebuild each season
+  for (const season of seasons) {
+    console.log(`\n── Season ${season} ──`);
+
+    // Build full context for this season
+    const ctx = await buildSharedContext({
+      season,
+      dataDeps,
+      staticData,
+      onStatus: (msg) => console.log(msg),
+    });
+
+    console.log(`  Player index: ${ctx.players.size} players`);
+
+    // Remove old data for this season
+    for (const group of ordered) {
+      store.removeSeasons(group.def.id, [season]);
+    }
+
+    // Compute groups in dependency order
+    for (const group of ordered) {
+      // Load prior group features for derived groups
+      if (group.def.groupDeps && group.def.groupDeps.length > 0) {
+        const assembled = store.assembleFeatures(group.def.groupDeps);
+        for (const [pk, features] of assembled) {
+          const existing = ctx.priorFeatures.get(pk) || {};
+          ctx.priorFeatures.set(pk, { ...existing, ...features });
+        }
+      }
+
+      const result = group.compute(ctx, season);
+      store.mergeShard(group.def.id, result);
+      console.log(`  ${group.def.id}: ${result.size} players`);
+    }
+
+    // Save shards for this season
+    for (const group of ordered) {
+      store.saveShard(group.def.id, [season]);
+    }
+
+    // GC between seasons
+    if (global.gc) global.gc();
+  }
+
+  store.saveManifest();
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   console.log(`\nDone in ${elapsed}s`);
 
-  // Show summary
   const summary = builder.getSummary();
   console.log(`Feature store: ${summary.totalRows} rows across ${summary.groups.length} groups`);
 }
