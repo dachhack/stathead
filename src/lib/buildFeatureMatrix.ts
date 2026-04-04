@@ -1646,7 +1646,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Join ADP with outcomes
           for (const adpPlayer of adpData) {
             if (!POSITIONS.includes(adpPlayer.position)) continue;
-            if (adpPlayer.adp > 300) continue; // reasonable cutoff — 300 covers all fantasy-relevant players
+            if (adpPlayer.adp > 400) continue; // include deep fantasy leagues
 
             const normalName = normalizeName(adpPlayer.name);
             const current = currentByName.get(normalName);
@@ -2251,14 +2251,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             });
           }
 
-          // ── Second pass: add NFL-drafted ROOKIES who had no fantasy ADP ──
-          // Only adds first-year players (yearsInLeague=0) to avoid re-adding vets
-          // Limited to first 250 picks to keep dataset manageable
+          // ── Second pass: add ALL NFL-drafted players who had no fantasy ADP ──
+          // Training rows are committed to repo so build time is a one-time cost
           {
             const existingNames = new Set(rows.filter(r => r.season === season).map(r => normalizeName(r.name)));
             for (const [draftName, draft] of draftByName) {
               if (!draft.pick || draft.season !== season) continue;
-              if (draft.pick > 250) continue; // skip late UDFAs
               if (!POSITIONS.includes(draft.position || '')) continue;
               if (existingNames.has(draftName)) continue;
               const current = currentByName.get(draftName);
@@ -3010,7 +3008,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
-              if (adpPlayer.adp > 300) continue; // reasonable cutoff — 300 covers all fantasy-relevant players
+              if (adpPlayer.adp > 400) continue; // include deep fantasy leagues
 
               const normalName = normalizeName(adpPlayer.name);
               const prior = predPriorByName.get(normalName);
