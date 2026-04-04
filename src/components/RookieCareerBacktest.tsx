@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
+import { assemblePlayerRows, ROOKIE_CAREER_GROUPS } from '../lib/featureStoreClient';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -65,6 +66,13 @@ export function RookieCareerBacktest() {
         try {
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) d = JSON.parse(cached);
+        } catch {}
+      }
+      // Fallback: assemble from feature store shards
+      if (!d || !d.rows?.length) {
+        try {
+          const storeRows = await assemblePlayerRows();
+          if (storeRows.length > 0) d = { rows: storeRows };
         } catch {}
       }
       if (d?.rows?.length) {
