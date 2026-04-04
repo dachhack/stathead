@@ -364,7 +364,6 @@ export async function buildSharedContext(opts: {
   }
 
   // Games data: Vegas lines, coach tracking
-  const games = gamesRaw as any[];
   if (games.length > 0) {
     // Build Vegas by season-team from game lines
     for (const g of games) {

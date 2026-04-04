@@ -66,12 +66,14 @@ export type {
 } from './types';
 export { makePlayerKey, parsePlayerKey } from './types';
 
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
 import { FeatureStore } from './store';
 import { getAllGroups, getAllGroupIds, getComputeOrder, getDependents } from './registry';
 import type { PlayerKey, SharedContext } from './types';
 import { makePlayerKey, parsePlayerKey } from './types';
 import type { PlayerRow } from '../featureTypes';
-import { normalizeName, FEATURES } from '../featureTypes';
+import { normalizeName, FEATURES, POSITIONS, REPLACEMENT_RANKS } from '../featureTypes';
 
 /**
  * Player metadata stored alongside numeric feature shards.
@@ -103,12 +105,10 @@ export class FeatureStoreBuilder {
   // ── Player metadata persistence ─────────────────────────────────────
 
   private playerMetaPath(): string {
-    const { join } = require('path');
-    return join(this.store['storePath'], 'players.json');
+    return join((this.store as any).storePath, 'players.json');
   }
 
   private loadPlayerMeta(): void {
-    const { existsSync, readFileSync } = require('fs');
     const path = this.playerMetaPath();
     if (existsSync(path)) {
       const data = JSON.parse(readFileSync(path, 'utf-8'));
@@ -119,10 +119,9 @@ export class FeatureStoreBuilder {
   }
 
   private savePlayerMeta(): void {
-    const { writeFileSync, mkdirSync, existsSync } = require('fs');
-    const { dirname } = require('path');
     const path = this.playerMetaPath();
-    if (!existsSync(dirname(path))) mkdirSync(dirname(path), { recursive: true });
+    const dir = dirname(path);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     const obj: Record<string, PlayerMeta> = {};
     for (const [key, value] of this.playerMeta) {
       obj[key] = value;
@@ -301,7 +300,7 @@ export class FeatureStoreBuilder {
    * VOR = raw season PPR minus replacement level, then z-scored.
    */
   private computeVOR(rows: PlayerRow[]): Record<string, { mean: number; std: number }> {
-    const { POSITIONS, REPLACEMENT_RANKS } = require('../featureTypes');
+    // POSITIONS and REPLACEMENT_RANKS imported at top level
     const vorNorm: Record<string, { mean: number; std: number }> = {};
 
     for (const pos of POSITIONS) {
@@ -325,7 +324,7 @@ export class FeatureStoreBuilder {
    * Compute hit/bust labels using ADP→PPG residual z-scores.
    */
   private computeHitBust(rows: PlayerRow[]): void {
-    const { POSITIONS } = require('../featureTypes');
+    // POSITIONS imported at top level
     const HIT_Z = 0.5;
     const BUST_Z = -0.5;
 

@@ -22,7 +22,12 @@ import { SEASONS } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 
 const STORE_PATH = 'public/data/feature-store';
-const CACHE_PATH = 'public/data/training-rows-cache-v32.json';
+// Try current cache version first, fall back to previous versions
+const CACHE_PATH = existsSync('public/data/training-rows-cache-v32.json')
+  ? 'public/data/training-rows-cache-v32.json'
+  : existsSync('public/data/training-rows-cache-v31.json')
+  ? 'public/data/training-rows-cache-v31.json'
+  : 'public/data/training-rows-cache-v32.json'; // fallback for error message
 
 async function main() {
   const args = process.argv.slice(2);

@@ -13,7 +13,9 @@ import { normalizeName } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 
 const STORE_PATH = 'public/data/feature-store';
-const CACHE_PATH = 'public/data/training-rows-cache-v32.json';
+const CACHE_PATH = existsSync('public/data/training-rows-cache-v32.json')
+  ? 'public/data/training-rows-cache-v32.json'
+  : 'public/data/training-rows-cache-v31.json';
 
 function main() {
   if (!existsSync(CACHE_PATH)) {
