@@ -58,7 +58,7 @@ export const competitionGroup: FeatureGroup = {
     for (const [team, totalTgt] of teamTotalTargets) {
       if (totalTgt <= 0) continue;
       let hhi = 0;
-      for (const [name, prior] of d.priorByName) {
+      for (const [_name, prior] of d.priorByName) {
         if ((prior.recent_team || '') !== team) continue;
         const share = (prior.targets || 0) / totalTgt;
         hhi += share * share;
@@ -84,7 +84,7 @@ export const competitionGroup: FeatureGroup = {
     const newArrivalBestADP = new Map<string, number>();
     // Build ADP lookup for new arrival ADP tracking
     const adpByName = new Map<string, number>();
-    for (const [pk, player] of ctx.players) {
+    for (const [_pk, player] of ctx.players) {
       adpByName.set(player.normalName, player.adp);
     }
     for (const [posKey, currentNames] of d.rosterByTeam) {

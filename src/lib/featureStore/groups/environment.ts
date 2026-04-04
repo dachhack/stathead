@@ -14,11 +14,11 @@ export const environmentGroup: FeatureGroup = {
     dataDeps: ['games', 'pbp'],
     scope: 'seasonal',
   },
-  compute: (ctx, season) => {
+  compute: (ctx, _season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
 
     // Read pre-built environment maps from context
-    const envMaps = ctx.data.environmentMaps as {
+    const envMaps = (ctx.data as any).environmentMaps as {
       teamDomeGames: Map<string, number>;
       teamByeWeek: Map<string, number>;
       teamSackRate: Map<string, number>;

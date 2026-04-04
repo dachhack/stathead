@@ -5,7 +5,6 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
-import { normalizeName } from '../../featureTypes';
 
 export const sentimentGroup: FeatureGroup = {
   def: {

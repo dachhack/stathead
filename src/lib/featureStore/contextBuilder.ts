@@ -12,12 +12,11 @@ import {
   fetchPlayerStats, fetchFfcADP, fetchSnapCounts,
   fetchInjuries, fetchNextGenStats, fetchPlayByPlay,
   fetchPbpParticipation, fetchRosters, fetchDepthCharts,
-  fetchGames, fetchContracts, fetchDraftProspects,
+  fetchGames, fetchDraftProspects,
   aggregateToSeasonTotals,
   fetchCombine, fetchCollegeStats, fetchDraftPicks,
-  fetchCollegeQBR,
 } from '../../data';
-import { normalizeName, parseHeight, POSITIONS } from '../featureTypes';
+import { normalizeName, POSITIONS } from '../featureTypes';
 import { buildCollegeAnalytics } from '../collegeAnalytics';
 
 // ── Types for intermediate aggregations ─────────────────────────────
@@ -735,7 +734,7 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
   const combineByName = new Map<string, any>();
   const combineAvg = new Map<string, Record<string, number>>();
   for (const c of combineData) {
-    combineByName.set(normalizeName(c.pfr_player_name || c.player_name), c);
+    combineByName.set(normalizeName(c.player_name), c);
   }
   // Position averages
   for (const pos of POSITIONS) {
@@ -788,7 +787,7 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
   ]);
   const prospectByName = new Map<string, any>();
   for (const p of prospectData) {
-    const name = normalizeName(p.player_name || p.pfr_player_name);
+    const name = normalizeName(p.player_name);
     if (!prospectByName.has(name)) prospectByName.set(name, p);
   }
 

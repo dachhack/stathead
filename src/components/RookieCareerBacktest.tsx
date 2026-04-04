@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
-import { assemblePlayerRows, ROOKIE_CAREER_GROUPS } from '../lib/featureStoreClient';
+import { assemblePlayerRows } from '../lib/featureStoreClient';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 

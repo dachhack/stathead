@@ -5,7 +5,6 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
-import { POSITIONS } from '../../featureTypes';
 
 export const qbImpactGroup: FeatureGroup = {
   def: {
@@ -32,7 +31,7 @@ export const qbImpactGroup: FeatureGroup = {
     }>();
 
     // Aggregate QB stats from prior season by team
-    for (const [name, prior] of d.priorByName) {
+    for (const [_name, prior] of d.priorByName) {
       if (prior.position !== 'QB') continue;
       const team = prior.recent_team || '';
       if (!team) continue;
@@ -44,7 +43,6 @@ export const qbImpactGroup: FeatureGroup = {
       if (!existing || ppg > existing.ppg) {
         const carries = prior.carries || 0;
         const attempts = prior.attempts || 0;
-        const games = prior.games || 1;
 
         // NFL passer rating approximation
         const compPct = attempts > 0 ? (prior.completions || 0) / attempts : 0;

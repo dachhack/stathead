@@ -10,7 +10,6 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import type {
   StoreManifest,
-  ManifestGroupEntry,
   PlayerKey,
 } from './types';
 

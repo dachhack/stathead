@@ -6,7 +6,7 @@
  * raw college stats data + draft data + NCAA team data.
  */
 
-import { normalizeName, parseHeight, POSITIONS } from './featureTypes';
+import { normalizeName, POSITIONS } from './featureTypes';
 import ncaaTeamData from '../data/ncaa-team-data.json';
 
 export interface CollegeAdvanced {
@@ -104,7 +104,7 @@ export function buildCollegeAnalytics(
   draftByName: Map<string, any>,
   collegeByName: Map<string, Map<string, number>>,
   prospectByName: Map<string, any>,
-  collegeQBRByName?: Map<string, number>,
+  _collegeQBRByName?: Map<string, number>,
 ): CollegeAnalyticsResult {
   const ncaaSOS = ncaaTeamData.sos as Record<string, number>;
   const ncaaPassAttPerGame = ncaaTeamData.teamPassAttPerGame as Record<string, number>;

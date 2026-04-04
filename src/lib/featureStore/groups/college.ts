@@ -31,7 +31,7 @@ export const collegeGroup: FeatureGroup = {
     dataDeps: ['college', 'combine', 'draft', 'prospects'],
     scope: 'static',
   },
-  compute: (ctx, season) => {
+  compute: (ctx, _season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
     for (const [pk, player] of ctx.players) {
       const cs = ctx.data.collegeByName.get(player.normalName);

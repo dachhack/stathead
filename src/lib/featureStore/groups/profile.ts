@@ -5,7 +5,6 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
-import { makePlayerKey } from '../types';
 
 export const profileGroup: FeatureGroup = {
   def: {

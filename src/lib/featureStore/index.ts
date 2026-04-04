@@ -73,7 +73,7 @@ import { getAllGroups, getAllGroupIds, getComputeOrder, getDependents } from './
 import type { PlayerKey, SharedContext } from './types';
 import { makePlayerKey, parsePlayerKey } from './types';
 import type { PlayerRow } from '../featureTypes';
-import { normalizeName, FEATURES, POSITIONS, REPLACEMENT_RANKS } from '../featureTypes';
+import { normalizeName, POSITIONS } from '../featureTypes';
 
 /**
  * Player metadata stored alongside numeric feature shards.

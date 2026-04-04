@@ -5,7 +5,6 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
-import { normalizeName, POSITIONS } from '../../featureTypes';
 
 export const consistencyGroup: FeatureGroup = {
   def: {
@@ -20,7 +19,7 @@ export const consistencyGroup: FeatureGroup = {
 
     // Build per-player weekly PPR values from advByName's weekly data
     // The context builder stores weekly PPR in a special weeklyPPR map
-    const weeklyPPR = ctx.data.weeklyPPRByName as Map<string, number[]> | undefined;
+    const weeklyPPR = (ctx.data as any).weeklyPPRByName as Map<string, number[]> | undefined;
 
     // Build consistency metrics
     const consistency = new Map<string, { stdDev: number; boomRate: number; bustGameRate: number }>();
