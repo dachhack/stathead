@@ -101,6 +101,22 @@ export function ZapComparison() {
         if (r.draftSeason === 2023) backtestByName.set(normalizeName(r.name), r);
       }
 
+      // Rescale 2023 backtest scores to 0-100 within position
+      // (global rescaling spreads across all years, making 2023 class cluster in a narrow band)
+      for (const pos of ['RB', 'WR'] as const) {
+        const posRows = [...backtestByName.values()].filter(r => r.position === pos);
+        if (posRows.length < 2) continue;
+        const scores = posRows.map(r => r.combinedScore);
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const range = max - min;
+        if (range > 0) {
+          for (const r of posRows) {
+            r.combinedScore = Math.round((5 + ((r.combinedScore - min) / range) * 93) * 10) / 10;
+          }
+        }
+      }
+
       const r2023: CompRow[] = [];
       for (const pos of ['RB', 'WR'] as const) {
         for (const z of (zapScores2023 as any)[pos] || []) {
