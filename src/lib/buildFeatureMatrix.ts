@@ -2252,11 +2252,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
 
           // ── Second pass: add ALL NFL-drafted players who had no fantasy ADP ──
+          // Include players in their first 3 NFL seasons (draft year + 2) so the
+          // career model has complete multi-year data for LOSO backtest.
           // Training rows are committed to repo so build time is a one-time cost
           {
             const existingNames = new Set(rows.filter(r => r.season === season).map(r => normalizeName(r.name)));
             for (const [draftName, draft] of draftByName) {
-              if (!draft.pick || draft.season !== season) continue;
+              if (!draft.pick) continue;
+              // Include draft year and up to 2 subsequent seasons (for career model)
+              const yearsFromDraft = season - (draft.season || season);
+              if (yearsFromDraft < 0 || yearsFromDraft > 2) continue;
               if (!POSITIONS.includes(draft.position || '')) continue;
               if (existingNames.has(draftName)) continue;
               const current = currentByName.get(draftName);

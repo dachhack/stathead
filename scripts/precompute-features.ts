@@ -12,6 +12,7 @@ import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG } from '../src
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
+import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
 
@@ -44,10 +45,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v31.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v32.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v46.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v47.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -57,9 +58,51 @@ async function main() {
   console.log('Precomputing feature matrix + models...');
   const start = Date.now();
 
+  const useStore = process.argv.includes('--use-store');
+  const featureStorePath = 'public/data/feature-store';
+
   // Check for cached training rows (static 2018-2025 data doesn't change)
   let result;
-  if (existsSync(CACHE_PATH)) {
+
+  // ── Feature store path: assemble training rows from shards ──
+  if (useStore && existsSync(`${featureStorePath}/manifest.json`)) {
+    console.log('  Using feature store for training rows...');
+    const fsBuilder = new FeatureStoreBuilder(featureStorePath, (msg) => console.log(`  ${msg}`));
+    const summary = fsBuilder.getSummary();
+    console.log(`  Feature store: ${summary.totalRows} rows across ${summary.groups.length} groups`);
+
+    const storeRows = fsBuilder.assemblePlayerRows({ computeOutcomes: true });
+    console.log(`  Assembled ${storeRows.length} training rows from feature store`);
+
+    // Still need prediction rows from buildFeatureMatrix
+    console.log('  Rebuilding 2026 prediction rows...');
+    const fresh = await buildFeatureMatrix({
+      seasons: [],
+      predictSeason: PREDICT_SEASON,
+      positions: POSITIONS,
+      replacementRanks: REPLACEMENT_RANKS,
+      vorBasis: 'total',
+      onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
+    });
+
+    // Compute VOR normalization
+    const vorNorm: Record<string, { mean: number; std: number }> = {};
+    for (const pos of POSITIONS) {
+      const vals = storeRows.filter(r => r.position === pos).map(r => r.vor);
+      if (vals.length < 4) continue;
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+      vorNorm[pos] = { mean, std: Math.sqrt(variance) || 1 };
+    }
+
+    result = {
+      rows: storeRows,
+      predRows: fresh.predRows,
+      vorNorm,
+    };
+  }
+  // ── Legacy cache path: load from monolithic JSON ──
+  else if (existsSync(CACHE_PATH)) {
     console.log('  Loading cached training rows...');
     const cached = JSON.parse(readFileSync(CACHE_PATH, 'utf-8'));
     console.log(`  Cached: ${cached.rows.length} training rows`);
@@ -80,6 +123,12 @@ async function main() {
       predRows: fresh.predRows,
       vorNorm: cached.vorNorm,
     };
+
+    // Populate feature store if it doesn't exist yet
+    if (!existsSync(`${featureStorePath}/manifest.json`)) {
+      const fsBuilder = new FeatureStoreBuilder(featureStorePath, (msg) => console.log(`  ${msg}`));
+      fsBuilder.populateFromLegacy(cached.rows);
+    }
   } else {
     console.log('  No cache — building full feature matrix...');
     result = await buildFeatureMatrix({
@@ -97,6 +146,13 @@ async function main() {
     writeFileSync(CACHE_PATH, JSON.stringify({ rows: result.rows, vorNorm: result.vorNorm }));
     const cacheSize = (readFileSync(CACHE_PATH).length / 1024 / 1024).toFixed(1);
     console.log(`  Training cache saved (${cacheSize} MB)`);
+
+    // Populate feature store from training rows (shards features by group)
+    const featureStoreBuilder = new FeatureStoreBuilder(
+      'public/data/feature-store',
+      (msg) => console.log(`  ${msg}`),
+    );
+    featureStoreBuilder.populateFromLegacy(result.rows);
   }
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);

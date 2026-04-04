@@ -36,14 +36,17 @@ jobs:
       - run: npm run build
 
       # Commit training rows cache back to repo so future builds skip data fetching
-      - name: Commit training rows cache
+      - name: Commit training rows cache and feature store
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           if ls public/data/training-rows-cache-*.json 1>/dev/null 2>&1; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -f public/data/training-rows-cache-*.json
-            git diff --cached --quiet || git commit -m "Auto-commit training rows cache [skip ci]" && git push || true
           fi
+          if [ -d public/data/feature-store ]; then
+            git add -f public/data/feature-store/
+          fi
+          git diff --cached --quiet || git commit -m "Auto-commit training rows cache + feature store [skip ci]" && git push || true
 
       - uses: actions/upload-pages-artifact@v3
         with:
