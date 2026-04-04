@@ -12,6 +12,7 @@ import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG } from '../src
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
+import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
 
@@ -80,6 +81,13 @@ async function main() {
       predRows: fresh.predRows,
       vorNorm: cached.vorNorm,
     };
+
+    // Populate feature store if it doesn't exist yet
+    const featureStorePath = 'public/data/feature-store';
+    if (!existsSync(`${featureStorePath}/manifest.json`)) {
+      const fsBuilder = new FeatureStoreBuilder(featureStorePath, (msg) => console.log(`  ${msg}`));
+      fsBuilder.populateFromLegacy(cached.rows);
+    }
   } else {
     console.log('  No cache — building full feature matrix...');
     result = await buildFeatureMatrix({
@@ -97,6 +105,13 @@ async function main() {
     writeFileSync(CACHE_PATH, JSON.stringify({ rows: result.rows, vorNorm: result.vorNorm }));
     const cacheSize = (readFileSync(CACHE_PATH).length / 1024 / 1024).toFixed(1);
     console.log(`  Training cache saved (${cacheSize} MB)`);
+
+    // Populate feature store from training rows (shards features by group)
+    const featureStoreBuilder = new FeatureStoreBuilder(
+      'public/data/feature-store',
+      (msg) => console.log(`  ${msg}`),
+    );
+    featureStoreBuilder.populateFromLegacy(result.rows);
   }
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
