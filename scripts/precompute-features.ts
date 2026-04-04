@@ -42,12 +42,12 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 
 // TRAINING ROWS CACHE: Only bump when features/data sources change (triggers 40min rebuild)
 // Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
-const CACHE_PATH = 'public/data/training-rows-cache-v28.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v29.json';
 // MODEL CACHE: Bump when model training logic, thresholds, or tiers change
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v43.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v44.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
-const MAX_ADP = 150;
+const MAX_ADP = 250;
 const LAMBDA = 5;
 
 async function main() {
