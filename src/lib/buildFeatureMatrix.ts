@@ -2250,96 +2250,89 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               features,
             });
           }
-        }
 
-        // ── Second pass: add NFL-drafted players who had no fantasy ADP ──
-        // Critical for career model — many rookies (especially late picks) never
-        // appear in fantasy ADP data but have NFL stats and draft capital
-        {
-          const existingNames = new Set(rows.filter(r => r.season === season).map(r => normalizeName(r.name)));
-          for (const [draftName, draft] of draftByName) {
-            if (!draft.pick || draft.season !== season) continue;
-            if (!POSITIONS.includes(draft.position || '')) continue;
-            if (existingNames.has(draftName)) continue;
-            const current = currentByName.get(draftName);
-            if (!current || current.position !== draft.position) continue;
+          // ── Second pass: add NFL-drafted players who had no fantasy ADP ──
+          {
+            const existingNames = new Set(rows.filter(r => r.season === season).map(r => normalizeName(r.name)));
+            for (const [draftName, draft] of draftByName) {
+              if (!draft.pick || draft.season !== season) continue;
+              if (!POSITIONS.includes(draft.position || '')) continue;
+              if (existingNames.has(draftName)) continue;
+              const current = currentByName.get(draftName);
+              if (!current || current.position !== draft.position) continue;
 
-            const playerPPR = getPlayerValue(current);
-            const repLevel = vorReplacement[draft.position] ?? 0;
-            const vor = Math.round((playerPPR - repLevel) * 10) / 10;
-            const prior = priorByName.get(draftName);
-            const combine = combineByName.get(draftName);
-            const snapAcc = snapAccum.get(draftName);
-            const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
-            const heightIn = combine?.ht ? parseHeight(combine.ht) : 0;
-            const wt = combine?.wt || 0;
-            const playerGames = current.games || 1;
-            const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
-            // Use draft pick as proxy ADP for these players
-            const proxyAdp = draft.pick;
+              const playerPPR = getPlayerValue(current);
+              const repLevel = vorReplacement[draft.position] ?? 0;
+              const vor = Math.round((playerPPR - repLevel) * 10) / 10;
+              const prior = priorByName.get(draftName);
+              const combine = combineByName.get(draftName);
+              const snapAcc = snapAccum.get(draftName);
+              const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
+              const wt = combine?.wt || 0;
+              const playerGames = current.games || 1;
+              const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
+              const proxyAdp = draft.pick;
 
-            // Build minimal feature set (same structure as ADP-driven rows)
-            const features: Record<string, number> = {
-              adp: proxyAdp,
-              adpRound: Math.ceil(proxyAdp / 12),
-              adpTrend: 0,
-              nflDraftRound: draft.round || 8,
-              nflDraftPick: draft.pick || 300,
-              logDraftPick: Math.log(draft.pick || 300),
-              invDraftPick: 1 / (draft.pick || 300),
-              age: draft.age || 0,
-              yearsInLeague: season - (draft.season || season),
-              weight: wt || combineAvg.get(draft.position)?.weight || 0,
-              forty: combine?.forty || combineAvg.get(draft.position)?.forty || 0,
-              priorGames: prior?.games || 0,
-              priorPPG: prior ? (prior.fantasy_points_ppr || 0) / Math.max(1, prior.games || 1) : 0,
-              snapPct,
-              // College features will be filled from lookups
-              ...(() => {
-                const cs = collegeByName.get(draftName);
-                const pg = collegePerGameByName.get(draftName);
-                const adv = collegeAdvancedByName.get(draftName);
-                const best = collegeBestSeasonByName.get(draftName);
-                const zap = collegeZapByName.get(draftName);
-                const ts = teammateScoreByName.get(draftName) || 0;
-                const ht = parseHeight(combine?.ht || '') || 0;
-                const ss = speedScoreByName.get(draftName) || 0;
-                return {
-                  collegeRecYds: cs?.get('Receiving Yards') || 0,
-                  collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
-                  collegeRushYds: cs?.get('Rushing Yards') || 0,
-                  collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
-                  collegePassTDs: cs?.get('Passing Touchdowns') || 0,
-                  collegeDominatorRating: adv?.dominatorRating || 0,
-                  collegeBreakoutAge: adv?.breakoutAge || 0,
-                  collegeMarketShare: adv?.marketShare || 0,
-                  collegeBestRecYds: best?.bestRecYds || 0,
-                  collegeSeasons: best?.numSeasons || 0,
-                  collegeEarlyDeclare: (best?.numSeasons || 99) <= 3 ? 1 : 0,
-                  draftPickXEarlyDeclare: ((best?.numSeasons || 99) <= 3 ? 1 : 0) * (1 / (draft.pick || 300)),
-                  speedScore: ss,
-                  heightAdjSpeedScore: (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss,
-                  collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
-                  collegeReceptionShare: zap?.receptionShare || 0,
-                  collegeBreakoutScore: zap?.breakoutScore || 0,
-                  collegeRushProductionWR: zap?.rushProductionWR || 0,
-                  collegeTeammateScore: ts,
-                  hasCollegeStats: cs ? 1 : 0,
-                };
-              })(),
-            };
+              const features: Record<string, number> = {
+                adp: proxyAdp,
+                adpRound: Math.ceil(proxyAdp / 12),
+                adpTrend: 0,
+                nflDraftRound: draft.round || 8,
+                nflDraftPick: draft.pick || 300,
+                logDraftPick: Math.log(draft.pick || 300),
+                invDraftPick: 1 / (draft.pick || 300),
+                age: draft.age || 0,
+                yearsInLeague: season - (draft.season || season),
+                weight: wt || combineAvg.get(draft.position)?.weight || 0,
+                forty: combine?.forty || combineAvg.get(draft.position)?.forty || 0,
+                priorGames: prior?.games || 0,
+                priorPPG: prior ? (prior.fantasy_points_ppr || 0) / Math.max(1, prior.games || 1) : 0,
+                snapPct,
+                ...(() => {
+                  const cs = collegeByName.get(draftName);
+                  const adv = collegeAdvancedByName.get(draftName);
+                  const best = collegeBestSeasonByName.get(draftName);
+                  const zap = collegeZapByName.get(draftName);
+                  const ts = teammateScoreByName.get(draftName) || 0;
+                  const ht = parseHeight(combine?.ht || '') || 0;
+                  const ss = speedScoreByName.get(draftName) || 0;
+                  return {
+                    collegeRecYds: cs?.get('Receiving Yards') || 0,
+                    collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
+                    collegeRushYds: cs?.get('Rushing Yards') || 0,
+                    collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
+                    collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+                    collegeDominatorRating: adv?.dominatorRating || 0,
+                    collegeBreakoutAge: adv?.breakoutAge || 0,
+                    collegeMarketShare: adv?.marketShare || 0,
+                    collegeBestRecYds: best?.bestRecYds || 0,
+                    collegeSeasons: best?.numSeasons || 0,
+                    collegeEarlyDeclare: (best?.numSeasons || 99) <= 3 ? 1 : 0,
+                    draftPickXEarlyDeclare: ((best?.numSeasons || 99) <= 3 ? 1 : 0) * (1 / (draft.pick || 300)),
+                    speedScore: ss,
+                    heightAdjSpeedScore: (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss,
+                    collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
+                    collegeReceptionShare: zap?.receptionShare || 0,
+                    collegeBreakoutScore: zap?.breakoutScore || 0,
+                    collegeRushProductionWR: zap?.rushProductionWR || 0,
+                    collegeTeammateScore: ts,
+                    hasCollegeStats: cs ? 1 : 0,
+                  };
+                })(),
+              };
 
-            rows.push({
-              name: current.player_display_name || draftName,
-              position: draft.position,
-              season,
-              adp: proxyAdp,
-              vor,
-              rawPPG,
-              isHit: false,
-              isBust: false,
-              features,
-            });
+              rows.push({
+                name: current.player_display_name || draftName,
+                position: draft.position,
+                season,
+                adp: proxyAdp,
+                vor,
+                rawPPG,
+                isHit: false,
+                isBust: false,
+                features,
+              });
+            }
           }
         }
 
