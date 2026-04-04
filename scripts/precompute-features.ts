@@ -40,11 +40,13 @@ function spearman(ranks1: number[], ranks2: number[]): number {
   return var1 > 0 && var2 > 0 ? cov / Math.sqrt(var1 * var2) : 0;
 }
 
-// TRAINING ROWS CACHE: Only bump when features/data sources change (triggers 40min rebuild)
-// Do NOT bump for model hyperparams, tier cutoffs, or threshold changes
-// TRAINING ROWS CACHE: Only bump when features/data sources change (triggers 40min rebuild)
+// ═══ CACHING RULES ═══
+// TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
+// This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
+// model params, tiers, scoring logic, or UI changes.
 const CACHE_PATH = 'public/data/training-rows-cache-v30.json';
-// MODEL CACHE: Bump when model training logic, thresholds, or tiers change
+// MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
+// Uses cached rows, rebuilds in ~1-2 min.
 const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v45.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
