@@ -450,7 +450,7 @@ export function trainRookieCareerModels(
         draftSeason: d.season,
         actualPPG: Math.round(d.actual * 10) / 10,
         predictedPPG: Math.round(d.regPred * 10) / 10,
-        combinedScore: Math.round(meanProb * 10) / 10,
+        combinedScore: meanProb, // raw, will rescale below
         percentile: 0,
         modelTier: 0,
         thresholdProbs: d.threshProbs,
@@ -458,6 +458,16 @@ export function trainRookieCareerModels(
         bustProb: d.bustProb,
       };
     });
+    // Rescale combined scores to 0-100 (ZAP-comparable)
+    const rawScores = backtestRaw.map(r => r.combinedScore);
+    const minS = Math.min(...rawScores);
+    const maxS = Math.max(...rawScores);
+    const rangeS = maxS - minS;
+    for (const r of backtestRaw) {
+      r.combinedScore = rangeS > 0
+        ? Math.round((5 + ((r.combinedScore - minS) / rangeS) * 93) * 10) / 10
+        : 50;
+    }
     backtestRaw.sort((a, b) => b.combinedScore - a.combinedScore);
     for (let i = 0; i < backtestRaw.length; i++) {
       backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
