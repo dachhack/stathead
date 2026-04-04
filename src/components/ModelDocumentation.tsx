@@ -6,6 +6,7 @@ import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
 } from '../lib/featureTypes';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
+import { assemblePlayerRows } from '../lib/featureStoreClient';
 import projectionConfig from '../generated/projection-config.json';
 
 interface PositionModelData {
@@ -94,10 +95,15 @@ export function ModelDocumentation() {
       if (d) {
         // Use precomputed career models if available, train basic version at runtime only if missing entirely
         let careerModels = d.rookieCareerModels;
-        if ((!careerModels || Object.keys(careerModels).length === 0) && d.rows?.length > 0) {
-          try {
-            careerModels = trainRookieCareerModels(d.rows);
-          } catch { /* training failed */ }
+        if ((!careerModels || Object.keys(careerModels).length === 0)) {
+          // Try assembling rows from feature store
+          let rows = d.rows;
+          if (!rows?.length) {
+            try { rows = await assemblePlayerRows(); } catch {}
+          }
+          if (rows?.length > 0) {
+            try { careerModels = trainRookieCareerModels(rows); } catch {}
+          }
         }
         setData({
           models: d.models || [], featureImportance: d.featureImportance || {},

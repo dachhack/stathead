@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow } from '../lib/rookieCareerModel';
+import { assemblePlayerRows } from '../lib/featureStoreClient';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2023 from '../data/zap-scores-2023.json';
 
@@ -68,9 +69,15 @@ export function ZapComparison() {
       // If no backtest rows from precomputed, try training at runtime
       if (backtestRows.length === 0) {
         try {
+          // Try localStorage cache first
           let d: any = null;
           const cached = localStorage.getItem('adp_features_v3_total_none');
           if (cached) d = JSON.parse(cached);
+          // Fallback: assemble from feature store shards
+          if (!d?.rows?.length) {
+            const storeRows = await assemblePlayerRows();
+            if (storeRows.length > 0) d = { rows: storeRows };
+          }
           if (d?.rows?.length) {
             const models = trainRookieCareerModels(d.rows);
             for (const m of Object.values(models)) {
