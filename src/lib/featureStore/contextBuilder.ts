@@ -176,6 +176,35 @@ export async function buildSharedContext(opts: {
     if (pct > 0) { acc.total += pct; acc.count += 1; }
   }
 
+  // Player history for momentum features (cross-season tracking)
+  // Add prior season data to the history map
+  const playerHistoryMap = data.playerHistoryMap;
+  for (const [name, prior] of data.priorByName) {
+    if (!POSITIONS.includes(prior.position)) continue;
+    if (!playerHistoryMap.has(name)) playerHistoryMap.set(name, []);
+    const hist = playerHistoryMap.get(name)!;
+    if (!hist.some((h: any) => h.season === season - 1)) {
+      const priorGames = prior.games || 1;
+      const snapAcc = data.snapAccum.get(name);
+      const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
+      // Get ADP for this player in this season
+      const adpEntry = (adpData as any[]).find((a: any) => normalizeName(a.name) === name);
+      // Get target share from advByName
+      const adv = data.advByName.get(name);
+      const advWeeks = adv?.weeks || 1;
+
+      hist.push({
+        season: season - 1,
+        ppg: priorGames > 0 ? (prior.fantasy_points_ppr || 0) / priorGames : 0,
+        targets: prior.targets || 0,
+        touches: (prior.carries || 0) + (prior.receptions || 0),
+        snapPct,
+        targetShare: adv ? adv.targetShare / advWeeks : 0,
+        adp: adpEntry?.adp || 0,
+      });
+    }
+  }
+
   // Advanced weekly stats aggregation
   if (priorStats.length > 0) {
     const weeklyPrior = priorStats.filter((r: any) => r.season_type === 'REG');
@@ -464,6 +493,31 @@ export async function buildSharedContext(opts: {
   if (participation.length > 0 && pbp.length > 0) {
     buildRoutes(participation, pbp, priorStats, data);
   }
+
+  // Reddit sentiment data
+  try {
+    const fs = await import('fs');
+    if (fs.existsSync('public/data/reddit_sentiment.json')) {
+      const sentimentData = JSON.parse(fs.readFileSync('public/data/reddit_sentiment.json', 'utf-8'));
+      const redditBuzz = new Map<string, any>();
+      const redditWindowed = new Map<string, any>();
+      for (const b of (sentimentData.preseasonBuzz || [])) {
+        redditBuzz.set(`${normalizeName(b.player)}:${b.season}`, b);
+      }
+      for (const w of (sentimentData.windowedSentiment || [])) {
+        if (w.week <= 4) {
+          const key = `${normalizeName(w.player)}:${w.season}`;
+          const existing = redditWindowed.get(key);
+          if (!existing || w.week > (existing as any)._week) {
+            redditWindowed.set(key, { ...w, _week: w.week });
+          }
+        }
+      }
+      (data as any).redditBuzz = redditBuzz;
+      (data as any).redditWindowed = redditWindowed;
+      log(`  Reddit sentiment: ${redditBuzz.size} buzz, ${redditWindowed.size} windowed`);
+    }
+  } catch { /* Reddit data not available */ }
 
   // Build player index — primary pass (ADP players)
   const players = new Map<PlayerKey, PlayerInfo>();
