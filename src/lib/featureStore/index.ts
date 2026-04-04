@@ -38,6 +38,7 @@ import './groups/projection';
 import './groups/sentiment';
 
 export { FeatureStore } from './store';
+export { buildSharedContext, loadStaticData } from './contextBuilder';
 export type { FeatureShard } from './store';
 export {
   registerGroup,

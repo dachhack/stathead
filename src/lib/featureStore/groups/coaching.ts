@@ -26,22 +26,70 @@ export const coachingGroup: FeatureGroup = {
     dataDeps: ['pbp', 'games', 'participation'],
     scope: 'seasonal',
   },
-  compute: (ctx, _season) => {
-    // Coaching features require complex PBP analysis.
-    // Populated via legacy bridge or full extraction.
+  compute: (ctx, season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
-    for (const [pk] of ctx.players) {
+    const d = ctx.data;
+
+    // Coach change detection
+    const coachChangeTeams = new Set<string>();
+    for (const [key, coach] of d.coachBySeasonTeam) {
+      const [szn, team] = key.split(':');
+      if (Number(szn) === season) {
+        const priorCoach = d.coachBySeasonTeam.get(`${season - 1}:${team}`);
+        if (priorCoach && priorCoach !== coach) coachChangeTeams.add(team);
+      }
+    }
+
+    for (const [pk, player] of ctx.players) {
+      const team = player.team;
+      const scheme = d.schemeByTeam.get(team) as any;
+      const totalPlays = scheme?.plays || 1;
+      const totalGames = scheme?.games || 1;
+      const pers = d.personnelByTeam.get(team) as any;
+      const persTotal = pers?.total || 1;
+      const schTotalTgts = scheme?.totalTargets || 1;
+
+      // Scheme-derived rates
+      const passRate = scheme ? scheme.passes / totalPlays : 0;
+      const shotgunRate = scheme ? scheme.shotgunPlays / totalPlays : 0;
+      const pace = scheme ? totalPlays / totalGames : 0;
+      const rbTgtRate = scheme ? scheme.rbTargets / schTotalTgts : 0;
+      const teTgtRate = scheme ? scheme.teTargets / schTotalTgts : 0;
+
       results.set(pk, {
-        newHeadCoach: 0, coachPriorTeamPPR: 0,
-        teamPassRate: 0, teamNeutralPassRate: 0, teamPace: 0,
-        teamFirstDownRunRate: 0, teamShotgunRate: 0, teamNoHuddleRate: 0,
-        teamRBTargetRate: 0,
-        team11Rate: 0, team12Rate: 0, team13Rate: 0, team21Rate: 0,
-        team22Rate: 0, team10Rate: 0, teamTETargetRate: 0, teamWRTargetRate: 0,
-        teamTETargetsPerGame: 0, teamRBTargetsPerGame: 0,
-        teamWR3PlusOnField: 0, team2PlusTEOnField: 0,
-        schemePassHeavy: 0, schemeRunHeavy: 0, schemeUptempo: 0,
-        schemeShotgunHeavy: 0, schemeRBReceiving: 0, schemeTEHeavy: 0,
+        newHeadCoach: coachChangeTeams.has(team) ? 1 : 0,
+        coachPriorTeamPPR: 0, // requires full team PPR aggregation
+        teamPassRate: scheme ? Math.round(passRate * 1000) / 1000 : 0,
+        teamNeutralPassRate: scheme && scheme.neutralPlays > 0
+          ? Math.round((scheme.neutralPasses / scheme.neutralPlays) * 1000) / 1000 : 0,
+        teamPace: scheme ? Math.round(pace * 10) / 10 : 0,
+        teamFirstDownRunRate: scheme && scheme.firstDownPlays > 0
+          ? Math.round((scheme.firstDownRuns / scheme.firstDownPlays) * 1000) / 1000 : 0,
+        teamShotgunRate: scheme ? Math.round(shotgunRate * 1000) / 1000 : 0,
+        teamNoHuddleRate: scheme ? Math.round((scheme.noHuddlePlays / totalPlays) * 1000) / 1000 : 0,
+        teamRBTargetRate: scheme ? Math.round(rbTgtRate * 1000) / 1000 : 0,
+
+        // Personnel rates
+        team11Rate: pers ? Math.round((pers.p11 / persTotal) * 1000) / 1000 : 0,
+        team12Rate: pers ? Math.round((pers.p12 / persTotal) * 1000) / 1000 : 0,
+        team13Rate: pers ? Math.round((pers.p13 / persTotal) * 1000) / 1000 : 0,
+        team21Rate: pers ? Math.round((pers.p21 / persTotal) * 1000) / 1000 : 0,
+        team22Rate: pers ? Math.round((pers.p22 / persTotal) * 1000) / 1000 : 0,
+        team10Rate: pers ? Math.round((pers.p10 / persTotal) * 1000) / 1000 : 0,
+        teamTETargetRate: scheme ? Math.round(teTgtRate * 1000) / 1000 : 0,
+        teamWRTargetRate: scheme ? Math.round((scheme.wrTargets / schTotalTgts) * 1000) / 1000 : 0,
+        teamTETargetsPerGame: scheme ? Math.round((scheme.teTargets / totalGames) * 10) / 10 : 0,
+        teamRBTargetsPerGame: scheme ? Math.round((scheme.rbTargets / totalGames) * 10) / 10 : 0,
+        teamWR3PlusOnField: pers ? Math.round((pers.wr3plus / persTotal) * 1000) / 1000 : 0,
+        team2PlusTEOnField: pers ? Math.round((pers.te2plus / persTotal) * 1000) / 1000 : 0,
+
+        // Scheme flags
+        schemePassHeavy: passRate > 0.58 ? 1 : 0,
+        schemeRunHeavy: passRate < 0.48 ? 1 : 0,
+        schemeUptempo: pace > 67 ? 1 : 0,
+        schemeShotgunHeavy: shotgunRate > 0.70 ? 1 : 0,
+        schemeRBReceiving: rbTgtRate > 0.18 ? 1 : 0,
+        schemeTEHeavy: teTgtRate > 0.22 ? 1 : 0,
       });
     }
     return results;
