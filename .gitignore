@@ -3,4 +3,5 @@ dist
 .DS_Store
 *.local
 public/data/
+!public/data/training-rows-cache-*.json
 .claude/

@@ -1646,7 +1646,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Join ADP with outcomes
           for (const adpPlayer of adpData) {
             if (!POSITIONS.includes(adpPlayer.position)) continue;
-            if (adpPlayer.adp > 500) continue; // include all fantasy-relevant players
+            if (adpPlayer.adp > 400) continue; // include deep fantasy leagues
 
             const normalName = normalizeName(adpPlayer.name);
             const current = currentByName.get(normalName);
@@ -2251,7 +2251,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             });
           }
 
-          // ── Second pass: add NFL-drafted players who had no fantasy ADP ──
+          // ── Second pass: add ALL NFL-drafted players who had no fantasy ADP ──
+          // Training rows are committed to repo so build time is a one-time cost
           {
             const existingNames = new Set(rows.filter(r => r.season === season).map(r => normalizeName(r.name)));
             for (const [draftName, draft] of draftByName) {
@@ -3007,7 +3008,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             // Build prediction features for each ADP player
             for (const adpPlayer of predAdpData) {
               if (!POSITIONS.includes(adpPlayer.position)) continue;
-              if (adpPlayer.adp > 500) continue; // include all fantasy-relevant players
+              if (adpPlayer.adp > 400) continue; // include deep fantasy leagues
 
               const normalName = normalizeName(adpPlayer.name);
               const prior = predPriorByName.get(normalName);
