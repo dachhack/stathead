@@ -2123,12 +2123,23 @@ async function main() {
     const posRookies = careerPredictions2026.filter(r => r.position === pos);
     if (posRookies.length === 0) continue;
     const thresholds = (rookieCareerModels as any)[pos]?.thresholds as number[] || [];
-    // Combined score = mean of threshold probs (already 0-100 scale)
+    // Raw combined score = mean of threshold probs
     for (const r of posRookies) {
       const probs = r.thresholdProbs || {};
       const probValues = thresholds.map(t => probs[t] || 0);
       const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
-      r.combinedScore = Math.round(meanProb * 10) / 10;
+      r.combinedScore = meanProb; // raw value, will rescale below
+    }
+    // Rescale to 0-100 using min-max within position (ZAP-comparable scale)
+    const rawScores = posRookies.map(r => r.combinedScore || 0);
+    const minScore = Math.min(...rawScores);
+    const maxScore = Math.max(...rawScores);
+    const range = maxScore - minScore;
+    for (const r of posRookies) {
+      // Map to ~5-98 range (don't use full 0-100 to avoid extremes)
+      r.combinedScore = range > 0
+        ? Math.round((5 + ((r.combinedScore! - minScore) / range) * 93) * 10) / 10
+        : 50;
     }
     // Sort by combined score descending, assign percentile
     posRookies.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
