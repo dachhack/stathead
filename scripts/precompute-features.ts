@@ -13,6 +13,7 @@ import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
+import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
 
@@ -59,6 +60,7 @@ async function main() {
   const start = Date.now();
 
   const useStore = process.argv.includes('--use-store');
+  const scoreOnly = process.argv.includes('--score-only');
   const featureStorePath = 'public/data/feature-store';
 
   // Check for cached training rows (static 2018-2025 data doesn't change)
@@ -2044,6 +2046,12 @@ async function main() {
     }
     console.log(`    ZAP features computed for ${prospectZap.size} prospects`);
 
+    // Load prospect feature store (manual/persistent data, takes priority over nflverse)
+    const prospectStore = loadProspectStore();
+    if (prospectStore.size > 0) {
+      console.log(`    Prospect store: ${prospectStore.size} prospects with pre-computed features`);
+    }
+
     // Score each prospect
     const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
     for (const prospect of prospectGrades) {
@@ -2053,6 +2061,63 @@ async function main() {
       if (!cm?.ridgeModel) continue;
 
       const nName = normalizeName(prospect.name);
+
+      // Check prospect store first — if we have manual/persistent features, use those
+      const storedProspect = prospectStore.get(nName);
+      if (storedProspect) {
+        const posAvgForStore = combineAvg.get(pos) || {};
+        const storedFeatures = buildProspectFeatureRecord(storedProspect, posAvgForStore);
+        // Merge with any nflverse data we might also have (store takes priority)
+        const combine = combineByProspect.get(nName);
+        const cs = collegeByProspect.get(nName);
+        const pg = collegePerGame.get(nName);
+
+        // Fill gaps: if store doesn't have a value but nflverse does, use nflverse
+        if (!storedFeatures.weight && combine?.wt) storedFeatures.weight = combine.wt;
+        if (!storedFeatures.forty && combine?.forty) storedFeatures.forty = combine.forty;
+        if (!storedFeatures.collegeRecYds && cs) storedFeatures.collegeRecYds = cs.get('Receiving Yards') || 0;
+        if (!storedFeatures.collegeRushYds && cs) storedFeatures.collegeRushYds = cs.get('Rushing Yards') || 0;
+
+        // Use stored features for scoring
+        const features = storedFeatures;
+        const ridgePred = predict(cm.ridgeModel, features).predicted;
+        let pred: number;
+        if (cm.gbmModel) {
+          const gbmPred = predictBaggedGBM(cm.gbmModel, features).predicted;
+          pred = gbmPred * 0.5 + ridgePred * 0.5;
+        } else {
+          pred = ridgePred;
+        }
+        const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
+
+        // Threshold probabilities
+        const thresholds = PPG_THRESHOLD_CONFIG[pos]?.thresholds || [];
+        const probs: Record<number, number> = {};
+        for (const thresh of thresholds) {
+          const tm = cm.thresholdModels?.[thresh];
+          if (!tm) continue;
+          const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
+          let p = ridgeP;
+          if (tm.gbm) {
+            const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
+            p = gbmP * 0.5 + ridgeP * 0.5;
+          }
+          probs[thresh] = Math.round(p * 1000) / 10;
+        }
+
+        const probValues = thresholds.map(t => probs[t] || 0);
+        const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
+
+        careerPredictions2026.push({
+          name: prospect.name, position: pos, school: prospect.school,
+          projRound: prospect.projRound, projPick: prospect.projPick,
+          predictedPPG, combinedScore: meanProb, tier: 0,
+          thresholdProbs: probs, features,
+        });
+        continue; // skip the nflverse path below
+      }
+
+      // Fall through to nflverse data path
       const combine = combineByProspect.get(nName);
       const cs = collegeByProspect.get(nName);
       const pg = collegePerGame.get(nName);
