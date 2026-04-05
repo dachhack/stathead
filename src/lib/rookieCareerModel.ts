@@ -211,9 +211,13 @@ export function trainRookieCareerModels(
     const games = careerGamesMap.get(gamesKey) || (row.rawPPG > 0 ? 17 : 0);
     entry.seasonPPGs.push({ season: row.season, ppg: row.rawPPG, games });
     const yil = row.features.yearsInLeague ?? 99;
-    if (yil <= 1 && (entry.draftSeason === 0 || row.season < entry.draftSeason)) {
-      entry.draftSeason = row.season;
-      entry.features = { ...row.features };
+    if (yil <= 1) {
+      // Derive actual draft season from yearsInLeague: draftSeason = season - yil
+      const derivedDraftSeason = row.season - yil;
+      if (entry.draftSeason === 0 || derivedDraftSeason < entry.draftSeason) {
+        entry.draftSeason = derivedDraftSeason;
+        entry.features = { ...row.features };
+      }
     }
   }
 
