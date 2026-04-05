@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-04-04T21:30:48.895Z",
-  "lastUpdated": "2026-04-04T21:30:50.023Z",
+  "lastUpdated": "2026-04-04T23:39:13.790Z",
   "groups": {
     "profile": {
       "seasons": [
@@ -22,8 +22,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.921Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.567Z",
+      "rowCount": 4408
     },
     "combine": {
       "seasons": [
@@ -44,8 +44,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.926Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.586Z",
+      "rowCount": 4408
     },
     "college": {
       "seasons": [
@@ -66,8 +66,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.944Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.615Z",
+      "rowCount": 4408
     },
     "priorStats": {
       "seasons": [
@@ -88,8 +88,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.952Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.639Z",
+      "rowCount": 4408
     },
     "advanced": {
       "seasons": [
@@ -110,7 +110,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.956Z",
+      "computedAt": "2026-04-04T23:39:13.648Z",
       "rowCount": 2668
     },
     "ngs": {
@@ -132,7 +132,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.960Z",
+      "computedAt": "2026-04-04T23:39:13.656Z",
       "rowCount": 2668
     },
     "injuries": {
@@ -154,7 +154,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.962Z",
+      "computedAt": "2026-04-04T23:39:13.661Z",
       "rowCount": 2668
     },
     "routes": {
@@ -176,7 +176,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.965Z",
+      "computedAt": "2026-04-04T23:39:13.667Z",
       "rowCount": 2668
     },
     "competition": {
@@ -198,7 +198,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.978Z",
+      "computedAt": "2026-04-04T23:39:13.682Z",
       "rowCount": 2668
     },
     "coaching": {
@@ -220,7 +220,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.988Z",
+      "computedAt": "2026-04-04T23:39:13.708Z",
       "rowCount": 2668
     },
     "vegas": {
@@ -242,7 +242,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.992Z",
+      "computedAt": "2026-04-04T23:39:13.717Z",
       "rowCount": 2668
     },
     "contract": {
@@ -264,7 +264,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.993Z",
+      "computedAt": "2026-04-04T23:39:13.721Z",
       "rowCount": 2668
     },
     "aging": {
@@ -286,7 +286,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.995Z",
+      "computedAt": "2026-04-04T23:39:13.724Z",
       "rowCount": 2668
     },
     "momentum": {
@@ -308,8 +308,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:49.997Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.730Z",
+      "rowCount": 4408
     },
     "interaction": {
       "seasons": [
@@ -330,7 +330,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.001Z",
+      "computedAt": "2026-04-04T23:39:13.738Z",
       "rowCount": 2668
     },
     "qbImpact": {
@@ -352,7 +352,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.005Z",
+      "computedAt": "2026-04-04T23:39:13.746Z",
       "rowCount": 2668
     },
     "consistency": {
@@ -374,7 +374,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.007Z",
+      "computedAt": "2026-04-04T23:39:13.750Z",
       "rowCount": 2668
     },
     "environment": {
@@ -396,7 +396,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.009Z",
+      "computedAt": "2026-04-04T23:39:13.762Z",
       "rowCount": 2668
     },
     "projection": {
@@ -418,7 +418,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.014Z",
+      "computedAt": "2026-04-04T23:39:13.774Z",
       "rowCount": 2668
     },
     "sentiment": {
@@ -440,7 +440,7 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.017Z",
+      "computedAt": "2026-04-04T23:39:13.779Z",
       "rowCount": 2668
     },
     "_meta": {
@@ -462,8 +462,8 @@
         2024,
         2025
       ],
-      "computedAt": "2026-04-04T21:30:50.019Z",
-      "rowCount": 3361
+      "computedAt": "2026-04-04T23:39:13.785Z",
+      "rowCount": 4408
     }
   }
 }
