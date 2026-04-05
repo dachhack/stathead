@@ -51,7 +51,7 @@ export function RookieCareerBacktest() {
   const [models, setModels] = useState<Record<string, RookieCareerModelResult> | null>(null);
   const [loading, setLoading] = useState(true);
   const [posFilter, setPosFilter] = useState('ALL');
-  const [seasonFilter, setSeasonFilter] = useState('ALL');
+  const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
   const [sortField, setSortField] = useState<SortField>('combinedScore');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -109,7 +109,7 @@ export function RookieCareerBacktest() {
   const filtered = useMemo(() => {
     let d = [...allRows];
     if (posFilter !== 'ALL') d = d.filter(r => r.position === posFilter);
-    if (seasonFilter !== 'ALL') d = d.filter(r => r.draftSeason === Number(seasonFilter));
+    if (selectedSeasons.size > 0) d = d.filter(r => selectedSeasons.has(r.draftSeason));
     d.sort((a, b) => {
       let aVal: number | string, bVal: number | string;
       if (sortField === 'error') {
@@ -123,7 +123,7 @@ export function RookieCareerBacktest() {
       return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
     return d;
-  }, [allRows, posFilter, seasonFilter, sortField, sortDir]);
+  }, [allRows, posFilter, selectedSeasons, sortField, sortDir]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -167,12 +167,25 @@ export function RookieCareerBacktest() {
         </div>
         <div className="control-group">
           <label className="control-label">Draft Class</label>
-          <select value={seasonFilter} onChange={e => setSeasonFilter(e.target.value)}>
-            <option value="ALL">All ({allRows.length})</option>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <button
+              className={`pos-filter ${selectedSeasons.size === 0 ? 'active' : ''}`}
+              onClick={() => setSelectedSeasons(new Set())}
+              style={{ fontSize: 11, padding: '3px 8px' }}
+            >All</button>
             {seasons.map(s => (
-              <option key={s} value={s}>{s} ({allRows.filter(r => r.draftSeason === s).length})</option>
+              <button
+                key={s}
+                className={`pos-filter ${selectedSeasons.has(s) ? 'active' : ''}`}
+                onClick={() => {
+                  const next = new Set(selectedSeasons);
+                  if (next.has(s)) next.delete(s); else next.add(s);
+                  setSelectedSeasons(next);
+                }}
+                style={{ fontSize: 11, padding: '3px 8px' }}
+              >{s}</button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
