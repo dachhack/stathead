@@ -221,6 +221,25 @@ export function trainRookieCareerModels(
     }
   }
 
+  // Fix false rookies: players with yil=0 across multiple seasons are UDFAs
+  // without draft data, not actual rookies. Their real "draft season" is their
+  // earliest appearance — only that year counts as their rookie season.
+  for (const [, entry] of careerMap) {
+    if (entry.draftSeason === 0) continue;
+    const seasons = entry.seasonPPGs.map(s => s.season).sort((a, b) => a - b);
+    const earliestSeason = seasons[0];
+    // If draftSeason is NOT their earliest season, something is wrong —
+    // they appeared before their supposed draft year
+    if (earliestSeason < entry.draftSeason) {
+      entry.draftSeason = earliestSeason;
+    }
+    // If they appear in 3+ seasons, they're definitely not a recent rookie
+    // whose career we're trying to predict — use earliest season
+    if (seasons.length >= 3 && entry.draftSeason > earliestSeason) {
+      entry.draftSeason = earliestSeason;
+    }
+  }
+
   // Step 3: Compute best-2-of-3 target
   interface CareerRow {
     name: string; position: string; draftSeason: number;
@@ -241,8 +260,14 @@ export function trainRookieCareerModels(
     const best2of3PPG = best2.length >= 2
       ? Math.round((best2[0].ppg + best2[1].ppg) / 2 * 100) / 100
       : Math.round(best2[0].ppg * 100) / 100;
+    // Filter to actual rookies: yearsInLeague <= 1 in their draft-year row,
+    // AND they don't appear in seasons before their derived draft season
+    // (which would indicate they're a veteran with bad yil data)
     const yil = entry.features.yearsInLeague ?? 99;
     if (yil > 1) continue;
+    const allSeasons = entry.seasonPPGs.map(s => s.season).sort((a, b) => a - b);
+    const hasPreDraftSeasons = allSeasons.some(s => s < entry.draftSeason);
+    if (hasPreDraftSeasons) continue; // veteran with yil=0 bug
     // Compute derived features from existing ones (avoids cache rebuild)
     const f = { ...entry.features };
     const pick = f.nflDraftPick || 300;
