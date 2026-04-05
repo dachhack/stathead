@@ -229,11 +229,14 @@ export function trainRookieCareerModels(
     const first3 = entry.seasonPPGs
       .filter(s => s.season >= entry.draftSeason && s.season < entry.draftSeason + 3)
       .sort((a, b) => b.ppg - a.ppg);
-    if (first3.length < 2) continue;
+    if (first3.length === 0) continue;
     const qualifying = first3.filter(s => s.games >= 4);
-    if (qualifying.length < 2) continue;
+    if (qualifying.length === 0) continue;
+    // Best 2-of-3 PPG: average of top 2 qualifying seasons, or single season if only 1 available
     const best2 = qualifying.slice(0, 2);
-    const best2of3PPG = Math.round((best2[0].ppg + best2[1].ppg) / 2 * 100) / 100;
+    const best2of3PPG = best2.length >= 2
+      ? Math.round((best2[0].ppg + best2[1].ppg) / 2 * 100) / 100
+      : Math.round(best2[0].ppg * 100) / 100;
     const yil = entry.features.yearsInLeague ?? 99;
     if (yil > 1) continue;
     // Compute derived features from existing ones (avoids cache rebuild)

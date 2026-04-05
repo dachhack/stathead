@@ -48,7 +48,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 const CACHE_PATH = 'public/data/training-rows-cache-v32.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v47.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v48.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
