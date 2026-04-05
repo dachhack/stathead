@@ -268,9 +268,14 @@ export function trainRookieCareerModels(
     const allSeasons = entry.seasonPPGs.map(s => s.season).sort((a, b) => a - b);
     const hasPreDraftSeasons = allSeasons.some(s => s < entry.draftSeason);
     if (hasPreDraftSeasons) continue; // veteran with yil=0 bug
+    // Players with nflDraftPick=300 (default/missing) AND age=0 (no draft data)
+    // are undrafted veterans without draft records — not actual rookies.
+    // Real drafted rookies always have a draft pick and draft age in the data.
+    const pick = entry.features.nflDraftPick || 300;
+    const age = entry.features.age || 0;
+    if (pick >= 300 && age === 0) continue;
     // Compute derived features from existing ones (avoids cache rebuild)
     const f = { ...entry.features };
-    const pick = f.nflDraftPick || 300;
     f.logDraftPick = Math.log(pick);
     f.invDraftPick = 1 / pick;
     f.draftPickXEarlyDeclare = (f.collegeEarlyDeclare || 0) * (1 / pick);
