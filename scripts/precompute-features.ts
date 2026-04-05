@@ -192,8 +192,20 @@ async function main() {
   let draftSim2025: any;
   let posThresholds: Record<string, { hit: number; bust: number }>;
 
+  // Per-component model caching: each model type cached independently.
+  // Changing one model type only retrains that type, not all 5.
+  const MODEL_DIR = 'public/data';
+  const componentCachePaths = {
+    adp: `${MODEL_DIR}/model-cache-adp-v50.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v50.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v50.json`,
+    share: `${MODEL_DIR}/model-cache-share-v50.json`,
+    career: `${MODEL_DIR}/model-cache-career-v50.json`,
+  };
+
+  // Also support the monolithic cache for backward compat
   if (existsSync(MODEL_CACHE_PATH)) {
-    console.log('  Loading cached trained models (training data unchanged)...');
+    console.log('  Loading cached trained models (monolithic)...');
     const mc = JSON.parse(readFileSync(MODEL_CACHE_PATH, 'utf-8'));
     models = mc.models;
     ppgModels = mc.ppgModels;
@@ -207,6 +219,43 @@ async function main() {
     shareModels = mc.shareModels || {};
     rookieCareerModels = mc.rookieCareerModels || {};
     console.log(`  Cached: ${models.length} position models, skipping to 2026 scoring...`);
+  } else {
+
+  // Try loading per-component caches
+  let anyMissing = false;
+  if (existsSync(componentCachePaths.adp)) {
+    console.log('  Loading cached ADP models...');
+    const c = JSON.parse(readFileSync(componentCachePaths.adp, 'utf-8'));
+    models = c.models; featureImportance = c.featureImportance;
+    rookieFeatureImportance = c.rookieFeatureImportance;
+    rookiePreDraftFeatureImportance = c.rookiePreDraftFeatureImportance;
+    vetFeatureImportance = c.vetFeatureImportance;
+    draftSim2025 = c.draftSim2025; posThresholds = c.posThresholds;
+  } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.ppg)) {
+    console.log('  Loading cached PPG models...');
+    ppgModels = JSON.parse(readFileSync(componentCachePaths.ppg, 'utf-8')).ppgModels;
+  } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.residual)) {
+    console.log('  Loading cached residual models...');
+    residualModels = JSON.parse(readFileSync(componentCachePaths.residual, 'utf-8')).residualModels;
+  } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.share)) {
+    console.log('  Loading cached share models...');
+    shareModels = JSON.parse(readFileSync(componentCachePaths.share, 'utf-8')).shareModels;
+  } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.career)) {
+    console.log('  Loading cached career models...');
+    rookieCareerModels = JSON.parse(readFileSync(componentCachePaths.career, 'utf-8')).rookieCareerModels;
+  } else { anyMissing = true; }
+
+  // If ALL component caches exist, skip training entirely
+  if (!anyMissing && models?.length > 0) {
+    console.log('  All component caches loaded, skipping training...');
   } else {
 
   // Train models with position-specific tuning
@@ -1674,8 +1723,19 @@ async function main() {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
 
-  // Save model cache for future builds (training data is static)
-  console.log('  Saving trained model cache...');
+  // Save per-component model caches
+  console.log('  Saving model caches...');
+  mkdirSync(MODEL_DIR, { recursive: true });
+  writeFileSync(componentCachePaths.adp, JSON.stringify({
+    models, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance,
+    vetFeatureImportance, draftSim2025, posThresholds,
+  }));
+  writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
+  writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
+  writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
+  writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+
+  // Also write monolithic cache for backward compat
   const modelCache = {
     models, ppgModels, residualModels, shareModels, rookieCareerModels,
     featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
@@ -1683,9 +1743,10 @@ async function main() {
   };
   writeFileSync(MODEL_CACHE_PATH, JSON.stringify(modelCache));
   const mcSize = (readFileSync(MODEL_CACHE_PATH).length / 1024 / 1024).toFixed(1);
-  console.log(`  Model cache saved (${mcSize} MB)`);
+  console.log(`  Model caches saved (${mcSize} MB total)`);
 
-  } // end of model training block (skipped when model cache exists)
+  } // end of training block (skipped when all caches exist)
+  } // end of monolithic cache else
 
   // ═══════════════════════════════════════════════════════════════════════
   // 2026 SCORING: Apply trained models to current prediction rows

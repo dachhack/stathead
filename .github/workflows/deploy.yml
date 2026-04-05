@@ -43,10 +43,13 @@ jobs:
           if ls public/data/training-rows-cache-*.json 1>/dev/null 2>&1; then
             git add -f public/data/training-rows-cache-*.json
           fi
+          if ls public/data/trained-models-cache-*.json public/data/model-cache-*.json 1>/dev/null 2>&1; then
+            git add -f public/data/trained-models-cache-*.json public/data/model-cache-*.json 2>/dev/null || true
+          fi
           if [ -d public/data/feature-store ]; then
             git add -f public/data/feature-store/
           fi
-          git diff --cached --quiet || git commit -m "Auto-commit training rows cache + feature store [skip ci]" && git push || true
+          git diff --cached --quiet || git commit -m "Auto-commit caches: training rows + models + feature store [skip ci]" && git push || true
 
       - uses: actions/upload-pages-artifact@v3
         with:

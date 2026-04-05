@@ -4,5 +4,7 @@ dist
 *.local
 public/data/
 !public/data/training-rows-cache-*.json
+!public/data/trained-models-cache-*.json
+!public/data/model-cache-*.json
 !public/data/feature-store/
 .claude/
