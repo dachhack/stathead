@@ -29,10 +29,12 @@ interface CompRow {
   zapScore: number;
   ourScore: number;
   actualPPG: number;  // 0 for 2026 (unknown)
+  predictedPPG: number; // our model's predicted PPG (0 for 2026)
   delta: number;
+  winner: '' | 'ours' | 'zap' | 'tie'; // who was closer to actual?
 }
 
-type SortField = 'zapRank' | 'name' | 'pos' | 'zapScore' | 'ourScore' | 'actualPPG' | 'delta' | 'absDelta';
+type SortField = 'zapRank' | 'name' | 'pos' | 'zapScore' | 'ourScore' | 'actualPPG' | 'predictedPPG' | 'delta' | 'absDelta' | 'winner';
 
 export function ZapComparison() {
   const [rows2026, setRows2026] = useState<CompRow[]>([]);
@@ -96,7 +98,8 @@ export function ZapComparison() {
           r2026.push({
             name: z.name, pos, zapRank: z.rank,
             zapScore: z.zap, ourScore: our, actualPPG: 0,
-            delta: our > 0 ? our - z.zap : 0,
+            predictedPPG: 0, delta: our > 0 ? our - z.zap : 0,
+            winner: '',
           });
         }
       }
@@ -129,12 +132,22 @@ export function ZapComparison() {
         for (const z of (zapScores2023 as any)[pos] || []) {
           const nName = normalizeName(z.name);
           const bt = backtestByName.get(nName);
+          const ourScore = bt?.combinedScore || 0;
+          const actualPPG = bt?.actualPPG || 0;
+          const predictedPPG = bt?.predictedPPG || 0;
+          // Determine who was closer to actual (using score as proxy for ranking accuracy)
+          // Compare how close each model's score correlates with actual outcome
+          let winner: '' | 'ours' | 'zap' | 'tie' = '';
+          if (ourScore > 0 && actualPPG > 0) {
+            const ourError = Math.abs(ourScore - actualPPG * (100 / 20)); // normalize actual to 0-100 scale
+            const zapError = Math.abs(z.zap - actualPPG * (100 / 20));
+            if (Math.abs(ourError - zapError) < 2) winner = 'tie';
+            else winner = ourError < zapError ? 'ours' : 'zap';
+          }
           r2023.push({
             name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap,
-            ourScore: bt?.combinedScore || 0,
-            actualPPG: bt?.actualPPG || 0,
-            delta: (bt?.combinedScore || 0) > 0 ? (bt?.combinedScore || 0) - z.zap : 0,
+            zapScore: z.zap, ourScore, actualPPG, predictedPPG,
+            delta: ourScore > 0 ? ourScore - z.zap : 0, winner,
           });
         }
       }
@@ -158,6 +171,10 @@ export function ZapComparison() {
     d.sort((a, b) => {
       let aVal: number | string, bVal: number | string;
       if (sortField === 'absDelta') { aVal = Math.abs(a.delta); bVal = Math.abs(b.delta); }
+      else if (sortField === 'winner') {
+        const winOrder = { ours: 0, tie: 1, zap: 2, '': 3 };
+        aVal = winOrder[a.winner] ?? 3; bVal = winOrder[b.winner] ?? 3;
+      }
       else { aVal = a[sortField]; bVal = b[sortField]; }
       if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
       return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
@@ -190,7 +207,16 @@ export function ZapComparison() {
       zapVsActualCorr = vzz > 0 && vaa > 0 ? czA / Math.sqrt(vzz * vaa) : 0;
       ourVsActualCorr = voo > 0 && vaa > 0 ? coA / Math.sqrt(voo * vaa) : 0;
     }
-    return { n, corr: corr.toFixed(3), mae: mae.toFixed(1), zapVsActualCorr: zapVsActualCorr.toFixed(3), ourVsActualCorr: ourVsActualCorr.toFixed(3), hasActuals: withActuals.length > 0 };
+    // Win/loss record vs ZAP
+    const oursWins = withActuals.filter(r => r.winner === 'ours').length;
+    const zapWins = withActuals.filter(r => r.winner === 'zap').length;
+    const ties = withActuals.filter(r => r.winner === 'tie').length;
+    return {
+      n, corr: corr.toFixed(3), mae: mae.toFixed(1),
+      zapVsActualCorr: zapVsActualCorr.toFixed(3), ourVsActualCorr: ourVsActualCorr.toFixed(3),
+      hasActuals: withActuals.length > 0,
+      oursWins, zapWins, ties,
+    };
   }, [filtered]);
 
   if (loading) return <div className="loading"><div className="spinner" /><div className="loading-text">Loading comparison data...</div></div>;
@@ -223,6 +249,7 @@ export function ZapComparison() {
             ...(stats.hasActuals ? [
               { label: 'ZAP vs Actual', value: stats.zapVsActualCorr, color: Number(stats.zapVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.zapVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
               { label: 'Ours vs Actual', value: stats.ourVsActualCorr, color: Number(stats.ourVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.ourVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
+              { label: 'Record vs ZAP', value: `${stats.oursWins}W-${stats.zapWins}L-${stats.ties}T`, color: stats.oursWins > stats.zapWins ? '#22c55e' : stats.oursWins < stats.zapWins ? '#ef4444' : '#facc15' },
             ] : []),
           ].map(c => (
             <div key={c.label} style={{
@@ -252,7 +279,11 @@ export function ZapComparison() {
               <th onClick={() => handleSort('zapScore')} style={{ cursor: 'pointer', textAlign: 'right' }}>ZAP{sortArrow('zapScore')}</th>
               <th onClick={() => handleSort('ourScore')} style={{ cursor: 'pointer', textAlign: 'right' }}>Ours{sortArrow('ourScore')}</th>
               {season === '2023' && (
-                <th onClick={() => handleSort('actualPPG')} style={{ cursor: 'pointer', textAlign: 'right' }}>Actual PPG{sortArrow('actualPPG')}</th>
+                <>
+                  <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer', textAlign: 'right' }}>Pred PPG{sortArrow('predictedPPG')}</th>
+                  <th onClick={() => handleSort('actualPPG')} style={{ cursor: 'pointer', textAlign: 'right' }}>Actual PPG{sortArrow('actualPPG')}</th>
+                  <th onClick={() => handleSort('winner')} style={{ cursor: 'pointer', textAlign: 'center' }}>Winner{sortArrow('winner')}</th>
+                </>
               )}
               <th onClick={() => handleSort('delta')} style={{ cursor: 'pointer', textAlign: 'right' }}>Delta{sortArrow('delta')}</th>
               <th onClick={() => handleSort('absDelta')} style={{ cursor: 'pointer', textAlign: 'right' }}>|Delta|{sortArrow('absDelta')}</th>
@@ -269,9 +300,17 @@ export function ZapComparison() {
                   {r.ourScore > 0 ? r.ourScore.toFixed(1) : '-'}
                 </td>
                 {season === '2023' && (
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: r.actualPPG >= 14 ? '#22c55e' : r.actualPPG >= 10 ? '#a3e635' : r.actualPPG >= 6 ? '#facc15' : r.actualPPG > 0 ? '#fb923c' : 'var(--text-muted)' }}>
-                    {r.actualPPG > 0 ? r.actualPPG.toFixed(1) : '-'}
-                  </td>
+                  <>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: r.predictedPPG >= 14 ? '#22c55e' : r.predictedPPG >= 10 ? '#a3e635' : r.predictedPPG >= 6 ? '#facc15' : r.predictedPPG > 0 ? '#fb923c' : 'var(--text-muted)' }}>
+                      {r.predictedPPG > 0 ? r.predictedPPG.toFixed(1) : '-'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: r.actualPPG >= 14 ? '#22c55e' : r.actualPPG >= 10 ? '#a3e635' : r.actualPPG >= 6 ? '#facc15' : r.actualPPG > 0 ? '#fb923c' : 'var(--text-muted)' }}>
+                      {r.actualPPG > 0 ? r.actualPPG.toFixed(1) : '-'}
+                    </td>
+                    <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 12, color: r.winner === 'ours' ? '#22c55e' : r.winner === 'zap' ? '#ef4444' : r.winner === 'tie' ? '#facc15' : 'var(--text-muted)' }}>
+                      {r.winner === 'ours' ? 'Us' : r.winner === 'zap' ? 'ZAP' : r.winner === 'tie' ? 'Tie' : '-'}
+                    </td>
+                  </>
                 )}
                 <td style={{
                   textAlign: 'right', fontWeight: 600, fontSize: 12,
