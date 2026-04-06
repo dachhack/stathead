@@ -14,13 +14,12 @@ function normalizeName(name: string): string {
 }
 
 function tierColor(score: number): string {
-  if (score >= 90) return '#22c55e';
-  if (score >= 75) return '#4ade80';
-  if (score >= 60) return '#a3e635';
-  if (score >= 40) return '#facc15';
-  if (score >= 30) return '#fb923c';
-  if (score >= 20) return '#ef4444';
-  return '#991b1b';
+  if (score >= 95) return '#22c55e';   // Alpha
+  if (score >= 85) return '#4ade80';   // Blue Chip
+  if (score >= 70) return '#a3e635';   // Starter
+  if (score >= 50) return '#facc15';   // Contributor
+  if (score >= 30) return '#fb923c';   // Depth
+  return '#ef4444';                     // Longshot
 }
 
 interface CompRow {

@@ -99,23 +99,21 @@ function fmtMeasurable(v: number | null | undefined): string {
 }
 
 function tierColor(tier: number): string {
-  if (tier === 1) return '#22c55e';
-  if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#a3e635';
-  if (tier === 4) return '#facc15';
-  if (tier === 5) return '#fb923c';
-  if (tier === 6) return '#ef4444';
-  return '#991b1b';
+  if (tier === 1) return '#22c55e';   // Alpha
+  if (tier === 2) return '#4ade80';   // Blue Chip
+  if (tier === 3) return '#a3e635';   // Starter
+  if (tier === 4) return '#facc15';   // Contributor
+  if (tier === 5) return '#fb923c';   // Depth
+  return '#ef4444';                    // Longshot
 }
 
 function tierLabel(tier: number): string {
-  if (tier === 1) return 'Legendary';
-  if (tier === 2) return 'Elite';
+  if (tier === 1) return 'Alpha';
+  if (tier === 2) return 'Blue Chip';
   if (tier === 3) return 'Starter';
-  if (tier === 4) return 'Flex';
-  if (tier === 5) return 'Bench';
-  if (tier === 6) return 'Waiver';
-  return 'Dart Throw';
+  if (tier === 4) return 'Contributor';
+  if (tier === 5) return 'Depth';
+  return 'Longshot';
 }
 
 export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: unknown[]) => void }) {

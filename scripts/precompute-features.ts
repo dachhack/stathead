@@ -2332,16 +2332,15 @@ async function main() {
       }
     }
 
-    // Assign tier from percentile (consistent thresholds)
+    // Assign tier from percentile (StatHead tier system)
     for (const r of posRookies) {
       const s = r.combinedScore || 0;
-      if (s >= 95) r.modelTier = 1;       // Legendary Performer
-      else if (s >= 85) r.modelTier = 2;  // Elite Producer
-      else if (s >= 70) r.modelTier = 3;  // Weekly Starter
-      else if (s >= 50) r.modelTier = 4;  // Flex Play
-      else if (s >= 30) r.modelTier = 5;  // Benchwarmer
-      else if (s >= 15) r.modelTier = 6;  // Waiver Wire Add
-      else r.modelTier = 7;               // Dart Throw
+      if (s >= 95) r.modelTier = 1;       // Alpha
+      else if (s >= 85) r.modelTier = 2;  // Blue Chip
+      else if (s >= 70) r.modelTier = 3;  // Starter
+      else if (s >= 50) r.modelTier = 4;  // Contributor
+      else if (s >= 30) r.modelTier = 5;  // Depth
+      else r.modelTier = 6;               // Longshot
     }
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));

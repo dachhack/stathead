@@ -5,24 +5,29 @@ import { assemblePlayerRows } from '../lib/featureStoreClient';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
+// StatHead tier system — our own labels, not ZAP's
+const TIER_DEFS = [
+  { tier: 1, label: 'Alpha',       pctlMin: 95, color: '#22c55e', desc: 'Franchise-defining rookie' },
+  { tier: 2, label: 'Blue Chip',   pctlMin: 85, color: '#4ade80', desc: 'Weekly locked-in starter' },
+  { tier: 3, label: 'Starter',     pctlMin: 70, color: '#a3e635', desc: 'Reliable lineup contributor' },
+  { tier: 4, label: 'Contributor', pctlMin: 50, color: '#facc15', desc: 'Flex play with upside' },
+  { tier: 5, label: 'Depth',       pctlMin: 30, color: '#fb923c', desc: 'Bench stash / handcuff' },
+  { tier: 6, label: 'Longshot',    pctlMin: 0,  color: '#ef4444', desc: 'Low probability of impact' },
+];
+
+function tierFromPercentile(pctl: number): typeof TIER_DEFS[0] {
+  for (const t of TIER_DEFS) {
+    if (pctl >= t.pctlMin) return t;
+  }
+  return TIER_DEFS[TIER_DEFS.length - 1];
+}
+
 function tierColor(tier: number): string {
-  if (tier === 1) return '#22c55e';
-  if (tier === 2) return '#4ade80';
-  if (tier === 3) return '#a3e635';
-  if (tier === 4) return '#facc15';
-  if (tier === 5) return '#fb923c';
-  if (tier === 6) return '#ef4444';
-  return '#991b1b';
+  return TIER_DEFS.find(t => t.tier === tier)?.color || '#ef4444';
 }
 
 function tierLabel(tier: number): string {
-  if (tier === 1) return 'Legendary';
-  if (tier === 2) return 'Elite';
-  if (tier === 3) return 'Starter';
-  if (tier === 4) return 'Flex';
-  if (tier === 5) return 'Bench';
-  if (tier === 6) return 'Waiver';
-  return 'Dart Throw';
+  return TIER_DEFS.find(t => t.tier === tier)?.label || 'Longshot';
 }
 
 function probBg(pct: number): string {
@@ -101,8 +106,10 @@ export function RookieCareerBacktest() {
       const sorted = [...posRows].map(r => r.predictedPPG).sort((a, b) => a - b);
       for (const r of posRows) {
         const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
-        r.combinedScore = Math.round((rank / sorted.length) * 100);
-        r.percentile = r.combinedScore;
+        const pctl = Math.round((rank / sorted.length) * 100);
+        r.combinedScore = pctl;
+        r.percentile = pctl;
+        r.modelTier = tierFromPercentile(pctl).tier;
       }
     }
     return rows;
@@ -164,6 +171,28 @@ export function RookieCareerBacktest() {
     return { n: filtered.length, mae: mae.toFixed(1), r2: r2.toFixed(3), topTierPct: topTiers.length > 0 ? Math.round(topTierHit / topTiers.length * 100) : 0 };
   }, [filtered]);
 
+  // Tier summary: avg/median actual PPG per tier
+  const tierSummary = useMemo(() => {
+    if (filtered.length === 0) return [];
+    return TIER_DEFS.map(td => {
+      const tierRows = filtered.filter(r => r.modelTier === td.tier);
+      if (tierRows.length === 0) return null;
+      const ppgs = tierRows.map(r => r.actualPPG).sort((a, b) => a - b);
+      const avg = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
+      const med = ppgs[Math.floor(ppgs.length / 2)];
+      const hitRate = tierRows.filter(r => r.actualPPG >= 10).length / tierRows.length;
+      return {
+        ...td,
+        n: tierRows.length,
+        avgPPG: avg,
+        medPPG: med,
+        minPPG: ppgs[0],
+        maxPPG: ppgs[ppgs.length - 1],
+        hitRate, // % who averaged 10+ PPG
+      };
+    }).filter(Boolean) as Array<typeof TIER_DEFS[0] & { n: number; avgPPG: number; medPPG: number; minPPG: number; maxPPG: number; hitRate: number }>;
+  }, [filtered]);
+
   if (loading) return <div className="loading"><div className="spinner" /><div className="loading-text">Training career models...</div></div>;
   if (!models || allRows.length === 0) return <div className="empty-state"><h3>No Backtest Data</h3><p>Visit the Draft Optimizer tab first to generate training data, then return here.</p></div>;
 
@@ -220,9 +249,48 @@ export function RookieCareerBacktest() {
         </div>
       )}
 
+      {/* Tier summary table */}
+      {tierSummary.length > 0 && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>Tier</th>
+                <th style={{ textAlign: 'left', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>Pctl</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>N</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>Avg PPG</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>Med PPG</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>Range</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontWeight: 500 }}>10+ PPG</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tierSummary.map(t => (
+                <tr key={t.tier} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '5px 8px', fontWeight: 600, color: t.color }}>{t.label}</td>
+                  <td style={{ padding: '5px 8px', color: 'var(--text-muted)', fontSize: 11 }}>
+                    {t.pctlMin === 0 ? '<30' : `${t.pctlMin}+`}
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '5px 8px' }}>{t.n}</td>
+                  <td style={{ textAlign: 'right', padding: '5px 8px', fontWeight: 700, color: t.avgPPG >= 14 ? '#22c55e' : t.avgPPG >= 10 ? '#a3e635' : t.avgPPG >= 6 ? '#facc15' : '#fb923c' }}>
+                    {t.avgPPG.toFixed(1)}
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '5px 8px', color: 'var(--text-secondary)' }}>{t.medPPG.toFixed(1)}</td>
+                  <td style={{ textAlign: 'right', padding: '5px 8px', color: 'var(--text-muted)', fontSize: 11 }}>
+                    {t.minPPG.toFixed(1)}-{t.maxPPG.toFixed(1)}
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '5px 8px', fontWeight: 600, color: t.hitRate >= 0.5 ? '#22c55e' : t.hitRate >= 0.2 ? '#facc15' : '#ef4444' }}>
+                    {Math.round(t.hitRate * 100)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        {filtered.length} rookies &middot; LOSO cross-validated: each rookie scored using a model trained WITHOUT their draft class &middot;
-        Only includes rookies with 2+ qualifying seasons in years 1-3 (draft classes {seasons.length > 0 ? `${seasons[0]}-${seasons[seasons.length - 1]}` : '?'})
+        {filtered.length} rookies &middot; LOSO cross-validated &middot; Percentile ranked vs all historical rookies at position
       </div>
 
       <div className="table-container">

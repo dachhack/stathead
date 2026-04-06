@@ -520,13 +520,12 @@ export function trainRookieCareerModels(
       backtestRaw[i].percentile = Math.round((1 - i / backtestRaw.length) * 100);
       // Tier assignment from percentile (consistent across all views)
       const pctl = backtestRaw[i].percentile;
-      if (pctl >= 95) backtestRaw[i].modelTier = 1;       // Legendary Performer
-      else if (pctl >= 85) backtestRaw[i].modelTier = 2;  // Elite Producer
-      else if (pctl >= 70) backtestRaw[i].modelTier = 3;  // Weekly Starter
-      else if (pctl >= 50) backtestRaw[i].modelTier = 4;  // Flex Play
-      else if (pctl >= 30) backtestRaw[i].modelTier = 5;  // Benchwarmer
-      else if (pctl >= 15) backtestRaw[i].modelTier = 6;  // Waiver Wire Add
-      else backtestRaw[i].modelTier = 7;                   // Dart Throw
+      if (pctl >= 95) backtestRaw[i].modelTier = 1;       // Alpha
+      else if (pctl >= 85) backtestRaw[i].modelTier = 2;  // Blue Chip
+      else if (pctl >= 70) backtestRaw[i].modelTier = 3;  // Starter
+      else if (pctl >= 50) backtestRaw[i].modelTier = 4;  // Contributor
+      else if (pctl >= 30) backtestRaw[i].modelTier = 5;  // Depth
+      else backtestRaw[i].modelTier = 6;                   // Longshot
     }
 
     // ── Train final models on ALL data (for 2026 scoring) ──
