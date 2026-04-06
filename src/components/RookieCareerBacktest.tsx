@@ -3,6 +3,7 @@ import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { normalizeName } from '../lib/featureTypes';
+import { PlayerCard } from './PlayerCard';
 import zapScores2023 from '../data/zap-scores-2023.json';
 import zapScores2026 from '../data/zap-scores-2026.json';
 
@@ -64,6 +65,7 @@ export function RookieCareerBacktest() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [trainingRows, setTrainingRows] = useState<any[]>([]);
   const [predictions2026, setPredictions2026] = useState<any[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<RookieCareerBacktestRow | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -437,7 +439,7 @@ export function RookieCareerBacktest() {
               return (
                 <tr key={`${r.name}-${r.draftSeason}-${i}`}>
                   <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
-                  <td><strong>{r.name}</strong></td>
+                  <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
                   <td><span style={{ color: POS_COLORS[r.position] || 'var(--text-secondary)', fontWeight: 600 }}>{r.position}</span></td>
                   <td>{r.draftSeason}</td>
                   <td>
@@ -483,6 +485,22 @@ export function RookieCareerBacktest() {
           </tbody>
         </table>
       </div>
+
+      {selectedPlayer && (
+        <PlayerCard
+          player={{
+            name: selectedPlayer.name,
+            position: selectedPlayer.position,
+            draftSeason: selectedPlayer.draftSeason,
+            ourScore: selectedPlayer.combinedScore,
+            predictedPPG: selectedPlayer.predictedPPG,
+            actualPPG: selectedPlayer.actualPPG,
+            thresholdProbs: selectedPlayer.thresholdProbs,
+            features: selectedPlayer.features,
+          }}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </>
   );
 }

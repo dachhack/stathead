@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
+import { PlayerCard } from './PlayerCard';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import zapScores from '../data/zap-scores-2026.json';
 
@@ -126,6 +127,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [view, setView] = useState<'graded' | 'all'>('graded');
   const [posThresholds, setPosThresholds] = useState<Record<string, number[]>>({});
+  const [selectedPlayer, setSelectedPlayer] = useState<ProspectRow | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -506,7 +508,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <tr key={`${r.name}-${i}`}>
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
                 <td>
-                  <strong>{r.name}</strong>
+                  <strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong>
                 </td>
                 <td>
                   <span className={`pos-badge pos-${r.pos}`}>{r.pos}</span>
@@ -657,6 +659,36 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           </tbody>
         </table>
       </div>
+
+      {selectedPlayer && (
+        <PlayerCard
+          player={{
+            name: selectedPlayer.name,
+            position: selectedPlayer.pos,
+            draftSeason: DRAFT_YEAR,
+            ourScore: selectedPlayer.combinedScore,
+            predictedPPG: selectedPlayer.predictedCareerPPG,
+            zapScore: selectedPlayer.zapScore || undefined,
+            thresholdProbs: selectedPlayer.thresholdProbs,
+            features: {
+              // Combine
+              weight: selectedPlayer.wt, forty: selectedPlayer.forty,
+              bench: selectedPlayer.bench, vertical: selectedPlayer.vertical,
+              broadJump: selectedPlayer.broadJump, cone: selectedPlayer.cone,
+              shuttle: selectedPlayer.shuttle,
+              // Draft
+              nflDraftPick: selectedPlayer.projPick, nflDraftRound: selectedPlayer.projRound,
+              // College (from prospect data if available)
+              prospectGrade: selectedPlayer.grade,
+              // Threshold probs spread
+              ...Object.fromEntries(
+                Object.entries(selectedPlayer.thresholdProbs || {}).map(([t, p]) => [`pThresh_${t}`, p])
+              ),
+            },
+          }}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </>
   );
 }
