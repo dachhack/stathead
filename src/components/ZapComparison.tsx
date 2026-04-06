@@ -46,12 +46,14 @@ export function ZapComparison() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selectedPlayer, setSelectedPlayer] = useState<CompRow | null>(null);
   const [backtestData, setBacktestData] = useState<Map<string, RookieCareerBacktestRow>>(new Map());
+  const [predictions2026, setPredictions2026] = useState<Map<string, any>>(new Map());
 
   useEffect(() => {
     async function load() {
       // Load our 2026 scores
       let ourScores2026 = new Map<string, number>();
       let ourPredPPG2026 = new Map<string, number>();
+      const pred2026Map = new Map<string, any>();
       let backtestRows: RookieCareerBacktestRow[] = [];
       try {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
@@ -59,8 +61,10 @@ export function ZapComparison() {
           const d = await resp.json();
           if (d.careerPredictions2026) {
             for (const p of d.careerPredictions2026) {
-              ourScores2026.set(normalizeName(p.name), p.combinedScore || 0);
-              ourPredPPG2026.set(normalizeName(p.name), p.predictedCareerPPG || p.predictedPPG || 0);
+              const nn = normalizeName(p.name);
+              ourScores2026.set(nn, p.combinedScore || 0);
+              ourPredPPG2026.set(nn, p.predictedCareerPPG || p.predictedPPG || 0);
+              pred2026Map.set(nn, p);
             }
           }
           // Get backtest rows for 2023 validation
@@ -171,6 +175,7 @@ export function ZapComparison() {
       }
       setRows2023(r2023);
       setBacktestData(backtestByName);
+      setPredictions2026(pred2026Map);
       setLoading(false);
     }
     load();
@@ -346,22 +351,28 @@ export function ZapComparison() {
         </table>
       </div>
 
-      {selectedPlayer && (
-        <PlayerCard
-          player={{
-            name: selectedPlayer.name,
-            position: selectedPlayer.pos,
-            draftSeason: season === '2023' ? 2023 : 2026,
-            zapScore: selectedPlayer.zapScore,
-            ourScore: selectedPlayer.ourScore,
-            predictedPPG: selectedPlayer.predictedPPG,
-            actualPPG: selectedPlayer.actualPPG,
-            thresholdProbs: backtestData.get(normalizeName(selectedPlayer.name))?.thresholdProbs,
-            features: backtestData.get(normalizeName(selectedPlayer.name))?.features,
-          }}
-          onClose={() => setSelectedPlayer(null)}
-        />
-      )}
+      {selectedPlayer && (() => {
+        const nn = normalizeName(selectedPlayer.name);
+        const bt = backtestData.get(nn);
+        const pred = predictions2026.get(nn);
+        const is2026 = season === '2026';
+        return (
+          <PlayerCard
+            player={{
+              name: selectedPlayer.name,
+              position: selectedPlayer.pos,
+              draftSeason: is2026 ? 2026 : (bt?.draftSeason || 2023),
+              zapScore: selectedPlayer.zapScore,
+              ourScore: selectedPlayer.ourScore,
+              predictedPPG: selectedPlayer.predictedPPG || (is2026 ? pred?.predictedCareerPPG : bt?.predictedPPG) || 0,
+              actualPPG: selectedPlayer.actualPPG,
+              thresholdProbs: is2026 ? pred?.thresholdProbs : bt?.thresholdProbs,
+              features: is2026 ? pred?.features : bt?.features,
+            }}
+            onClose={() => setSelectedPlayer(null)}
+          />
+        );
+      })()}
     </>
   );
 }
