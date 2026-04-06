@@ -28,15 +28,15 @@
     "collegeBestRushYds": 1022,
     "collegeDominatorRating": 28.5,
     "collegeBreakoutAge": 19,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.32,
+    "collegeReceptionShare": 0.053,
+    "collegeBreakoutScore": 0.368,
     "collegeTeammateScore": 0.15,
     "collegeEarlyDeclare": 1,
     "speedScore": 117.3,
     "heightAdjSpeedScore": 109.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.241Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "ashton jeanty": {
     "name": "Ashton Jeanty",
@@ -67,15 +67,15 @@
     "collegeBestRushYds": 2601,
     "collegeDominatorRating": 45.2,
     "collegeBreakoutAge": 19,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.352,
+    "collegeReceptionShare": 0.07,
+    "collegeBreakoutScore": 0.404,
     "collegeTeammateScore": 0.08,
     "collegeEarlyDeclare": 1,
     "speedScore": 107.7,
     "heightAdjSpeedScore": 99.2,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "cam ward": {
     "name": "Cam Ward",
@@ -114,7 +114,7 @@
     "speedScore": 86.6,
     "heightAdjSpeedScore": 84.3,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "travis hunter": {
     "name": "Travis Hunter",
@@ -153,7 +153,7 @@
     "speedScore": 100.5,
     "heightAdjSpeedScore": 96.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "tetairoa mcmillan": {
     "name": "Tetairoa McMillan",
@@ -192,7 +192,7 @@
     "speedScore": 103.4,
     "heightAdjSpeedScore": 104.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "jordyn tyson": {
     "name": "Jordyn Tyson",
@@ -231,7 +231,7 @@
     "speedScore": 98.9,
     "heightAdjSpeedScore": 92.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "carnell tate": {
     "name": "Carnell Tate",
@@ -270,7 +270,7 @@
     "speedScore": 96.9,
     "heightAdjSpeedScore": 93.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "makai lemon": {
     "name": "Makai Lemon",
@@ -309,7 +309,7 @@
     "speedScore": 100.2,
     "heightAdjSpeedScore": 93.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "kc concepcion": {
     "name": "KC Concepcion",
@@ -348,7 +348,7 @@
     "speedScore": 94.3,
     "heightAdjSpeedScore": 90.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "kenyon sadiq": {
     "name": "Kenyon Sadiq",
@@ -387,7 +387,7 @@
     "speedScore": 115,
     "heightAdjSpeedScore": 116.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "eli stowers": {
     "name": "Eli Stowers",
@@ -426,7 +426,7 @@
     "speedScore": 115.7,
     "heightAdjSpeedScore": 118.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.907Z"
   },
   "michael trigg": {
     "name": "Michael Trigg",
@@ -465,7 +465,7 @@
     "speedScore": 109.4,
     "heightAdjSpeedScore": 112.3,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "emmett johnson": {
     "name": "Emmett Johnson",
@@ -496,15 +496,15 @@
     "collegeBestRushYds": 2887,
     "collegeDominatorRating": 24.1,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.323,
+    "collegeReceptionShare": 0.057,
+    "collegeBreakoutScore": 0.347,
     "collegeTeammateScore": 0.06,
     "collegeEarlyDeclare": 0,
     "speedScore": 101.8,
     "heightAdjSpeedScore": 93.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "nick singleton": {
     "name": "Nick Singleton",
@@ -535,15 +535,15 @@
     "collegeBestRushYds": 2350,
     "collegeDominatorRating": 26.3,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.318,
+    "collegeReceptionShare": 0.057,
+    "collegeBreakoutScore": 0.342,
     "collegeTeammateScore": 0.18,
     "collegeEarlyDeclare": 1,
     "speedScore": 117.4,
     "heightAdjSpeedScore": 111.2,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jadarian price": {
     "name": "Jadarian Price",
@@ -574,15 +574,15 @@
     "collegeBestRushYds": 1280,
     "collegeDominatorRating": 18.5,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.365,
+    "collegeReceptionShare": 0.065,
+    "collegeBreakoutScore": 0.393,
     "collegeTeammateScore": 0.15,
     "collegeEarlyDeclare": 1,
     "speedScore": 93.4,
     "heightAdjSpeedScore": 86,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "mike washington": {
     "name": "Mike Washington Jr.",
@@ -613,15 +613,15 @@
     "collegeBestRushYds": 1950,
     "collegeDominatorRating": 22.8,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.269,
+    "collegeReceptionShare": 0.046,
+    "collegeBreakoutScore": 0.289,
     "collegeTeammateScore": 0.04,
     "collegeEarlyDeclare": 1,
     "speedScore": 106.1,
     "heightAdjSpeedScore": 99.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jonah coleman": {
     "name": "Jonah Coleman",
@@ -652,15 +652,15 @@
     "collegeBestRushYds": 2120,
     "collegeDominatorRating": 25.1,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.167,
+    "collegeReceptionShare": 0.031,
+    "collegeBreakoutScore": 0.18,
     "collegeTeammateScore": 0.1,
     "collegeEarlyDeclare": 1,
     "speedScore": 102.4,
     "heightAdjSpeedScore": 94.3,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "kaytron allen": {
     "name": "Kaytron Allen",
@@ -691,15 +691,15 @@
     "collegeBestRushYds": 2150,
     "collegeDominatorRating": 22.5,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.185,
+    "collegeReceptionShare": 0.037,
+    "collegeBreakoutScore": 0.198,
     "collegeTeammateScore": 0.18,
     "collegeEarlyDeclare": 1,
     "speedScore": 105.4,
     "heightAdjSpeedScore": 98.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "seth mcgowan": {
     "name": "Seth McGowan",
@@ -730,15 +730,15 @@
     "collegeBestRushYds": 1850,
     "collegeDominatorRating": 19.2,
     "collegeBreakoutAge": 21,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.264,
+    "collegeReceptionShare": 0.048,
+    "collegeBreakoutScore": 0.264,
     "collegeTeammateScore": 0.04,
     "collegeEarlyDeclare": 0,
     "speedScore": 102.4,
     "heightAdjSpeedScore": 95.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "leveon moss": {
     "name": "Le'Veon Moss",
@@ -769,15 +769,15 @@
     "collegeBestRushYds": 1650,
     "collegeDominatorRating": 18.8,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.215,
+    "collegeReceptionShare": 0.041,
+    "collegeBreakoutScore": 0.232,
     "collegeTeammateScore": 0.06,
     "collegeEarlyDeclare": 1,
     "speedScore": 106.7,
     "heightAdjSpeedScore": 99.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "demond claiborne": {
     "name": "Demond Claiborne",
@@ -808,15 +808,15 @@
     "collegeBestRushYds": 1480,
     "collegeDominatorRating": 17.2,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.308,
+    "collegeReceptionShare": 0.056,
+    "collegeBreakoutScore": 0.331,
     "collegeTeammateScore": 0.02,
     "collegeEarlyDeclare": 1,
     "speedScore": 104.6,
     "heightAdjSpeedScore": 96.3,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "eli heidenreich": {
     "name": "Eli Heidenreich",
@@ -847,15 +847,15 @@
     "collegeBestRushYds": 1350,
     "collegeDominatorRating": 16.5,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.261,
+    "collegeReceptionShare": 0.048,
+    "collegeBreakoutScore": 0.281,
     "collegeTeammateScore": 0.03,
     "collegeEarlyDeclare": 1,
     "speedScore": 99.3,
     "heightAdjSpeedScore": 91.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "adam randall": {
     "name": "Adam Randall",
@@ -886,15 +886,15 @@
     "collegeBestRushYds": 1200,
     "collegeDominatorRating": 15.8,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.256,
+    "collegeReceptionShare": 0.045,
+    "collegeBreakoutScore": 0.276,
     "collegeTeammateScore": 0.08,
     "collegeEarlyDeclare": 1,
     "speedScore": 104.9,
     "heightAdjSpeedScore": 99.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jmari taylor": {
     "name": "J'Mari Taylor",
@@ -925,15 +925,15 @@
     "collegeBestRushYds": 1100,
     "collegeDominatorRating": 16,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.185,
+    "collegeReceptionShare": 0.033,
+    "collegeBreakoutScore": 0.198,
     "collegeTeammateScore": 0.06,
     "collegeEarlyDeclare": 1,
     "speedScore": 103.6,
     "heightAdjSpeedScore": 95.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "desmond reid": {
     "name": "Desmond Reid",
@@ -964,15 +964,15 @@
     "collegeBestRushYds": 1680,
     "collegeDominatorRating": 18.5,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.404,
+    "collegeReceptionShare": 0.072,
+    "collegeBreakoutScore": 0.434,
     "collegeTeammateScore": 0.04,
     "collegeEarlyDeclare": 1,
     "speedScore": 100.5,
     "heightAdjSpeedScore": 89.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jam miller": {
     "name": "Jam Miller",
@@ -1003,15 +1003,15 @@
     "collegeBestRushYds": 1550,
     "collegeDominatorRating": 16.8,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.158,
+    "collegeReceptionShare": 0.028,
+    "collegeBreakoutScore": 0.17,
     "collegeTeammateScore": 0.09,
     "collegeEarlyDeclare": 1,
     "speedScore": 100.6,
     "heightAdjSpeedScore": 92.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "robert henry": {
     "name": "Robert Henry",
@@ -1042,15 +1042,15 @@
     "collegeBestRushYds": 1800,
     "collegeDominatorRating": 17.5,
     "collegeBreakoutAge": 21,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.108,
+    "collegeReceptionShare": 0.019,
+    "collegeBreakoutScore": 0.108,
     "collegeTeammateScore": 0.03,
     "collegeEarlyDeclare": 0,
     "speedScore": 101.7,
     "heightAdjSpeedScore": 95,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "roman hemby": {
     "name": "Roman Hemby",
@@ -1081,15 +1081,15 @@
     "collegeBestRushYds": 1420,
     "collegeDominatorRating": 16.2,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.269,
+    "collegeReceptionShare": 0.046,
+    "collegeBreakoutScore": 0.289,
     "collegeTeammateScore": 0.04,
     "collegeEarlyDeclare": 1,
     "speedScore": 100,
     "heightAdjSpeedScore": 92.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "cj donaldson": {
     "name": "CJ Donaldson",
@@ -1120,15 +1120,15 @@
     "collegeBestRushYds": 1350,
     "collegeDominatorRating": 18,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.112,
+    "collegeReceptionShare": 0.022,
+    "collegeBreakoutScore": 0.12,
     "collegeTeammateScore": 0.02,
     "collegeEarlyDeclare": 1,
     "speedScore": 105,
     "heightAdjSpeedScore": 100.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "noah whittington": {
     "name": "Noah Whittington",
@@ -1159,15 +1159,15 @@
     "collegeBestRushYds": 1680,
     "collegeDominatorRating": 14.5,
     "collegeBreakoutAge": 21,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.159,
+    "collegeReceptionShare": 0.027,
+    "collegeBreakoutScore": 0.159,
     "collegeTeammateScore": 0.1,
     "collegeEarlyDeclare": 0,
     "speedScore": 99.3,
     "heightAdjSpeedScore": 90.2,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "rahsul faison": {
     "name": "Rahsul Faison",
@@ -1198,15 +1198,15 @@
     "collegeBestRushYds": 1520,
     "collegeDominatorRating": 17.2,
     "collegeBreakoutAge": 20,
-    "collegeRecYdsPerTeamPassAtt": 0,
-    "collegeReceptionShare": 0,
-    "collegeBreakoutScore": 0,
+    "collegeRecYdsPerTeamPassAtt": 0.168,
+    "collegeReceptionShare": 0.03,
+    "collegeBreakoutScore": 0.18,
     "collegeTeammateScore": 0.02,
     "collegeEarlyDeclare": 1,
     "speedScore": 103.8,
     "heightAdjSpeedScore": 94.2,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "omar cooper": {
     "name": "Omar Cooper",
@@ -1245,7 +1245,7 @@
     "speedScore": 99.6,
     "heightAdjSpeedScore": 95.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "denzel boston": {
     "name": "Denzel Boston",
@@ -1284,7 +1284,7 @@
     "speedScore": 99.5,
     "heightAdjSpeedScore": 98.2,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "chris brazzell": {
     "name": "Chris Brazzell",
@@ -1323,7 +1323,7 @@
     "speedScore": 100.3,
     "heightAdjSpeedScore": 97.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "germie bernard": {
     "name": "Germie Bernard",
@@ -1362,7 +1362,7 @@
     "speedScore": 98.9,
     "heightAdjSpeedScore": 92.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "elijah sarratt": {
     "name": "Elijah Sarratt",
@@ -1401,7 +1401,7 @@
     "speedScore": 95.2,
     "heightAdjSpeedScore": 91.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "zachariah branch": {
     "name": "Zachariah Branch",
@@ -1440,7 +1440,7 @@
     "speedScore": 102.4,
     "heightAdjSpeedScore": 93,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.242Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "antonio williams": {
     "name": "Antonio Williams",
@@ -1479,7 +1479,7 @@
     "speedScore": 102.5,
     "heightAdjSpeedScore": 99.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "chris bell": {
     "name": "Chris Bell",
@@ -1518,7 +1518,7 @@
     "speedScore": 97.6,
     "heightAdjSpeedScore": 95,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "malachi fields": {
     "name": "Malachi Fields",
@@ -1557,7 +1557,7 @@
     "speedScore": 96.8,
     "heightAdjSpeedScore": 95.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jakobi lane": {
     "name": "Ja'Kobi Lane",
@@ -1596,7 +1596,7 @@
     "speedScore": 99.6,
     "heightAdjSpeedScore": 97,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "ted hurst": {
     "name": "Ted Hurst",
@@ -1635,7 +1635,7 @@
     "speedScore": 95.7,
     "heightAdjSpeedScore": 91.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "skyler bell": {
     "name": "Skyler Bell",
@@ -1674,7 +1674,7 @@
     "speedScore": 95,
     "heightAdjSpeedScore": 90,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "eric mcalister": {
     "name": "Eric McAlister",
@@ -1713,7 +1713,7 @@
     "speedScore": 95.3,
     "heightAdjSpeedScore": 92.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "brenen thompson": {
     "name": "Brenen Thompson",
@@ -1752,7 +1752,7 @@
     "speedScore": 99.4,
     "heightAdjSpeedScore": 91.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "bryce lance": {
     "name": "Bryce Lance",
@@ -1791,7 +1791,7 @@
     "speedScore": 94.4,
     "heightAdjSpeedScore": 89.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "reggie virgil": {
     "name": "Reggie Virgil",
@@ -1830,7 +1830,7 @@
     "speedScore": 96,
     "heightAdjSpeedScore": 89.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "deion burks": {
     "name": "Deion Burks",
@@ -1869,7 +1869,7 @@
     "speedScore": 102.2,
     "heightAdjSpeedScore": 95.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "kevin coleman": {
     "name": "Kevin Coleman",
@@ -1908,7 +1908,7 @@
     "speedScore": 97.8,
     "heightAdjSpeedScore": 90.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "barion brown": {
     "name": "Barion Brown",
@@ -1947,7 +1947,7 @@
     "speedScore": 104.5,
     "heightAdjSpeedScore": 97.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "kendrick law": {
     "name": "Kendrick Law",
@@ -1986,7 +1986,7 @@
     "speedScore": 99.4,
     "heightAdjSpeedScore": 91.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jeff caldwell": {
     "name": "Jeff Caldwell",
@@ -2025,7 +2025,7 @@
     "speedScore": 91.9,
     "heightAdjSpeedScore": 87.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "max klare": {
     "name": "Max Klare",
@@ -2064,7 +2064,7 @@
     "speedScore": 109.7,
     "heightAdjSpeedScore": 112.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "sam roush": {
     "name": "Sam Roush",
@@ -2103,7 +2103,7 @@
     "speedScore": 111.4,
     "heightAdjSpeedScore": 112.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "justin joly": {
     "name": "Justin Joly",
@@ -2142,7 +2142,7 @@
     "speedScore": 108.1,
     "heightAdjSpeedScore": 109.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "joe royer": {
     "name": "Joe Royer",
@@ -2181,7 +2181,7 @@
     "speedScore": 108.9,
     "heightAdjSpeedScore": 111.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "oscar delp": {
     "name": "Oscar Delp",
@@ -2220,7 +2220,7 @@
     "speedScore": 110,
     "heightAdjSpeedScore": 111.4,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jack endries": {
     "name": "Jack Endries",
@@ -2259,7 +2259,7 @@
     "speedScore": 108.9,
     "heightAdjSpeedScore": 111.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "marlin klein": {
     "name": "Marlin Klein",
@@ -2298,7 +2298,7 @@
     "speedScore": 106.9,
     "heightAdjSpeedScore": 109.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "dallen bentley": {
     "name": "Dallen Bentley",
@@ -2337,7 +2337,7 @@
     "speedScore": 109.4,
     "heightAdjSpeedScore": 110.8,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "eli raridon": {
     "name": "Eli Raridon",
@@ -2376,7 +2376,7 @@
     "speedScore": 107.2,
     "heightAdjSpeedScore": 108.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "tanner koziol": {
     "name": "Tanner Koziol",
@@ -2415,7 +2415,7 @@
     "speedScore": 106.1,
     "heightAdjSpeedScore": 107.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "daequan wright": {
     "name": "Dae'Quan Wright",
@@ -2454,7 +2454,7 @@
     "speedScore": 109.1,
     "heightAdjSpeedScore": 109.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "john michael gyllenborg": {
     "name": "John Michael Gyllenborg",
@@ -2493,7 +2493,7 @@
     "speedScore": 107.6,
     "heightAdjSpeedScore": 109,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "nate boerkircher": {
     "name": "Nate Boerkircher",
@@ -2532,7 +2532,7 @@
     "speedScore": 106.9,
     "heightAdjSpeedScore": 109.7,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "josh cuevas": {
     "name": "Josh Cuevas",
@@ -2571,7 +2571,7 @@
     "speedScore": 108.1,
     "heightAdjSpeedScore": 109.5,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "riley nowakowski": {
     "name": "Riley Nowakowski",
@@ -2610,7 +2610,7 @@
     "speedScore": 107.6,
     "heightAdjSpeedScore": 109,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "matthew hibner": {
     "name": "Matthew Hibner",
@@ -2649,7 +2649,7 @@
     "speedScore": 109.1,
     "heightAdjSpeedScore": 109.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "jaren kanak": {
     "name": "Jaren Kanak",
@@ -2688,7 +2688,7 @@
     "speedScore": 106.1,
     "heightAdjSpeedScore": 108.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "will kacmarek": {
     "name": "Will Kacmarek",
@@ -2727,7 +2727,7 @@
     "speedScore": 106.2,
     "heightAdjSpeedScore": 107.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "rj maryland": {
     "name": "RJ Maryland",
@@ -2766,7 +2766,7 @@
     "speedScore": 111.4,
     "heightAdjSpeedScore": 112.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "bauer sharp": {
     "name": "Bauer Sharp",
@@ -2805,7 +2805,7 @@
     "speedScore": 106.1,
     "heightAdjSpeedScore": 108.9,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "miles kitselman": {
     "name": "Miles Kitselman",
@@ -2844,7 +2844,7 @@
     "speedScore": 111.7,
     "heightAdjSpeedScore": 114.6,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   },
   "dj rogers": {
     "name": "DJ Rogers",
@@ -2883,6 +2883,6 @@
     "speedScore": 109.1,
     "heightAdjSpeedScore": 109.1,
     "source": "csv",
-    "updatedAt": "2026-04-06T01:20:43.243Z"
+    "updatedAt": "2026-04-06T01:34:59.908Z"
   }
 }
