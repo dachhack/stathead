@@ -2302,43 +2302,45 @@ async function main() {
     }
   }
 
-  // Compute ZAP-style 0-100 score per position and assign tier labels
+  // Compute cross-year percentile per position using backtest as reference
+  // This makes scores comparable: a 90th percentile WR means the same thing
+  // whether it's a 2026 prospect or a 2023 backtest player
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
     const posRookies = careerPredictions2026.filter(r => r.position === pos);
     if (posRookies.length === 0) continue;
-    const thresholds = (rookieCareerModels as any)[pos]?.thresholds as number[] || [];
-    // Raw combined score = mean of threshold probs
+
+    // Get all backtest predictedPPGs for this position (historical reference)
+    const backtestPPGs: number[] = [];
+    const cm = (rookieCareerModels as any)[pos];
+    if (cm?.backtestRows) {
+      for (const bt of cm.backtestRows) {
+        if (bt.predictedPPG > 0) backtestPPGs.push(bt.predictedPPG);
+      }
+    }
+    const refPPGs = backtestPPGs.sort((a, b) => a - b);
+
     for (const r of posRookies) {
-      const probs = r.thresholdProbs || {};
-      const probValues = thresholds.map(t => probs[t] || 0);
-      const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
-      r.combinedScore = meanProb; // raw value, will rescale below
+      const ppg = r.predictedCareerPPG || 0;
+      // Percentile against historical backtest
+      if (ppg > 0 && refPPGs.length > 0) {
+        const rank = refPPGs.filter(p => p <= ppg).length;
+        r.combinedScore = Math.round((rank / refPPGs.length) * 100);
+        r.percentile = r.combinedScore;
+      } else {
+        r.combinedScore = 0;
+        r.percentile = 0;
+      }
     }
-    // Rescale to 0-100 using min-max within position (ZAP-comparable scale)
-    const rawScores = posRookies.map(r => r.combinedScore || 0);
-    const minScore = Math.min(...rawScores);
-    const maxScore = Math.max(...rawScores);
-    const range = maxScore - minScore;
-    for (const r of posRookies) {
-      // Map to ~5-98 range (don't use full 0-100 to avoid extremes)
-      r.combinedScore = range > 0
-        ? Math.round((5 + ((r.combinedScore! - minScore) / range) * 93) * 10) / 10
-        : 50;
-    }
-    // Sort by combined score descending, assign percentile
-    posRookies.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
-    for (let i = 0; i < posRookies.length; i++) {
-      posRookies[i].percentile = Math.round((1 - i / posRookies.length) * 100);
-    }
-    // Assign tier from score (ZAP-style labels)
+
+    // Assign tier from percentile (consistent thresholds)
     for (const r of posRookies) {
       const s = r.combinedScore || 0;
-      if (s >= 90) r.modelTier = 1;       // Legendary Performer
-      else if (s >= 75) r.modelTier = 2;  // Elite Producer
-      else if (s >= 60) r.modelTier = 3;  // Weekly Starter
-      else if (s >= 40) r.modelTier = 4;  // Flex Play
+      if (s >= 95) r.modelTier = 1;       // Legendary Performer
+      else if (s >= 85) r.modelTier = 2;  // Elite Producer
+      else if (s >= 70) r.modelTier = 3;  // Weekly Starter
+      else if (s >= 50) r.modelTier = 4;  // Flex Play
       else if (s >= 30) r.modelTier = 5;  // Benchwarmer
-      else if (s >= 20) r.modelTier = 6;  // Waiver Wire Add
+      else if (s >= 15) r.modelTier = 6;  // Waiver Wire Add
       else r.modelTier = 7;               // Dart Throw
     }
   }

@@ -93,6 +93,18 @@ export function RookieCareerBacktest() {
     for (const m of Object.values(models)) {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
+    // Recompute combinedScore as cross-year percentile within position
+    // so scores are consistent with ZAP Compare and Prospects views
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      const posRows = rows.filter(r => r.position === pos);
+      if (posRows.length < 3) continue;
+      const sorted = [...posRows].map(r => r.predictedPPG).sort((a, b) => a - b);
+      for (const r of posRows) {
+        const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
+        r.combinedScore = Math.round((rank / sorted.length) * 100);
+        r.percentile = r.combinedScore;
+      }
+    }
     return rows;
   }, [models]);
 
