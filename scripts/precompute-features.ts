@@ -2172,7 +2172,7 @@ async function main() {
         careerPredictions2026.push({
           name: prospect.name, position: pos, school: prospect.school,
           projRound: prospect.projRound, projPick: prospect.projPick,
-          predictedPPG, combinedScore: meanProb, tier: 0,
+          predictedCareerPPG: predictedPPG, combinedScore: meanProb, tier: 0,
           thresholdProbs: probs, features,
         });
         continue; // skip the nflverse path below
@@ -2298,6 +2298,7 @@ async function main() {
         thresholdProbs,
         boomProb: Math.round(boomProb * 1000) / 10,
         bustProb: Math.round(bustProb * 1000) / 10,
+        features,
       });
     }
   }
