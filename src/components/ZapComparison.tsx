@@ -52,6 +52,7 @@ export function ZapComparison() {
     async function load() {
       // Load our 2026 scores
       let ourScores2026 = new Map<string, number>();
+      let ourPredPPG2026 = new Map<string, number>();
       let backtestRows: RookieCareerBacktestRow[] = [];
       try {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
@@ -60,6 +61,7 @@ export function ZapComparison() {
           if (d.careerPredictions2026) {
             for (const p of d.careerPredictions2026) {
               ourScores2026.set(normalizeName(p.name), p.combinedScore || 0);
+              ourPredPPG2026.set(normalizeName(p.name), p.predictedPPG || 0);
             }
           }
           // Get backtest rows for 2023 validation
@@ -92,16 +94,28 @@ export function ZapComparison() {
         } catch {}
       }
 
-      // Build 2026 comparison
+      // Build 2026 comparison — convert to cross-year percentile
       const r2026: CompRow[] = [];
       for (const pos of ['RB', 'WR', 'TE'] as const) {
+        // Reference: all backtest PPGs for this position across all years
+        const allPosPPGs = backtestRows
+          .filter(r => r.position === pos)
+          .map(r => r.predictedPPG)
+          .sort((a, b) => a - b);
+
         for (const z of (zapScores2026 as any)[pos] || []) {
           const nName = normalizeName(z.name);
-          const our = ourScores2026.get(nName) || 0;
+          const predPPG = ourPredPPG2026.get(nName) || 0;
+          // Compute percentile vs historical backtest
+          let ourPctl = 0;
+          if (predPPG > 0 && allPosPPGs.length > 0) {
+            const rank = allPosPPGs.filter(ppg => ppg <= predPPG).length;
+            ourPctl = Math.round((rank / allPosPPGs.length) * 100);
+          }
           r2026.push({
             name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap, ourScore: our, actualPPG: 0,
-            predictedPPG: 0, delta: our > 0 ? our - z.zap : 0,
+            zapScore: z.zap, ourScore: ourPctl, actualPPG: 0,
+            predictedPPG: predPPG, delta: ourPctl > 0 ? ourPctl - z.zap : 0,
             winner: '',
           });
         }
@@ -114,21 +128,21 @@ export function ZapComparison() {
         if (r.draftSeason === 2023) backtestByName.set(normalizeName(r.name), r);
       }
 
-      // Rescale 2023 backtest scores to 0-100 within position
-      // Use predictedPPG (regression output) instead of combinedScore (threshold probs)
-      // to avoid double-rescaling compression artifacts
-      for (const pos of ['RB', 'WR'] as const) {
+      // Convert predictedPPG to cross-year percentile within position
+      // This makes scores comparable across draft classes: 90th percentile
+      // means the same thing whether it's the 2018 or 2025 class
+      for (const pos of ['RB', 'WR', 'TE'] as const) {
+        // All backtest rows across ALL years for this position
+        const allPosRows = backtestRows.filter(r => r.position === pos);
+        if (allPosRows.length < 5) continue;
+        // Sort by predictedPPG ascending for percentile calculation
+        const sorted = [...allPosRows].map(r => r.predictedPPG).sort((a, b) => a - b);
+        // For each 2023 player, compute their percentile against all years
         const posRows = [...backtestByName.values()].filter(r => r.position === pos);
-        if (posRows.length < 2) continue;
-        // Use predicted PPG as the raw signal — more linear and interpretable
-        const ppgs = posRows.map(r => r.predictedPPG);
-        const min = Math.min(...ppgs);
-        const max = Math.max(...ppgs);
-        const range = max - min;
-        if (range > 0) {
-          for (const r of posRows) {
-            r.combinedScore = Math.round((5 + ((r.predictedPPG - min) / range) * 93) * 10) / 10;
-          }
+        for (const r of posRows) {
+          const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
+          const percentile = Math.round((rank / sorted.length) * 100);
+          r.combinedScore = percentile;
         }
       }
 
@@ -271,8 +285,8 @@ export function ZapComparison() {
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
         {season === '2026'
-          ? 'Comparing StatHead career model scores vs ZAP Model (Late Round 2026 Prospect Guide)'
-          : 'Comparing 2023 ZAP scores vs StatHead LOSO predictions vs actual best 2-of-3 PPG (2023-2025)'}
+          ? 'StatHead career model percentile (vs all historical rookies) vs ZAP Model'
+          : 'StatHead percentile (cross-year) vs ZAP scores vs actual best 2-of-3 PPG (2023-2025)'}
       </div>
 
       <div className="table-container">
@@ -283,7 +297,7 @@ export function ZapComparison() {
               <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>Player{sortArrow('name')}</th>
               <th>Pos</th>
               <th onClick={() => handleSort('zapScore')} style={{ cursor: 'pointer', textAlign: 'right' }}>ZAP{sortArrow('zapScore')}</th>
-              <th onClick={() => handleSort('ourScore')} style={{ cursor: 'pointer', textAlign: 'right' }}>Ours{sortArrow('ourScore')}</th>
+              <th onClick={() => handleSort('ourScore')} style={{ cursor: 'pointer', textAlign: 'right' }}>Pctl{sortArrow('ourScore')}</th>
               {season === '2023' && (
                 <>
                   <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer', textAlign: 'right' }}>Pred PPG{sortArrow('predictedPPG')}</th>
