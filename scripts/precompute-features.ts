@@ -203,25 +203,8 @@ async function main() {
     career: `${MODEL_DIR}/model-cache-career-v51.json`,
   };
 
-  // Also support the monolithic cache for backward compat
-  if (existsSync(MODEL_CACHE_PATH)) {
-    console.log('  Loading cached trained models (monolithic)...');
-    const mc = JSON.parse(readFileSync(MODEL_CACHE_PATH, 'utf-8'));
-    models = mc.models;
-    ppgModels = mc.ppgModels;
-    residualModels = mc.residualModels;
-    featureImportance = mc.featureImportance;
-    rookieFeatureImportance = mc.rookieFeatureImportance;
-    rookiePreDraftFeatureImportance = mc.rookiePreDraftFeatureImportance;
-    vetFeatureImportance = mc.vetFeatureImportance;
-    draftSim2025 = mc.draftSim2025;
-    posThresholds = mc.posThresholds;
-    shareModels = mc.shareModels || {};
-    rookieCareerModels = mc.rookieCareerModels || {};
-    console.log(`  Cached: ${models.length} position models, skipping to 2026 scoring...`);
-  } else {
-
-  // Try loading per-component caches
+  // Try loading per-component caches first (allows individual model retraining)
+  {
   let anyMissing = false;
   if (existsSync(componentCachePaths.adp)) {
     console.log('  Loading cached ADP models...');
@@ -1746,7 +1729,7 @@ async function main() {
   console.log(`  Model caches saved (${mcSize} MB total)`);
 
   } // end of training block (skipped when all caches exist)
-  } // end of monolithic cache else
+  } // end of per-component cache block
 
   // ═══════════════════════════════════════════════════════════════════════
   // 2026 SCORING: Apply trained models to current prediction rows
