@@ -66,6 +66,7 @@ export function RookieCareerBacktest() {
   const [trainingRows, setTrainingRows] = useState<any[]>([]);
   const [predictions2026, setPredictions2026] = useState<any[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<RookieCareerBacktestRow | null>(null);
+  const [prospectFeatures, setProspectFeatures] = useState<Map<string, any>>(new Map());
 
   useEffect(() => {
     async function load() {
@@ -73,6 +74,16 @@ export function RookieCareerBacktest() {
       try {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) d = await resp.json();
+      } catch {}
+      // Load prospect store for feature enrichment
+      try {
+        const pResp = await fetch(`${import.meta.env.BASE_URL}data/feature-store/prospects.json`);
+        if (pResp.ok) {
+          const pData = await pResp.json();
+          const pMap = new Map<string, any>();
+          for (const [key, val] of Object.entries(pData)) pMap.set(key, val);
+          setProspectFeatures(pMap);
+        }
       } catch {}
       if (!d || !d.rows?.length) {
         try {
@@ -112,15 +123,15 @@ export function RookieCareerBacktest() {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
 
-    // If backtest rows don't have features (old model cache), compute from training rows
-    if (rows.length > 0 && (!rows[0].features || Object.keys(rows[0].features).length === 0) && trainingRows.length > 0) {
+    // Enrich features from training rows + prospect store
+    {
+      // Build training row lookup
       const trainingByKey = new Map<string, Record<string, number>>();
       for (const tr of trainingRows) {
         const yil = tr.features?.yearsInLeague ?? 99;
         if (yil <= 1) {
           const key = `${normalizeName(tr.name)}::${tr.position}`;
           if (!trainingByKey.has(key)) {
-            // Compute derived features that the career model uses
             const f = { ...tr.features };
             const pick = f.nflDraftPick || 300;
             f.logDraftPick = Math.log(pick);
@@ -130,11 +141,52 @@ export function RookieCareerBacktest() {
           }
         }
       }
+
       for (const r of rows) {
-        if (!r.features || Object.keys(r.features).length === 0) {
-          const key = `${normalizeName(r.name)}::${r.position}`;
-          r.features = trainingByKey.get(key);
+        const nn = normalizeName(r.name);
+        const key = `${nn}::${r.position}`;
+
+        // Start with backtest features if available
+        const base = r.features && Object.keys(r.features).length > 0 ? { ...r.features } : {};
+
+        // Merge training row features (fills NFL stats, combine, draft)
+        const tr = trainingByKey.get(key);
+        if (tr) {
+          for (const [k, v] of Object.entries(tr)) {
+            if (!(k in base) || base[k] === 0) base[k] = v;
+          }
         }
+
+        // Merge prospect store features (fills college stats nflverse misses)
+        const ps = prospectFeatures.get(nn);
+        if (ps) {
+          if (!base.collegePassTDs && ps.collegePassTDs) base.collegePassTDs = ps.collegePassTDs;
+          if (!base.collegeRecYds && ps.collegeRecYds) base.collegeRecYds = ps.collegeRecYds;
+          if (!base.collegeRushYds && ps.collegeRushYds) base.collegeRushYds = ps.collegeRushYds;
+          if (!base.collegeTotalTDs && ps.collegeTotalTDs) base.collegeTotalTDs = ps.collegeTotalTDs;
+          if (!base.collegeRecTDs && ps.collegeRecTDs) base.collegeRecTDs = ps.collegeRecTDs;
+          if (!base.collegeRushTDs && ps.collegeRushTDs) base.collegeRushTDs = ps.collegeRushTDs;
+          if (!base.collegeDominatorRating && ps.collegeDominatorRating) base.collegeDominatorRating = ps.collegeDominatorRating;
+          if (!base.collegeBreakoutAge && ps.collegeBreakoutAge) base.collegeBreakoutAge = ps.collegeBreakoutAge;
+          if (!base.collegeBreakoutScore && ps.collegeBreakoutScore) base.collegeBreakoutScore = ps.collegeBreakoutScore;
+          if (!base.collegeRecYdsPerTeamPassAtt && ps.collegeRecYdsPerTeamPassAtt) base.collegeRecYdsPerTeamPassAtt = ps.collegeRecYdsPerTeamPassAtt;
+          if (!base.collegeReceptionShare && ps.collegeReceptionShare) base.collegeReceptionShare = ps.collegeReceptionShare;
+          if (!base.collegeTeammateScore && ps.collegeTeammateScore) base.collegeTeammateScore = ps.collegeTeammateScore;
+          if (!base.speedScore && ps.speedScore) base.speedScore = ps.speedScore;
+          if (!base.collegeSeasons && ps.collegeSeasons) base.collegeSeasons = ps.collegeSeasons;
+          if (!base.collegeEarlyDeclare && ps.collegeEarlyDeclare != null) base.collegeEarlyDeclare = ps.collegeEarlyDeclare;
+          if (!base.weight && ps.weight) base.weight = ps.weight;
+          if (!base.forty && ps.forty) base.forty = ps.forty;
+          if (!base.age && ps.age) base.age = ps.age;
+          // Recompute derived features with enriched data
+          const pick = base.nflDraftPick || 300;
+          base.logDraftPick = Math.log(pick);
+          base.invDraftPick = 1 / pick;
+          base.draftPickXEarlyDeclare = (base.collegeEarlyDeclare || 0) * (1 / pick);
+          base.hasCollegeStats = (base.collegeRecYds || base.collegeRushYds || base.collegePassTDs) ? 1 : 0;
+        }
+
+        r.features = base;
       }
     }
 
@@ -153,7 +205,7 @@ export function RookieCareerBacktest() {
       }
     }
     return rows;
-  }, [models]);
+  }, [models, trainingRows, prospectFeatures]);
 
   const seasons = useMemo(() => {
     const s = [...new Set(allRows.map(r => r.draftSeason))].sort();
