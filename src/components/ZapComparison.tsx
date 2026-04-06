@@ -60,7 +60,7 @@ export function ZapComparison() {
           if (d.careerPredictions2026) {
             for (const p of d.careerPredictions2026) {
               ourScores2026.set(normalizeName(p.name), p.combinedScore || 0);
-              ourPredPPG2026.set(normalizeName(p.name), p.predictedPPG || 0);
+              ourPredPPG2026.set(normalizeName(p.name), p.predictedCareerPPG || p.predictedPPG || 0);
             }
           }
           // Get backtest rows for 2023 validation
