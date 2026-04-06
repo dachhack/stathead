@@ -94,6 +94,10 @@ export function RookieCareerBacktest() {
         if (!careerModels || Object.keys(careerModels).length === 0 || !careerModels[Object.keys(careerModels)[0]]?.backtestRows) {
           try { careerModels = trainRookieCareerModels(d.rows); } catch {}
         }
+        // Debug: check if features are present in backtest rows
+        const samplePos = Object.keys(careerModels || {})[0];
+        const sampleRow = careerModels?.[samplePos]?.backtestRows?.[0];
+        console.log('[CareerBacktest] features present:', !!sampleRow?.features, 'keys:', Object.keys(sampleRow?.features || {}).length);
         setModels(careerModels || null);
       }
       setLoading(false);
