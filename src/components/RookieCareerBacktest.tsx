@@ -111,6 +111,26 @@ export function RookieCareerBacktest() {
     for (const m of Object.values(models)) {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
+
+    // If backtest rows don't have features (old model cache), pull from training rows
+    if (rows.length > 0 && !rows[0].features && trainingRows.length > 0) {
+      const trainingByKey = new Map<string, Record<string, number>>();
+      for (const tr of trainingRows) {
+        const yil = tr.features?.yearsInLeague ?? 99;
+        if (yil <= 1) {
+          // Use the rookie-year row's features
+          const key = `${normalizeName(tr.name)}::${tr.position}`;
+          if (!trainingByKey.has(key)) trainingByKey.set(key, tr.features);
+        }
+      }
+      for (const r of rows) {
+        if (!r.features || Object.keys(r.features).length === 0) {
+          const key = `${normalizeName(r.name)}::${r.position}`;
+          r.features = trainingByKey.get(key);
+        }
+      }
+    }
+
     // Recompute combinedScore as cross-year percentile within position
     // so scores are consistent with ZAP Compare and Prospects views
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
