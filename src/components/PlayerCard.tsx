@@ -175,7 +175,28 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
         <div style={{ padding: '10px 14px' }}>
           {tab === 'features' && (
             <>
-              {/* Model-specific features first */}
+              {/* Quick stats summary */}
+              {(features.nflDraftPick || features.age || features.weight) && (
+                <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 11 }}>
+                  {features.nflDraftPick > 0 && features.nflDraftPick < 300 && (
+                    <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>Pick #{features.nflDraftPick}</span>
+                  )}
+                  {features.age > 0 && (
+                    <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>Age {features.age}</span>
+                  )}
+                  {features.weight > 0 && (
+                    <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>{features.weight} lbs</span>
+                  )}
+                  {features.forty > 0 && (
+                    <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>{features.forty.toFixed(2)}s 40</span>
+                  )}
+                  {features.speedScore > 0 && (
+                    <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>SS: {fmtVal(features.speedScore)}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Model-specific features */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                   Career Model Inputs ({pos})

@@ -112,15 +112,22 @@ export function RookieCareerBacktest() {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
 
-    // If backtest rows don't have features (old model cache), pull from training rows
-    if (rows.length > 0 && !rows[0].features && trainingRows.length > 0) {
+    // If backtest rows don't have features (old model cache), compute from training rows
+    if (rows.length > 0 && (!rows[0].features || Object.keys(rows[0].features).length === 0) && trainingRows.length > 0) {
       const trainingByKey = new Map<string, Record<string, number>>();
       for (const tr of trainingRows) {
         const yil = tr.features?.yearsInLeague ?? 99;
         if (yil <= 1) {
-          // Use the rookie-year row's features
           const key = `${normalizeName(tr.name)}::${tr.position}`;
-          if (!trainingByKey.has(key)) trainingByKey.set(key, tr.features);
+          if (!trainingByKey.has(key)) {
+            // Compute derived features that the career model uses
+            const f = { ...tr.features };
+            const pick = f.nflDraftPick || 300;
+            f.logDraftPick = Math.log(pick);
+            f.invDraftPick = 1 / pick;
+            f.draftPickXEarlyDeclare = (f.collegeEarlyDeclare || 0) * (1 / pick);
+            trainingByKey.set(key, f);
+          }
         }
       }
       for (const r of rows) {
