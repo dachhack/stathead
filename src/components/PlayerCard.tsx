@@ -29,15 +29,23 @@ function featureLabel(key: string): string {
   return FEATURE_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
 }
 
+function fmtVal(v: number): string {
+  if (v === 0) return '0';
+  if (Number.isInteger(v)) return String(v);
+  if (Math.abs(v) < 0.1) return v.toFixed(3);
+  if (Math.abs(v) < 1) return v.toFixed(2);
+  return v.toFixed(1);
+}
+
 function featureBar(value: number, max: number, color: string) {
   const pct = max > 0 ? Math.min(100, (Math.abs(value) / max) * 100) : 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-      <div style={{ flex: 1, height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+      <div style={{ flex: 1, height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3 }} />
       </div>
-      <span style={{ fontSize: 11, color: 'var(--text-secondary)', minWidth: 40, textAlign: 'right' }}>
-        {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(1)) : value}
+      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 36, textAlign: 'right' }}>
+        {fmtVal(value)}
       </span>
     </div>
   );
@@ -72,69 +80,69 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(0,0,0,0.7)', zIndex: 1000,
       display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-      padding: '40px 16px', overflowY: 'auto',
+      padding: '20px 8px', overflowY: 'auto',
     }} onClick={onClose}>
       <div style={{
         background: 'var(--bg-primary)', borderRadius: 12,
-        border: '1px solid var(--border)', maxWidth: 500, width: '100%',
+        border: '1px solid var(--border)', maxWidth: 360, width: '100%',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px', borderBottom: '1px solid var(--border)',
-          display: 'flex', gap: 14, alignItems: 'center',
+          padding: '12px 14px', borderBottom: '1px solid var(--border)',
+          display: 'flex', gap: 10, alignItems: 'center',
         }}>
           {player.headshotUrl && (
             <img src={player.headshotUrl} alt={player.name}
-              style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }}
+              style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }}
               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           )}
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{player.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{player.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ color: POS_COLORS[pos], fontWeight: 600 }}>{pos}</span>
               {player.draftSeason && <span>Class of {player.draftSeason}</span>}
             </div>
           </div>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', color: 'var(--text-muted)',
-            fontSize: 20, cursor: 'pointer', padding: 4,
+            fontSize: 18, cursor: 'pointer', padding: 4,
           }}>x</button>
         </div>
 
         {/* Score summary */}
-        <div style={{ padding: '12px 20px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '8px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
           {player.ourScore != null && player.ourScore > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Our Score</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#22c55e' }}>{player.ourScore.toFixed(1)}</div>
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Our Score</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>{player.ourScore.toFixed(1)}</div>
             </div>
           )}
           {player.zapScore != null && player.zapScore > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>ZAP Score</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6' }}>{player.zapScore.toFixed(1)}</div>
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>ZAP Score</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#3b82f6' }}>{player.zapScore.toFixed(1)}</div>
             </div>
           )}
           {player.predictedPPG != null && player.predictedPPG > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Pred PPG</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>{player.predictedPPG.toFixed(1)}</div>
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Pred PPG</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#f59e0b' }}>{player.predictedPPG.toFixed(1)}</div>
             </div>
           )}
           {player.actualPPG != null && player.actualPPG > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Actual PPG</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#22c55e' }}>{player.actualPPG.toFixed(1)}</div>
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Actual PPG</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>{player.actualPPG.toFixed(1)}</div>
             </div>
           )}
           {/* Threshold probabilities */}
           {player.thresholdProbs && Object.keys(player.thresholdProbs).length > 0 && (
-            <div style={{ width: '100%', display: 'flex', gap: 6, marginTop: 4 }}>
+            <div style={{ width: '100%', display: 'flex', gap: 4, marginTop: 4 }}>
               {Object.entries(player.thresholdProbs).sort(([a], [b]) => Number(a) - Number(b)).map(([thresh, prob]) => (
                 <div key={thresh} style={{
-                  flex: 1, background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 6px', textAlign: 'center',
+                  flex: 1, background: 'var(--bg-secondary)', borderRadius: 4, padding: '3px 4px', textAlign: 'center',
                 }}>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>P(≥{thresh})</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: prob >= 50 ? '#22c55e' : prob >= 25 ? '#facc15' : '#ef4444' }}>
@@ -163,7 +171,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '12px 20px', maxHeight: 400, overflowY: 'auto' }}>
+        <div style={{ padding: '10px 14px', maxHeight: 350, overflowY: 'auto' }}>
           {tab === 'features' && (
             <>
               {/* Model-specific features first */}
@@ -180,7 +188,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                     key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
                   return (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)', minWidth: 140, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 120, flexShrink: 0 }}>
                         {featureLabel(key)}
                       </span>
                       {featureBar(val, maxVal, '#8b5cf6')}
@@ -199,7 +207,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   }}>{category} ({feats.filter(f => f.value !== 0).length}/{feats.length})</summary>
                   {feats.filter(f => f.value !== 0).map(({ key, value }) => (
                     <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 140, flexShrink: 0 }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-muted)', minWidth: 110, flexShrink: 0 }}>
                         {featureLabel(key)}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
