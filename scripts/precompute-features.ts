@@ -200,7 +200,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v50.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v50.json`,
     share: `${MODEL_DIR}/model-cache-share-v50.json`,
-    career: `${MODEL_DIR}/model-cache-career-v50.json`,
+    career: `${MODEL_DIR}/model-cache-career-v51.json`,
   };
 
   // Also support the monolithic cache for backward compat

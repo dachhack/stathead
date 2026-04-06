@@ -52,6 +52,7 @@ interface ProspectRow {
   boomProb: number;
   bustProb: number;
   zapScore: number;
+  careerFeatures?: Record<string, number>;
 }
 
 type SortField = keyof ProspectRow;
@@ -140,7 +141,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     ])
       .then(([combine, fpRankings, ktcPlayers, featureData]) => {
         // Career predictions from model
-        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number }>();
+        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number; features?: Record<string, number> }>();
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
             careerMap.set(normalizeName(p.name), {
@@ -151,6 +152,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               modelTier: p.modelTier || 0,
               boomProb: p.boomProb || 0,
               bustProb: p.bustProb || 0,
+              features: p.features,
             });
           }
         }
@@ -232,6 +234,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
             zapScore: zapMap.get(nName) || 0,
+            careerFeatures: career?.features,
           };
         });
 
@@ -266,6 +269,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
             zapScore: zapMap.get(nName) || 0,
+            careerFeatures: career?.features,
           });
         }
 
@@ -296,6 +300,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
             zapScore: zapMap.get(nName) || 0,
+            careerFeatures: career?.features,
           });
         }
 
@@ -670,20 +675,10 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             predictedPPG: selectedPlayer.predictedCareerPPG,
             zapScore: selectedPlayer.zapScore || undefined,
             thresholdProbs: selectedPlayer.thresholdProbs,
-            features: {
-              // Combine
+            features: selectedPlayer.careerFeatures || {
               weight: selectedPlayer.wt, forty: selectedPlayer.forty,
-              bench: selectedPlayer.bench, vertical: selectedPlayer.vertical,
-              broadJump: selectedPlayer.broadJump, cone: selectedPlayer.cone,
-              shuttle: selectedPlayer.shuttle,
-              // Draft
               nflDraftPick: selectedPlayer.projPick, nflDraftRound: selectedPlayer.projRound,
-              // College (from prospect data if available)
               prospectGrade: selectedPlayer.grade,
-              // Threshold probs spread
-              ...Object.fromEntries(
-                Object.entries(selectedPlayer.thresholdProbs || {}).map(([t, p]) => [`pThresh_${t}`, p])
-              ),
             },
           }}
           onClose={() => setSelectedPlayer(null)}
