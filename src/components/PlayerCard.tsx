@@ -78,14 +78,15 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+      background: 'rgba(0,0,0,0.85)', zIndex: 1000,
       display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-      padding: '20px 8px', overflowY: 'auto',
+      padding: '16px 12px', overflowY: 'auto',
     }} onClick={onClose}>
       <div style={{
         background: 'var(--bg-primary)', borderRadius: 12,
-        border: '1px solid var(--border)', maxWidth: 360, width: '100%',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        border: '1px solid var(--border)', maxWidth: 340, width: '100%',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
@@ -171,7 +172,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '10px 14px', maxHeight: 350, overflowY: 'auto' }}>
+        <div style={{ padding: '10px 14px' }}>
           {tab === 'features' && (
             <>
               {/* Model-specific features first */}
