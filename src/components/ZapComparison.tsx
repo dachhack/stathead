@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
+import { PlayerCard } from './PlayerCard';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2023 from '../data/zap-scores-2023.json';
 
@@ -44,6 +45,8 @@ export function ZapComparison() {
   const [posFilter, setPosFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('zapRank');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [selectedPlayer, setSelectedPlayer] = useState<CompRow | null>(null);
+  const [backtestData, setBacktestData] = useState<Map<string, RookieCareerBacktestRow>>(new Map());
 
   useEffect(() => {
     async function load() {
@@ -112,17 +115,19 @@ export function ZapComparison() {
       }
 
       // Rescale 2023 backtest scores to 0-100 within position
-      // (global rescaling spreads across all years, making 2023 class cluster in a narrow band)
+      // Use predictedPPG (regression output) instead of combinedScore (threshold probs)
+      // to avoid double-rescaling compression artifacts
       for (const pos of ['RB', 'WR'] as const) {
         const posRows = [...backtestByName.values()].filter(r => r.position === pos);
         if (posRows.length < 2) continue;
-        const scores = posRows.map(r => r.combinedScore);
-        const min = Math.min(...scores);
-        const max = Math.max(...scores);
+        // Use predicted PPG as the raw signal — more linear and interpretable
+        const ppgs = posRows.map(r => r.predictedPPG);
+        const min = Math.min(...ppgs);
+        const max = Math.max(...ppgs);
         const range = max - min;
         if (range > 0) {
           for (const r of posRows) {
-            r.combinedScore = Math.round((5 + ((r.combinedScore - min) / range) * 93) * 10) / 10;
+            r.combinedScore = Math.round((5 + ((r.predictedPPG - min) / range) * 93) * 10) / 10;
           }
         }
       }
@@ -152,6 +157,7 @@ export function ZapComparison() {
         }
       }
       setRows2023(r2023);
+      setBacktestData(backtestByName);
       setLoading(false);
     }
     load();
@@ -293,7 +299,7 @@ export function ZapComparison() {
             {filtered.map((r, i) => (
               <tr key={`${r.name}-${i}`}>
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{r.zapRank}</td>
-                <td><strong>{r.name}</strong></td>
+                <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
                 <td><span style={{ color: POS_COLORS[r.pos], fontWeight: 600 }}>{r.pos}</span></td>
                 <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}>{r.zapScore.toFixed(1)}</td>
                 <td style={{ textAlign: 'right', fontWeight: 700, color: r.ourScore > 0 ? tierColor(r.ourScore) : 'var(--text-muted)' }}>
@@ -326,6 +332,23 @@ export function ZapComparison() {
           </tbody>
         </table>
       </div>
+
+      {selectedPlayer && (
+        <PlayerCard
+          player={{
+            name: selectedPlayer.name,
+            position: selectedPlayer.pos,
+            draftSeason: season === '2023' ? 2023 : 2026,
+            zapScore: selectedPlayer.zapScore,
+            ourScore: selectedPlayer.ourScore,
+            predictedPPG: selectedPlayer.predictedPPG,
+            actualPPG: selectedPlayer.actualPPG,
+            thresholdProbs: backtestData.get(normalizeName(selectedPlayer.name))?.thresholdProbs,
+            features: backtestData.get(normalizeName(selectedPlayer.name))?.features,
+          }}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </>
   );
 }

@@ -82,6 +82,7 @@ export interface RookieCareerBacktestRow {
   thresholdProbs: Record<number, number>;
   boomProb: number;  // P(actual > predicted + MAE) — outperform probability
   bustProb: number;  // P(actual < predicted - MAE) — underperform probability
+  features?: Record<string, number>; // pre-draft features used by the model
 }
 
 export interface ThresholdModelMetrics {
@@ -302,6 +303,7 @@ export function trainRookieCareerModels(
       boomProb: number;  // filled in second pass
       bustProb: number;
       features: number[];  // raw feature vector for boom/bust training
+      featureRecord: Record<string, number>; // keyed features for player cards
     }> = [];
 
     for (const held of seasons) {
@@ -382,6 +384,12 @@ export function trainRookieCareerModels(
       }
 
       for (let i = 0; i < testR.length; i++) {
+        // Build keyed feature record for player cards
+        const fr: Record<string, number> = {};
+        featureKeys.forEach((k, j) => { fr[k] = Xte[i][j]; });
+        // Also include the raw features from the original row
+        Object.assign(fr, testR[i].features);
+
         losoData.push({
           name: testR[i].name,
           season: held,
@@ -391,6 +399,7 @@ export function trainRookieCareerModels(
           boomProb: 0,
           bustProb: 0,
           features: Xte[i],
+          featureRecord: fr,
         });
       }
     }
@@ -493,6 +502,7 @@ export function trainRookieCareerModels(
         thresholdProbs: d.threshProbs,
         boomProb: d.boomProb,
         bustProb: d.bustProb,
+        features: d.featureRecord,
       };
     });
     // Rescale combined scores to 0-100 (ZAP-comparable)
