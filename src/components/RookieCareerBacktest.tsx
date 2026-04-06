@@ -1,7 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
+import { normalizeName } from '../lib/featureTypes';
+import zapScores2023 from '../data/zap-scores-2023.json';
+import zapScores2026 from '../data/zap-scores-2026.json';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -59,6 +62,8 @@ export function RookieCareerBacktest() {
   const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
   const [sortField, setSortField] = useState<SortField>('combinedScore');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [trainingRows, setTrainingRows] = useState<any[]>([]);
+  const [predictions2026, setPredictions2026] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -81,6 +86,8 @@ export function RookieCareerBacktest() {
         } catch {}
       }
       if (d?.rows?.length) {
+        setTrainingRows(d.rows);
+        if (d.careerPredictions2026) setPredictions2026(d.careerPredictions2026);
         let careerModels = d.rookieCareerModels;
         if (!careerModels || Object.keys(careerModels).length === 0 || !careerModels[Object.keys(careerModels)[0]]?.backtestRows) {
           try { careerModels = trainRookieCareerModels(d.rows); } catch {}
@@ -193,6 +200,108 @@ export function RookieCareerBacktest() {
     }).filter(Boolean) as Array<typeof TIER_DEFS[0] & { n: number; avgPPG: number; medPPG: number; minPPG: number; maxPPG: number; hitRate: number }>;
   }, [filtered]);
 
+  // Build ZAP lookup for CSV export
+  const zapLookup = useMemo(() => {
+    const map = new Map<string, { zap: number; rank: number }>();
+    for (const pos of ['RB', 'WR'] as const) {
+      for (const z of (zapScores2023 as any)[pos] || []) {
+        map.set(`${normalizeName(z.name)}::2023`, { zap: z.zap, rank: z.rank });
+      }
+    }
+    for (const pos of ['RB', 'WR', 'TE'] as const) {
+      for (const z of (zapScores2026 as any)[pos] || []) {
+        map.set(`${normalizeName(z.name)}::2026`, { zap: z.zap, rank: z.rank });
+      }
+    }
+    return map;
+  }, []);
+
+  // Rookie year 1 PPG lookup from training rows
+  const rookieYear1PPG = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of trainingRows) {
+      const yil = r.features?.yearsInLeague ?? 99;
+      if (yil === 0 && r.rawPPG > 0) {
+        const key = `${normalizeName(r.name)}::${r.position}`;
+        // Keep the first year's PPG
+        if (!map.has(key)) map.set(key, r.rawPPG);
+      }
+    }
+    return map;
+  }, [trainingRows]);
+
+  // CSV export
+  const exportCSV = useCallback(() => {
+    const header = [
+      'Name', 'Position', 'Draft Class', 'Draft Pick',
+      'Rookie Yr1 PPG', 'Best 2of3 PPG', 'Predicted PPG',
+      'Percentile', 'Tier',
+      'ZAP Score', 'ZAP Rank',
+    ];
+    const csvRows: string[][] = [];
+
+    // Historical backtest rows
+    for (const r of allRows) {
+      const zapKey = `${normalizeName(r.name)}::${r.draftSeason}`;
+      const zap = zapLookup.get(zapKey);
+      const yr1Key = `${normalizeName(r.name)}::${r.position}`;
+      const yr1PPG = rookieYear1PPG.get(yr1Key);
+
+      csvRows.push([
+        r.name,
+        r.position,
+        String(r.draftSeason),
+        String(r.features?.nflDraftPick || ''),
+        yr1PPG != null ? yr1PPG.toFixed(1) : '',
+        r.actualPPG > 0 ? r.actualPPG.toFixed(1) : '',
+        r.predictedPPG > 0 ? r.predictedPPG.toFixed(1) : '',
+        String(r.percentile || r.combinedScore || ''),
+        tierLabel(r.modelTier),
+        zap ? zap.zap.toFixed(1) : '',
+        zap ? String(zap.rank) : '',
+      ]);
+    }
+
+    // 2026 prospects
+    for (const p of predictions2026) {
+      const zapKey = `${normalizeName(p.name)}::2026`;
+      const zap = zapLookup.get(zapKey);
+
+      csvRows.push([
+        p.name,
+        p.position,
+        '2026',
+        String(p.adp || ''),
+        '', // no year 1 PPG yet
+        '', // no B2/3 yet
+        p.predictedCareerPPG > 0 ? p.predictedCareerPPG.toFixed(1) : '',
+        p.percentile != null ? String(p.percentile) : String(p.combinedScore || ''),
+        p.modelTier ? tierLabel(p.modelTier) : '',
+        zap ? zap.zap.toFixed(1) : '',
+        zap ? String(zap.rank) : '',
+      ]);
+    }
+
+    // Sort by draft class desc, then percentile desc
+    csvRows.sort((a, b) => {
+      const yearDiff = Number(b[2] || 0) - Number(a[2] || 0);
+      if (yearDiff !== 0) return yearDiff;
+      return Number(b[7] || 0) - Number(a[7] || 0);
+    });
+
+    const csv = [header, ...csvRows].map(row =>
+      row.map(cell => cell.includes(',') ? `"${cell}"` : cell).join(',')
+    ).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stathead_rookie_career_scores_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [allRows, predictions2026, zapLookup, rookieYear1PPG]);
+
   if (loading) return <div className="loading"><div className="spinner" /><div className="loading-text">Training career models...</div></div>;
   if (!models || allRows.length === 0) return <div className="empty-state"><h3>No Backtest Data</h3><p>Visit the Draft Optimizer tab first to generate training data, then return here.</p></div>;
 
@@ -205,6 +314,14 @@ export function RookieCareerBacktest() {
               {pos}
             </button>
           ))}
+          <button
+            onClick={exportCSV}
+            style={{
+              marginLeft: 'auto', padding: '4px 12px', fontSize: 11,
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)',
+            }}
+          >Export CSV</button>
         </div>
         <div className="control-group">
           <label className="control-label">Draft Class</label>
