@@ -151,19 +151,32 @@ export function ZapComparison() {
 
       const r2023: CompRow[] = [];
       for (const pos of ['RB', 'WR'] as const) {
+        // Compute actual PPG percentiles vs all historical backtest rookies at this position
+        const posBacktestPPGs = backtestRows
+          .filter(r => r.position === pos && r.actualPPG > 0)
+          .map(r => r.actualPPG)
+          .sort((a, b) => a - b);
+
         for (const z of (zapScores2023 as any)[pos] || []) {
           const nName = normalizeName(z.name);
           const bt = backtestByName.get(nName);
           const ourScore = bt?.combinedScore || 0;
           const actualPPG = bt?.actualPPG || 0;
           const predictedPPG = bt?.predictedPPG || 0;
-          // Determine who was closer to actual (using score as proxy for ranking accuracy)
-          // Compare how close each model's score correlates with actual outcome
+
+          // Compute actual percentile: how player's real PPG ranks vs all historical rookies
+          let actualPctl = 0;
+          if (actualPPG > 0 && posBacktestPPGs.length > 0) {
+            const rank = posBacktestPPGs.filter(ppg => ppg <= actualPPG).length;
+            actualPctl = Math.round((rank / posBacktestPPGs.length) * 100);
+          }
+
+          // Winner: whose score was closer to the actual percentile?
           let winner: '' | 'ours' | 'zap' | 'tie' = '';
           if (ourScore > 0 && actualPPG > 0) {
-            const ourError = Math.abs(ourScore - actualPPG * (100 / 20)); // normalize actual to 0-100 scale
-            const zapError = Math.abs(z.zap - actualPPG * (100 / 20));
-            if (Math.abs(ourError - zapError) < 2) winner = 'tie';
+            const ourError = Math.abs(ourScore - actualPctl);
+            const zapError = Math.abs(z.zap - actualPctl);
+            if (Math.abs(ourError - zapError) < 3) winner = 'tie';
             else winner = ourError < zapError ? 'ours' : 'zap';
           }
           r2023.push({
