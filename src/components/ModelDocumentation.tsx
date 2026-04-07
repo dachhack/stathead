@@ -1129,6 +1129,47 @@ export function ModelDocumentation() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* AUC vs Brier chart per threshold */}
+                  <div style={{ marginBottom: 20 }}>
+                    {(() => {
+                      const chartData = m.thresholdMetrics!.map(tm => ({
+                        name: `>${tm.threshold} PPG`,
+                        auc: tm.auc,
+                        baseRate: tm.baseRate,
+                        brier: tm.brierScore,
+                      }));
+                      const aucColor = (v: number) => v > 65 ? '#22c55e' : v > 55 ? '#facc15' : v > 50 ? '#fb923c' : '#ef4444';
+                      if (isMobile) {
+                        return (
+                          <MobileBarList
+                            items={chartData.map(d => ({ label: d.name, value: d.auc, color: aucColor(d.auc) }))}
+                            format={(v) => `${v.toFixed(0)}% AUC`}
+                          />
+                        );
+                      }
+                      return (
+                        <ResponsiveContainer width="100%" height={Math.max(180, chartData.length * 36)}>
+                          <BarChart data={chartData} layout="vertical" margin={{ left: 90, right: 40, top: 4, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                            <XAxis type="number" stroke="var(--text-muted)" fontSize={10} domain={[40, 100]} tickFormatter={(v: number) => `${v}%`} />
+                            <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={80} />
+                            <Tooltip
+                              contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              formatter={((v: any, _n: any, p: any) => [`${Number(v).toFixed(1)}% (base ${p.payload.baseRate}%, Brier ${p.payload.brier.toFixed(3)})`, 'AUC']) as any}
+                            />
+                            <Bar dataKey="auc" radius={[0, 4, 4, 0]}>
+                              {chartData.map((d, idx) => (
+                                <Cell key={idx} fill={aucColor(d.auc)} />
+                              ))}
+                              <LabelList dataKey="auc" position="right" formatter={((v: number) => `${v.toFixed(0)}%`) as any} style={{ fill: 'var(--text-secondary)', fontSize: 10, fontWeight: 600 }} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      );
+                    })()}
+                  </div>
                 </>
               )}
 
@@ -1460,7 +1501,7 @@ export function ModelDocumentation() {
           );
         })()}
 
-        {model && (
+        {model && section === 'projection' && (
           <>
             {/* Draft Simulation */}
             {data.draftSim2025 && data.draftSim2025.adpTeam.length > 0 && (() => {
