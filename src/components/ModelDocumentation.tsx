@@ -296,6 +296,7 @@ export function ModelDocumentation() {
           </div>
         </div>
 
+        {section === 'projection' && (<>
         {/* Stage 1: Team Volume */}
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Stage 1: Team Volume Projections</h3>
@@ -436,6 +437,7 @@ export function ModelDocumentation() {
             Weekly consistency (boom/bust rates) · Team environment (dome, O-line quality, roster turnover).
           </p>
         </div>
+        </>)}
 
         {/* ── Model Evaluation Selector ── */}
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
