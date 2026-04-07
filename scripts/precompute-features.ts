@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v50.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v50.json`,
     share: `${MODEL_DIR}/model-cache-share-v50.json`,
-    career: `${MODEL_DIR}/model-cache-career-v51.json`,
+    career: `${MODEL_DIR}/model-cache-career-v52.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -1703,6 +1703,52 @@ async function main() {
   // ROOKIE CAREER PREDICTION MODEL (shared module)
   // ══════════════════════════════════════════════════════════════
   console.log('\n  Training rookie career prediction models...');
+
+  // Enrich training rows with prospect store data (fills nflverse college gaps)
+  {
+    const pStore = loadProspectStore();
+    if (pStore.size > 0) {
+      let enriched = 0;
+      for (const row of result.rows) {
+        const nn = normalizeName(row.name);
+        const ps = pStore.get(nn);
+        if (!ps) continue;
+        const yil = row.features?.yearsInLeague ?? 99;
+        if (yil > 1) continue; // only enrich rookie-year rows (career model filters yil<=1)
+        const f = row.features as Record<string, number>;
+        // Merge prospect store college stats (store takes priority where present)
+        if (ps.collegeRecYds && !f.collegeRecYds) f.collegeRecYds = ps.collegeRecYds;
+        if (ps.collegeRushYds && !f.collegeRushYds) f.collegeRushYds = ps.collegeRushYds;
+        if (ps.collegeRecTDs && !f.collegeRecTDs) f.collegeRecTDs = ps.collegeRecTDs;
+        if (ps.collegeRushTDs && !f.collegeRushTDs) f.collegeRushTDs = ps.collegeRushTDs;
+        if (ps.collegePassTDs && !f.collegePassTDs) f.collegePassTDs = ps.collegePassTDs;
+        if (ps.collegeTotalTDs && !f.collegeTotalTDs) f.collegeTotalTDs = ps.collegeTotalTDs;
+        if (ps.collegeBestRecYds && !f.collegeBestRecYds) f.collegeBestRecYds = ps.collegeBestRecYds;
+        if (ps.collegeBestRushYds && !f.collegeBestRushYds) f.collegeBestRushYds = ps.collegeBestRushYds;
+        if (ps.collegeDominatorRating && !f.collegeDominatorRating) f.collegeDominatorRating = ps.collegeDominatorRating;
+        if (ps.collegeBreakoutAge && !f.collegeBreakoutAge) f.collegeBreakoutAge = ps.collegeBreakoutAge;
+        if (ps.collegeRecYdsPerTeamPassAtt && !f.collegeRecYdsPerTeamPassAtt) f.collegeRecYdsPerTeamPassAtt = ps.collegeRecYdsPerTeamPassAtt;
+        if (ps.collegeReceptionShare && !f.collegeReceptionShare) f.collegeReceptionShare = ps.collegeReceptionShare;
+        if (ps.collegeBreakoutScore && !f.collegeBreakoutScore) f.collegeBreakoutScore = ps.collegeBreakoutScore;
+        if (ps.collegeTeammateScore && !f.collegeTeammateScore) f.collegeTeammateScore = ps.collegeTeammateScore;
+        if (ps.speedScore && !f.speedScore) f.speedScore = ps.speedScore;
+        if (ps.weight && !f.weight) f.weight = ps.weight;
+        if (ps.forty && !f.forty) f.forty = ps.forty;
+        if (ps.age && !f.age) f.age = ps.age;
+        if (ps.collegeSeasons && !f.collegeSeasons) f.collegeSeasons = ps.collegeSeasons;
+        if (ps.collegeEarlyDeclare != null && !f.collegeEarlyDeclare) f.collegeEarlyDeclare = ps.collegeEarlyDeclare;
+        if (ps.collegeGames && !f.collegeGames) f.collegeGames = ps.collegeGames;
+        if (ps.collegeRecPerGame && !f.collegeRecPerGame) f.collegeRecPerGame = ps.collegeRecPerGame;
+        if (ps.collegeRushYPC && !f.collegeRushYPC) f.collegeRushYPC = ps.collegeRushYPC;
+        if (ps.collegeYdsPerRec && !f.collegeYdsPerRec) f.collegeYdsPerRec = ps.collegeYdsPerRec;
+        if (ps.collegeMarketShare && !f.collegeMarketShare) f.collegeMarketShare = ps.collegeMarketShare;
+        f.hasCollegeStats = (f.collegeRecYds || f.collegeRushYds || f.collegePassTDs) ? 1 : 0;
+        enriched++;
+      }
+      console.log(`  Enriched ${enriched} rookie training rows from prospect store`);
+    }
+  }
+
   rookieCareerModels = trainRookieCareerModels(result.rows);
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
