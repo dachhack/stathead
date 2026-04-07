@@ -1182,6 +1182,27 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Use latest week snapshot (highest week number)
           const rosterByTeamPos = new Map<string, Set<string>>();
           const playerTeamMap = new Map<string, string>(); // name → team
+          // Team-listed physicals (height in inches, weight in lbs) — used as
+          // a fallback when a player has no NFL Combine record.
+          const rosterPhysicalsByName = new Map<string, { weight: number; heightIn: number }>();
+          const parseRosterHeight = (h: unknown): number => {
+            if (h == null) return 0;
+            const s = String(h).trim();
+            if (!s) return 0;
+            const m = s.match(/^(\d+)\s*-\s*(\d+)$/);
+            if (m) return Number(m[1]) * 12 + Number(m[2]);
+            const n = Number(s);
+            return isFinite(n) ? n : 0;
+          };
+          const captureRosterPhysicals = (r: any) => {
+            const name = normalizeName(r.full_name);
+            if (!name) return;
+            const wt = Number(r.weight) || 0;
+            const heightIn = parseRosterHeight(r.height);
+            if ((wt > 0 || heightIn > 0) && !rosterPhysicalsByName.has(name)) {
+              rosterPhysicalsByName.set(name, { weight: wt, heightIn });
+            }
+          };
           for (const r of seasonRosters) {
             if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
             const key = `${r.team}:${r.position}`;
@@ -1189,6 +1210,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const name = normalizeName(r.full_name);
             rosterByTeamPos.get(key)!.add(name);
             playerTeamMap.set(name, r.team);
+            captureRosterPhysicals(r);
           }
 
           // Prior-season roster for detecting new arrivals
@@ -1198,6 +1220,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const key = `${r.team}:${r.position}`;
             if (!priorRosterByTeamPos.has(key)) priorRosterByTeamPos.set(key, new Set());
             priorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
+            captureRosterPhysicals(r);
           }
 
           // Depth chart rank (use latest available depth chart)
@@ -1663,12 +1686,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
+            const rosterPhysical = rosterPhysicalsByName.get(normalName);
             const draft = draftByName.get(normalName);
             const snapAcc = snapAccum.get(normalName);
             const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
 
-            const heightIn = combine?.ht ? parseHeight(combine.ht) : 0;
-            const wt = combine?.wt || 0;
+            const heightIn = (combine?.ht ? parseHeight(combine.ht) : 0) || rosterPhysical?.heightIn || 0;
+            const wt = combine?.wt || rosterPhysical?.weight || 0;
             const bmi = heightIn > 0 && wt > 0 ? (703 * wt) / (heightIn * heightIn) : 0;
 
             const priorGames = prior?.games || 0;
@@ -2275,9 +2299,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const vor = Math.round((playerPPR - repLevel) * 10) / 10;
               const prior = priorByName.get(draftName);
               const combine = combineByName.get(draftName);
+              const rosterPhysical = rosterPhysicalsByName.get(draftName);
               const snapAcc = snapAccum.get(draftName);
               const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
-              const wt = combine?.wt || 0;
+              const wt = combine?.wt || rosterPhysical?.weight || 0;
               const playerGames = current.games || 1;
               const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
               const proxyAdp = draft.pick;
@@ -2303,7 +2328,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const best = collegeBestSeasonByName.get(draftName);
                   const zap = collegeZapByName.get(draftName);
                   const ts = teammateScoreByName.get(draftName) || 0;
-                  const ht = parseHeight(combine?.ht || '') || 0;
+                  const ht = parseHeight(combine?.ht || '') || rosterPhysical?.heightIn || 0;
                   const ss = speedScoreByName.get(draftName) || 0;
                   return {
                     collegeRecYds: cs?.get('Receiving Yards') || 0,
@@ -2637,6 +2662,25 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const predRosterByTeamPos = new Map<string, Set<string>>();
             const predPlayerTeamMap = new Map<string, string>();
             const predHeadshotByName = new Map<string, string>(); // normalised name → headshot URL
+            const predRosterPhysicalsByName = new Map<string, { weight: number; heightIn: number }>();
+            const parsePredRosterHeight = (h: unknown): number => {
+              if (h == null) return 0;
+              const s = String(h).trim();
+              if (!s) return 0;
+              const m = s.match(/^(\d+)\s*-\s*(\d+)$/);
+              if (m) return Number(m[1]) * 12 + Number(m[2]);
+              const n = Number(s);
+              return isFinite(n) ? n : 0;
+            };
+            const capturePredRosterPhysicals = (r: any) => {
+              const name = normalizeName(r.full_name);
+              if (!name) return;
+              const wt = Number(r.weight) || 0;
+              const heightIn = parsePredRosterHeight(r.height);
+              if ((wt > 0 || heightIn > 0) && !predRosterPhysicalsByName.has(name)) {
+                predRosterPhysicalsByName.set(name, { weight: wt, heightIn });
+              }
+            };
             for (const r of predSeasonRosters) {
               if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
               const key = `${r.team}:${r.position}`;
@@ -2645,6 +2689,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predRosterByTeamPos.get(key)!.add(name);
               predPlayerTeamMap.set(name, r.team);
               if (r.headshot_url) predHeadshotByName.set(name, r.headshot_url);
+              capturePredRosterPhysicals(r);
             }
             // Name aliases: ADP sources sometimes use different names than nflverse rosters.
             // Map alternative names → same team so predPlayerTeamMap lookups succeed.
@@ -2664,6 +2709,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const key = `${r.team}:${r.position}`;
               if (!predPriorRosterByTeamPos.has(key)) predPriorRosterByTeamPos.set(key, new Set());
               predPriorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
+              capturePredRosterPhysicals(r);
             }
             const predDepthRankByName = new Map<string, number>();
             const predDcLatest = new Map<string, DepthChart>();
@@ -3024,12 +3070,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const normalName = normalizeName(adpPlayer.name);
               const prior = predPriorByName.get(normalName);
               const combine = combineByName.get(normalName);
+              const rosterPhysical = predRosterPhysicalsByName.get(normalName);
               const draft = draftByName.get(normalName);
               const snapAcc = predSnapAccum.get(normalName);
               const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
 
-              const heightIn = combine?.ht ? parseHeight(combine.ht) : 0;
-              const wt = combine?.wt || 0;
+              const heightIn = (combine?.ht ? parseHeight(combine.ht) : 0) || rosterPhysical?.heightIn || 0;
+              const wt = combine?.wt || rosterPhysical?.weight || 0;
               const bmi = heightIn > 0 && wt > 0 ? (703 * wt) / (heightIn * heightIn) : 0;
 
               const priorGames = prior?.games || 0;
