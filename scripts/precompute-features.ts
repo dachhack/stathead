@@ -14,6 +14,8 @@ import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
+import { writeCareerScores, writeADPScores, writePPGScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
+import type { CareerScore, ADPScore, PPGScore } from '../src/lib/modelScoreStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
 
@@ -2412,6 +2414,81 @@ async function main() {
   const shareModelSummary: Record<string, { cvR2: number; cvMAE: number; n: number }> = {};
   for (const [k, v] of Object.entries(shareModels as any)) {
     shareModelSummary[k] = { cvR2: v.cvR2, cvMAE: v.cvMAE, n: v.n };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MODEL SCORE STORE: persist per-model outputs as separate shards
+  // All UI pages read from these for consistent scores
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('  Writing model score store...');
+  {
+    // Career scores: backtest + 2026 prospects
+    const careerScores: CareerScore[] = [];
+
+    // Backtest rows from all positions (with cross-year percentile)
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      const cm = (rookieCareerModels as any)[pos];
+      if (!cm?.backtestRows) continue;
+      const allPPGs = cm.backtestRows.map((r: any) => r.predictedPPG).sort((a: number, b: number) => a - b);
+      for (const r of cm.backtestRows) {
+        const rank = allPPGs.filter((p: number) => p <= r.predictedPPG).length;
+        const pctl = Math.round((rank / allPPGs.length) * 100);
+        const t = tierFromPercentile(pctl);
+        careerScores.push({
+          name: r.name, position: pos, draftSeason: r.draftSeason,
+          predictedPPG: r.predictedPPG, actualPPG: r.actualPPG,
+          percentile: pctl, tier: t.tier, tierLabel: t.label,
+          thresholdProbs: r.thresholdProbs,
+          features: r.features,
+        });
+      }
+    }
+
+    // 2026 prospects
+    for (const p of careerPredictions2026) {
+      const t = tierFromPercentile(p.percentile || p.combinedScore || 0);
+      careerScores.push({
+        name: p.name, position: p.position, draftSeason: 2026,
+        predictedPPG: p.predictedCareerPPG || 0,
+        percentile: p.percentile || p.combinedScore || 0,
+        tier: t.tier, tierLabel: t.label,
+        thresholdProbs: p.thresholdProbs || {},
+        features: p.features,
+        school: p.school, projPick: p.projPick || p.adp,
+      });
+    }
+
+    writeCareerScores(careerScores);
+    console.log(`    career: ${careerScores.length} scores (${careerScores.filter(s => s.draftSeason === 2026).length} prospects + ${careerScores.filter(s => s.draftSeason < 2026).length} backtest)`);
+
+    // ADP scores
+    const adpScores: ADPScore[] = predictions2026.map((p: any) => ({
+      name: p.name, position: p.position, team: p.team,
+      adp: p.adp, predictedVor: p.predictedVor, hitProb: p.hitProb,
+      ciLower: p.ciLower, ciUpper: p.ciUpper, isRookie: p.isRookie,
+      headshotUrl: p.headshotUrl,
+    }));
+    writeADPScores(adpScores);
+    console.log(`    adp: ${adpScores.length} predictions`);
+
+    // PPG scores
+    const ppgScores: PPGScore[] = (ppgPredictions2026 || []).map((p: any) => ({
+      name: p.name, position: p.position, predictedPPG: p.predictedPPG,
+    }));
+    writePPGScores(ppgScores);
+    console.log(`    ppg: ${ppgScores.length} predictions`);
+
+    // Manifest
+    writeScoreManifest({
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      models: {
+        career: { version: 'v51', count: careerScores.filter(s => s.draftSeason === 2026).length, backtestCount: careerScores.filter(s => s.draftSeason < 2026).length },
+        adp: { version: 'v50', count: adpScores.length },
+        ppg: { version: 'v50', count: ppgScores.length },
+      },
+    });
+    console.log('    manifest written');
   }
 
   const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, careerPredictions2026 };

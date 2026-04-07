@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
+import { loadCareerScores } from '../lib/modelScoreClient';
+import type { CareerScore } from '../lib/modelScoreStore';
 import { normalizeName } from '../lib/featureTypes';
 import { PlayerCard } from './PlayerCard';
 import zapScores2023 from '../data/zap-scores-2023.json';
@@ -67,9 +69,18 @@ export function RookieCareerBacktest() {
   const [predictions2026, setPredictions2026] = useState<any[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<RookieCareerBacktestRow | null>(null);
   const [prospectFeatures, setProspectFeatures] = useState<Map<string, any>>(new Map());
+  const [scoreStoreData, setScoreStoreData] = useState<CareerScore[]>([]);
 
   useEffect(() => {
     async function load() {
+      // Try loading from model score store first (has features + consistent percentiles)
+      try {
+        const scores = await loadCareerScores();
+        if (scores.length > 0) {
+          setScoreStoreData(scores);
+        }
+      } catch {}
+
       let d: any = null;
       try {
         const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
@@ -190,6 +201,19 @@ export function RookieCareerBacktest() {
       }
     }
 
+    // Merge features from score store (most reliable source — has features + percentiles)
+    if (scoreStoreData.length > 0) {
+      const scoreByKey = new Map<string, CareerScore>();
+      for (const s of scoreStoreData) scoreByKey.set(`${normalizeName(s.name)}::${s.position}::${s.draftSeason}`, s);
+      for (const r of rows) {
+        const key = `${normalizeName(r.name)}::${r.position}::${r.draftSeason}`;
+        const ss = scoreByKey.get(key);
+        if (ss?.features && Object.keys(ss.features).length > 0) {
+          r.features = ss.features;
+        }
+      }
+    }
+
     // Recompute combinedScore as cross-year percentile within position
     // so scores are consistent with ZAP Compare and Prospects views
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
@@ -205,7 +229,7 @@ export function RookieCareerBacktest() {
       }
     }
     return rows;
-  }, [models, trainingRows, prospectFeatures]);
+  }, [models, trainingRows, prospectFeatures, scoreStoreData]);
 
   const seasons = useMemo(() => {
     const s = [...new Set(allRows.map(r => r.draftSeason))].sort();

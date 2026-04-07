@@ -7,4 +7,5 @@ public/data/
 !public/data/trained-models-cache-*.json
 !public/data/model-cache-*.json
 !public/data/feature-store/
+!public/data/score-store/
 .claude/

@@ -49,6 +49,9 @@ jobs:
           if [ -d public/data/feature-store ]; then
             git add -f public/data/feature-store/
           fi
+          if [ -d public/data/score-store ]; then
+            git add -f public/data/score-store/
+          fi
           git diff --cached --quiet || git commit -m "Auto-commit caches: training rows + models + feature store [skip ci]" && git push || true
 
       - uses: actions/upload-pages-artifact@v3
