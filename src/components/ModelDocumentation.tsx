@@ -27,6 +27,12 @@ interface PositionModelData {
 }
 
 export function ModelDocumentation() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [data, setData] = useState<{
     models: PositionModelData[];
     featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
@@ -1132,20 +1138,43 @@ export function ModelDocumentation() {
                       Normalized ridge coefficient magnitudes — larger bars indicate features with more influence on predicted PPG.
                     </p>
                     <div style={{ marginBottom: 20 }}>
-                      <ResponsiveContainer width="100%" height={Math.max(180, fiData.length * 28)}>
-                        <BarChart data={fiData} layout="vertical" margin={{ left: 160, right: 20, top: 4, bottom: 4 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                          <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
-                          <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={150} />
+                      <ResponsiveContainer width="100%" height={Math.max(180, fiData.length * (isMobile ? 44 : 28))}>
+                        <BarChart
+                          data={fiData}
+                          layout="vertical"
+                          margin={isMobile ? { left: 8, right: 48, top: 16, bottom: 4 } : { left: 160, right: 20, top: 4, bottom: 4 }}
+                          barCategoryGap={isMobile ? 12 : 4}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={!isMobile} />
+                          <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} hide={isMobile} />
+                          <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={isMobile ? 0 : 150} tick={!isMobile} axisLine={!isMobile} tickLine={!isMobile} />
                           <Tooltip
+                            cursor={{ fill: 'var(--bg-tertiary)', opacity: 0.4 }}
                             contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={((v: any) => [`${(Number(v) * 100).toFixed(1)}%`, 'Importance']) as any}
                           />
-                          <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
+                          <Bar dataKey="importance" radius={[4, 4, 4, 4]}>
                             {fiData.map((_, idx) => (
                               <Cell key={idx} fill={idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1'} fillOpacity={1 - idx * 0.06} />
                             ))}
+                            {isMobile && (
+                              <LabelList
+                                dataKey="name"
+                                position="top"
+                                offset={4}
+                                style={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}
+                              />
+                            )}
+                            {isMobile && (
+                              <LabelList
+                                dataKey="importance"
+                                position="right"
+                                offset={6}
+                                formatter={((v: number) => `${(v * 100).toFixed(0)}%`) as any}
+                                style={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                              />
+                            )}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
