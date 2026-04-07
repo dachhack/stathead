@@ -214,17 +214,17 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   })();
                   const color = usePctl ? pctlColor(pctl) : '#8b5cf6';
                   return (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 110, flexShrink: 0 }}>
+                    <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {featureLabel(key)}
                       </span>
-                      <div style={{ flex: 1, height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
                         <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
                       </div>
-                      <span style={{ fontSize: 9, color: 'var(--text-muted)', minWidth: 30, textAlign: 'right' }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
                         {usePctl ? `${pctl}` : fmtVal(val)}
                       </span>
-                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', minWidth: 36, textAlign: 'right' }}>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
                         {fmtVal(val)}
                       </span>
                     </div>
@@ -232,26 +232,57 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 })}
               </div>
 
-              {/* All features by category */}
-              {[...featuresByCategory.entries()].map(([category, feats]) => (
-                <details key={category} style={{ marginBottom: 8 }}>
-                  <summary style={{
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    color: CATEGORY_COLORS[category] || 'var(--text-secondary)',
-                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
-                  }}>{category} ({feats.filter(f => f.value !== 0).length}/{feats.length})</summary>
-                  {feats.filter(f => f.value !== 0).map(({ key, value }) => (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 9, color: 'var(--text-muted)', minWidth: 110, flexShrink: 0 }}>
-                        {featureLabel(key)}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                        {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}
-                      </span>
-                    </div>
-                  ))}
-                </details>
-              ))}
+              {/* All features by category — collapsed by default */}
+              <details style={{ marginTop: 8 }}>
+                <summary style={{
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  color: 'var(--text-secondary)', textTransform: 'uppercase',
+                  letterSpacing: 1, marginBottom: 6, padding: '4px 0',
+                }}>
+                  All Features ({[...featuresByCategory.values()].reduce((s, f) => s + f.filter(x => x.value !== 0).length, 0)})
+                </summary>
+                <div style={{ paddingLeft: 8 }}>
+                  {[...featuresByCategory.entries()].map(([category, feats]) => {
+                    const nonZero = feats.filter(f => f.value !== 0);
+                    if (nonZero.length === 0) return null;
+                    return (
+                      <details key={category} style={{ marginBottom: 6 }}>
+                        <summary style={{
+                          fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                          color: CATEGORY_COLORS[category] || 'var(--text-secondary)',
+                          textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
+                        }}>{category} ({nonZero.length}/{feats.length})</summary>
+                        <div style={{ paddingLeft: 8 }}>
+                          {nonZero.map(({ key, value }) => {
+                            const pctl = player.featurePercentiles?.[key];
+                            return (
+                              <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                <span style={{ fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {featureLabel(key)}
+                                </span>
+                                <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, overflow: 'hidden' }}>
+                                  <div style={{
+                                    width: `${pctl !== undefined ? pctl : 0}%`,
+                                    height: '100%',
+                                    background: pctl !== undefined ? pctlColor(pctl) : 'var(--bg-tertiary)',
+                                    borderRadius: 2,
+                                  }} />
+                                </div>
+                                <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
+                                  {pctl !== undefined ? pctl : ''}
+                                </span>
+                                <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                  {fmtVal(value)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
+              </details>
             </>
           )}
 
