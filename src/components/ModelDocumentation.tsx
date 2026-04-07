@@ -26,6 +26,45 @@ interface PositionModelData {
   ridgeModel?: { coefficients: number[] };
 }
 
+function MobileBarList({
+  items,
+  format,
+}: {
+  items: Array<{ label: string; value: number; color: string }>;
+  format: (v: number) => string;
+}) {
+  const max = Math.max(...items.map((i) => i.value), 0) || 1;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 0' }}>
+      {items.map((item, idx) => {
+        const pct = Math.max(2, (item.value / max) * 100);
+        return (
+          <div key={idx}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              fontSize: 11, marginBottom: 3, gap: 8,
+            }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 600, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+                {item.label}
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                {format(item.value)}
+              </span>
+            </div>
+            <div style={{ background: 'var(--bg-tertiary)', borderRadius: 4, height: 10, overflow: 'hidden' }}>
+              <div style={{
+                width: `${pct}%`, height: '100%',
+                background: item.color, borderRadius: 4,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ModelDocumentation() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
   useEffect(() => {
@@ -585,23 +624,30 @@ export function ModelDocumentation() {
             {/* Category importance chart */}
             <h3 style={{ fontSize: 15, marginBottom: 8 }}>Feature Category Importance</h3>
             <div style={{ marginBottom: 20 }}>
-              <ResponsiveContainer width="100%" height={Math.max(200, categoryImportance.length * 32)}>
-                <BarChart data={categoryImportance} layout="vertical" margin={{ left: 120, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" stroke="var(--text-muted)" fontSize={10} />
-                  <YAxis type="category" dataKey="category" stroke="var(--text-muted)" fontSize={11} width={110} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={((v: any) => [Number(v).toFixed(4), 'Importance']) as any}
-                  />
-                  <Bar dataKey="importance" radius={[0, 4, 4, 0]} maxBarSize={24}>
-                    {categoryImportance.map((c) => (
-                      <rect key={c.category} fill={c.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {isMobile ? (
+                <MobileBarList
+                  items={categoryImportance.map((c) => ({ label: c.category, value: c.importance, color: c.color }))}
+                  format={(v) => v.toFixed(4)}
+                />
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(200, categoryImportance.length * 32)}>
+                  <BarChart data={categoryImportance} layout="vertical" margin={{ left: 120, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis type="number" stroke="var(--text-muted)" fontSize={10} />
+                    <YAxis type="category" dataKey="category" stroke="var(--text-muted)" fontSize={11} width={110} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((v: any) => [Number(v).toFixed(4), 'Importance']) as any}
+                    />
+                    <Bar dataKey="importance" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                      {categoryImportance.map((c) => (
+                        <rect key={c.category} fill={c.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             {/* Top 20 individual features */}
@@ -609,27 +655,38 @@ export function ModelDocumentation() {
               Top {Math.min(20, featureImportance.length)} Features ({modelType === 'gbm' ? 'Avg |Contribution|' : '|Coefficient|'})
             </h3>
             <div style={{ marginBottom: 20 }}>
-              <ResponsiveContainer width="100%" height={Math.min(20, featureImportance.length) * 28 + 40}>
-                <BarChart
-                  data={featureImportance.slice(0, 20).map((f) => ({
+              {isMobile ? (
+                <MobileBarList
+                  items={featureImportance.slice(0, 20).map((f) => ({
                     label: f.label,
                     value: f.importance,
-                    fill: CATEGORY_COLORS[f.category] || '#6b7280',
+                    color: CATEGORY_COLORS[f.category] || '#6b7280',
                   }))}
-                  layout="vertical"
-                  margin={{ left: 180, right: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" stroke="var(--text-muted)" fontSize={10} />
-                  <YAxis type="category" dataKey="label" stroke="var(--text-muted)" fontSize={11} width={170} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={((v: any) => [Number(v).toFixed(4), modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient']) as any}
-                  />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+                  format={(v) => v.toFixed(4)}
+                />
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.min(20, featureImportance.length) * 28 + 40}>
+                  <BarChart
+                    data={featureImportance.slice(0, 20).map((f) => ({
+                      label: f.label,
+                      value: f.importance,
+                      fill: CATEGORY_COLORS[f.category] || '#6b7280',
+                    }))}
+                    layout="vertical"
+                    margin={{ left: 180, right: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis type="number" stroke="var(--text-muted)" fontSize={10} />
+                    <YAxis type="category" dataKey="label" stroke="var(--text-muted)" fontSize={11} width={170} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((v: any) => [Number(v).toFixed(4), modelType === 'gbm' ? 'Avg Contribution' : 'Coefficient']) as any}
+                    />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             {/* Full feature table by category */}
@@ -1138,46 +1195,34 @@ export function ModelDocumentation() {
                       Normalized ridge coefficient magnitudes — larger bars indicate features with more influence on predicted PPG.
                     </p>
                     <div style={{ marginBottom: 20 }}>
-                      <ResponsiveContainer width="100%" height={Math.max(180, fiData.length * (isMobile ? 44 : 28))}>
-                        <BarChart
-                          data={fiData}
-                          layout="vertical"
-                          margin={isMobile ? { left: 8, right: 48, top: 16, bottom: 4 } : { left: 160, right: 20, top: 4, bottom: 4 }}
-                          barCategoryGap={isMobile ? 12 : 4}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={!isMobile} />
-                          <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} hide={isMobile} />
-                          <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={isMobile ? 0 : 150} tick={!isMobile} axisLine={!isMobile} tickLine={!isMobile} />
-                          <Tooltip
-                            cursor={{ fill: 'var(--bg-tertiary)', opacity: 0.4 }}
-                            contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            formatter={((v: any) => [`${(Number(v) * 100).toFixed(1)}%`, 'Importance']) as any}
-                          />
-                          <Bar dataKey="importance" radius={[4, 4, 4, 4]}>
-                            {fiData.map((_, idx) => (
-                              <Cell key={idx} fill={idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1'} fillOpacity={1 - idx * 0.06} />
-                            ))}
-                            {isMobile && (
-                              <LabelList
-                                dataKey="name"
-                                position="top"
-                                offset={4}
-                                style={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }}
-                              />
-                            )}
-                            {isMobile && (
-                              <LabelList
-                                dataKey="importance"
-                                position="right"
-                                offset={6}
-                                formatter={((v: number) => `${(v * 100).toFixed(0)}%`) as any}
-                                style={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                              />
-                            )}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {isMobile ? (
+                        <MobileBarList
+                          items={fiData.map((d, idx) => ({
+                            label: d.name,
+                            value: d.importance,
+                            color: idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1',
+                          }))}
+                          format={(v) => `${(v * 100).toFixed(1)}%`}
+                        />
+                      ) : (
+                        <ResponsiveContainer width="100%" height={Math.max(180, fiData.length * 28)}>
+                          <BarChart data={fiData} layout="vertical" margin={{ left: 160, right: 20, top: 4, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                            <XAxis type="number" stroke="var(--text-muted)" fontSize={10} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} />
+                            <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={11} width={150} />
+                            <Tooltip
+                              contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              formatter={((v: any) => [`${(Number(v) * 100).toFixed(1)}%`, 'Importance']) as any}
+                            />
+                            <Bar dataKey="importance" radius={[0, 4, 4, 0]}>
+                              {fiData.map((_, idx) => (
+                                <Cell key={idx} fill={idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1'} fillOpacity={1 - idx * 0.06} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </>
                 );
