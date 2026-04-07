@@ -91,6 +91,7 @@ export async function buildSharedContext(opts: {
     rosterByTeam: new Map(),
     priorRosterByTeam: new Map(),
     playerTeamMap: new Map(),
+    rosterPhysicalsByName: new Map(),
     vorReplacement: {},
     playerHistoryMap: opts.staticData?.playerHistoryMap || new Map(),
   };
@@ -332,6 +333,16 @@ export async function buildSharedContext(opts: {
   // Roster maps
   const rosters = rostersRaw as any[];
   const priorRosters = priorRostersRaw as any[];
+  // nflverse height is "6-1" (feet-inches) or already an integer in inches.
+  const parseRosterHeight = (h: unknown): number => {
+    if (h == null) return 0;
+    const s = String(h).trim();
+    if (!s) return 0;
+    const m = s.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (m) return Number(m[1]) * 12 + Number(m[2]);
+    const n = Number(s);
+    return isFinite(n) ? n : 0;
+  };
   for (const r of rosters) {
     if (!POSITIONS.includes(r.position)) continue;
     const name = normalizeName(r.player_name || r.full_name);
@@ -339,6 +350,14 @@ export async function buildSharedContext(opts: {
     const posKey = `${r.team}:${r.position}`;
     if (!data.rosterByTeam.has(posKey)) data.rosterByTeam.set(posKey, new Set());
     data.rosterByTeam.get(posKey)!.add(name);
+    // Capture team-listed physicals for combine fallback. Take the first
+    // non-zero record per player so we don't overwrite a known weight with
+    // a missing one from a later week.
+    const wt = Number(r.weight) || 0;
+    const heightIn = parseRosterHeight(r.height);
+    if ((wt > 0 || heightIn > 0) && !data.rosterPhysicalsByName.has(name)) {
+      data.rosterPhysicalsByName.set(name, { weight: wt, heightIn });
+    }
   }
   for (const r of priorRosters) {
     if (!POSITIONS.includes(r.position)) continue;
@@ -346,6 +365,13 @@ export async function buildSharedContext(opts: {
     const posKey = `${r.team}:${r.position}`;
     if (!data.priorRosterByTeam.has(posKey)) data.priorRosterByTeam.set(posKey, new Set());
     data.priorRosterByTeam.get(posKey)!.add(name);
+    if (!data.rosterPhysicalsByName.has(name)) {
+      const wt = Number(r.weight) || 0;
+      const heightIn = parseRosterHeight(r.height);
+      if (wt > 0 || heightIn > 0) {
+        data.rosterPhysicalsByName.set(name, { weight: wt, heightIn });
+      }
+    }
   }
 
   // Depth chart ranks

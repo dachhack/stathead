@@ -315,6 +315,7 @@ export const FEATURES: FeatureDef[] = [
   { key: 'hasCollegeStats', label: 'Has College Stats', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'hasProspectGrade', label: 'Has Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'hasCombineData', label: 'Has Combine Data', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  { key: 'hasPhysicalData', label: 'Has Physical Data', category: 'College', positions: ['RB', 'WR', 'TE'] },
 
   // Contract data (team investment signal)
   { key: 'contractAPY', label: 'Contract APY ($M)', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },

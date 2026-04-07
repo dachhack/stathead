@@ -13,9 +13,9 @@ export const combineGroup: FeatureGroup = {
     label: 'Combine Measurables',
     featureKeys: [
       'weight', 'forty', 'bench', 'vertical', 'broadJump',
-      'cone', 'shuttle', 'bmi', 'hasCombineData',
+      'cone', 'shuttle', 'bmi', 'hasCombineData', 'hasPhysicalData',
     ],
-    dataDeps: ['combine'],
+    dataDeps: ['combine', 'rosters'],
     scope: 'static',
     positions: ['RB', 'WR', 'TE'],
   },
@@ -24,8 +24,14 @@ export const combineGroup: FeatureGroup = {
     for (const [pk, player] of ctx.players) {
       const combine = ctx.data.combineByName.get(player.normalName);
       const avg = ctx.data.combineAvg.get(player.position);
-      const heightIn = combine?.ht ? parseHeight(combine.ht) : 0;
-      const wt = combine?.wt || 0;
+      const roster = ctx.data.rosterPhysicalsByName.get(player.normalName);
+      // Prefer combine measurables; fall back to team-listed roster
+      // physicals so non-combine attendees (e.g. DeVonta Smith) still get
+      // accurate weight/height. Positional averages are the last resort
+      // to keep the model from seeing zeros.
+      const combineHeight = combine?.ht ? parseHeight(combine.ht) : 0;
+      const heightIn = combineHeight || roster?.heightIn || 0;
+      const wt = combine?.wt || roster?.weight || 0;
       const bmi = heightIn > 0 && wt > 0 ? Math.round((703 * wt) / (heightIn * heightIn) * 10) / 10 : 0;
 
       results.set(pk, {
@@ -38,6 +44,7 @@ export const combineGroup: FeatureGroup = {
         shuttle: combine?.shuttle || avg?.shuttle || 0,
         bmi,
         hasCombineData: combine ? 1 : 0,
+        hasPhysicalData: (combine || (roster && wt > 0)) ? 1 : 0,
       });
     }
     return results;
