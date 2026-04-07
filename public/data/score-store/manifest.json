@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-07T02:06:55.556Z",
+  "models": {
+    "career": {
+      "version": "v51",
+      "count": 77,
+      "backtestCount": 1111
+    },
+    "adp": {
+      "version": "v50",
+      "count": 153
+    },
+    "ppg": {
+      "version": "v50",
+      "count": 153
+    }
+  }
+}
