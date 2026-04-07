@@ -65,6 +65,123 @@ function MobileBarList({
   );
 }
 
+interface RookieSimPlayer {
+  name: string;
+  position: string;
+  actualPPG: number;
+  predictedPPG: number;
+  nflPick: number;
+}
+
+interface RookieSimTeam {
+  picks: Array<RookieSimPlayer & { round: number }>;
+  starterPPG: number;
+}
+
+interface RookieSimResult {
+  season: number;
+  format: '1qb' | 'superflex';
+  numTeams: number;
+  rounds: number;
+  adpTeam: RookieSimTeam;
+  modelTeam: RookieSimTeam;
+}
+
+function simulateRookieDynastyDraft(
+  rows: Array<{ name: string; position: string; draftSeason: number; actualPPG: number; predictedPPG: number; features?: Record<string, number> }>,
+  format: '1qb' | 'superflex',
+  season: number,
+  pickPosition = 6,
+): RookieSimResult | null {
+  const numTeams = 12;
+  const rounds = 4;
+  const pool: RookieSimPlayer[] = rows
+    .filter((r) => r.draftSeason === season && isFinite(r.actualPPG) && isFinite(r.predictedPPG))
+    .map((r) => ({
+      name: r.name,
+      position: r.position,
+      actualPPG: r.actualPPG,
+      predictedPPG: r.predictedPPG,
+      nflPick: r.features?.nflDraftPick ?? 300,
+    }));
+  if (pool.length < numTeams * rounds) return null;
+
+  // ADP ordering: NFL draft pick (lower = better). Superflex bumps QBs up.
+  const adpRank = (p: RookieSimPlayer): number => {
+    const sfBonus = format === 'superflex' && p.position === 'QB' ? -40 : 0;
+    return p.nflPick + sfBonus;
+  };
+  // Model ordering: predicted PPG (higher = better). Superflex applies a QB premium.
+  const modelScore = (p: RookieSimPlayer): number => {
+    const sfBonus = format === 'superflex' && p.position === 'QB' ? 6 : 0;
+    return p.predictedPPG + sfBonus;
+  };
+
+  // Snake draft order across all picks
+  const draftOrder: number[] = [];
+  for (let r = 0; r < rounds; r++) {
+    for (let t = 0; t < numTeams; t++) {
+      draftOrder.push(r % 2 === 0 ? t : numTeams - 1 - t);
+    }
+  }
+
+  const taken = new Set<string>();
+  const adpAvailable = [...pool].sort((a, b) => adpRank(a) - adpRank(b));
+  const adpTeamPicks: Array<RookieSimPlayer & { round: number }> = [];
+  const modelTeamPicks: Array<RookieSimPlayer & { round: number }> = [];
+
+  for (let i = 0; i < draftOrder.length; i++) {
+    const team = draftOrder[i];
+    const round = Math.floor(i / numTeams) + 1;
+    const isUserPick = team === pickPosition - 1;
+
+    if (isUserPick) {
+      // Model picks: best remaining by model score
+      const remaining = pool.filter((p) => !taken.has(p.name));
+      remaining.sort((a, b) => modelScore(b) - modelScore(a));
+      const pick = remaining[0];
+      if (pick) {
+        taken.add(pick.name);
+        modelTeamPicks.push({ ...pick, round });
+      }
+    } else {
+      // ADP drafter: take next best available by ADP
+      while (adpAvailable.length && taken.has(adpAvailable[0].name)) adpAvailable.shift();
+      const pick = adpAvailable.shift();
+      if (pick) {
+        taken.add(pick.name);
+        if (i % numTeams === pickPosition - 1) adpTeamPicks.push({ ...pick, round });
+      }
+    }
+  }
+
+  // Now run a parallel ADP-only sim for the same pick position to populate adpTeam fairly
+  const taken2 = new Set<string>();
+  const adpAvailable2 = [...pool].sort((a, b) => adpRank(a) - adpRank(b));
+  const adpOnlyTeam: Array<RookieSimPlayer & { round: number }> = [];
+  for (let i = 0; i < draftOrder.length; i++) {
+    const team = draftOrder[i];
+    const round = Math.floor(i / numTeams) + 1;
+    while (adpAvailable2.length && taken2.has(adpAvailable2[0].name)) adpAvailable2.shift();
+    const pick = adpAvailable2.shift();
+    if (!pick) continue;
+    taken2.add(pick.name);
+    if (team === pickPosition - 1) adpOnlyTeam.push({ ...pick, round });
+  }
+
+  const starterPPG = (picks: RookieSimPlayer[]) =>
+    picks.length ? Math.round((picks.reduce((s, p) => s + p.actualPPG, 0) / picks.length) * 10) / 10 : 0;
+
+  return {
+    season,
+    format,
+    numTeams,
+    rounds,
+    adpTeam: { picks: adpOnlyTeam, starterPPG: starterPPG(adpOnlyTeam) },
+    modelTeam: { picks: modelTeamPicks, starterPPG: starterPPG(modelTeamPicks) },
+  };
+}
+
 export function ModelDocumentation() {
   const [data, setData] = useState<{
     models: PositionModelData[];
@@ -108,6 +225,11 @@ export function ModelDocumentation() {
       bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
       boomFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
       bustFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
+      backtestRows?: Array<{
+        name: string; position: string; draftSeason: number;
+        actualPPG: number; predictedPPG: number;
+        features?: Record<string, number>;
+      }>;
     }>;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,6 +238,7 @@ export function ModelDocumentation() {
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
   const [section, setSection] = useState<'projection' | 'rookie'>('projection');
+  const [rookieSimFormat, setRookieSimFormat] = useState<'1qb' | 'superflex'>('1qb');
 
   useEffect(() => {
     async function load() {
@@ -1238,6 +1361,99 @@ export function ModelDocumentation() {
                 Target = average of best 2 PPG seasons in first 3 NFL years. Minimum 4 games per season to qualify.
                 Tiers are based on model&apos;s predicted PPG. Hit rates show % of that tier&apos;s rookies exceeding each threshold.
               </p>
+
+              {/* ── Simulated Dynasty Rookie Draft ── */}
+              {(() => {
+                const allRows: Array<{ name: string; position: string; draftSeason: number; actualPPG: number; predictedPPG: number; features?: Record<string, number> }> = [];
+                for (const pos of Object.keys(cm)) {
+                  const rows = cm[pos]?.backtestRows;
+                  if (rows) allRows.push(...rows);
+                }
+                if (allRows.length === 0) return null;
+                const seasons = Array.from(new Set(allRows.map((r) => r.draftSeason))).sort((a, b) => b - a);
+                const season = seasons[0];
+                const sim = simulateRookieDynastyDraft(allRows, rookieSimFormat, season);
+                if (!sim) return null;
+                const delta = Math.round((sim.modelTeam.starterPPG - sim.adpTeam.starterPPG) * 10) / 10;
+                const renderTeam = (team: typeof sim.adpTeam, label: string) => (
+                  <div style={{ flex: 1, minWidth: 260 }}>
+                    <h4 style={{ fontSize: 13, margin: '0 0 6px', color: 'var(--text-secondary)' }}>{label}</h4>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      Avg actual PPG: <strong style={{ color: 'var(--text-primary)' }}>{team.starterPPG}</strong>
+                    </div>
+                    <div className="table-container">
+                      <table style={{ fontSize: 11, width: '100%' }}>
+                        <thead>
+                          <tr>
+                            <th>Rd</th>
+                            <th>Player</th>
+                            <th>Pos</th>
+                            <th style={{ textAlign: 'right' }}>NFL Pk</th>
+                            <th style={{ textAlign: 'right' }}>Pred</th>
+                            <th style={{ textAlign: 'right' }}>Actual</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {team.picks.map((p, i) => (
+                            <tr key={i}>
+                              <td>{p.round}</td>
+                              <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</td>
+                              <td style={{ color: POS_COLORS[p.position] || 'var(--text-secondary)' }}>{p.position}</td>
+                              <td style={{ textAlign: 'right' }}>{p.nflPick >= 300 ? 'UDFA' : p.nflPick}</td>
+                              <td style={{ textAlign: 'right' }}>{p.predictedPPG.toFixed(1)}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.actualPPG.toFixed(1)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+                return (
+                  <>
+                    <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Simulated Dynasty Rookie Draft ({season})</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                      {sim.numTeams}-team, {sim.rounds}-round snake rookie draft using LOSO out-of-sample predictions
+                      from the {season} class. The ADP drafter picks by NFL draft order; the model drafter picks by
+                      predicted best 2-of-3 PPG. Superflex bumps QBs in both rankings (NFL pick &minus;40, model +6 PPG).
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Format:</span>
+                      {(['1qb', 'superflex'] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setRookieSimFormat(f)}
+                          style={{
+                            padding: '5px 14px', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                            border: `2px solid ${rookieSimFormat === f ? '#a78bfa' : 'var(--border)'}`,
+                            background: rookieSimFormat === f ? 'rgba(167,139,250,0.12)' : 'transparent',
+                            color: rookieSimFormat === f ? '#a78bfa' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {f === '1qb' ? '1QB' : 'Superflex'}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{
+                      padding: '10px 14px', marginBottom: 12,
+                      borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                      fontSize: 13,
+                    }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Model vs ADP starter PPG: </span>
+                      <strong style={{ color: delta > 0 ? '#22c55e' : delta < 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                        {delta > 0 ? '+' : ''}{delta} PPG
+                      </strong>
+                      <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
+                        ({sim.modelTeam.starterPPG} vs {sim.adpTeam.starterPPG})
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      {renderTeam(sim.adpTeam, 'ADP Drafter')}
+                      {renderTeam(sim.modelTeam, 'Model Drafter')}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           );
         })()}
