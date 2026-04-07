@@ -2512,6 +2512,51 @@ async function main() {
       });
     }
 
+    // Compute feature percentiles per position
+    // For each numeric feature, rank values across all rookies at the position.
+    // Higher percentile = higher value (we don't invert for "lower is better"
+    // features like draft pick — caller can interpret).
+    {
+      const byPos = new Map<string, CareerScore[]>();
+      for (const s of careerScores) {
+        if (!byPos.has(s.position)) byPos.set(s.position, []);
+        byPos.get(s.position)!.push(s);
+      }
+
+      for (const [, posScores] of byPos) {
+        // Collect all feature keys present in this position's scores
+        const featureKeys = new Set<string>();
+        for (const s of posScores) {
+          if (!s.features) continue;
+          for (const k of Object.keys(s.features)) featureKeys.add(k);
+        }
+
+        // For each feature, build sorted array and compute percentiles
+        for (const key of featureKeys) {
+          const vals = posScores
+            .map(s => s.features?.[key])
+            .filter((v): v is number => typeof v === 'number' && !isNaN(v))
+            .sort((a, b) => a - b);
+          if (vals.length < 3) continue;
+
+          // Some features are "lower is better" — invert percentile
+          const lowerIsBetter = key === 'logDraftPick' || key === 'nflDraftPick' ||
+            key === 'nflDraftRound' || key === 'forty' || key === 'cone' ||
+            key === 'shuttle' || key === 'collegeBreakoutAge' || key === 'age';
+
+          for (const s of posScores) {
+            const v = s.features?.[key];
+            if (typeof v !== 'number' || isNaN(v)) continue;
+            const rank = vals.filter(x => x <= v).length;
+            let pctl = Math.round((rank / vals.length) * 100);
+            if (lowerIsBetter) pctl = 100 - pctl;
+            if (!s.featurePercentiles) s.featurePercentiles = {};
+            s.featurePercentiles[key] = pctl;
+          }
+        }
+      }
+    }
+
     writeCareerScores(careerScores);
     console.log(`    career: ${careerScores.length} scores (${careerScores.filter(s => s.draftSeason === 2026).length} prospects + ${careerScores.filter(s => s.draftSeason < 2026).length} backtest)`);
 

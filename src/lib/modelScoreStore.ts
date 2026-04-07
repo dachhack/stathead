@@ -31,6 +31,7 @@ export interface CareerScore {
   tierLabel: string;
   thresholdProbs: Record<number, number>;
   features?: Record<string, number>;
+  featurePercentiles?: Record<string, number>; // 0-100 cross-year within position
   school?: string;
   projPick?: number;
 }

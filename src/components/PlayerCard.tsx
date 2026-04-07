@@ -18,8 +18,18 @@ interface PlayerCardProps {
     headshotUrl?: string;
     thresholdProbs?: Record<number, number>;
     features?: Record<string, number>;
+    featurePercentiles?: Record<string, number>;
   };
   onClose: () => void;
+}
+
+function pctlColor(pctl: number): string {
+  if (pctl >= 90) return '#22c55e';
+  if (pctl >= 75) return '#4ade80';
+  if (pctl >= 60) return '#a3e635';
+  if (pctl >= 40) return '#facc15';
+  if (pctl >= 20) return '#fb923c';
+  return '#ef4444';
 }
 
 const FEATURE_LABELS: Record<string, string> = {};
@@ -37,19 +47,6 @@ function fmtVal(v: number): string {
   return v.toFixed(1);
 }
 
-function featureBar(value: number, max: number, color: string) {
-  const pct = max > 0 ? Math.min(100, (Math.abs(value) / max) * 100) : 0;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
-      <div style={{ flex: 1, height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3 }} />
-      </div>
-      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 36, textAlign: 'right' }}>
-        {fmtVal(value)}
-      </span>
-    </div>
-  );
-}
 
 export function PlayerCard({ player, onClose }: PlayerCardProps) {
   const [tab, setTab] = useState<'features' | 'stats'>('features');
@@ -201,19 +198,35 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                   Career Model Inputs ({pos})
                 </div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  Bars show percentile vs all rookies at position
+                </div>
                 {modelFeatureKeys.map(key => {
                   const val = features[key] ?? 0;
-                  // Determine reasonable max for bar scaling
-                  const maxVal = key.includes('log') ? 6 : key.includes('inv') ? 0.5 :
-                    key === 'age' ? 24 : key === 'weight' ? 250 :
-                    key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
-                    key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
+                  const pctl = player.featurePercentiles?.[key];
+                  const usePctl = pctl !== undefined;
+                  const barPct = usePctl ? pctl : (() => {
+                    const maxVal = key.includes('log') ? 6 : key.includes('inv') ? 0.5 :
+                      key === 'age' ? 24 : key === 'weight' ? 250 :
+                      key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
+                      key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
+                    return Math.min(100, (Math.abs(val) / maxVal) * 100);
+                  })();
+                  const color = usePctl ? pctlColor(pctl) : '#8b5cf6';
                   return (
-                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 120, flexShrink: 0 }}>
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', minWidth: 110, flexShrink: 0 }}>
                         {featureLabel(key)}
                       </span>
-                      {featureBar(val, maxVal, '#8b5cf6')}
+                      <div style={{ flex: 1, height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 9, color: 'var(--text-muted)', minWidth: 30, textAlign: 'right' }}>
+                        {usePctl ? `${pctl}` : fmtVal(val)}
+                      </span>
+                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', minWidth: 36, textAlign: 'right' }}>
+                        {fmtVal(val)}
+                      </span>
                     </div>
                   );
                 })}

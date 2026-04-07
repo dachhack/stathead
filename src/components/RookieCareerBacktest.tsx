@@ -593,21 +593,29 @@ export function RookieCareerBacktest() {
         </table>
       </div>
 
-      {selectedPlayer && (
-        <PlayerCard
-          player={{
-            name: selectedPlayer.name,
-            position: selectedPlayer.position,
-            draftSeason: selectedPlayer.draftSeason,
-            ourScore: selectedPlayer.combinedScore,
-            predictedPPG: selectedPlayer.predictedPPG,
-            actualPPG: selectedPlayer.actualPPG,
-            thresholdProbs: selectedPlayer.thresholdProbs,
-            features: selectedPlayer.features,
-          }}
-          onClose={() => setSelectedPlayer(null)}
-        />
-      )}
+      {selectedPlayer && (() => {
+        // Look up featurePercentiles from score store
+        const ssKey = `${normalizeName(selectedPlayer.name)}::${selectedPlayer.position}::${selectedPlayer.draftSeason}`;
+        const ss = scoreStoreData.find(s =>
+          `${normalizeName(s.name)}::${s.position}::${s.draftSeason}` === ssKey
+        );
+        return (
+          <PlayerCard
+            player={{
+              name: selectedPlayer.name,
+              position: selectedPlayer.position,
+              draftSeason: selectedPlayer.draftSeason,
+              ourScore: selectedPlayer.combinedScore,
+              predictedPPG: selectedPlayer.predictedPPG,
+              actualPPG: selectedPlayer.actualPPG,
+              thresholdProbs: selectedPlayer.thresholdProbs,
+              features: selectedPlayer.features,
+              featurePercentiles: ss?.featurePercentiles,
+            }}
+            onClose={() => setSelectedPlayer(null)}
+          />
+        );
+      })()}
     </>
   );
 }
