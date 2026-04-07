@@ -33,6 +33,8 @@ jobs:
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
+      - name: Backfill college stats for historical rookies
+        run: npx tsx scripts/backfill-college-stats.ts || true
       - run: npm run build
 
       # Commit training rows cache back to repo so future builds skip data fetching
