@@ -7,6 +7,7 @@ import {
 } from '../lib/featureTypes';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
+import { InfoTip, PipelineDiagram, STAT_DEFS } from './ModelDocsHelpers';
 import projectionConfig from '../generated/projection-config.json';
 
 interface PositionModelData {
@@ -75,6 +76,7 @@ export function ModelDocumentation() {
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
+  const [section, setSection] = useState<'projection' | 'rookie'>('projection');
 
   useEffect(() => {
     async function load() {
@@ -209,13 +211,89 @@ export function ModelDocumentation() {
       <div style={{ padding: '16px', maxWidth: 900 }}>
         <h2 style={{ margin: '0 0 16px', fontSize: 20 }}>Model Documentation</h2>
 
+        {/* Section toggle */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {([
+            { key: 'projection' as const, label: 'Projection Validation', desc: 'Veteran VOR / PPG / Hit-Bust' },
+            { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
+          ]).map(({ key, label, desc }) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSection(key);
+                if (key === 'projection') setModelCategory('vor');
+                else setModelCategory('career');
+              }}
+              style={{
+                flex: 1, padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
+                border: `2px solid ${section === key ? '#a78bfa' : 'var(--border)'}`,
+                background: section === key ? 'rgba(167,139,250,0.12)' : 'transparent',
+                color: section === key ? '#a78bfa' : 'var(--text-secondary)',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
+              <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{desc}</div>
+            </button>
+          ))}
+        </div>
+
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Overview</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            StatHead uses a multi-stage prediction pipeline to evaluate fantasy football players.
-            The system combines team-level volume projections with player-level models to identify
-            players likely to outperform or underperform their draft position.
+          <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>
+            {section === 'projection' ? 'Projection Pipeline Overview' : 'Rookie Career Pipeline Overview'}
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
+            {section === 'projection' ? (
+              <>StatHead\'s projection pipeline predicts veteran NFL fantasy production using team volume projections, player share models, and ADP-residual hit/bust classifiers. Validated via leave-one-season-out cross-validation across 2018-2025.</>
+            ) : (
+              <>StatHead\'s rookie career model predicts a player\'s best 2-of-3 PPG across their first 3 NFL seasons using only pre-draft features (college production, combine, draft capital). Validated via LOSO across 2018-2025 draft classes.</>
+            )}
           </p>
+
+          {/* Pipeline diagram */}
+          {section === 'projection' ? (
+            <PipelineDiagram
+              steps={[
+                { label: 'Team Volume Projection', desc: 'Pass attempts, rush attempts, targets per team (regression to mean + delta model)', color: '#3b82f6' },
+                { label: 'Player Share Allocation', desc: 'Predict each player\'s share of team volume from prior production + competition', color: '#06b6d4' },
+                { label: 'PPG Conversion', desc: 'Translate volume × efficiency into points per game', color: '#10b981' },
+                { label: 'VOR + Hit/Bust Models', desc: 'GBM + Ridge ensemble vs ADP, with α-blended residual to flag outliers', color: '#a78bfa' },
+                { label: 'Cross-Position Ranking', desc: 'Z-scored VOR comparable across QB/RB/WR/TE', color: '#ec4899' },
+              ]}
+            />
+          ) : (
+            <PipelineDiagram
+              steps={[
+                { label: 'Pre-Draft Features Only', desc: 'College stats, combine, draft capital, ZAP-style metrics — NO NFL data', color: '#3b82f6' },
+                { label: 'LOSO Cross-Validation', desc: 'For each draft class, train on all OTHER classes; test on held-out class', color: '#06b6d4' },
+                { label: 'Per-Threshold Classifiers', desc: 'P(best 2-of-3 PPG ≥ 12), ≥ 14, ≥ 16, ≥ 18 — separate binary models', color: '#10b981' },
+                { label: 'Regression Predictor', desc: 'Direct best-2-of-3 PPG prediction (Ridge + Bagged GBM ensemble)', color: '#f59e0b' },
+                { label: 'Cross-Year Percentile', desc: 'Rank predicted PPG vs ALL historical rookies at position (2018-2025)', color: '#a78bfa' },
+                { label: 'Tier Assignment', desc: 'Alpha (95+), Blue Chip (85+), Starter (70+), Contributor (50+), Depth (30+), Longshot (<30)', color: '#ec4899' },
+              ]}
+            />
+          )}
+
+          {/* Validation stats explainer */}
+          <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'var(--text-secondary)' }}>Validation metrics</strong> (hover the <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 12, height: 12, borderRadius: '50%', background: 'var(--bg-primary)', color: 'var(--text-muted)', fontSize: 8, fontWeight: 700 }}>?</span> icons throughout):
+            <span style={{ marginLeft: 4 }}>
+              R²<InfoTip title={STAT_DEFS.r2.title} description={STAT_DEFS.r2.desc} benchmark={STAT_DEFS.r2.benchmark} /> ·
+              MAE<InfoTip title={STAT_DEFS.mae.title} description={STAT_DEFS.mae.desc} benchmark={STAT_DEFS.mae.benchmark} /> ·
+              Rank Corr<InfoTip title={STAT_DEFS.rankCorr.title} description={STAT_DEFS.rankCorr.desc} benchmark={STAT_DEFS.rankCorr.benchmark} /> ·
+              {section === 'projection' ? (
+                <>Hit Rate<InfoTip title={STAT_DEFS.hitRate.title} description={STAT_DEFS.hitRate.desc} benchmark={STAT_DEFS.hitRate.benchmark} /></>
+              ) : (
+                <>
+                  AUC<InfoTip title={STAT_DEFS.auc.title} description={STAT_DEFS.auc.desc} benchmark={STAT_DEFS.auc.benchmark} /> ·
+                  Brier<InfoTip title={STAT_DEFS.brier.title} description={STAT_DEFS.brier.desc} benchmark={STAT_DEFS.brier.benchmark} /> ·
+                  LOSO<InfoTip title={STAT_DEFS.loso.title} description={STAT_DEFS.loso.desc} benchmark={STAT_DEFS.loso.benchmark} /> ·
+                  Best 2-of-3<InfoTip title={STAT_DEFS.bestOf3.title} description={STAT_DEFS.bestOf3.desc} benchmark={STAT_DEFS.bestOf3.benchmark} /> ·
+                  Percentile<InfoTip title={STAT_DEFS.percentile.title} description={STAT_DEFS.percentile.desc} benchmark={STAT_DEFS.percentile.benchmark} />
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
         {/* Stage 1: Team Volume */}
@@ -365,13 +443,13 @@ export function ModelDocumentation() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 4, minWidth: 60 }}>Evaluate:</span>
             {([
-              { key: 'vor' as const, label: 'VOR Score', desc: 'Value Over Replacement' },
-              { key: 'ppg' as const, label: 'PPG', desc: 'ADP-Free Points Per Game' },
-              { key: 'shares' as const, label: 'Player Shares', desc: 'Team Volume Shares' },
-              { key: 'hitbust' as const, label: 'Hit / Bust', desc: 'ADP-Residual Model' },
-              { key: 'career' as const, label: 'Rookie Career', desc: 'Best 2-of-3 Seasons' },
-              { key: 'rookie-boombust' as const, label: 'Rookie Boom/Bust', desc: 'Outlier Overlay' },
-            ]).map(({ key, label }) => (
+              { key: 'vor' as const, label: 'VOR Score', desc: 'Value Over Replacement', section: 'projection' as const },
+              { key: 'ppg' as const, label: 'PPG', desc: 'ADP-Free Points Per Game', section: 'projection' as const },
+              { key: 'shares' as const, label: 'Player Shares', desc: 'Team Volume Shares', section: 'projection' as const },
+              { key: 'hitbust' as const, label: 'Hit / Bust', desc: 'ADP-Residual Model', section: 'projection' as const },
+              { key: 'career' as const, label: 'Rookie Career', desc: 'Best 2-of-3 Seasons', section: 'rookie' as const },
+              { key: 'rookie-boombust' as const, label: 'Rookie Boom/Bust', desc: 'Outlier Overlay', section: 'rookie' as const },
+            ]).filter(({ section: s }) => s === section).map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setModelCategory(key)}
