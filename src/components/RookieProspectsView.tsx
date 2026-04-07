@@ -689,10 +689,17 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               predictedPPG: selectedPlayer.predictedCareerPPG,
               zapScore: selectedPlayer.zapScore || undefined,
               thresholdProbs: selectedPlayer.thresholdProbs,
-              features: ss?.features || selectedPlayer.careerFeatures || {
-                weight: selectedPlayer.wt, forty: selectedPlayer.forty,
-                nflDraftPick: selectedPlayer.projPick, nflDraftRound: selectedPlayer.projRound,
-                prospectGrade: selectedPlayer.grade,
+              features: {
+                ...(ss?.features || selectedPlayer.careerFeatures || {}),
+                // Always prefer the list-row values for the prospect-card
+                // identity fields. The score-store / careerFeatures snapshots
+                // can be stale or assembled from a different source than the
+                // table row, so the row is the source of truth here.
+                ...(selectedPlayer.wt ? { weight: selectedPlayer.wt } : {}),
+                ...(selectedPlayer.forty ? { forty: selectedPlayer.forty } : {}),
+                ...(selectedPlayer.projPick ? { nflDraftPick: selectedPlayer.projPick } : {}),
+                ...(selectedPlayer.projRound ? { nflDraftRound: selectedPlayer.projRound } : {}),
+                ...(selectedPlayer.grade ? { prospectGrade: selectedPlayer.grade } : {}),
               },
               featurePercentiles: ss?.featurePercentiles,
             }}
