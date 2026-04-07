@@ -206,6 +206,11 @@ export function buildProspectFeatureRecord(
     collegeSeasons: numSeasons,
     collegeEarlyDeclare: earlyDeclare,
     draftPickXEarlyDeclare: earlyDeclare * (1 / projPick),
+    collegeExperiencePerAge: (prospect.age && prospect.age > 0 && (prospect.collegeGames || 0) > 0)
+      ? Math.round(((prospect.collegeGames || 0) / prospect.age) * 100) / 100
+      : (prospect.age && prospect.age > 0 && numSeasons > 0)
+      ? Math.round(((numSeasons * 13) / prospect.age) * 100) / 100
+      : 0,
     collegeDominatorRating: prospect.collegeDominatorRating || 0,
     collegeBreakoutAge: prospect.collegeBreakoutAge || 0,
     collegeMarketShare: prospect.collegeMarketShare || 0,

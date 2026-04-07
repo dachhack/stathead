@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v50.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v50.json`,
     share: `${MODEL_DIR}/model-cache-share-v50.json`,
-    career: `${MODEL_DIR}/model-cache-career-v52.json`,
+    career: `${MODEL_DIR}/model-cache-career-v53.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -1742,6 +1742,11 @@ async function main() {
         if (ps.collegeRushYPC && !f.collegeRushYPC) f.collegeRushYPC = ps.collegeRushYPC;
         if (ps.collegeYdsPerRec && !f.collegeYdsPerRec) f.collegeYdsPerRec = ps.collegeYdsPerRec;
         if (ps.collegeMarketShare && !f.collegeMarketShare) f.collegeMarketShare = ps.collegeMarketShare;
+        // Compute experience per age (works for any position)
+        if (!f.collegeExperiencePerAge && f.age && f.age > 0) {
+          const games = ps.collegeGames || (f.collegeSeasons || 0) * 13;
+          f.collegeExperiencePerAge = Math.round((games / f.age) * 100) / 100;
+        }
         f.hasCollegeStats = (f.collegeRecYds || f.collegeRushYds || f.collegePassTDs) ? 1 : 0;
         enriched++;
       }
@@ -2262,6 +2267,9 @@ async function main() {
         collegeSeasons: numSeasons,
         collegeEarlyDeclare: numSeasons <= 3 ? 1 : 0,
         draftPickXEarlyDeclare: (numSeasons <= 3 ? 1 : 0) * (1 / projPick),
+        collegeExperiencePerAge: (prospect.age && prospect.age > 0 && numSeasons > 0)
+          ? Math.round(((numSeasons * 13) / prospect.age) * 100) / 100
+          : 0,
         // Per-team normalized features from ZAP computation
         ...(() => {
           const zap = prospectZap.get(nName);

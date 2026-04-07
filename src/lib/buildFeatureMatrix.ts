@@ -2067,6 +2067,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       collegeRushProductionWR: zap?.rushProductionWR || 0,
                       collegeEarlyDeclare: zap?.earlyDeclare || 0,
                       draftPickXEarlyDeclare: (zap?.earlyDeclare || 0) * (1 / (draftPick || 300)),
+                      collegeExperiencePerAge: (best && draftAge > 0)
+                        ? Math.round(((best.numSeasons || 0) * 13 / draftAge) * 100) / 100
+                        : 0,
                       collegeTeammateScore: ts,
                       heightAdjSpeedScore: htAdjSpeedScore,
                       draftCapXSpeed,
@@ -2315,6 +2318,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeSeasons: best?.numSeasons || 0,
                     collegeEarlyDeclare: (best?.numSeasons || 99) <= 3 ? 1 : 0,
                     draftPickXEarlyDeclare: ((best?.numSeasons || 99) <= 3 ? 1 : 0) * (1 / (draft.pick || 300)),
+                    collegeExperiencePerAge: (best && draft.age && draft.age > 0)
+                      ? Math.round(((best.numSeasons || 0) * 13 / draft.age) * 100) / 100
+                      : 0,
                     speedScore: ss,
                     heightAdjSpeedScore: (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss,
                     collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
@@ -3386,6 +3392,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         collegeBestRecYdsPerTPA: zap?.bestSeasonRecYdsPerTPA || 0,
                         collegeRushProductionWR: zap?.rushProductionWR || 0,
                         collegeEarlyDeclare: zap?.earlyDeclare || 0,
+                        collegeExperiencePerAge: (best && draftAge > 0)
+                          ? Math.round(((best.numSeasons || 0) * 13 / draftAge) * 100) / 100
+                          : 0,
                         collegeTeammateScore: ts,
                         heightAdjSpeedScore: htAdjSpeedScore,
                         draftCapXSpeed,

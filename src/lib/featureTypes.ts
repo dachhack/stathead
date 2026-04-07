@@ -303,6 +303,7 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeBestRecYdsPerTPA', label: 'Best Szn Rec Yds / Team PA', category: 'College', positions: ['WR', 'TE'] },
   { key: 'collegeRushProductionWR', label: 'Rush Production (WR, capped)', category: 'College', positions: ['WR'] },
   { key: 'collegeEarlyDeclare', label: 'Early Declare (≤3 yr)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'collegeExperiencePerAge', label: 'College Games / Age (experience)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeTeammateScore', label: 'Teammate Score (draft cap)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'heightAdjSpeedScore', label: 'Height-Adj Speed Score', category: 'College', positions: ['TE'] },
   { key: 'draftCapXSpeed', label: 'Draft Capital × Speed', category: 'College', positions: ['TE'] },
@@ -402,8 +403,8 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=34 → 3 features (Ridge-only). Draft capital dominates.
-  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare'],
+  // QB: n=34 → 4 features (Ridge-only). Draft capital + experience.
+  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge'],
   // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
   RB: ['logDraftPick', 'invDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
