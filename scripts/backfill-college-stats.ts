@@ -51,7 +51,10 @@ async function main() {
     if (pick >= 300 && age === 0) continue; // UDFA veteran
 
     const nn = normalizeName(r.name);
-    if (store[nn]) continue; // already in store
+    // Never overwrite entries from manual CSV (source='csv') — those have curated data
+    if (store[nn] && (store[nn].source === 'csv' || store[nn].source === 'manual')) continue;
+    // Skip if already backfilled
+    if (store[nn] && store[nn].source === 'backfill') continue;
 
     const hasCollege = (r.features?.hasCollegeStats || 0) > 0;
     const hasZAP = (r.features?.collegeBreakoutScore || 0) > 0 || (r.features?.collegeRecYdsPerTeamPassAtt || 0) > 0;

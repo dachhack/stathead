@@ -30,6 +30,12 @@ jobs:
           path: public/data
           key: static-data-v14
 
+      # Restore committed prospect store and score store (cache may have stale versions)
+      - name: Restore committed stores over cache
+        run: |
+          git checkout HEAD -- public/data/feature-store/prospects.json 2>/dev/null || true
+          git checkout HEAD -- public/data/score-store/ 2>/dev/null || true
+
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
