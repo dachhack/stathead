@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
+import { loadCareerScores } from '../lib/modelScoreClient';
+import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2023 from '../data/zap-scores-2023.json';
@@ -47,9 +49,16 @@ export function ZapComparison() {
   const [selectedPlayer, setSelectedPlayer] = useState<CompRow | null>(null);
   const [backtestData, setBacktestData] = useState<Map<string, RookieCareerBacktestRow>>(new Map());
   const [predictions2026, setPredictions2026] = useState<Map<string, any>>(new Map());
+  const [scoreStore, setScoreStore] = useState<CareerScore[]>([]);
 
   useEffect(() => {
     async function load() {
+      // Try score store first for featurePercentiles
+      try {
+        const scores = await loadCareerScores();
+        if (scores.length > 0) setScoreStore(scores);
+      } catch {}
+
       // Load our 2026 scores
       let ourScores2026 = new Map<string, number>();
       let ourPredPPG2026 = new Map<string, number>();
@@ -369,18 +378,26 @@ export function ZapComparison() {
         const bt = backtestData.get(nn);
         const pred = predictions2026.get(nn);
         const is2026 = season === '2026';
+        const draftSeason = is2026 ? 2026 : (bt?.draftSeason || 2023);
+        // Look up featurePercentiles from score store
+        const ss = scoreStore.find(s =>
+          normalizeName(s.name) === nn &&
+          s.position === selectedPlayer.pos &&
+          s.draftSeason === draftSeason
+        );
         return (
           <PlayerCard
             player={{
               name: selectedPlayer.name,
               position: selectedPlayer.pos,
-              draftSeason: is2026 ? 2026 : (bt?.draftSeason || 2023),
+              draftSeason,
               zapScore: selectedPlayer.zapScore,
               ourScore: selectedPlayer.ourScore,
               predictedPPG: selectedPlayer.predictedPPG || (is2026 ? pred?.predictedCareerPPG : bt?.predictedPPG) || 0,
               actualPPG: selectedPlayer.actualPPG,
               thresholdProbs: is2026 ? pred?.thresholdProbs : bt?.thresholdProbs,
-              features: is2026 ? pred?.features : bt?.features,
+              features: ss?.features || (is2026 ? pred?.features : bt?.features),
+              featurePercentiles: ss?.featurePercentiles,
             }}
             onClose={() => setSelectedPlayer(null)}
           />

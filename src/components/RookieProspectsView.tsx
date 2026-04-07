@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
+import { loadCareerScores } from '../lib/modelScoreClient';
+import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import zapScores from '../data/zap-scores-2026.json';
@@ -129,6 +131,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [view, setView] = useState<'graded' | 'all'>('graded');
   const [posThresholds, setPosThresholds] = useState<Record<string, number[]>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<ProspectRow | null>(null);
+  const [scoreStore, setScoreStore] = useState<CareerScore[]>([]);
+
+  useEffect(() => {
+    loadCareerScores().then(setScoreStore).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -665,25 +672,34 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         </table>
       </div>
 
-      {selectedPlayer && (
-        <PlayerCard
-          player={{
-            name: selectedPlayer.name,
-            position: selectedPlayer.pos,
-            draftSeason: DRAFT_YEAR,
-            ourScore: selectedPlayer.combinedScore,
-            predictedPPG: selectedPlayer.predictedCareerPPG,
-            zapScore: selectedPlayer.zapScore || undefined,
-            thresholdProbs: selectedPlayer.thresholdProbs,
-            features: selectedPlayer.careerFeatures || {
-              weight: selectedPlayer.wt, forty: selectedPlayer.forty,
-              nflDraftPick: selectedPlayer.projPick, nflDraftRound: selectedPlayer.projRound,
-              prospectGrade: selectedPlayer.grade,
-            },
-          }}
-          onClose={() => setSelectedPlayer(null)}
-        />
-      )}
+      {selectedPlayer && (() => {
+        const nn = normalizeName(selectedPlayer.name);
+        const ss = scoreStore.find(s =>
+          normalizeName(s.name) === nn &&
+          s.position === selectedPlayer.pos &&
+          s.draftSeason === DRAFT_YEAR
+        );
+        return (
+          <PlayerCard
+            player={{
+              name: selectedPlayer.name,
+              position: selectedPlayer.pos,
+              draftSeason: DRAFT_YEAR,
+              ourScore: selectedPlayer.combinedScore,
+              predictedPPG: selectedPlayer.predictedCareerPPG,
+              zapScore: selectedPlayer.zapScore || undefined,
+              thresholdProbs: selectedPlayer.thresholdProbs,
+              features: ss?.features || selectedPlayer.careerFeatures || {
+                weight: selectedPlayer.wt, forty: selectedPlayer.forty,
+                nflDraftPick: selectedPlayer.projPick, nflDraftRound: selectedPlayer.projRound,
+                prospectGrade: selectedPlayer.grade,
+              },
+              featurePercentiles: ss?.featurePercentiles,
+            }}
+            onClose={() => setSelectedPlayer(null)}
+          />
+        );
+      })()}
     </>
   );
 }
