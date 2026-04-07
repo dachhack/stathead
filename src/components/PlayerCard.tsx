@@ -174,10 +174,16 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
             <>
               {/* Quick stats summary */}
               {(() => {
-                // Combine measurables fall back to positional averages when
-                // a player skipped the combine; only display them if real.
-                const hasCombine = features.hasCombineData ? features.hasCombineData > 0 : (features.weight > 0 && features.forty > 0);
-                return (features.nflDraftPick || features.age || (hasCombine && features.weight)) && (
+                // Weight may come from real combine OR team-listed roster
+                // (hasPhysicalData). 40 / Speed Score require an actual combine
+                // run; otherwise they're positional averages.
+                const hasPhysical = features.hasPhysicalData != null
+                  ? features.hasPhysicalData > 0
+                  : features.weight > 0;
+                const hasCombine = features.hasCombineData != null
+                  ? features.hasCombineData > 0
+                  : (features.weight > 0 && features.forty > 0);
+                return (features.nflDraftPick || features.age || (hasPhysical && features.weight)) && (
                   <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 11 }}>
                     {features.nflDraftPick > 0 && features.nflDraftPick < 300 && (
                       <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>Pick #{features.nflDraftPick}</span>
@@ -185,7 +191,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                     {features.age > 0 && (
                       <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>Age {features.age}</span>
                     )}
-                    {hasCombine && features.weight > 0 && (
+                    {hasPhysical && features.weight > 0 && (
                       <span style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 4 }}>{features.weight} lbs</span>
                     )}
                     {hasCombine && features.forty > 0 && (
@@ -212,11 +218,13 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                 {modelFeatureKeys.filter(key => {
                   // Hide combine-derived rows when the player skipped the
                   // combine — those values are positional-average imputations.
+                  // Weight is exempt: roster fallback gives a real value.
                   if (features.hasCombineData === 0) {
-                    if (key === 'weight' || key === 'forty' || key === 'bench' ||
+                    if (key === 'forty' || key === 'bench' ||
                         key === 'vertical' || key === 'broadJump' || key === 'cone' ||
-                        key === 'shuttle' || key === 'bmi' || key === 'speedScore' ||
+                        key === 'shuttle' || key === 'speedScore' ||
                         key.startsWith('speedScore')) return false;
+                    if ((key === 'weight' || key === 'bmi') && !features.hasPhysicalData) return false;
                   }
                   return true;
                 }).map(key => {
@@ -342,7 +350,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       {features.collegeRecYdsPerTeamPassAtt ? <tr><td style={{ color: 'var(--text-muted)' }}>Rec Yds/Team Pass Att</td><td style={{ textAlign: 'right' }}>{features.collegeRecYdsPerTeamPassAtt.toFixed(3)}</td></tr> : null}
                       {features.collegeTeammateScore ? <tr><td style={{ color: 'var(--text-muted)' }}>Teammate Score</td><td style={{ textAlign: 'right' }}>{features.collegeTeammateScore.toFixed(3)}</td></tr> : null}
                       {features.hasCombineData > 0 && features.speedScore ? <tr><td style={{ color: 'var(--text-muted)' }}>Speed Score</td><td style={{ textAlign: 'right' }}>{features.speedScore.toFixed(1)}</td></tr> : null}
-                      {features.hasCombineData > 0 && features.weight ? <tr><td style={{ color: 'var(--text-muted)' }}>Weight</td><td style={{ textAlign: 'right' }}>{features.weight} lbs</td></tr> : null}
+                      {features.hasPhysicalData > 0 && features.weight ? <tr><td style={{ color: 'var(--text-muted)' }}>Weight</td><td style={{ textAlign: 'right' }}>{features.weight} lbs</td></tr> : null}
                       {features.hasCombineData > 0 && features.forty ? <tr><td style={{ color: 'var(--text-muted)' }}>40-Yard Dash</td><td style={{ textAlign: 'right' }}>{features.forty.toFixed(2)}s</td></tr> : null}
                     </tbody>
                   </table>

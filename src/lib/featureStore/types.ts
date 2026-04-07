@@ -159,6 +159,9 @@ export interface SharedContextData {
   // Static lookups (loaded once)
   combineByName: Map<string, any>;
   combineAvg: Map<string, Record<string, number>>;
+  // Roster-listed physicals (height in inches, weight in lbs) by normalized
+  // name. Sourced from nflverse rosters when combine data is unavailable.
+  rosterPhysicalsByName: Map<string, { weight: number; heightIn: number }>;
   draftByName: Map<string, any>;
   contractByName: Map<string, any>;
   collegeByName: Map<string, Map<string, number>>;
