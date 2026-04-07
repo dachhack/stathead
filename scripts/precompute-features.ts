@@ -198,11 +198,11 @@ async function main() {
   // Changing one model type only retrains that type, not all 5.
   const MODEL_DIR = 'public/data';
   const componentCachePaths = {
-    adp: `${MODEL_DIR}/model-cache-adp-v50.json`,
-    ppg: `${MODEL_DIR}/model-cache-ppg-v50.json`,
-    residual: `${MODEL_DIR}/model-cache-residual-v50.json`,
-    share: `${MODEL_DIR}/model-cache-share-v50.json`,
-    career: `${MODEL_DIR}/model-cache-career-v53.json`,
+    adp: `${MODEL_DIR}/model-cache-adp-v51.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v51.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v51.json`,
+    share: `${MODEL_DIR}/model-cache-share-v51.json`,
+    career: `${MODEL_DIR}/model-cache-career-v54.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
