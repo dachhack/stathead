@@ -105,6 +105,9 @@ export const FEATURES: FeatureDef[] = [
   { key: 'nflDraftPick', label: 'NFL Draft Pick', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'logDraftPick', label: 'Log(Draft Pick)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'invDraftPick', label: '1/Draft Pick (capital)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Draft pick percentile within (season, position). 0 = top pick at position,
+  // 1 = latest. Normalizes across draft years so "pick 100" is comparable.
+  { key: 'draftPickPct', label: 'Draft Pick Pctile (class)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'draftPickXEarlyDeclare', label: 'Draft Capital × Early Declare', category: 'Profile', positions: ['RB', 'WR', 'TE'] },
   { key: 'weight', label: 'Weight', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'forty', label: '40-Yard Dash', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
@@ -343,6 +346,11 @@ export const FEATURES: FeatureDef[] = [
   { key: 'hasProspectGrade', label: 'Has Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'hasCombineData', label: 'Has Combine Data', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'hasPhysicalData', label: 'Has Physical Data', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  // Relative Athletic Score: 0-10 composite of position-normalized combine
+  // z-scores (weight, forty, bench, vertical, broad jump, cone, shuttle).
+  // 5.0 = positional average, higher = better athlete. Only counts metrics
+  // the player actually ran. 0 = no combine data.
+  { key: 'relativeAthleticScore', label: 'RAS (0-10)', category: 'College', positions: ['RB', 'WR', 'TE'] },
 
   // Contract data (team investment signal)
   { key: 'contractAPY', label: 'Contract APY ($M)', category: 'Contract', positions: ['QB', 'RB', 'WR', 'TE'] },
@@ -431,25 +439,26 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=34 → 11 features (Ridge-only). Draft capital + experience + new
-  // dual-threat / production / context signals + SOS standalone + composite.
-  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
+  // QB: n=133. Draft capital + experience + dual-threat + context signals.
+  QB: ['logDraftPick', 'draftPickPct', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
-  RB: ['logDraftPick', 'age',
+  // RB: n=315. Receiving + speed + draft capital nonlinear + RAS.
+  RB: ['logDraftPick', 'draftPickPct', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeDominatorXLateRound', 'collegeTeammateScore'],
-  // WR: n=137 → 10 features. Breakout score + per-team + draft interactions
-  WR: ['logDraftPick', 'age',
+       'collegeDominatorXLateRound', 'collegeTeammateScore',
+       'relativeAthleticScore'],
+  // WR: n=456. Breakout score + per-team + draft interactions + RAS.
+  WR: ['logDraftPick', 'draftPickPct', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeDominatorRating', 'collegeBestRecYds',
-       'weight', 'collegeDominatorXLateRound', 'collegeTeammateScore'],
-  // TE: n=29 → 4 features (Ridge-only). Simpler = better for small N.
-  TE: ['logDraftPick', 'age', 'collegeRecYdsPerTeamPassAtt',
-       'heightAdjSpeedScore'],
+       'weight', 'collegeDominatorXLateRound', 'collegeTeammateScore',
+       'relativeAthleticScore'],
+  // TE: n=207 (Ridge-favored). Simpler = better for small N.
+  TE: ['logDraftPick', 'draftPickPct', 'age', 'collegeRecYdsPerTeamPassAtt',
+       'heightAdjSpeedScore', 'relativeAthleticScore'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known

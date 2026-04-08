@@ -95,17 +95,59 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Compute position-average combine values for imputation (missing = 0 is misleading)
         const combineAvg = new Map<string, { forty: number; bench: number; vertical: number; broadJump: number; cone: number; shuttle: number; weight: number }>();
+        // Compute per-position combine standard deviations too so we can
+        // build a Relative Athletic Score (RAS) per player: z-score each
+        // combine metric vs that position's distribution, then average.
+        type CombineStats = { mean: number; std: number };
+        const combineStats = new Map<string, Record<string, CombineStats>>();
         for (const pos of POSITIONS) {
           const posEntries = combineData.filter(c => c.pos === pos || c.pos === pos);
-          const avg = (field: keyof CombineResult) => {
+          const stat = (field: keyof CombineResult): CombineStats => {
             const vals = posEntries.map(c => Number(c[field]) || 0).filter(v => v > 0);
-            return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100 : 0;
+            if (vals.length === 0) return { mean: 0, std: 0 };
+            const m = vals.reduce((a, b) => a + b, 0) / vals.length;
+            const v = vals.reduce((a, b) => a + (b - m) ** 2, 0) / vals.length;
+            return { mean: Math.round(m * 100) / 100, std: Math.max(0.01, Math.sqrt(v)) };
           };
+          const fortyS = stat('forty'), benchS = stat('bench'), vertS = stat('vertical');
+          const broadS = stat('broad_jump'), coneS = stat('cone'), shuttleS = stat('shuttle');
+          const wtS = stat('wt');
           combineAvg.set(pos, {
-            forty: avg('forty'), bench: avg('bench'), vertical: avg('vertical'),
-            broadJump: avg('broad_jump'), cone: avg('cone'), shuttle: avg('shuttle'),
-            weight: avg('wt'),
+            forty: fortyS.mean, bench: benchS.mean, vertical: vertS.mean,
+            broadJump: broadS.mean, cone: coneS.mean, shuttle: shuttleS.mean,
+            weight: wtS.mean,
           });
+          combineStats.set(pos, {
+            forty: fortyS, bench: benchS, vertical: vertS,
+            broad_jump: broadS, cone: coneS, shuttle: shuttleS, wt: wtS,
+          });
+        }
+        // Compute RAS for a player from their raw combine record. Returns
+        // a 0-10 composite where 5 is positional average, 10 is ~2.5 std
+        // above on every metric. Forty/cone/shuttle are inverted (lower =
+        // better). Only counts metrics the player actually has.
+        function computeRAS(combine: CombineResult | undefined, pos: string): number {
+          if (!combine) return 0;
+          const stats = combineStats.get(pos);
+          if (!stats) return 0;
+          const metrics: Array<[keyof CombineResult, boolean]> = [
+            ['wt', true], ['forty', false], ['bench', true], ['vertical', true],
+            ['broad_jump', true], ['cone', false], ['shuttle', false],
+          ];
+          const zScores: number[] = [];
+          for (const [field, higherBetter] of metrics) {
+            const raw = Number(combine[field]) || 0;
+            if (raw <= 0) continue;
+            const s = stats[field as string];
+            if (!s || s.std === 0) continue;
+            const z = (raw - s.mean) / s.std;
+            zScores.push(higherBetter ? z : -z);
+          }
+          if (zScores.length === 0) return 0;
+          const avgZ = zScores.reduce((a, b) => a + b, 0) / zScores.length;
+          // Clamp to [-2.5, 2.5] then map to [0, 10] linearly.
+          const clamped = Math.max(-2.5, Math.min(2.5, avgZ));
+          return Math.round((5 + clamped * 2) * 10) / 10;
         }
 
         const draftByName = new Map<string, DraftPick>();
@@ -2131,6 +2173,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         : 0,
                       collegeTeammateScore: ts,
                       heightAdjSpeedScore: htAdjSpeedScore,
+                      relativeAthleticScore: computeRAS(combine, adpPlayer.position),
                       draftCapXSpeed,
                     };
                   })(),
@@ -2437,6 +2480,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       : 0,
                     speedScore: ss,
                     heightAdjSpeedScore: (ht > 0 && ss > 0) ? Math.round(ss * (ht / 76) * 10) / 10 : ss,
+                    relativeAthleticScore: computeRAS(combine, draft.position),
                     collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
                     collegeReceptionShare: zap?.receptionShare || 0,
                     collegeBreakoutScore: zap?.breakoutScore || 0,
@@ -3580,6 +3624,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                           : 0,
                         collegeTeammateScore: ts,
                         heightAdjSpeedScore: htAdjSpeedScore,
+                        relativeAthleticScore: computeRAS(combine, adpPlayer.position),
                         draftCapXSpeed,
                       };
                     })(),

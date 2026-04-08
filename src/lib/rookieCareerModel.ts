@@ -317,7 +317,49 @@ export function trainRookieCareerModels(
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
+  // Step 3b: Per-class draft pick percentile. "Pick 100" means a different
+  // thing in different draft years (compensatory picks, expansion, etc.)
+  // and across positions. Compute percentile within each (season, position)
+  // bucket so the signal is normalized across classes. 0.0 = top pick at
+  // position, 1.0 = latest pick at position. Undrafted → 1.0.
+  {
+    type Row = typeof careerRows[number];
+    const groups = new Map<string, Row[]>();
+    for (const r of careerRows) {
+      const key = `${r.draftSeason}:${r.position}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    for (const rows of groups.values()) {
+      const n = rows.length;
+      if (n === 0) continue;
+      const sorted = [...rows].sort((a, b) =>
+        (a.features.nflDraftPick || 300) - (b.features.nflDraftPick || 300)
+      );
+      for (let i = 0; i < sorted.length; i++) {
+        // Use midrank so ties get the same percentile and range is (0, 1).
+        sorted[i].features.draftPickPct = n > 1 ? i / (n - 1) : 0;
+      }
+    }
+  }
+
   // Step 4: Per-position training
+  // Per-position hyperparameters. Small-sample positions (QB n≈133, TE n≈207)
+  // want more Ridge regularization + shallower GBMs to avoid overfitting.
+  // Larger-sample positions (WR n≈456, RB n≈315) can handle more capacity.
+  const POS_HYPERPARAMS: Record<string, {
+    ridgeLambda: number;
+    gbmEstimators: number;
+    gbmLR: number;
+    gbmDepth: number;
+    minLeafPct: number;
+  }> = {
+    QB: { ridgeLambda: 15, gbmEstimators: 40, gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
+    RB: { ridgeLambda: 8,  gbmEstimators: 80, gbmLR: 0.05, gbmDepth: 3, minLeafPct: 0.06 },
+    WR: { ridgeLambda: 8,  gbmEstimators: 100, gbmLR: 0.05, gbmDepth: 3, minLeafPct: 0.05 },
+    TE: { ridgeLambda: 20, gbmEstimators: 40, gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
+  };
+
   const results: Record<string, RookieCareerModelResult> = {};
 
   for (const pos of ['QB', 'RB', 'WR', 'TE']) {
@@ -338,8 +380,32 @@ export function trainRookieCareerModels(
     const collegeOnlyKeys = featureKeys.filter(k => !DRAFT_CAPITAL_KEYS.has(k));
     const useCollegeCompanion = collegeOnlyKeys.length >= 4 && (pos === 'WR' || pos === 'RB');
 
+    const hyper = POS_HYPERPARAMS[pos] || POS_HYPERPARAMS.WR;
+
     const seasons = [...new Set(posRows.map(r => r.draftSeason))].sort();
     const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
+
+    // ── Temporal sample weighting via row duplication ─────────────────
+    // NFL offense has shifted heavily toward passing since ~2012. Training
+    // on 2010 rookies with equal weight to 2024 rookies washes out the
+    // modern signal. Duplicate recent rows so they dominate the loss:
+    //   0-3 years ago: 3x, 4-7: 2x, 8+: 1x. Applied only to the training
+    //   fold (never to the held-out test fold) so LOSO stays honest.
+    const maxSeason = Math.max(...seasons);
+    const recencyWeight = (season: number): number => {
+      const gap = maxSeason - season;
+      if (gap <= 3) return 3;
+      if (gap <= 7) return 2;
+      return 1;
+    };
+    const expand = <T extends { draftSeason: number }>(rows: T[]): T[] => {
+      const out: T[] = [];
+      for (const r of rows) {
+        const w = recencyWeight(r.draftSeason);
+        for (let i = 0; i < w; i++) out.push(r);
+      }
+      return out;
+    };
 
     // ── LOSO CV: collect regression predictions AND per-threshold class probs ──
     const losoData: Array<{
@@ -353,22 +419,24 @@ export function trainRookieCareerModels(
     }> = [];
 
     for (const held of seasons) {
-      const trainR = posRows.filter(r => r.draftSeason !== held);
+      const trainRRaw = posRows.filter(r => r.draftSeason !== held);
       const testR = posRows.filter(r => r.draftSeason === held);
-      if (trainR.length < 10 || testR.length === 0) continue;
+      if (trainRRaw.length < 10 || testR.length === 0) continue;
+      // Temporal recency upsampling (training fold only).
+      const trainR = expand(trainRRaw);
 
       const Xtr = trainR.map(r => featureKeys.map(k => r.features[k] || 0));
       const Xte = testR.map(r => featureKeys.map(k => r.features[k] || 0));
 
       // Regression model (for predicted PPG display)
       const ytrReg = trainR.map(r => r.best2of3PPG);
-      const ridgeReg = trainRidgeRegression(Xtr, ytrReg, featureKeys, 5);
+      const ridgeReg = trainRidgeRegression(Xtr, ytrReg, featureKeys, hyper.ridgeLambda);
       let regPreds: number[];
       const mainPreds: number[] = [];
       if (trainR.length >= 40) {
         const gbmReg = trainBaggedGBM(Xtr, ytrReg, featureKeys, {
-          nEstimators: 60, learningRate: 0.04, maxDepth: 2,
-          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
+          nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * hyper.minLeafPct)),
           seed: 42,
         }, 5);
         for (const x of Xte) {
@@ -395,11 +463,11 @@ export function trainRookieCareerModels(
       if (useCollegeCompanion) {
         const XtrCo = trainR.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
         const XteCo = testR.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
-        const ridgeCo = trainRidgeRegression(XtrCo, ytrReg, collegeOnlyKeys, 5);
+        const ridgeCo = trainRidgeRegression(XtrCo, ytrReg, collegeOnlyKeys, hyper.ridgeLambda);
         if (trainR.length >= 40) {
           const gbmCo = trainBaggedGBM(XtrCo, ytrReg, collegeOnlyKeys, {
-            nEstimators: 60, learningRate: 0.04, maxDepth: 2,
-            subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
+            nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+            subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * hyper.minLeafPct)),
             seed: 43,
           }, 5);
           companionPreds = XteCo.map((x) => {
@@ -439,13 +507,13 @@ export function trainRookieCareerModels(
           continue;
         }
 
-        const ridgeBin = trainRidgeRegression(Xtr, ytrBin, featureKeys, 5);
+        const ridgeBin = trainRidgeRegression(Xtr, ytrBin, featureKeys, hyper.ridgeLambda);
         let binPreds: number[];
 
         if (trainR.length >= 40) {
           const gbmBin = trainBaggedGBM(Xtr, ytrBin, featureKeys, {
-            nEstimators: 80, learningRate: 0.03, maxDepth: 2,
-            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainR.length * 0.1)),
+            nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+            subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(trainR.length * hyper.minLeafPct * 1.25)),
             seed: 42,
           }, 5);
           binPreds = Xte.map((x) => {
@@ -614,16 +682,20 @@ export function trainRookieCareerModels(
     }
 
     // ── Train final models on ALL data (for 2026 scoring) ──
-    const XAll = posRows.map(r => featureKeys.map(k => r.features[k] || 0));
-    const yAllReg = posRows.map(r => r.best2of3PPG);
+    // Use the recency-expanded row set so final models match the LOSO
+    // blend's temporal weighting.
+    const posRowsExpanded = expand(posRows);
+    const XAll = posRowsExpanded.map(r => featureKeys.map(k => r.features[k] || 0));
+    const yAllReg = posRowsExpanded.map(r => r.best2of3PPG);
+    const nAll = posRowsExpanded.length;
 
     // Regression model (for predicted PPG display)
-    const finalRidge = trainRidgeRegression(XAll, yAllReg, featureKeys, 5);
+    const finalRidge = trainRidgeRegression(XAll, yAllReg, featureKeys, hyper.ridgeLambda);
     let finalGBM: BaggedGBM | null = null;
-    if (posRows.length >= 40) {
+    if (nAll >= 40) {
       finalGBM = trainBaggedGBM(XAll, yAllReg, featureKeys, {
-        nEstimators: 60, learningRate: 0.04, maxDepth: 2,
-        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
+        nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+        subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(nAll * hyper.minLeafPct)),
         seed: 42,
       }, 5);
     }
@@ -632,12 +704,12 @@ export function trainRookieCareerModels(
     let finalRidgeCo: ReturnType<typeof trainRidgeRegression> | null = null;
     let finalGBMCo: BaggedGBM | null = null;
     if (useCollegeCompanion) {
-      const XAllCo = posRows.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
-      finalRidgeCo = trainRidgeRegression(XAllCo, yAllReg, collegeOnlyKeys, 5);
-      if (posRows.length >= 40) {
+      const XAllCo = posRowsExpanded.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
+      finalRidgeCo = trainRidgeRegression(XAllCo, yAllReg, collegeOnlyKeys, hyper.ridgeLambda);
+      if (nAll >= 40) {
         finalGBMCo = trainBaggedGBM(XAllCo, yAllReg, collegeOnlyKeys, {
-          nEstimators: 60, learningRate: 0.04, maxDepth: 2,
-          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
+          nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(nAll * hyper.minLeafPct)),
           seed: 43,
         }, 5);
       }
@@ -646,16 +718,16 @@ export function trainRookieCareerModels(
     // Per-threshold classifiers
     const thresholdModels: Record<number, { ridge: unknown; gbm: BaggedGBM | null }> = {};
     for (const thresh of thresholdConfig.thresholds) {
-      const yBin = posRows.map(r => r.best2of3PPG >= thresh ? 1 : 0);
+      const yBin = posRowsExpanded.map(r => r.best2of3PPG >= thresh ? 1 : 0);
       const posRate = yBin.filter(y => y === 1).length / yBin.length;
       if (posRate < 0.03 || posRate > 0.97) continue; // skip extreme imbalance
 
-      const ridgeBin = trainRidgeRegression(XAll, yBin, featureKeys, 5);
+      const ridgeBin = trainRidgeRegression(XAll, yBin, featureKeys, hyper.ridgeLambda);
       let gbmBin: BaggedGBM | null = null;
-      if (posRows.length >= 40) {
+      if (nAll >= 40) {
         gbmBin = trainBaggedGBM(XAll, yBin, featureKeys, {
-          nEstimators: 80, learningRate: 0.03, maxDepth: 2,
-          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(posRows.length * 0.1)),
+          nEstimators: hyper.gbmEstimators, learningRate: hyper.gbmLR, maxDepth: hyper.gbmDepth,
+          subsample: 0.8, minSamplesLeaf: Math.max(5, Math.round(nAll * hyper.minLeafPct * 1.25)),
           seed: 42,
         }, 5);
       }

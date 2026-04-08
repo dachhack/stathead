@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v37.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v38.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v55.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v56.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -198,11 +198,11 @@ async function main() {
   // Changing one model type only retrains that type, not all 5.
   const MODEL_DIR = 'public/data';
   const componentCachePaths = {
-    adp: `${MODEL_DIR}/model-cache-adp-v55.json`,
-    ppg: `${MODEL_DIR}/model-cache-ppg-v55.json`,
-    residual: `${MODEL_DIR}/model-cache-residual-v55.json`,
-    share: `${MODEL_DIR}/model-cache-share-v55.json`,
-    career: `${MODEL_DIR}/model-cache-career-v58.json`,
+    adp: `${MODEL_DIR}/model-cache-adp-v56.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
+    share: `${MODEL_DIR}/model-cache-share-v56.json`,
+    career: `${MODEL_DIR}/model-cache-career-v59.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -1981,25 +1981,60 @@ async function main() {
       collegeAdvByProspect.set(name, { dominatorRating, breakoutAge: 0, marketShare: dominatorRating });
     }
 
-    // Combine averages by position for imputation
+    // Combine averages + per-position stds (for RAS) by position
     const combineAvg = new Map<string, Record<string, number>>();
-    const combineAccum = new Map<string, Record<string, { sum: number; count: number }>>();
+    // Store raw values per metric for mean/std
+    const combineAccumRaw = new Map<string, Record<string, number[]>>();
     for (const c of combineData) {
       if (!c.pos) continue;
-      if (!combineAccum.has(c.pos)) combineAccum.set(c.pos, {});
-      const acc = combineAccum.get(c.pos)!;
+      if (!combineAccumRaw.has(c.pos)) combineAccumRaw.set(c.pos, {});
+      const acc = combineAccumRaw.get(c.pos)!;
       for (const [k, v] of [['forty', c.forty], ['weight', c.wt], ['bench', c.bench], ['vertical', c.vertical], ['broadJump', c.broad_jump], ['cone', c.cone], ['shuttle', c.shuttle]] as [string, number][]) {
         if (v && v > 0) {
-          if (!acc[k]) acc[k] = { sum: 0, count: 0 };
-          acc[k].sum += v;
-          acc[k].count += 1;
+          if (!acc[k]) acc[k] = [];
+          acc[k].push(v);
         }
       }
     }
-    for (const [pos, acc] of combineAccum) {
+    const combineStds = new Map<string, Record<string, number>>();
+    for (const [pos, acc] of combineAccumRaw) {
       const avg: Record<string, number> = {};
-      for (const [k, v] of Object.entries(acc)) avg[k] = Math.round((v.sum / v.count) * 100) / 100;
+      const stds: Record<string, number> = {};
+      for (const [k, vals] of Object.entries(acc)) {
+        const m = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const v = vals.reduce((a, b) => a + (b - m) ** 2, 0) / vals.length;
+        avg[k] = Math.round(m * 100) / 100;
+        stds[k] = Math.max(0.01, Math.sqrt(v));
+      }
       combineAvg.set(pos, avg);
+      combineStds.set(pos, stds);
+    }
+    // Compute RAS from a prospect's combine record (raw values) + position.
+    function computeProspectRAS(combine: any | undefined, pos: string): number {
+      if (!combine) return 0;
+      const avg = combineAvg.get(pos);
+      const stds = combineStds.get(pos);
+      if (!avg || !stds) return 0;
+      const metrics: Array<[string, string, boolean]> = [
+        ['weight', 'wt', true], ['forty', 'forty', false],
+        ['bench', 'bench', true], ['vertical', 'vertical', true],
+        ['broadJump', 'broad_jump', true], ['cone', 'cone', false],
+        ['shuttle', 'shuttle', false],
+      ];
+      const zs: number[] = [];
+      for (const [statKey, combineKey, higherBetter] of metrics) {
+        const raw = Number(combine[combineKey]) || 0;
+        if (raw <= 0) continue;
+        const m = avg[statKey] || 0;
+        const s = stds[statKey] || 0;
+        if (!m || !s) continue;
+        const z = (raw - m) / s;
+        zs.push(higherBetter ? z : -z);
+      }
+      if (zs.length === 0) return 0;
+      const avgZ = zs.reduce((a, b) => a + b, 0) / zs.length;
+      const clamped = Math.max(-2.5, Math.min(2.5, avgZ));
+      return Math.round((5 + clamped * 2) * 10) / 10;
     }
 
     // Build best single-season stats per player
@@ -2262,6 +2297,7 @@ async function main() {
         shuttle: combine?.shuttle || posAvg.shuttle || 0,
         speedScore: ss,
         heightAdjSpeedScore: htAdjSS,
+        relativeAthleticScore: computeProspectRAS(combine, pos),
         draftCapXSpeed,
         collegePassTDs: cs?.get('Passing Touchdowns') || 0,
         collegeQBR: prospectQBRLatest.get(nName) || 0,
