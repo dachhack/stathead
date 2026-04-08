@@ -325,6 +325,17 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeSeasons', label: 'College Seasons Played', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   // Advanced college analytics
   { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  // RB dual-threat signal: career receiving yards per game. Splits
+  // pure bell-cows from pass-catching backs (Kamara / CMC profile).
+  { key: 'collegeRecYdsPerGame', label: 'Rec Yards / Game (career)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  // Elusiveness proxy: career rush YPC minus the player's team rush
+  // YPC over the same seasons. Positive = player ran above his own
+  // o-line's baseline. (True broken-tackle data would be PFF-only.)
+  { key: 'collegeRushYpcOverTeam', label: 'Rush YPC Above Team', category: 'College', positions: ['RB'] },
+  // Goal-line usage proxy: career rush TDs divided by team scrimmage
+  // TDs (rush + rec) over the same seasons. Approximates the share
+  // of short-yardage / red-zone work the RB was trusted with.
+  { key: 'collegeGoalLineShare', label: 'Goal-Line Share (career)', category: 'College', positions: ['RB'] },
   // Late-round breakout signal: college dominator × (logDraftPick − ~pick 55)+
   // Fires for picks outside ~round 2, lifting prospects like Tyreek Hill / Puka
   // Nacua who had elite college production but fell in the draft.
@@ -453,16 +464,13 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Receiving + speed + draft capital nonlinear. Everything new
-  // from the batch PR (RAS, draftPickPct, draftPickPctOverall,
-  // draftClassDepth) regressed LOSO R² for RB — the position has had
-  // enough modern-era turnover ("dead zone", role changes) that extra
-  // features and recency weighting introduce more noise than signal.
-  // Exact pre-batch feature set.
+  // RB: n=315. Pre-batch feature set + three RB-specific production
+  // features (dual-threat, elusiveness proxy, goal-line share).
   RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeDominatorXLateRound', 'collegeTeammateScore'],
+       'collegeDominatorXLateRound', 'collegeTeammateScore',
+       'collegeRecYdsPerGame', 'collegeRushYpcOverTeam', 'collegeGoalLineShare'],
   // WR: n=456. Breakout score + per-team + draft interactions + RAS.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',

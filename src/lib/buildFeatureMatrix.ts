@@ -2203,6 +2203,41 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     // Draft capital × Speed Score interaction (for TEs)
                     const draftPick = draft?.pick || 0;
                     const draftCapXSpeed = (draftPick > 0 && ss > 0) ? Math.round((1 / draftPick) * ss * 1000) / 1000 : 0;
+                    // RB career aggregates for dual-threat / elusiveness /
+                    // goal-line features. Same computation as the historical
+                    // draft loop — see the comments there for details.
+                    let cRushYds = 0, cRushAtt = 0, cRushTDs = 0;
+                    let cRecYds = 0, cRecTDs = 0, cGames = 0;
+                    let tRushYds = 0, tRushAtt = 0, tRushTDs = 0, tRecTDs = 0;
+                    const playerSeasonsADP = playerSeasonStats.get(normalName);
+                    if (playerSeasonsADP) {
+                      for (const [sn, pss] of playerSeasonsADP) {
+                        cRushYds += pss.rushYds || 0;
+                        cRushAtt += pss.rushAtt || 0;
+                        cRushTDs += pss.rushTDs || 0;
+                        cRecYds += pss.recYds || 0;
+                        cRecTDs += pss.recTDs || 0;
+                        cGames += pss.games || 0;
+                        const tkey = `${pss.school}:${sn}`;
+                        const team = schoolSeasonTotals.get(tkey);
+                        if (team) {
+                          tRushYds += team.rushYds || 0;
+                          tRushAtt += team.rushAtt || 0;
+                          tRushTDs += team.rushTDs || 0;
+                          tRecTDs += team.recTDs || 0;
+                        }
+                      }
+                    }
+                    const rbRecYdsPerGame = cGames > 0 ? Math.round((cRecYds / cGames) * 10) / 10 : 0;
+                    const rbPlayerYPC = cRushAtt > 0 ? cRushYds / cRushAtt : 0;
+                    const rbTeamYPC = tRushAtt > 0 ? tRushYds / tRushAtt : 0;
+                    const rbYpcOverTeam = (rbPlayerYPC > 0 && rbTeamYPC > 0)
+                      ? Math.round((rbPlayerYPC - rbTeamYPC) * 100) / 100
+                      : 0;
+                    const rbTeamScrimmageTDs = tRushTDs + tRecTDs;
+                    const rbGoalLineShare = rbTeamScrimmageTDs > 0
+                      ? Math.round((cRushTDs / rbTeamScrimmageTDs) * 1000) / 1000
+                      : 0;
                     return {
                       collegeRecYdsPerTeamPassAtt: zap?.recYdsPerTeamPassAtt || 0,
                       collegeReceptionShare: zap?.receptionShare || 0,
@@ -2225,6 +2260,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       heightAdjSpeedScore: htAdjSpeedScore,
                       relativeAthleticScore: computeRAS(combine, adpPlayer.position),
                       draftCapXSpeed,
+                      collegeRecYdsPerGame: rbRecYdsPerGame,
+                      collegeRushYpcOverTeam: rbYpcOverTeam,
+                      collegeGoalLineShare: rbGoalLineShare,
                     };
                   })(),
                   // Missing-data indicators
@@ -2461,19 +2499,54 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const ts = teammateScoreByName.get(draftName) || 0;
                   const ht = parseHeight(combine?.ht || '') || rosterPhysical?.heightIn || 0;
                   const ss = speedScoreByName.get(draftName) || 0;
-                  // ── QB career aggregates from per-season college stats ─
-                  let careerRushYds = 0, careerPassAtt = 0, careerGames = 0;
+                  // ── Career aggregates from per-season college stats ─
+                  // Used for both QB context features and RB-specific
+                  // dual-threat / elusiveness / goal-line features.
+                  let careerRushYds = 0, careerRushAtt = 0, careerRushTDs = 0;
+                  let careerRecYds = 0, careerRecTDs = 0;
+                  let careerPassAtt = 0, careerGames = 0;
+                  let teamRushYds = 0, teamRushAtt = 0;
+                  let teamRushTDs = 0, teamRecTDs = 0;
                   let lastSchool = '';
                   let lastSeason = 0;
                   const playerSeasons = playerSeasonStats.get(draftName);
                   if (playerSeasons) {
                     for (const [sn, ps] of playerSeasons) {
                       careerRushYds += ps.rushYds || 0;
+                      careerRushAtt += ps.rushAtt || 0;
+                      careerRushTDs += ps.rushTDs || 0;
+                      careerRecYds += ps.recYds || 0;
+                      careerRecTDs += ps.recTDs || 0;
                       careerPassAtt += ps.passAtt || 0;
                       careerGames += ps.games || 0;
                       if (sn > lastSeason) { lastSeason = sn; lastSchool = ps.school || lastSchool; }
+                      // Accumulate the player's team totals for the seasons
+                      // the player actually played, so rate features are
+                      // apples-to-apples with the player's career window.
+                      const tkey = `${ps.school}:${sn}`;
+                      const team = schoolSeasonTotals.get(tkey);
+                      if (team) {
+                        teamRushYds += team.rushYds || 0;
+                        teamRushAtt += team.rushAtt || 0;
+                        teamRushTDs += team.rushTDs || 0;
+                        teamRecTDs += team.recTDs || 0;
+                      }
                     }
                   }
+                  // RB-specific rate features (zero for other positions
+                  // since they're filtered out of the RB feature list).
+                  const collegeRecYdsPerGame = careerGames > 0
+                    ? Math.round((careerRecYds / careerGames) * 10) / 10
+                    : 0;
+                  const playerRushYPC = careerRushAtt > 0 ? careerRushYds / careerRushAtt : 0;
+                  const teamRushYPC = teamRushAtt > 0 ? teamRushYds / teamRushAtt : 0;
+                  const collegeRushYpcOverTeam = (playerRushYPC > 0 && teamRushYPC > 0)
+                    ? Math.round((playerRushYPC - teamRushYPC) * 100) / 100
+                    : 0;
+                  const teamScrimmageTDs = teamRushTDs + teamRecTDs;
+                  const collegeGoalLineShare = teamScrimmageTDs > 0
+                    ? Math.round((careerRushTDs / teamScrimmageTDs) * 1000) / 1000
+                    : 0;
                   const careerYdsPerPassAtt = careerPassAtt > 0
                     ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
                     : 0;
@@ -2539,6 +2612,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeBreakoutScore: zap?.breakoutScore || 0,
                     collegeRushProductionWR: zap?.rushProductionWR || 0,
                     collegeTeammateScore: ts,
+                    collegeRecYdsPerGame,
+                    collegeRushYpcOverTeam,
+                    collegeGoalLineShare,
                     hasCollegeStats: cs ? 1 : 0,
                   };
                 })(),
@@ -3591,16 +3667,33 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeQBR: imp(collegeQBRByName.get(normalName), 'collegeQBR'),
                     collegeQBR2yr: imp(collegeQBR2yrByName.get(normalName) || collegeQBRByName.get(normalName), 'collegeQBR2yr'),
                     ...(() => {
-                      // Career aggregates from per-season college stats
-                      let careerRushYds = 0, careerPassAtt = 0, careerGames = 0;
+                      // Career aggregates from per-season college stats —
+                      // used for both QB context features and RB dual-
+                      // threat / elusiveness / goal-line features.
+                      let careerRushYds = 0, careerRushAtt = 0, careerRushTDs = 0;
+                      let careerRecYds = 0, careerRecTDs = 0;
+                      let careerPassAtt = 0, careerGames = 0;
+                      let tRushYds = 0, tRushAtt = 0, tRushTDs = 0, tRecTDs = 0;
                       let lastSchool = '', lastSeason = 0;
                       const ps = playerSeasonStats.get(normalName);
                       if (ps) {
                         for (const [sn, s] of ps) {
                           careerRushYds += s.rushYds || 0;
+                          careerRushAtt += s.rushAtt || 0;
+                          careerRushTDs += s.rushTDs || 0;
+                          careerRecYds += s.recYds || 0;
+                          careerRecTDs += s.recTDs || 0;
                           careerPassAtt += s.passAtt || 0;
                           careerGames += s.games || 0;
                           if (sn > lastSeason) { lastSeason = sn; lastSchool = s.school || lastSchool; }
+                          const tkey = `${s.school}:${sn}`;
+                          const team = schoolSeasonTotals.get(tkey);
+                          if (team) {
+                            tRushYds += team.rushYds || 0;
+                            tRushAtt += team.rushAtt || 0;
+                            tRushTDs += team.rushTDs || 0;
+                            tRecTDs += team.recTDs || 0;
+                          }
                         }
                       }
                       const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
@@ -3632,6 +3725,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         collegePassAttPerRushYd: careerRushYds > 0
                           ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
                           : 0,
+                        collegeRecYdsPerGame: careerGames > 0
+                          ? Math.round((careerRecYds / careerGames) * 10) / 10
+                          : 0,
+                        collegeRushYpcOverTeam: (() => {
+                          const p = careerRushAtt > 0 ? careerRushYds / careerRushAtt : 0;
+                          const t = tRushAtt > 0 ? tRushYds / tRushAtt : 0;
+                          return (p > 0 && t > 0) ? Math.round((p - t) * 100) / 100 : 0;
+                        })(),
+                        collegeGoalLineShare: (() => {
+                          const ts = tRushTDs + tRecTDs;
+                          return ts > 0 ? Math.round((careerRushTDs / ts) * 1000) / 1000 : 0;
+                        })(),
                       };
                     })(),
                     collegeGames: pg?.games || 0,

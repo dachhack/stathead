@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v40.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v41.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v58.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v59.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v63.json`,
+    career: `${MODEL_DIR}/model-cache-career-v64.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -2091,8 +2091,17 @@ async function main() {
     }
 
     // Per-player per-season stats from college data
-    type ProspectSeasonStats = { recYds: number; receptions: number; rushYds: number; passAtt: number; passYds: number; games: number; school: string; season: number };
+    type ProspectSeasonStats = {
+      recYds: number; receptions: number; rushYds: number; rushAtt: number;
+      rushTDs: number; recTDs: number;
+      passAtt: number; passYds: number;
+      games: number; school: string; season: number;
+    };
     const prospectSeasonStats = new Map<string, ProspectSeasonStats[]>();
+    // Per-school-season team totals, for RB YPC-over-team and goal-line
+    // share features. Built from the same collegeData feed.
+    type ProspectTeamStats = { rushYds: number; rushAtt: number; rushTDs: number; recTDs: number };
+    const prospectTeamSeasonStats = new Map<string, ProspectTeamStats>();
     for (const cs of collegeData) {
       const name = normalizeName(cs.player_name);
       const stat = (cs.statistic || '').toLowerCase();
@@ -2100,15 +2109,37 @@ async function main() {
       const seasons = prospectSeasonStats.get(name)!;
       let entry = seasons.find(s => s.season === cs.season);
       if (!entry) {
-        entry = { recYds: 0, receptions: 0, rushYds: 0, passAtt: 0, passYds: 0, games: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season };
+        entry = {
+          recYds: 0, receptions: 0, rushYds: 0, rushAtt: 0,
+          rushTDs: 0, recTDs: 0,
+          passAtt: 0, passYds: 0,
+          games: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season,
+        };
         seasons.push(entry);
       }
       if (stat.includes('receiving yard')) entry.recYds += cs.value || 0;
+      else if (stat.includes('receiving touchdown')) entry.recTDs += cs.value || 0;
       else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) entry.receptions += cs.value || 0;
       else if (stat.includes('rushing yard')) entry.rushYds += cs.value || 0;
+      else if (stat.includes('rushing attempt') || stat === 'rushing attempts') entry.rushAtt += cs.value || 0;
+      else if (stat.includes('rushing touchdown')) entry.rushTDs += cs.value || 0;
       else if (stat.includes('passing attempt') || stat === 'pass attempts') entry.passAtt += cs.value || 0;
       else if (stat.includes('passing yard')) entry.passYds += cs.value || 0;
       else if (stat === 'games played' || stat.includes('games played')) entry.games = Math.max(entry.games, cs.value || 0);
+
+      // Team totals (sum across all players at same school+season).
+      const school = (cs.school || cs.school_abbr || '').toLowerCase();
+      if (school) {
+        const tkey = `${school}:${cs.season}`;
+        if (!prospectTeamSeasonStats.has(tkey)) {
+          prospectTeamSeasonStats.set(tkey, { rushYds: 0, rushAtt: 0, rushTDs: 0, recTDs: 0 });
+        }
+        const team = prospectTeamSeasonStats.get(tkey)!;
+        if (stat.includes('rushing yard')) team.rushYds += cs.value || 0;
+        else if (stat.includes('rushing attempt') || stat === 'rushing attempts') team.rushAtt += cs.value || 0;
+        else if (stat.includes('rushing touchdown')) team.rushTDs += cs.value || 0;
+        else if (stat.includes('receiving touchdown')) team.recTDs += cs.value || 0;
+      }
     }
 
     // Compute ZAP features per prospect
@@ -2345,18 +2376,35 @@ async function main() {
         collegeQBR: prospectQBRLatest.get(nName) || 0,
         collegeQBR2yr: prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0,
         ...(() => {
-          // QB-specific career aggregates + team-context composites.
-          // Cheap to compute for every prospect; Ridge will zero them out
-          // for non-QB positions via its position-specific feature key list.
+          // Career aggregates used for QB context features AND the new
+          // RB dual-threat / elusiveness / goal-line features. Cheap to
+          // compute for every prospect; Ridge will zero them out for
+          // irrelevant positions via the per-position feature list.
           const seasons = prospectSeasonStats.get(nName) || [];
-          let careerPassAtt = 0, careerPassYds = 0, careerRushYds = 0, careerGames = 0;
+          let careerPassAtt = 0, careerPassYds = 0;
+          let careerRushYds = 0, careerRushAtt = 0, careerRushTDs = 0;
+          let careerRecYds = 0, careerRecTDs = 0;
+          let careerGames = 0;
+          let tRushYds = 0, tRushAtt = 0, tRushTDs = 0, tRecTDs = 0;
           let lastSchool = '', lastSeason = 0;
           for (const s of seasons) {
             careerPassAtt += s.passAtt || 0;
             careerPassYds += s.passYds || 0;
             careerRushYds += s.rushYds || 0;
+            careerRushAtt += s.rushAtt || 0;
+            careerRushTDs += s.rushTDs || 0;
+            careerRecYds += s.recYds || 0;
+            careerRecTDs += s.recTDs || 0;
             careerGames += s.games || 0;
             if (s.season > lastSeason) { lastSeason = s.season; lastSchool = s.school || lastSchool; }
+            const tkey = `${s.school}:${s.season}`;
+            const team = prospectTeamSeasonStats.get(tkey);
+            if (team) {
+              tRushYds += team.rushYds || 0;
+              tRushAtt += team.rushAtt || 0;
+              tRushTDs += team.rushTDs || 0;
+              tRecTDs += team.recTDs || 0;
+            }
           }
           const totalGames = careerGames || (seasons.length * 13);
           const teamKey1 = lastSchool ? `${normSchool(lastSchool)}:${lastSeason}` : '';
@@ -2371,6 +2419,19 @@ async function main() {
           const careerRushYpg = totalGames > 0 ? careerRushYds / totalGames : 0;
           const careerPassYpg = totalGames > 0 ? careerPassYds / totalGames : 0;
           const prospectAge = prospect.age || 0;
+          // RB rate features
+          const rbRecYdsPerGame = totalGames > 0
+            ? Math.round((careerRecYds / totalGames) * 10) / 10
+            : 0;
+          const playerYPC = careerRushAtt > 0 ? careerRushYds / careerRushAtt : 0;
+          const teamYPC = tRushAtt > 0 ? tRushYds / tRushAtt : 0;
+          const rbYpcOverTeam = (playerYPC > 0 && teamYPC > 0)
+            ? Math.round((playerYPC - teamYPC) * 100) / 100
+            : 0;
+          const teamScrimmageTDs = tRushTDs + tRecTDs;
+          const rbGoalLineShare = teamScrimmageTDs > 0
+            ? Math.round((careerRushTDs / teamScrimmageTDs) * 1000) / 1000
+            : 0;
           return {
             collegeRushYpgPerAge: (careerRushYpg > 0 && prospectAge > 0)
               ? Math.round((careerRushYpg / prospectAge) * 100) / 100
@@ -2386,6 +2447,9 @@ async function main() {
             collegeQbContextScore: Math.round(
               careerPassYpg * Math.max(0, teamRating + 40) * sosMult
             ),
+            collegeRecYdsPerGame: rbRecYdsPerGame,
+            collegeRushYpcOverTeam: rbYpcOverTeam,
+            collegeGoalLineShare: rbGoalLineShare,
           };
         })(),
         collegeRushYds: cs?.get('Rushing Yards') || 0,
