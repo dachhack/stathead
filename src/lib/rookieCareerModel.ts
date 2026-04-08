@@ -358,10 +358,13 @@ export function trainRookieCareerModels(
     gbmDepth: number;
     minLeafPct: number;
   }> = {
-    QB: { ridgeLambda: 15, gbmEstimators: 40, gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
-    RB: { ridgeLambda: 8,  gbmEstimators: 80, gbmLR: 0.05, gbmDepth: 3, minLeafPct: 0.06 },
+    QB: { ridgeLambda: 15, gbmEstimators: 40,  gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
+    // RB: depth-3 + 80 trees overfit on the mid-sized sample (regressed
+    // LOSO R² by ~0.01 vs the depth-2 / 60-tree / λ=5 baseline). Reverted
+    // to the conservative config that worked before the batch.
+    RB: { ridgeLambda: 5,  gbmEstimators: 60,  gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.08 },
     WR: { ridgeLambda: 8,  gbmEstimators: 100, gbmLR: 0.05, gbmDepth: 3, minLeafPct: 0.05 },
-    TE: { ridgeLambda: 20, gbmEstimators: 40, gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
+    TE: { ridgeLambda: 20, gbmEstimators: 40,  gbmLR: 0.04, gbmDepth: 2, minLeafPct: 0.12 },
   };
 
   const results: Record<string, RookieCareerModelResult> = {};
