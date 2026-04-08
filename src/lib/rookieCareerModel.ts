@@ -11,6 +11,32 @@ import { PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae } from './featureTypes';
 import type { PlayerRow } from './featureTypes';
 
 // Standard normal CDF approximation (Abramowitz & Stegun 26.2.17)
+/**
+ * Predict a rookie's best-2-of-3 PPG from their features, including the
+ * 70/30 blend with the college-only companion model when present.
+ * Use this helper wherever a rookie career model is applied at scoring time
+ * to keep the blend consistent between LOSO backtest and live predictions.
+ */
+export function predictRookieCareerPPG(
+  cm: RookieCareerModelResult,
+  features: Record<string, number>,
+): number {
+  if (!cm?.ridgeModel) return 0;
+  const mainRidge = predict(cm.ridgeModel as any, features).predicted;
+  const mainPred = cm.gbmModel
+    ? predictBaggedGBM(cm.gbmModel, features).predicted * 0.5 + mainRidge * 0.5
+    : mainRidge;
+  const w = cm.companionBlendWeight || 0;
+  if (w > 0 && cm.ridgeModelCompanion) {
+    const coRidge = predict(cm.ridgeModelCompanion as any, features).predicted;
+    const coPred = cm.gbmModelCompanion
+      ? predictBaggedGBM(cm.gbmModelCompanion, features).predicted * 0.5 + coRidge * 0.5
+      : coRidge;
+    return Math.max(0, mainPred * (1 - w) + coPred * w);
+  }
+  return Math.max(0, mainPred);
+}
+
 export function normalCdf(x: number): number {
   if (x < -8) return 0;
   if (x > 8) return 1;
@@ -125,6 +151,11 @@ export interface RookieCareerModelResult {
   // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
+  // College-only companion (blended 70/30 with main model at scoring time)
+  ridgeModelCompanion?: unknown;
+  gbmModelCompanion?: BaggedGBM | null;
+  companionFeatureKeys?: string[];
+  companionBlendWeight?: number;
   // Legacy fields kept for compatibility
   topN: Record<number, { precision: number; recall: number; n: number }>;
 }
@@ -280,6 +311,9 @@ export function trainRookieCareerModels(
     f.logDraftPick = Math.log(pick);
     f.invDraftPick = 1 / pick;
     f.draftPickXEarlyDeclare = (f.collegeEarlyDeclare || 0) * (1 / pick);
+    // Late-round breakout interaction: lifts high-producing late picks.
+    // Zero inside ~pick 55 (ln 55 ≈ 4.0), positive outside scaled by dominator.
+    f.collegeDominatorXLateRound = (f.collegeDominatorRating || 0) * Math.max(0, Math.log(pick) - 4.0);
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
@@ -291,6 +325,18 @@ export function trainRookieCareerModels(
     if (posRows.length < 10) continue;
     const featureKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || [];
     if (featureKeys.length === 0) continue;
+
+    // College-only companion feature set: excludes all draft-capital features
+    // (including the late-round breakout interaction) so the companion model
+    // is forced to rely purely on college production signals. Blended 70/30
+    // with the main model to catch late-round breakouts the draft-capital-
+    // driven main model confidently mispredicts (Tyreek Hill, Puka Nacua).
+    const DRAFT_CAPITAL_KEYS = new Set([
+      'logDraftPick', 'invDraftPick', 'draftPickXEarlyDeclare',
+      'collegeDominatorXLateRound',
+    ]);
+    const collegeOnlyKeys = featureKeys.filter(k => !DRAFT_CAPITAL_KEYS.has(k));
+    const useCollegeCompanion = collegeOnlyKeys.length >= 4 && (pos === 'WR' || pos === 'RB');
 
     const seasons = [...new Set(posRows.map(r => r.draftSeason))].sort();
     const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
@@ -318,26 +364,65 @@ export function trainRookieCareerModels(
       const ytrReg = trainR.map(r => r.best2of3PPG);
       const ridgeReg = trainRidgeRegression(Xtr, ytrReg, featureKeys, 5);
       let regPreds: number[];
+      const mainPreds: number[] = [];
       if (trainR.length >= 40) {
         const gbmReg = trainBaggedGBM(Xtr, ytrReg, featureKeys, {
           nEstimators: 60, learningRate: 0.04, maxDepth: 2,
           subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
           seed: 42,
         }, 5);
-        regPreds = Xte.map((x) => {
+        for (const x of Xte) {
           const feat: Record<string, number> = {};
           featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
           const p = predictBaggedGBM(gbmReg, feat).predicted * 0.5 + predict(ridgeReg, feat).predicted * 0.5;
-          return isFinite(p) ? Math.max(0, p) : 0;
-        });
+          mainPreds.push(isFinite(p) ? Math.max(0, p) : 0);
+        }
       } else {
-        regPreds = Xte.map((x) => {
+        for (const x of Xte) {
           const feat: Record<string, number> = {};
           featureKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
           const p = predict(ridgeReg, feat).predicted;
-          return isFinite(p) ? Math.max(0, p) : 0;
-        });
+          mainPreds.push(isFinite(p) ? Math.max(0, p) : 0);
+        }
       }
+
+      // ── College-only companion model ────────────────────────────────
+      // Same architecture, but trained on a feature set with all draft-
+      // capital features removed. Blended 70/30 with the main model so
+      // that college production can partially override draft capital
+      // when the main model is confidently wrong on late-round breakouts.
+      let companionPreds: number[] | null = null;
+      if (useCollegeCompanion) {
+        const XtrCo = trainR.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
+        const XteCo = testR.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
+        const ridgeCo = trainRidgeRegression(XtrCo, ytrReg, collegeOnlyKeys, 5);
+        if (trainR.length >= 40) {
+          const gbmCo = trainBaggedGBM(XtrCo, ytrReg, collegeOnlyKeys, {
+            nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+            subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(trainR.length * 0.08)),
+            seed: 43,
+          }, 5);
+          companionPreds = XteCo.map((x) => {
+            const feat: Record<string, number> = {};
+            collegeOnlyKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            const p = predictBaggedGBM(gbmCo, feat).predicted * 0.5 + predict(ridgeCo, feat).predicted * 0.5;
+            return isFinite(p) ? Math.max(0, p) : 0;
+          });
+        } else {
+          companionPreds = XteCo.map((x) => {
+            const feat: Record<string, number> = {};
+            collegeOnlyKeys.forEach((k, j) => { feat[k] = isFinite(x[j]) ? x[j] : 0; });
+            const p = predict(ridgeCo, feat).predicted;
+            return isFinite(p) ? Math.max(0, p) : 0;
+          });
+        }
+      }
+
+      // Blend main and companion: 70/30 if companion ran, else main only.
+      regPreds = mainPreds.map((m, i) => {
+        if (!companionPreds) return m;
+        return Math.round((m * 0.7 + companionPreds[i] * 0.3) * 100) / 100;
+      });
 
       // Per-threshold binary classifiers
       const threshProbs: Record<number, number>[] = testR.map(() => ({}));
@@ -543,6 +628,21 @@ export function trainRookieCareerModels(
       }, 5);
     }
 
+    // Companion college-only final model (matching the LOSO blend).
+    let finalRidgeCo: ReturnType<typeof trainRidgeRegression> | null = null;
+    let finalGBMCo: BaggedGBM | null = null;
+    if (useCollegeCompanion) {
+      const XAllCo = posRows.map(r => collegeOnlyKeys.map(k => r.features[k] || 0));
+      finalRidgeCo = trainRidgeRegression(XAllCo, yAllReg, collegeOnlyKeys, 5);
+      if (posRows.length >= 40) {
+        finalGBMCo = trainBaggedGBM(XAllCo, yAllReg, collegeOnlyKeys, {
+          nEstimators: 60, learningRate: 0.04, maxDepth: 2,
+          subsample: 0.8, minSamplesLeaf: Math.max(3, Math.round(posRows.length * 0.08)),
+          seed: 43,
+        }, 5);
+      }
+    }
+
     // Per-threshold classifiers
     const thresholdModels: Record<number, { ridge: unknown; gbm: BaggedGBM | null }> = {};
     for (const thresh of thresholdConfig.thresholds) {
@@ -605,6 +705,10 @@ export function trainRookieCareerModels(
       bustFeatureImportance: undefined,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
+      ridgeModelCompanion: finalRidgeCo || undefined,
+      gbmModelCompanion: finalGBMCo,
+      companionFeatureKeys: useCollegeCompanion ? collegeOnlyKeys : undefined,
+      companionBlendWeight: useCollegeCompanion ? 0.3 : 0,
       topN: {},
     };
   }

@@ -2091,6 +2091,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       collegeRushProductionWR: zap?.rushProductionWR || 0,
                       collegeEarlyDeclare: zap?.earlyDeclare || 0,
                       draftPickXEarlyDeclare: (zap?.earlyDeclare || 0) * (1 / (draftPick || 300)),
+                      // Dominator × late-round interaction: lifts high-producing
+                      // late-round picks (Tyreek/Nacua/Diggs profile). Zero for
+                      // round 1-2 (logDraftPick ≤ ln(55)≈4), positive for later
+                      // picks scaled by college dominator rating.
+                      collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
+                        Math.max(0, Math.log(draftPick || 300) - 4.0),
                       collegeExperiencePerAge: (best && draftAge > 0)
                         ? Math.round(((best.numSeasons || 0) * 13 / draftAge) * 100) / 100
                         : 0,
@@ -2343,6 +2349,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeSeasons: best?.numSeasons || 0,
                     collegeEarlyDeclare: (best?.numSeasons || 99) <= 3 ? 1 : 0,
                     draftPickXEarlyDeclare: ((best?.numSeasons || 99) <= 3 ? 1 : 0) * (1 / (draft.pick || 300)),
+                    collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
+                      Math.max(0, Math.log(draft.pick || 300) - 4.0),
                     collegeExperiencePerAge: (best && draft.age && draft.age > 0)
                       ? Math.round(((best.numSeasons || 0) * 13 / draft.age) * 100) / 100
                       : 0,
@@ -3416,6 +3424,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectPosRank: prospect?.pos_rk || 0,
                     prospectOvlRank: prospect?.ovr_rk || 0,
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
+                    collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
+                      Math.max(0, Math.log(draft?.pick || 300) - 4.0),
                     collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
                     collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
                       ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
