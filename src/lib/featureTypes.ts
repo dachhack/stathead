@@ -453,12 +453,15 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Receiving + speed + draft capital nonlinear + RAS.
-  RB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
+  // RB: n=315. Receiving + speed + draft capital nonlinear. RAS and the
+  // per-position/overall draft percentiles were tried but regressed LOSO
+  // R² by ~0.01 (RAS showed negative-direction collinearity with speedScore;
+  // the two percentiles were near-zero importance next to logDraftPick).
+  // draftClassDepth is kept — small but structurally distinct signal.
+  RB: ['logDraftPick', 'draftClassDepth', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeDominatorXLateRound', 'collegeTeammateScore',
-       'relativeAthleticScore'],
+       'collegeDominatorXLateRound', 'collegeTeammateScore'],
   // WR: n=456. Breakout score + per-team + draft interactions + RAS.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
