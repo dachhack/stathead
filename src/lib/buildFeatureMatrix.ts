@@ -2389,6 +2389,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const teamRating = (teamKey1 && collegePredictiveRank.get(teamKey1))
                     || (teamKey2 && collegePredictiveRank.get(teamKey2))
                     || 0;
+                  // Final-year SOS — kept on its own for QBs, also as a
+                  // factor in the production × team × SOS composite.
+                  const sosFinalYr = (teamKey1 && collegeSOS.get(teamKey1))
+                    || (teamKey2 && collegeSOS.get(teamKey2))
+                    || 1;
+                  // QB production proxy: career passing yards per game.
+                  // Uses final-year passing yards from collegeByName as a
+                  // floor (we don't have multi-year passYds in playerSeasonStats).
+                  const careerPassYpg = careerGames > 0
+                    ? (cs?.get('Passing Yards') || 0) / careerGames
+                    : 0;
+                  // Composite: production × team × SOS. Shift teamRating by
+                  // +40 so the multiplicand is always non-negative.
+                  const qbContextScore = Math.round(
+                    careerPassYpg * Math.max(0, teamRating + 40) * sosFinalYr
+                  );
                   return {
                     collegeRecYds: cs?.get('Receiving Yards') || 0,
                     collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
@@ -2401,7 +2417,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       ? Math.round((careerRushYpg / draft.age) * 100) / 100
                       : 0,
                     collegeYdsPerPassAtt: careerYdsPerPassAtt,
+                    collegeSosFinalYr: Math.round(sosFinalYr * 100) / 100,
                     collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
+                    collegeQbContextScore: qbContextScore,
                     collegePassAttPerRushYd: careerRushYds > 0
                       ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
                       : 0,
@@ -3491,6 +3509,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       const teamRating = (teamKey1 && collegePredictiveRank.get(teamKey1))
                         || (teamKey2 && collegePredictiveRank.get(teamKey2))
                         || 0;
+                      const sosFinalYr = (teamKey1 && collegeSOS.get(teamKey1))
+                        || (teamKey2 && collegeSOS.get(teamKey2))
+                        || 1;
+                      const careerPassYpg = careerGames > 0
+                        ? (cs?.get('Passing Yards') || 0) / careerGames
+                        : 0;
+                      const qbContextScore = Math.round(
+                        careerPassYpg * Math.max(0, teamRating + 40) * sosFinalYr
+                      );
                       const playerAge = draftAge || 0;
                       return {
                         collegeRushYpgPerAge: (careerRushYpg > 0 && playerAge > 0)
@@ -3499,7 +3526,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         collegeYdsPerPassAtt: careerPassAtt > 0
                           ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
                           : 0,
+                        collegeSosFinalYr: Math.round(sosFinalYr * 100) / 100,
                         collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
+                        collegeQbContextScore: qbContextScore,
                         collegePassAttPerRushYd: careerRushYds > 0
                           ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
                           : 0,
