@@ -321,6 +321,32 @@ export function trainRookieCareerModels(
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
+  // Step 3b: Per-class draft pick percentile. "Pick 100" means a different
+  // thing in different draft years (compensatory picks, expansion, etc.)
+  // and across positions. Compute percentile within each (season, position)
+  // bucket so the signal is normalized across classes. 0.0 = top pick at
+  // position, 1.0 = latest pick at position. Undrafted → 1.0.
+  {
+    type Row = typeof careerRows[number];
+    const groups = new Map<string, Row[]>();
+    for (const r of careerRows) {
+      const key = `${r.draftSeason}:${r.position}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    for (const rows of groups.values()) {
+      const n = rows.length;
+      if (n === 0) continue;
+      const sorted = [...rows].sort((a, b) =>
+        (a.features.nflDraftPick || 300) - (b.features.nflDraftPick || 300)
+      );
+      for (let i = 0; i < sorted.length; i++) {
+        // Use midrank so ties get the same percentile and range is (0, 1).
+        sorted[i].features.draftPickPct = n > 1 ? i / (n - 1) : 0;
+      }
+    }
+  }
+
   // Step 4: Per-position training
   // Per-position hyperparameters. Small-sample positions (QB n≈133, TE n≈207)
   // want more Ridge regularization + shallower GBMs to avoid overfitting.
