@@ -135,14 +135,30 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         }
 
-        // College QBR lookup: player name → final season QBR
-        const collegeQBRByName = new Map<string, number>();
+        // College QBR lookup: player name → list of {season, qbr} so we can
+        // compute final-year QBR AND a multi-year (last 2 seasons) average.
+        const collegeQBRSeasonsByName = new Map<string, Array<{ season: number; qbr: number }>>();
         for (const q of collegeQBRData) {
           const name = normalizeName(q.player_name);
-          const existing = collegeQBRByName.get(name) || 0;
-          if (q.season >= existing || !collegeQBRByName.has(name)) {
-            collegeQBRByName.set(name, q.total_qbr || 0);
-          }
+          if (!collegeQBRSeasonsByName.has(name)) collegeQBRSeasonsByName.set(name, []);
+          collegeQBRSeasonsByName.get(name)!.push({ season: q.season, qbr: q.total_qbr || 0 });
+        }
+        // Sort each player's seasons descending so [0] is the most recent.
+        for (const list of collegeQBRSeasonsByName.values()) {
+          list.sort((a, b) => b.season - a.season);
+        }
+        // Final-year QBR (preserves the previous behavior for callers).
+        const collegeQBRByName = new Map<string, number>();
+        for (const [name, list] of collegeQBRSeasonsByName) {
+          collegeQBRByName.set(name, list[0]?.qbr || 0);
+        }
+        // Average of the most recent 2 seasons (or just the latest if only 1).
+        const collegeQBR2yrByName = new Map<string, number>();
+        for (const [name, list] of collegeQBRSeasonsByName) {
+          if (list.length === 0) continue;
+          const lastTwo = list.slice(0, 2);
+          const avg = lastTwo.reduce((s, x) => s + x.qbr, 0) / lastTwo.length;
+          collegeQBR2yrByName.set(name, Math.round(avg * 10) / 10);
         }
 
         // Draft prospect rankings/grades
@@ -2336,12 +2352,41 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const ts = teammateScoreByName.get(draftName) || 0;
                   const ht = parseHeight(combine?.ht || '') || rosterPhysical?.heightIn || 0;
                   const ss = speedScoreByName.get(draftName) || 0;
+                  // ── QB career aggregates from per-season college stats ─
+                  let careerRushYds = 0, careerPassAtt = 0, careerGames = 0;
+                  let lastSchool = '';
+                  let lastSeason = 0;
+                  const playerSeasons = playerSeasonStats.get(draftName);
+                  if (playerSeasons) {
+                    for (const [sn, ps] of playerSeasons) {
+                      careerRushYds += ps.rushYds || 0;
+                      careerPassAtt += ps.passAtt || 0;
+                      careerGames += ps.games || 0;
+                      if (sn > lastSeason) { lastSeason = sn; lastSchool = ps.school || lastSchool; }
+                    }
+                  }
+                  const careerYdsPerPassAtt = careerPassAtt > 0
+                    ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
+                    : 0;
+                  const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
+                  const sosKey = lastSchool ? `${lastSchool.toLowerCase()}:${lastSeason}` : '';
+                  const sosMult = sosKey ? (collegeSOS.get(sosKey) || 1) : 1;
                   return {
                     collegeRecYds: cs?.get('Receiving Yards') || 0,
                     collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
                     collegeRushYds: cs?.get('Rushing Yards') || 0,
                     collegeTotalTDs: (cs?.get('Passing Touchdowns') || 0) + (cs?.get('Rushing Touchdowns') || 0) + (cs?.get('Receiving Touchdowns') || 0),
                     collegePassTDs: cs?.get('Passing Touchdowns') || 0,
+                    collegeQBR: collegeQBRByName.get(draftName) || 0,
+                    collegeQBR2yr: collegeQBR2yrByName.get(draftName) || collegeQBRByName.get(draftName) || 0,
+                    collegeRushYpgPerAge: (careerRushYpg > 0 && draft.age && draft.age > 0)
+                      ? Math.round((careerRushYpg / draft.age) * 100) / 100
+                      : 0,
+                    collegeYdsPerPassAtt: careerYdsPerPassAtt,
+                    collegeSosXPassAtt: Math.round(sosMult * careerPassAtt),
+                    collegePassAttPerRushYd: careerRushYds > 0
+                      ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
+                      : 0,
                     collegeDominatorRating: adv?.dominatorRating || 0,
                     collegeBreakoutAge: adv?.breakoutAge || 0,
                     collegeMarketShare: adv?.marketShare || 0,
@@ -3408,6 +3453,37 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       ? (cs.get('Passing Touchdowns') || 0) + (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0)
                       : posAvg['collegeTotalTDs'] || 0,
                     collegeQBR: imp(collegeQBRByName.get(normalName), 'collegeQBR'),
+                    collegeQBR2yr: imp(collegeQBR2yrByName.get(normalName) || collegeQBRByName.get(normalName), 'collegeQBR2yr'),
+                    ...(() => {
+                      // Career aggregates from per-season college stats
+                      let careerRushYds = 0, careerPassAtt = 0, careerGames = 0;
+                      let lastSchool = '', lastSeason = 0;
+                      const ps = playerSeasonStats.get(normalName);
+                      if (ps) {
+                        for (const [sn, s] of ps) {
+                          careerRushYds += s.rushYds || 0;
+                          careerPassAtt += s.passAtt || 0;
+                          careerGames += s.games || 0;
+                          if (sn > lastSeason) { lastSeason = sn; lastSchool = s.school || lastSchool; }
+                        }
+                      }
+                      const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
+                      const sosKey = lastSchool ? `${lastSchool.toLowerCase()}:${lastSeason}` : '';
+                      const sosMult = sosKey ? (collegeSOS.get(sosKey) || 1) : 1;
+                      const playerAge = draftAge || 0;
+                      return {
+                        collegeRushYpgPerAge: (careerRushYpg > 0 && playerAge > 0)
+                          ? Math.round((careerRushYpg / playerAge) * 100) / 100
+                          : 0,
+                        collegeYdsPerPassAtt: careerPassAtt > 0
+                          ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
+                          : 0,
+                        collegeSosXPassAtt: Math.round(sosMult * careerPassAtt),
+                        collegePassAttPerRushYd: careerRushYds > 0
+                          ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
+                          : 0,
+                      };
+                    })(),
                     collegeGames: pg?.games || 0,
                     collegeRecPerGame: imp(pg?.recPerGame, 'collegeRecPerGame'),
                     collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),

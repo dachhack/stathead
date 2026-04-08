@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v34.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v35.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v52.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v53.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -198,11 +198,11 @@ async function main() {
   // Changing one model type only retrains that type, not all 5.
   const MODEL_DIR = 'public/data';
   const componentCachePaths = {
-    adp: `${MODEL_DIR}/model-cache-adp-v52.json`,
-    ppg: `${MODEL_DIR}/model-cache-ppg-v52.json`,
-    residual: `${MODEL_DIR}/model-cache-residual-v52.json`,
-    share: `${MODEL_DIR}/model-cache-share-v52.json`,
-    career: `${MODEL_DIR}/model-cache-career-v55.json`,
+    adp: `${MODEL_DIR}/model-cache-adp-v53.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v53.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v53.json`,
+    share: `${MODEL_DIR}/model-cache-share-v53.json`,
+    career: `${MODEL_DIR}/model-cache-career-v56.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)

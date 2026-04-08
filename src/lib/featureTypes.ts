@@ -276,6 +276,19 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeRecTDs', label: 'College Rec TDs (final yr)', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeTotalTDs', label: 'College Total TDs (final yr)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeQBR', label: 'College QBR (final yr)', category: 'College', positions: ['QB'] },
+  // Last-2-year average QBR — smoother signal than single-year for QBs.
+  { key: 'collegeQBR2yr', label: 'College QBR (2yr avg)', category: 'College', positions: ['QB'] },
+  // Career rushing yards / game divided by draft age — captures dual-threat
+  // upside while penalising older "running QB" prospects.
+  { key: 'collegeRushYpgPerAge', label: 'Rush Yds/Game / Age', category: 'College', positions: ['QB'] },
+  // Career yards per pass attempt — proxy for aDOT (no college air-yards data).
+  { key: 'collegeYdsPerPassAtt', label: 'Yards / Pass Attempt (career)', category: 'College', positions: ['QB'] },
+  // Strength of schedule × career pass attempts — volume thrown against
+  // tough opponents (using SOS as the team-competitiveness proxy).
+  { key: 'collegeSosXPassAtt', label: 'SOS × Pass Attempts', category: 'College', positions: ['QB'] },
+  // Pass attempts / rushing yards — pass-heaviness ratio. Lower means
+  // more rushing-leveraged style; higher = pure pocket passer.
+  { key: 'collegePassAttPerRushYd', label: 'Pass Att / Rush Yds', category: 'College', positions: ['QB'] },
   // Additional college metrics for rookie prediction
   { key: 'collegeGames', label: 'College Games Played', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeRecPerGame', label: 'College Rec/Game', category: 'College', positions: ['RB', 'WR', 'TE'] },
@@ -408,8 +421,11 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=34 → 4 features (Ridge-only). Draft capital + experience.
-  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge'],
+  // QB: n=34 → 9 features (Ridge-only). Draft capital + experience + new
+  // dual-threat / production / context signals.
+  QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
+       'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
+       'collegeSosXPassAtt', 'collegePassAttPerRushYd'],
   // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
   RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
