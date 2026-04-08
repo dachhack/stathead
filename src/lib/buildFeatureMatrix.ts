@@ -717,27 +717,49 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         };
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
 
-        // Draft pick percentile within (season, position), computed from
-        // the FULL nflverse draft picks dataset — NOT just the rookies who
-        // made it into our training set. This avoids survivor bias: a 6th
-        // round WR who busted out in 3 games still counts toward the
-        // denominator even though he never qualified for best-2-of-3.
-        // Pick 1 at position → pctile 0.0; last pick at position → 1.0.
+        // Three draft-class context lookups from the FULL nflverse draft
+        // picks dataset — NOT just rookies who made our training set, so
+        // survivor bias is removed.
+        //
+        //   draftPickPct         — percentile within (season, position).
+        //                          0 = earliest pick at position, 1 = latest.
+        //   draftPickPctOverall  — percentile within the whole draft class
+        //                          that season. A 1st-round WR is high at
+        //                          position AND high overall; a 6th-round
+        //                          RB is mid at position but bottom overall.
+        //   draftClassDepth      — count of drafted players at (season,
+        //                          position). Raw "how deep was this RB class".
         const draftPickPctByName = new Map<string, number>();
+        const draftPickPctOverallByName = new Map<string, number>();
+        const draftClassDepthByName = new Map<string, number>();
         {
-          const byClass = new Map<string, DraftPick[]>();
+          const byPosClass = new Map<string, DraftPick[]>();
+          const bySeason = new Map<number, DraftPick[]>();
           for (const d of draftData) {
             if (!d.position) continue;
             const key = `${d.season}:${d.position}`;
-            if (!byClass.has(key)) byClass.set(key, []);
-            byClass.get(key)!.push(d);
+            if (!byPosClass.has(key)) byPosClass.set(key, []);
+            byPosClass.get(key)!.push(d);
+            if (!bySeason.has(d.season)) bySeason.set(d.season, []);
+            bySeason.get(d.season)!.push(d);
           }
-          for (const list of byClass.values()) {
+          // Per-position percentile + class depth
+          for (const list of byPosClass.values()) {
             list.sort((a, b) => (a.pick || 300) - (b.pick || 300));
             const n = list.length;
             for (let i = 0; i < n; i++) {
-              const pctl = n > 1 ? i / (n - 1) : 0;
-              draftPickPctByName.set(normalizeName(list[i].pfr_player_name), pctl);
+              const name = normalizeName(list[i].pfr_player_name);
+              draftPickPctByName.set(name, n > 1 ? i / (n - 1) : 0);
+              draftClassDepthByName.set(name, n);
+            }
+          }
+          // Overall per-season percentile
+          for (const list of bySeason.values()) {
+            list.sort((a, b) => (a.pick || 300) - (b.pick || 300));
+            const n = list.length;
+            for (let i = 0; i < n; i++) {
+              const name = normalizeName(list[i].pfr_player_name);
+              draftPickPctOverallByName.set(name, n > 1 ? i / (n - 1) : 0);
             }
           }
         }
@@ -1835,6 +1857,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               logDraftPick: Math.log(draft?.pick || 300),
               invDraftPick: 1 / (draft?.pick || 300),
               draftPickPct: draftPickPctByName.get(normalName) ?? 1,
+              draftPickPctOverall: draftPickPctOverallByName.get(normalName) ?? 1,
+              draftClassDepth: draftClassDepthByName.get(normalName) ?? 0,
               weight: wt || combineAvg.get(adpPlayer.position)?.weight || 0,
               forty: combine?.forty || combineAvg.get(adpPlayer.position)?.forty || 0,
               bench: combine?.bench || combineAvg.get(adpPlayer.position)?.bench || 0,
@@ -2420,6 +2444,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 logDraftPick: Math.log(draft.pick || 300),
                 invDraftPick: 1 / (draft.pick || 300),
                 draftPickPct: draftPickPctByName.get(draftName) ?? 1,
+                draftPickPctOverall: draftPickPctOverallByName.get(draftName) ?? 1,
+                draftClassDepth: draftClassDepthByName.get(draftName) ?? 0,
                 age: draft.age || 0,
                 yearsInLeague: season - (draft.season || season),
                 weight: wt || combineAvg.get(draft.position)?.weight || 0,
@@ -3276,6 +3302,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 nflDraftRound: draft?.round || projDraftByName.get(normalName)?.projRound || 8,
                 nflDraftPick: draft?.pick || projDraftByName.get(normalName)?.projPick || 300,
                 draftPickPct: draftPickPctByName.get(normalName) ?? 1,
+                draftPickPctOverall: draftPickPctOverallByName.get(normalName) ?? 1,
+                draftClassDepth: draftClassDepthByName.get(normalName) ?? 0,
                 weight: wt || combineAvg.get(adpPlayer.position)?.weight || 0,
                 forty: combine?.forty || combineAvg.get(adpPlayer.position)?.forty || 0,
                 bench: combine?.bench || combineAvg.get(adpPlayer.position)?.bench || 0,

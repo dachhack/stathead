@@ -107,7 +107,15 @@ export const FEATURES: FeatureDef[] = [
   { key: 'invDraftPick', label: '1/Draft Pick (capital)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   // Draft pick percentile within (season, position). 0 = top pick at position,
   // 1 = latest. Normalizes across draft years so "pick 100" is comparable.
-  { key: 'draftPickPct', label: 'Draft Pick Pctile (class)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'draftPickPct', label: 'Draft Pick Pctile (position)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Draft pick percentile within the whole draft class that season. 0 =
+  // top overall, 1 = last overall. Catches cross-position context a
+  // within-position percentile misses.
+  { key: 'draftPickPctOverall', label: 'Draft Pick Pctile (overall)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Count of drafted players at (season, position). "How deep was this
+  // class at my position?" — shallow classes mean less competition for
+  // opportunity; deep classes mean the player had to beat out more peers.
+  { key: 'draftClassDepth', label: 'Draft Class Depth (position)', category: 'Profile', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'draftPickXEarlyDeclare', label: 'Draft Capital × Early Declare', category: 'Profile', positions: ['RB', 'WR', 'TE'] },
   { key: 'weight', label: 'Weight', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
   { key: 'forty', label: '40-Yard Dash', category: 'Physical', positions: ['RB', 'WR', 'TE'] },
@@ -440,24 +448,26 @@ export function parseHeight(ht: string | number): number {
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: n=133. Draft capital + experience + dual-threat + context signals.
-  QB: ['logDraftPick', 'draftPickPct', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
+  QB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
+       'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
   // RB: n=315. Receiving + speed + draft capital nonlinear + RAS.
-  RB: ['logDraftPick', 'draftPickPct', 'age',
+  RB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
        'collegeDominatorXLateRound', 'collegeTeammateScore',
        'relativeAthleticScore'],
   // WR: n=456. Breakout score + per-team + draft interactions + RAS.
-  WR: ['logDraftPick', 'draftPickPct', 'age',
+  WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeDominatorRating', 'collegeBestRecYds',
        'weight', 'collegeDominatorXLateRound', 'collegeTeammateScore',
        'relativeAthleticScore'],
   // TE: n=207 (Ridge-favored). Simpler = better for small N.
-  TE: ['logDraftPick', 'draftPickPct', 'age', 'collegeRecYdsPerTeamPassAtt',
+  TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
+       'age', 'collegeRecYdsPerTeamPassAtt',
        'heightAdjSpeedScore', 'relativeAthleticScore'],
 };
 
