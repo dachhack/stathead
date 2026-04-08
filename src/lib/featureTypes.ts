@@ -453,12 +453,13 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Receiving + speed + draft capital nonlinear. RAS and the
-  // per-position/overall draft percentiles were tried but regressed LOSO
-  // R² by ~0.01 (RAS showed negative-direction collinearity with speedScore;
-  // the two percentiles were near-zero importance next to logDraftPick).
-  // draftClassDepth is kept — small but structurally distinct signal.
-  RB: ['logDraftPick', 'draftClassDepth', 'age',
+  // RB: n=315. Receiving + speed + draft capital nonlinear. Everything new
+  // from the batch PR (RAS, draftPickPct, draftPickPctOverall,
+  // draftClassDepth) regressed LOSO R² for RB — the position has had
+  // enough modern-era turnover ("dead zone", role changes) that extra
+  // features and recency weighting introduce more noise than signal.
+  // Exact pre-batch feature set.
+  RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
        'collegeDominatorXLateRound', 'collegeTeammateScore'],

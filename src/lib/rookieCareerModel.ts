@@ -398,14 +398,22 @@ export function trainRookieCareerModels(
     // modern signal. Duplicate recent rows so they dominate the loss:
     //   0-3 years ago: 3x, 4-7: 2x, 8+: 1x. Applied only to the training
     //   fold (never to the held-out test fold) so LOSO stays honest.
+    //
+    // RB is excluded: the position has had enough modern-era turnover
+    // (role churn, "dead zone", high bust rates) that upweighting recent
+    // classes introduces more noise than signal. Measured -0.01 LOSO R²
+    // vs an unweighted baseline.
+    const useRecencyWeighting = pos !== 'RB';
     const maxSeason = Math.max(...seasons);
     const recencyWeight = (season: number): number => {
+      if (!useRecencyWeighting) return 1;
       const gap = maxSeason - season;
       if (gap <= 3) return 3;
       if (gap <= 7) return 2;
       return 1;
     };
     const expand = <T extends { draftSeason: number }>(rows: T[]): T[] => {
+      if (!useRecencyWeighting) return rows;
       const out: T[] = [];
       for (const r of rows) {
         const w = recencyWeight(r.draftSeason);
