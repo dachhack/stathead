@@ -8,7 +8,7 @@ import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
 import type { BaggedGBM } from '../src/lib/gbm';
-import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG } from '../src/lib/rookieCareerModel';
+import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG } from '../src/lib/rookieCareerModel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v33.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v34.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v51.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v52.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -198,11 +198,11 @@ async function main() {
   // Changing one model type only retrains that type, not all 5.
   const MODEL_DIR = 'public/data';
   const componentCachePaths = {
-    adp: `${MODEL_DIR}/model-cache-adp-v51.json`,
-    ppg: `${MODEL_DIR}/model-cache-ppg-v51.json`,
-    residual: `${MODEL_DIR}/model-cache-residual-v51.json`,
-    share: `${MODEL_DIR}/model-cache-share-v51.json`,
-    career: `${MODEL_DIR}/model-cache-career-v54.json`,
+    adp: `${MODEL_DIR}/model-cache-adp-v52.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v52.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v52.json`,
+    share: `${MODEL_DIR}/model-cache-share-v52.json`,
+    career: `${MODEL_DIR}/model-cache-career-v55.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -2177,15 +2177,8 @@ async function main() {
 
         // Use stored features for scoring
         const features = storedFeatures;
-        const ridgePred = predict(cm.ridgeModel, features).predicted;
-        let pred: number;
-        if (cm.gbmModel) {
-          const gbmPred = predictBaggedGBM(cm.gbmModel, features).predicted;
-          pred = gbmPred * 0.5 + ridgePred * 0.5;
-        } else {
-          pred = ridgePred;
-        }
-        const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
+        const pred = predictRookieCareerPPG(cm, features);
+        const predictedPPG = Math.round(pred * 10) / 10;
 
         // Threshold probabilities
         const thresholds = PPG_THRESHOLD_CONFIG[pos]?.thresholds || [];
@@ -2286,15 +2279,8 @@ async function main() {
         hasCollegeStats: cs ? 1 : 0,
       };
 
-      const ridgePred = predict(cm.ridgeModel, features).predicted;
-      let pred: number;
-      if (cm.gbmModel) {
-        const gbmPred = predictBaggedGBM(cm.gbmModel, features).predicted;
-        pred = gbmPred * 0.5 + ridgePred * 0.5;
-      } else {
-        pred = ridgePred;
-      }
-      const predictedPPG = Math.round(Math.max(0, pred) * 10) / 10;
+      const pred = predictRookieCareerPPG(cm, features);
+      const predictedPPG = Math.round(pred * 10) / 10;
       // Use per-threshold classifiers for probability predictions (not normal approx)
       const posThresholds = cm.thresholds as number[];
       const threshModels = cm.thresholdModels as Record<number, { ridge: any; gbm: any }>;

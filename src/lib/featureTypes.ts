@@ -291,6 +291,10 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeSeasons', label: 'College Seasons Played', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   // Advanced college analytics
   { key: 'collegeDominatorRating', label: 'College Dominator Rating (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
+  // Late-round breakout signal: college dominator × (logDraftPick − ~pick 55)+
+  // Fires for picks outside ~round 2, lifting prospects like Tyreek Hill / Puka
+  // Nacua who had elite college production but fell in the draft.
+  { key: 'collegeDominatorXLateRound', label: 'Dominator × Late Round', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeBreakoutAge', label: 'College Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeBreakoutAgeDelta', label: 'Draft Age − Breakout Age', category: 'College', positions: ['RB', 'WR', 'TE'] },
   { key: 'collegeMarketShare', label: 'College Receiving/Rushing Share (%)', category: 'College', positions: ['RB', 'WR', 'TE'] },
@@ -407,15 +411,15 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: n=34 → 4 features (Ridge-only). Draft capital + experience.
   QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge'],
   // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
-  RB: ['logDraftPick', 'invDraftPick', 'age',
+  RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
-       'draftPickXEarlyDeclare', 'collegeTeammateScore'],
+       'collegeDominatorXLateRound', 'collegeTeammateScore'],
   // WR: n=137 → 10 features. Breakout score + per-team + draft interactions
-  WR: ['logDraftPick', 'invDraftPick', 'age',
+  WR: ['logDraftPick', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeDominatorRating', 'collegeBestRecYds',
-       'weight', 'draftPickXEarlyDeclare', 'collegeTeammateScore'],
+       'weight', 'collegeDominatorXLateRound', 'collegeTeammateScore'],
   // TE: n=29 → 4 features (Ridge-only). Simpler = better for small N.
   TE: ['logDraftPick', 'age', 'collegeRecYdsPerTeamPassAtt',
        'heightAdjSpeedScore'],
