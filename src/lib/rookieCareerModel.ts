@@ -314,6 +314,10 @@ export function trainRookieCareerModels(
     // Late-round breakout interaction: lifts high-producing late picks.
     // Zero inside ~pick 55 (ln 55 ≈ 4.0), positive outside scaled by dominator.
     f.collegeDominatorXLateRound = (f.collegeDominatorRating || 0) * Math.max(0, Math.log(pick) - 4.0);
+    // draftPickPct is populated upstream in buildFeatureMatrix against the
+    // FULL nflverse draft class (avoids survivor bias). Default to 1.0
+    // (latest pick) for any row the upstream lookup missed.
+    if (f.draftPickPct == null) f.draftPickPct = 1;
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
