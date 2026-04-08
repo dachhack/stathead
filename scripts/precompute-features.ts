@@ -11,7 +11,7 @@ import type { BaggedGBM } from '../src/lib/gbm';
 import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG } from '../src/lib/rookieCareerModel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
-import { fetchCombine, fetchCollegeStats, fetchDraftPicks } from '../src/data';
+import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
 import { writeCareerScores, writeADPScores, writePPGScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
@@ -1909,10 +1909,28 @@ async function main() {
 
   if (prospectGrades.length > 0) {
     // Load combine and college stats for feature construction
-    const [combineData, collegeData] = await Promise.all([
+    const [combineData, collegeData, collegeQBRData] = await Promise.all([
       fetchCombine().catch(() => []),
       fetchCollegeStats().catch(() => []),
+      fetchCollegeQBR().catch(() => []),
     ]);
+
+    // College QBR per-season → finalYr and 2yr avg maps for 2026 prospects.
+    const prospectQBRSeasons = new Map<string, Array<{ season: number; qbr: number }>>();
+    for (const q of collegeQBRData) {
+      const name = normalizeName(q.player_name);
+      if (!prospectQBRSeasons.has(name)) prospectQBRSeasons.set(name, []);
+      prospectQBRSeasons.get(name)!.push({ season: q.season, qbr: q.total_qbr || 0 });
+    }
+    for (const list of prospectQBRSeasons.values()) list.sort((a, b) => b.season - a.season);
+    const prospectQBRLatest = new Map<string, number>();
+    const prospectQBR2yr = new Map<string, number>();
+    for (const [name, list] of prospectQBRSeasons) {
+      if (list.length === 0) continue;
+      prospectQBRLatest.set(name, list[0].qbr);
+      const lastTwo = list.slice(0, 2);
+      prospectQBR2yr.set(name, Math.round((lastTwo.reduce((s, x) => s + x.qbr, 0) / lastTwo.length) * 10) / 10);
+    }
 
     // Build combine lookup
     const combineByProspect = new Map<string, any>();
@@ -2013,6 +2031,7 @@ async function main() {
     const ncaaSOS = ncaaTeamData.sos as Record<string, number>;
     const ncaaPassAtt = ncaaTeamData.teamPassAttPerGame as Record<string, number>;
     const ncaaRushAtt = ncaaTeamData.teamRushAttPerGame as Record<string, number>;
+    const ncaaPredictiveRanking = (ncaaTeamData as Record<string, unknown>).predictiveRanking as Record<string, number> | undefined;
 
     // School name normalizer (same as buildFeatureMatrix)
     const schoolNameMap: Record<string, string> = {
@@ -2037,7 +2056,7 @@ async function main() {
     }
 
     // Per-player per-season stats from college data
-    type ProspectSeasonStats = { recYds: number; receptions: number; rushYds: number; school: string; season: number };
+    type ProspectSeasonStats = { recYds: number; receptions: number; rushYds: number; passAtt: number; passYds: number; games: number; school: string; season: number };
     const prospectSeasonStats = new Map<string, ProspectSeasonStats[]>();
     for (const cs of collegeData) {
       const name = normalizeName(cs.player_name);
@@ -2046,12 +2065,15 @@ async function main() {
       const seasons = prospectSeasonStats.get(name)!;
       let entry = seasons.find(s => s.season === cs.season);
       if (!entry) {
-        entry = { recYds: 0, receptions: 0, rushYds: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season };
+        entry = { recYds: 0, receptions: 0, rushYds: 0, passAtt: 0, passYds: 0, games: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season };
         seasons.push(entry);
       }
       if (stat.includes('receiving yard')) entry.recYds += cs.value || 0;
       else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) entry.receptions += cs.value || 0;
       else if (stat.includes('rushing yard')) entry.rushYds += cs.value || 0;
+      else if (stat.includes('passing attempt') || stat === 'pass attempts') entry.passAtt += cs.value || 0;
+      else if (stat.includes('passing yard')) entry.passYds += cs.value || 0;
+      else if (stat === 'games played' || stat.includes('games played')) entry.games = Math.max(entry.games, cs.value || 0);
     }
 
     // Compute ZAP features per prospect
@@ -2242,7 +2264,52 @@ async function main() {
         heightAdjSpeedScore: htAdjSS,
         draftCapXSpeed,
         collegePassTDs: cs?.get('Passing Touchdowns') || 0,
-        collegeQBR: 0,
+        collegeQBR: prospectQBRLatest.get(nName) || 0,
+        collegeQBR2yr: prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0,
+        ...(() => {
+          // QB-specific career aggregates + team-context composites.
+          // Cheap to compute for every prospect; Ridge will zero them out
+          // for non-QB positions via its position-specific feature key list.
+          const seasons = prospectSeasonStats.get(nName) || [];
+          let careerPassAtt = 0, careerPassYds = 0, careerRushYds = 0, careerGames = 0;
+          let lastSchool = '', lastSeason = 0;
+          for (const s of seasons) {
+            careerPassAtt += s.passAtt || 0;
+            careerPassYds += s.passYds || 0;
+            careerRushYds += s.rushYds || 0;
+            careerGames += s.games || 0;
+            if (s.season > lastSeason) { lastSeason = s.season; lastSchool = s.school || lastSchool; }
+          }
+          const totalGames = careerGames || (seasons.length * 13);
+          const teamKey1 = lastSchool ? `${normSchool(lastSchool)}:${lastSeason}` : '';
+          const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
+          const teamRating = (teamKey1 && ncaaPredictiveRanking?.[teamKey1])
+            || (teamKey2 && ncaaPredictiveRanking?.[teamKey2])
+            || 0;
+          const sosRaw = (teamKey1 && ncaaSOS[teamKey1])
+            || (teamKey2 && ncaaSOS[teamKey2])
+            || 0;
+          const sosMult = sosRaw ? 1 + sosRaw / 20 : 1;
+          const careerRushYpg = totalGames > 0 ? careerRushYds / totalGames : 0;
+          const careerPassYpg = totalGames > 0 ? careerPassYds / totalGames : 0;
+          const prospectAge = prospect.age || 0;
+          return {
+            collegeRushYpgPerAge: (careerRushYpg > 0 && prospectAge > 0)
+              ? Math.round((careerRushYpg / prospectAge) * 100) / 100
+              : 0,
+            collegeYdsPerPassAtt: careerPassAtt > 0
+              ? Math.round((careerPassYds / careerPassAtt) * 100) / 100
+              : 0,
+            collegeSosFinalYr: Math.round(sosMult * 100) / 100,
+            collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
+            collegePassAttPerRushYd: careerRushYds > 0
+              ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
+              : 0,
+            collegeQbContextScore: Math.round(
+              careerPassYpg * Math.max(0, teamRating + 40) * sosMult
+            ),
+          };
+        })(),
         collegeRushYds: cs?.get('Rushing Yards') || 0,
         collegeRushYPC: pg?.rushYPC || 0,
         collegeRecYds: cs?.get('Receiving Yards') || 0,

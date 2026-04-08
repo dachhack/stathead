@@ -9,3 +9,4 @@ public/data/
 !public/data/feature-store/
 !public/data/score-store/
 .claude/
+CLAUDE.local.md
