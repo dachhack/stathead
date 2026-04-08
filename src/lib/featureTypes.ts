@@ -288,6 +288,14 @@ export const FEATURES: FeatureDef[] = [
   // competitiveness measure (kept the legacy `Sos` key name to avoid a
   // cache version churn).
   { key: 'collegeSosXPassAtt', label: 'Team Rating × Pass Attempts', category: 'College', positions: ['QB'] },
+  // Final-year strength of schedule on its own (raw multiplier, ~0.65-1.35).
+  // Distinct from team rating: SOS measures opponent quality, team rating
+  // measures the player's own program. Both matter independently.
+  { key: 'collegeSosFinalYr', label: 'SOS (final year)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // QB-only composite: career production × team competitiveness × SOS.
+  // Talented passers who rose to the top of good programs and produced
+  // against tough opponents — strongest signal of NFL-readiness.
+  { key: 'collegeQbContextScore', label: 'Production × Team × SOS', category: 'College', positions: ['QB'] },
   // Pass attempts / rushing yards — pass-heaviness ratio. Lower means
   // more rushing-leveraged style; higher = pure pocket passer.
   { key: 'collegePassAttPerRushYd', label: 'Pass Att / Rush Yds', category: 'College', positions: ['QB'] },
@@ -423,11 +431,12 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=34 → 9 features (Ridge-only). Draft capital + experience + new
-  // dual-threat / production / context signals.
+  // QB: n=34 → 11 features (Ridge-only). Draft capital + experience + new
+  // dual-threat / production / context signals + SOS standalone + composite.
   QB: ['logDraftPick', 'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
-       'collegeSosXPassAtt', 'collegePassAttPerRushYd'],
+       'collegeSosXPassAtt', 'collegePassAttPerRushYd',
+       'collegeSosFinalYr', 'collegeQbContextScore'],
   // RB: n=142 → 10 features. Receiving + speed + draft capital nonlinear
   RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
