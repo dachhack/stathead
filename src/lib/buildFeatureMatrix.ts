@@ -2500,13 +2500,19 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const ht = parseHeight(combine?.ht || '') || rosterPhysical?.heightIn || 0;
                   const ss = speedScoreByName.get(draftName) || 0;
                   // ── Career aggregates from per-season college stats ─
-                  // Used for both QB context features and RB-specific
-                  // dual-threat / elusiveness / goal-line features.
+                  // These feed both QB context features AND the RB dual-
+                  // threat / elusiveness / goal-line features. The raw
+                  // numeric aggregates are ALSO stashed on the row (below)
+                  // as `_raw*` fields so future derived features can be
+                  // computed at model-training time without triggering a
+                  // full feature-matrix rebuild (which is ~90 minutes).
                   let careerRushYds = 0, careerRushAtt = 0, careerRushTDs = 0;
-                  let careerRecYds = 0, careerRecTDs = 0;
-                  let careerPassAtt = 0, careerGames = 0;
+                  let careerRecYds = 0, careerRecTDs = 0, careerReceptions = 0;
+                  let careerPassAtt = 0, careerPassYds = 0, careerPassCompletions = 0;
+                  let careerGames = 0;
                   let teamRushYds = 0, teamRushAtt = 0;
                   let teamRushTDs = 0, teamRecTDs = 0;
+                  let teamPassAtt = 0, teamPassCompletions = 0, teamTotalPlays = 0;
                   let lastSchool = '';
                   let lastSeason = 0;
                   const playerSeasons = playerSeasonStats.get(draftName);
@@ -2517,7 +2523,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       careerRushTDs += ps.rushTDs || 0;
                       careerRecYds += ps.recYds || 0;
                       careerRecTDs += ps.recTDs || 0;
+                      careerReceptions += ps.receptions || 0;
                       careerPassAtt += ps.passAtt || 0;
+                      careerPassCompletions += ps.completions || 0;
                       careerGames += ps.games || 0;
                       if (sn > lastSeason) { lastSeason = sn; lastSchool = ps.school || lastSchool; }
                       // Accumulate the player's team totals for the seasons
@@ -2530,9 +2538,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         teamRushAtt += team.rushAtt || 0;
                         teamRushTDs += team.rushTDs || 0;
                         teamRecTDs += team.recTDs || 0;
+                        teamPassAtt += team.passAtt || 0;
+                        teamPassCompletions += team.completions || 0;
+                        teamTotalPlays += team.totalPlays || 0;
                       }
                     }
                   }
+                  // collegeByName has career-total passing yards from
+                  // college_statistics.csv (final-year / all-years depending
+                  // on the upstream aggregation) which is more reliable than
+                  // playerSeasonStats.passYds for QBs. Store it here as a
+                  // fallback source for QB derived features.
+                  careerPassYds = cs?.get('Passing Yards') || 0;
                   // RB-specific rate features (zero for other positions
                   // since they're filtered out of the RB feature list).
                   const collegeRecYdsPerGame = careerGames > 0
@@ -2616,6 +2633,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeRushYpcOverTeam,
                     collegeGoalLineShare,
                     hasCollegeStats: cs ? 1 : 0,
+                    // ── Raw career aggregates ────────────────────────
+                    // Stashed so future derived features can be added in
+                    // rookieCareerModel.ts without triggering a ~90-min
+                    // buildFeatureMatrix rebuild. `_raw*` prefix keeps
+                    // them out of the featureKeys lookup in Ridge/GBM —
+                    // they're inputs, not model features themselves.
+                    // Bump CACHE_PATH if you change the set of raws.
+                    _rawCareerRushYds: careerRushYds,
+                    _rawCareerRushAtt: careerRushAtt,
+                    _rawCareerRushTDs: careerRushTDs,
+                    _rawCareerRecYds: careerRecYds,
+                    _rawCareerReceptions: careerReceptions,
+                    _rawCareerRecTDs: careerRecTDs,
+                    _rawCareerPassAtt: careerPassAtt,
+                    _rawCareerPassYds: careerPassYds,
+                    _rawCareerPassCompletions: careerPassCompletions,
+                    _rawCareerGames: careerGames,
+                    _rawTeamRushYds: teamRushYds,
+                    _rawTeamRushAtt: teamRushAtt,
+                    _rawTeamRushTDs: teamRushTDs,
+                    _rawTeamRecTDs: teamRecTDs,
+                    _rawTeamPassAtt: teamPassAtt,
+                    _rawTeamPassCompletions: teamPassCompletions,
+                    _rawTeamTotalPlays: teamTotalPlays,
+                    _rawLastSeason: lastSeason,
                   };
                 })(),
               };
