@@ -464,13 +464,16 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
        'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Pre-batch feature set + three RB-specific production
-  // features (dual-threat, elusiveness proxy, goal-line share).
+  // RB: n=315. Pre-batch feature set + two RB-specific production
+  // features: elusiveness proxy and goal-line share. The third candidate
+  // (collegeRecYdsPerGame) hit 0.0% importance — Ridge collapsed it to
+  // zero because it's collinear with collegeReceptionShare and
+  // collegeRecYdsPerTeamPassAtt. Dropped.
   RB: ['logDraftPick', 'age',
        'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
        'collegeTotalTDs', 'speedScore', 'weight',
        'collegeDominatorXLateRound', 'collegeTeammateScore',
-       'collegeRecYdsPerGame', 'collegeRushYpcOverTeam', 'collegeGoalLineShare'],
+       'collegeRushYpcOverTeam', 'collegeGoalLineShare'],
   // WR: n=456. Breakout score + per-team + draft interactions + RAS.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
