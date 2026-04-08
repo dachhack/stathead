@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v39.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v40.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v57.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v58.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v60.json`,
+    career: `${MODEL_DIR}/model-cache-career-v61.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -2206,24 +2206,39 @@ async function main() {
       console.log(`    Prospect store: ${prospectStore.size} prospects with pre-computed features`);
     }
 
-    // Per-position draft-pick percentile within the 2026 prospect class
-    // (projected picks, since real picks don't exist yet). Same semantics
-    // as the historical draftPickPct: 0 = top pick at position, 1 = last.
+    // Draft-pick context lookups for the 2026 prospect class (projected
+    // picks, since real picks don't exist yet). Same semantics as the
+    // historical buildFeatureMatrix equivalents.
     const prospectDraftPctByName = new Map<string, number>();
+    const prospectDraftPctOverallByName = new Map<string, number>();
+    const prospectDraftClassDepthByName = new Map<string, number>();
     {
       const byPos = new Map<string, typeof prospectGrades>();
+      const allProspects: typeof prospectGrades = [];
       for (const p of prospectGrades) {
-        if (!['QB', 'RB', 'WR', 'TE'].includes(p.pos)) continue;
-        if (!byPos.has(p.pos)) byPos.set(p.pos, []);
-        byPos.get(p.pos)!.push(p);
+        if (!p.pos) continue;
+        if (['QB', 'RB', 'WR', 'TE'].includes(p.pos)) {
+          if (!byPos.has(p.pos)) byPos.set(p.pos, []);
+          byPos.get(p.pos)!.push(p);
+        }
+        allProspects.push(p);
       }
+      // Per-position percentile + class depth
       for (const list of byPos.values()) {
         const sorted = [...list].sort((a, b) => (a.projPick || 300) - (b.projPick || 300));
         const n = sorted.length;
         for (let i = 0; i < n; i++) {
-          const pctl = n > 1 ? i / (n - 1) : 0;
-          prospectDraftPctByName.set(normalizeName(sorted[i].name), pctl);
+          const name = normalizeName(sorted[i].name);
+          prospectDraftPctByName.set(name, n > 1 ? i / (n - 1) : 0);
+          prospectDraftClassDepthByName.set(name, n);
         }
+      }
+      // Overall percentile (against the whole prospect class across positions)
+      const sortedAll = [...allProspects].sort((a, b) => (a.projPick || 300) - (b.projPick || 300));
+      const nAll = sortedAll.length;
+      for (let i = 0; i < nAll; i++) {
+        const name = normalizeName(sortedAll[i].name);
+        prospectDraftPctOverallByName.set(name, nAll > 1 ? i / (nAll - 1) : 0);
       }
     }
 
@@ -2253,6 +2268,8 @@ async function main() {
         if (!storedFeatures.collegeRecYds && cs) storedFeatures.collegeRecYds = cs.get('Receiving Yards') || 0;
         if (!storedFeatures.collegeRushYds && cs) storedFeatures.collegeRushYds = cs.get('Rushing Yards') || 0;
         if (storedFeatures.draftPickPct == null) storedFeatures.draftPickPct = prospectDraftPctByName.get(nName) ?? 1;
+        if (storedFeatures.draftPickPctOverall == null) storedFeatures.draftPickPctOverall = prospectDraftPctOverallByName.get(nName) ?? 1;
+        if (storedFeatures.draftClassDepth == null) storedFeatures.draftClassDepth = prospectDraftClassDepthByName.get(nName) ?? 0;
 
         // Use stored features for scoring
         const features = storedFeatures;
@@ -2309,6 +2326,8 @@ async function main() {
         logDraftPick: Math.log(projPick),
         invDraftPick: 1 / projPick,
         draftPickPct: prospectDraftPctByName.get(nName) ?? 1,
+        draftPickPctOverall: prospectDraftPctOverallByName.get(nName) ?? 1,
+        draftClassDepth: prospectDraftClassDepthByName.get(nName) ?? 0,
         age: 0,
         yearsInLeague: 0,
         weight: wt,
