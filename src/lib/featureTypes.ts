@@ -283,9 +283,11 @@ export const FEATURES: FeatureDef[] = [
   { key: 'collegeRushYpgPerAge', label: 'Rush Yds/Game / Age', category: 'College', positions: ['QB'] },
   // Career yards per pass attempt — proxy for aDOT (no college air-yards data).
   { key: 'collegeYdsPerPassAtt', label: 'Yards / Pass Attempt (career)', category: 'College', positions: ['QB'] },
-  // Strength of schedule × career pass attempts — volume thrown against
-  // tough opponents (using SOS as the team-competitiveness proxy).
-  { key: 'collegeSosXPassAtt', label: 'SOS × Pass Attempts', category: 'College', positions: ['QB'] },
+  // TeamRankings predictive rating × career pass attempts — volume thrown
+  // for a competitive program. Uses NCAA predictive rankings as the team-
+  // competitiveness measure (kept the legacy `Sos` key name to avoid a
+  // cache version churn).
+  { key: 'collegeSosXPassAtt', label: 'Team Rating × Pass Attempts', category: 'College', positions: ['QB'] },
   // Pass attempts / rushing yards — pass-heaviness ratio. Lower means
   // more rushing-leveraged style; higher = pure pocket passer.
   { key: 'collegePassAttPerRushYd', label: 'Pass Att / Rush Yds', category: 'College', positions: ['QB'] },

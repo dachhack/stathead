@@ -222,6 +222,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         const ncaaSOS = ncaaTeamData.sos as Record<string, number>;
         const ncaaPassAttPerGame = ncaaTeamData.teamPassAttPerGame as Record<string, number>;
         const ncaaRushAttPerGame = ncaaTeamData.teamRushAttPerGame as Record<string, number>;
+        // TeamRankings predictive ranking (team rating, ~higher = better team).
+        // Used as the "team competitiveness" measure for QB context features.
+        const ncaaPredictiveRanking = (ncaaTeamData as Record<string, unknown>).predictiveRanking as Record<string, number> | undefined;
 
         // School name normalization: map college_statistics.csv school names to NCAA data names
         // NCAA data uses abbreviations like "c michigan", "e carolina", "fla atlantic"
@@ -269,6 +272,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         for (const [key, rating] of Object.entries(ncaaSOS)) {
           // rating ~[-17, +7], mean ~0. Convert: 0 → 1.0, +7 → 1.35, -7 → 0.65
           collegeSOS.set(key, 1.0 + (rating / 20));
+        }
+
+        // TeamRankings predictive ranking: school_lower:season → team rating.
+        // Roughly -40 to +40 (40 = best team in country, -40 = FCS-tier).
+        // Used as the team-competitiveness measure for QB context features.
+        const collegePredictiveRank = new Map<string, number>();
+        if (ncaaPredictiveRanking) {
+          for (const [key, rating] of Object.entries(ncaaPredictiveRanking)) {
+            collegePredictiveRank.set(key, rating);
+          }
         }
 
         // Build team pass/rush attempts per season lookup
@@ -2369,8 +2382,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
                     : 0;
                   const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
-                  const sosKey = lastSchool ? `${lastSchool.toLowerCase()}:${lastSeason}` : '';
-                  const sosMult = sosKey ? (collegeSOS.get(sosKey) || 1) : 1;
+                  // Team competitiveness from TeamRankings predictive rating.
+                  // Try the normalized school name first, then raw lowercase.
+                  const teamKey1 = lastSchool ? `${normalizeSchool(lastSchool)}:${lastSeason}` : '';
+                  const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
+                  const teamRating = (teamKey1 && collegePredictiveRank.get(teamKey1))
+                    || (teamKey2 && collegePredictiveRank.get(teamKey2))
+                    || 0;
                   return {
                     collegeRecYds: cs?.get('Receiving Yards') || 0,
                     collegeRecTDs: cs?.get('Receiving Touchdowns') || 0,
@@ -2383,7 +2401,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       ? Math.round((careerRushYpg / draft.age) * 100) / 100
                       : 0,
                     collegeYdsPerPassAtt: careerYdsPerPassAtt,
-                    collegeSosXPassAtt: Math.round(sosMult * careerPassAtt),
+                    collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
                     collegePassAttPerRushYd: careerRushYds > 0
                       ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
                       : 0,
@@ -3468,8 +3486,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         }
                       }
                       const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
-                      const sosKey = lastSchool ? `${lastSchool.toLowerCase()}:${lastSeason}` : '';
-                      const sosMult = sosKey ? (collegeSOS.get(sosKey) || 1) : 1;
+                      const teamKey1 = lastSchool ? `${normalizeSchool(lastSchool)}:${lastSeason}` : '';
+                      const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
+                      const teamRating = (teamKey1 && collegePredictiveRank.get(teamKey1))
+                        || (teamKey2 && collegePredictiveRank.get(teamKey2))
+                        || 0;
                       const playerAge = draftAge || 0;
                       return {
                         collegeRushYpgPerAge: (careerRushYpg > 0 && playerAge > 0)
@@ -3478,7 +3499,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         collegeYdsPerPassAtt: careerPassAtt > 0
                           ? Math.round(((cs?.get('Passing Yards') || 0) / careerPassAtt) * 100) / 100
                           : 0,
-                        collegeSosXPassAtt: Math.round(sosMult * careerPassAtt),
+                        collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
                         collegePassAttPerRushYd: careerRushYds > 0
                           ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
                           : 0,
