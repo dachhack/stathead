@@ -314,33 +314,11 @@ export function trainRookieCareerModels(
     // Late-round breakout interaction: lifts high-producing late picks.
     // Zero inside ~pick 55 (ln 55 ≈ 4.0), positive outside scaled by dominator.
     f.collegeDominatorXLateRound = (f.collegeDominatorRating || 0) * Math.max(0, Math.log(pick) - 4.0);
+    // draftPickPct is populated upstream in buildFeatureMatrix against the
+    // FULL nflverse draft class (avoids survivor bias). Default to 1.0
+    // (latest pick) for any row the upstream lookup missed.
+    if (f.draftPickPct == null) f.draftPickPct = 1;
     careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
-  }
-
-  // Step 3b: Per-class draft pick percentile. "Pick 100" means a different
-  // thing in different draft years (compensatory picks, expansion, etc.)
-  // and across positions. Compute percentile within each (season, position)
-  // bucket so the signal is normalized across classes. 0.0 = top pick at
-  // position, 1.0 = latest pick at position. Undrafted → 1.0.
-  {
-    type Row = typeof careerRows[number];
-    const groups = new Map<string, Row[]>();
-    for (const r of careerRows) {
-      const key = `${r.draftSeason}:${r.position}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(r);
-    }
-    for (const rows of groups.values()) {
-      const n = rows.length;
-      if (n === 0) continue;
-      const sorted = [...rows].sort((a, b) =>
-        (a.features.nflDraftPick || 300) - (b.features.nflDraftPick || 300)
-      );
-      for (let i = 0; i < sorted.length; i++) {
-        // Use midrank so ties get the same percentile and range is (0, 1).
-        sorted[i].features.draftPickPct = n > 1 ? i / (n - 1) : 0;
-      }
-    }
   }
 
   // Step 4: Per-position training
