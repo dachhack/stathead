@@ -239,6 +239,11 @@ async function main() {
   } else { anyMissing = true; }
 
   // If ALL component caches exist, skip training entirely
+  const skipADP = existsSync(componentCachePaths.adp) && models?.length > 0;
+  const skipPPG = existsSync(componentCachePaths.ppg) && ppgModels?.length > 0;
+  const skipResidual = existsSync(componentCachePaths.residual) && residualModels?.length > 0;
+  const skipShare = existsSync(componentCachePaths.share) && shareModels && Object.keys(shareModels).length > 0;
+  const skipCareer = existsSync(componentCachePaths.career) && rookieCareerModels && Object.keys(rookieCareerModels).length > 0;
   if (!anyMissing && models?.length > 0) {
     console.log('  All component caches loaded, skipping training...');
   } else {
@@ -247,6 +252,7 @@ async function main() {
   // QB (N≈140) and TE (N≈106) need fewer features and more regularization
   // to avoid overfitting. RB (N≈367) and WR (N≈408) can handle more features.
   console.log('  Training models...');
+  if (skipADP) { console.log('    Skipping ADP models (cached)...'); } else {
   const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
 
   // Position-specific hyperparameters
@@ -652,10 +658,13 @@ async function main() {
     console.log(`      Rookie/Vet R²: ${cvR2RookieVet} (post-draft rookie: ${cvR2RookieOnly.toFixed(3)}, pre-draft rookie: ${cvR2PreDraftRookie.toFixed(3)}, n=${losoRookieActuals.length}, vet: ${cvR2VetOnly.toFixed(3)} n=${losoVetActuals.length})`);
   }
 
+  } // end skipADP guard
+
   // ═══════════════════════════════════════════════════════════════════════
   // ADP-FREE PPG MODEL: predict raw PPG without any ADP information
   // This gives us an ADP-independent view of player quality
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipPPG) { console.log('\n  Skipping PPG models (cached)...'); } else {
   console.log('\n  Training ADP-free PPG models...');
 
   ppgModels = [];
@@ -816,7 +825,10 @@ async function main() {
   // ADP-RESIDUAL MODEL: train to predict actual_PPG - ADP_implied_PPG
   // This learns WHERE ADP is wrong instead of trying to replicate ADP's rankings.
   // Final prediction = ADP_implied + alpha * model_residual
+  } // end skipPPG guard
+
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipResidual) { console.log('\n  Skipping ADP-residual + draft sim (cached)...'); } else {
   console.log('\n  Training ADP-residual models...');
 
   residualModels = [];
@@ -1601,12 +1613,15 @@ async function main() {
     };
   }
 
+  } // end skipResidual guard
+
   // ═══════════════════════════════════════════════════════════════════════
   // SHARE PREDICTION MODELS
   // For each position, predict player's share of team volume metrics.
   // Features: prior share, snap%, depth chart, competition, contract, age, etc.
   // Target: actual share in the prediction season (computed in buildFeatureMatrix).
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipShare) { console.log('\n  Skipping share models (cached)...'); } else {
   console.log('\n  Training share prediction models...');
 
   const SHARE_TARGETS: { key: string; positions: string[] }[] = [
@@ -1699,9 +1714,12 @@ async function main() {
     }
   }
 
+  } // end skipShare guard
+
   // ══════════════════════════════════════════════════════════════
   // ROOKIE CAREER PREDICTION MODEL (shared module)
   // ══════════════════════════════════════════════════════════════
+  if (skipCareer) { console.log('\n  Skipping career models (cached)...'); } else {
   console.log('\n  Training rookie career prediction models...');
 
   // Enrich training rows with prospect store data (fills nflverse college gaps)
@@ -1759,17 +1777,19 @@ async function main() {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
 
-  // Save per-component model caches
+  } // end skipCareer guard
+
+  // Save per-component model caches (only write components that were retrained)
   console.log('  Saving model caches...');
   mkdirSync(MODEL_DIR, { recursive: true });
-  writeFileSync(componentCachePaths.adp, JSON.stringify({
+  if (!skipADP) writeFileSync(componentCachePaths.adp, JSON.stringify({
     models, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance,
     vetFeatureImportance, draftSim2025, posThresholds,
   }));
-  writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
-  writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
-  writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
-  writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+  if (!skipPPG) writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
+  if (!skipResidual) writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
+  if (!skipShare) writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
+  if (!skipCareer) writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
 
   // Also write monolithic cache for backward compat
   const modelCache = {
