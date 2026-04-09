@@ -9,6 +9,7 @@ import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
 import type { BaggedGBM } from '../src/lib/gbm';
 import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThresholdProb } from '../src/lib/rookieCareerModel';
+import { trainCareerModelsParallel } from '../src/lib/trainCareerModelsParallel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
@@ -1779,16 +1780,14 @@ async function main() {
     }
   }
 
-  rookieCareerModels = trainRookieCareerModels(result.rows);
+  // Train pre-draft and post-draft in parallel (each position on its own thread)
+  rookieCareerModels = await trainCareerModelsParallel(result.rows);
   console.log('  Pre-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
 
-  // Post-draft career model: same architecture but with team-context features
-  // (Vegas, scheme, QB quality, depth chart, competition).
-  console.log('\n  Training post-draft rookie career models...');
-  rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
+  rookieCareerModelsPostDraft = await trainCareerModelsParallel(result.rows, { postDraft: true });
   console.log('  Post-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
