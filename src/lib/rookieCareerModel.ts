@@ -7,7 +7,7 @@
 import { trainRidgeRegression, predict } from './ridge';
 import { trainBaggedGBM, predictBaggedGBM } from './gbm';
 import type { BaggedGBM } from './gbm';
-import { PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae } from './featureTypes';
+import { PRE_DRAFT_ROOKIE_FEATURES, ROOKIE_FEATURES, cvR2, cvMae } from './featureTypes';
 import type { PlayerRow } from './featureTypes';
 
 // Standard normal CDF approximation (Abramowitz & Stegun 26.2.17)
@@ -335,7 +335,7 @@ function approxAUC(probs: number[], labels: number[]): number {
  */
 export function trainRookieCareerModels(
   rows: PlayerRow[],
-  options?: { onlyPositions?: string[] },
+  options?: { onlyPositions?: string[]; postDraft?: boolean },
 ): Record<string, RookieCareerModelResult> {
 
   // Step 1: Build games lookup from priorGames
@@ -494,7 +494,8 @@ export function trainRookieCareerModels(
   for (const pos of positionsToTrain) {
     const posRows = careerRows.filter(r => r.position === pos);
     if (posRows.length < 10) continue;
-    const featureKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || [];
+    const featureLookup = options?.postDraft ? ROOKIE_FEATURES : PRE_DRAFT_ROOKIE_FEATURES;
+    const featureKeys = featureLookup[pos] || [];
     if (featureKeys.length === 0) continue;
 
     // College-only companion feature set: excludes all draft-capital features

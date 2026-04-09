@@ -494,21 +494,27 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'age'],
 };
 
-// Post-draft rookie features: adds team context once landing spot is known
-// Includes depth chart, scheme, Vegas, positional competition, contract
+// Post-draft rookie features: adds team context once landing spot is known.
+// Includes offensive environment, QB quality, positional competition, and
+// team scheme indicators. These are available once the rookie is drafted
+// and landing spot is known. Coverage ~35-40% (2018+ seasons have full data).
 export const ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: 5 + 2 = 7 features
+  // QB: 5 + 5 = 10 features
   QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
-       'vegasImpliedTotal', 'contractAPY'],
-  // RB: 2 + 3 = 5 features
+       'vegasImpliedTotal', 'contractAPY',
+       'teamPace', 'depthChartRank', 'teamSamePosCount'],
+  // RB: 2 + 7 = 9 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
-       'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 11 + 3 = 14 features
+       'depthChartRank', 'teamSamePosCount', 'contractAPY',
+       'vegasImpliedTotal', 'teamPassRate', 'teamPace', 'qbOwnPPG'],
+  // WR: 11 + 7 = 18 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
-       'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // TE: 5 + 2 = 7 features
+       'depthChartRank', 'teamSamePosCount', 'contractAPY',
+       'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
+  // TE: 5 + 6 = 11 features
   TE: [...PRE_DRAFT_ROOKIE_FEATURES.TE,
-       'depthChartRank', 'contractAPY'],
+       'depthChartRank', 'contractAPY',
+       'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
 };
 
 // Features that are ADP-derived (excluded from ADP-independent models)

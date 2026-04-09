@@ -187,6 +187,7 @@ async function main() {
   let residualModels: Record<string, unknown>[];
   let shareModels: Record<string, unknown>;
   let rookieCareerModels: any;
+  let rookieCareerModelsPostDraft: any;
   let featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
@@ -203,6 +204,7 @@ async function main() {
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
     career: `${MODEL_DIR}/model-cache-career-v69.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v1.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -236,6 +238,11 @@ async function main() {
   if (existsSync(componentCachePaths.career)) {
     console.log('  Loading cached career models...');
     rookieCareerModels = JSON.parse(readFileSync(componentCachePaths.career, 'utf-8')).rookieCareerModels;
+  } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.careerPostDraft)) {
+    console.log('  Loading cached post-draft career models...');
+    rookieCareerModelsPostDraft = JSON.parse(readFileSync(componentCachePaths.careerPostDraft, 'utf-8')).rookieCareerModels;
   } else { anyMissing = true; }
 
   // If ALL component caches exist, skip training entirely
@@ -1773,7 +1780,17 @@ async function main() {
   }
 
   rookieCareerModels = trainRookieCareerModels(result.rows);
+  console.log('  Pre-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
+    console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
+  }
+
+  // Post-draft career model: same architecture but with team-context features
+  // (Vegas, scheme, QB quality, depth chart, competition).
+  console.log('\n  Training post-draft rookie career models...');
+  rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
+  console.log('  Post-draft career models:');
+  for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
 
@@ -1789,11 +1806,14 @@ async function main() {
   if (!skipPPG) writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
   if (!skipResidual) writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
   if (!skipShare) writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
-  if (!skipCareer) writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+  if (!skipCareer) {
+    writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+    writeFileSync(componentCachePaths.careerPostDraft, JSON.stringify({ rookieCareerModels: rookieCareerModelsPostDraft }));
+  }
 
   // Also write monolithic cache for backward compat
   const modelCache = {
-    models, ppgModels, residualModels, shareModels, rookieCareerModels,
+    models, ppgModels, residualModels, shareModels, rookieCareerModels, rookieCareerModelsPostDraft,
     featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
     draftSim2025, posThresholds,
   };
@@ -2842,7 +2862,7 @@ async function main() {
     console.log('    manifest written');
   }
 
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, careerPredictions2026 };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, rookieCareerModelsPostDraft, careerPredictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 
