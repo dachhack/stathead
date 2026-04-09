@@ -469,13 +469,13 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=133. Draft capital + experience + dual-threat + context signals
-  // + accuracy features (completion %, completion-over-team, yds/completion).
+  // QB: n=133. Pruned from 17 to 13 features after importance analysis.
+  // Dropped: collegeQBR2yr (2.2%), collegePassAttPerRushYd (2.2%),
+  // collegeRushYpgPerAge (0.0%), collegeQbContextScore (0.0%).
+  // Kept the three new accuracy features which all landed > 3%.
   QB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
        'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
-       'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
-       'collegeSosXPassAtt', 'collegePassAttPerRushYd',
-       'collegeSosFinalYr', 'collegeQbContextScore',
+       'collegeYdsPerPassAtt', 'collegeSosFinalYr', 'collegeSosXPassAtt',
        'collegeCompletionPct', 'collegeCompletionPctOverTeam', 'collegeYdsPerCompletion'],
   // RB: n=315. Pre-batch feature set + two RB-specific production
   // features: elusiveness proxy and goal-line share. The third candidate
