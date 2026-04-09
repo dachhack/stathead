@@ -37,6 +37,65 @@ export function predictRookieCareerPPG(
   return Math.max(0, mainPred);
 }
 
+/**
+ * Empirical threshold probability using the LOSO residual distribution.
+ *
+ * For each residual r in losoResiduals, (predicted + r) is a plausible
+ * realized outcome given our model. The probability of exceeding a
+ * threshold T is just the fraction of residuals for which predicted+r ≥ T.
+ *
+ * This replaces the normal-approximation P(PPG ≥ T) = 1 - Φ((T - predicted)
+ * / σ) used previously. The residual distribution is typically asymmetric
+ * — a model that nails the mean still has long-tailed booms and busts the
+ * Gaussian assumption can't capture. Empirical bootstrap gets the shape
+ * right with zero parametric assumptions.
+ *
+ * Falls back to the normal approximation if the residual sample is empty
+ * or too small (< 10).
+ */
+export function bootstrapThresholdProb(
+  predicted: number,
+  threshold: number,
+  cm: Pick<RookieCareerModelResult, 'losoResiduals' | 'residualStd'>,
+): number {
+  const residuals = cm.losoResiduals;
+  if (!residuals || residuals.length < 10) {
+    // Fall back to the normal approximation.
+    if (!cm.residualStd || cm.residualStd <= 0) return predicted >= threshold ? 1 : 0;
+    return 1 - normalCdf((threshold - predicted) / cm.residualStd);
+  }
+  let hits = 0;
+  for (const r of residuals) {
+    if (predicted + r >= threshold) hits++;
+  }
+  return hits / residuals.length;
+}
+
+/**
+ * Predict best-2-of-3 PPG with quantile uncertainty bands derived from
+ * the LOSO residual distribution. Returns the point prediction plus p25,
+ * p75 (interquartile range) and p10, p90 (wider 80% band).
+ *
+ * Assumes homoscedastic residuals — the same band applies regardless of
+ * the prediction level. A heteroscedastic version would bin residuals by
+ * prediction tier; we can add that later if the residual-vs-prediction
+ * plot shows significant non-uniformity.
+ */
+export function predictRookieCareerPPGWithBands(
+  cm: RookieCareerModelResult,
+  features: Record<string, number>,
+): { predicted: number; p10: number; p25: number; p75: number; p90: number } {
+  const predicted = predictRookieCareerPPG(cm, features);
+  const q = cm.residualQuantiles || { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0 };
+  return {
+    predicted,
+    p10: Math.max(0, predicted + q.p10),
+    p25: Math.max(0, predicted + q.p25),
+    p75: Math.max(0, predicted + q.p75),
+    p90: Math.max(0, predicted + q.p90),
+  };
+}
+
 export function normalCdf(x: number): number {
   if (x < -8) return 0;
   if (x > 8) return 1;
@@ -130,6 +189,17 @@ export interface RookieCareerModelResult {
   featureKeys: string[];
   featureImportance: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
   residualStd: number;
+  // Sorted LOSO residuals (actual − predicted) for empirical bootstrap
+  // of threshold probabilities and quantile uncertainty bands. Replaces
+  // the normal-approximation σ for probability queries; the residual
+  // distribution is often asymmetric (more downside than upside at the
+  // top end, more upside than downside at the bottom) and the normal
+  // approximation understates that.
+  losoResiduals: number[];
+  // Residual quantiles used for uncertainty bands on predictions.
+  // p25 and p75 give the interquartile range; p10 and p90 give a wider
+  // 80% confidence band.
+  residualQuantiles: { p10: number; p25: number; p50: number; p75: number; p90: number };
   thresholds: number[];
   thresholdMetrics: ThresholdModelMetrics[];  // per-threshold classification metrics
   thresholdTable: {
@@ -318,33 +388,28 @@ export function trainRookieCareerModels(
     // FULL nflverse draft class (avoids survivor bias). Default to 1.0
     // (latest pick) for any row the upstream lookup missed.
     if (f.draftPickPct == null) f.draftPickPct = 1;
-    careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
-  }
 
-  // Step 3b: Per-class draft pick percentile. "Pick 100" means a different
-  // thing in different draft years (compensatory picks, expansion, etc.)
-  // and across positions. Compute percentile within each (season, position)
-  // bucket so the signal is normalized across classes. 0.0 = top pick at
-  // position, 1.0 = latest pick at position. Undrafted → 1.0.
-  {
-    type Row = typeof careerRows[number];
-    const groups = new Map<string, Row[]>();
-    for (const r of careerRows) {
-      const key = `${r.draftSeason}:${r.position}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(r);
-    }
-    for (const rows of groups.values()) {
-      const n = rows.length;
-      if (n === 0) continue;
-      const sorted = [...rows].sort((a, b) =>
-        (a.features.nflDraftPick || 300) - (b.features.nflDraftPick || 300)
-      );
-      for (let i = 0; i < sorted.length; i++) {
-        // Use midrank so ties get the same percentile and range is (0, 1).
-        sorted[i].features.draftPickPct = n > 1 ? i / (n - 1) : 0;
-      }
-    }
+    // ── QB accuracy features derived from stashed raw aggregates ─────
+    // These were added in PR #105 to enable "model-cache-only" rebuilds
+    // for features that are pure arithmetic over already-computed totals.
+    // Non-QB positions get 0 (they won't have pass attempts anyway).
+    const rawPassAtt = Number(f._rawCareerPassAtt) || 0;
+    const rawPassComp = Number(f._rawCareerPassCompletions) || 0;
+    const rawPassYds = Number(f._rawCareerPassYds) || 0;
+    const rawTeamPassAtt = Number(f._rawTeamPassAtt) || 0;
+    const rawTeamPassComp = Number(f._rawTeamPassCompletions) || 0;
+    f.collegeCompletionPct = rawPassAtt > 0
+      ? Math.round((rawPassComp / rawPassAtt) * 1000) / 1000
+      : 0;
+    const teamComp = rawTeamPassAtt > 0 ? rawTeamPassComp / rawTeamPassAtt : 0;
+    f.collegeCompletionPctOverTeam = (f.collegeCompletionPct > 0 && teamComp > 0)
+      ? Math.round((f.collegeCompletionPct - teamComp) * 1000) / 1000
+      : 0;
+    f.collegeYdsPerCompletion = rawPassComp > 0
+      ? Math.round((rawPassYds / rawPassComp) * 100) / 100
+      : 0;
+
+    careerRows.push({ name: entry.name, position: entry.position, draftSeason: entry.draftSeason, best2of3PPG, features: f });
   }
 
   // Step 4: Per-position training
@@ -594,6 +659,23 @@ export function trainRookieCareerModels(
     const residuals = cleanActuals.map((a, i) => a - cleanPreds[i]);
     const residualMean = residuals.reduce((s, r) => s + r, 0) / residuals.length;
     const residualStd = Math.sqrt(residuals.reduce((s, r) => s + (r - residualMean) ** 2, 0) / residuals.length);
+    // Sorted residuals for empirical bootstrap of threshold probabilities
+    // and quantile bands. Kept separately from residualStd so both the
+    // normal-approx (legacy) and bootstrap paths are available.
+    const sortedResiduals = [...residuals].sort((a, b) => a - b);
+    const quantile = (q: number): number => {
+      if (sortedResiduals.length === 0) return 0;
+      const idx = Math.max(0, Math.min(sortedResiduals.length - 1,
+        Math.round(q * (sortedResiduals.length - 1))));
+      return Math.round(sortedResiduals[idx] * 100) / 100;
+    };
+    const residualQuantiles = {
+      p10: quantile(0.10),
+      p25: quantile(0.25),
+      p50: quantile(0.50),
+      p75: quantile(0.75),
+      p90: quantile(0.90),
+    };
 
     // ── Per-threshold classification metrics ──
     const thresholdMetrics: ThresholdModelMetrics[] = [];
@@ -777,6 +859,8 @@ export function trainRookieCareerModels(
       featureKeys,
       featureImportance,
       residualStd: Math.round(residualStd * 100) / 100,
+      losoResiduals: sortedResiduals.map(r => Math.round(r * 100) / 100),
+      residualQuantiles,
       thresholds: thresholdConfig.thresholds,
       thresholdMetrics,
       thresholdTable,

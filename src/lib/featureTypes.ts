@@ -307,9 +307,20 @@ export const FEATURES: FeatureDef[] = [
   // Talented passers who rose to the top of good programs and produced
   // against tough opponents — strongest signal of NFL-readiness.
   { key: 'collegeQbContextScore', label: 'Production × Team × SOS', category: 'College', positions: ['QB'] },
-  // Pass attempts / rushing yards — pass-heaviness ratio. Lower means
-  // more rushing-leveraged style; higher = pure pocket passer.
+  // Pass-heaviness ratio. Lower means more rushing leverage, higher =
+  // pure pocket passer.
   { key: 'collegePassAttPerRushYd', label: 'Pass Att / Rush Yds', category: 'College', positions: ['QB'] },
+  // Career completion percentage (0-1 range).
+  { key: 'collegeCompletionPct', label: 'Completion % (career)', category: 'College', positions: ['QB'] },
+  // Completion rate over team completion rate across same seasons —
+  // scheme-independent accuracy signal. Positive = completed at a
+  // higher rate than his own program's baseline, which isolates
+  // individual accuracy from dink-and-dunk scheme context.
+  { key: 'collegeCompletionPctOverTeam', label: 'Completion % Above Team', category: 'College', positions: ['QB'] },
+  // Yards per completion (not per attempt). Completions capture
+  // "successful pass" volume better than attempts, so this splits
+  // dink-and-dunkers from big-play passers more cleanly than YPA.
+  { key: 'collegeYdsPerCompletion', label: 'Yards / Completion (career)', category: 'College', positions: ['QB'] },
   // Additional college metrics for rookie prediction
   { key: 'collegeGames', label: 'College Games Played', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'collegeRecPerGame', label: 'College Rec/Game', category: 'College', positions: ['RB', 'WR', 'TE'] },
@@ -458,12 +469,14 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=133. Draft capital + experience + dual-threat + context signals.
+  // QB: n=133. Draft capital + experience + dual-threat + context signals
+  // + accuracy features (completion %, completion-over-team, yds/completion).
   QB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
        'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
        'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
        'collegeSosXPassAtt', 'collegePassAttPerRushYd',
-       'collegeSosFinalYr', 'collegeQbContextScore'],
+       'collegeSosFinalYr', 'collegeQbContextScore',
+       'collegeCompletionPct', 'collegeCompletionPctOverTeam', 'collegeYdsPerCompletion'],
   // RB: n=315. Pre-batch feature set + two RB-specific production
   // features: elusiveness proxy and goal-line share. The third candidate
   // (collegeRecYdsPerGame) hit 0.0% importance — Ridge collapsed it to

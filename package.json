@@ -10,6 +10,7 @@
     "build:features": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' tsx scripts/precompute-features.ts",
     "test:reddit": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/test-reddit-features.ts || echo 'Reddit feature test skipped'",
     "eval:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/evaluate-features.ts || echo 'Feature eval skipped'",
+    "ablate:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/feature-ablation.ts",
     "test:projections": "NODE_OPTIONS='--max-old-space-size=4096' tsx scripts/test-team-projections.ts || echo 'Projection test skipped'",
     "data:local": "bash scripts/download-local-data.sh",
     "build": "npm run build:semantic && npm run build:features && tsc -b && vite build",

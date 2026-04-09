@@ -8,7 +8,7 @@ import type { PlayerRow } from '../src/lib/featureTypes';
 import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
 import type { BaggedGBM } from '../src/lib/gbm';
-import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG } from '../src/lib/rookieCareerModel';
+import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThresholdProb } from '../src/lib/rookieCareerModel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v66.json`,
+    career: `${MODEL_DIR}/model-cache-career-v67.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -2094,13 +2094,16 @@ async function main() {
     type ProspectSeasonStats = {
       recYds: number; receptions: number; rushYds: number; rushAtt: number;
       rushTDs: number; recTDs: number;
-      passAtt: number; passYds: number;
+      passAtt: number; passYds: number; passCompletions: number;
       games: number; school: string; season: number;
     };
     const prospectSeasonStats = new Map<string, ProspectSeasonStats[]>();
-    // Per-school-season team totals, for RB YPC-over-team and goal-line
-    // share features. Built from the same collegeData feed.
-    type ProspectTeamStats = { rushYds: number; rushAtt: number; rushTDs: number; recTDs: number };
+    // Per-school-season team totals — used for RB goal-line / YPC-over-team
+    // and QB completion-rate-over-team features.
+    type ProspectTeamStats = {
+      rushYds: number; rushAtt: number; rushTDs: number; recTDs: number;
+      passAtt: number; passCompletions: number;
+    };
     const prospectTeamSeasonStats = new Map<string, ProspectTeamStats>();
     for (const cs of collegeData) {
       const name = normalizeName(cs.player_name);
@@ -2112,7 +2115,7 @@ async function main() {
         entry = {
           recYds: 0, receptions: 0, rushYds: 0, rushAtt: 0,
           rushTDs: 0, recTDs: 0,
-          passAtt: 0, passYds: 0,
+          passAtt: 0, passYds: 0, passCompletions: 0,
           games: 0, school: (cs.school || cs.school_abbr || '').toLowerCase(), season: cs.season,
         };
         seasons.push(entry);
@@ -2125,6 +2128,7 @@ async function main() {
       else if (stat.includes('rushing touchdown')) entry.rushTDs += cs.value || 0;
       else if (stat.includes('passing attempt') || stat === 'pass attempts') entry.passAtt += cs.value || 0;
       else if (stat.includes('passing yard')) entry.passYds += cs.value || 0;
+      else if (stat.includes('completion') && !stat.includes('pct') && !stat.includes('%')) entry.passCompletions += cs.value || 0;
       else if (stat === 'games played' || stat.includes('games played')) entry.games = Math.max(entry.games, cs.value || 0);
 
       // Team totals (sum across all players at same school+season).
@@ -2132,13 +2136,15 @@ async function main() {
       if (school) {
         const tkey = `${school}:${cs.season}`;
         if (!prospectTeamSeasonStats.has(tkey)) {
-          prospectTeamSeasonStats.set(tkey, { rushYds: 0, rushAtt: 0, rushTDs: 0, recTDs: 0 });
+          prospectTeamSeasonStats.set(tkey, { rushYds: 0, rushAtt: 0, rushTDs: 0, recTDs: 0, passAtt: 0, passCompletions: 0 });
         }
         const team = prospectTeamSeasonStats.get(tkey)!;
         if (stat.includes('rushing yard')) team.rushYds += cs.value || 0;
         else if (stat.includes('rushing attempt') || stat === 'rushing attempts') team.rushAtt += cs.value || 0;
         else if (stat.includes('rushing touchdown')) team.rushTDs += cs.value || 0;
         else if (stat.includes('receiving touchdown')) team.recTDs += cs.value || 0;
+        else if (stat.includes('passing attempt') || stat === 'pass attempts') team.passAtt += cs.value || 0;
+        else if (stat.includes('completion') && !stat.includes('pct') && !stat.includes('%')) team.passCompletions += cs.value || 0;
       }
     }
 
@@ -2307,17 +2313,25 @@ async function main() {
         const pred = predictRookieCareerPPG(cm, features);
         const predictedPPG = Math.round(pred * 10) / 10;
 
-        // Threshold probabilities
+        // Threshold probabilities. Use the per-threshold binary classifier
+        // when it exists; fall back to empirical bootstrap from the LOSO
+        // residual distribution when the classifier was skipped (imbalanced
+        // class case). Bootstrap is non-parametric so it respects residual
+        // skew that the normal approximation would miss.
         const thresholds = PPG_THRESHOLD_CONFIG[pos]?.thresholds || [];
         const probs: Record<number, number> = {};
         for (const thresh of thresholds) {
           const tm = cm.thresholdModels?.[thresh];
-          if (!tm) continue;
-          const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
-          let p = ridgeP;
-          if (tm.gbm) {
-            const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
-            p = gbmP * 0.5 + ridgeP * 0.5;
+          let p: number;
+          if (tm?.ridge) {
+            const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
+            p = ridgeP;
+            if (tm.gbm) {
+              const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
+              p = gbmP * 0.5 + ridgeP * 0.5;
+            }
+          } else {
+            p = bootstrapThresholdProb(predictedPPG, thresh, cm);
           }
           probs[thresh] = Math.round(p * 1000) / 10;
         }
@@ -2381,15 +2395,17 @@ async function main() {
           // compute for every prospect; Ridge will zero them out for
           // irrelevant positions via the per-position feature list.
           const seasons = prospectSeasonStats.get(nName) || [];
-          let careerPassAtt = 0, careerPassYds = 0;
+          let careerPassAtt = 0, careerPassYds = 0, careerPassComp = 0;
           let careerRushYds = 0, careerRushAtt = 0, careerRushTDs = 0;
           let careerRecYds = 0, careerRecTDs = 0;
           let careerGames = 0;
           let tRushYds = 0, tRushAtt = 0, tRushTDs = 0, tRecTDs = 0;
+          let tPassAtt = 0, tPassComp = 0;
           let lastSchool = '', lastSeason = 0;
           for (const s of seasons) {
             careerPassAtt += s.passAtt || 0;
             careerPassYds += s.passYds || 0;
+            careerPassComp += s.passCompletions || 0;
             careerRushYds += s.rushYds || 0;
             careerRushAtt += s.rushAtt || 0;
             careerRushTDs += s.rushTDs || 0;
@@ -2404,6 +2420,8 @@ async function main() {
               tRushAtt += team.rushAtt || 0;
               tRushTDs += team.rushTDs || 0;
               tRecTDs += team.recTDs || 0;
+              tPassAtt += team.passAtt || 0;
+              tPassComp += team.passCompletions || 0;
             }
           }
           const totalGames = careerGames || (seasons.length * 13);
@@ -2432,6 +2450,17 @@ async function main() {
           const rbGoalLineShare = teamScrimmageTDs > 0
             ? Math.round((careerRushTDs / teamScrimmageTDs) * 1000) / 1000
             : 0;
+          // QB accuracy features (mirror the rookieCareerModel derivations).
+          const qbCompletionPct = careerPassAtt > 0
+            ? Math.round((careerPassComp / careerPassAtt) * 1000) / 1000
+            : 0;
+          const qbTeamCompPct = tPassAtt > 0 ? tPassComp / tPassAtt : 0;
+          const qbCompletionPctOverTeam = (qbCompletionPct > 0 && qbTeamCompPct > 0)
+            ? Math.round((qbCompletionPct - qbTeamCompPct) * 1000) / 1000
+            : 0;
+          const qbYdsPerCompletion = careerPassComp > 0
+            ? Math.round((careerPassYds / careerPassComp) * 100) / 100
+            : 0;
           return {
             collegeRushYpgPerAge: (careerRushYpg > 0 && prospectAge > 0)
               ? Math.round((careerRushYpg / prospectAge) * 100) / 100
@@ -2450,6 +2479,9 @@ async function main() {
             collegeRecYdsPerGame: rbRecYdsPerGame,
             collegeRushYpcOverTeam: rbYpcOverTeam,
             collegeGoalLineShare: rbGoalLineShare,
+            collegeCompletionPct: qbCompletionPct,
+            collegeCompletionPctOverTeam: qbCompletionPctOverTeam,
+            collegeYdsPerCompletion: qbYdsPerCompletion,
           };
         })(),
         collegeRushYds: cs?.get('Rushing Yards') || 0,
@@ -2490,21 +2522,24 @@ async function main() {
 
       const pred = predictRookieCareerPPG(cm, features);
       const predictedPPG = Math.round(pred * 10) / 10;
-      // Use per-threshold classifiers for probability predictions (not normal approx)
+      // Per-threshold classifier is primary; empirical bootstrap is the
+      // fallback for thresholds where no classifier was trained.
       const posThresholds = cm.thresholds as number[];
       const threshModels = cm.thresholdModels as Record<number, { ridge: any; gbm: any }>;
       const thresholdProbs: Record<number, number> = {};
-      if (posThresholds && threshModels) {
+      if (posThresholds) {
         for (const t of posThresholds) {
-          const tm = threshModels[t];
-          if (!tm?.ridge) continue;
-          const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
+          const tm = threshModels?.[t];
           let prob: number;
-          if (tm.gbm) {
-            const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
-            prob = gbmP * 0.5 + ridgeP * 0.5;
-          } else {
+          if (tm?.ridge) {
+            const ridgeP = Math.max(0, Math.min(1, predict(tm.ridge, features).predicted));
             prob = ridgeP;
+            if (tm.gbm) {
+              const gbmP = Math.max(0, Math.min(1, predictBaggedGBM(tm.gbm, features).predicted));
+              prob = gbmP * 0.5 + ridgeP * 0.5;
+            }
+          } else {
+            prob = bootstrapThresholdProb(predictedPPG, t, cm);
           }
           thresholdProbs[t] = Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10;
         }
