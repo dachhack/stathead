@@ -56,11 +56,25 @@ export function predictRookieCareerPPG(
 export function bootstrapThresholdProb(
   predicted: number,
   threshold: number,
-  cm: Pick<RookieCareerModelResult, 'losoResiduals' | 'residualStd'>,
+  cm: Pick<RookieCareerModelResult, 'losoResiduals' | 'residualStd' | 'conditionalResiduals'>,
 ): number {
+  // Use conditional (heteroscedastic) residuals if available.
+  // Picks the bin matching this prediction level for tighter estimates.
+  const condBins = cm.conditionalResiduals?.bins;
+  if (condBins && condBins.length > 0) {
+    const bin = condBins.find(b => predicted >= b.predMin && predicted <= b.predMax)
+      || condBins.find(b => b.label === 'mid')!;
+    if (bin && bin.residuals.length >= 10) {
+      let hits = 0;
+      for (const r of bin.residuals) {
+        if (predicted + r >= threshold) hits++;
+      }
+      return hits / bin.residuals.length;
+    }
+  }
+  // Fall back to unconditional residuals.
   const residuals = cm.losoResiduals;
   if (!residuals || residuals.length < 10) {
-    // Fall back to the normal approximation.
     if (!cm.residualStd || cm.residualStd <= 0) return predicted >= threshold ? 1 : 0;
     return 1 - normalCdf((threshold - predicted) / cm.residualStd);
   }
@@ -73,19 +87,41 @@ export function bootstrapThresholdProb(
 
 /**
  * Predict best-2-of-3 PPG with quantile uncertainty bands derived from
- * the LOSO residual distribution. Returns the point prediction plus p25,
- * p75 (interquartile range) and p10, p90 (wider 80% band).
- *
- * Assumes homoscedastic residuals — the same band applies regardless of
- * the prediction level. A heteroscedastic version would bin residuals by
- * prediction tier; we can add that later if the residual-vs-prediction
- * plot shows significant non-uniformity.
+ * the LOSO residual distribution. Uses conditional (heteroscedastic)
+ * residuals when available — players at different prediction levels have
+ * different variance, so bands are wider for high-predicted players and
+ * tighter for low-predicted ones.
  */
 export function predictRookieCareerPPGWithBands(
   cm: RookieCareerModelResult,
   features: Record<string, number>,
-): { predicted: number; p10: number; p25: number; p75: number; p90: number } {
+): { predicted: number; p10: number; p25: number; p75: number; p90: number; boomProb: number; bustProb: number } {
   const predicted = predictRookieCareerPPG(cm, features);
+
+  // Try conditional residuals first for heteroscedastic bands
+  const condBins = cm.conditionalResiduals?.bins;
+  if (condBins && condBins.length > 0) {
+    const bin = condBins.find(b => predicted >= b.predMin && predicted <= b.predMax)
+      || condBins.find(b => b.label === 'mid')!;
+    if (bin && bin.residuals.length >= 10) {
+      const quantile = (q: number): number => {
+        const idx = Math.max(0, Math.min(bin.residuals.length - 1,
+          Math.round(q * (bin.residuals.length - 1))));
+        return bin.residuals[idx];
+      };
+      return {
+        predicted,
+        p10: Math.max(0, predicted + quantile(0.10)),
+        p25: Math.max(0, predicted + quantile(0.25)),
+        p75: Math.max(0, predicted + quantile(0.75)),
+        p90: Math.max(0, predicted + quantile(0.90)),
+        boomProb: bin.boomRate,
+        bustProb: bin.bustRate,
+      };
+    }
+  }
+
+  // Fall back to unconditional quantiles
   const q = cm.residualQuantiles || { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0 };
   return {
     predicted,
@@ -93,6 +129,8 @@ export function predictRookieCareerPPGWithBands(
     p25: Math.max(0, predicted + q.p25),
     p75: Math.max(0, predicted + q.p75),
     p90: Math.max(0, predicted + q.p90),
+    boomProb: cm.boomRate,
+    bustProb: cm.bustRate,
   };
 }
 
@@ -226,6 +264,23 @@ export interface RookieCareerModelResult {
   gbmModelCompanion?: BaggedGBM | null;
   companionFeatureKeys?: string[];
   companionBlendWeight?: number;
+  // Conditional residual distributions for heteroscedastic boom/bust.
+  // Players at different prediction levels have different variance:
+  // e.g. low-predicted WRs/TEs are predictably bad (tight σ), while
+  // high-predicted ones have both upside and bust risk (wider σ).
+  // Three bins by predicted PPG percentile: top 20%, mid 60%, bot 20%.
+  conditionalResiduals?: {
+    bins: Array<{
+      label: string;
+      predMin: number;   // min predicted PPG in this bin
+      predMax: number;   // max predicted PPG in this bin
+      residuals: number[]; // sorted residuals for this bin
+      std: number;
+      boomRate: number;  // empirical % of booms in this bin
+      bustRate: number;  // empirical % of busts in this bin
+    }>;
+    boomThreshold: number;  // |residual| threshold used for boom/bust
+  };
   // Legacy fields kept for compatibility
   topN: Record<number, { precision: number; recall: number; n: number }>;
 }
@@ -642,13 +697,64 @@ export function trainRookieCareerModels(
     // Filter NaN
     const clean = losoData.filter(d => isFinite(d.regPred) && isFinite(d.actual));
 
-    // Boom/bust rates (computed but classifiers disabled — AUC was sub-50%)
+    // ── Conditional residual distributions for heteroscedastic boom/bust ──
+    // Players at different prediction levels have very different variance.
+    // Bin by predicted PPG percentile: top 20%, mid 60%, bot 20%.
     const quickMAE = clean.reduce((s, d) => s + Math.abs(d.actual - d.regPred), 0) / clean.length;
     const boomThresh = quickMAE * 0.75;
     const nBooms = clean.filter(d => (d.actual - d.regPred) > boomThresh).length;
     const nBusts = clean.filter(d => (d.regPred - d.actual) > boomThresh).length;
     const finalBoomRate = nBooms / clean.length;
     const finalBustRate = nBusts / clean.length;
+
+    // Sort by predicted PPG and split into 3 bins
+    const sortedByPred = [...clean].sort((a, b) => b.regPred - a.regPred);
+    const nClean = sortedByPred.length;
+    const binDefs = [
+      { label: 'high', start: 0, end: Math.round(nClean * 0.2) },
+      { label: 'mid', start: Math.round(nClean * 0.2), end: Math.round(nClean * 0.8) },
+      { label: 'low', start: Math.round(nClean * 0.8), end: nClean },
+    ];
+    const conditionalResidualBins: RookieCareerModelResult['conditionalResiduals'] = {
+      bins: [],
+      boomThreshold: Math.round(boomThresh * 100) / 100,
+    };
+    for (const bd of binDefs) {
+      const binRows = sortedByPred.slice(bd.start, bd.end);
+      if (binRows.length === 0) continue;
+      const binResiduals = binRows.map(d => d.actual - d.regPred);
+      const binMean = binResiduals.reduce((s, r) => s + r, 0) / binResiduals.length;
+      const binStd = Math.sqrt(binResiduals.reduce((s, r) => s + (r - binMean) ** 2, 0) / binResiduals.length);
+      const binBooms = binRows.filter(d => (d.actual - d.regPred) > boomThresh).length;
+      const binBusts = binRows.filter(d => (d.regPred - d.actual) > boomThresh).length;
+      conditionalResidualBins.bins.push({
+        label: bd.label,
+        predMin: Math.round(binRows[binRows.length - 1].regPred * 10) / 10,
+        predMax: Math.round(binRows[0].regPred * 10) / 10,
+        residuals: [...binResiduals].sort((a, b) => a - b).map(r => Math.round(r * 100) / 100),
+        std: Math.round(binStd * 100) / 100,
+        boomRate: Math.round(binBooms / binRows.length * 1000) / 10,
+        bustRate: Math.round(binBusts / binRows.length * 1000) / 10,
+      });
+    }
+
+    // Compute per-player boom/bust probabilities using conditional residuals.
+    // For each player, find the bin matching their prediction level, then use
+    // that bin's empirical residual distribution.
+    for (const d of clean) {
+      const bin = conditionalResidualBins.bins.find(b =>
+        d.regPred >= b.predMin && d.regPred <= b.predMax
+      ) || conditionalResidualBins.bins.find(b => b.label === 'mid')!;
+      if (bin && bin.residuals.length >= 5) {
+        let boomCount = 0, bustCount = 0;
+        for (const r of bin.residuals) {
+          if (r > boomThresh) boomCount++;
+          if (r < -boomThresh) bustCount++;
+        }
+        d.boomProb = Math.round(boomCount / bin.residuals.length * 1000) / 10;
+        d.bustProb = Math.round(bustCount / bin.residuals.length * 1000) / 10;
+      }
+    }
 
     // ── Regression metrics (kept for comparison) ──
     const cleanPreds = clean.map(d => d.regPred);
@@ -876,6 +982,7 @@ export function trainRookieCareerModels(
       bustMetrics,
       boomFeatureImportance: undefined,
       bustFeatureImportance: undefined,
+      conditionalResiduals: conditionalResidualBins,
       ridgeModel: finalRidge,
       gbmModel: finalGBM,
       ridgeModelCompanion: finalRidgeCo || undefined,

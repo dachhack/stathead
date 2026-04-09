@@ -30,6 +30,8 @@ export interface CareerScore {
   tier: number;             // 1-6 (Alpha → Longshot)
   tierLabel: string;
   thresholdProbs: Record<number, number>;
+  boomProb?: number;       // P(outperform by > 0.75×MAE), heteroscedastic by prediction tier
+  bustProb?: number;       // P(underperform by > 0.75×MAE), heteroscedastic by prediction tier
   features?: Record<string, number>;
   featurePercentiles?: Record<string, number>; // 0-100 cross-year within position
   school?: string;

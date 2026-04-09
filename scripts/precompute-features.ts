@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v68.json`,
+    career: `${MODEL_DIR}/model-cache-career-v69.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -2544,21 +2544,19 @@ async function main() {
           thresholdProbs[t] = Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10;
         }
       }
-      // Boom/bust probabilities from overlay models
-      let boomProb = 0, bustProb = 0;
-      const boomM = cm.boomModel as any;
-      const bustM = cm.bustModel as any;
-      if (boomM?.ridge) {
-        const rp = Math.max(0, Math.min(1, predict(boomM.ridge, features).predicted));
-        boomProb = boomM.gbm
-          ? Math.max(0, Math.min(1, predictBaggedGBM(boomM.gbm, features).predicted)) * 0.5 + rp * 0.5
-          : rp;
-      }
-      if (bustM?.ridge) {
-        const rp = Math.max(0, Math.min(1, predict(bustM.ridge, features).predicted));
-        bustProb = bustM.gbm
-          ? Math.max(0, Math.min(1, predictBaggedGBM(bustM.gbm, features).predicted)) * 0.5 + rp * 0.5
-          : rp;
+      // Boom/bust probabilities from conditional residual distributions.
+      // Find the bin matching this player's predicted PPG and use that
+      // bin's empirical boom/bust rates.
+      let boomProb = cm.boomRate / 100;
+      let bustProb = cm.bustRate / 100;
+      const condBins = (cm as any).conditionalResiduals?.bins;
+      if (condBins && condBins.length > 0) {
+        const bin = condBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
+          || condBins.find((b: any) => b.label === 'mid');
+        if (bin) {
+          boomProb = bin.boomRate / 100;
+          bustProb = bin.bustRate / 100;
+        }
       }
 
       careerPredictions2026.push({
@@ -2723,6 +2721,8 @@ async function main() {
           predictedPPG: r.predictedPPG, actualPPG: r.actualPPG,
           percentile: pctl, tier: t.tier, tierLabel: t.label,
           thresholdProbs: r.thresholdProbs,
+          boomProb: r.boomProb || 0,
+          bustProb: r.bustProb || 0,
           features: r.features,
         });
       }
@@ -2737,6 +2737,8 @@ async function main() {
         percentile: p.percentile || p.combinedScore || 0,
         tier: t.tier, tierLabel: t.label,
         thresholdProbs: p.thresholdProbs || {},
+        boomProb: p.boomProb || 0,
+        bustProb: p.bustProb || 0,
         features: p.features,
         school: p.school, projPick: p.projPick || p.adp,
       });
