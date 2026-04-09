@@ -469,34 +469,31 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=133. Draft capital + experience + dual-threat + context signals
-  // + accuracy features (completion %, completion-over-team, yds/completion).
-  QB: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-       'collegePassTDs', 'collegeEarlyDeclare', 'collegeExperiencePerAge',
-       'collegeQBR2yr', 'collegeRushYpgPerAge', 'collegeYdsPerPassAtt',
-       'collegeSosXPassAtt', 'collegePassAttPerRushYd',
-       'collegeSosFinalYr', 'collegeQbContextScore',
-       'collegeCompletionPct', 'collegeCompletionPctOverTeam', 'collegeYdsPerCompletion'],
-  // RB: n=315. Pre-batch feature set + two RB-specific production
-  // features: elusiveness proxy and goal-line share. The third candidate
-  // (collegeRecYdsPerGame) hit 0.0% importance — Ridge collapsed it to
-  // zero because it's collinear with collegeReceptionShare and
-  // collegeRecYdsPerTeamPassAtt. Dropped.
-  RB: ['logDraftPick', 'age',
-       'collegeReceptionShare', 'collegeRecYdsPerTeamPassAtt',
-       'collegeTotalTDs', 'speedScore', 'weight',
-       'collegeDominatorXLateRound', 'collegeTeammateScore',
-       'collegeRushYpcOverTeam', 'collegeGoalLineShare'],
-  // WR: n=456. Breakout score + per-team + draft interactions + RAS.
+  // QB: n=133. Ablation (Apr 2026) pruned 17→6 features. Only logDraftPick,
+  // earlyDeclare, QBR2yr were valuable; 3 neutrals retained as cheap signals.
+  // 11 dead-weight features removed (experiencePerAge +0.041, sosXPassAtt
+  // +0.023, completionPct +0.014, passTDs +0.013, etc).
+  QB: ['logDraftPick', 'collegeEarlyDeclare', 'collegeQBR2yr',
+       'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
+  // RB: n=315. Ablation pruned 11→6. logDraftPick dominates (Δ=-0.211).
+  // Dropped weight (+0.008), age/receptionShare/rushYpcOverTeam/goalLineShare
+  // (+0.001 each). Kept 2 neutrals (recYdsPerTeamPassAtt, teammateScore).
+  RB: ['logDraftPick',
+       'collegeRecYdsPerTeamPassAtt', 'collegeTotalTDs',
+       'speedScore', 'collegeDominatorXLateRound', 'collegeTeammateScore'],
+  // WR: n=456. Ablation pruned 13→11. Healthiest model — 7 valuable features.
+  // Dropped dominatorRating and dominatorXLateRound (+0.001 each, redundant
+  // with bestRecYds and draftPickPct which capture the same signal better).
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
-       'collegeDominatorRating', 'collegeBestRecYds',
-       'weight', 'collegeDominatorXLateRound', 'collegeTeammateScore',
+       'collegeBestRecYds',
+       'weight', 'collegeTeammateScore',
        'relativeAthleticScore'],
-  // TE: n=207 (Ridge-favored). Simpler = better for small N.
+  // TE: n=207. Ablation pruned 8→5. Draft position features dominate;
+  // athleticism features (heightAdjSpeedScore +0.004, RAS +0.004) and
+  // recYdsPerTeamPassAtt (+0.001) were noise. Age neutral, retained.
   TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-       'age', 'collegeRecYdsPerTeamPassAtt',
-       'heightAdjSpeedScore', 'relativeAthleticScore'],
+       'age'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known
@@ -505,13 +502,13 @@ export const ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: 6 + 2 = 8 features
   QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
        'vegasImpliedTotal', 'contractAPY'],
-  // RB: 12 + 3 = 15 features
+  // RB: 6 + 3 = 9 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // WR: 18 + 3 = 21 features
+  // WR: 11 + 3 = 14 features
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
-  // TE: 6 + 2 = 8 features
+  // TE: 5 + 2 = 7 features
   TE: [...PRE_DRAFT_ROOKIE_FEATURES.TE,
        'depthChartRank', 'contractAPY'],
 };
