@@ -60,7 +60,7 @@ function main() {
   function trainAndScore(pos: Pos, featureList: string[]): number {
     PRE_DRAFT_ROOKIE_FEATURES[pos] = featureList;
     try {
-      const models = trainRookieCareerModels(rows as any);
+      const models = trainRookieCareerModels(rows as any, { onlyPositions: [pos] });
       return models[pos]?.cvR2 ?? 0;
     } finally {
       PRE_DRAFT_ROOKIE_FEATURES[pos] = originalLists[pos];

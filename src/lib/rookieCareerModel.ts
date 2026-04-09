@@ -280,6 +280,7 @@ function approxAUC(probs: number[], labels: number[]): number {
  */
 export function trainRookieCareerModels(
   rows: PlayerRow[],
+  options?: { onlyPositions?: string[] },
 ): Record<string, RookieCareerModelResult> {
 
   // Step 1: Build games lookup from priorGames
@@ -434,7 +435,8 @@ export function trainRookieCareerModels(
 
   const results: Record<string, RookieCareerModelResult> = {};
 
-  for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+  const positionsToTrain = options?.onlyPositions || ['QB', 'RB', 'WR', 'TE'];
+  for (const pos of positionsToTrain) {
     const posRows = careerRows.filter(r => r.position === pos);
     if (posRows.length < 10) continue;
     const featureKeys = PRE_DRAFT_ROOKIE_FEATURES[pos] || [];
