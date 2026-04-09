@@ -202,7 +202,7 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v67.json`,
+    career: `${MODEL_DIR}/model-cache-career-v68.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
