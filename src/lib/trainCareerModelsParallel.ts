@@ -19,10 +19,15 @@ function trainPositionInWorker(
 ): Promise<Record<string, RookieCareerModelResult>> {
   return new Promise((resolve, reject) => {
     const workerPath = join(__dirname, 'careerModelWorker.ts');
+    // Pass the tsx loader flags from our parent process so the worker
+    // can resolve TypeScript imports the same way the main thread does.
+    // Filter out --eval and its arg (only present when tsx runs with -e).
+    const filteredArgv = process.execArgv.filter((arg, i, arr) =>
+      arg !== '--eval' && arg !== '-e' && !(i > 0 && (arr[i - 1] === '--eval' || arr[i - 1] === '-e'))
+    );
     const worker = new Worker(workerPath, {
       workerData: { rows, position, postDraft },
-      // tsx loader for TypeScript support in workers
-      execArgv: ['--import', 'tsx/esm'],
+      execArgv: filteredArgv,
     });
     worker.on('message', resolve);
     worker.on('error', reject);
