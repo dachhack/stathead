@@ -469,18 +469,16 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=133. Ablation (Apr 2026) pruned 17→6 features. Only logDraftPick,
-  // earlyDeclare, QBR2yr were valuable; 3 neutrals retained as cheap signals.
-  // 11 dead-weight features removed (experiencePerAge +0.041, sosXPassAtt
-  // +0.023, completionPct +0.014, passTDs +0.013, etc).
-  QB: ['logDraftPick', 'collegeEarlyDeclare', 'collegeQBR2yr',
+  // QB: n=133. Ablation rounds 1+2 pruned 17→5. Round 1 (17→6) jumped R²
+  // 0.240→0.323. Round 2 dropped earlyDeclare (flipped to +0.009 dead weight
+  // once noise features removed — experience > raw tools in modern NFL).
+  QB: ['logDraftPick', 'collegeQBR2yr',
        'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Ablation pruned 11→6. logDraftPick dominates (Δ=-0.211).
-  // Dropped weight (+0.008), age/receptionShare/rushYpcOverTeam/goalLineShare
-  // (+0.001 each). Kept 2 neutrals (recYdsPerTeamPassAtt, teammateScore).
-  RB: ['logDraftPick',
-       'collegeRecYdsPerTeamPassAtt', 'collegeTotalTDs',
-       'speedScore', 'collegeDominatorXLateRound', 'collegeTeammateScore'],
+  // RB: n=315. Ablation rounds 1+2 pruned 11→2. logDraftPick dominates
+  // (Δ=-0.224). Round 2 dropped speedScore (+0.041), totalTDs (+0.036),
+  // teammateScore (+0.036), recYdsPerTeamPassAtt (+0.035) — all large
+  // dead weight once initial noise was cleared.
+  RB: ['logDraftPick', 'collegeDominatorXLateRound'],
   // WR: n=456. Ablation pruned 13→11. Healthiest model — 7 valuable features.
   // Dropped dominatorRating and dominatorXLateRound (+0.001 each, redundant
   // with bestRecYds and draftPickPct which capture the same signal better).
@@ -499,10 +497,10 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
 // Post-draft rookie features: adds team context once landing spot is known
 // Includes depth chart, scheme, Vegas, positional competition, contract
 export const ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: 6 + 2 = 8 features
+  // QB: 5 + 2 = 7 features
   QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
        'vegasImpliedTotal', 'contractAPY'],
-  // RB: 6 + 3 = 9 features
+  // RB: 2 + 3 = 5 features
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
        'depthChartRank', 'teamSamePosCount', 'contractAPY'],
   // WR: 11 + 3 = 14 features
