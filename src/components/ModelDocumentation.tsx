@@ -1148,9 +1148,14 @@ export function ModelDocumentation() {
                 </table>
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                Note: ADP model R² dropped after removing data-leaking features (current-season actual share data that
-                wouldn't be available at prediction time). Prior metrics were inflated by up to 0.22 R² (RB).
-                Current metrics are honest LOSO cross-validated on features available before the season starts.
+                AUCs are within-tier controlled — not inflated by ADP position. Within ADP 1-50:
+                WR bust AUC 0.912 (53% high-risk bust vs 1% safe), TE bust AUC 0.882 (67% vs 0%).
+                Model edge over ADP-only: +0.16 to +0.34 within tier. Signal comes from prior
+                production (priorPPG, priorTargets, priorSnapPct), not just draft position.
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Note: ADP model R² corrected after removing data-leaking features (current-season actual share data).
+                Prior metrics were inflated by up to 0.22 R² (RB). Current metrics are honest LOSO on pre-season features.
               </p>
             </>
           );
