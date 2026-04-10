@@ -2392,11 +2392,26 @@ async function main() {
         const probValues = thresholds.map(t => probs[t] || 0);
         const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
 
+        // Boom/bust from conditional residuals
+        let prospBoom = (cm.boomRate || 0) / 100;
+        let prospBust = (cm.bustRate || 0) / 100;
+        const prospCondBins = (cm as any).conditionalResiduals?.bins;
+        if (prospCondBins && prospCondBins.length > 0) {
+          const prospBin = prospCondBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
+            || prospCondBins.find((b: any) => b.label === (predictedPPG > (prospCondBins[0]?.predMax || 999) ? 'high' : 'mid'));
+          if (prospBin) {
+            prospBoom = prospBin.boomRate / 100;
+            prospBust = prospBin.bustRate / 100;
+          }
+        }
+
         careerPredictions2026.push({
           name: prospect.name, position: pos, school: prospect.school,
           projRound: prospect.projRound, projPick: prospect.projPick,
           predictedCareerPPG: predictedPPG, combinedScore: meanProb, tier: 0,
           thresholdProbs: probs, features,
+          boomProb: Math.round(prospBoom * 1000) / 10,
+          bustProb: Math.round(prospBust * 1000) / 10,
         });
         continue; // skip the nflverse path below
       }
