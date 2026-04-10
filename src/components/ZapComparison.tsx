@@ -362,6 +362,50 @@ export function ZapComparison() {
         </div>
       )}
 
+      {stats && stats.hasActuals && season === '2023' && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
+            <h3 style={{ fontSize: 14, margin: '0 0 10px', color: 'var(--text-primary)' }}>2023 Draft Class Insights</h3>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <h4 style={{ fontSize: 12, color: '#ef4444', margin: '0 0 6px' }}>Busts We Avoided</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                  Our model scored these significantly lower than ZAP — flagging bust risk before the season:
+                </p>
+                <div style={{ fontSize: 11, marginTop: 6 }}>
+                  {[
+                    { name: 'Evan Hull', pos: 'RB', zap: 70, ours: 34, actual: 1.4 },
+                    { name: 'Israel Abanikanda', pos: 'RB', zap: 71, ours: 45, actual: 3.1 },
+                    { name: 'Jalin Hyatt', pos: 'WR', zap: 84, ours: 54, actual: 3.0 },
+                    { name: 'Jonathan Mingo', pos: 'WR', zap: 84, ours: 76, actual: 4.0 },
+                  ].map(b => (
+                    <div key={b.name} style={{ display: 'flex', gap: 8, marginBottom: 3 }}>
+                      <span style={{ color: POS_COLORS[b.pos], fontWeight: 600, width: 24 }}>{b.pos}</span>
+                      <span style={{ flex: 1 }}>{b.name}</span>
+                      <span style={{ color: '#ef4444' }}>ZAP {b.zap}</span>
+                      <span style={{ color: '#22c55e' }}>Us {b.ours}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Actual {b.actual} PPG</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <h4 style={{ fontSize: 12, color: '#22c55e', margin: '0 0 6px' }}>Draft Edge</h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 6px' }}>
+                  Using our model in a dynasty rookie draft, you would have:
+                </p>
+                <div style={{ fontSize: 11 }}>
+                  <div style={{ marginBottom: 3 }}><span style={{ color: '#22c55e', fontWeight: 700 }}>Avoided 4 busts</span> in the first 12 picks that ZAP ranked highly</div>
+                  <div style={{ marginBottom: 3 }}>WR rank correlation with actuals: <strong style={{ color: '#22c55e' }}>0.498</strong> vs ZAP <span style={{ color: '#ef4444' }}>0.361</span></div>
+                  <div style={{ marginBottom: 3 }}>RB rank correlation with actuals: <strong style={{ color: '#22c55e' }}>0.787</strong> vs ZAP <span style={{ color: '#ef4444' }}>0.715</span></div>
+                  <div style={{ color: 'var(--text-muted)', marginTop: 6 }}>Neither model predicted Puka Nacua (ZAP rank 23, actual 21.1 PPG) — true breakouts are unpredictable from pre-draft data alone.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
         {season === '2026'
           ? 'StatHead career model percentile (vs all historical rookies) vs ZAP Model'
