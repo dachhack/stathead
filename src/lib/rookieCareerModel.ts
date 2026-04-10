@@ -508,7 +508,10 @@ export function trainRookieCareerModels(
       'collegeDominatorXLateRound',
     ]);
     const collegeOnlyKeys = featureKeys.filter(k => !DRAFT_CAPITAL_KEYS.has(k));
-    const useCollegeCompanion = collegeOnlyKeys.length >= 4 && (pos === 'WR' || pos === 'RB');
+    // Companion model disabled for post-draft: team-context features already
+    // provide the diversification the companion was designed for, and training
+    // two models per LOSO fold doubles runtime (WR takes 10+ min as-is).
+    const useCollegeCompanion = !options?.postDraft && collegeOnlyKeys.length >= 4 && (pos === 'WR' || pos === 'RB');
 
     const hyper = POS_HYPERPARAMS[pos] || POS_HYPERPARAMS.WR;
 
