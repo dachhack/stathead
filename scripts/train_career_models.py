@@ -398,16 +398,78 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             'bustRate': round(bin_busts / len(bin_rows) * 100, 1),
         })
 
-    # Assign per-player boom/bust from conditional bins
+    # ── Per-player boom/bust via variance prediction model ──────────
+    # Train a second-stage LightGBM on |residual| to predict which
+    # players have wider/tighter prediction intervals. Uses ALL
+    # available numeric features (not just the regression features).
+    # This gives genuinely individual boom/bust probabilities.
+
+    # Collect variance feature keys (all numeric, >25% coverage)
+    var_feat_keys = set()
     for d in loso_data:
-        matching_bin = next((b for b in cond_bins if d['pred'] >= b['predMin'] and d['pred'] <= b['predMax']),
-                           next((b for b in cond_bins if b['label'] == 'mid'), None))
-        if matching_bin:
-            d['boom_prob'] = matching_bin['boomRate']
-            d['bust_prob'] = matching_bin['bustRate']
-        else:
-            d['boom_prob'] = round(n_booms / n * 100, 1)
-            d['bust_prob'] = round(n_busts / n * 100, 1)
+        for k, v in d.get('all_features', {}).items():
+            if not k.startswith('_'):
+                try:
+                    float(v) if v not in (None, '', 'NA') else None
+                    var_feat_keys.add(k)
+                except (ValueError, TypeError):
+                    pass
+    def _safe_float(v):
+        if v is None or v == '' or v == 'NA' or v == 'NaN':
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
+
+    var_feat_keys = sorted(k for k in var_feat_keys
+                           if sum(1 for d in loso_data
+                                  if abs(_safe_float(d.get('all_features', {}).get(k, 0))) > 0) / n > 0.25)
+    var_feat_keys_aug = var_feat_keys + ['_predictedPPG', '_predictedPPG_sq']
+
+    def make_var_x(d_item):
+        f = d_item.get('all_features', {})
+        base = [_safe_float(f.get(k, 0)) for k in var_feat_keys]
+        base.append(d_item['pred'])
+        base.append(d_item['pred'] ** 2)
+        return base
+
+    abs_residuals = np.array([abs(d['actual'] - d['pred']) for d in loso_data])
+    var_preds = np.full(n, float(np.mean(abs_residuals)))  # default to mean
+
+    for held_season in seasons:
+        tr_idx = [i for i, d in enumerate(loso_data) if d['season'] != held_season]
+        te_idx = [i for i, d in enumerate(loso_data) if d['season'] == held_season]
+        if len(tr_idx) < 10 or not te_idx:
+            continue
+        X_var_tr = np.nan_to_num(np.array([make_var_x(loso_data[i]) for i in tr_idx], dtype=np.float64))
+        X_var_te = np.nan_to_num(np.array([make_var_x(loso_data[i]) for i in te_idx], dtype=np.float64))
+        y_var_tr = abs_residuals[tr_idx]
+
+        var_params = {
+            'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.03,
+            'max_depth': 2, 'min_child_samples': max(5, len(tr_idx) // 8),
+            'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1, 'seed': 42,
+            'n_jobs': 1, 'extra_trees': True, 'bagging_fraction': 0.7, 'bagging_freq': 1,
+        }
+        dt_var = lgb.Dataset(X_var_tr, y_var_tr, feature_name=var_feat_keys_aug, free_raw_data=False)
+        var_model = lgb.train(var_params, dt_var, num_boost_round=60)
+        var_preds[te_idx] = np.clip(var_model.predict(X_var_te), 0.5, None)
+
+    # Derive per-player boom/bust from predicted σ.
+    # Scale the empirical residual distribution by each player's predicted
+    # variance relative to the average. Higher predicted σ → wider tails
+    # → higher boom AND bust probability.
+    overall_std = float(np.std([d['actual'] - d['pred'] for d in loso_data]))
+    sorted_resids = sorted(d['actual'] - d['pred'] for d in loso_data)
+
+    for i, d in enumerate(loso_data):
+        pred_sigma = max(0.5, float(var_preds[i]))
+        scale = pred_sigma / overall_std if overall_std > 0 else 1.0
+        boom_count = sum(1 for r in sorted_resids if r * scale > boom_thresh)
+        bust_count = sum(1 for r in sorted_resids if r * scale < -boom_thresh)
+        d['boom_prob'] = round(boom_count / len(sorted_resids) * 100, 1)
+        d['bust_prob'] = round(bust_count / len(sorted_resids) * 100, 1)
 
     # ── Threshold metrics ─────────────────────────────────────────────
     threshold_metrics = []
