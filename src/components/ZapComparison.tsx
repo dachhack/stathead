@@ -255,15 +255,39 @@ export function ZapComparison() {
       zapVsActualCorr = vzz > 0 && vaa > 0 ? czA / Math.sqrt(vzz * vaa) : 0;
       ourVsActualCorr = voo > 0 && vaa > 0 ? coA / Math.sqrt(voo * vaa) : 0;
     }
-    // Win/loss record vs ZAP
+    // Win/loss record vs ZAP — ALL players
     const oursWins = withActuals.filter(r => r.winner === 'ours').length;
     const zapWins = withActuals.filter(r => r.winner === 'zap').length;
     const ties = withActuals.filter(r => r.winner === 'tie').length;
+
+    // Top-tier metrics: only picks 1-24 (by ZAP rank) where draft decisions matter
+    const top24 = withActuals.filter(r => r.zapRank <= 24);
+    const top24OursWins = top24.filter(r => r.winner === 'ours').length;
+    const top24ZapWins = top24.filter(r => r.winner === 'zap').length;
+    const top24Ties = top24.filter(r => r.winner === 'tie').length;
+    // Top-24 correlation with actuals
+    let top24ZapCorr = 0, top24OurCorr = 0;
+    if (top24.length >= 5) {
+      const t24ma = top24.reduce((s, r) => s + r.actualPPG, 0) / top24.length;
+      const t24mz = top24.reduce((s, r) => s + r.zapScore, 0) / top24.length;
+      const t24mo = top24.reduce((s, r) => s + r.ourScore, 0) / top24.length;
+      let t24czA = 0, t24coA = 0, t24vzz = 0, t24voo = 0, t24vaa = 0;
+      for (const r of top24) {
+        t24czA += (r.zapScore - t24mz) * (r.actualPPG - t24ma); t24coA += (r.ourScore - t24mo) * (r.actualPPG - t24ma);
+        t24vzz += (r.zapScore - t24mz) ** 2; t24voo += (r.ourScore - t24mo) ** 2; t24vaa += (r.actualPPG - t24ma) ** 2;
+      }
+      top24ZapCorr = t24vzz > 0 && t24vaa > 0 ? t24czA / Math.sqrt(t24vzz * t24vaa) : 0;
+      top24OurCorr = t24voo > 0 && t24vaa > 0 ? t24coA / Math.sqrt(t24voo * t24vaa) : 0;
+    }
+
     return {
       n, corr: corr.toFixed(3), mae: mae.toFixed(1),
       zapVsActualCorr: zapVsActualCorr.toFixed(3), ourVsActualCorr: ourVsActualCorr.toFixed(3),
       hasActuals: withActuals.length > 0,
       oursWins, zapWins, ties,
+      top24N: top24.length,
+      top24OursWins, top24ZapWins, top24Ties,
+      top24ZapCorr: top24ZapCorr.toFixed(3), top24OurCorr: top24OurCorr.toFixed(3),
     };
   }, [filtered]);
 
@@ -289,25 +313,52 @@ export function ZapComparison() {
       </div>
 
       {stats && (
-        <div style={{ padding: '0 16px 12px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Prospects', value: stats.n.toString(), color: 'var(--text-primary)' },
-            { label: 'Score Correlation', value: stats.corr, color: Number(stats.corr) > 0.5 ? '#22c55e' : Number(stats.corr) > 0.3 ? '#facc15' : '#ef4444' },
-            { label: 'Score MAE', value: stats.mae, color: 'var(--text-primary)' },
-            ...(stats.hasActuals ? [
-              { label: 'ZAP vs Actual', value: stats.zapVsActualCorr, color: Number(stats.zapVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.zapVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
-              { label: 'Ours vs Actual', value: stats.ourVsActualCorr, color: Number(stats.ourVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.ourVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
-              { label: 'Record vs ZAP', value: `${stats.oursWins}W-${stats.zapWins}L-${stats.ties}T`, color: stats.oursWins > stats.zapWins ? '#22c55e' : stats.oursWins < stats.zapWins ? '#ef4444' : '#facc15' },
-            ] : []),
-          ].map(c => (
-            <div key={c.label} style={{
-              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '8px 14px', minWidth: 100,
-            }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c.color }}>{c.value}</div>
+        <div style={{ padding: '0 16px 12px' }}>
+          {stats.hasActuals && stats.top24N > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Picks 1-24 (where draft decisions matter)
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Top 24', value: stats.top24N.toString(), color: 'var(--text-primary)' },
+                  { label: 'Record', value: `${stats.top24OursWins}W-${stats.top24ZapWins}L-${stats.top24Ties}T`,
+                    color: stats.top24OursWins > stats.top24ZapWins ? '#22c55e' : stats.top24OursWins < stats.top24ZapWins ? '#ef4444' : '#facc15' },
+                  { label: 'Ours vs Actual', value: stats.top24OurCorr,
+                    color: Number(stats.top24OurCorr) > Number(stats.top24ZapCorr) ? '#22c55e' : '#ef4444' },
+                  { label: 'ZAP vs Actual', value: stats.top24ZapCorr,
+                    color: Number(stats.top24ZapCorr) > Number(stats.top24OurCorr) ? '#22c55e' : '#ef4444' },
+                ].map(c => (
+                  <div key={c.label} style={{
+                    background: 'var(--bg-tertiary)', border: '1px solid var(--accent)',
+                    borderRadius: 8, padding: '6px 12px', minWidth: 80,
+                  }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: c.color }}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              { label: 'All Prospects', value: stats.n.toString(), color: 'var(--text-primary)' },
+              { label: 'Score Correlation', value: stats.corr, color: Number(stats.corr) > 0.5 ? '#22c55e' : Number(stats.corr) > 0.3 ? '#facc15' : '#ef4444' },
+              ...(stats.hasActuals ? [
+                { label: 'ZAP vs Actual', value: stats.zapVsActualCorr, color: Number(stats.zapVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.zapVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
+                { label: 'Ours vs Actual', value: stats.ourVsActualCorr, color: Number(stats.ourVsActualCorr) > 0.3 ? '#22c55e' : Number(stats.ourVsActualCorr) > 0.1 ? '#facc15' : '#ef4444' },
+                { label: 'All Record', value: `${stats.oursWins}W-${stats.zapWins}L-${stats.ties}T`, color: stats.oursWins > stats.zapWins ? '#22c55e' : stats.oursWins < stats.zapWins ? '#ef4444' : '#facc15' },
+              ] : []),
+            ].map(c => (
+              <div key={c.label} style={{
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '6px 12px', minWidth: 80,
+              }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: c.color }}>{c.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
