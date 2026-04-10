@@ -76,9 +76,11 @@ export function ZapComparison() {
               pred2026Map.set(nn, p);
             }
           }
-          // Get backtest rows for 2023 validation
-          if (d.rookieCareerModels) {
-            for (const m of Object.values(d.rookieCareerModels as Record<string, any>)) {
+          // Get backtest rows for 2023 validation — prefer post-draft model
+          // (has team context: Vegas, scheme, QB quality) over pre-draft
+          const careerModelsToUse = d.rookieCareerModelsPostDraft || d.rookieCareerModels;
+          if (careerModelsToUse) {
+            for (const m of Object.values(careerModelsToUse as Record<string, any>)) {
               if (m.backtestRows) backtestRows.push(...m.backtestRows);
             }
           }
@@ -98,7 +100,7 @@ export function ZapComparison() {
             if (storeRows.length > 0) d = { rows: storeRows };
           }
           if (d?.rows?.length) {
-            const models = trainRookieCareerModels(d.rows);
+            const models = trainRookieCareerModels(d.rows, { postDraft: true });
             for (const m of Object.values(models)) {
               if (m.backtestRows) backtestRows.push(...m.backtestRows);
             }

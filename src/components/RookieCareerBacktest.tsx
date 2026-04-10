@@ -70,6 +70,8 @@ export function RookieCareerBacktest() {
   const [selectedPlayer, setSelectedPlayer] = useState<RookieCareerBacktestRow | null>(null);
   const [prospectFeatures, setProspectFeatures] = useState<Map<string, any>>(new Map());
   const [scoreStoreData, setScoreStoreData] = useState<CareerScore[]>([]);
+  const [modelMode, setModelMode] = useState<'pre-draft' | 'post-draft'>('pre-draft');
+  const [modelsPostDraft, setModelsPostDraft] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -116,6 +118,12 @@ export function RookieCareerBacktest() {
         if (!careerModels || Object.keys(careerModels).length === 0 || !careerModels[Object.keys(careerModels)[0]]?.backtestRows) {
           try { careerModels = trainRookieCareerModels(d.rows); } catch {}
         }
+        // Load post-draft models (has team context features)
+        let postDraftModels = d.rookieCareerModelsPostDraft;
+        if (!postDraftModels || Object.keys(postDraftModels).length === 0) {
+          try { postDraftModels = trainRookieCareerModels(d.rows, { postDraft: true }); } catch {}
+        }
+        if (postDraftModels) setModelsPostDraft(postDraftModels);
         // Debug: check if features are present in backtest rows
         const samplePos = Object.keys(careerModels || {})[0];
         const sampleRow = careerModels?.[samplePos]?.backtestRows?.[0];
@@ -128,9 +136,10 @@ export function RookieCareerBacktest() {
   }, []);
 
   const allRows = useMemo(() => {
-    if (!models) return [];
+    const activeModels = modelMode === 'post-draft' && modelsPostDraft ? modelsPostDraft : models;
+    if (!activeModels) return [];
     const rows: RookieCareerBacktestRow[] = [];
-    for (const m of Object.values(models)) {
+    for (const m of Object.values(activeModels)) {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
 
@@ -229,7 +238,7 @@ export function RookieCareerBacktest() {
       }
     }
     return rows;
-  }, [models, trainingRows, prospectFeatures, scoreStoreData]);
+  }, [models, modelsPostDraft, modelMode, trainingRows, prospectFeatures, scoreStoreData]);
 
   const seasons = useMemo(() => {
     const s = [...new Set(allRows.map(r => r.draftSeason))].sort();
@@ -423,14 +432,26 @@ export function RookieCareerBacktest() {
               {pos}
             </button>
           ))}
-          <button
-            onClick={exportCSV}
-            style={{
-              marginLeft: 'auto', padding: '4px 12px', fontSize: 11,
-              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-              borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)',
-            }}
-          >Export CSV</button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+            <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {(['pre-draft', 'post-draft'] as const).map(mode => (
+                <button key={mode} onClick={() => setModelMode(mode)} style={{
+                  padding: '4px 10px', fontSize: 11, cursor: 'pointer', border: 'none',
+                  background: modelMode === mode ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: modelMode === mode ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: modelMode === mode ? 700 : 400,
+                }}>{mode === 'pre-draft' ? 'Pre-Draft' : 'Post-Draft'}</button>
+              ))}
+            </div>
+            <button
+              onClick={exportCSV}
+              style={{
+                padding: '4px 12px', fontSize: 11,
+                background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 6, cursor: 'pointer', color: 'var(--text-secondary)',
+              }}
+            >Export CSV</button>
+          </div>
         </div>
         <div className="control-group">
           <label className="control-label">Draft Class</label>

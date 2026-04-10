@@ -9,6 +9,7 @@ import { trainRidgeRegression, predict } from '../src/lib/ridge';
 import { trainGBM, predictGBM, trainBaggedGBM, predictBaggedGBM } from '../src/lib/gbm';
 import type { BaggedGBM } from '../src/lib/gbm';
 import { trainRookieCareerModels, normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThresholdProb } from '../src/lib/rookieCareerModel';
+import { trainCareerModelsParallel } from '../src/lib/trainCareerModelsParallel';
 import { trainTeamVolumeModel } from '../src/lib/volumeProjection';
 import type { TeamVolumeFeatures } from '../src/lib/volumeProjection';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
@@ -187,6 +188,7 @@ async function main() {
   let residualModels: Record<string, unknown>[];
   let shareModels: Record<string, unknown>;
   let rookieCareerModels: any;
+  let rookieCareerModelsPostDraft: any;
   let featureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookieFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
   let rookiePreDraftFeatureImportance: Record<string, Array<{ key: string; label: string; category: string; importance: number }>>;
@@ -202,7 +204,8 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v68.json`,
+    career: `${MODEL_DIR}/model-cache-career-v69.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v1.json`,
   };
 
   // Try loading per-component caches first (allows individual model retraining)
@@ -238,7 +241,17 @@ async function main() {
     rookieCareerModels = JSON.parse(readFileSync(componentCachePaths.career, 'utf-8')).rookieCareerModels;
   } else { anyMissing = true; }
 
+  if (existsSync(componentCachePaths.careerPostDraft)) {
+    console.log('  Loading cached post-draft career models...');
+    rookieCareerModelsPostDraft = JSON.parse(readFileSync(componentCachePaths.careerPostDraft, 'utf-8')).rookieCareerModels;
+  } else { anyMissing = true; }
+
   // If ALL component caches exist, skip training entirely
+  const skipADP = existsSync(componentCachePaths.adp) && models?.length > 0;
+  const skipPPG = existsSync(componentCachePaths.ppg) && ppgModels?.length > 0;
+  const skipResidual = existsSync(componentCachePaths.residual) && residualModels?.length > 0;
+  const skipShare = existsSync(componentCachePaths.share) && shareModels && Object.keys(shareModels).length > 0;
+  const skipCareer = existsSync(componentCachePaths.career) && rookieCareerModels && Object.keys(rookieCareerModels).length > 0;
   if (!anyMissing && models?.length > 0) {
     console.log('  All component caches loaded, skipping training...');
   } else {
@@ -247,6 +260,7 @@ async function main() {
   // QB (N≈140) and TE (N≈106) need fewer features and more regularization
   // to avoid overfitting. RB (N≈367) and WR (N≈408) can handle more features.
   console.log('  Training models...');
+  if (skipADP) { console.log('    Skipping ADP models (cached)...'); } else {
   const PROJ_KEYS = ['projTeamPassAtt','projTeamPassVolChg','projPlayerPPR','projPlayerVsExpected','projTargetShare'];
 
   // Position-specific hyperparameters
@@ -652,10 +666,13 @@ async function main() {
     console.log(`      Rookie/Vet R²: ${cvR2RookieVet} (post-draft rookie: ${cvR2RookieOnly.toFixed(3)}, pre-draft rookie: ${cvR2PreDraftRookie.toFixed(3)}, n=${losoRookieActuals.length}, vet: ${cvR2VetOnly.toFixed(3)} n=${losoVetActuals.length})`);
   }
 
+  } // end skipADP guard
+
   // ═══════════════════════════════════════════════════════════════════════
   // ADP-FREE PPG MODEL: predict raw PPG without any ADP information
   // This gives us an ADP-independent view of player quality
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipPPG) { console.log('\n  Skipping PPG models (cached)...'); } else {
   console.log('\n  Training ADP-free PPG models...');
 
   ppgModels = [];
@@ -816,7 +833,10 @@ async function main() {
   // ADP-RESIDUAL MODEL: train to predict actual_PPG - ADP_implied_PPG
   // This learns WHERE ADP is wrong instead of trying to replicate ADP's rankings.
   // Final prediction = ADP_implied + alpha * model_residual
+  } // end skipPPG guard
+
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipResidual) { console.log('\n  Skipping ADP-residual + draft sim (cached)...'); } else {
   console.log('\n  Training ADP-residual models...');
 
   residualModels = [];
@@ -1601,12 +1621,15 @@ async function main() {
     };
   }
 
+  } // end skipResidual guard
+
   // ═══════════════════════════════════════════════════════════════════════
   // SHARE PREDICTION MODELS
   // For each position, predict player's share of team volume metrics.
   // Features: prior share, snap%, depth chart, competition, contract, age, etc.
   // Target: actual share in the prediction season (computed in buildFeatureMatrix).
   // ═══════════════════════════════════════════════════════════════════════
+  if (skipShare) { console.log('\n  Skipping share models (cached)...'); } else {
   console.log('\n  Training share prediction models...');
 
   const SHARE_TARGETS: { key: string; positions: string[] }[] = [
@@ -1699,9 +1722,12 @@ async function main() {
     }
   }
 
+  } // end skipShare guard
+
   // ══════════════════════════════════════════════════════════════
   // ROOKIE CAREER PREDICTION MODEL (shared module)
   // ══════════════════════════════════════════════════════════════
+  if (skipCareer) { console.log('\n  Skipping career models (cached)...'); } else {
   console.log('\n  Training rookie career prediction models...');
 
   // Enrich training rows with prospect store data (fills nflverse college gaps)
@@ -1754,26 +1780,53 @@ async function main() {
     }
   }
 
+  // Train pre-draft career model (sequential — parallel workers TBD)
   rookieCareerModels = trainRookieCareerModels(result.rows);
+  console.log('  Pre-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
+  // Save pre-draft immediately so it survives if post-draft times out
+  mkdirSync(MODEL_DIR, { recursive: true });
+  writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+  console.log('  Pre-draft career cache saved.');
 
-  // Save per-component model caches
+  // Post-draft career model: adds team-context features.
+  // Skipped if post-draft cache already exists (allows separate runs).
+  const skipPostDraft = existsSync(componentCachePaths.careerPostDraft) && rookieCareerModelsPostDraft && Object.keys(rookieCareerModelsPostDraft).length > 0;
+  if (skipPostDraft) {
+    console.log('  Skipping post-draft career models (cached)...');
+  } else {
+    console.log('\n  Training post-draft rookie career models...');
+    rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
+    console.log('  Post-draft career models:');
+    for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
+      console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
+    }
+    writeFileSync(componentCachePaths.careerPostDraft, JSON.stringify({ rookieCareerModels: rookieCareerModelsPostDraft }));
+    console.log('  Post-draft career cache saved.');
+  }
+
+  } // end skipCareer guard
+
+  // Save per-component model caches (only write components that were retrained)
   console.log('  Saving model caches...');
   mkdirSync(MODEL_DIR, { recursive: true });
-  writeFileSync(componentCachePaths.adp, JSON.stringify({
+  if (!skipADP) writeFileSync(componentCachePaths.adp, JSON.stringify({
     models, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance,
     vetFeatureImportance, draftSim2025, posThresholds,
   }));
-  writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
-  writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
-  writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
-  writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+  if (!skipPPG) writeFileSync(componentCachePaths.ppg, JSON.stringify({ ppgModels }));
+  if (!skipResidual) writeFileSync(componentCachePaths.residual, JSON.stringify({ residualModels }));
+  if (!skipShare) writeFileSync(componentCachePaths.share, JSON.stringify({ shareModels }));
+  if (!skipCareer) {
+    writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+    writeFileSync(componentCachePaths.careerPostDraft, JSON.stringify({ rookieCareerModels: rookieCareerModelsPostDraft }));
+  }
 
   // Also write monolithic cache for backward compat
   const modelCache = {
-    models, ppgModels, residualModels, shareModels, rookieCareerModels,
+    models, ppgModels, residualModels, shareModels, rookieCareerModels, rookieCareerModelsPostDraft,
     featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance,
     draftSim2025, posThresholds,
   };
@@ -2339,11 +2392,26 @@ async function main() {
         const probValues = thresholds.map(t => probs[t] || 0);
         const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
 
+        // Boom/bust from conditional residuals
+        let prospBoom = (cm.boomRate || 0) / 100;
+        let prospBust = (cm.bustRate || 0) / 100;
+        const prospCondBins = (cm as any).conditionalResiduals?.bins;
+        if (prospCondBins && prospCondBins.length > 0) {
+          const prospBin = prospCondBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
+            || prospCondBins.find((b: any) => b.label === (predictedPPG > (prospCondBins[0]?.predMax || 999) ? 'high' : 'mid'));
+          if (prospBin) {
+            prospBoom = prospBin.boomRate / 100;
+            prospBust = prospBin.bustRate / 100;
+          }
+        }
+
         careerPredictions2026.push({
           name: prospect.name, position: pos, school: prospect.school,
           projRound: prospect.projRound, projPick: prospect.projPick,
           predictedCareerPPG: predictedPPG, combinedScore: meanProb, tier: 0,
           thresholdProbs: probs, features,
+          boomProb: Math.round(prospBoom * 1000) / 10,
+          bustProb: Math.round(prospBust * 1000) / 10,
         });
         continue; // skip the nflverse path below
       }
@@ -2544,21 +2612,19 @@ async function main() {
           thresholdProbs[t] = Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10;
         }
       }
-      // Boom/bust probabilities from overlay models
-      let boomProb = 0, bustProb = 0;
-      const boomM = cm.boomModel as any;
-      const bustM = cm.bustModel as any;
-      if (boomM?.ridge) {
-        const rp = Math.max(0, Math.min(1, predict(boomM.ridge, features).predicted));
-        boomProb = boomM.gbm
-          ? Math.max(0, Math.min(1, predictBaggedGBM(boomM.gbm, features).predicted)) * 0.5 + rp * 0.5
-          : rp;
-      }
-      if (bustM?.ridge) {
-        const rp = Math.max(0, Math.min(1, predict(bustM.ridge, features).predicted));
-        bustProb = bustM.gbm
-          ? Math.max(0, Math.min(1, predictBaggedGBM(bustM.gbm, features).predicted)) * 0.5 + rp * 0.5
-          : rp;
+      // Boom/bust probabilities from conditional residual distributions.
+      // Find the bin matching this player's predicted PPG and use that
+      // bin's empirical boom/bust rates.
+      let boomProb = cm.boomRate / 100;
+      let bustProb = cm.bustRate / 100;
+      const condBins = (cm as any).conditionalResiduals?.bins;
+      if (condBins && condBins.length > 0) {
+        const bin = condBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
+          || condBins.find((b: any) => b.label === 'mid');
+        if (bin) {
+          boomProb = bin.boomRate / 100;
+          bustProb = bin.bustRate / 100;
+        }
       }
 
       careerPredictions2026.push({
@@ -2723,6 +2789,8 @@ async function main() {
           predictedPPG: r.predictedPPG, actualPPG: r.actualPPG,
           percentile: pctl, tier: t.tier, tierLabel: t.label,
           thresholdProbs: r.thresholdProbs,
+          boomProb: r.boomProb || 0,
+          bustProb: r.bustProb || 0,
           features: r.features,
         });
       }
@@ -2737,6 +2805,8 @@ async function main() {
         percentile: p.percentile || p.combinedScore || 0,
         tier: t.tier, tierLabel: t.label,
         thresholdProbs: p.thresholdProbs || {},
+        boomProb: p.boomProb || 0,
+        bustProb: p.bustProb || 0,
         features: p.features,
         school: p.school, projPick: p.projPick || p.adp,
       });
@@ -2820,7 +2890,7 @@ async function main() {
     console.log('    manifest written');
   }
 
-  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, careerPredictions2026 };
+  const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, rookieCareerModelsPostDraft, careerPredictions2026 };
   const json = JSON.stringify(output);
   writeFileSync('public/data/feature-matrix.json', json);
 

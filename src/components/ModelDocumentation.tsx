@@ -1463,123 +1463,83 @@ export function ModelDocumentation() {
           const cm = data.rookieCareerModels;
           if (!cm || Object.keys(cm).length === 0) return (
             <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 24, textAlign: 'center' }}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: 'var(--text-primary)' }}>No Boom/Bust Model Data</h3>
+              <h3 style={{ margin: '0 0 8px', fontSize: 16, color: 'var(--text-primary)' }}>No Boom/Bust Data</h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
-                Boom/bust overlay data is generated during the build pipeline. It will appear after the next successful build.
+                Boom/bust data is generated during the build pipeline.
               </p>
             </div>
           );
           const m = cm[selectedPos] as any;
           if (!m) return (
             <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 24, textAlign: 'center' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>No boom/bust model for <strong>{selectedPos}</strong>.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>No data for <strong>{selectedPos}</strong>.</p>
             </div>
           );
-          const hasBoom = m.boomMetrics;
-          const hasBust = m.bustMetrics;
-          if (!hasBoom && !hasBust) return (
-            <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 24, textAlign: 'center' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
-                Boom/bust overlay models will appear after the next build with model cache v40+.
-              </p>
-            </div>
-          );
+          const cond = m.conditionalResiduals;
           return (
             <>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                Overlay models predicting which rookies will <strong>significantly outperform</strong> (boom) or
-                <strong> underperform</strong> (bust) their base career projection. Boom = actual &gt; predicted + MAE.
-                Bust = actual &lt; predicted - MAE. LOSO cross-validated.
+                Boom/bust probabilities use <strong>conditional residual distributions</strong> — players at different prediction
+                levels have different variance. High-predicted players have wider uncertainty (more room to boom or bust),
+                while low-predicted players are more predictable. Boom = actual &gt; predicted + 0.75 x MAE.
               </p>
 
-              <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-                {hasBoom && (
-                  <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 16, flex: 1, minWidth: 280 }}>
-                    <h3 style={{ fontSize: 15, margin: '0 0 10px', color: '#22c55e' }}>
-                      Boom Model
-                      <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>base rate: {m.boomRate ?? '?'}%</span>
-                    </h3>
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
-                      {[
-                        { label: 'AUC', value: `${m.boomMetrics.auc}%`, color: m.boomMetrics.auc > 55 ? '#22c55e' : m.boomMetrics.auc > 50 ? '#facc15' : '#ef4444' },
-                        { label: 'Accuracy', value: `${m.boomMetrics.accuracy}%`, color: 'var(--text-primary)' },
-                        { label: 'Precision', value: `${m.boomMetrics.precision}%`, color: 'var(--text-primary)' },
-                        { label: 'Recall', value: `${m.boomMetrics.recall}%`, color: 'var(--text-primary)' },
-                      ].map(c => (
-                        <div key={c.label} style={{ minWidth: 60 }}>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>{c.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {m.boomFeatureImportance && m.boomFeatureImportance.length > 0 && (
-                      <>
-                        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--text-secondary)' }}>Feature Importance (Boom)</h4>
-                        {m.boomFeatureImportance.slice(0, 8).map((f: any) => {
-                          const def = FEATURES.find(fd => fd.key === f.key);
-                          const dir = f.direction === 'positive' ? '↑ higher' : '↓ lower';
-                          const dirColor = f.direction === 'positive' ? '#4ade80' : '#fb923c';
-                          return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <div style={{ width: Math.max(4, Math.round(f.importance * 250)), height: 10, borderRadius: 5, background: '#22c55e' }} />
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                {def?.label || f.key}
-                              </span>
-                              <span style={{ fontSize: 9, color: dirColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{dir}</span>
-                              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
-                            </div>
-                          );
-                        })}
-                      </>
-                    )}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Overall Boom Rate', value: `${m.boomRate ?? '—'}%`, color: '#22c55e' },
+                  { label: 'Overall Bust Rate', value: `${m.bustRate ?? '—'}%`, color: '#ef4444' },
+                  { label: 'Residual Std (overall)', value: m.residualStd?.toFixed(2) ?? '—', color: 'var(--text-primary)' },
+                  { label: 'MAE', value: m.cvMAE?.toFixed(1) ?? '—', color: 'var(--text-primary)' },
+                ].map(c => (
+                  <div key={c.label} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 16px', minWidth: 100 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: c.color }}>{c.value}</div>
                   </div>
-                )}
-
-                {hasBust && (
-                  <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 16, flex: 1, minWidth: 280 }}>
-                    <h3 style={{ fontSize: 15, margin: '0 0 10px', color: '#ef4444' }}>
-                      Bust Model
-                      <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>base rate: {m.bustRate ?? '?'}%</span>
-                    </h3>
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
-                      {[
-                        { label: 'AUC', value: `${m.bustMetrics.auc}%`, color: m.bustMetrics.auc > 55 ? '#22c55e' : m.bustMetrics.auc > 50 ? '#facc15' : '#ef4444' },
-                        { label: 'Accuracy', value: `${m.bustMetrics.accuracy}%`, color: 'var(--text-primary)' },
-                        { label: 'Precision', value: `${m.bustMetrics.precision}%`, color: 'var(--text-primary)' },
-                        { label: 'Recall', value: `${m.bustMetrics.recall}%`, color: 'var(--text-primary)' },
-                      ].map(c => (
-                        <div key={c.label} style={{ minWidth: 60 }}>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, color: c.color }}>{c.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {m.bustFeatureImportance && m.bustFeatureImportance.length > 0 && (
-                      <>
-                        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--text-secondary)' }}>Feature Importance (Bust)</h4>
-                        {m.bustFeatureImportance.slice(0, 8).map((f: any) => {
-                          const def = FEATURES.find(fd => fd.key === f.key);
-                          const dir = f.direction === 'positive' ? '↑ higher' : '↓ lower';
-                          const dirColor = f.direction === 'positive' ? '#fb923c' : '#4ade80';
-                          return (
-                            <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <div style={{ width: Math.max(4, Math.round(f.importance * 250)), height: 10, borderRadius: 5, background: '#ef4444' }} />
-                              <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                {def?.label || f.key}
-                              </span>
-                              <span style={{ fontSize: 9, color: dirColor, fontWeight: 600, whiteSpace: 'nowrap' }}>{dir}</span>
-                              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>({(f.importance * 100).toFixed(0)}%)</span>
-                            </div>
-                          );
-                        })}
-                      </>
-                    )}
-                  </div>
-                )}
+                ))}
               </div>
 
+              {cond && cond.bins && cond.bins.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: 15, margin: '0 0 8px' }}>Variance by Prediction Tier ({selectedPos})</h3>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+                    Players binned by predicted PPG. Higher-predicted players typically have wider residual distributions.
+                  </p>
+                  <div className="table-container">
+                    <table style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Tier</th>
+                          <th style={{ textAlign: 'right' }}>Pred Range</th>
+                          <th style={{ textAlign: 'right' }}>N</th>
+                          <th style={{ textAlign: 'right' }}>Std Dev</th>
+                          <th style={{ textAlign: 'right' }}>Boom %</th>
+                          <th style={{ textAlign: 'right' }}>Bust %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cond.bins.map((bin: any) => {
+                          const tierLabel = bin.label === 'high' ? 'Top 20%' : bin.label === 'mid' ? 'Mid 60%' : 'Bot 20%';
+                          return (
+                            <tr key={bin.label}>
+                              <td><strong>{tierLabel}</strong></td>
+                              <td style={{ textAlign: 'right' }}>{bin.predMin.toFixed(1)}-{bin.predMax.toFixed(1)}</td>
+                              <td style={{ textAlign: 'right' }}>{bin.residuals.length}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 700, color: bin.std > m.residualStd ? '#f59e0b' : '#10b981' }}>
+                                {bin.std.toFixed(2)}
+                              </td>
+                              <td style={{ textAlign: 'right', color: '#22c55e' }}>{bin.boomRate.toFixed(1)}%</td>
+                              <td style={{ textAlign: 'right', color: '#ef4444' }}>{bin.bustRate.toFixed(1)}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
               {/* Cross-position comparison */}
-              <h3 style={{ fontSize: 15, margin: '0 0 8px' }}>Cross-Position Boom/Bust Rates</h3>
+              <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Cross-Position Boom/Bust Rates</h3>
               <div className="table-container">
                 <table style={{ fontSize: 12 }}>
                   <thead>
@@ -1587,9 +1547,8 @@ export function ModelDocumentation() {
                       <th>Position</th>
                       <th style={{ textAlign: 'right' }}>N</th>
                       <th style={{ textAlign: 'right' }}>Boom Rate</th>
-                      <th style={{ textAlign: 'right' }}>Boom AUC</th>
                       <th style={{ textAlign: 'right' }}>Bust Rate</th>
-                      <th style={{ textAlign: 'right' }}>Bust AUC</th>
+                      <th style={{ textAlign: 'right' }}>Residual Std</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1598,7 +1557,7 @@ export function ModelDocumentation() {
                       if (!pm) return (
                         <tr key={pos}>
                           <td><strong style={{ color: POS_COLORS[pos] }}>{pos}</strong></td>
-                          <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>insufficient data</td>
+                          <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>insufficient data</td>
                         </tr>
                       );
                       return (
@@ -1606,13 +1565,8 @@ export function ModelDocumentation() {
                           <td><strong style={{ color: POS_COLORS[pos] }}>{pos}</strong></td>
                           <td style={{ textAlign: 'right' }}>{pm.n}</td>
                           <td style={{ textAlign: 'right', color: '#22c55e' }}>{pm.boomRate ?? '—'}%</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: (pm.boomMetrics?.auc ?? 0) > 55 ? '#22c55e' : (pm.boomMetrics?.auc ?? 0) > 50 ? '#facc15' : '#ef4444' }}>
-                            {pm.boomMetrics?.auc ?? '—'}%
-                          </td>
                           <td style={{ textAlign: 'right', color: '#ef4444' }}>{pm.bustRate ?? '—'}%</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: (pm.bustMetrics?.auc ?? 0) > 55 ? '#22c55e' : (pm.bustMetrics?.auc ?? 0) > 50 ? '#facc15' : '#ef4444' }}>
-                            {pm.bustMetrics?.auc ?? '—'}%
-                          </td>
+                          <td style={{ textAlign: 'right' }}>{pm.residualStd?.toFixed(2) ?? '—'}</td>
                         </tr>
                       );
                     })}
