@@ -1780,14 +1780,16 @@ async function main() {
     }
   }
 
-  // Train pre-draft and post-draft in parallel (each position on its own thread)
-  rookieCareerModels = await trainCareerModelsParallel(result.rows);
+  // Train pre-draft career model (sequential — parallel workers TBD)
+  rookieCareerModels = trainRookieCareerModels(result.rows);
   console.log('  Pre-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
 
-  rookieCareerModelsPostDraft = await trainCareerModelsParallel(result.rows, { postDraft: true });
+  // Post-draft career model: adds team-context features
+  console.log('\n  Training post-draft rookie career models...');
+  rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
   console.log('  Post-draft career models:');
   for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
