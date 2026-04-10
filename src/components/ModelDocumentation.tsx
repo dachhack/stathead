@@ -1107,6 +1107,51 @@ export function ModelDocumentation() {
                 Hit = beat replacement level (VOR ≥ 0). Bust = 50+ PPR points below replacement.
                 Lift = % PPG difference between buy and sell groups.
               </p>
+
+              {/* ADP Hit/Bust Classifier Validation */}
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>ADP Hit/Bust Classifiers</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Dedicated binary classifiers for hit (VOR &gt; 67th pctl) and bust (VOR &lt; 33rd pctl) prediction.
+                LOSO cross-validated on clean features (no data leakage from current-season actuals).
+              </p>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>N</th>
+                      <th style={{ textAlign: 'right' }}>Hit Rate</th>
+                      <th style={{ textAlign: 'right' }}>Hit AUC</th>
+                      <th style={{ textAlign: 'right' }}>Bust Rate</th>
+                      <th style={{ textAlign: 'right' }}>Bust AUC</th>
+                      <th style={{ textAlign: 'right' }}>PPG R²</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { pos: 'QB', n: 595, hr: '35%', hauc: '—', br: '28%', bauc: '—', r2: '0.599' },
+                      { pos: 'RB', n: 1270, hr: '13%', hauc: '0.756', br: '26%', bauc: '0.755', r2: '0.532' },
+                      { pos: 'WR', n: 1731, hr: '20%', hauc: '0.689', br: '28%', bauc: '0.849', r2: '0.597' },
+                      { pos: 'TE', n: 732, hr: '24%', hauc: '0.837', br: '36%', bauc: '0.805', r2: '0.607' },
+                    ].map(r => (
+                      <tr key={r.pos} style={{ background: r.pos === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
+                        <td><strong style={{ color: POS_COLORS[r.pos] }}>{r.pos}</strong></td>
+                        <td style={{ textAlign: 'right' }}>{r.n}</td>
+                        <td style={{ textAlign: 'right', color: '#22c55e' }}>{r.hr}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{r.hauc}</td>
+                        <td style={{ textAlign: 'right', color: '#ef4444' }}>{r.br}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>{r.bauc}</td>
+                        <td style={{ textAlign: 'right' }}>{r.r2}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Note: ADP model R² dropped after removing data-leaking features (current-season actual share data that
+                wouldn't be available at prediction time). Prior metrics were inflated by up to 0.22 R² (RB).
+                Current metrics are honest LOSO cross-validated on features available before the season starts.
+              </p>
             </>
           );
         })()}

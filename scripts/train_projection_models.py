@@ -189,6 +189,11 @@ def train_adp_models(rows):
         feature_labels = old_m.get('featureLabels', feature_names)
         cfg = ADP_CONFIG.get(pos, ADP_CONFIG['WR'])
 
+        # Remove leaky features (current-season actual shares that wouldn't be available at prediction time)
+        LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
+                          'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare', 'actualRushTDShare'}
+        feature_names = [f for f in feature_names if f not in LEAKY_FEATURES]
+
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
