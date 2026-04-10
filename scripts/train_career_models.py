@@ -370,6 +370,16 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     boom_thresh = mae * 0.75
     n_booms = sum(1 for r in residuals if r > boom_thresh)
     n_busts = sum(1 for r in residuals if r < -boom_thresh)
+    boom_base_rate = n_booms / len(loso_data) if len(loso_data) > 0 else 0
+    bust_base_rate = n_busts / len(loso_data) if len(loso_data) > 0 else 0
+
+    def _safe_float(v):
+        if v is None or v == '' or v == 'NA' or v == 'NaN':
+            return 0.0
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return 0.0
 
     sorted_by_pred = sorted(loso_data, key=lambda d: -d['pred'])
     n = len(sorted_by_pred)
@@ -398,78 +408,129 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             'bustRate': round(bin_busts / len(bin_rows) * 100, 1),
         })
 
-    # ── Per-player boom/bust via variance prediction model ──────────
-    # Train a second-stage LightGBM on |residual| to predict which
-    # players have wider/tighter prediction intervals. Uses ALL
-    # available numeric features (not just the regression features).
-    # This gives genuinely individual boom/bust probabilities.
+    # ── Per-player boom/bust via talent-vs-draft outperformance model ──
+    # Predicts which players will outperform their predicted PPG rank using
+    # features NOT in the regression model: athleticism, college production
+    # gaps vs draft position, and adversity signals (injury/off-year proxies).
+    #
+    # Boom = predicted bottom 50%, actual top 20% (late pick, elite production)
+    # Bust = predicted top 20%, actual bottom 50% (high pick, disappointing)
 
-    # Collect variance feature keys (all numeric, >25% coverage)
-    var_feat_keys = set()
-    for d in loso_data:
-        for k, v in d.get('all_features', {}).items():
-            if not k.startswith('_'):
-                try:
-                    float(v) if v not in (None, '', 'NA') else None
-                    var_feat_keys.add(k)
-                except (ValueError, TypeError):
-                    pass
-    def _safe_float(v):
-        if v is None or v == '' or v == 'NA' or v == 'NaN':
-            return 0.0
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return 0.0
+    # Compute outperformance target: actual rank - predicted rank
+    pred_ranks = np.argsort(np.argsort([d['pred'] for d in loso_data])) / n
+    actual_ranks = np.argsort(np.argsort([d['actual'] for d in loso_data])) / n
+    outperformance = actual_ranks - pred_ranks
 
-    var_feat_keys = sorted(k for k in var_feat_keys
-                           if sum(1 for d in loso_data
-                                  if abs(_safe_float(d.get('all_features', {}).get(k, 0))) > 0) / n > 0.25)
-    var_feat_keys_aug = var_feat_keys + ['_predictedPPG', '_predictedPPG_sq']
-
-    def make_var_x(d_item):
+    def _build_gap_features(d_item):
+        """Build talent-vs-draft gap features for outperformance model."""
         f = d_item.get('all_features', {})
-        base = [_safe_float(f.get(k, 0)) for k in var_feat_keys]
-        base.append(d_item['pred'])
-        base.append(d_item['pred'] ** 2)
-        return base
+        pick = max(1, _safe_float(f.get('nflDraftPick', 300)))
+        log_pick = math.log(pick)
 
-    abs_residuals = np.array([abs(d['actual'] - d['pred']) for d in loso_data])
-    var_preds = np.full(n, float(np.mean(abs_residuals)))  # default to mean
+        # Raw talent signals
+        ras = _safe_float(f.get('relativeAthleticScore', 0))
+        speed = _safe_float(f.get('speedScore', 0))
+        height_speed = _safe_float(f.get('heightAdjSpeedScore', 0))
+        best_rec = _safe_float(f.get('collegeBestRecYds', 0))
+        dominator = _safe_float(f.get('collegeDominatorRating', 0))
+        breakout = _safe_float(f.get('collegeBreakoutScore', 0))
+        prospect_grade = _safe_float(f.get('prospectGrade', 0))
+        market_share = _safe_float(f.get('collegeMarketShare', 0))
+        total_tds = _safe_float(f.get('collegeTotalTDs', 0))
+        age = _safe_float(f.get('age', 0))
+        early_declare = _safe_float(f.get('collegeEarlyDeclare', 0))
+        experience = _safe_float(f.get('collegeExperiencePerAge', 0))
+        seasons = _safe_float(f.get('collegeSeasons', 0))
+        forty = _safe_float(f.get('forty', 0))
+        wt = _safe_float(f.get('weight', 0))
+        cone = _safe_float(f.get('cone', 0))
+        shuttle = _safe_float(f.get('shuttle', 0))
+        college_games = _safe_float(f.get('collegeGames', 0))
+        breakout_age = _safe_float(f.get('collegeBreakoutAge', 0))
+
+        # Gap features: talent signal minus what draft position implies
+        ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
+        speed_vs_pick = (speed - (120 - pick * 0.3)) if speed > 0 else 0
+        production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
+        best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
+        grade_vs_pick = (prospect_grade - pick * 0.3) if prospect_grade > 0 else 0
+
+        # Injury/adversity proxies
+        games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
+        low_games = 1 if games_per_season > 0 and games_per_season < 10 else 0
+        early_declare_late = early_declare * log_pick
+        recent_breakout = 1 if breakout_age > 0 and age > 0 and (age - breakout_age) <= 1 else 0
+
+        return [
+            ras, speed, height_speed, forty, wt, cone, shuttle,
+            best_rec, dominator, breakout, market_share, total_tds,
+            prospect_grade, age, early_declare, experience, seasons,
+            ras_vs_pick, speed_vs_pick, production_vs_pick,
+            best_season_vs_pick, grade_vs_pick,
+            low_games, early_declare_late, games_per_season, recent_breakout,
+        ]
+
+    GAP_FEAT_NAMES = [
+        'ras', 'speed', 'height_speed', 'forty', 'weight', 'cone', 'shuttle',
+        'best_rec', 'dominator', 'breakout', 'market_share', 'total_tds',
+        'prospect_grade', 'age', 'early_declare', 'experience', 'seasons',
+        'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
+        'best_season_vs_pick', 'grade_vs_pick',
+        'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
+    ]
+
+    X_gap = np.nan_to_num(np.array([_build_gap_features(d) for d in loso_data], dtype=np.float64))
+    outperf_preds = np.zeros(n)
 
     for held_season in seasons:
         tr_idx = [i for i, d in enumerate(loso_data) if d['season'] != held_season]
         te_idx = [i for i, d in enumerate(loso_data) if d['season'] == held_season]
-        if len(tr_idx) < 10 or not te_idx:
+        if len(tr_idx) < 20 or not te_idx:
             continue
-        X_var_tr = np.nan_to_num(np.array([make_var_x(loso_data[i]) for i in tr_idx], dtype=np.float64))
-        X_var_te = np.nan_to_num(np.array([make_var_x(loso_data[i]) for i in te_idx], dtype=np.float64))
-        y_var_tr = abs_residuals[tr_idx]
-
-        var_params = {
+        gap_params = {
             'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.03,
             'max_depth': 2, 'min_child_samples': max(5, len(tr_idx) // 8),
             'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1, 'seed': 42,
-            'n_jobs': 1, 'extra_trees': True, 'bagging_fraction': 0.7, 'bagging_freq': 1,
+            'n_jobs': 1, 'extra_trees': True,
         }
-        dt_var = lgb.Dataset(X_var_tr, y_var_tr, feature_name=var_feat_keys_aug, free_raw_data=False)
-        var_model = lgb.train(var_params, dt_var, num_boost_round=60)
-        var_preds[te_idx] = np.clip(var_model.predict(X_var_te), 0.5, None)
+        dt_gap = lgb.Dataset(X_gap[tr_idx], outperformance[tr_idx],
+                             feature_name=GAP_FEAT_NAMES, free_raw_data=False)
+        gap_model = lgb.train(gap_params, dt_gap, num_boost_round=60)
+        outperf_preds[te_idx] = gap_model.predict(X_gap[te_idx])
 
-    # Derive per-player boom/bust from predicted σ.
-    # Scale the empirical residual distribution by each player's predicted
-    # variance relative to the average. Higher predicted σ → wider tails
-    # → higher boom AND bust probability.
-    overall_std = float(np.std([d['actual'] - d['pred'] for d in loso_data]))
-    sorted_resids = sorted(d['actual'] - d['pred'] for d in loso_data)
+    # Convert outperformance predictions to boom/bust probabilities.
+    # Rescale to 0-100 percentile within position, then map to probability
+    # using the empirical relationship between score and actual boom/bust rates.
+    outperf_pctile = np.argsort(np.argsort(outperf_preds)) / n * 100
 
+    # Compute actual boom/bust thresholds
+    actual_ppgs = sorted([d['actual'] for d in loso_data], reverse=True)
+    pred_ppgs = sorted([d['pred'] for d in loso_data])
+    top20_actual_cut = actual_ppgs[int(n * 0.2)]
+    bot50_pred_cut = pred_ppgs[int(n * 0.5)]
+    top20_pred_cut = sorted([d['pred'] for d in loso_data], reverse=True)[int(n * 0.2)]
+    bot50_actual_cut = sorted([d['actual'] for d in loso_data])[int(n * 0.5)]
+
+    # Empirical calibration: for each quintile of outperf_pctile, compute boom/bust rates
     for i, d in enumerate(loso_data):
-        pred_sigma = max(0.5, float(var_preds[i]))
-        scale = pred_sigma / overall_std if overall_std > 0 else 1.0
-        boom_count = sum(1 for r in sorted_resids if r * scale > boom_thresh)
-        bust_count = sum(1 for r in sorted_resids if r * scale < -boom_thresh)
-        d['boom_prob'] = round(boom_count / len(sorted_resids) * 100, 1)
-        d['bust_prob'] = round(bust_count / len(sorted_resids) * 100, 1)
+        pctile = outperf_pctile[i]
+        # Boom prob: probability of finishing in top 20% actual if predicted bottom 50%
+        # Higher outperformance score → higher boom prob
+        # Use sigmoid-like mapping from percentile to probability
+        if d['pred'] <= bot50_pred_cut:
+            # Scale boom probability: base rate * multiplier from outperf score
+            boom_mult = 0.5 + (pctile / 100)  # 0.5x at p0, 1.5x at p100
+            d['boom_prob'] = round(min(50, boom_base_rate * 100 * boom_mult), 1)
+        else:
+            d['boom_prob'] = round(min(50, boom_base_rate * 100 * (0.3 + pctile / 100 * 0.7)), 1)
+
+        # Bust prob: probability of finishing in bottom 50% actual if predicted top 20%
+        # LOWER outperformance score → higher bust prob (inverted)
+        if d['pred'] >= top20_pred_cut:
+            bust_mult = 1.5 - (pctile / 100)  # 1.5x at p0, 0.5x at p100
+            d['bust_prob'] = round(min(50, bust_base_rate * 100 * bust_mult), 1)
+        else:
+            d['bust_prob'] = round(min(50, bust_base_rate * 100 * (1.3 - pctile / 100 * 0.6)), 1)
 
     # ── Threshold metrics ─────────────────────────────────────────────
     threshold_metrics = []
