@@ -1478,10 +1478,19 @@ export function ModelDocumentation() {
           const cond = m.conditionalResiduals;
           return (
             <>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                Two separate pre-draft models for boom and bust prediction:
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                <strong style={{ color: '#22c55e' }}>Boom Model</strong>: Talent-vs-draft outperformance predictor. Uses athleticism gaps
+                (speed/RAS vs draft position), college production peaks, and age to identify players whose physical profile
+                exceeds what their draft capital implies. Trained on percentile rank outperformance (actual rank - predicted rank).
+              </p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-                Boom/bust probabilities use <strong>conditional residual distributions</strong> — players at different prediction
-                levels have different variance. High-predicted players have wider uncertainty (more room to boom or bust),
-                while low-predicted players are more predictable. Boom = actual &gt; predicted + 0.75 x MAE.
+                <strong style={{ color: '#ef4444' }}>Bust Model</strong>: Binary classifier for picks 1-24 bust avoidance.
+                Predicts P(actual &lt; position median) using speed deficits, missing athletic data, age risk, and production gaps.
+                LOSO AUC: RB 0.651, WR 0.672, TE 0.701 on top-25% predicted players.
+                High-risk group busts at 25-31% vs safe group at 0-7%.
               </p>
 
               <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -1537,6 +1546,45 @@ export function ModelDocumentation() {
                   </div>
                 </>
               )}
+
+              {/* Bust Classifier Validation */}
+              <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Bust Classifier Validation (Picks 1-24)</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+                Among top-25% predicted players, the bust classifier separates high-risk from safe picks.
+                High-risk players bust at 4-5x the rate of safe players.
+              </p>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>AUC</th>
+                      <th style={{ textAlign: 'right' }}>High Risk Bust%</th>
+                      <th style={{ textAlign: 'right' }}>Safe Bust%</th>
+                      <th style={{ textAlign: 'right' }}>Separation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { pos: 'RB', auc: '0.651', highRisk: '25%', safe: '5%', sep: '5.0x' },
+                      { pos: 'WR', auc: '0.672', highRisk: '31%', safe: '7%', sep: '4.4x' },
+                      { pos: 'TE', auc: '0.701', highRisk: '23%', safe: '0%', sep: 'Perfect' },
+                    ].map(r => (
+                      <tr key={r.pos} style={{ background: r.pos === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
+                        <td><strong style={{ color: POS_COLORS[r.pos] }}>{r.pos}</strong></td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{r.auc}</td>
+                        <td style={{ textAlign: 'right', color: '#ef4444' }}>{r.highRisk}</td>
+                        <td style={{ textAlign: 'right', color: '#22c55e' }}>{r.safe}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{r.sep}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                Top bust drivers: draft pick position (34-58%), missing athletic data (9%), RAS deficit (4-5%), age (2-3%).
+                All pre-draft features — available before the NFL draft.
+              </p>
 
               {/* Cross-position comparison */}
               <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Cross-Position Boom/Bust Rates</h3>
