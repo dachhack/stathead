@@ -10,3 +10,4 @@ public/data/
 !public/data/score-store/
 .claude/
 CLAUDE.local.md
+__pycache__/
