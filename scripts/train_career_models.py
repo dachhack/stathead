@@ -210,9 +210,16 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     max_season = max(seasons)
     use_recency = pos != 'RB' and not is_post_draft
 
+    # College-only companion model for WR/RB pre-draft (catches late-round breakouts)
+    DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick', 'draftPickXEarlyDeclare', 'collegeDominatorXLateRound'}
+    college_only_keys = [k for k in feature_keys if k not in DRAFT_CAPITAL_KEYS]
+    use_companion = not is_post_draft and len(college_only_keys) >= 4 and pos in ('WR', 'RB')
+    N_BAGS = 5  # bagged LightGBM ensemble
+
     # Build feature matrix
-    def make_X(rows):
-        return np.array([[r['features'].get(k, 0) or 0 for k in feature_keys] for r in rows])
+    def make_X(rows, keys=None):
+        keys = keys or feature_keys
+        return np.array([[r['features'].get(k, 0) or 0 for k in keys] for r in rows])
 
     def make_y(rows):
         return np.array([r['best2of3'] for r in rows])
@@ -225,6 +232,42 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             w = recency_weight(r['draft_season'], max_season, True)
             out.extend([r] * w)
         return out
+
+    def train_lgb_bagged(X_tr, y_tr, X_te, feat_names, n_bags=N_BAGS):
+        """Train bagged LightGBM ensemble, return averaged predictions."""
+        bag_preds = []
+        for bag_i in range(n_bags):
+            params = {
+                'objective': 'regression', 'metric': 'mae',
+                'learning_rate': hyper['lr'], 'max_depth': hyper['max_depth'],
+                'min_child_samples': hyper['min_child'],
+                'subsample': 0.8, 'colsample_bytree': 0.8,
+                'bagging_fraction': 0.8, 'bagging_freq': 1,
+                'extra_trees': True,
+                'verbose': -1, 'seed': 42 + bag_i, 'n_jobs': 1,
+            }
+            dtrain = lgb.Dataset(X_tr, y_tr, feature_name=feat_names, free_raw_data=False)
+            model = lgb.train(params, dtrain, num_boost_round=hyper['n_estimators'])
+            bag_preds.append(model.predict(X_te))
+        return np.mean(bag_preds, axis=0)
+
+    def train_lgb_bagged_binary(X_tr, y_tr, X_te, feat_names, n_bags=N_BAGS):
+        """Train bagged LightGBM for binary classification."""
+        bag_preds = []
+        for bag_i in range(n_bags):
+            params = {
+                'objective': 'binary', 'metric': 'binary_logloss',
+                'learning_rate': hyper['lr'], 'max_depth': hyper['max_depth'],
+                'min_child_samples': max(hyper['min_child'], 5),
+                'subsample': 0.8, 'colsample_bytree': 0.8,
+                'bagging_fraction': 0.8, 'bagging_freq': 1,
+                'extra_trees': True,
+                'verbose': -1, 'seed': 42 + bag_i, 'n_jobs': 1,
+            }
+            dtrain = lgb.Dataset(X_tr, y_tr, feature_name=feat_names, free_raw_data=False)
+            model = lgb.train(params, dtrain, num_boost_round=hyper['n_estimators'])
+            bag_preds.append(model.predict(X_te))
+        return np.mean(bag_preds, axis=0)
 
     # ── LOSO Cross-Validation ─────────────────────────────────────────
     loso_data = []
@@ -244,28 +287,24 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         ridge.fit(X_tr, y_tr)
         ridge_preds = ridge.predict(X_te)
 
-        # LightGBM
-        lgb_preds = ridge_preds.copy()  # fallback
+        # Bagged LightGBM ensemble
         if len(train) >= 40:
-            dtrain = lgb.Dataset(X_tr, y_tr, feature_name=feature_keys, free_raw_data=False)
-            params = {
-                'objective': 'regression',
-                'metric': 'mae',
-                'learning_rate': hyper['lr'],
-                'max_depth': hyper['max_depth'],
-                'min_child_samples': hyper['min_child'],
-                'subsample': 0.8,
-                'colsample_bytree': 0.9,
-                'verbose': -1,
-                'seed': 42,
-                'n_jobs': 1,
-            }
-            model = lgb.train(params, dtrain, num_boost_round=hyper['n_estimators'])
-            lgb_preds = model.predict(X_te)
-            # Ensemble: 50/50 Ridge + LightGBM
-            reg_preds = np.clip((ridge_preds + lgb_preds) / 2, 0, None)
+            lgb_preds = train_lgb_bagged(X_tr, y_tr, X_te, feature_keys)
+            main_preds = np.clip((ridge_preds + lgb_preds) / 2, 0, None)
         else:
-            reg_preds = np.clip(ridge_preds, 0, None)
+            main_preds = np.clip(ridge_preds, 0, None)
+
+        # College-only companion model (WR/RB pre-draft only)
+        if use_companion and len(train) >= 40:
+            X_tr_co = make_X(train, college_only_keys)
+            X_te_co = make_X(test, college_only_keys)
+            ridge_co = Ridge(alpha=hyper['ridge_alpha'])
+            ridge_co.fit(X_tr_co, y_tr)
+            lgb_co = train_lgb_bagged(X_tr_co, y_tr, X_te_co, college_only_keys)
+            co_preds = np.clip((ridge_co.predict(X_te_co) + lgb_co) / 2, 0, None)
+            reg_preds = main_preds * 0.7 + co_preds * 0.3
+        else:
+            reg_preds = main_preds
 
         # Per-threshold binary classifiers
         thresh_probs = [{} for _ in test]
@@ -279,17 +318,13 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
 
             ridge_bin = Ridge(alpha=hyper['ridge_alpha'])
             ridge_bin.fit(X_tr, y_bin)
-            bin_preds = ridge_bin.predict(X_te)
+            ridge_bin_preds = ridge_bin.predict(X_te)
 
             if len(train) >= 40:
-                dtrain_bin = lgb.Dataset(X_tr, y_bin, feature_name=feature_keys, free_raw_data=False)
-                params_bin = {**params, 'objective': 'binary', 'metric': 'binary_logloss',
-                              'min_child_samples': max(hyper['min_child'], 5)}
-                model_bin = lgb.train(params_bin, dtrain_bin, num_boost_round=hyper['n_estimators'])
-                lgb_bin_preds = model_bin.predict(X_te)
-                bin_preds = np.clip((bin_preds + lgb_bin_preds) / 2, 0, 1)
+                lgb_bin_preds = train_lgb_bagged_binary(X_tr, y_bin, X_te, feature_keys)
+                bin_preds = np.clip((ridge_bin_preds + lgb_bin_preds) / 2, 0, 1)
             else:
-                bin_preds = np.clip(bin_preds, 0, 1)
+                bin_preds = np.clip(ridge_bin_preds, 0, 1)
 
             for i in range(len(test)):
                 thresh_probs[i][thresh] = round(float(bin_preds[i]) * 100, 1)
