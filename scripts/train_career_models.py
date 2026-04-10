@@ -498,39 +498,90 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         gap_model = lgb.train(gap_params, dt_gap, num_boost_round=60)
         outperf_preds[te_idx] = gap_model.predict(X_gap[te_idx])
 
-    # Convert outperformance predictions to boom/bust probabilities.
-    # Rescale to 0-100 percentile within position, then map to probability
-    # using the empirical relationship between score and actual boom/bust rates.
+    # Convert outperformance predictions to boom percentile.
     outperf_pctile = np.argsort(np.argsort(outperf_preds)) / n * 100
 
-    # Compute actual boom/bust thresholds
-    actual_ppgs = sorted([d['actual'] for d in loso_data], reverse=True)
-    pred_ppgs = sorted([d['pred'] for d in loso_data])
-    top20_actual_cut = actual_ppgs[int(n * 0.2)]
-    bot50_pred_cut = pred_ppgs[int(n * 0.5)]
-    top20_pred_cut = sorted([d['pred'] for d in loso_data], reverse=True)[int(n * 0.2)]
-    bot50_actual_cut = sorted([d['actual'] for d in loso_data])[int(n * 0.5)]
+    # ── Bust classifier (binary, focused on top-pick bust avoidance) ──
+    # Trained on ALL players, predicts P(actual < position median).
+    # Uses athleticism, college production, age, and missing-data flags.
+    # Validated: WR AUC=0.672, TE AUC=0.701 on top-25% predicted.
+    all_actuals_sorted = sorted([d['actual'] for d in loso_data])
+    median_ppg = all_actuals_sorted[int(n * 0.5)]
+    y_bust_binary = np.array([1 if d['actual'] <= median_ppg else 0 for d in loso_data])
 
-    # Empirical calibration: for each quintile of outperf_pctile, compute boom/bust rates
+    # Build bust-specific features
+    hits_in_top = [d for d in loso_data if d['pred'] >= np.percentile([d['pred'] for d in loso_data], 75) and d['actual'] > median_ppg]
+    avg_speed_hit = float(np.mean([_safe_float(d['all_features'].get('speedScore', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('speedScore', 0)) > 0])) if hits_in_top else 100
+    avg_dom_hit = float(np.mean([_safe_float(d['all_features'].get('collegeDominatorRating', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('collegeDominatorRating', 0)) > 0])) if hits_in_top else 30
+
+    BUST_FEAT_NAMES = [
+        'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
+        'forty', 'weight', 'age',
+        'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
+        'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
+        'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+        'hasCombineData', 'hasCollegeStats',
+        'predictedPPG', 'nflDraftPick',
+        'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
+    ]
+
+    def _build_bust_features(d_item):
+        f = d_item.get('all_features', {})
+        speed = _safe_float(f.get('speedScore', 0))
+        ras = _safe_float(f.get('relativeAthleticScore', 0))
+        hspeed = _safe_float(f.get('heightAdjSpeedScore', 0))
+        forty = _safe_float(f.get('forty', 0))
+        wt = _safe_float(f.get('weight', 0))
+        age = _safe_float(f.get('age', 0))
+        dom = _safe_float(f.get('collegeDominatorRating', 0))
+        best_rec = _safe_float(f.get('collegeBestRecYds', 0))
+        breakout = _safe_float(f.get('collegeBreakoutScore', 0))
+        mkt = _safe_float(f.get('collegeMarketShare', 0))
+        tds = _safe_float(f.get('collegeTotalTDs', 0))
+        rec_share = _safe_float(f.get('collegeReceptionShare', 0))
+        exp = _safe_float(f.get('collegeExperiencePerAge', 0))
+        seasons = _safe_float(f.get('collegeSeasons', 0))
+        early = _safe_float(f.get('collegeEarlyDeclare', 0))
+        has_combine = 1 if speed > 0 or forty > 0 else 0
+        has_college = 1 if dom > 0 or best_rec > 0 else 0
+        pick = _safe_float(f.get('nflDraftPick', 300))
+
+        speed_deficit = (speed - avg_speed_hit) if speed > 0 else -20
+        prod_deficit = (dom - avg_dom_hit) if dom > 0 else -15
+        age_risk = age - 21 if age > 0 else 0
+        missing = (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0)
+
+        return [speed, ras, hspeed, forty, wt, age, dom, best_rec, breakout,
+                mkt, tds, rec_share, exp, seasons, early,
+                has_combine, has_college, d_item['pred'], pick,
+                speed_deficit, prod_deficit, age_risk, missing]
+
+    X_bust = np.nan_to_num(np.array([_build_bust_features(d) for d in loso_data], dtype=np.float64))
+    bust_scores = np.full(n, float(y_bust_binary.mean()))
+
+    for held_season in seasons:
+        tr_idx = [i for i, d in enumerate(loso_data) if d['season'] != held_season]
+        te_idx = [i for i, d in enumerate(loso_data) if d['season'] == held_season]
+        if len(tr_idx) < 20 or not te_idx or sum(y_bust_binary[tr_idx]) < 3:
+            continue
+        bust_params = {
+            'objective': 'binary', 'metric': 'auc', 'learning_rate': 0.03,
+            'max_depth': 2, 'min_child_samples': max(3, len(tr_idx) // 10),
+            'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+            'seed': 42, 'n_jobs': 1, 'is_unbalance': True, 'extra_trees': True,
+        }
+        dt_bust = lgb.Dataset(X_bust[tr_idx], y_bust_binary[tr_idx],
+                              feature_name=BUST_FEAT_NAMES, free_raw_data=False)
+        bust_model = lgb.train(bust_params, dt_bust, num_boost_round=60)
+        bust_scores[te_idx] = bust_model.predict(X_bust[te_idx])
+
+    # Assign boom (from outperformance model) and bust (from bust classifier)
     for i, d in enumerate(loso_data):
+        # Boom: outperformance percentile scaled to probability
         pctile = outperf_pctile[i]
-        # Boom prob: probability of finishing in top 20% actual if predicted bottom 50%
-        # Higher outperformance score → higher boom prob
-        # Use sigmoid-like mapping from percentile to probability
-        if d['pred'] <= bot50_pred_cut:
-            # Scale boom probability: base rate * multiplier from outperf score
-            boom_mult = 0.5 + (pctile / 100)  # 0.5x at p0, 1.5x at p100
-            d['boom_prob'] = round(min(50, boom_base_rate * 100 * boom_mult), 1)
-        else:
-            d['boom_prob'] = round(min(50, boom_base_rate * 100 * (0.3 + pctile / 100 * 0.7)), 1)
-
-        # Bust prob: probability of finishing in bottom 50% actual if predicted top 20%
-        # LOWER outperformance score → higher bust prob (inverted)
-        if d['pred'] >= top20_pred_cut:
-            bust_mult = 1.5 - (pctile / 100)  # 1.5x at p0, 0.5x at p100
-            d['bust_prob'] = round(min(50, bust_base_rate * 100 * bust_mult), 1)
-        else:
-            d['bust_prob'] = round(min(50, bust_base_rate * 100 * (1.3 - pctile / 100 * 0.6)), 1)
+        d['boom_prob'] = round(min(50, boom_base_rate * 100 * (0.5 + pctile / 100)), 1)
+        # Bust: direct probability from classifier (already calibrated)
+        d['bust_prob'] = round(min(50, float(bust_scores[i]) * 100), 1)
 
     # ── Threshold metrics ─────────────────────────────────────────────
     threshold_metrics = []
@@ -816,29 +867,97 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         boom_base = sum(1 for r in residuals if r > boom_thresh) / n
         bust_base = sum(1 for r in residuals if r < -boom_thresh) / n
 
-        # Score prospects
+        # ── Bust classifier (binary, trained on full backtest) ──────
+        all_actuals_sorted = sorted([r['actualPPG'] for r in bt])
+        median_ppg = all_actuals_sorted[int(n * 0.5)]
+        y_bust_binary = np.array([1 if r['actualPPG'] <= median_ppg else 0 for r in bt])
+
+        # Compute avg stats for speed/production deficit
+        hits_top = [r for r in bt if r['predictedPPG'] >= np.percentile([r['predictedPPG'] for r in bt], 75) and r['actualPPG'] > median_ppg]
+        sf = _safe_float_global
+        avg_speed = float(np.mean([sf(r['features'].get('speedScore', 0)) for r in hits_top if sf(r['features'].get('speedScore', 0)) > 0])) if hits_top else 100
+        avg_dom = float(np.mean([sf(r['features'].get('collegeDominatorRating', 0)) for r in hits_top if sf(r['features'].get('collegeDominatorRating', 0)) > 0])) if hits_top else 30
+
+        BUST_FEAT_NAMES_P = [
+            'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
+            'forty', 'weight', 'age',
+            'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
+            'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
+            'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+            'hasCombineData', 'hasCollegeStats',
+            'predictedPPG', 'nflDraftPick',
+            'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
+        ]
+
+        def _build_bust_feats(features, pred_ppg):
+            sf2 = _safe_float_global
+            speed = sf2(features.get('speedScore', 0))
+            ras = sf2(features.get('relativeAthleticScore', 0))
+            hspeed = sf2(features.get('heightAdjSpeedScore', 0))
+            forty = sf2(features.get('forty', 0))
+            wt = sf2(features.get('weight', 0))
+            age = sf2(features.get('age', 0))
+            dom = sf2(features.get('collegeDominatorRating', 0))
+            best_rec = sf2(features.get('collegeBestRecYds', 0))
+            brk = sf2(features.get('collegeBreakoutScore', 0))
+            mkt = sf2(features.get('collegeMarketShare', 0))
+            tds = sf2(features.get('collegeTotalTDs', 0))
+            rec_share = sf2(features.get('collegeReceptionShare', 0))
+            exp = sf2(features.get('collegeExperiencePerAge', 0))
+            seasons = sf2(features.get('collegeSeasons', 0))
+            early = sf2(features.get('collegeEarlyDeclare', 0))
+            has_combine = 1 if speed > 0 or forty > 0 else 0
+            has_college = 1 if dom > 0 or best_rec > 0 else 0
+            pick = sf2(features.get('nflDraftPick', 300))
+            speed_def = (speed - avg_speed) if speed > 0 else -20
+            prod_def = (dom - avg_dom) if dom > 0 else -15
+            age_risk = age - 21 if age > 0 else 0
+            missing = (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0)
+            return [speed, ras, hspeed, forty, wt, age, dom, best_rec, brk,
+                    mkt, tds, rec_share, exp, seasons, early,
+                    has_combine, has_college, pred_ppg, pick,
+                    speed_def, prod_def, age_risk, missing]
+
+        X_bust_train = np.nan_to_num(np.array(
+            [_build_bust_feats(r.get('features', {}), r['predictedPPG']) for r in bt],
+            dtype=np.float64))
+
+        bust_params = {
+            'objective': 'binary', 'metric': 'auc', 'learning_rate': 0.03,
+            'max_depth': 2, 'min_child_samples': max(3, n // 10),
+            'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+            'seed': 42, 'n_jobs': 1, 'is_unbalance': True, 'extra_trees': True,
+        }
+        dt_bust = lgb.Dataset(X_bust_train, y_bust_binary,
+                              feature_name=BUST_FEAT_NAMES_P, free_raw_data=False)
+        bust_model = lgb.train(bust_params, dt_bust, num_boost_round=60)
+
+        # ── Score prospects ───────────────────────────────────────────
         pos_prospects = [p for p in prospects if p.get('position') == pos]
         if not pos_prospects:
             continue
 
-        X_prosp = []
-        for p in pos_prospects:
-            f = p.get('features', {})
-            X_prosp.append(_build_gap_features_standalone(f, p.get('predictedCareerPPG', 0)))
-        X_prosp = np.nan_to_num(np.array(X_prosp, dtype=np.float64))
-        gap_scores = gap_model.predict(X_prosp)
+        # Boom scores from gap model
+        X_prosp_gap = np.nan_to_num(np.array(
+            [_build_gap_features_standalone(p.get('features', {}), p.get('predictedCareerPPG', 0))
+             for p in pos_prospects], dtype=np.float64))
+        gap_scores = gap_model.predict(X_prosp_gap)
+        bt_gap_scores = gap_model.predict(X_train)
 
-        # Convert to percentile relative to backtest
-        bt_scores = gap_model.predict(X_train)
+        # Bust scores from bust classifier
+        X_prosp_bust = np.nan_to_num(np.array(
+            [_build_bust_feats(p.get('features', {}), p.get('predictedCareerPPG', 0))
+             for p in pos_prospects], dtype=np.float64))
+        prospect_bust_scores = bust_model.predict(X_prosp_bust)
+
         for i, p in enumerate(pos_prospects):
-            pctile = float(np.mean(bt_scores <= gap_scores[i]) * 100)
+            pctile = float(np.mean(bt_gap_scores <= gap_scores[i]) * 100)
             boom_mult = 0.5 + (pctile / 100)
-            bust_mult = 1.5 - (pctile / 100)
             results.append({
                 'name': p['name'],
                 'position': pos,
                 'boomProb': round(min(50, boom_base * 100 * boom_mult), 1),
-                'bustProb': round(min(50, bust_base * 100 * bust_mult), 1),
+                'bustProb': round(min(50, float(prospect_bust_scores[i]) * 100), 1),
                 'outperfPctile': round(pctile, 1),
             })
 
