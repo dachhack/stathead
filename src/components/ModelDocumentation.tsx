@@ -1157,6 +1157,18 @@ export function ModelDocumentation() {
                 Note: ADP model R² corrected after removing data-leaking features (current-season actual share data).
                 Prior metrics were inflated by up to 0.22 R² (RB). Current metrics are honest LOSO on pre-season features.
               </p>
+
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>No-Production Bust Signal</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                Players drafted ADP 1-100 with <strong>zero prior NFL production</strong> (priorSnap &lt; 10%, priorTargets &lt; 10)
+                bust at <strong>50-70%</strong> rates. These are young players drafted on hype and dynasty capital without a track record.
+                The draft simulator applies a heavy penalty to these players in early rounds.
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Recent examples: Jameson Williams (ADP 12, PPG 2.5), Treylon Burks (ADP 18, PPG 1.5),
+                Jonathan Mingo (ADP 39, PPG 2.3), Michael Mayer (ADP 35, PPG 6.0),
+                Zamir White (ADP 68, PPG 3.7). All had priorSnap=0%.
+              </p>
             </>
           );
         })()}

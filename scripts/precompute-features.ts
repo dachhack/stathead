@@ -1125,6 +1125,30 @@ async function main() {
       draftSimSeason = Math.max(draftSimSeason, ls || 0);
     }
   }
+  // Enrich draft sim players with production flags for bust avoidance.
+  // Players with ADP<=100 but no prior production bust at 50-70%.
+  const draftSimLookup = new Map<string, { priorPPG: number; priorSnapPct: number; priorTargets: number; yearsInLeague: number }>();
+  for (const r of result.rows) {
+    if (r.season === draftSimSeason) {
+      const nn = (r.name || '').toLowerCase().replace(/[.']/g, '').trim();
+      draftSimLookup.set(nn, {
+        priorPPG: r.features.priorPPG || 0,
+        priorSnapPct: r.features.priorSnapPct || 0,
+        priorTargets: r.features.priorTargets || 0,
+        yearsInLeague: r.features.yearsInLeague || 0,
+      });
+    }
+  }
+  for (const p of allDraftSimPlayers) {
+    const nn = (p.name || '').toLowerCase().replace(/[.']/g, '').trim();
+    const info = draftSimLookup.get(nn);
+    (p as any).priorPPG = info?.priorPPG || 0;
+    (p as any).priorSnapPct = info?.priorSnapPct || 0;
+    (p as any).noProductionFlag = info ? (info.priorSnapPct < 0.1 && info.priorTargets < 10 && info.priorPPG < 3) : false;
+  }
+  const flagged = allDraftSimPlayers.filter((p: any) => p.noProductionFlag && p.adp <= 100);
+  console.log(`    ${flagged.length} early-ADP players flagged as no-production bust risk`);
+
   // Sort by ADP for draft order
   allDraftSimPlayers.sort((a, b) => a.adp - b.adp);
   console.log(`    ${allDraftSimPlayers.length} players available for ${draftSimSeason} draft sim`);
@@ -1225,9 +1249,14 @@ async function main() {
               const residualBonus = p.residual;
 
               // Early round bust avoidance: near-absolute penalty for negative residual
-              const bustPenalty = round < 2 ? (p.residual < 0 ? p.residual * 5.0 : 0)
-                : round < 4 ? (p.residual < 0 ? p.residual * 2.5 : 0)
+              // + no-production flag penalty: players with ADP<=100 but zero NFL track record
+              //   bust at 50-70%. Heavy penalty in rounds 1-4 to avoid these busts.
+              const noProductionPenalty = (p as any).noProductionFlag
+                ? (round < 2 ? -8.0 : round < 4 ? -4.0 : round < 6 ? -1.5 : 0)
                 : 0;
+              const bustPenalty = (round < 2 ? (p.residual < 0 ? p.residual * 5.0 : 0)
+                : round < 4 ? (p.residual < 0 ? p.residual * 2.5 : 0)
+                : 0) + noProductionPenalty;
 
               // ADP reach penalty: near-zero tolerance early, lighter later
               const reachPenalty = i * (round < 2 ? 3.0 : round < 4 ? 0.6 : 0.15);
