@@ -378,6 +378,8 @@ SHARE_FEATURE_KEYS = [
     'contractAPY', 'age', 'yearsInLeague', 'priorPPG',
     'nflDraftPick', 'priorReceptions', 'priorTargets', 'priorCarries',
     'teamTargetHHI', 'vegasImpliedTotal',
+    # V2 additions: +0.049 avg R² across all 15 share models
+    'adp', 'teamElitePassCatchers', 'priorWOPR',
 ]
 
 SHARE_TARGETS = [
