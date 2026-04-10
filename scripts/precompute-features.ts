@@ -1786,13 +1786,25 @@ async function main() {
   for (const [pos, m] of Object.entries(rookieCareerModels)) {
     console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
   }
+  // Save pre-draft immediately so it survives if post-draft times out
+  mkdirSync(MODEL_DIR, { recursive: true });
+  writeFileSync(componentCachePaths.career, JSON.stringify({ rookieCareerModels }));
+  console.log('  Pre-draft career cache saved.');
 
-  // Post-draft career model: adds team-context features
-  console.log('\n  Training post-draft rookie career models...');
-  rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
-  console.log('  Post-draft career models:');
-  for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
-    console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
+  // Post-draft career model: adds team-context features.
+  // Skipped if post-draft cache already exists (allows separate runs).
+  const skipPostDraft = existsSync(componentCachePaths.careerPostDraft) && rookieCareerModelsPostDraft && Object.keys(rookieCareerModelsPostDraft).length > 0;
+  if (skipPostDraft) {
+    console.log('  Skipping post-draft career models (cached)...');
+  } else {
+    console.log('\n  Training post-draft rookie career models...');
+    rookieCareerModelsPostDraft = trainRookieCareerModels(result.rows, { postDraft: true });
+    console.log('  Post-draft career models:');
+    for (const [pos, m] of Object.entries(rookieCareerModelsPostDraft)) {
+      console.log(`    ${pos}: n=${m.n}, R²=${m.cvR2.toFixed(3)}, MAE=${m.cvMAE.toFixed(1)}, ρ=${m.rankCorr.toFixed(3)}, σ=${m.residualStd.toFixed(2)}`);
+    }
+    writeFileSync(componentCachePaths.careerPostDraft, JSON.stringify({ rookieCareerModels: rookieCareerModelsPostDraft }));
+    console.log('  Post-draft career cache saved.');
   }
 
   } // end skipCareer guard
