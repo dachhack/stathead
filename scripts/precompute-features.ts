@@ -2392,16 +2392,33 @@ async function main() {
         const probValues = thresholds.map(t => probs[t] || 0);
         const meanProb = probValues.length > 0 ? probValues.reduce((s, v) => s + v, 0) / probValues.length : 0;
 
-        // Boom/bust from conditional residuals
-        let prospBoom = (cm.boomRate || 0) / 100;
-        let prospBust = (cm.bustRate || 0) / 100;
-        const prospCondBins = (cm as any).conditionalResiduals?.bins;
-        if (prospCondBins && prospCondBins.length > 0) {
-          const prospBin = prospCondBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
-            || prospCondBins.find((b: any) => b.label === (predictedPPG > (prospCondBins[0]?.predMax || 999) ? 'high' : 'mid'));
-          if (prospBin) {
-            prospBoom = prospBin.boomRate / 100;
-            prospBust = prospBin.bustRate / 100;
+        // Boom/bust from Python talent-gap model (per-player), fallback to bins
+        let prospBoom = 0;
+        let prospBust = 0;
+        try {
+          const bbPath = 'public/data/prospect-boom-bust.json';
+          if (existsSync(bbPath)) {
+            const bbData = JSON.parse(readFileSync(bbPath, 'utf-8')) as Array<{ name: string; position: string; boomProb: number; bustProb: number }>;
+            const nn = normalizeName(prospect.name);
+            const match = bbData.find((b: any) => normalizeName(b.name) === nn && b.position === pos);
+            if (match) {
+              prospBoom = match.boomProb / 100;
+              prospBust = match.bustProb / 100;
+            }
+          }
+        } catch {}
+        // Fallback to conditional bins if no Python score
+        if (prospBoom === 0 && prospBust === 0) {
+          prospBoom = (cm.boomRate || 0) / 100;
+          prospBust = (cm.bustRate || 0) / 100;
+          const prospCondBins = (cm as any).conditionalResiduals?.bins;
+          if (prospCondBins && prospCondBins.length > 0) {
+            const prospBin = prospCondBins.find((b: any) => predictedPPG >= b.predMin && predictedPPG <= b.predMax)
+              || prospCondBins.find((b: any) => b.label === (predictedPPG > (prospCondBins[0]?.predMax || 999) ? 'high' : 'mid'));
+            if (prospBin) {
+              prospBoom = prospBin.boomRate / 100;
+              prospBust = prospBin.bustRate / 100;
+            }
           }
         }
 

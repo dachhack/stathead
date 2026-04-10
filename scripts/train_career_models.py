@@ -705,6 +705,146 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     }
 
 
+def _safe_float_global(v):
+    if v is None or v == '' or v == 'NA' or v == 'NaN':
+        return 0.0
+    try:
+        return float(v)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _build_gap_features_standalone(features: dict, predicted_ppg: float) -> list[float]:
+    """Build talent-vs-draft gap features for a player (standalone version)."""
+    sf = _safe_float_global
+    pick = max(1, sf(features.get('nflDraftPick', 300)))
+    log_pick = math.log(pick)
+    ras = sf(features.get('relativeAthleticScore', 0))
+    speed = sf(features.get('speedScore', 0))
+    height_speed = sf(features.get('heightAdjSpeedScore', 0))
+    best_rec = sf(features.get('collegeBestRecYds', 0))
+    dominator = sf(features.get('collegeDominatorRating', 0))
+    breakout = sf(features.get('collegeBreakoutScore', 0))
+    prospect_grade = sf(features.get('prospectGrade', 0))
+    market_share = sf(features.get('collegeMarketShare', 0))
+    total_tds = sf(features.get('collegeTotalTDs', 0))
+    age = sf(features.get('age', 0))
+    early_declare = sf(features.get('collegeEarlyDeclare', 0))
+    experience = sf(features.get('collegeExperiencePerAge', 0))
+    seasons = sf(features.get('collegeSeasons', 0))
+    forty = sf(features.get('forty', 0))
+    wt = sf(features.get('weight', 0))
+    cone = sf(features.get('cone', 0))
+    shuttle = sf(features.get('shuttle', 0))
+    college_games = sf(features.get('collegeGames', 0))
+    breakout_age = sf(features.get('collegeBreakoutAge', 0))
+
+    ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
+    speed_vs_pick = (speed - (120 - pick * 0.3)) if speed > 0 else 0
+    production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
+    best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
+    grade_vs_pick = (prospect_grade - pick * 0.3) if prospect_grade > 0 else 0
+    games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
+    low_games = 1 if 0 < games_per_season < 10 else 0
+    early_declare_late = early_declare * log_pick
+    recent_breakout = 1 if breakout_age > 0 and age > 0 and (age - breakout_age) <= 1 else 0
+
+    return [
+        ras, speed, height_speed, forty, wt, cone, shuttle,
+        best_rec, dominator, breakout, market_share, total_tds,
+        prospect_grade, age, early_declare, experience, seasons,
+        ras_vs_pick, speed_vs_pick, production_vs_pick,
+        best_season_vs_pick, grade_vs_pick,
+        low_games, early_declare_late, games_per_season, recent_breakout,
+    ]
+
+
+GAP_FEAT_NAMES_GLOBAL = [
+    'ras', 'speed', 'height_speed', 'forty', 'weight', 'cone', 'shuttle',
+    'best_rec', 'dominator', 'breakout', 'market_share', 'total_tds',
+    'prospect_grade', 'age', 'early_declare', 'experience', 'seasons',
+    'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
+    'best_season_vs_pick', 'grade_vs_pick',
+    'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
+]
+
+
+def score_prospect_boom_bust(model_results: dict, career_rows: list,
+                              prospects: list) -> list[dict]:
+    """Score 2026 prospects using the talent-vs-draft gap model.
+
+    Trains on full backtest data (no LOSO needed for final scoring),
+    then predicts outperformance for each prospect.
+    """
+    results = []
+    for pos in ['QB', 'RB', 'WR', 'TE']:
+        mr = model_results.get(pos)
+        if not mr or not mr.get('backtestRows'):
+            continue
+        bt = mr['backtestRows']
+        n = len(bt)
+        if n < 20:
+            continue
+
+        # Compute outperformance target on full backtest
+        pred_ranks = np.argsort(np.argsort([r['predictedPPG'] for r in bt])) / n
+        actual_ranks = np.argsort(np.argsort([r['actualPPG'] for r in bt])) / n
+        outperf = actual_ranks - pred_ranks
+
+        # Build gap features for backtest
+        X_train = []
+        for r in bt:
+            f = r.get('features', {})
+            X_train.append(_build_gap_features_standalone(f, r['predictedPPG']))
+        X_train = np.nan_to_num(np.array(X_train, dtype=np.float64))
+
+        # Train gap model on full data
+        params = {
+            'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.03,
+            'max_depth': 2, 'min_child_samples': max(5, n // 8),
+            'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+            'seed': 42, 'n_jobs': 1, 'extra_trees': True,
+        }
+        dt = lgb.Dataset(X_train, outperf, feature_name=GAP_FEAT_NAMES_GLOBAL,
+                         free_raw_data=False)
+        gap_model = lgb.train(params, dt, num_boost_round=60)
+
+        # Boom/bust base rates
+        mae = float(np.mean(np.abs([r['actualPPG'] - r['predictedPPG'] for r in bt])))
+        boom_thresh = mae * 0.75
+        residuals = [r['actualPPG'] - r['predictedPPG'] for r in bt]
+        boom_base = sum(1 for r in residuals if r > boom_thresh) / n
+        bust_base = sum(1 for r in residuals if r < -boom_thresh) / n
+
+        # Score prospects
+        pos_prospects = [p for p in prospects if p.get('position') == pos]
+        if not pos_prospects:
+            continue
+
+        X_prosp = []
+        for p in pos_prospects:
+            f = p.get('features', {})
+            X_prosp.append(_build_gap_features_standalone(f, p.get('predictedCareerPPG', 0)))
+        X_prosp = np.nan_to_num(np.array(X_prosp, dtype=np.float64))
+        gap_scores = gap_model.predict(X_prosp)
+
+        # Convert to percentile relative to backtest
+        bt_scores = gap_model.predict(X_train)
+        for i, p in enumerate(pos_prospects):
+            pctile = float(np.mean(bt_scores <= gap_scores[i]) * 100)
+            boom_mult = 0.5 + (pctile / 100)
+            bust_mult = 1.5 - (pctile / 100)
+            results.append({
+                'name': p['name'],
+                'position': pos,
+                'boomProb': round(min(50, boom_base * 100 * boom_mult), 1),
+                'bustProb': round(min(50, bust_base * 100 * bust_mult), 1),
+                'outperfPctile': round(pctile, 1),
+            })
+
+    return results
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 def main():
@@ -727,6 +867,21 @@ def main():
         with open(PRE_DRAFT_CACHE, 'w') as f:
             json.dump({'rookieCareerModels': pre_draft_results}, f)
         print(f"  Pre-draft cache saved to {PRE_DRAFT_CACHE}")
+
+        # Score 2026 prospects with the gap model for boom/bust
+        print("\n  Scoring 2026 prospect boom/bust...")
+        try:
+            with open('public/data/feature-matrix.json') as f:
+                fm = json.load(f)
+            prospects = fm.get('careerPredictions2026', [])
+            if prospects:
+                prospect_scores = score_prospect_boom_bust(
+                    pre_draft_results, career_rows, prospects)
+                with open('public/data/prospect-boom-bust.json', 'w') as f:
+                    json.dump(prospect_scores, f)
+                print(f"  Scored {len(prospect_scores)} prospects → prospect-boom-bust.json")
+        except Exception as e:
+            print(f"  Prospect scoring skipped: {e}")
 
     if do_post:
         print("\n  Training post-draft career models (LightGBM + Ridge)...")
