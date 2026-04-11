@@ -44,6 +44,20 @@ OUTPUT_PATH = DATA_DIR / 'ppg-hyperparam-sweep.json'
 sys.path.insert(0, str(Path(__file__).parent))
 from train_projection_models import load_rows, sf  # type: ignore
 
+# Per-position baselines MUST match train_ppg_models::PPG_CONFIG exactly.
+# If you change PPG_CONFIG in train_projection_models.py, update this dict
+# and re-run the sweep. This is the same invariant the ablation script
+# maintains — measuring sweep deltas against a baseline that doesn't
+# match what ships makes the results meaningless.
+# Source of truth: scripts/train_projection_models.py::PPG_CONFIG
+PPG_BASELINE_CONFIG = {
+    'QB': {'max_depth': 3, 'learning_rate': 0.08, 'n_rounds': 100, 'min_child_samples': 8,  'gbm_weight': 0.9},
+    'RB': {'max_depth': 3, 'learning_rate': 0.08, 'n_rounds': 150, 'min_child_samples': 25, 'gbm_weight': 0.8},
+    'WR': {'max_depth': 3, 'learning_rate': 0.12, 'n_rounds': 200, 'min_child_samples': 3,  'gbm_weight': 0.7},
+    'TE': {'max_depth': 3, 'learning_rate': 0.05, 'n_rounds': 150, 'min_child_samples': 8,  'gbm_weight': 0.7},
+}
+RIDGE_ALPHA = 15  # matches train_ppg_models
+
 
 def make_X(rows, keys):
     return np.array([[sf(r['features'].get(k, 0)) for k in keys] for r in rows])
@@ -71,76 +85,93 @@ def loso_r2(pos_rows, feats, lgb_params, n_rounds, ridge_alpha, gbm_weight):
     return float(r2_score(y, loso))
 
 
-def sweep_position(rows, pos, feats, baseline_params, baseline_rounds, baseline_ridge, baseline_weight):
+LGB_FIXED = {
+    'objective': 'regression', 'metric': 'mae',
+    'subsample': 0.8, 'seed': 42, 'n_jobs': 1, 'verbose': -1,
+}
+
+
+def sweep_position(rows, pos, feats, baseline_cfg):
+    """Three-stage sweep around a per-position baseline.
+
+    baseline_cfg must match train_ppg_models::PPG_CONFIG[pos] exactly so
+    that the reported delta reflects real improvement over what ships.
+    Stage 1 holds baseline's n_rounds and min_child_samples while sweeping
+    depth × lr, so the current (depth, lr) is always present in the grid.
+    Stage 2 holds best-so-far depth/lr while sweeping n_rounds × mcs.
+    Stage 3 tunes GBM/Ridge blend weight.
+    """
     pos_rows = [r for r in rows if r['position'] == pos and (r.get('adp') or 999) <= 250]
     print(f'\n{"=" * 70}')
     print(f'{pos}: {len(pos_rows)} rows, {len(feats)} features')
+    print(f'  baseline config: {baseline_cfg}')
     print(f'{"=" * 70}')
 
     results = []
 
+    def lgb_params_from(cfg):
+        return {
+            **LGB_FIXED,
+            'learning_rate': cfg['learning_rate'],
+            'max_depth': cfg['max_depth'],
+            'min_child_samples': cfg['min_child_samples'],
+        }
+
     # Baseline
     t0 = time.time()
-    base_r2 = loso_r2(pos_rows, feats, baseline_params, baseline_rounds, baseline_ridge, baseline_weight)
+    base_r2 = loso_r2(
+        pos_rows, feats, lgb_params_from(baseline_cfg),
+        baseline_cfg['n_rounds'], RIDGE_ALPHA, baseline_cfg['gbm_weight'],
+    )
     base_time = time.time() - t0
-    print(f'  BASELINE: depth={baseline_params["max_depth"]} lr={baseline_params["learning_rate"]} '
-          f'rounds={baseline_rounds} min_leaf={baseline_params["min_child_samples"]} '
-          f'gbmW={baseline_weight}  →  R²={base_r2:.4f}  ({base_time:.1f}s)')
-    results.append({
-        'stage': 'baseline', 'params': {
-            'max_depth': baseline_params['max_depth'],
-            'learning_rate': baseline_params['learning_rate'],
-            'n_rounds': baseline_rounds,
-            'min_child_samples': baseline_params['min_child_samples'],
-            'gbm_weight': baseline_weight,
-        }, 'r2': base_r2,
-    })
+    print(f'  BASELINE (= current shipping): R²={base_r2:.4f}  ({base_time:.1f}s)')
+    results.append({'stage': 'baseline', 'params': dict(baseline_cfg), 'r2': base_r2})
 
-    # ── Stage 1: depth × learning_rate (hold n_rounds=100, min_leaf=8) ──
-    print('\n  Stage 1: depth × learning_rate')
+    # ── Stage 1: depth × learning_rate ──
+    # Hold baseline n_rounds + mcs so the current config is always in the grid.
+    # Include a wider lr range so fast-learner configs get explored.
+    print('\n  Stage 1: depth × learning_rate (holding baseline n_rounds, mcs)')
+    depths = sorted({2, 3, 4, 5, baseline_cfg['max_depth']})
+    lrs = sorted({0.03, 0.05, 0.08, 0.12, 0.18, baseline_cfg['learning_rate']})
     stage1 = []
-    for depth in [2, 3, 4, 5]:
-        for lr in [0.03, 0.05, 0.08, 0.12]:
-            params = {
-                **baseline_params,
-                'max_depth': depth,
-                'learning_rate': lr,
-                'min_child_samples': 8,
+    for depth in depths:
+        for lr in lrs:
+            cfg = {
+                **baseline_cfg, 'max_depth': depth, 'learning_rate': lr,
             }
-            r2 = loso_r2(pos_rows, feats, params, 100, baseline_ridge, baseline_weight)
+            r2 = loso_r2(
+                pos_rows, feats, lgb_params_from(cfg),
+                cfg['n_rounds'], RIDGE_ALPHA, cfg['gbm_weight'],
+            )
             stage1.append({'depth': depth, 'lr': lr, 'r2': r2})
-            results.append({
-                'stage': 'stage1', 'params': {
-                    'max_depth': depth, 'learning_rate': lr, 'n_rounds': 100,
-                    'min_child_samples': 8, 'gbm_weight': baseline_weight,
-                }, 'r2': r2,
-            })
+            results.append({'stage': 'stage1', 'params': dict(cfg), 'r2': r2})
             marker = ' ★' if r2 > base_r2 else ''
-            print(f'    depth={depth} lr={lr:.2f}  R²={r2:.4f}  Δ={r2-base_r2:+.4f}{marker}')
+            print(f'    depth={depth} lr={lr:.3f}  R²={r2:.4f}  Δ={r2-base_r2:+.4f}{marker}')
 
     best_s1 = max(stage1, key=lambda x: x['r2'])
     print(f'  → Best stage 1: depth={best_s1["depth"]} lr={best_s1["lr"]}  R²={best_s1["r2"]:.4f}')
 
-    # ── Stage 2: n_rounds × min_child_samples (hold best depth/lr) ──
-    print('\n  Stage 2: n_rounds × min_child_samples')
+    # ── Stage 2: n_rounds × min_child_samples ──
+    # Hold best-so-far depth and lr.
+    print('\n  Stage 2: n_rounds × min_child_samples (holding best depth, lr)')
+    rounds_grid = sorted({60, 100, 150, 200, 300, baseline_cfg['n_rounds']})
+    mcs_grid = sorted({3, 5, 8, 15, 25, baseline_cfg['min_child_samples']})
     stage2 = []
-    for n_rounds in [60, 100, 150, 200, 300]:
-        for mcs in [3, 5, 8, 15, 25]:
-            params = {
-                **baseline_params,
+    for n_rounds in rounds_grid:
+        for mcs in mcs_grid:
+            cfg = {
+                **baseline_cfg,
                 'max_depth': best_s1['depth'],
                 'learning_rate': best_s1['lr'],
+                'n_rounds': n_rounds,
                 'min_child_samples': mcs,
             }
-            r2 = loso_r2(pos_rows, feats, params, n_rounds, baseline_ridge, baseline_weight)
+            r2 = loso_r2(
+                pos_rows, feats, lgb_params_from(cfg),
+                n_rounds, RIDGE_ALPHA, cfg['gbm_weight'],
+            )
             stage2.append({'n_rounds': n_rounds, 'mcs': mcs, 'r2': r2})
-            results.append({
-                'stage': 'stage2', 'params': {
-                    'max_depth': best_s1['depth'], 'learning_rate': best_s1['lr'],
-                    'n_rounds': n_rounds, 'min_child_samples': mcs,
-                    'gbm_weight': baseline_weight,
-                }, 'r2': r2,
-            })
+            results.append({'stage': 'stage2', 'params': dict(cfg), 'r2': r2})
             marker = ' ★' if r2 > base_r2 else ''
             print(f'    n_rounds={n_rounds:>3} mcs={mcs:>2}  R²={r2:.4f}  Δ={r2-base_r2:+.4f}{marker}')
 
@@ -150,31 +181,30 @@ def sweep_position(rows, pos, feats, baseline_params, baseline_rounds, baseline_
     # ── Stage 3: ensemble weight (hold best everything) ──
     print('\n  Stage 3: ensemble weight')
     stage3 = []
-    best_params = {
-        **baseline_params,
+    best_hyper = {
+        **baseline_cfg,
         'max_depth': best_s1['depth'],
         'learning_rate': best_s1['lr'],
+        'n_rounds': best_s2['n_rounds'],
         'min_child_samples': best_s2['mcs'],
     }
-    for gbm_w in [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]:
-        r2 = loso_r2(pos_rows, feats, best_params, best_s2['n_rounds'], baseline_ridge, gbm_w)
+    weights_grid = sorted({0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, baseline_cfg['gbm_weight']})
+    for gbm_w in weights_grid:
+        cfg = {**best_hyper, 'gbm_weight': gbm_w}
+        r2 = loso_r2(
+            pos_rows, feats, lgb_params_from(cfg),
+            cfg['n_rounds'], RIDGE_ALPHA, gbm_w,
+        )
         stage3.append({'gbm_weight': gbm_w, 'r2': r2})
-        results.append({
-            'stage': 'stage3', 'params': {
-                **{k: v for k, v in best_params.items() if k in ('max_depth', 'learning_rate', 'min_child_samples')},
-                'n_rounds': best_s2['n_rounds'], 'gbm_weight': gbm_w,
-            }, 'r2': r2,
-        })
+        results.append({'stage': 'stage3', 'params': dict(cfg), 'r2': r2})
         marker = ' ★' if r2 > base_r2 else ''
         print(f'    gbm_w={gbm_w:.1f}  R²={r2:.4f}  Δ={r2-base_r2:+.4f}{marker}')
 
-    best_s3 = max(stage3, key=lambda x: x['r2'])
-
-    # Final best (take maximum across all stages)
+    # Final best
     best_result = max(results, key=lambda r: r['r2'])
     delta = best_result['r2'] - base_r2
     print(f'\n  WINNER: stage={best_result["stage"]} params={best_result["params"]}')
-    print(f'          R²={best_result["r2"]:.4f}  Δ vs baseline={delta:+.4f}')
+    print(f'          R²={best_result["r2"]:.4f}  Δ vs shipping={delta:+.4f}')
 
     return {
         'position': pos,
@@ -207,17 +237,6 @@ def main():
         if idx + 1 < len(args):
             pos_filter = args[idx + 1].upper()
 
-    # Baseline = current train_ppg_models settings
-    BASELINE_PARAMS = {
-        'objective': 'regression', 'metric': 'mae',
-        'learning_rate': 0.05, 'max_depth': 3,
-        'min_child_samples': 8, 'subsample': 0.8,
-        'seed': 42, 'n_jobs': 1, 'verbose': -1,
-    }
-    BASELINE_ROUNDS = 100
-    BASELINE_RIDGE = 15
-    BASELINE_GBM_WEIGHT = 0.7
-
     print(f'Loading rows with derived features...')
     rows = load_rows()
     print(f'  {len(rows)} rows')
@@ -232,16 +251,13 @@ def main():
         feats = feature_lists.get(pos, [])
         if not feats:
             continue
-        result = sweep_position(
-            rows, pos, feats,
-            BASELINE_PARAMS, BASELINE_ROUNDS, BASELINE_RIDGE, BASELINE_GBM_WEIGHT
-        )
+        result = sweep_position(rows, pos, feats, PPG_BASELINE_CONFIG[pos])
         all_results[pos] = result
 
     elapsed = time.time() - t_start
 
     print(f'\n{"=" * 70}')
-    print('SWEEP SUMMARY')
+    print('SWEEP SUMMARY (baseline = current shipping per-position PPG_CONFIG)')
     print(f'{"=" * 70}')
     print(f'{"pos":<4} {"baseline":<10} {"best":<10} {"Δ":<10} best params')
     for pos, r in all_results.items():
@@ -252,12 +268,8 @@ def main():
     with open(OUTPUT_PATH, 'w') as f:
         json.dump({
             'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%S'),
-            'baseline': {
-                'params': BASELINE_PARAMS,
-                'n_rounds': BASELINE_ROUNDS,
-                'ridge_alpha': BASELINE_RIDGE,
-                'gbm_weight': BASELINE_GBM_WEIGHT,
-            },
+            'baseline': PPG_BASELINE_CONFIG,
+            'ridge_alpha': RIDGE_ALPHA,
             'positions': all_results,
         }, f, indent=2)
 

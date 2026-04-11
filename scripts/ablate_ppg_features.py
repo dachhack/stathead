@@ -42,9 +42,9 @@ MODEL_CACHE_PATH = DATA_DIR / 'model-cache-ppg-v56.json'
 # Source of truth: scripts/train_projection_models.py:PPG_CONFIG
 PPG_CONFIG = {
     'QB': {'depth': 3, 'lr': 0.08, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.9},
-    'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 200, 'min_leaf': 25, 'gbm_weight': 0.7},
+    'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 150, 'min_leaf': 25, 'gbm_weight': 0.8},
     'WR': {'depth': 3, 'lr': 0.12, 'n_rounds': 200, 'min_leaf': 3,  'gbm_weight': 0.7},
-    'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.7},
+    'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 150, 'min_leaf': 8,  'gbm_weight': 0.7},
 }
 RIDGE_ALPHA = 15  # matches train_ppg_models
 

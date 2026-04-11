@@ -728,13 +728,19 @@ def train_ppg_models(rows):
     }
 
     # Per-position hyperparameters from scripts/sweep_ppg_hyperparams.py.
-    # TE is baseline-optimal (sweep found no improvement). Don't hand-edit
+    # Re-swept after the PR 1 export bug fix and the PPG re-ablation pass
+    # at the correct per-position baselines. QB and WR were already at the
+    # local optimum (sweep found no improvement); RB dropped n_rounds 200→150
+    # (was slightly overfit, 25% faster and +0.0005 R²) and bumped gbm_weight
+    # 0.7→0.8; TE bumped n_rounds 100→150 (+0.0008 R²). Don't hand-edit
     # without re-running the sweep — fine-tuning these is noise-sensitive.
+    #
+    # Sync any changes with PPG_BASELINE_CONFIG in sweep_ppg_hyperparams.py.
     PPG_CONFIG = {
-        'QB': {'depth': 3, 'lr': 0.08, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.9},  # +0.0075
-        'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 200, 'min_leaf': 25, 'gbm_weight': 0.7},  # +0.0044
-        'WR': {'depth': 3, 'lr': 0.12, 'n_rounds': 200, 'min_leaf': 3,  'gbm_weight': 0.7},  # +0.0117
-        'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.7},  # baseline optimal
+        'QB': {'depth': 3, 'lr': 0.08, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.9},  # local opt
+        'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 150, 'min_leaf': 25, 'gbm_weight': 0.8},  # re-swept +0.0005
+        'WR': {'depth': 3, 'lr': 0.12, 'n_rounds': 200, 'min_leaf': 3,  'gbm_weight': 0.7},  # local opt
+        'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 150, 'min_leaf': 8,  'gbm_weight': 0.7},  # re-swept +0.0008
     }
 
     # Bagging count per position. Each bag is a full booster trained on a
