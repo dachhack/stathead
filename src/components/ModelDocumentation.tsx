@@ -922,11 +922,12 @@ export function ModelDocumentation() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                 Note: PPG model R² corrected after removing data-leaking features (current-season actual share data).
                 Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
-                Pipeline: (1) leakage fix — honest baseline, (2) ablation-driven pruning (<code>scripts/ablate_ppg_features.py</code>)
+                Pipeline: (1) leakage fix → honest baseline, (2) ablation-driven pruning (<code>scripts/ablate_ppg_features.py</code>)
                  to 19/21/22/14 features, (3) multi-year derived features (priorPPG2yr for QB/RB/WR, durabilityStreak for TE),
-                (4) per-position hyperparameter tuning (<code>scripts/sweep_ppg_hyperparams.py</code>) — WR gained most from
-                a more aggressive fit (lr=0.12, n_rounds=200, min_leaf=3), QB prefers 0.9 GBM weight over the old 0.7
-                blend. Cumulative lift vs honest baseline: QB +0.021, RB +0.017, WR +0.016, TE +0.012.
+                (4) per-position hyperparameter tuning (<code>scripts/sweep_ppg_hyperparams.py</code>), (5) forward-selection
+                of populated-but-unused features — RB finally broke through its 0.504 plateau by adding combine athleticism
+                (forty), coarser draft-capital encoding (nflDraftRound), and schedule difficulty (sosAvgSpread).
+                Cumulative lift vs honest baseline: QB +0.021, RB +0.023, WR +0.018, TE +0.013.
               </p>
             </>
           );

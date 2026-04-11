@@ -525,6 +525,10 @@ def train_ppg_models(rows):
             'ppgTrend', 'priorBoomRate', 'qbOwnRushYds',
             'priorWOPR', 'priorAirYardsShare', 'teamQBPassRating',
             'priorPPG2yr',
+            # Forward-selection additions (see commit 2024-04): combine athleticism
+            # + broader draft-capital encoding + schedule context. RB was stuck at
+            # 0.504 for two PRs; this combo unlocks +0.006 R² (0.504 → 0.510).
+            'forty', 'nflDraftRound', 'sosAvgSpread',
         ],
         'WR': [
             'age', 'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
@@ -534,6 +538,8 @@ def train_ppg_models(rows):
             'priorBoomRate', 'priorBustGameRate', 'teamDomeGames',
             'priorInjuryWeeks', 'injuryRecurrence',
             'priorPPG2yr',
+            # Forward-selection: team WR corps production (inverse = WR opportunity)
+            'teamWRTotalPPR',
         ],
         'TE': [
             'age', 'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'draftClassDepth',
@@ -541,6 +547,8 @@ def train_ppg_models(rows):
             'heightAdjSpeedScore', 'priorBoomRate',
             'priorAirYardsShare',
             'durabilityStreak',
+            # Forward-selection: a second draft-pick encoding helps separate tiers
+            'draftPickPct',
         ],
     }
 
