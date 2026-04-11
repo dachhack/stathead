@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-11T19:56:58Z",
+  "generatedAt": "2026-04-11T20:13:27Z",
   "featureFingerprint": "18b194ec78",
   "gridAxes": {
     "max_depth": [
@@ -48,7 +48,7 @@
     "colsample_bytree": 0.5,
     "lambda_l2": 5.0
   },
-  "nConfigs": 12,
+  "nConfigs": 48,
   "pairs": {
     "QB_H7": {
       "position": "QB",
@@ -76,14 +76,27 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.19267,
-        "pg_mae": 0.009428
+        "pg_r2": 0.19363,
+        "pg_mae": 0.009439
       },
-      "delta": 0.04585,
+      "delta": 0.04681,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.19363
+        },
         {
           "config": {
             "max_depth": 3,
@@ -99,6 +112,32 @@
         },
         {
           "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1923
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.19194
+        },
+        {
+          "config": {
             "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
@@ -109,48 +148,9 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.19072
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.17931
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.1762
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.17555
         }
       ],
-      "elapsed_sec": 7.9
+      "elapsed_sec": 24.6
     },
     "QB_H30": {
       "position": "QB",
@@ -179,13 +179,26 @@
             100
           ],
           "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.13875,
-        "pg_mae": 0.032742
+        "pg_r2": 0.14228,
+        "pg_mae": 0.032759
       },
-      "delta": 0.00337,
+      "delta": 0.0069,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.14228
+        },
         {
           "config": {
             "max_depth": 2,
@@ -198,6 +211,19 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.13875
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1355
         },
         {
           "config": {
@@ -224,35 +250,9 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.1305
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.12307
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.11973
         }
       ],
-      "elapsed_sec": 6.2
+      "elapsed_sec": 20.2
     },
     "QB_H60": {
       "position": "QB",
@@ -280,14 +280,40 @@
             0.03,
             60
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.15603,
-        "pg_mae": 0.052531
+        "pg_r2": 0.15867,
+        "pg_mae": 0.05232
       },
-      "delta": 0.0,
+      "delta": 0.00264,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.15867
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.15823
+        },
         {
           "config": {
             "max_depth": 2,
@@ -310,51 +336,25 @@
               60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.15337
+          "pg_r2": 0.15563
         },
         {
           "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.14316
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
               0.03,
               60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.1369
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.13637
+          "pg_r2": 0.15539
         }
       ],
-      "elapsed_sec": 5.0
+      "elapsed_sec": 16.6
     },
     "QB_H90": {
       "position": "QB",
@@ -405,6 +405,32 @@
         },
         {
           "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1627
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.16224
+        },
+        {
+          "config": {
             "max_depth": 3,
             "min_child_samples": 500,
             "lr_n": [
@@ -421,42 +447,16 @@
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.1335
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.13319
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.13209
+          "pg_r2": 0.16105
         }
       ],
-      "elapsed_sec": 3.2
+      "elapsed_sec": 11.0
     },
     "QB_H120": {
       "position": "QB",
@@ -484,13 +484,13 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
+          "colsample_bytree": 0.8,
           "lambda_l2": 5.0
         },
-        "pg_r2": 0.10515,
-        "pg_mae": 0.118566
+        "pg_r2": 0.10595,
+        "pg_mae": 0.118582
       },
-      "delta": 0.00107,
+      "delta": 0.00188,
       "top5": [
         {
           "config": {
@@ -500,10 +500,10 @@
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.10515
+          "pg_r2": 0.10595
         },
         {
           "config": {
@@ -513,52 +513,52 @@
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.10515
+          "pg_r2": 0.10595
         },
         {
           "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.10407
+          "pg_r2": 0.10584
         },
         {
           "config": {
             "max_depth": 3,
             "min_child_samples": 500,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.10407
+          "pg_r2": 0.10584
         },
         {
           "config": {
             "max_depth": 2,
-            "min_child_samples": 300,
+            "min_child_samples": 500,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
             "colsample_bytree": 0.5,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.07759
+          "pg_r2": 0.10515
         }
       ],
-      "elapsed_sec": 1.6
+      "elapsed_sec": 5.7
     },
     "RB_H7": {
       "position": "RB",
@@ -586,14 +586,66 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.0893,
-        "pg_mae": 0.015237
+        "pg_r2": 0.09566,
+        "pg_mae": 0.015143
       },
-      "delta": 0.03941,
+      "delta": 0.04577,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09566
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09422
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.08983
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.08955
+        },
         {
           "config": {
             "max_depth": 3,
@@ -606,61 +658,9 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.0893
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.08498
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.07476
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.07111
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.06884
         }
       ],
-      "elapsed_sec": 15.1
+      "elapsed_sec": 47.8
     },
     "RB_H30": {
       "position": "RB",
@@ -688,13 +688,13 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.25986,
-        "pg_mae": 0.04694
+        "pg_r2": 0.28508,
+        "pg_mae": 0.046538
       },
-      "delta": 0.16689,
+      "delta": 0.19211,
       "top5": [
         {
           "config": {
@@ -704,10 +704,23 @@
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.28508
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.25986
+          "pg_r2": 0.27835
         },
         {
           "config": {
@@ -717,52 +730,39 @@
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.23998
+          "pg_r2": 0.26706
         },
         {
           "config": {
             "max_depth": 3,
             "min_child_samples": 150,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.18899
+          "pg_r2": 0.26552
         },
         {
           "config": {
             "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.18634
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.1663
+          "pg_r2": 0.26116
         }
       ],
-      "elapsed_sec": 12.9
+      "elapsed_sec": 40.7
     },
     "RB_H60": {
       "position": "RB",
@@ -784,20 +784,59 @@
       },
       "winner": {
         "config": {
-          "max_depth": 2,
+          "max_depth": 3,
           "min_child_samples": 150,
           "lr_n": [
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.28803,
-        "pg_mae": 0.07354
+        "pg_r2": 0.31597,
+        "pg_mae": 0.07348
       },
-      "delta": 0.1803,
+      "delta": 0.20823,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.31597
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.30959
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.28836
+        },
         {
           "config": {
             "max_depth": 2,
@@ -813,58 +852,19 @@
         },
         {
           "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.28652
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.22165
-        },
-        {
-          "config": {
             "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.21518
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
               0.05,
               100
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.17653
+          "pg_r2": 0.28742
         }
       ],
-      "elapsed_sec": 9.7
+      "elapsed_sec": 30.7
     },
     "RB_H90": {
       "position": "RB",
@@ -892,14 +892,40 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.32873,
-        "pg_mae": 0.099454
+        "pg_r2": 0.34767,
+        "pg_mae": 0.099316
       },
-      "delta": 0.24926,
+      "delta": 0.2682,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.34767
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.34479
+        },
         {
           "config": {
             "max_depth": 3,
@@ -915,58 +941,32 @@
         },
         {
           "config": {
-            "max_depth": 2,
+            "max_depth": 3,
             "min_child_samples": 150,
             "lr_n": [
               0.05,
               100
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.29607
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.21266
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.20679
+          "pg_r2": 0.32838
         },
         {
           "config": {
             "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.2014
+          "pg_r2": 0.30975
         }
       ],
-      "elapsed_sec": 7.0
+      "elapsed_sec": 21.4
     },
     "RB_H120": {
       "position": "RB",
@@ -994,14 +994,40 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
+          "colsample_bytree": 0.8,
           "lambda_l2": 5.0
         },
-        "pg_r2": 0.32185,
-        "pg_mae": 0.137073
+        "pg_r2": 0.32927,
+        "pg_mae": 0.136983
       },
-      "delta": 0.24441,
+      "delta": 0.25183,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.32927
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.32766
+        },
         {
           "config": {
             "max_depth": 2,
@@ -1017,58 +1043,32 @@
         },
         {
           "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.31547
-        },
-        {
-          "config": {
             "max_depth": 2,
-            "min_child_samples": 300,
+            "min_child_samples": 150,
             "lr_n": [
               0.05,
               100
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.21518
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.20294
+          "pg_r2": 0.32027
         },
         {
           "config": {
             "max_depth": 3,
             "min_child_samples": 150,
             "lr_n": [
-              0.03,
-              60
+              0.05,
+              100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.2022
+          "pg_r2": 0.31993
         }
       ],
-      "elapsed_sec": 3.6
+      "elapsed_sec": 12.2
     },
     "WR_H7": {
       "position": "WR",
@@ -1096,14 +1096,27 @@
             0.05,
             100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.17385,
-        "pg_mae": 0.012867
+        "pg_r2": 0.17392,
+        "pg_mae": 0.012885
       },
-      "delta": 0.03697,
+      "delta": 0.03704,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.17392
+        },
         {
           "config": {
             "max_depth": 3,
@@ -1119,6 +1132,32 @@
         },
         {
           "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.17285
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.17181
+        },
+        {
+          "config": {
             "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
@@ -1129,48 +1168,9 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.16741
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.16589
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.16318
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.16293
         }
       ],
-      "elapsed_sec": 20.5
+      "elapsed_sec": 64.6
     },
     "WR_H30": {
       "position": "WR",
@@ -1199,13 +1199,39 @@
             100
           ],
           "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.1326,
-        "pg_mae": 0.037472
+        "pg_r2": 0.1381,
+        "pg_mae": 0.037486
       },
-      "delta": 0.02124,
+      "delta": 0.02674,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1381
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.13504
+        },
         {
           "config": {
             "max_depth": 3,
@@ -1221,6 +1247,19 @@
         },
         {
           "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13077
+        },
+        {
+          "config": {
             "max_depth": 2,
             "min_child_samples": 300,
             "lr_n": [
@@ -1231,48 +1270,9 @@
             "lambda_l2": 5.0
           },
           "pg_r2": 0.12371
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.12124
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.12011
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.11857
         }
       ],
-      "elapsed_sec": 17.3
+      "elapsed_sec": 54.7
     },
     "WR_H60": {
       "position": "WR",
@@ -1301,13 +1301,39 @@
             60
           ],
           "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.07119,
-        "pg_mae": 0.060371
+        "pg_r2": 0.07186,
+        "pg_mae": 0.060373
       },
-      "delta": 0.02433,
+      "delta": 0.02501,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.07186
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.07141
+        },
         {
           "config": {
             "max_depth": 2,
@@ -1343,38 +1369,12 @@
               60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.06686
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.05565
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.05465
+          "pg_r2": 0.06688
         }
       ],
-      "elapsed_sec": 13.3
+      "elapsed_sec": 42.4
     },
     "WR_H90": {
       "position": "WR",
@@ -1403,13 +1403,26 @@
             60
           ],
           "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.00072,
-        "pg_mae": 0.083671
+        "pg_r2": 0.00134,
+        "pg_mae": 0.083667
       },
-      "delta": 0.00087,
+      "delta": 0.00148,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.00134
+        },
         {
           "config": {
             "max_depth": 2,
@@ -1439,44 +1452,31 @@
         {
           "config": {
             "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": -0.00951
-        },
-        {
-          "config": {
-            "max_depth": 3,
             "min_child_samples": 500,
             "lr_n": [
               0.03,
               60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": -0.0203
+          "pg_r2": -0.00248
         },
         {
           "config": {
             "max_depth": 2,
-            "min_child_samples": 300,
+            "min_child_samples": 150,
             "lr_n": [
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": -0.0256
+          "pg_r2": -0.00526
         }
       ],
-      "elapsed_sec": 9.2
+      "elapsed_sec": 29.3
     },
     "WR_H120": {
       "position": "WR",
@@ -1527,6 +1527,19 @@
         },
         {
           "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.02567
+        },
+        {
+          "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
@@ -1540,45 +1553,32 @@
         },
         {
           "config": {
-            "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.01628
-        },
-        {
-          "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.00794
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 150,
-            "lr_n": [
               0.03,
               60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.00721
+          "pg_r2": 0.02108
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.01964
         }
       ],
-      "elapsed_sec": 4.9
+      "elapsed_sec": 16.0
     },
     "TE_H7": {
       "position": "TE",
@@ -1607,13 +1607,26 @@
             100
           ],
           "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.12709,
-        "pg_mae": 0.01425
+        "pg_r2": 0.12807,
+        "pg_mae": 0.014242
       },
-      "delta": 0.01042,
+      "delta": 0.0114,
       "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.12807
+        },
         {
           "config": {
             "max_depth": 2,
@@ -1636,39 +1649,26 @@
               100
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.12325
+          "pg_r2": 0.12406
         },
         {
           "config": {
-            "max_depth": 3,
+            "max_depth": 2,
             "min_child_samples": 150,
             "lr_n": [
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.11967
+          "pg_r2": 0.12379
         },
         {
           "config": {
             "max_depth": 2,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.11909
-        },
-        {
-          "config": {
-            "max_depth": 3,
             "min_child_samples": 300,
             "lr_n": [
               0.05,
@@ -1677,10 +1677,10 @@
             "colsample_bytree": 0.5,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.11859
+          "pg_r2": 0.12325
         }
       ],
-      "elapsed_sec": 8.6
+      "elapsed_sec": 27.5
     },
     "TE_H30": {
       "position": "TE",
@@ -1738,6 +1738,32 @@
               60
             ],
             "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09318
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09134
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
             "lambda_l2": 5.0
           },
           "pg_r2": 0.09071
@@ -1745,44 +1771,18 @@
         {
           "config": {
             "max_depth": 3,
-            "min_child_samples": 150,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.08674
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.0842
-        },
-        {
-          "config": {
-            "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.08294
+          "pg_r2": 0.08994
         }
       ],
-      "elapsed_sec": 7.2
+      "elapsed_sec": 23.3
     },
     "TE_H60": {
       "position": "TE",
@@ -1805,19 +1805,58 @@
       "winner": {
         "config": {
           "max_depth": 3,
-          "min_child_samples": 150,
+          "min_child_samples": 500,
           "lr_n": [
             0.03,
             60
           ],
-          "colsample_bytree": 0.5,
+          "colsample_bytree": 0.8,
           "lambda_l2": 5.0
         },
-        "pg_r2": 0.08679,
-        "pg_mae": 0.067645
+        "pg_r2": 0.09154,
+        "pg_mae": 0.06718
       },
-      "delta": 0.00665,
+      "delta": 0.0114,
       "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09154
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09121
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.08756
+        },
         {
           "config": {
             "max_depth": 3,
@@ -1833,58 +1872,19 @@
         },
         {
           "config": {
-            "max_depth": 3,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.0841
-        },
-        {
-          "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.08014
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 500,
-            "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.07801
-        },
-        {
-          "config": {
-            "max_depth": 3,
-            "min_child_samples": 300,
-            "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.06824
+          "pg_r2": 0.08667
         }
       ],
-      "elapsed_sec": 5.7
+      "elapsed_sec": 18.0
     },
     "TE_H90": {
       "position": "TE",
@@ -1909,42 +1909,29 @@
           "max_depth": 2,
           "min_child_samples": 500,
           "lr_n": [
-            0.03,
-            60
+            0.05,
+            100
           ],
-          "colsample_bytree": 0.5,
-          "lambda_l2": 5.0
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
         },
-        "pg_r2": 0.12542,
-        "pg_mae": 0.087854
+        "pg_r2": 0.1353,
+        "pg_mae": 0.089238
       },
-      "delta": 0.0,
+      "delta": 0.00988,
       "top5": [
         {
           "config": {
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.03,
-              60
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.12542
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 500,
-            "lr_n": [
               0.05,
               100
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.11743
+          "pg_r2": 0.1353
         },
         {
           "config": {
@@ -1954,39 +1941,52 @@
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.11603
+          "pg_r2": 0.133
         },
         {
           "config": {
             "max_depth": 3,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
+              0.03,
+              60
             ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.10914
+          "pg_r2": 0.1327
         },
         {
           "config": {
             "max_depth": 2,
-            "min_child_samples": 300,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13223
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
             "lr_n": [
               0.03,
               60
             ],
-            "colsample_bytree": 0.5,
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.08759
+          "pg_r2": 0.13221
         }
       ],
-      "elapsed_sec": 3.7
+      "elapsed_sec": 12.5
     },
     "TE_H120": {
       "position": "TE",
@@ -2053,43 +2053,43 @@
             "max_depth": 2,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
+              0.03,
+              60
             ],
             "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
+            "lambda_l2": 3.0
           },
-          "pg_r2": 0.14127
+          "pg_r2": 0.14823
         },
         {
           "config": {
             "max_depth": 3,
             "min_child_samples": 500,
             "lr_n": [
-              0.05,
-              100
-            ],
-            "colsample_bytree": 0.5,
-            "lambda_l2": 5.0
-          },
-          "pg_r2": 0.14127
-        },
-        {
-          "config": {
-            "max_depth": 2,
-            "min_child_samples": 300,
-            "lr_n": [
               0.03,
               60
             ],
             "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.14823
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
             "lambda_l2": 5.0
           },
-          "pg_r2": 0.12384
+          "pg_r2": 0.14418
         }
       ],
-      "elapsed_sec": 1.7
+      "elapsed_sec": 6.3
     }
   },
-  "elapsed_sec": 164.2
+  "elapsed_sec": 525.6
 }
