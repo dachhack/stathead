@@ -250,6 +250,97 @@ def feature_names_for(pos):
     return FAST_FEATURE_NAMES + slow_feature_names(pos) + WEEKLY_FEATURE_NAMES
 
 
+# ── Feature pruning (Commit C.2a) ───────────────────────────────────────
+# Derived from scripts/ablate_ktc_features.py run on the Commit B model
+# cache; see public/data/ktc-feature-ablation.json for per-(pos, horizon)
+# ΔpgR² values.
+#
+# DROP_GLOBAL: features whose ablation Δ is ≤ 0 at essentially every
+# (pos, horizon) pair (18+ of 20), i.e. never pulls weight anywhere.
+# Removing these is a free win — shrinks the feature vector without
+# costing any model's signal.
+#
+# DROP_PER_POS: features that are strictly negative at all 5 horizons
+# of a position, i.e. position-level dead weight. These features may be
+# useful for OTHER positions — they're kept in their respective position's
+# feature list and dropped only from the one that clearly doesn't need them.
+#
+# Rule we followed for per-position drops:
+#   - sumΔ across the 5 horizons < -0.003
+#   - AND every horizon has Δ ≤ +0.001 (no standout positive use case)
+#   - AND the net-negative magnitude is ≥10x any positive blip
+#
+# We intentionally did NOT drop features that are mixed across the
+# horizons of a given position (e.g. most slow features for RB are
+# negative at H=7/30/60 and strongly positive at H=120). Those need
+# per-(pos, horizon) feature lists to prune, which is scoped for a
+# later commit after hyperparam tuning settles the models.
+DROP_GLOBAL = {
+    # Always 0 — key doesn't exist in training-rows-cache-v42.json. The
+    # TSX component computes priorFantasyPPR inline from nflverse season
+    # totals but the cache we join to only carries priorPPG / priorPPG2yr.
+    # This was a copy-paste holdover from the TSX feature list in Commit A.
+    'priorFantasyPPR',
+    # Always 0 — we zero-fill unmatched KTC players' slow features and all
+    # the matched players are veterans (rookies fail the name-join), so
+    # isRookie is constant across the training set.
+    'isRookie',
+    # Net-negative or 0 at 19/20 pairs. The "did this player have any
+    # weekly data at all?" signal is 1 for everyone matched and 0 for
+    # rookies — and rookies' isRookie flag would carry the same signal
+    # if it weren't dead. Redundant indicator.
+    'hasWeekly',
+    # Net-negative or 0 at 17/20 pairs. The 14-day window rarely spans an
+    # actual depth-chart change in a 6-month rolling dataset, so the
+    # column is mostly zeros with occasional noise. No signal.
+    'depthRankDelta14d',
+}
+
+DROP_PER_POS = {
+    'QB': {
+        # QBs don't catch passes — these pass-catcher-context features
+        # are pure noise for QB (all 5 horizons ≤ 0, sumΔ ≈ -0.0007).
+        'priorTargetShare', 'priorWOPR', 'projTargetShare',
+        # priorAttempts is a slow_qb feature but empirically always 0
+        # in the cache for 2025 rows (data not in the post-season rollup
+        # that the cache uses), so it behaves like a dead constant.
+        'priorAttempts',
+        # QB-specific weekly dead weight: targetsTrend is always 0
+        # (no QB targets), and QB models never split on it.
+        'targetsTrend',
+    },
+    'RB': {
+        # sumΔ = -0.0358 across all 5 horizons, strictly negative at
+        # every one (-0.144 worst at H=120). Age is heavily correlated
+        # with yearsInLeague + priorPPG2yr, and the GBM overfits age
+        # splits that don't generalize across the player-grouped folds.
+        'age',
+        # Phase indicators are noise for RB specifically. The
+        # daysSinceSeasonStart fast feature already encodes the same
+        # time-of-season info continuously.
+        'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
+    },
+    'WR': set(),  # WR has no strict per-position drops beyond DROP_GLOBAL
+    'TE': {
+        # sumΔ = -0.0326 across H=30..120 (H=7 is +0.0008, basically zero).
+        # TE dynasty value doesn't route through "who's throwing to this
+        # player" — unlike WR where qbOwnPPG is the #1 feature at H=120.
+        # TE value is driven by the player's own archetype (bmi dominates
+        # all TE long horizons) and workload, not QB quality.
+        'qbOwnPPG',
+    },
+}
+
+
+def pruned_feature_names_for(pos):
+    """Return the feature list for a position after applying global and
+    per-position drops. This is what the trainer (and downstream analysis
+    scripts) should use."""
+    full = feature_names_for(pos)
+    drops = DROP_GLOBAL | DROP_PER_POS.get(pos, set())
+    return [f for f in full if f not in drops]
+
+
 # ── Loaders ─────────────────────────────────────────────────────────────
 
 def load_inputs():
@@ -713,11 +804,24 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
 
     t_ords: np.ndarray of int (date.toordinal()) for each row — used for
     time-based CV.
+
+    The full (fast + slow + weekly) feature vector is assembled per row,
+    then columns in DROP_GLOBAL ∪ DROP_PER_POS[position] are sliced out
+    before returning. This keeps the fast_by_pid / weekly compute paths
+    unchanged — pruning only changes the output shape, not the upstream
+    data plumbing.
     """
     slow_keys = slow_feature_names(position)
     fn_fast = FAST_FEATURE_NAMES
     fn_weekly = WEEKLY_FEATURE_NAMES
-    fn_all = fn_fast + slow_keys + fn_weekly
+    fn_full = fn_fast + slow_keys + fn_weekly
+
+    # Compute the keep-indices once per (pos, horizon). These are the
+    # column positions in the full concatenated vector that survive
+    # after global + per-position drops.
+    drops = DROP_GLOBAL | DROP_PER_POS.get(position, set())
+    keep_idx = [i for i, name in enumerate(fn_full) if name not in drops]
+    fn_all = [fn_full[i] for i in keep_idx]
 
     rows_feats = []
     rows_y = []
@@ -764,7 +868,9 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
         return (np.zeros((0, len(fn_all))), np.zeros(0),
                 np.zeros(0, dtype=np.int64),
                 np.zeros(0, dtype=np.int64), fn_all)
-    X = np.array(rows_feats, dtype=np.float64)
+    # Assemble full matrix, then slice down to the kept columns.
+    X_full = np.array(rows_feats, dtype=np.float64)
+    X = X_full[:, keep_idx]
     y = np.array(rows_y, dtype=np.float64)
     t = np.array(rows_t, dtype=np.int64)
     pids_arr = np.array(rows_pid, dtype=np.int64)
@@ -951,7 +1057,7 @@ BASE_N_ROUNDS = 60
 def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 4,   # 4: added nflverse weekly feature layer (Commit B)
+        'schemaVersion': 5,   # 5: ablation-driven feature pruning (Commit C.2a)
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
@@ -965,6 +1071,8 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
         'slowFeaturesCommon': SLOW_COMMON,
         'slowFeaturesByPos': SLOW_POS,
         'weeklyFeatures': WEEKLY_FEATURE_NAMES,
+        'droppedGlobal': sorted(DROP_GLOBAL),
+        'droppedPerPos': {p: sorted(fs) for p, fs in DROP_PER_POS.items()},
     }}
 
     summary_rows = []
