@@ -1032,18 +1032,35 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           }
 
-          // PBP-derived: aDOT, deep target %, red zone target share
+          // Build GSIS ID → normalized name map FIRST so we can use it to
+          // resolve receiver_player_id in the pbpByReceiver aggregation below.
+          // Prior weekly stats have player_id (gsis_id) + player_display_name,
+          // covering all receivers who played in the source season.
+          const gsisToName = new Map<string, string>();
+          for (const w of priorWeekly) {
+            if (w.player_id && w.player_display_name) {
+              gsisToName.set(w.player_id, normalizeName(w.player_display_name));
+            }
+          }
+
+          // PBP-derived: aDOT, deep target %, red zone target share.
+          // Resolve receivers via gsis_id (play.receiver_player_id) since
+          // receiver_player_name uses abbreviated format ("Mi.Carter") that
+          // doesn't match the full-name keys player rows use.
           interface PbpAgg {
             totalAirYards: number; targets: number;
             deepTargets: number; rzTargets: number;
           }
           const pbpByReceiver = new Map<string, PbpAgg>();
-          // Count total RZ targets per team for share calculation
           const teamRZTargets = new Map<string, number>();
 
           for (const play of priorPbp) {
-            if (play.play_type !== 'pass' || !play.receiver_player_name) continue;
-            const recName = normalizeName(play.receiver_player_name);
+            if (play.play_type !== 'pass') continue;
+            const recId: string | undefined = (play as any).receiver_player_id;
+            const recName =
+              (recId && gsisToName.get(recId)) ||
+              (play.receiver_player_name ? normalizeName(play.receiver_player_name) : '');
+            if (!recName) continue;
             const acc = pbpByReceiver.get(recName) || {
               totalAirYards: 0, targets: 0, deepTargets: 0, rzTargets: 0,
             };
@@ -1058,14 +1075,6 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               teamRZTargets.set(team, (teamRZTargets.get(team) || 0) + 1);
             }
             pbpByReceiver.set(recName, acc);
-          }
-
-          // Build GSIS ID → normalized name map from weekly stats
-          const gsisToName = new Map<string, string>();
-          for (const w of priorWeekly) {
-            if (w.player_id && w.player_display_name) {
-              gsisToName.set(w.player_id, normalizeName(w.player_display_name));
-            }
           }
 
           // Participation-derived: routes run, YPRR, personnel splits
@@ -1315,19 +1324,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             priorInjByName.set(name, acc);
           }
 
-          // Preseason injury status (game_type PRE or first 4 weeks of current season before REG)
+          // Preseason injury status — weeks 1-2 reports as a proxy for
+          // "entered the season banged up". The nflverse injuries CSV has
+          // no PRE game_type rows and no week<=0 rows, so the old filter
+          // `game_type==='PRE' || week<=0` always matched nothing, leaving
+          // preseasonInjured / preseasonInjWeeks at 0% coverage. Mirrors
+          // scripts/backfill_player_features.py::aggregate_preseason_injuries.
           const preseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
           for (const inj of preseasonInjuries) {
             if (!POSITIONS.includes(inj.position)) continue;
-            // Preseason reports: game_type PRE, or week <= 0, or early weeks before regular season
-            const isPre = inj.game_type === 'PRE' || inj.week <= 0;
-            if (!isPre) continue;
+            const week = Number(inj.week || 0);
+            if (week < 1 || week > 2) continue;
+            if (inj.report_status !== 'Out' && inj.report_status !== 'Doubtful' && inj.report_status !== 'Questionable') continue;
             const name = normalizeName(inj.full_name);
             const acc = preseasonInjByName.get(name) || { injured: false, weeks: 0 };
+            acc.injured = true;
             acc.weeks += 1;
-            if (inj.report_status === 'Out' || inj.report_status === 'Doubtful' || inj.report_status === 'Questionable') {
-              acc.injured = true;
-            }
             preseasonInjByName.set(name, acc);
           }
 
@@ -2900,15 +2912,27 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               if (n.week === 0 && n.season_type === 'REG') predNgsPassByName.set(normalizeName(n.player_display_name), n);
             }
 
-            // PBP-derived
+            // Build GSIS ID → name map FIRST (needed for PBP receiver join
+            // below since receiver_player_name is abbreviated "Mi.Carter"
+            // which doesn't match full-name keys).
+            const predGsisToName = new Map<string, string>();
+            for (const w of predPriorWeekly) {
+              if (w.player_id && w.player_display_name) predGsisToName.set(w.player_id, normalizeName(w.player_display_name));
+            }
+
+            // PBP-derived: resolve receivers via gsis_id with name fallback.
             interface PredPbpAgg {
               totalAirYards: number; targets: number; deepTargets: number; rzTargets: number;
             }
             const predPbpByReceiver = new Map<string, PredPbpAgg>();
             const predTeamRZTargets = new Map<string, number>();
             for (const play of predPriorPbp) {
-              if (play.play_type !== 'pass' || !play.receiver_player_name) continue;
-              const recName = normalizeName(play.receiver_player_name);
+              if (play.play_type !== 'pass') continue;
+              const recId: string | undefined = (play as any).receiver_player_id;
+              const recName =
+                (recId && predGsisToName.get(recId)) ||
+                (play.receiver_player_name ? normalizeName(play.receiver_player_name) : '');
+              if (!recName) continue;
               const acc = predPbpByReceiver.get(recName) || { totalAirYards: 0, targets: 0, deepTargets: 0, rzTargets: 0 };
               acc.targets += 1;
               if (typeof play.air_yards === 'number' && !isNaN(play.air_yards)) {
@@ -2923,11 +2947,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predPbpByReceiver.set(recName, acc);
             }
 
-            // Participation-derived
-            const predGsisToName = new Map<string, string>();
-            for (const w of predPriorWeekly) {
-              if (w.player_id && w.player_display_name) predGsisToName.set(w.player_id, normalizeName(w.player_display_name));
-            }
+            // Participation-derived (gsisToName was built above)
             interface PredRouteAgg { routesRun: number; snaps11: number; snaps12: number; totalSnaps: number }
             const predRoutesByName = new Map<string, PredRouteAgg>();
             const predPassPlayKeys = new Set<string>();
@@ -2989,15 +3009,19 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               if (KNEE_PRED.test(allInjText)) acc.knee = true;
               predPriorInjByName.set(name, acc);
             }
+            // Preseason injury proxy: weeks 1-2 report designations. See
+            // training-path comment above for why the old PRE/week<=0 filter
+            // matches nothing in the real nflverse injuries CSV.
             const predPreseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
             for (const inj of predPreseasonInjuries) {
               if (!POSITIONS.includes(inj.position)) continue;
-              const isPre = inj.game_type === 'PRE' || inj.week <= 0;
-              if (!isPre) continue;
+              const week = Number(inj.week || 0);
+              if (week < 1 || week > 2) continue;
+              if (inj.report_status !== 'Out' && inj.report_status !== 'Doubtful' && inj.report_status !== 'Questionable') continue;
               const name = normalizeName(inj.full_name);
               const acc = predPreseasonInjByName.get(name) || { injured: false, weeks: 0 };
+              acc.injured = true;
               acc.weeks += 1;
-              if (inj.report_status === 'Out' || inj.report_status === 'Doubtful' || inj.report_status === 'Questionable') acc.injured = true;
               predPreseasonInjByName.set(name, acc);
             }
 

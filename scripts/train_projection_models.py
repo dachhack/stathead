@@ -557,6 +557,11 @@ def train_ppg_models(rows):
             # likely because 21-heavy teams tend to feature their single TE in key
             # looks rather than spread targets across multiple TEs. +0.0025 R².
             'team21Rate',
+            # Post-player-backfill: weeks 1-2 injury report designations (proxy
+            # for "entered the season banged up"). +0.0027 R² for TE — aging
+            # TEs carrying injuries into Week 1 visibly underperform. Only
+            # useful position from the preseason-injury backfill.
+            'preseasonInjWeeks',
         ],
     }
 
