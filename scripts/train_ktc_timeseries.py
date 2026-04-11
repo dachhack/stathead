@@ -73,6 +73,7 @@ DATA_DIR = Path('public/data')
 KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
 KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
 TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v42.json'
+NFLVERSE_WEEKLY_PATH = DATA_DIR / 'nflverse_weekly_2025.json'
 OUTPUT_PATH = DATA_DIR / 'model-cache-ktc-v2.json'
 
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
@@ -199,8 +200,54 @@ REG_SEASON_END = date(2026, 1, 4)
 PLAYOFFS_END = date(2026, 2, 8)
 
 
+# Weekly features (Commit B addition). These are the "fast state" layer
+# that the long-horizon WR/RB models were missing — in-season trajectory
+# signals from nflverse weekly data that the daily KTC price history
+# cannot capture.
+#
+# All features are backward-looking from sample date t: we only use
+# weekly data where WEEK_COMPLETE_DATES[w] ≤ t, i.e. every game in that
+# week had already been played at t. No forward leakage by construction.
+#
+# Rationale tied to the weak spots at Commit A.1 pgR²:
+#   WR H=60  pgR²=0.053    WR H=90  pgR²=0.004    WR H=120 pgR²=0.016
+#   RB H=90  pgR²=0.064    RB H=120 pgR²=0.014
+# The target for each of these is "3-4 month log return" — a horizon
+# where short-term daily returns wash out and what moves the market is
+# current-season workload (snap %, target volume, carries) and its
+# trajectory. These features are engineered specifically to expose
+# those dynamics to the GBM.
+WEEKLY_FEATURE_NAMES = [
+    'hasWeekly',             # 1 if any weekly data available at t, else 0
+    # Snap rate trajectory (the single strongest workload signal in
+    # nflverse — captures coach trust and health)
+    'snapPctLast4',
+    'snapPctSeason',
+    'snapPctTrend',          # last4 - season
+    # Target volume trajectory (WR / TE / pass-catching RB signal)
+    'targetsLast4',
+    'targetsSeason',
+    'targetsTrend',
+    # Carry volume trajectory (RB-primary, QB rushing also)
+    'carriesLast4',
+    'carriesSeason',
+    'carriesTrend',
+    # Efficiency + air yards (hidden workload)
+    'rushRecYardsLast4',
+    'recEpaLast4',
+    'rushEpaLast4',
+    # Availability
+    'gamesPlayedSeason',
+    'weeksSinceLastPlayed',  # 0 = played last scheduled week; capped at 10
+    'injuryOut2wk',          # count of weeks in last 2 with Out/IR/Doubtful
+    # Depth chart (coaching decisions, captures promotions/demotions)
+    'depthRankLatest',
+    'depthRankDelta14d',     # (rank at t - 14d) - (rank at t); >0 = moved up
+]
+
+
 def feature_names_for(pos):
-    return FAST_FEATURE_NAMES + slow_feature_names(pos)
+    return FAST_FEATURE_NAMES + slow_feature_names(pos) + WEEKLY_FEATURE_NAMES
 
 
 # ── Loaders ─────────────────────────────────────────────────────────────
@@ -487,9 +534,159 @@ def fill_rank_features(players, fast_by_pid, date_grid):
                 feats[i, feat_idx_delta] = cur - prev
 
 
+# ── Weekly features (Commit B) ──────────────────────────────────────────
+
+def load_weekly_cache():
+    """Load the preprocessed nflverse weekly cache.
+
+    Returns (weekly_by_key, week_complete_dates) where:
+      weekly_by_key: dict "<norm_name>::<pos>" -> {
+        'weeks': list of per-week dicts sorted by w,
+        'depthHistory': list of {dt, rank} sorted by dt,
+      }
+      week_complete_dates: dict int week -> datetime.date when all games
+        for that week were complete (data fully available the next day).
+    """
+    if not NFLVERSE_WEEKLY_PATH.exists():
+        print(f'  WARNING: {NFLVERSE_WEEKLY_PATH} not found — weekly features '
+              'will be all-zero. Run scripts/build_nflverse_weekly_cache.py first.')
+        return {}, {}
+    with open(NFLVERSE_WEEKLY_PATH) as f:
+        d = json.load(f)
+    wcd = {int(k): date.fromisoformat(v) for k, v in d['weekCompleteDates'].items()}
+    return d['players'], wcd
+
+
+def _latest_completed_week(t, wcd):
+    """Return the highest NFL week N such that wcd[N] <= t, or 0 if none."""
+    latest = 0
+    for w, d in wcd.items():
+        if d <= t and w > latest:
+            latest = w
+    return latest
+
+
+def _safe_mean(xs):
+    xs = [x for x in xs if x is not None]
+    return float(sum(xs) / len(xs)) if xs else 0.0
+
+
+def compute_weekly_features_for_player(weekly_entry, wcd):
+    """Return a dict t_ordinal -> feature_vector for one player.
+
+    weekly_entry: value from weekly_by_key (dict with 'weeks' and 'depthHistory')
+
+    We compute feature rows for every date t in the union of:
+      - KTC daily observation dates (handled by caller via explicit t)
+    Actually we lazy-compute per t in the caller, because feature values
+    change discretely at week_complete boundaries and there's no point
+    storing ~150 rows when ~22 step transitions suffice. This function
+    returns a CLOSURE over the player's data.
+    """
+    weeks = weekly_entry.get('weeks', []) if weekly_entry else []
+    dh = weekly_entry.get('depthHistory', []) if weekly_entry else []
+    # Sort weeks by w for safety
+    weeks_sorted = sorted(weeks, key=lambda x: int(x.get('w', 0)))
+    # Pre-parse depthHistory dates
+    dh_parsed = []
+    for e in dh:
+        try:
+            dh_parsed.append((date.fromisoformat(e['dt']), int(e['rank'])))
+        except Exception:
+            continue
+    dh_parsed.sort()
+
+    def compute(t):
+        """Compute 18 weekly features at sample date t."""
+        if not weeks_sorted and not dh_parsed:
+            # No weekly data at all for this player
+            return np.zeros(len(WEEKLY_FEATURE_NAMES), dtype=np.float64)
+
+        max_week = _latest_completed_week(t, wcd)
+        visible = [w for w in weeks_sorted if int(w.get('w', 0)) <= max_week]
+        has_any = 1.0 if visible else 0.0
+
+        if visible:
+            # "Games played" = weeks with offSnaps > 0 OR any offensive touch
+            played = [w for w in visible
+                      if (w.get('offSnaps', 0) or 0) > 0
+                      or (w.get('targets', 0) or 0) > 0
+                      or (w.get('carries', 0) or 0) > 0]
+            season = played  # use played games, not roster weeks
+            last4 = played[-4:] if played else []
+
+            def avg(key, lst):
+                return _safe_mean([r.get(key, 0) for r in lst])
+
+            snap_season = avg('offPct', season)
+            snap_last4 = avg('offPct', last4)
+            tgt_season = avg('targets', season)
+            tgt_last4 = avg('targets', last4)
+            car_season = avg('carries', season)
+            car_last4 = avg('carries', last4)
+            yd_last4 = _safe_mean([
+                (r.get('rushYards', 0) or 0) + (r.get('recYards', 0) or 0)
+                for r in last4])
+            rec_epa_last4 = avg('recEpa', last4)
+            rush_epa_last4 = avg('rushEpa', last4)
+            games_played = float(len(played))
+
+            weeks_since = 0.0
+            if played:
+                last_week = int(played[-1].get('w', 0))
+                weeks_since = float(min(10, max(0, max_week - last_week)))
+            else:
+                weeks_since = 10.0
+
+            # Injury count in last 2 weeks of data
+            OUT = {'Out', 'IR', 'Doubtful', 'O'}
+            inj_2w = sum(
+                1 for r in visible[-2:]
+                if str(r.get('injuryStatus', '')) in OUT
+            )
+        else:
+            snap_season = snap_last4 = 0.0
+            tgt_season = tgt_last4 = 0.0
+            car_season = car_last4 = 0.0
+            yd_last4 = rec_epa_last4 = rush_epa_last4 = 0.0
+            games_played = 0.0
+            weeks_since = 10.0
+            inj_2w = 0
+
+        # Depth rank at t (latest entry with dt <= t) and 14 days prior
+        def rank_at(target_date):
+            r = None
+            for dt_e, rk in dh_parsed:
+                if dt_e <= target_date:
+                    r = rk
+                else:
+                    break
+            return r
+
+        rank_now = rank_at(t)
+        rank_14d = rank_at(t - timedelta(days=14))
+        depth_latest = float(rank_now) if rank_now is not None else 0.0
+        # Positive delta = moved up on depth chart (lower rank number)
+        depth_delta = float(rank_14d - rank_now) if (rank_now is not None and rank_14d is not None) else 0.0
+
+        return np.array([
+            has_any,
+            snap_last4, snap_season, snap_last4 - snap_season,
+            tgt_last4, tgt_season, tgt_last4 - tgt_season,
+            car_last4, car_season, car_last4 - car_season,
+            yd_last4,
+            rec_epa_last4, rush_epa_last4,
+            games_played, weeks_since, float(inj_2w),
+            depth_latest, depth_delta,
+        ], dtype=np.float64)
+
+    return compute
+
+
 # ── Dataset assembly ────────────────────────────────────────────────────
 
-def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
+def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
+                   weekly_by_key, wcd):
     """Return X, y, t_ords, pids for one (position, horizon) pair.
 
     t_ords: np.ndarray of int (date.toordinal()) for each row — used for
@@ -497,7 +694,8 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
     """
     slow_keys = slow_feature_names(position)
     fn_fast = FAST_FEATURE_NAMES
-    fn_all = fn_fast + slow_keys
+    fn_weekly = WEEKLY_FEATURE_NAMES
+    fn_all = fn_fast + slow_keys + fn_weekly
 
     rows_feats = []
     rows_y = []
@@ -518,6 +716,12 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
         slow_vec = np.array([sf(slow_dict.get(k, 0.0)) for k in slow_keys],
                             dtype=np.float64)
 
+        # Weekly feature closure for this player — O(visible_weeks) per call,
+        # not per (player, date) — fast enough for the ~150 daily calls.
+        weekly_key = f'{normalize_name(p["name"])}::{position}'
+        weekly_entry = weekly_by_key.get(weekly_key)
+        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+
         for i, d in enumerate(valid_dates):
             d_fwd = d + timedelta(days=horizon)
             v_fwd = vals_by_date.get(d_fwd)
@@ -527,7 +731,8 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
             if v_now is None or v_now <= 0:
                 continue
             y = float(np.log(v_fwd) - np.log(v_now))
-            x = np.concatenate([feats_mat[i], slow_vec])
+            weekly_vec = weekly_compute(d)
+            x = np.concatenate([feats_mat[i], slow_vec, weekly_vec])
             rows_feats.append(x)
             rows_y.append(y)
             rows_t.append(d.toordinal())
@@ -711,12 +916,20 @@ BASE_LGB_PARAMS = {
     'seed': 42, 'n_jobs': 1,
 }
 BASE_N_ROUNDS = 60
+# A relaxed config (depth=3, mcs=300, lambda=3, n=80) was tried in Commit B
+# and regressed hard on both walk-forward H=30 (RB -0.099 → -0.526) and
+# player-grouped long horizons (WR H=90 -0.001 → -0.059, TE H=90 0.114 →
+# 0.048) while lifting in-sample R² to 0.4-0.6. Capacity ≠ generalization
+# at this sample size; the depth-2 shrinkage that rescued RB H=30 in
+# Commit A also caps the interaction-discovery the weekly features allow.
+# Commit C's per-(position, horizon) sweep is the right place to unlock
+# any remaining capacity; universal hyperparam bumps don't work here.
 
 
-def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
+def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 3,   # 3: added player-grouped CV, extended HORIZONS
+        'schemaVersion': 4,   # 4: added nflverse weekly feature layer (Commit B)
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
@@ -729,12 +942,15 @@ def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
         'fastFeatures': FAST_FEATURE_NAMES,
         'slowFeaturesCommon': SLOW_COMMON,
         'slowFeaturesByPos': SLOW_POS,
+        'weeklyFeatures': WEEKLY_FEATURE_NAMES,
     }}
 
     summary_rows = []
     for pos in POSITIONS:
         for horizon in HORIZONS:
-            X, y, t, pids, fn_all = build_dataset(pos, horizon, players, fast_by_pid, slow_by_pid)
+            X, y, t, pids, fn_all = build_dataset(
+                pos, horizon, players, fast_by_pid, slow_by_pid,
+                weekly_by_key, wcd)
             n = len(y)
             if n < 100:
                 print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
@@ -839,7 +1055,13 @@ def main():
 
     print()
     print('Training per (position, horizon):')
-    results = train_all(players, fast_by_pid, slow_by_pid, verbose=verbose)
+    print('Loading nflverse weekly cache...')
+    weekly_by_key, wcd = load_weekly_cache()
+    print(f'  {len(weekly_by_key)} (name, pos) entries, '
+          f'{len(wcd)} week boundaries')
+
+    results = train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd,
+                         verbose=verbose)
 
     print()
     print(f'Writing {OUTPUT_PATH}...')

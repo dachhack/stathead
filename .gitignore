@@ -10,6 +10,9 @@ public/data/*
 !public/data/score-store/
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
+# Preprocessed nflverse weekly cache consumed by scripts/train_ktc_timeseries.py
+# (Commit B). Rebuilt by scripts/build_nflverse_weekly_cache.py from raw CSVs.
+!public/data/nflverse_weekly_2025.json
 # Ablation + sweep result files: force-added throughout the tuning session.
 # Whitelisting here so future re-runs commit cleanly via normal `git add`.
 !public/data/ppg-feature-ablation.json
