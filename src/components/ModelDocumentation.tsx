@@ -922,14 +922,14 @@ export function ModelDocumentation() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                 Note: PPG model R² corrected after removing data-leaking features (current-season actual share data).
                 Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
-                Pipeline: (1) leakage fix → honest baseline, (2) ablation-driven pruning (<code>scripts/ablate_ppg_features.py</code>),
-                (3) multi-year derived features (priorPPG2yr, durabilityStreak), (4) per-position hyperparameter tuning
-                (<code>scripts/sweep_ppg_hyperparams.py</code>), (5) forward-selection of populated-but-unused features,
-                (6) PBP/participation backfill (<code>scripts/backfill_team_features.py</code>) — repopulated 14 formation
-                and positional target-share features that were stuck at 0% due to PBP schema gaps and a receiver-name
-                lookup bug. RB and TE each gained another +0.0025 R² from the backfilled features
-                (<code>teamWR3PlusOnField</code> and <code>team21Rate</code> respectively).
-                Cumulative lift vs honest baseline: QB +0.021, RB +0.026, WR +0.018, TE +0.016.
+                Pipeline: (1) leakage fix → honest baseline, (2) ablation-driven pruning, (3) multi-year derived features,
+                (4) per-position hyperparameter tuning, (5) forward-selection of populated-but-unused features,
+                (6) PBP/participation backfill via <code>scripts/backfill_team_features.py</code> — team formation &amp;
+                positional target-share features, (7) per-player PBP backfill via
+                <code>scripts/backfill_player_features.py</code> — priorADOT / priorDeepTargetPct / priorRZTargetShare
+                and week 1-2 injury designations (<code>preseasonInjWeeks</code>, which gained TE another +0.003 R²;
+                the advanced receiving features ablated as correlated with existing priorTargetShare / priorYACAboveExp).
+                Cumulative lift vs honest baseline: QB +0.021, RB +0.025, WR +0.018, TE +0.019.
               </p>
             </>
           );

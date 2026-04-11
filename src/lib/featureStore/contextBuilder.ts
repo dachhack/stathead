@@ -93,6 +93,7 @@ export async function buildSharedContext(opts: {
     playerTeamMap: new Map(),
     playerPositionMap: new Map(),
     gsisToPositionMap: new Map(),
+    gsisToNameMap: new Map(),
     rosterPhysicalsByName: new Map(),
     vorReplacement: {},
     playerHistoryMap: opts.staticData?.playerHistoryMap || new Map(),
@@ -277,8 +278,18 @@ export async function buildSharedContext(opts: {
     if (SOFT_TISSUE.test(inj.report_primary_injury || '')) a.softTissue = true;
     if (KNEE.test(inj.report_primary_injury || '')) a.knee = true;
   }
+  // The nflverse injuries CSV doesn't actually have PRE game_type rows —
+  // only game_type='REG' starting at week=1. The old filter matched nothing,
+  // so preseasonInjured / preseasonInjWeeks were always 0. Pragmatic proxy:
+  // use weeks 1-2 reports with an Out/Doubtful/Questionable status. Those
+  // designations reflect players carrying injuries INTO Week 1, which is
+  // the best "entered the season banged up" signal available from this data.
+  // Mirrors scripts/backfill_player_features.py::aggregate_preseason_injuries.
   for (const inj of preseasonInjuries) {
-    if (inj.game_type !== 'PRE' && (inj.week || 99) > 0) continue;
+    const week = Number(inj.week || 0);
+    if (week < 1 || week > 2) continue;
+    const status = (inj.report_status || '').trim();
+    if (status !== 'Out' && status !== 'Doubtful' && status !== 'Questionable') continue;
     const name = normalizeName(inj.full_name || inj.gsis_id);
     if (!data.preseasonInjuryByName.has(name)) {
       data.preseasonInjuryByName.set(name, { injured: false, weeks: 0 });
@@ -357,7 +368,10 @@ export async function buildSharedContext(opts: {
     // receiver_player_name uses abbreviated format ("Mi.Carter") that doesn't
     // match rosters' full_name. receiver_player_id IS the gsis_id and joins
     // cleanly. See scripts/backfill_team_features.py for the Python mirror.
-    if (r.gsis_id) data.gsisToPositionMap.set(r.gsis_id, r.position);
+    if (r.gsis_id) {
+      data.gsisToPositionMap.set(r.gsis_id, r.position);
+      data.gsisToNameMap.set(r.gsis_id, name);
+    }
     const posKey = `${r.team}:${r.position}`;
     if (!data.rosterByTeam.has(posKey)) data.rosterByTeam.set(posKey, new Set());
     data.rosterByTeam.get(posKey)!.add(name);
@@ -380,8 +394,13 @@ export async function buildSharedContext(opts: {
     if (!data.playerPositionMap.has(name)) {
       data.playerPositionMap.set(name, r.position);
     }
-    if (r.gsis_id && !data.gsisToPositionMap.has(r.gsis_id)) {
-      data.gsisToPositionMap.set(r.gsis_id, r.position);
+    if (r.gsis_id) {
+      if (!data.gsisToPositionMap.has(r.gsis_id)) {
+        data.gsisToPositionMap.set(r.gsis_id, r.position);
+      }
+      if (!data.gsisToNameMap.has(r.gsis_id)) {
+        data.gsisToNameMap.set(r.gsis_id, name);
+      }
     }
     if (!data.rosterPhysicalsByName.has(name)) {
       const wt = Number(r.weight) || 0;
@@ -441,14 +460,21 @@ export async function buildSharedContext(opts: {
   if (pbp.length > 0) {
     buildSchemeAndPersonnel(pbp, participation, data, season);
 
-    // PBP player-level aggregation: deep targets, RZ targets, pass location
+    // PBP player-level aggregation: deep targets, RZ targets, pass location.
+    // Resolve receivers via gsis_id (play.receiver_player_id) → rosters' full
+    // name. The name-based path (normalizeName(play.receiver_player_name))
+    // previously always failed because PBP uses abbreviated "Mi.Carter"
+    // format, but we keep it as a last-resort fallback.
     const pbpByReceiver = new Map<string, { airYards: number; targets: number; deepTargets: number; rzTargets: number }>();
     const locByReceiver = new Map<string, { left: number; middle: number; right: number; total: number }>();
     const teamRZTargets = new Map<string, number>();
 
     for (const play of pbp) {
       if (play.play_type !== 'pass') continue;
-      const recName = play.receiver_player_name ? normalizeName(play.receiver_player_name) : '';
+      const recId: string | undefined = (play as any).receiver_player_id;
+      const recName =
+        (recId && data.gsisToNameMap.get(recId)) ||
+        (play.receiver_player_name ? normalizeName(play.receiver_player_name) : '');
       if (!recName) continue;
 
       if (!pbpByReceiver.has(recName)) pbpByReceiver.set(recName, { airYards: 0, targets: 0, deepTargets: 0, rzTargets: 0 });

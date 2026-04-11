@@ -207,6 +207,12 @@ export interface SharedContextData {
    *  rosters' full_name. PBP's receiver_player_id / rusher_player_id
    *  fields ARE the gsis_id and join cleanly. */
   gsisToPositionMap: Map<string, string>;
+  /** gsis_id → normalized full name (from rosters). Used to resolve
+   *  PBP's receiver_player_id to the same key that player rows use,
+   *  so per-player PBP aggregates (pbpByReceiver, locByReceiver) can
+   *  actually be joined onto players. Without this, priorADOT /
+   *  priorDeepTargetPct / priorRZTargetShare always evaluate to 0. */
+  gsisToNameMap: Map<string, string>;
   vorReplacement: Record<string, number>;
 
   // Cross-season state
