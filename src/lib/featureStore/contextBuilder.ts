@@ -262,42 +262,38 @@ export async function buildSharedContext(opts: {
     if (r.week === 0) data.ngsPassByName.set(normalizeName(r.player_display_name), r);
   }
 
-  // Injury maps
+  // Injury maps — all from season S-1 (prior season), no leakage.
+  // Also tracks a late-season subset (weeks 15-18 of S-1) as a proxy for
+  // "ended last year hurt, likely still dealing with it entering S".
   const priorInjuries = priorInjuriesRaw as any[];
-  const preseasonInjuries = preseasonInjuriesRaw as any[];
   const SOFT_TISSUE = /hamstring|groin|calf|quad|hip|ankle|achilles|foot|toe/i;
   const KNEE = /knee|acl|mcl|pcl/i;
   for (const inj of priorInjuries) {
     const name = normalizeName(inj.full_name || inj.gsis_id);
     if (!data.injuryByName.has(name)) {
-      data.injuryByName.set(name, { weeks: 0, gamesOut: 0, softTissue: false, knee: false });
+      data.injuryByName.set(name, {
+        weeks: 0, gamesOut: 0, softTissue: false, knee: false,
+        lateSeasonInjured: false, lateSeasonInjWeeks: 0,
+      });
     }
     const a = data.injuryByName.get(name)!;
     a.weeks += 1;
-    if (inj.report_status === 'Out' || inj.report_status === 'Doubtful') a.gamesOut += 1;
+    const status = (inj.report_status || '').trim();
+    if (status === 'Out' || status === 'Doubtful') a.gamesOut += 1;
     if (SOFT_TISSUE.test(inj.report_primary_injury || '')) a.softTissue = true;
     if (KNEE.test(inj.report_primary_injury || '')) a.knee = true;
-  }
-  // The nflverse injuries CSV doesn't actually have PRE game_type rows —
-  // only game_type='REG' starting at week=1. The old filter matched nothing,
-  // so preseasonInjured / preseasonInjWeeks were always 0. Pragmatic proxy:
-  // use weeks 1-2 reports with an Out/Doubtful/Questionable status. Those
-  // designations reflect players carrying injuries INTO Week 1, which is
-  // the best "entered the season banged up" signal available from this data.
-  // Mirrors scripts/backfill_player_features.py::aggregate_preseason_injuries.
-  for (const inj of preseasonInjuries) {
+
+    // Late-season subset: weeks 15-18 with active designation
     const week = Number(inj.week || 0);
-    if (week < 1 || week > 2) continue;
-    const status = (inj.report_status || '').trim();
-    if (status !== 'Out' && status !== 'Doubtful' && status !== 'Questionable') continue;
-    const name = normalizeName(inj.full_name || inj.gsis_id);
-    if (!data.preseasonInjuryByName.has(name)) {
-      data.preseasonInjuryByName.set(name, { injured: false, weeks: 0 });
+    if (week >= 15 && week <= 18 && (status === 'Out' || status === 'Doubtful' || status === 'Questionable')) {
+      a.lateSeasonInjured = true;
+      a.lateSeasonInjWeeks += 1;
     }
-    const a = data.preseasonInjuryByName.get(name)!;
-    a.injured = true;
-    a.weeks += 1;
   }
+  // preseasonInjuriesRaw is no longer needed — the feature keys have moved
+  // to priorLateSeasonInjured / priorLateSeasonInjWeeks above. Left in the
+  // data dep list for backwards compatibility with callers that still fetch it.
+  void preseasonInjuriesRaw;
 
   // Injury recurrence (proxy from soft tissue + knee flags)
   const injuryRecurrence = new Map<string, number>();

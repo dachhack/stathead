@@ -1306,42 +1306,46 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             coachPriorTeamPPR.set(team, (coachPriorTeamPPR.get(team) || 0) + (p.fantasy_points_ppr || 0));
           }
 
-          // Prior-season injury aggregation
+          // Prior-season injury aggregation. All data from season S-1 — no
+          // lookahead leakage. Also tracks a late-season subset (weeks 15-18
+          // of S-1) as a proxy for "ended last year hurt, still dealing with
+          // it entering S".
           const SOFT_TISSUE = /hamstring|groin|calf|quad|hip|thigh|achilles|ankle|foot|toe/i;
           const KNEE = /knee|acl|mcl|pcl|meniscus/i;
 
-          interface InjAgg { weeks: number; gamesOut: number; softTissue: boolean; knee: boolean }
+          interface InjAgg {
+            weeks: number; gamesOut: number;
+            softTissue: boolean; knee: boolean;
+            lateSeasonInjured: boolean; lateSeasonInjWeeks: number;
+          }
           const priorInjByName = new Map<string, InjAgg>();
           for (const inj of priorInjuries) {
             if (!POSITIONS.includes(inj.position)) continue;
             const name = normalizeName(inj.full_name);
-            const acc = priorInjByName.get(name) || { weeks: 0, gamesOut: 0, softTissue: false, knee: false };
+            const acc = priorInjByName.get(name) || {
+              weeks: 0, gamesOut: 0, softTissue: false, knee: false,
+              lateSeasonInjured: false, lateSeasonInjWeeks: 0,
+            };
             acc.weeks += 1;
-            if (inj.report_status === 'Out' || inj.report_status === 'Doubtful') acc.gamesOut += 1;
+            const status = (inj.report_status || '').trim();
+            if (status === 'Out' || status === 'Doubtful') acc.gamesOut += 1;
             const allInjText = `${inj.report_primary_injury || ''} ${inj.report_secondary_injury || ''} ${inj.practice_primary_injury || ''} ${inj.practice_secondary_injury || ''}`;
             if (SOFT_TISSUE.test(allInjText)) acc.softTissue = true;
             if (KNEE.test(allInjText)) acc.knee = true;
+            // Late-season subset from S-1 (no leakage — still prior season)
+            const week = Number(inj.week || 0);
+            if (week >= 15 && week <= 18 && (status === 'Out' || status === 'Doubtful' || status === 'Questionable')) {
+              acc.lateSeasonInjured = true;
+              acc.lateSeasonInjWeeks += 1;
+            }
             priorInjByName.set(name, acc);
           }
-
-          // Preseason injury status — weeks 1-2 reports as a proxy for
-          // "entered the season banged up". The nflverse injuries CSV has
-          // no PRE game_type rows and no week<=0 rows, so the old filter
-          // `game_type==='PRE' || week<=0` always matched nothing, leaving
-          // preseasonInjured / preseasonInjWeeks at 0% coverage. Mirrors
-          // scripts/backfill_player_features.py::aggregate_preseason_injuries.
-          const preseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
-          for (const inj of preseasonInjuries) {
-            if (!POSITIONS.includes(inj.position)) continue;
-            const week = Number(inj.week || 0);
-            if (week < 1 || week > 2) continue;
-            if (inj.report_status !== 'Out' && inj.report_status !== 'Doubtful' && inj.report_status !== 'Questionable') continue;
-            const name = normalizeName(inj.full_name);
-            const acc = preseasonInjByName.get(name) || { injured: false, weeks: 0 };
-            acc.injured = true;
-            acc.weeks += 1;
-            preseasonInjByName.set(name, acc);
-          }
+          // Note: preseasonInjuries (current-season injuries file) was previously
+          // used to build a preseasonInjByName map. That was dead in the original
+          // form (filter matched nothing) and leaky in #120's fix (weeks 1-2 of
+          // CURRENT season predicting CURRENT-season PPG). Removed entirely —
+          // replaced by the priorInjByName late-season subset above.
+          void preseasonInjuries;
 
           // currentByName already built above (before expected PPG curve)
 
@@ -2010,11 +2014,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               priorTotalTouches: priorCarries + (prior?.receptions || 0),
               priorSnapPct: Math.round(snapPct * 10) / 10,
 
-              // Injury features
+              // Injury features — all derived from season S-1 (no leakage)
               priorInjuryWeeks: priorInjByName.get(normalName)?.weeks || 0,
               priorGamesOut: priorInjByName.get(normalName)?.gamesOut || 0,
-              preseasonInjured: preseasonInjByName.get(normalName)?.injured ? 1 : 0,
-              preseasonInjWeeks: preseasonInjByName.get(normalName)?.weeks || 0,
+              priorLateSeasonInjured: priorInjByName.get(normalName)?.lateSeasonInjured ? 1 : 0,
+              priorLateSeasonInjWeeks: priorInjByName.get(normalName)?.lateSeasonInjWeeks || 0,
               priorSoftTissue: priorInjByName.get(normalName)?.softTissue ? 1 : 0,
               priorKneeInjury: priorInjByName.get(normalName)?.knee ? 1 : 0,
 
@@ -2993,37 +2997,39 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               predLocByReceiver.set(recName, acc);
             }
 
-            // Injury
+            // Injury — all from prior season (predSeason - 1), no leakage.
+            // Also tracks the late-prior-season subset (weeks 15-18 of S-1)
+            // as a proxy for "ended last year hurt". See training-path
+            // comment for why we don't touch current-season injury data.
             const SOFT_TISSUE_PRED = /hamstring|groin|calf|quad|hip|thigh|achilles|ankle|foot|toe/i;
             const KNEE_PRED = /knee|acl|mcl|pcl|meniscus/i;
-            interface PredInjAgg { weeks: number; gamesOut: number; softTissue: boolean; knee: boolean }
+            interface PredInjAgg {
+              weeks: number; gamesOut: number;
+              softTissue: boolean; knee: boolean;
+              lateSeasonInjured: boolean; lateSeasonInjWeeks: number;
+            }
             const predPriorInjByName = new Map<string, PredInjAgg>();
             for (const inj of predPriorInjuries) {
               if (!POSITIONS.includes(inj.position)) continue;
               const name = normalizeName(inj.full_name);
-              const acc = predPriorInjByName.get(name) || { weeks: 0, gamesOut: 0, softTissue: false, knee: false };
+              const acc = predPriorInjByName.get(name) || {
+                weeks: 0, gamesOut: 0, softTissue: false, knee: false,
+                lateSeasonInjured: false, lateSeasonInjWeeks: 0,
+              };
               acc.weeks += 1;
-              if (inj.report_status === 'Out' || inj.report_status === 'Doubtful') acc.gamesOut += 1;
+              const status = (inj.report_status || '').trim();
+              if (status === 'Out' || status === 'Doubtful') acc.gamesOut += 1;
               const allInjText = `${inj.report_primary_injury || ''} ${inj.report_secondary_injury || ''} ${inj.practice_primary_injury || ''} ${inj.practice_secondary_injury || ''}`;
               if (SOFT_TISSUE_PRED.test(allInjText)) acc.softTissue = true;
               if (KNEE_PRED.test(allInjText)) acc.knee = true;
+              const week = Number(inj.week || 0);
+              if (week >= 15 && week <= 18 && (status === 'Out' || status === 'Doubtful' || status === 'Questionable')) {
+                acc.lateSeasonInjured = true;
+                acc.lateSeasonInjWeeks += 1;
+              }
               predPriorInjByName.set(name, acc);
             }
-            // Preseason injury proxy: weeks 1-2 report designations. See
-            // training-path comment above for why the old PRE/week<=0 filter
-            // matches nothing in the real nflverse injuries CSV.
-            const predPreseasonInjByName = new Map<string, { injured: boolean; weeks: number }>();
-            for (const inj of predPreseasonInjuries) {
-              if (!POSITIONS.includes(inj.position)) continue;
-              const week = Number(inj.week || 0);
-              if (week < 1 || week > 2) continue;
-              if (inj.report_status !== 'Out' && inj.report_status !== 'Doubtful' && inj.report_status !== 'Questionable') continue;
-              const name = normalizeName(inj.full_name);
-              const acc = predPreseasonInjByName.get(name) || { injured: false, weeks: 0 };
-              acc.injured = true;
-              acc.weeks += 1;
-              predPreseasonInjByName.set(name, acc);
-            }
+            void predPreseasonInjuries; // no longer used — was dead or leaky
 
             // ── Roster competition for predictions ──
             const predRosterByTeamPos = new Map<string, Set<string>>();
@@ -3595,8 +3601,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 priorSnapPct: Math.round(snapPct * 10) / 10,
                 priorInjuryWeeks: predPriorInjByName.get(normalName)?.weeks || 0,
                 priorGamesOut: predPriorInjByName.get(normalName)?.gamesOut || 0,
-                preseasonInjured: predPreseasonInjByName.get(normalName)?.injured ? 1 : 0,
-                preseasonInjWeeks: predPreseasonInjByName.get(normalName)?.weeks || 0,
+                priorLateSeasonInjured: predPriorInjByName.get(normalName)?.lateSeasonInjured ? 1 : 0,
+                priorLateSeasonInjWeeks: predPriorInjByName.get(normalName)?.lateSeasonInjWeeks || 0,
                 priorSoftTissue: predPriorInjByName.get(normalName)?.softTissue ? 1 : 0,
                 priorKneeInjury: predPriorInjByName.get(normalName)?.knee ? 1 : 0,
 

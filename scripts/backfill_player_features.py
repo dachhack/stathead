@@ -1,38 +1,45 @@
 #!/usr/bin/env python3
 """
-Backfill per-player PBP-derived features + preseason injury flags.
+Backfill per-player PBP-derived features + prior late-season injury history.
 
-Complements scripts/backfill_team_features.py (which handles team-level
-features) by populating the *per-player* features that had 0% coverage
-because of silent join failures:
+Complements scripts/backfill_team_features.py (team-level features) by
+populating per-PLAYER features that had 0% coverage:
 
-  Advanced receiving (from PBP):
+  Advanced receiving (from season S-1 PBP):
     priorADOT              — average depth of target per player-season
     priorDeepTargetPct     — air_yards ≥ 20 rate per player-season
-    priorRZTargetShare     — player's red zone targets / team's RZ targets
-  Preseason injury (from injuries CSV):
-    preseasonInjured       — 1 if carrying injury designation into weeks 1-2
-    preseasonInjWeeks      — count of early-season reports
+    priorRZTargetShare     — player's RZ targets / team's RZ targets
+  Late-prior-season injury (from season S-1 injuries):
+    priorLateSeasonInjured — 1 if carried Out/Doubtful/Questionable
+                              designation in weeks 15-18 of S-1
+    priorLateSeasonInjWeeks — count of such reports in weeks 15-18 of S-1
+
+IMPORTANT — NO LEAKAGE: both signals use season S-1 data only. A row
+for player X in season S must never use information from season S,
+including Week 1 reports of that season. An earlier version of this
+script accidentally used weeks 1-2 of CURRENT season S as a "preseason
+injury" proxy — that was outcome leakage and gave +0.003 fake R² for
+TE. Reverted.
 
 ## Bug 1: PBP join key mismatch (same as team-features PR #119)
 
 advanced.ts and buildFeatureMatrix.ts built `pbpByReceiver` keyed on
 normalizeName(play.receiver_player_name). PBP abbreviates to "Mi.Carter"
 while rosters use full names. Every lookup failed → always zero.
+Fix: resolve via gsis_id (play.receiver_player_id) through rosters'
+gsis → full_name map.
 
-Fix: aggregate by gsis_id (play.receiver_player_id), then resolve to
-normalized full name via a rosters-derived gsis → normalized_name map.
+## Bug 2: "Preseason" injuries concept is unsupportable
 
-## Bug 2: Preseason injuries filter was too restrictive
+The nflverse injuries CSV has only game_type=REG rows starting at
+week=1. No PRE, no week 0, no actual preseason. The old TS code
+filtered `game_type==='PRE' || week<=0` which matched nothing. That
+was at least honest (features stayed 0%); replacing it with week 1-2
+of current season was worse (leakage).
 
-injuries_{S}.csv has only game_type=REG rows starting at week=1. The
-filter `game_type==='PRE' || week<=0` matched nothing. There is no
-actual preseason data in this source.
-
-Pragmatic fix: use weeks 1-2 of the current season as a "was this player
-entering the regular season with injury designations?" proxy. Players
-on the injury report at Week 1 games are essentially reflecting
-preseason-end health status.
+Honest replacement: priorLateSeasonInjWeeks from weeks 15-18 of the
+PRIOR season. Captures "ended last year hurt, likely entering this
+year still dealing with it" without touching the target season.
 
 ## Usage
 
@@ -60,8 +67,17 @@ DEFAULT_SEASONS = list(range(2010, 2026))
 SKILL_POSITIONS = {'QB', 'RB', 'WR', 'TE'}
 
 ADVANCED_KEYS = ['priorADOT', 'priorDeepTargetPct', 'priorRZTargetShare']
-INJURY_KEYS = ['preseasonInjured', 'preseasonInjWeeks']
+# New (non-leaky) injury keys — computed from prior season's late-season
+# weeks (15-18), not current season. The old preseasonInjured /
+# preseasonInjWeeks keys are DEAD — see the module docstring.
+INJURY_KEYS = ['priorLateSeasonInjured', 'priorLateSeasonInjWeeks']
 ALL_FEATURE_KEYS = ADVANCED_KEYS + INJURY_KEYS
+
+# Feature keys to STRIP from existing rows/shards when running this backfill.
+# Removes the leaky preseasonInjured/preseasonInjWeeks values shipped in #120
+# so they don't linger as dead fields. Listed here so future consumers that
+# want to do a cleanup-only pass can just reference this set.
+DEAD_KEYS_TO_STRIP = ['preseasonInjured', 'preseasonInjWeeks']
 
 
 def normalize_name(s):
@@ -236,13 +252,16 @@ def build_player_advanced_features(player_agg: dict, team_rz_totals: dict, name_
     return out
 
 
-def aggregate_preseason_injuries(inj_path: Path):
-    """Aggregate per-player injury designations for weeks 1-2 of the season.
+def aggregate_late_season_injuries(inj_path: Path):
+    """Per-player injury designations from the LATE prior season (weeks 15-18).
 
-    There's no true preseason data in the nflverse injuries CSV — but weeks
-    1-2 reports reflect players carrying injury designations INTO the
-    regular season, which is the closest proxy for "entered the year
-    banged up".
+    Used as a proxy for "ended the prior season hurt, still dealing with
+    lingering issues entering the new season". Only touches season S-1
+    data so there is no lookahead leakage.
+
+    Counts weeks 15-18 reports with Out/Doubtful/Questionable status,
+    which captures stretch-run injuries that tend to persist into the
+    offseason / new season kickoff.
     """
     agg = {}  # name → {injured, weeks}
     with open(inj_path, 'r', encoding='utf-8', errors='replace') as f:
@@ -252,7 +271,7 @@ def aggregate_preseason_injuries(inj_path: Path):
                 week = int(inj.get('week') or 0)
             except ValueError:
                 continue
-            if week < 1 or week > 2:
+            if week < 15 or week > 18:
                 continue
             name = normalize_name(inj.get('full_name'))
             if not name:
@@ -295,16 +314,21 @@ def compute_aggregates(seasons):
                 print(f'  advanced: {len(advanced)} players with priorADOT/DeepPct/RZShare')
                 per_season['advanced'] = advanced
 
-        # ── Preseason injury features (uses CURRENT season weeks 1-2) ──
-        inj_path = curl_cached(f'injuries/injuries_{season}.csv',
-                               f'injuries_{season}.csv')
+        # ── Late-prior-season injury features (uses season S-1 weeks 15-18) ──
+        # NO LEAKAGE: we read only from season S-1's injury file, since the
+        # row at (name, season S) is predicting season S outcomes.
+        inj_path = curl_cached(f'injuries/injuries_{season - 1}.csv',
+                               f'injuries_{season - 1}.csv')
         if inj_path is None:
-            print(f'  no injuries for {season}; skipping preseason injury')
+            print(f'  no injuries for {season - 1}; skipping late-season injury')
         else:
-            inj_agg = aggregate_preseason_injuries(inj_path)
-            print(f'  preseason injuries: {len(inj_agg)} players with wk1-2 designations')
-            per_season['preseasonInjuries'] = {
-                name: {'preseasonInjured': v['injured'], 'preseasonInjWeeks': v['weeks']}
+            inj_agg = aggregate_late_season_injuries(inj_path)
+            print(f'  late-season injuries: {len(inj_agg)} players w/ wk15-18 designations in S-1')
+            per_season['lateSeasonInjuries'] = {
+                name: {
+                    'priorLateSeasonInjured': v['injured'],
+                    'priorLateSeasonInjWeeks': v['weeks'],
+                }
                 for name, v in inj_agg.items()
             }
 
@@ -321,6 +345,19 @@ def apply_aggregates_to_training_cache(aggregates: dict):
     rows = data['rows']
     print(f'  {len(rows)} rows loaded')
 
+    # Strip dead keys (leaky preseasonInjured/Weeks from #120)
+    stripped = 0
+    for r in rows:
+        feats = r.get('features')
+        if not isinstance(feats, dict):
+            continue
+        for k in DEAD_KEYS_TO_STRIP:
+            if k in feats:
+                del feats[k]
+                stripped += 1
+    if stripped:
+        print(f'  Stripped {stripped} dead-key entries from training cache')
+
     adv_updated = 0
     inj_updated = 0
     missed = 0
@@ -332,7 +369,7 @@ def apply_aggregates_to_training_cache(aggregates: dict):
     for season_str, per_season in aggregates['perSeason'].items():
         season = int(season_str)
         adv = per_season.get('advanced', {})
-        inj = per_season.get('preseasonInjuries', {})
+        inj = per_season.get('lateSeasonInjuries', {})
         for row in rows_by_season.get(season, []):
             name = normalize_name(row.get('name'))
             f = row.setdefault('features', {})
@@ -361,7 +398,7 @@ def apply_aggregates_to_feature_store(aggregates: dict):
     """Update advanced + injuries shards."""
     for shard_path, feat_type, keys in [
         (FEATURE_STORE_ADVANCED, 'advanced', ADVANCED_KEYS),
-        (FEATURE_STORE_INJURIES, 'preseasonInjuries', INJURY_KEYS),
+        (FEATURE_STORE_INJURIES, 'lateSeasonInjuries', INJURY_KEYS),
     ]:
         if not shard_path.exists():
             print(f'\n(feature store shard missing at {shard_path}, skipping)')
@@ -370,6 +407,20 @@ def apply_aggregates_to_feature_store(aggregates: dict):
         with open(shard_path) as f:
             shard = json.load(f)
         print(f'  {len(shard)} player-season entries loaded')
+
+        # Strip dead keys from the injuries shard (was populated with leaky
+        # preseasonInjured/Weeks values in #120 before the revert)
+        if shard_path == FEATURE_STORE_INJURIES:
+            stripped = 0
+            for features in shard.values():
+                if not isinstance(features, dict):
+                    continue
+                for k in DEAD_KEYS_TO_STRIP:
+                    if k in features:
+                        del features[k]
+                        stripped += 1
+            if stripped:
+                print(f'  Stripped {stripped} dead-key entries')
 
         updated = 0
         missed = 0
