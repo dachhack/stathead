@@ -683,6 +683,28 @@ def compute_weekly_features_for_player(weekly_entry, wcd):
     return compute
 
 
+# ── Using the shipped PPG/residual/ADP models as KTC features ───────────
+#
+# The predictors for the JSON model caches live in
+# scripts/lib/external_model_predictors.py (Python GBM tree walker +
+# Ridge standardize/predict, matching src/lib/gbm.ts and src/lib/ridge.ts).
+# That module's docstring has the full null-result writeup from the
+# attempt to pipe PPG / residual / ADP model outputs in as KTC features.
+#
+# TL;DR: shipping external model predictions as KTC features regressed
+# pgR² on every tested configuration (net -0.043 for a 5-feature pass,
+# net -0.074 for a minimal 2-feature "edge-only" pass). Root cause: the
+# slow-feature layer already routes the same inputs the external models
+# use (priorPPG, priorPPG2yr, ppgTrend, invDraftPick, etc.), and a
+# KTC-trained GBM can re-derive the non-linear combinations the external
+# models compute. Emitting the external scalar alongside just gives the
+# model a redundant feature it overfits on.
+#
+# See scripts/lib/external_model_predictors.py for the predictors and
+# the list of alternative approaches we'd try before shipping external
+# model outputs as features.
+
+
 # ── Dataset assembly ────────────────────────────────────────────────────
 
 def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid,
