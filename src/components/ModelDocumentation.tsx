@@ -1169,6 +1169,50 @@ export function ModelDocumentation() {
                 Jonathan Mingo (ADP 39, PPG 2.3), Michael Mayer (ADP 35, PPG 6.0),
                 Zamir White (ADP 68, PPG 3.7). All had priorSnap=0%.
               </p>
+
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Late-Round Boom Classifier</h3>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                Binary classifier for late picks (ADP 100+) who finish top-24 at position.
+                Addresses redraft upside hunting: which sleepers are worth a dart throw?
+              </p>
+              <div className="table-container">
+                <table style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>N</th>
+                      <th style={{ textAlign: 'right' }}>Base Rate</th>
+                      <th style={{ textAlign: 'right' }}>AUC</th>
+                      <th style={{ textAlign: 'right' }}>High Score Boom%</th>
+                      <th style={{ textAlign: 'right' }}>Low Score Boom%</th>
+                      <th style={{ textAlign: 'right' }}>Separation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { pos: 'RB', n: 611, base: '7%', auc: '0.607', high: '10%', low: '5%', sep: '2.3x' },
+                      { pos: 'WR', n: 819, base: '6%', auc: '0.734', high: '12%', low: '2%', sep: '5.0x' },
+                      { pos: 'TE', n: 439, base: '40%', auc: '0.840', high: '85%', low: '10%', sep: '8.5x' },
+                    ].map(r => (
+                      <tr key={r.pos} style={{ background: r.pos === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
+                        <td><strong style={{ color: POS_COLORS[r.pos] }}>{r.pos}</strong></td>
+                        <td style={{ textAlign: 'right' }}>{r.n}</td>
+                        <td style={{ textAlign: 'right' }}>{r.base}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{r.auc}</td>
+                        <td style={{ textAlign: 'right', color: '#22c55e' }}>{r.high}</td>
+                        <td style={{ textAlign: 'right', color: '#ef4444' }}>{r.low}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{r.sep}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Validated late-round boom calls: Raheem Mostert 2023 (ADP 123), T.J. Hockenson 2022 (ADP 120),
+                David Njoku 2023 (ADP 104), Cole Kmet 2022/2024, Jakobi Meyers 2023/2024, Tyler Lockett 2022.
+                TE has the strongest signal — thin TE rooms = high-volume starters. WR depends on priorWOPR
+                and roster turnover (opportunity shifts). RB boom is injury-dependent (hardest to predict).
+              </p>
             </>
           );
         })()}
