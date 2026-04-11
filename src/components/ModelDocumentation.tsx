@@ -1170,16 +1170,18 @@ export function ModelDocumentation() {
                 Zamir White (ADP 68, PPG 3.7). All had priorSnap=0%.
               </p>
 
-              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Late-Round Boom Classifier</h3>
+              <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Late-Round Boom Classifier (Positional)</h3>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
-                Binary classifier for late picks (ADP 100+) who finish top-24 at position.
-                Addresses redraft upside hunting: which sleepers are worth a dart throw?
+                Binary classifier keyed on <strong>positional ADP rank</strong> rather than raw ADP —
+                matches how drafters think (tiered by position). Each position has its own late-pick and
+                boom thresholds scaled to scarcity: QB12+ → top-5, RB24+ → top-12, WR36+ → top-18, TE10+ → top-5.
               </p>
               <div className="table-container">
                 <table style={{ fontSize: 12 }}>
                   <thead>
                     <tr>
                       <th>Position</th>
+                      <th style={{ textAlign: 'right' }}>Late / Boom</th>
                       <th style={{ textAlign: 'right' }}>N</th>
                       <th style={{ textAlign: 'right' }}>Base Rate</th>
                       <th style={{ textAlign: 'right' }}>AUC</th>
@@ -1190,12 +1192,14 @@ export function ModelDocumentation() {
                   </thead>
                   <tbody>
                     {[
-                      { pos: 'RB', n: 611, base: '7%', auc: '0.607', high: '10%', low: '5%', sep: '2.3x' },
-                      { pos: 'WR', n: 819, base: '6%', auc: '0.734', high: '12%', low: '2%', sep: '5.0x' },
-                      { pos: 'TE', n: 439, base: '40%', auc: '0.840', high: '85%', low: '10%', sep: '8.5x' },
+                      { pos: 'QB', thr: 'QB12+ → top-5',  n: 426,  base: '8%', auc: '0.678', high: '11%', low: '1%', sep: '11.2x' },
+                      { pos: 'RB', thr: 'RB24+ → top-12', n: 916,  base: '4%', auc: '0.633', high: '8%',  low: '2%', sep: '3.8x' },
+                      { pos: 'WR', thr: 'WR36+ → top-18', n: 1204, base: '5%', auc: '0.819', high: '16%', low: '1%', sep: '15.9x' },
+                      { pos: 'TE', thr: 'TE10+ → top-5',  n: 607,  base: '6%', auc: '0.770', high: '14%', low: '1%', sep: '13.8x' },
                     ].map(r => (
                       <tr key={r.pos} style={{ background: r.pos === selectedPos ? 'var(--bg-tertiary)' : undefined }}>
                         <td><strong style={{ color: POS_COLORS[r.pos] }}>{r.pos}</strong></td>
+                        <td style={{ textAlign: 'right', fontSize: 11 }}>{r.thr}</td>
                         <td style={{ textAlign: 'right' }}>{r.n}</td>
                         <td style={{ textAlign: 'right' }}>{r.base}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{r.auc}</td>
@@ -1208,10 +1212,11 @@ export function ModelDocumentation() {
                 </table>
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                Validated late-round boom calls: Raheem Mostert 2023 (ADP 123), T.J. Hockenson 2022 (ADP 120),
-                David Njoku 2023 (ADP 104), Cole Kmet 2022/2024, Jakobi Meyers 2023/2024, Tyler Lockett 2022.
-                TE has the strongest signal — thin TE rooms = high-volume starters. WR depends on priorWOPR
-                and roster turnover (opportunity shifts). RB boom is injury-dependent (hardest to predict).
+                Positional ranking sharpens the signal significantly: WR AUC jumped from 0.734 → 0.819,
+                separation from 5.0x → 15.9x. QB is new (was excluded when using raw ADP 100+).
+                TE's base rate normalized from an inflated 40% → a realistic 6% with cleaner separation (13.8x).
+                Top drivers: WR depthChartRank + adp/adpPosRank, TE priorPPG + priorGames, QB team context
+                (vegasWinPct, teamPace, teamElitePassCatchers), RB adpPosRank + depthChartRank.
               </p>
             </>
           );
