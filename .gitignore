@@ -28,3 +28,7 @@ __pycache__/
 # Persistent across runs so we don't re-download ~2 GB each time; not
 # committed since these are too large for git history.
 .nflverse-cache/
+# Dataset pickles produced by scripts/sweep_ktc_hyperparams.py (Commit C.2b).
+# Keyed by feature-list hash; each pickle is ~100 MB and rebuilt cheaply
+# from training-rows-cache + ktc_history + weekly cache.
+.cache/
