@@ -1147,12 +1147,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const playerPositionMap = new Map<string, string>();
           for (const r of (seasonRosters || [])) {
             if (!POSITIONS.includes(r.position)) continue;
-            const name = normalizeName(r.player_name || (r as any).full_name);
+            const name = normalizeName(r.full_name || (r as any).player_name);
             playerPositionMap.set(name, r.position);
           }
           for (const r of (priorRosters || [])) {
             if (!POSITIONS.includes(r.position)) continue;
-            const name = normalizeName(r.player_name || (r as any).full_name);
+            const name = normalizeName(r.full_name || (r as any).player_name);
             if (!playerPositionMap.has(name)) playerPositionMap.set(name, r.position);
           }
 
@@ -3159,12 +3159,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const predPlayerPositionMap = new Map<string, string>();
             for (const r of (predSeasonRosters || [])) {
               if (!POSITIONS.includes(r.position)) continue;
-              const name = normalizeName(r.player_name || (r as any).full_name);
+              const name = normalizeName(r.full_name || (r as any).player_name);
               predPlayerPositionMap.set(name, r.position);
             }
             for (const r of (predPriorRosters || [])) {
               if (!POSITIONS.includes(r.position)) continue;
-              const name = normalizeName(r.player_name || (r as any).full_name);
+              const name = normalizeName(r.full_name || (r as any).player_name);
               if (!predPlayerPositionMap.has(name)) predPlayerPositionMap.set(name, r.position);
             }
 
