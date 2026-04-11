@@ -196,6 +196,7 @@ export async function buildSharedContext(opts: {
       hist.push({
         season: season - 1,
         ppg: priorGames > 0 ? (prior.fantasy_points_ppr || 0) / priorGames : 0,
+        games: priorGames,  // for durabilityStreak / availability features
         targets: prior.targets || 0,
         touches: (prior.carries || 0) + (prior.receptions || 0),
         snapPct,

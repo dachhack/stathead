@@ -122,11 +122,141 @@ def sf(v):
 
 def load_rows():
     with open(CACHE_PATH) as f:
-        return json.load(f)['rows']
+        data = json.load(f)
+    rows = data['rows']
+    # Idempotent augmentation — recomputing on already-augmented rows is cheap
+    # and gives identical values, so there's no harm if load_rows() is called
+    # multiple times per process.
+    augment_derived_features(rows)
+    return rows
+
+
+def load_and_persist_augmented_cache():
+    """Load the training cache, augment with derived features, save back to disk.
+
+    Run this once after changing augment_derived_features() so that TS consumers
+    (precompute-features.ts, draft sim, model docs) read the new features from
+    the on-disk cache without needing a Python-side augmentation pass.
+    """
+    print(f'Loading training cache from {CACHE_PATH}...')
+    with open(CACHE_PATH) as f:
+        data = json.load(f)
+    rows = data['rows']
+    print(f'  {len(rows)} rows loaded')
+
+    print('Augmenting with derived features...')
+    augment_derived_features(rows)
+
+    # Sanity-check: verify at least one row has the expected new keys populated
+    sample_keys = DERIVED_FEATURE_KEYS
+    have_key = {k: any((r.get('features') or {}).get(k, 0) != 0 for r in rows) for k in sample_keys}
+    print(f'  Derived-feature non-zero coverage:')
+    for k, present in have_key.items():
+        print(f'    {k}: {"ok" if present else "EMPTY (check logic)"}')
+
+    print(f'Writing augmented cache back to {CACHE_PATH}...')
+    with open(CACHE_PATH, 'w') as f:
+        json.dump(data, f)
+    size_mb = CACHE_PATH.stat().st_size / 1024 / 1024
+    print(f'  Wrote {size_mb:.1f} MB')
 
 
 def make_X(rows, keys):
     return np.array([[sf(r['features'].get(k, 0)) for k in keys] for r in rows])
+
+
+# ── Derived features ────────────────────────────────────────────────
+# Features computed in-memory at training time from the training cache
+# row graph. These exist only on the Python side — to get them into
+# production inference, they'd need to be ported to the TS feature store
+# (e.g. a priorStats extension group) once ablation shows lift.
+DERIVED_FEATURE_KEYS = [
+    # Multi-year weighted priors
+    'priorPPG2yr', 'priorPPG3yr',
+    # Non-linear age / experience
+    'ageSquared', 'yearsInLeagueSquared', 'yearsXpriorPPG', 'ageDeviationFromPrime',
+    # Availability / durability
+    'priorAvailabilityRate', 'seasonsPlayedLast5', 'durabilityStreak',
+]
+
+
+def augment_derived_features(rows):
+    """Compute derived features in-place on each row's features dict.
+
+    Uses a (name, position, season) -> stats lookup built from the row graph
+    itself, so each player's historical seasons inform their current-season
+    feature vector without requiring external data.
+
+    Multi-year lookups use rawPPG from PRIOR seasons' rows as the source of
+    truth for "did they play and how well?" — this is cleaner than chaining
+    priorPPG fields, which would require a season offset.
+    """
+    lookup = {}
+    for r in rows:
+        name = (r.get('name') or '').lower().strip()
+        key = (name, r['position'], r['season'])
+        f = r.get('features', {}) or {}
+        lookup[key] = {
+            'rawPPG': sf(r.get('rawPPG', 0)),
+            'priorGames': sf(f.get('priorGames', 0)),
+        }
+
+    for r in rows:
+        name = (r.get('name') or '').lower().strip()
+        pos = r['position']
+        season = r['season']
+        f = r.setdefault('features', {})
+
+        # Multi-year priors (rawPPG from prior seasons)
+        y1 = lookup.get((name, pos, season - 1), {}).get('rawPPG', 0.0)
+        y2 = lookup.get((name, pos, season - 2), {}).get('rawPPG', 0.0)
+        y3 = lookup.get((name, pos, season - 3), {}).get('rawPPG', 0.0)
+
+        if y1 > 0 and y2 > 0:
+            f['priorPPG2yr'] = round(0.65 * y1 + 0.35 * y2, 2)
+        elif y1 > 0:
+            f['priorPPG2yr'] = round(y1, 2)
+        else:
+            f['priorPPG2yr'] = 0.0
+
+        w_sum = 0.0
+        w = 0.0
+        for y, weight in ((y1, 0.5), (y2, 0.3), (y3, 0.2)):
+            if y > 0:
+                w += weight * y
+                w_sum += weight
+        f['priorPPG3yr'] = round(w / w_sum, 2) if w_sum > 0 else 0.0
+
+        # Non-linear age / experience
+        age = sf(f.get('age', 0))
+        yil = sf(f.get('yearsInLeague', 0))
+        prior_ppg = sf(f.get('priorPPG', 0))
+        f['ageSquared'] = round(age * age, 1)
+        f['yearsInLeagueSquared'] = round(yil * yil, 1)
+        f['yearsXpriorPPG'] = round(yil * prior_ppg, 2)
+        # Distance from prime age (prime ≈ 26 across positions, roughly)
+        f['ageDeviationFromPrime'] = round(abs(age - 26), 1) if age > 0 else 0.0
+
+        # Availability / durability
+        prior_games = sf(f.get('priorGames', 0))
+        f['priorAvailabilityRate'] = round(prior_games / 17, 3) if prior_games > 0 else 0.0
+
+        # Seasons played in last 5 years (veteran longevity signal)
+        seasons_played = sum(
+            1 for delta in range(1, 6)
+            if lookup.get((name, pos, season - delta), {}).get('rawPPG', 0) > 0
+        )
+        f['seasonsPlayedLast5'] = seasons_played
+
+        # Consecutive seasons with ≥15 games looking back (durability streak)
+        streak = 0
+        for delta in range(1, int(yil) + 2):
+            past_games = lookup.get((name, pos, season - delta), {}).get('priorGames', 0)
+            if past_games >= 15:
+                streak += 1
+            else:
+                break
+        f['durabilityStreak'] = streak
 
 
 # ── Feature definitions ─────────────────────────────────────────────
@@ -346,10 +476,29 @@ def train_ppg_models(rows):
         print("  No existing PPG cache, skipping")
         return None
 
+    # Feature lists pruned via scripts/ablate_ppg_features.py, then augmented
+    # with derived features chosen by substitution testing (per position):
+    #
+    #   QB: priorPPG → priorPPG2yr (substitution)   +0.0064 R²
+    #   RB: +priorPPG2yr            (addition)      +0.0022 R²
+    #   WR: +priorPPG2yr            (addition)      +0.0011 R²
+    #   TE: +durabilityStreak       (addition)      +0.0013 R²
+    #
+    # Tried and rejected (ablation negative or dead): ageSquared, yearsInLeagueSquared,
+    # yearsXpriorPPG, ageDeviationFromPrime, priorPPG3yr, priorAvailabilityRate,
+    # seasonsPlayedLast5. GBMs capture the non-linear age / interaction signal
+    # natively; no Ridge-style transforms help.
+    #
+    # IMPORTANT: priorPPG2yr and durabilityStreak are computed in Python via
+    # augment_derived_features() when load_rows() is called, but they are NOT
+    # yet populated in the TS feature store. The TS inference path (draft sim,
+    # 2026 predictions) will see these features as 0 until they're ported.
+    # Follow-up PR needed: port augment_derived_features to a TS feature group.
     PPG_FEATURE_LISTS = {
         'QB': [
             'yearsInLeague', 'nflDraftPick', 'invDraftPick', 'draftPickPctOverall',
-            'priorTimeToThrow', 'priorPPG', 'teamSamePosCount', 'newArrivalBestPPR',
+            'priorTimeToThrow', 'priorPPG2yr',  # was priorPPG (single year)
+            'teamSamePosCount', 'newArrivalBestPPR',
             'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
             'collegeQBR', 'collegeSosFinalYr', 'ppgTrend', 'teamRosterTurnover',
             'priorInjuryWeeks', 'injuryRecurrence', 'priorKneeInjury',
@@ -360,6 +509,7 @@ def train_ppg_models(rows):
             'teammatePriorPPR', 'projPlayerPPR', 'projTargetShare', 'prospectGrade',
             'ppgTrend', 'priorBoomRate', 'qbOwnRushYds',
             'priorWOPR', 'priorAirYardsShare', 'teamQBPassRating',
+            'priorPPG2yr',
         ],
         'WR': [
             'age', 'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
@@ -368,12 +518,14 @@ def train_ppg_models(rows):
             'newArrivalBestPPR', 'priorPPGXage', 'qbOwnPPG',
             'priorBoomRate', 'priorBustGameRate', 'teamDomeGames',
             'priorInjuryWeeks', 'injuryRecurrence',
+            'priorPPG2yr',
         ],
         'TE': [
             'age', 'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'draftClassDepth',
             'weight', 'bench', 'priorYACperRec', 'priorPPG', 'priorGames',
             'heightAdjSpeedScore', 'priorBoomRate',
             'priorAirYardsShare',
+            'durabilityStreak',
         ],
     }
 

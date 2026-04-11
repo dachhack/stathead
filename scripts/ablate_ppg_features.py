@@ -156,8 +156,17 @@ def main():
             top = int(args[idx + 1])
 
     print(f'Loading training rows from {CACHE_PATH}...')
-    with open(CACHE_PATH) as f:
-        rows = json.load(f)['rows']
+    # Use train_projection_models.load_rows() so the derived features
+    # (priorPPG2yr, ageSquared, etc.) get computed consistently. Falls back
+    # to raw JSON load if the import fails (e.g. script moved).
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from train_projection_models import load_rows as _load_rows_augmented  # type: ignore
+        rows = _load_rows_augmented()
+    except Exception as e:
+        print(f'  (fallback to raw load: {e})')
+        with open(CACHE_PATH) as f:
+            rows = json.load(f)['rows']
     print(f'  {len(rows)} rows loaded')
 
     print(f'Loading PPG models from {MODEL_CACHE_PATH}...')
