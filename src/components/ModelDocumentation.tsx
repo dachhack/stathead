@@ -922,9 +922,11 @@ export function ModelDocumentation() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                 Note: PPG model R² corrected after removing data-leaking features (current-season actual share data).
                 Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
-                The ADP-free PPG task is genuinely hard because it excludes the market signal; expect further lift from
-                injury priors, advanced receiving stats (WOPR, aDOT), multi-year weighted priors, and QB context for
-                pass-catchers.
+                Feature sets then re-tuned via Python ablation (<code>scripts/ablate_ppg_features.py</code>): pruned
+                to 19/20/21/13 features for QB/RB/WR/TE, adding priorWOPR for RB (the only ablation-positive addition
+                from the injury / advanced-receiving / QB-context batch). Pruning recovered +0.007 to +0.016 R² per
+                position. Remaining lift lies in better prior encoding (multi-year weighted priorPPG, non-linear age)
+                and richer team/scheme features.
               </p>
             </>
           );

@@ -324,25 +324,68 @@ def train_adp_models(rows):
 # ── PPG Models ──────────────────────────────────────────────────────
 
 def train_ppg_models(rows):
-    """Train ADP-free PPG models."""
+    """Train ADP-free PPG models.
+
+    Feature lists below are the pruned sets produced by running
+    scripts/ablate_ppg_features.py on the post-leakage-fix + feature-additions
+    feature sets, then picking the best strategy per position:
+      QB: drop NOISE only (Δ ≥ -0.001)      → 23 → 19 features, +0.0081 R²
+      RB: top-20 by ablation Δ              → 41 → 20 features, +0.0075 R²
+      WR: top-21 by ablation Δ              → 43 → 21 features, +0.0063 R²
+      TE: keep only Δ > 0 features          → 25 → 13 features, +0.0162 R²
+
+    Notable inclusions: priorWOPR for RB (Δ=+0.0050, the only valuable
+    addition from the injury/advanced/QB-context batch).
+
+    Re-run ablation + re-pick via scripts/ablate_ppg_features.py if you
+    add or change features. DO NOT hand-edit these lists without rerunning
+    the measurement.
+    """
     old = load_old_cache('model-cache-ppg-v56.json')
     if not old:
         print("  No existing PPG cache, skipping")
         return None
 
-    # Strip current-season actual share features that leak the target.
-    # These were fixed in train_adp_models but never applied here, so cached
-    # PPG R²s were inflated by ~0.15-0.25 for RB/WR/TE (QB wasn't affected).
-    LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
-                      'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare', 'actualRushTDShare'}
+    PPG_FEATURE_LISTS = {
+        'QB': [
+            'yearsInLeague', 'nflDraftPick', 'invDraftPick', 'draftPickPctOverall',
+            'priorTimeToThrow', 'priorPPG', 'teamSamePosCount', 'newArrivalBestPPR',
+            'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
+            'collegeQBR', 'collegeSosFinalYr', 'ppgTrend', 'teamRosterTurnover',
+            'priorInjuryWeeks', 'injuryRecurrence', 'priorKneeInjury',
+        ],
+        'RB': [
+            'age', 'yearsInLeague', 'invDraftPick', 'draftClassDepth', 'vertical', 'bmi',
+            'priorRecEPA', 'priorRushEPA', 'priorPPR', 'teamSamePosCount',
+            'teammatePriorPPR', 'projPlayerPPR', 'projTargetShare', 'prospectGrade',
+            'ppgTrend', 'priorBoomRate', 'qbOwnRushYds',
+            'priorWOPR', 'priorAirYardsShare', 'teamQBPassRating',
+        ],
+        'WR': [
+            'age', 'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
+            'draftPickPct', 'draftPickPctOverall', 'broadJump', 'vertical',
+            'priorTargetShare', 'priorYACAboveExp', 'priorPPG', 'priorGames',
+            'newArrivalBestPPR', 'priorPPGXage', 'qbOwnPPG',
+            'priorBoomRate', 'priorBustGameRate', 'teamDomeGames',
+            'priorInjuryWeeks', 'injuryRecurrence',
+        ],
+        'TE': [
+            'age', 'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'draftClassDepth',
+            'weight', 'bench', 'priorYACperRec', 'priorPPG', 'priorGames',
+            'heightAdjSpeedScore', 'priorBoomRate',
+            'priorAirYardsShare',
+        ],
+    }
 
     ppg_models = []
     for old_m in old['ppgModels']:
         pos = old_m['position']
-        feature_names = [f for f in old_m['ridgeModel']['featureNames'] if f not in LEAKY_FEATURES]
-        dropped = [f for f in old_m['ridgeModel']['featureNames'] if f in LEAKY_FEATURES]
-        if dropped:
-            print(f"    {pos}: dropped {len(dropped)} leaky features ({', '.join(dropped)})")
+        feature_names = list(PPG_FEATURE_LISTS[pos])
+        old_feats = old_m['ridgeModel']['featureNames']
+        print(f"    {pos}: {len(feature_names)} features "
+              f"(pruned from {len(old_feats)}, "
+              f"+{len([f for f in feature_names if f not in old_feats])} new, "
+              f"-{len([f for f in old_feats if f not in feature_names])} dropped)")
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
