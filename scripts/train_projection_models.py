@@ -88,6 +88,129 @@ def lgb_to_js_gbm(model: lgb.Booster, X: np.ndarray, y: np.ndarray,
     }
 
 
+def _scale_leaf_values(node: dict, factor: float) -> None:
+    """Recursively multiply every leaf's value by `factor` in-place."""
+    if node.get('featureIndex', -1) == -1:
+        node['value'] = round(node['value'] * factor, 10)
+        return
+    if node.get('left'):
+        _scale_leaf_values(node['left'], factor)
+    if node.get('right'):
+        _scale_leaf_values(node['right'], factor)
+
+
+def train_bagged_lgb(X: np.ndarray, y: np.ndarray, feature_names: list[str],
+                      lgb_params: dict, n_rounds: int, n_bags: int) -> list[lgb.Booster]:
+    """Train N LightGBM boosters on bootstrap resamples for bagging.
+
+    Classical bootstrap aggregating (Breiman 1996):
+      - For each bag, sample n rows with replacement from (X, y). The
+        resulting sample contains ~63% of unique rows; ~37% of rows appear
+        zero times, and ~25% appear twice or more.
+      - Train a full LightGBM booster on this bootstrap sample with the
+        SAME hyperparameters as a single-model fit — same optimal split
+        strategy, same depth, same n_rounds. Each bag fits optimally to
+        its own slightly-different view of the data.
+      - Different seeds also drive LightGBM's internal row/feature
+        subsampling (if the caller set bagging_freq>0) so bags further
+        diverge iteration-to-iteration.
+
+    Bagging only helps high-variance learners. For low-variance ensembles
+    (shallow trees, many rounds, regularized params — our PPG config),
+    bootstrap sampling can actually regress because it reduces effective
+    training data per bag without enough variance reduction to compensate.
+    A hyperparameter re-sweep jointly with bagging is usually needed to
+    unlock lift; see the PPG bagging null-result discussion in the commit
+    history for details. Career models (n<200 per position, deeper trees)
+    do benefit from this approach, which is why it's the established
+    project recipe from train_career_models.py.
+    """
+    n = X.shape[0]
+    boosters = []
+    base_seed = int(lgb_params.get('seed', 42))
+    for bag_idx in range(n_bags):
+        rng = np.random.default_rng(base_seed + bag_idx)
+        idx = rng.integers(0, n, size=n)  # sample with replacement
+        Xb = X[idx]
+        yb = y[idx]
+        p = dict(lgb_params)
+        p['seed'] = base_seed + bag_idx
+        p['bagging_seed'] = base_seed + bag_idx
+        p['feature_fraction_seed'] = base_seed + bag_idx
+        boosters.append(train_lgb_model(Xb, yb, feature_names, p, n_rounds))
+    return boosters
+
+
+def bagged_predict(boosters: list[lgb.Booster], X: np.ndarray) -> np.ndarray:
+    """Mean prediction across all bagged boosters. This is the target the
+    JS-side emission must match."""
+    return np.mean(np.stack([b.predict(X) for b in boosters], axis=0), axis=0)
+
+
+def bagged_lgb_to_js_gbm(boosters: list[lgb.Booster], X: np.ndarray, y: np.ndarray,
+                          feature_names: list[str], loss: str = 'squared',
+                          quantile: float | None = None) -> dict:
+    """Convert a bagged LightGBM ensemble to a single JS-compatible GBM dict.
+
+    Bagging math for squared-loss regression:
+        bagged(x) = (1/N) * Σ_k LGB_k.predict(x)
+                  = (1/N) * Σ_k Σ leaf_value(x; bag_k)
+                  = Σ_all_trees_across_bags (leaf_value / N)
+
+    Strategy: concatenate every tree from every bag into one flat tree list,
+    divide every leaf_value by N at emission time. The TS predictor then
+    computes `0 + 1 * Σ leaf_value` (per the PR-1 invariant) which exactly
+    reproduces the bagged prediction — zero TS-side changes required.
+
+    Advantage over an explicit per-bag array format:
+      - TS inference unchanged (no new predict function or schema bump)
+      - Feature importance aggregation is automatic (one flat model)
+      - Identical JSON shape between single-model and bagged-model caches
+
+    Tradeoff:
+      - Lossy: per-bag disagreement (useful for prediction intervals) is
+        collapsed. If we later want bag-level uncertainty, we can switch
+        to an explicit array format in a follow-up PR.
+      - Only valid for identity-link squared loss / unmodified quantile
+        loss. For classification (sigmoid output) this math does NOT hold.
+        PPG / ADP / residual / share are all squared regression, so fine.
+    """
+    n_bags = len(boosters)
+    if n_bags < 1:
+        raise ValueError("bagged_lgb_to_js_gbm requires at least one booster")
+
+    # Concatenate every tree from every bag, scale leaves by 1/N_BAGS.
+    all_trees = []
+    for b in boosters:
+        dump = b.dump_model()
+        for t in dump['tree_info']:
+            tree = _convert_node(t['tree_structure'])
+            _scale_leaf_values(tree, 1.0 / n_bags)
+            all_trees.append(tree)
+
+    # Bagged predictions for the emitted metrics
+    preds = bagged_predict(boosters, X)
+    r2 = float(r2_score(y, preds))
+    mae_val = float(mean_absolute_error(y, preds))
+    rmse = float(np.sqrt(np.mean((y - preds) ** 2)))
+    n = len(y)
+    return {
+        'trees': all_trees,
+        'initialPrediction': 0.0,  # invariant: PR 1 fix, bagged math collapses to this
+        'learningRate': 1.0,       # invariant: leaves already scaled by 1/N_BAGS
+        'featureNames': feature_names,
+        'rSquared': round(r2, 6),
+        'adjustedRSquared': round(1 - (1 - r2) * (n - 1) / max(1, n - len(feature_names) - 1), 6),
+        'mae': round(mae_val, 4),
+        'rmse': round(rmse, 4),
+        'n': n,
+        'predictions': [round(float(p), 4) for p in preds],
+        'loss': loss,
+        'nBags': n_bags,  # informational; TS predictor ignores this field
+        **(({'quantile': quantile} if quantile is not None else {})),
+    }
+
+
 def train_ridge_js(X: np.ndarray, y: np.ndarray, feature_names: list[str], alpha: float) -> dict:
     """Train Ridge and output JS-compatible format (with standardization)."""
     means = np.nanmean(X, axis=0)
@@ -597,17 +720,57 @@ def train_ppg_models(rows):
         'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.7},  # baseline optimal
     }
 
+    # Bagging count per position. Each bag is a full booster trained on a
+    # bootstrap resample. Emitted as a single concatenated tree list with
+    # leaf values scaled by 1/N_BAGS so the TS predictor (init=0, lr=1)
+    # reproduces the bagged mean exactly (see bagged_lgb_to_js_gbm).
+    #
+    # CURRENT SETTING: all 1s (bagging disabled for PPG, single-model path).
+    #
+    # Empirical result: bagging was tested at N ∈ {3, 5, 10} both with and
+    # without n_rounds inflation (1.0x, 1.3x, 1.6x) to compensate for the
+    # ~63%-unique bootstrap sample. Every configuration regressed PPG LOSO
+    # R² by 0.003–0.016 vs the single-model baseline:
+    #
+    #   QB (n=595)  1 bag: 0.614  |  10 bags: 0.607 (-0.007)
+    #   RB (n=1270) 1 bag: 0.512  |  10 bags: 0.509 (-0.003)
+    #   WR (n=1731) 1 bag: 0.570  |  10 bags: 0.565 (-0.005)
+    #   TE (n=732)  1 bag: 0.627  |  10 bags: 0.616 (-0.011)
+    #
+    # Root cause: PPG models use shallow trees (depth=3) with many rounds
+    # (100–200) and tuned regularization, so they're already low-variance
+    # learners. Bootstrap resampling reduces effective per-bag training
+    # data without enough variance reduction to compensate. The existing
+    # single-model hyperparameters are at the bias-variance sweet spot for
+    # this feature count and sample size.
+    #
+    # Follow-up options (not scoped here):
+    #   1. Joint bagging + hyperparameter re-sweep — deeper trees and/or
+    #      more rounds per bag might give bagging room to help.
+    #   2. Feature-bagging ("random GBM forest") — per-bag feature subsets
+    #      instead of row subsets. Also needs a sweep.
+    #   3. Apply to residual models instead — smaller per-position n and
+    #      lower baseline signal might be a better fit for bagging.
+    #
+    # The infrastructure (train_bagged_lgb, bagged_lgb_to_js_gbm, the guard
+    # test case in test_lgb_js_equivalence.py) is kept in place so any of
+    # those follow-ups is a one-line change. Bagging is known to help the
+    # career models (train_career_models.py:237 uses the same recipe).
+    BAG_CONFIG = {'QB': 1, 'RB': 1, 'WR': 1, 'TE': 1}
+
     ppg_models = []
     for old_m in old['ppgModels']:
         pos = old_m['position']
         feature_names = list(PPG_FEATURE_LISTS[pos])
         cfg = PPG_CONFIG[pos]
+        n_bags = BAG_CONFIG[pos]
         old_feats = old_m['ridgeModel']['featureNames']
         print(f"    {pos}: {len(feature_names)} features "
               f"(pruned from {len(old_feats)}, "
               f"+{len([f for f in feature_names if f not in old_feats])} new, "
               f"-{len([f for f in old_feats if f not in feature_names])} dropped); "
-              f"lr={cfg['lr']} n={cfg['n_rounds']} mcs={cfg['min_leaf']} gbmW={cfg['gbm_weight']}")
+              f"lr={cfg['lr']} n={cfg['n_rounds']} mcs={cfg['min_leaf']} "
+              f"gbmW={cfg['gbm_weight']} bags={n_bags}")
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
@@ -620,8 +783,12 @@ def train_ppg_models(rows):
             'min_child_samples': cfg['min_leaf'], 'subsample': 0.8,
             'seed': 42, 'n_jobs': 1,
         }
-        gbm = train_lgb_model(X, y, feature_names, lgb_params, cfg['n_rounds'])
-        gbm_js = lgb_to_js_gbm(gbm, X, y, feature_names)
+        if n_bags > 1:
+            boosters = train_bagged_lgb(X, y, feature_names, lgb_params, cfg['n_rounds'], n_bags)
+            gbm_js = bagged_lgb_to_js_gbm(boosters, X, y, feature_names)
+        else:
+            gbm = train_lgb_model(X, y, feature_names, lgb_params, cfg['n_rounds'])
+            gbm_js = lgb_to_js_gbm(gbm, X, y, feature_names)
 
         # LOSO
         seasons = sorted(set(r['season'] for r in pos_rows))
@@ -631,8 +798,13 @@ def train_ppg_models(rows):
             te = [i for i, r in enumerate(pos_rows) if r['season'] == held]
             if len(tr) < 10 or not te: continue
             r_fold = Ridge(alpha=15); r_fold.fit(X[tr], y[tr]); rp = r_fold.predict(X[te])
-            g_fold = train_lgb_model(X[tr], y[tr], feature_names, lgb_params, cfg['n_rounds'])
-            gp = g_fold.predict(X[te])
+            if n_bags > 1:
+                fold_boosters = train_bagged_lgb(X[tr], y[tr], feature_names,
+                                                  lgb_params, cfg['n_rounds'], n_bags)
+                gp = bagged_predict(fold_boosters, X[te])
+            else:
+                g_fold = train_lgb_model(X[tr], y[tr], feature_names, lgb_params, cfg['n_rounds'])
+                gp = g_fold.predict(X[te])
             gbm_w = cfg['gbm_weight']
             for j, idx in enumerate(te): loso[idx] = gp[j] * gbm_w + rp[j] * (1 - gbm_w)
 

@@ -21,7 +21,14 @@ import lightgbm as lgb
 
 # Import the fixed converter from the project
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from train_projection_models import lgb_to_js_gbm, _convert_node, train_lgb_model  # noqa: E402
+from train_projection_models import (  # noqa: E402
+    lgb_to_js_gbm,
+    _convert_node,
+    train_lgb_model,
+    train_bagged_lgb,
+    bagged_lgb_to_js_gbm,
+    bagged_predict,
+)
 
 
 TOLERANCE = 1e-8
@@ -140,6 +147,41 @@ def run_tests() -> int:
     if not check('buggy formula collapses prediction spread',
                  buggy_spread < 0.2 * real_spread,
                  f'buggy spread {buggy_spread:.3f} vs correct {real_spread:.3f}'):
+        failures += 1
+
+    # ── Test 5: bagged model TS formula == mean of per-bag LGB.predict() ──
+    # Validates the tree-concat + leaf-scaling approach used by
+    # bagged_lgb_to_js_gbm(). The TS predictor is unchanged (init=0, lr=1)
+    # so the invariant is:
+    #     sum(scaled_leaf_value) == (1/N) * Σ_k LGB_k.predict(x)
+    print()
+    print('Test 5: bagged model (N=5) TS formula matches averaged per-bag LGB')
+    boosters = train_bagged_lgb(X, y, feature_names, params, 40, n_bags=5)
+    bag_js = bagged_lgb_to_js_gbm(boosters, X, y, feature_names)
+    bag_js_pred = predict_via_js_formula(bag_js, X)
+    bag_true_pred = bagged_predict(boosters, X)
+    max_diff_bag = float(np.max(np.abs(bag_js_pred - bag_true_pred)))
+    if not check('bagged predictions match mean-of-LGBs',
+                 max_diff_bag < TOLERANCE,
+                 f'max|js - bagged| = {max_diff_bag:.2e}'):
+        failures += 1
+    if not check('bagged metadata still 0 / 1 (invariant)',
+                 bag_js['initialPrediction'] == 0.0 and bag_js['learningRate'] == 1.0,
+                 f'init={bag_js["initialPrediction"]}, lr={bag_js["learningRate"]}'):
+        failures += 1
+    if not check('bagged nBags recorded',
+                 bag_js.get('nBags') == 5,
+                 f'got nBags={bag_js.get("nBags")}'):
+        failures += 1
+    # Bagging must yield a different prediction than a single booster
+    # (otherwise the ensemble isn't doing anything — the bags are
+    # degenerate copies of each other).
+    single_model = train_lgb_model(X, y, feature_names, params, 40)
+    single_pred = single_model.predict(X)
+    bag_vs_single = float(np.max(np.abs(bag_true_pred - single_pred)))
+    if not check('bagged predictions diverge from single booster',
+                 bag_vs_single > 1e-3,
+                 f'max|bag - single| = {bag_vs_single:.3e}'):
         failures += 1
 
     print()
