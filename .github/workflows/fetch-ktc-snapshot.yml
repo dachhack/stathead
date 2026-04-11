@@ -73,7 +73,10 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
+          # -f as a safety net. The .gitignore has `!public/data/ktc_*.json`
+          # exceptions that should make a plain `git add` work, but force-add
+          # is harmless and defends against any gitignore edge case.
+          git add -f public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
           if git diff --cached --quiet; then
             echo "No changes to commit — snapshot already matches the tree."
             exit 0

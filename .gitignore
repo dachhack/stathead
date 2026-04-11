@@ -2,7 +2,7 @@ node_modules
 dist
 .DS_Store
 *.local
-public/data/
+public/data/*
 !public/data/training-rows-cache-*.json
 !public/data/trained-models-cache-*.json
 !public/data/model-cache-*.json
@@ -10,6 +10,12 @@ public/data/
 !public/data/score-store/
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
+# Ablation + sweep result files: force-added throughout the tuning session.
+# Whitelisting here so future re-runs commit cleanly via normal `git add`.
+!public/data/ppg-feature-ablation.json
+!public/data/ppg-hyperparam-sweep.json
+!public/data/residual-feature-ablation.json
+!public/data/residual-hyperparam-sweep.json
 .claude/
 CLAUDE.local.md
 __pycache__/
