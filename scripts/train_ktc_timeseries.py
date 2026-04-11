@@ -1,0 +1,691 @@
+#!/usr/bin/env python3
+"""KTC time-series baseline trainer — Commit A of the KTC reframe.
+
+Every player's KTC dynasty value is a time series. For each (player, t)
+where v(t+H) is observable, build a training sample whose target is the
+H-day log-return
+
+    y(t) = log(v(t+H)) - log(v(t))
+
+and whose features are:
+
+  fast (from KTC history alone, backward-looking from t):
+    logValue, return_{1,7,14,30}d,
+    zscore_30d, vol_30d, drawdown_30d,
+    days_since_max_30d, days_since_min_30d,
+    posRankPct (percentile within position at time t),
+    posRankPctDelta_7d
+
+  slow (from training-rows-cache-v42.json, joined by normalized name + pos):
+    age (current, from ktc_rankings), yearsInLeague, draft capital,
+    physical / combine, prior production, role, team context, projection.
+
+Per-position models, per-horizon models (one per (position, horizon) pair).
+
+CV: expanding-window walk-forward. At each cutoff T, the model trains on
+(player, t) with t + H ≤ T — i.e. every training sample's target was
+already observable at T — and predicts v(T+H) for every player. Predictions
+across all cutoffs pool into one out-of-sample vector per (pos, H), from
+which honest cv_r2 / cv_mae are computed. The full-data model is trained
+on all feasible samples and serialized via lgb_to_js_gbm (init=0, lr=1
+invariant from f22f844).
+
+Output: public/data/model-cache-ktc-v2.json  (v2 — v1 was the dead-end
+valueDeltaPct port that motivated this reframe).
+
+Usage:
+    source /tmp/lgb-verify/bin/activate
+    python3 scripts/train_ktc_timeseries.py
+"""
+import json
+import re
+import sys
+import time
+from datetime import date, timedelta
+from pathlib import Path
+
+import numpy as np
+import lightgbm as lgb
+from sklearn.metrics import r2_score, mean_absolute_error
+
+# Project helpers — use the canonical serializer with the init=0/lr=1 invariant
+sys.path.insert(0, str(Path(__file__).parent))
+from train_projection_models import lgb_to_js_gbm, train_lgb_model, sf  # noqa: E402
+
+
+DATA_DIR = Path('public/data')
+KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
+KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
+TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v42.json'
+OUTPUT_PATH = DATA_DIR / 'model-cache-ktc-v2.json'
+
+POSITIONS = ('QB', 'RB', 'WR', 'TE')
+HORIZONS = (7, 30, 90)
+WARMUP_DAYS = 30  # days of history required before fast features become valid
+CV_FOLDS = 5      # expanding-window walk-forward cutoffs per (pos, horizon)
+CV_TEST_WINDOW_DAYS = 14  # width of each fold's test window (pools predictions
+                          # across multiple days so per-fold noise doesn't
+                          # dominate pooled R²)
+MIN_FOLD_TRAIN_ROWS = 500  # skip a fold if training set is smaller than this
+
+
+# ── Name normalization ──────────────────────────────────────────────────
+
+def normalize_name(name):
+    if not name:
+        return ''
+    s = str(name).lower()
+    s = re.sub(r'[^a-z ]', '', s)
+    s = re.sub(r'\s+', ' ', s).strip()
+    s = re.sub(r' (jr|sr|ii|iii|iv|v)$', '', s)
+    return s
+
+
+# ── Slow feature definitions ────────────────────────────────────────────
+# Selected from the TSX component's feature lists (src/components/
+# KTCPredictiveModel.tsx:69-184) plus a few static fields available in the
+# training cache that the TSX assembles inline from nflverse data. All of
+# these are player-level attributes that do not change day-to-day.
+#
+# Commit B will add weekly nflverse state features (snap %, target volume,
+# depth chart delta) as a *fast* layer. This list is intentionally frozen
+# for Commit A so ablation has a clean baseline to work against.
+
+SLOW_COMMON = [
+    'age', 'yearsInLeague',
+    'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'logDraftPick',
+    'draftPickPctOverall', 'draftClassDepth',
+    'weight', 'bmi', 'forty', 'speedScore', 'vertical',
+    'priorPPG', 'priorPPG2yr', 'priorGames', 'priorSnapPct',
+    'priorFantasyPPR',
+    'depthChartRank', 'teamSamePosCount',
+    'priorTargetShare',
+    'qbOwnPPG', 'teamElitePassCatchers', 'teamPassCatcherPPR',
+    'priorWOPR', 'priorBoomRate', 'priorBustGameRate',
+    'projPlayerPPR', 'projTargetShare', 'projPlayerVsExpected',
+    'priorInjuryWeeks', 'ppgTrend',
+]
+
+SLOW_POS = {
+    'QB': ['priorPassYards', 'priorPassTDs', 'priorINTs', 'priorAttempts',
+           'priorTimeToThrow', 'collegeQBR'],
+    'RB': ['priorRushYards', 'priorRushTDs', 'priorCarries', 'priorYPC',
+           'priorRecEPA', 'priorRushEPA'],
+    'WR': ['priorTargets', 'priorReceptions', 'priorRecYards', 'priorRecTDs',
+           'priorYACAboveExp', 'priorAirYardsShare'],
+    'TE': ['priorTargets', 'priorReceptions', 'priorRecYards', 'priorRecTDs',
+           'priorYACperRec', 'priorAirYardsShare'],
+}
+
+
+def slow_feature_names(pos):
+    """Returns the ordered slow feature names for a position.
+    `isRookie` is injected first so the GBM can split on it cheaply."""
+    return ['isRookie'] + SLOW_COMMON + SLOW_POS[pos]
+
+
+# Fast features are computed identically for every position.
+#
+# Season-phase features (`daysSinceSeasonStart`, `phaseRegSeason`,
+# `phasePlayoffs`, `phaseOffseason`) are critical for the 2025-26 data:
+# the 6-month window contains exactly one regime transition (regular
+# season → playoffs → offseason). Without an explicit phase signal, a
+# walk-forward fold trained on regular-season momentum will extrapolate
+# badly across the shift. These features don't fix single-shot CV
+# (a fold that trains ONLY on in-season still can't *learn* the offseason
+# distribution) but they let the full-data deployed model condition on
+# phase correctly.
+FAST_FEATURE_NAMES = [
+    'logValue',
+    'return_1d', 'return_7d', 'return_14d', 'return_30d',
+    'zscore_30d', 'vol_30d', 'drawdown_30d',
+    'days_since_max_30d', 'days_since_min_30d',
+    'posRankPct', 'posRankPctDelta_7d',
+    'daysSinceSeasonStart', 'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
+]
+
+# NFL 2025-26 calendar anchors (for season-phase features).
+# Source: https://www.nfl.com/schedules/ — Week 1 Sep 4 2025, Week 18 Jan 4 2026,
+# Super Bowl Feb 8 2026.
+SEASON_START = date(2025, 9, 4)
+REG_SEASON_END = date(2026, 1, 4)
+PLAYOFFS_END = date(2026, 2, 8)
+
+
+def feature_names_for(pos):
+    return FAST_FEATURE_NAMES + slow_feature_names(pos)
+
+
+# ── Loaders ─────────────────────────────────────────────────────────────
+
+def load_inputs():
+    """Load ktc_history, ktc_rankings, training-rows-cache and return
+    (players, slow_feats_by_pid, date_grid) where:
+      players: list of dicts with pid, name, position, is_rookie, dates, vals
+               (dates is a numpy array of datetime.date, vals is float64
+                forward-filled to daily cadence covering the player's
+                observed range)
+      slow_feats_by_pid: pid -> {feature_name: value} (already position-matched)
+      date_grid: sorted list of datetime.date covering the union of all
+                 player histories, used for cross-sectional rank ops
+    """
+    with open(KTC_HISTORY_PATH) as f:
+        history = json.load(f)
+    with open(KTC_RANKINGS_PATH) as f:
+        rankings = json.load(f)
+    with open(TRAINING_CACHE_PATH) as f:
+        cache = json.load(f)
+
+    # Rankings lookup by pid
+    rank_by_pid = {r['playerID']: r for r in rankings}
+
+    # Latest training-cache row per (norm_name, position)
+    latest_cache = {}
+    for row in cache['rows']:
+        key = (normalize_name(row.get('name')), row.get('position'))
+        cur = latest_cache.get(key)
+        if cur is None or row['season'] > cur['season']:
+            latest_cache[key] = row
+
+    players = []
+    for h in history:
+        pid = h['playerID']
+        rank_entry = rank_by_pid.get(pid)
+        if rank_entry is None:
+            continue
+        pos = rank_entry.get('position')
+        if pos not in POSITIONS:
+            continue  # skip RDP + anything else
+
+        vh = h.get('oneQB', {}).get('valueHistory') or []
+        if len(vh) < WARMUP_DAYS + 2:
+            continue
+
+        # Deduplicate same-day entries (data has dupes for 2026-04-11);
+        # keep the LAST occurrence per date.
+        by_d = {}
+        for e in vh:
+            try:
+                d = date.fromisoformat(e['d'])
+            except Exception:
+                continue
+            by_d[d] = sf(e.get('v'))
+        if not by_d:
+            continue
+
+        start = min(by_d.keys())
+        end = max(by_d.keys())
+        dates, vals = [], []
+        prev = by_d[start]
+        d = start
+        while d <= end:
+            if d in by_d:
+                prev = by_d[d]
+            dates.append(d)
+            vals.append(prev)
+            d += timedelta(days=1)
+
+        players.append({
+            'pid': pid,
+            'name': rank_entry.get('playerName'),
+            'position': pos,
+            'is_rookie': bool(rank_entry.get('isRookie')),
+            'dates': np.array(dates, dtype=object),
+            'vals': np.array(vals, dtype=np.float64),
+            'rank_entry': rank_entry,
+        })
+
+    # Slow features per pid
+    slow_by_pid = {}
+    matched = {pos: 0 for pos in POSITIONS}
+    total = {pos: 0 for pos in POSITIONS}
+    for p in players:
+        pos = p['position']
+        total[pos] += 1
+        key = (normalize_name(p['name']), pos)
+        cache_row = latest_cache.get(key)
+        rank_entry = p['rank_entry']
+        feats = {}
+
+        feats['isRookie'] = 1.0 if p['is_rookie'] else 0.0
+
+        # Age: prefer current KTC rankings age (real-time), fall back to
+        # training cache age shifted by years since the cache row's season.
+        age = sf(rank_entry.get('age'))
+        if age <= 0 and cache_row:
+            age = sf(cache_row['features'].get('age', 0)) + (2025 - cache_row['season'])
+        feats['age'] = age
+
+        keys = SLOW_COMMON + SLOW_POS[pos]
+        if cache_row:
+            matched[pos] += 1
+            cf = cache_row.get('features', {}) or {}
+            for k in keys:
+                if k == 'age':
+                    continue
+                feats[k] = sf(cf.get(k, 0))
+        else:
+            for k in keys:
+                if k == 'age':
+                    continue
+                feats[k] = 0.0  # unmatched rookie → GBM will split on isRookie
+
+        slow_by_pid[p['pid']] = feats
+
+    print('Players by position (matched / total):')
+    for pos in POSITIONS:
+        print(f'  {pos}: {matched[pos]:3d} / {total[pos]:3d}')
+
+    # Date grid (union of all dates any player is observed)
+    all_dates = set()
+    for p in players:
+        for d in p['dates']:
+            all_dates.add(d)
+    date_grid = sorted(all_dates)
+    print(f'Date grid: {len(date_grid)} days, '
+          f'{date_grid[0].isoformat()} → {date_grid[-1].isoformat()}')
+
+    return players, slow_by_pid, date_grid
+
+
+# ── Fast-feature computation ────────────────────────────────────────────
+
+def compute_fast_features_all(players):
+    """For each player, compute a daily feature matrix.
+
+    Returns a dict pid -> {
+        'date_idx': { datetime.date -> row_index_in_feats },
+        'feats': np.ndarray shape (n_valid, 12),  # FAST_FEATURE_NAMES order
+        'valid_dates': list of datetime.date,
+        'vals_by_date': {date: value}
+    }
+
+    posRankPct and posRankPctDelta_7d are set to 0 here; they are filled in
+    with a second pass once the cross-sectional rank matrix is built.
+    """
+    out = {}
+    for p in players:
+        dates = p['dates']
+        vals = p['vals']
+        n = len(vals)
+        if n < WARMUP_DAYS + 2:
+            continue
+
+        safe_vals = np.clip(vals, 1.0, None)
+        log_vals = np.log(safe_vals)
+
+        ret1 = np.zeros(n)
+        ret1[1:] = vals[1:] / safe_vals[:-1] - 1.0
+
+        def lag_ret(H):
+            r = np.zeros(n)
+            if H < n:
+                r[H:] = vals[H:] / safe_vals[:-H] - 1.0
+            return r
+
+        ret7 = lag_ret(7)
+        ret14 = lag_ret(14)
+        ret30 = lag_ret(30)
+
+        rows = []
+        valid_dates = []
+        for i in range(n):
+            if i < WARMUP_DAYS:
+                continue
+            w = vals[i - 30:i + 1]          # 31-point window (including t)
+            wr = ret1[i - 30:i + 1]          # matching returns window
+            mean = float(w.mean())
+            std = float(w.std())
+            z = (vals[i] - mean) / std if std > 0 else 0.0
+            vol = float(wr[1:].std()) if len(wr) > 1 else 0.0
+            w_max = float(w.max())
+            w_min = float(w.min())
+            dd = (vals[i] - w_max) / w_max if w_max > 0 else 0.0
+            # argmax / argmin within the 31-point window: 30 = today
+            argmax = int(np.argmax(w))
+            argmin = int(np.argmin(w))
+            days_since_max = 30 - argmax
+            days_since_min = 30 - argmin
+            d_i = dates[i]
+            days_since_season_start = (d_i - SEASON_START).days
+            phase_reg = 1.0 if SEASON_START <= d_i <= REG_SEASON_END else 0.0
+            phase_playoffs = 1.0 if REG_SEASON_END < d_i <= PLAYOFFS_END else 0.0
+            phase_off = 1.0 if d_i > PLAYOFFS_END else 0.0
+            rows.append([
+                float(log_vals[i]),
+                float(ret1[i]),
+                float(ret7[i]),
+                float(ret14[i]),
+                float(ret30[i]),
+                float(z),
+                float(vol),
+                float(dd),
+                float(days_since_max),
+                float(days_since_min),
+                0.0,  # posRankPct: filled in pass 2
+                0.0,  # posRankPctDelta_7d: filled in pass 2
+                float(days_since_season_start),
+                float(phase_reg),
+                float(phase_playoffs),
+                float(phase_off),
+            ])
+            valid_dates.append(dates[i])
+
+        if not rows:
+            continue
+        feats = np.array(rows, dtype=np.float64)
+        date_idx = {d: i for i, d in enumerate(valid_dates)}
+        out[p['pid']] = {
+            'position': p['position'],
+            'date_idx': date_idx,
+            'feats': feats,
+            'valid_dates': valid_dates,
+            'vals_by_date': {d: float(v) for d, v in zip(p['dates'], p['vals'])},
+        }
+    return out
+
+
+def fill_rank_features(players, fast_by_pid, date_grid):
+    """Populate posRankPct and posRankPctDelta_7d in-place on fast_by_pid.
+
+    For each date d in the grid, for each position, rank players by v(d)
+    descending. pct_rank = (rank / (n_pos - 1)) ∈ [0, 1] where 0 = top.
+    """
+    # Build (pos, date) -> dict pid -> pct_rank
+    # Pre-group players by position for efficiency
+    by_pos = {pos: [] for pos in POSITIONS}
+    for p in players:
+        if p['pid'] in fast_by_pid:
+            by_pos[p['position']].append(p)
+
+    # Precompute values at each date via binary search on each player's
+    # sorted dates array (player['dates'] is daily, sorted).
+    pct_rank_by_pid_by_date = {}  # (pid, date) -> pct_rank
+    for pos in POSITIONS:
+        plist = by_pos[pos]
+        for d in date_grid:
+            pairs = []
+            for p in plist:
+                # p['dates'] is a daily, sorted np.ndarray of date objects
+                dates = p['dates']
+                if len(dates) == 0 or d < dates[0] or d > dates[-1]:
+                    continue
+                # Since daily, index is (d - dates[0]).days
+                idx = (d - dates[0]).days
+                if 0 <= idx < len(dates):
+                    v = float(p['vals'][idx])
+                    pairs.append((p['pid'], v))
+            if not pairs:
+                continue
+            pairs.sort(key=lambda kv: -kv[1])
+            n = len(pairs)
+            denom = max(1, n - 1)
+            for rank_i, (pid, _) in enumerate(pairs):
+                pct_rank_by_pid_by_date[(pid, d)] = rank_i / denom
+
+    # Now write per-player rank and delta features into fast_by_pid
+    feat_idx_rank = FAST_FEATURE_NAMES.index('posRankPct')
+    feat_idx_delta = FAST_FEATURE_NAMES.index('posRankPctDelta_7d')
+    for pid, pdat in fast_by_pid.items():
+        valid_dates = pdat['valid_dates']
+        feats = pdat['feats']
+        for i, d in enumerate(valid_dates):
+            cur = pct_rank_by_pid_by_date.get((pid, d))
+            if cur is None:
+                continue
+            feats[i, feat_idx_rank] = cur
+            d_lag = d - timedelta(days=7)
+            prev = pct_rank_by_pid_by_date.get((pid, d_lag))
+            if prev is not None:
+                feats[i, feat_idx_delta] = cur - prev
+
+
+# ── Dataset assembly ────────────────────────────────────────────────────
+
+def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
+    """Return X, y, t_ords, pids for one (position, horizon) pair.
+
+    t_ords: np.ndarray of int (date.toordinal()) for each row — used for
+    time-based CV.
+    """
+    slow_keys = slow_feature_names(position)
+    fn_fast = FAST_FEATURE_NAMES
+    fn_all = fn_fast + slow_keys
+
+    rows_feats = []
+    rows_y = []
+    rows_t = []
+    rows_pid = []
+
+    for p in players:
+        if p['position'] != position:
+            continue
+        pid = p['pid']
+        if pid not in fast_by_pid:
+            continue
+        pdat = fast_by_pid[pid]
+        valid_dates = pdat['valid_dates']
+        feats_mat = pdat['feats']
+        vals_by_date = pdat['vals_by_date']
+        slow_dict = slow_by_pid.get(pid, {})
+        slow_vec = np.array([sf(slow_dict.get(k, 0.0)) for k in slow_keys],
+                            dtype=np.float64)
+
+        for i, d in enumerate(valid_dates):
+            d_fwd = d + timedelta(days=horizon)
+            v_fwd = vals_by_date.get(d_fwd)
+            if v_fwd is None or v_fwd <= 0:
+                continue
+            v_now = vals_by_date.get(d)
+            if v_now is None or v_now <= 0:
+                continue
+            y = float(np.log(v_fwd) - np.log(v_now))
+            x = np.concatenate([feats_mat[i], slow_vec])
+            rows_feats.append(x)
+            rows_y.append(y)
+            rows_t.append(d.toordinal())
+            rows_pid.append(pid)
+
+    if not rows_feats:
+        return np.zeros((0, len(fn_all))), np.zeros(0), np.zeros(0, dtype=np.int64), [], fn_all
+    X = np.array(rows_feats, dtype=np.float64)
+    y = np.array(rows_y, dtype=np.float64)
+    t = np.array(rows_t, dtype=np.int64)
+    return X, y, t, rows_pid, fn_all
+
+
+# ── Walk-forward CV ─────────────────────────────────────────────────────
+
+def walk_forward_cv(X, y, t, horizon, feature_names, lgb_params, n_rounds,
+                     verbose_tag=None):
+    """Expanding-window walk-forward CV with multi-day test windows.
+
+    Choose CV_FOLDS cutoffs spaced evenly through the t range. At each
+    cutoff T:
+      Train: samples with (t + H ≤ T)  — every training target was already
+             observable at T (no forward leakage from train into test).
+      Test:  samples with (T ≤ t < T + CV_TEST_WINDOW_DAYS)  — multi-day
+             block pooled into a single fold so fold-level R² is based on
+             n_players × CV_TEST_WINDOW_DAYS predictions, not just n_players.
+
+    All folds' predictions concatenate into one out-of-sample vector, from
+    which the reported cv_r2 / cv_mae are computed.
+
+    Returns (cv_r2, cv_mae, n_preds, n_valid_folds).
+    """
+    if len(X) < MIN_FOLD_TRAIN_ROWS * 2:
+        return float('nan'), float('nan'), 0, 0
+
+    t_min = int(t.min())
+    t_max = int(t.max())
+    span = t_max - t_min
+    if span < horizon * 2:
+        return float('nan'), float('nan'), 0, 0
+
+    # Cutoffs: evenly spaced, starting at t_min + span/(K+1)
+    cutoffs = [t_min + int(round(span * (k + 1) / (CV_FOLDS + 1)))
+               for k in range(CV_FOLDS)]
+
+    all_preds = []
+    all_actuals = []
+    valid_folds = 0
+
+    for T in cutoffs:
+        train_mask = (t + horizon) <= T
+        test_mask = (t >= T) & (t < T + CV_TEST_WINDOW_DAYS)
+
+        if train_mask.sum() < MIN_FOLD_TRAIN_ROWS or test_mask.sum() < 10:
+            continue
+
+        X_tr = X[train_mask]
+        y_tr = y[train_mask]
+        X_te = X[test_mask]
+        y_te = y[test_mask]
+
+        booster = train_lgb_model(X_tr, y_tr, feature_names, lgb_params, n_rounds)
+        preds = booster.predict(X_te)
+        all_preds.extend(preds.tolist())
+        all_actuals.extend(y_te.tolist())
+        valid_folds += 1
+
+        if verbose_tag:
+            fold_r2 = r2_score(y_te, preds)
+            fold_mae = mean_absolute_error(y_te, preds)
+            T_date = date.fromordinal(T).isoformat()
+            print(f'      [{verbose_tag}] T={T_date} '
+                  f'n_tr={train_mask.sum():5d} n_te={test_mask.sum():4d} '
+                  f'foldR²={fold_r2:+.4f} foldMAE={fold_mae:.5f} '
+                  f'yTrMean={y_tr.mean():+.4f} yTeMean={y_te.mean():+.4f}')
+
+    if len(all_preds) < 10:
+        return float('nan'), float('nan'), len(all_preds), valid_folds
+
+    all_preds = np.array(all_preds)
+    all_actuals = np.array(all_actuals)
+    r2 = float(r2_score(all_actuals, all_preds))
+    mae = float(mean_absolute_error(all_actuals, all_preds))
+    return r2, mae, len(all_preds), valid_folds
+
+
+# ── Main training loop ──────────────────────────────────────────────────
+
+# Starting hyperparams. These are intentionally heavily regularized for
+# the baseline — time-series log-returns on 20k+ rows of highly correlated
+# (same-player) training data will overfit a low-min-leaf shallow LGB
+# brutally, as the first pass showed (in-sample R² 0.79 vs CV R² -2.7 on
+# RB H=30). Commit C will sweep per (position, horizon) — for now these
+# conservative defaults give every position a chance at a positive cvR².
+BASE_LGB_PARAMS = {
+    'objective': 'regression', 'metric': 'mae',
+    'learning_rate': 0.03, 'max_depth': 2,
+    'min_child_samples': 500,   # heavy — models pool rows across many players
+    'subsample': 0.7, 'bagging_freq': 1,
+    'colsample_bytree': 0.5,
+    'lambda_l2': 5.0,
+    'seed': 42, 'n_jobs': 1,
+}
+BASE_N_ROUNDS = 60
+
+
+def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
+    results = {'models': {}, 'metadata': {
+        'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'schemaVersion': 2,
+        'horizons': list(HORIZONS),
+        'positions': list(POSITIONS),
+        'warmupDays': WARMUP_DAYS,
+        'cvFolds': CV_FOLDS,
+        'baseLgbParams': {k: v for k, v in BASE_LGB_PARAMS.items()},
+        'baseNRounds': BASE_N_ROUNDS,
+        'fastFeatures': FAST_FEATURE_NAMES,
+        'slowFeaturesCommon': SLOW_COMMON,
+        'slowFeaturesByPos': SLOW_POS,
+    }}
+
+    summary_rows = []
+    for pos in POSITIONS:
+        for horizon in HORIZONS:
+            X, y, t, pids, fn_all = build_dataset(pos, horizon, players, fast_by_pid, slow_by_pid)
+            n = len(y)
+            if n < 100:
+                print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
+                continue
+
+            cv_r2, cv_mae, n_preds, valid_folds = walk_forward_cv(
+                X, y, t, horizon, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
+                verbose_tag=f'{pos}/H{horizon}' if verbose else None)
+
+            # Full-data model for deployment
+            booster = train_lgb_model(X, y, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS)
+            gbm_js = lgb_to_js_gbm(booster, X, y, fn_all)
+
+            key = f'{pos}_H{horizon}'
+            results['models'][key] = {
+                'position': pos,
+                'horizon': horizon,
+                'gbmModel': gbm_js,
+                'featureNames': fn_all,
+                'n': int(n),
+                'yMean': float(y.mean()),
+                'yStd': float(y.std()),
+                'yMin': float(y.min()),
+                'yMax': float(y.max()),
+                'cvR2': round(cv_r2, 4) if not np.isnan(cv_r2) else None,
+                'cvMae': round(cv_mae, 5) if not np.isnan(cv_mae) else None,
+                'cvNPreds': int(n_preds),
+                'cvValidFolds': int(valid_folds),
+                'inSampleR2': gbm_js['rSquared'],
+            }
+            summary_rows.append((pos, horizon, n, cv_r2, cv_mae, n_preds, valid_folds,
+                                 gbm_js['rSquared']))
+            print(f'  {pos} H={horizon:2d}: n={n:6d}  '
+                  f'cvR²={cv_r2:+.4f} cvMAE={cv_mae:.5f}  '
+                  f'in-sample R²={gbm_js["rSquared"]:+.4f}  '
+                  f'folds={valid_folds}/{CV_FOLDS}  preds={n_preds}')
+
+    print()
+    print('Summary (honest walk-forward CV):')
+    print(f'  {"pos":>4} {"H":>3} {"n":>7} {"cvR²":>8} {"cvMAE":>8} '
+          f'{"folds":>5} {"inSampR²":>9}')
+    for row in summary_rows:
+        pos, h, n, cvr2, cvmae, npreds, folds, in_r2 = row
+        cvr2_s = f'{cvr2:+.4f}' if not np.isnan(cvr2) else '   N/A'
+        cvmae_s = f'{cvmae:.5f}' if not np.isnan(cvmae) else '   N/A'
+        print(f'  {pos:>4} {h:>3} {n:>7} {cvr2_s:>8} {cvmae_s:>8} '
+              f'{folds:>5} {in_r2:>+9.4f}')
+
+    return results
+
+
+def main():
+    verbose = '--verbose' in sys.argv or '-v' in sys.argv
+    print(f'Loading {KTC_HISTORY_PATH}, {KTC_RANKINGS_PATH}, {TRAINING_CACHE_PATH}...')
+    t0 = time.time()
+    players, slow_by_pid, date_grid = load_inputs()
+    print(f'Loaded {len(players)} players in {time.time() - t0:.1f}s')
+
+    print('Computing fast features per player...')
+    t0 = time.time()
+    fast_by_pid = compute_fast_features_all(players)
+    print(f'  {len(fast_by_pid)} players with ≥{WARMUP_DAYS}-day history '
+          f'({time.time() - t0:.1f}s)')
+
+    print('Filling cross-sectional rank features...')
+    t0 = time.time()
+    fill_rank_features(players, fast_by_pid, date_grid)
+    print(f'  done ({time.time() - t0:.1f}s)')
+
+    print()
+    print('Training per (position, horizon):')
+    results = train_all(players, fast_by_pid, slow_by_pid, verbose=verbose)
+
+    print()
+    print(f'Writing {OUTPUT_PATH}...')
+    with open(OUTPUT_PATH, 'w') as f:
+        json.dump(results, f)
+    size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
+    print(f'  {size_mb:.2f} MB')
+
+
+if __name__ == '__main__':
+    main()
