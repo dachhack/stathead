@@ -91,6 +91,7 @@ export async function buildSharedContext(opts: {
     rosterByTeam: new Map(),
     priorRosterByTeam: new Map(),
     playerTeamMap: new Map(),
+    playerPositionMap: new Map(),
     rosterPhysicalsByName: new Map(),
     vorReplacement: {},
     playerHistoryMap: opts.staticData?.playerHistoryMap || new Map(),
@@ -348,6 +349,9 @@ export async function buildSharedContext(opts: {
     if (!POSITIONS.includes(r.position)) continue;
     const name = normalizeName(r.player_name || r.full_name);
     data.playerTeamMap.set(name, r.team);
+    // Name → position lookup, used by PBP aggregations that reference receivers
+    // by name (priorByName alone misses rookies and new-veteran acquisitions).
+    data.playerPositionMap.set(name, r.position);
     const posKey = `${r.team}:${r.position}`;
     if (!data.rosterByTeam.has(posKey)) data.rosterByTeam.set(posKey, new Set());
     data.rosterByTeam.get(posKey)!.add(name);
@@ -366,6 +370,10 @@ export async function buildSharedContext(opts: {
     const posKey = `${r.team}:${r.position}`;
     if (!data.priorRosterByTeam.has(posKey)) data.priorRosterByTeam.set(posKey, new Set());
     data.priorRosterByTeam.get(posKey)!.add(name);
+    // Add to position map with current-roster taking precedence (don't overwrite)
+    if (!data.playerPositionMap.has(name)) {
+      data.playerPositionMap.set(name, r.position);
+    }
     if (!data.rosterPhysicalsByName.has(name)) {
       const wt = Number(r.weight) || 0;
       const heightIn = parseRosterHeight(r.height);
@@ -420,8 +428,9 @@ export async function buildSharedContext(opts: {
 
   // PBP-derived scheme and personnel maps
   const pbp = pbpRaw as any[];
+  const participation = participationRaw as any[];
   if (pbp.length > 0) {
-    buildSchemeAndPersonnel(pbp, data, season);
+    buildSchemeAndPersonnel(pbp, participation, data, season);
 
     // PBP player-level aggregation: deep targets, RZ targets, pass location
     const pbpByReceiver = new Map<string, { airYards: number; targets: number; deepTargets: number; rzTargets: number }>();
@@ -513,8 +522,7 @@ export async function buildSharedContext(opts: {
     (data as any).environmentMaps = { teamDomeGames, teamByeWeek, teamSackRate, teamRushYPC };
   }
 
-  // Routes from participation
-  const participation = participationRaw as any[];
+  // Routes from participation (participation already extracted above for buildSchemeAndPersonnel)
   if (participation.length > 0 && pbp.length > 0) {
     buildRoutes(participation, pbp, priorStats, data);
   }
@@ -596,17 +604,25 @@ export async function buildSharedContext(opts: {
 
 // ── Internal helpers ────────────────────────────────────────────────
 
-function buildSchemeAndPersonnel(pbp: any[], data: SharedContextData, _season: number): void {
+function buildSchemeAndPersonnel(
+  pbp: any[],
+  participation: any[],
+  data: SharedContextData,
+  _season: number,
+): void {
   const schemeByTeam = new Map<string, SchemeAgg>();
   const personnelByTeam = new Map<string, PersonnelAgg>();
   const priorGamesByTeam = new Map<string, Set<string>>();
 
+  // ── Scheme aggregation from PBP (play types, formation flags, targets) ──
+  // Uses playerPositionMap (rosters-based) for receiver position lookups.
+  // priorByName as a fallback — it's narrower but covers edge cases where a
+  // receiver isn't on the current/prior rosters (e.g. mid-season trades).
   for (const play of pbp) {
     if (play.play_type !== 'pass' && play.play_type !== 'run') continue;
     const team = play.posteam;
     if (!team) continue;
 
-    // Scheme
     if (!schemeByTeam.has(team)) {
       schemeByTeam.set(team, {
         passes: 0, rushes: 0, plays: 0, games: 0,
@@ -625,7 +641,6 @@ function buildSchemeAndPersonnel(pbp: any[], data: SharedContextData, _season: n
     if (play.play_type === 'pass') s.passes += 1;
     else s.rushes += 1;
 
-    // Neutral game script
     const diff = Math.abs(play.score_differential || 0);
     const qtr = play.qtr || 0;
     if (diff <= 7 && qtr <= 3) {
@@ -633,62 +648,74 @@ function buildSchemeAndPersonnel(pbp: any[], data: SharedContextData, _season: n
       if (play.play_type === 'pass') s.neutralPasses += 1;
     }
 
-    // First down
     if (play.down === 1) {
       s.firstDownPlays += 1;
       if (play.play_type === 'run') s.firstDownRuns += 1;
     }
 
-    // Formation
     if (play.shotgun) s.shotgunPlays += 1;
     if (play.no_huddle) s.noHuddlePlays += 1;
 
-    // Positional targets
+    // Positional targets: use the broader playerPositionMap (current + prior
+    // rosters) rather than priorByName alone. priorByName only has players who
+    // played last season, so rookies and new-veteran acquisitions previously
+    // caused silent zeros and the teamRBTargetRate/teamWRTargetRate/
+    // teamTETargetRate features ended up at 0% coverage on every row.
     if (play.play_type === 'pass' && play.receiver_player_name) {
       const recName = normalizeName(play.receiver_player_name);
-      const recPos = data.priorByName.get(recName)?.position;
+      const recPos =
+        data.playerPositionMap.get(recName) ||
+        data.priorByName.get(recName)?.position;
       s.totalTargets += 1;
       if (recPos === 'RB') s.rbTargets += 1;
       else if (recPos === 'TE') s.teTargets += 1;
       else if (recPos === 'WR') s.wrTargets += 1;
     }
-
-    // Personnel groupings
-    const personnel = play.offense_personnel || '';
-    if (personnel) {
-      if (!personnelByTeam.has(team)) {
-        personnelByTeam.set(team, {
-          p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0,
-          total: 0, wr3plus: 0, te2plus: 0,
-        });
-      }
-      const p = personnelByTeam.get(team)!;
-      p.total += 1;
-
-      const rbMatch = personnel.match(/(\d+)\s*RB/);
-      const teMatch = personnel.match(/(\d+)\s*TE/);
-      const wrMatch = personnel.match(/(\d+)\s*WR/);
-      const rb = rbMatch ? parseInt(rbMatch[1]) : 0;
-      const te = teMatch ? parseInt(teMatch[1]) : 0;
-      const wr = wrMatch ? parseInt(wrMatch[1]) : 0;
-
-      const code = `${rb}${te}`;
-      if (code === '11') p.p11 += 1;
-      else if (code === '12') p.p12 += 1;
-      else if (code === '13') p.p13 += 1;
-      else if (code === '21') p.p21 += 1;
-      else if (code === '22') p.p22 += 1;
-      else if (code === '10') p.p10 += 1;
-
-      if (wr >= 3) p.wr3plus += 1;
-      if (te >= 2) p.te2plus += 1;
-    }
   }
 
-  // Set game counts
   for (const [team, games] of priorGamesByTeam) {
     const s = schemeByTeam.get(team);
     if (s) s.games = games.size;
+  }
+
+  // ── Personnel aggregation from participation data ──
+  // The PBP CSV's offense_personnel field is "not always populated" (per the
+  // PlayByPlay type comment at src/types.ts:498). Participation is the
+  // reliable source — every offensive play has offense_personnel set.
+  // This previously caused every team11Rate / team12Rate / team10Rate /
+  // etc. feature to sit at 0% coverage across the entire training cache.
+  for (const p of participation) {
+    const team = p.possession_team || '';
+    if (!team) continue;
+    const personnel = p.offense_personnel || '';
+    if (!personnel) continue;
+
+    if (!personnelByTeam.has(team)) {
+      personnelByTeam.set(team, {
+        p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0,
+        total: 0, wr3plus: 0, te2plus: 0,
+      });
+    }
+    const agg = personnelByTeam.get(team)!;
+    agg.total += 1;
+
+    const rbMatch = personnel.match(/(\d+)\s*RB/);
+    const teMatch = personnel.match(/(\d+)\s*TE/);
+    const wrMatch = personnel.match(/(\d+)\s*WR/);
+    const rb = rbMatch ? parseInt(rbMatch[1]) : 0;
+    const te = teMatch ? parseInt(teMatch[1]) : 0;
+    const wr = wrMatch ? parseInt(wrMatch[1]) : 0;
+
+    const code = `${rb}${te}`;
+    if (code === '11') agg.p11 += 1;
+    else if (code === '12') agg.p12 += 1;
+    else if (code === '13') agg.p13 += 1;
+    else if (code === '21') agg.p21 += 1;
+    else if (code === '22') agg.p22 += 1;
+    else if (code === '10') agg.p10 += 1;
+
+    if (wr >= 3) agg.wr3plus += 1;
+    if (te >= 2) agg.te2plus += 1;
   }
 
   data.schemeByTeam = schemeByTeam;
