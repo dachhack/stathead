@@ -27,6 +27,10 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import spearmanr
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).parent))
+from train_projection_models import bagged_lgb_to_js_bag as _bagged_career_to_js  # noqa: E402
+
 warnings.filterwarnings('ignore', category=UserWarning)
 
 # ── Configuration ─────────────────────────────────────────────────────
@@ -670,6 +674,36 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     final_ridge = Ridge(alpha=hyper['ridge_alpha'])
     final_ridge.fit(X_all, y_all)
 
+    # ── Final bagged LightGBM ensemble (shipped in cache as gbmModel) ──
+    # Career models used to ship with gbmModel=None — LOSO CV used bagged
+    # LGB internally for evaluation, but the final full-data model was
+    # never serialized. Production rookieCareerModel.ts falls back to
+    # Ridge-only when gbmModel is null, losing the GBM signal entirely.
+    #
+    # Now we train a matching bagged ensemble on the full (expanded) data
+    # with the SAME hyperparameters used in LOSO, then serialize via
+    # bagged_lgb_to_js_bag into the {models: [...]} shape that the TS
+    # predictBaggedGBM consumes. This matches how ADP/PPG/residual models
+    # already ship GBM trees — closing a gap the career path had.
+    final_gbm_params = {
+        'objective': 'regression', 'metric': 'mae',
+        'learning_rate': hyper['lr'], 'max_depth': hyper['max_depth'],
+        'min_child_samples': hyper['min_child'],
+        'subsample': 0.8, 'colsample_bytree': 0.8,
+        'bagging_fraction': 0.8, 'bagging_freq': 1,
+        'extra_trees': True,
+        'verbose': -1, 'seed': 42, 'n_jobs': 1,
+    }
+    final_gbm_boosters = []
+    for bag_i in range(N_BAGS):
+        p = dict(final_gbm_params)
+        p['seed'] = 42 + bag_i
+        p['bagging_seed'] = 42 + bag_i
+        p['feature_fraction_seed'] = 42 + bag_i
+        dt_final = lgb.Dataset(X_all, y_all, feature_name=feature_keys, free_raw_data=False)
+        final_gbm_boosters.append(lgb.train(p, dt_final, num_boost_round=hyper['n_estimators']))
+    gbm_model = _bagged_career_to_js(final_gbm_boosters, X_all, y_all, feature_keys)
+
     coeffs = final_ridge.coef_
     total_imp = sum(abs(c) for c in coeffs)
     feature_importance = sorted([
@@ -747,7 +781,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             'boomThreshold': round(boom_thresh, 2),
         },
         'ridgeModel': ridge_model,
-        'gbmModel': None,  # LightGBM model saved separately if needed
+        'gbmModel': gbm_model,  # BaggedGBM ({models: [GBMModel, ...]}) emitted via bagged_lgb_to_js_bag
         'ridgeModelCompanion': None,
         'gbmModelCompanion': None,
         'companionFeatureKeys': None,

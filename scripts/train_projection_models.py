@@ -147,6 +147,28 @@ def bagged_predict(boosters: list[lgb.Booster], X: np.ndarray) -> np.ndarray:
     return np.mean(np.stack([b.predict(X) for b in boosters], axis=0), axis=0)
 
 
+def bagged_lgb_to_js_bag(boosters: list[lgb.Booster], X: np.ndarray, y: np.ndarray,
+                          feature_names: list[str], loss: str = 'squared') -> dict:
+    """Convert a bagged LGB ensemble to the JS `BaggedGBM` interface shape.
+
+    Output schema matches src/lib/gbm.ts::BaggedGBM:
+        { models: TrainedGBM[] }   — an array of per-bag GBMs, each in the
+                                      standard init=0 / lr=1 flat-trees format
+
+    Used by train_career_models.py so career predictions can route through
+    src/lib/rookieCareerModel.ts::predictRookieCareerPPG, which calls
+    predictBaggedGBM(cm.gbmModel, features) and averages per-bag predictions.
+    Unlike bagged_lgb_to_js_gbm (which concatenates trees + scales leaves for
+    zero-TS-change consumers of predictGBM), this helper preserves per-bag
+    models so downstream code can access individual bag predictions for
+    uncertainty bands if needed.
+    """
+    if len(boosters) < 1:
+        raise ValueError("bagged_lgb_to_js_bag requires at least one booster")
+    models = [lgb_to_js_gbm(b, X, y, feature_names, loss=loss) for b in boosters]
+    return {'models': models, 'nBags': len(boosters)}
+
+
 def bagged_lgb_to_js_gbm(boosters: list[lgb.Booster], X: np.ndarray, y: np.ndarray,
                           feature_names: list[str], loss: str = 'squared',
                           quantile: float | None = None) -> dict:
