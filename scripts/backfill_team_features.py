@@ -45,7 +45,14 @@ import time
 from pathlib import Path
 
 CACHE_PATH = Path('public/data/training-rows-cache-v42.json')
-DL_CACHE = Path('/tmp/nflverse-cache')
+FEATURE_STORE_COACHING = Path('public/data/feature-store/coaching.json')
+# Per-team feature aggregates derived from PBP/participation. Committed to
+# git so a re-backfill without network access still works.
+AGGREGATES_PATH = Path('public/data/team-features-backfill.json')
+# Raw downloads. .nflverse-cache/ is gitignored (~2 GB) but persists across
+# runs so we don't re-download each time. /tmp used to be the default but
+# /tmp is periodically cleared, defeating the purpose.
+DL_CACHE = Path('.nflverse-cache')
 NFLVERSE = 'https://github.com/nflverse/nflverse-data/releases/download'
 DEFAULT_SEASONS = list(range(2010, 2026))
 SKILL_POSITIONS = {'QB', 'RB', 'WR', 'TE'}
@@ -277,53 +284,61 @@ def build_team_features(scheme: dict, personnel: dict):
     return out
 
 
-def main():
-    args = sys.argv[1:]
-    seasons = DEFAULT_SEASONS
-    if '--seasons' in args:
-        idx = args.index('--seasons')
-        if idx + 1 < len(args):
-            seasons = [int(s) for s in args[idx + 1].split(',')]
+TEAM_FEATURE_KEYS = PERSONNEL_KEYS + TARGET_RATE_KEYS
 
-    print(f'Loading training cache from {CACHE_PATH}...')
-    with open(CACHE_PATH) as f:
-        data = json.load(f)
-    rows = data['rows']
-    print(f'  {len(rows)} rows loaded')
 
-    # Group rows by season for efficient updates
-    rows_by_season = {}
-    for r in rows:
-        rows_by_season.setdefault(r['season'], []).append(r)
+def compute_aggregates(seasons):
+    """Fetch raw data and build per-(season,team) feature aggregates.
 
-    total_updated = 0
-    total_missed = 0
+    Returns a dict shaped:
+      {
+        'generatedAt': ISO timestamp,
+        'seasons': [...],
+        'features': TEAM_FEATURE_KEYS,
+        'perSeason': {
+          '2023': {
+            'TEN': {'team11Rate': ..., 'teamRBTargetRate': ..., ...},
+            ...
+          },
+          ...
+        },
+        'nameToTeam': {
+          '2023': {'chris johnson': 'TEN', ...},  # normalized name → team
+          ...
+        },
+      }
+    Saved as a small JSON artifact so the backfill is reproducible without
+    re-downloading and so the feature store + training cache can both be
+    populated from the same source of truth.
+    """
+    result = {
+        'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%S'),
+        'seasons': seasons,
+        'features': TEAM_FEATURE_KEYS,
+        'perSeason': {},
+        'nameToTeam': {},
+    }
 
     for season in seasons:
         print(f'\n=== Season {season} ===')
-        season_rows = rows_by_season.get(season, [])
-        if not season_rows:
-            print('  (no rows for this season)')
-            continue
-
-        # Fetch roster data for three lookups
         name_to_team, name_to_pos, gsis_to_pos = build_roster_maps(season)
         print(f'  rosters: {len(name_to_team)} team assignments, {len(gsis_to_pos)} gsis→position')
         if not name_to_team:
-            print(f'  no roster data; skipping season {season}')
+            print(f'  no roster data; skipping')
             continue
 
-        # Fetch PBP + participation (both for season - 1 = prior)
         pbp_path = curl_cached(f'pbp/play_by_play_{season - 1}.csv', f'play_by_play_{season - 1}.csv')
         if pbp_path is None:
-            print(f'  no PBP for {season - 1}; skipping season {season}')
+            print(f'  no PBP for {season - 1}; skipping')
             continue
         scheme, id_hits, id_misses = aggregate_scheme(pbp_path, gsis_to_pos, name_to_pos)
         id_rate = id_hits / max(1, id_hits + id_misses) * 100
         print(f'  scheme: {len(scheme)} teams; gsis hit rate {id_rate:.0f}% ({id_hits}/{id_hits+id_misses})')
 
-        part_path = curl_cached(f'pbp_participation/pbp_participation_{season - 1}.csv',
-                                f'pbp_participation_{season - 1}.csv')
+        part_path = curl_cached(
+            f'pbp_participation/pbp_participation_{season - 1}.csv',
+            f'pbp_participation_{season - 1}.csv',
+        )
         if part_path is not None:
             personnel = aggregate_personnel(part_path)
             print(f'  personnel: {len(personnel)} teams with participation data')
@@ -332,18 +347,38 @@ def main():
             print('  no participation data (pre-2016 seasons lack this file)')
 
         team_features = build_team_features(scheme, personnel)
+        result['perSeason'][str(season)] = team_features
+        result['nameToTeam'][str(season)] = name_to_team
 
-        # Write into rows
+    return result
+
+
+def apply_aggregates_to_training_cache(aggregates: dict):
+    """Update training-rows-cache-v42.json with per-team feature values."""
+    print(f'\nLoading training cache from {CACHE_PATH}...')
+    with open(CACHE_PATH) as f:
+        data = json.load(f)
+    rows = data['rows']
+    print(f'  {len(rows)} rows loaded')
+
+    total_updated = 0
+    total_missed = 0
+
+    rows_by_season = {}
+    for r in rows:
+        rows_by_season.setdefault(r['season'], []).append(r)
+
+    for season_str, team_features in aggregates['perSeason'].items():
+        season = int(season_str)
+        name_to_team = aggregates['nameToTeam'].get(season_str, {})
+        season_rows = rows_by_season.get(season, [])
         updated = 0
         missed = 0
-        missed_names = []
         for row in season_rows:
             name = normalize_name(row.get('name'))
             team = name_to_team.get(name)
             if not team:
                 missed += 1
-                if len(missed_names) < 5:
-                    missed_names.append(row.get('name'))
                 continue
             feat_vals = team_features.get(team)
             if not feat_vals:
@@ -351,22 +386,103 @@ def main():
                 continue
             row.setdefault('features', {}).update(feat_vals)
             updated += 1
-        print(f'  updated {updated} rows, missed {missed}')
-        if missed_names:
-            print(f'  (sample missed: {", ".join(missed_names)})')
+        print(f'  {season}: {updated} updated, {missed} missed')
         total_updated += updated
         total_missed += missed
 
-    print(f'\nTotal: {total_updated} rows updated, {total_missed} rows missed')
+    print(f'\nTraining cache: {total_updated} updated, {total_missed} missed')
 
-    # Save updated cache atomically
     tmp = CACHE_PATH.with_suffix('.json.tmp')
-    print(f'Saving updated cache to {CACHE_PATH}...')
+    print(f'Writing {CACHE_PATH}...')
     with open(tmp, 'w') as f:
         json.dump(data, f)
     tmp.replace(CACHE_PATH)
-    size_mb = CACHE_PATH.stat().st_size / 1024 / 1024
-    print(f'  wrote {size_mb:.1f} MB')
+    print(f'  {CACHE_PATH.stat().st_size / 1024 / 1024:.1f} MB')
+
+
+def apply_aggregates_to_feature_store(aggregates: dict):
+    """Update the feature store coaching shard with per-team feature values.
+
+    The coaching shard is keyed by "normalized_name::season" and contains
+    each player's coaching-group feature values. We join on name via the
+    aggregates' nameToTeam map, which comes from the same rosters snapshot
+    used to build the per-team aggregates.
+    """
+    if not FEATURE_STORE_COACHING.exists():
+        print(f'\n(feature store shard missing at {FEATURE_STORE_COACHING}, skipping)')
+        return
+
+    print(f'\nLoading feature store coaching shard from {FEATURE_STORE_COACHING}...')
+    with open(FEATURE_STORE_COACHING) as f:
+        shard = json.load(f)
+    print(f'  {len(shard)} player-season entries loaded')
+
+    total_updated = 0
+    total_missed = 0
+    by_season_updated = {}
+
+    for key, features in shard.items():
+        if not isinstance(features, dict) or '::' not in key:
+            continue
+        name, season_str = key.rsplit('::', 1)
+        try:
+            season = int(season_str)
+        except ValueError:
+            continue
+
+        team_features = aggregates['perSeason'].get(str(season))
+        if not team_features:
+            total_missed += 1
+            continue
+        name_to_team = aggregates['nameToTeam'].get(str(season), {})
+        team = name_to_team.get(name)
+        if not team:
+            total_missed += 1
+            continue
+        feat_vals = team_features.get(team)
+        if not feat_vals:
+            total_missed += 1
+            continue
+        features.update(feat_vals)
+        total_updated += 1
+        by_season_updated[season] = by_season_updated.get(season, 0) + 1
+
+    print(f'  Feature store: {total_updated} updated, {total_missed} missed')
+
+    tmp = FEATURE_STORE_COACHING.with_suffix('.json.tmp')
+    with open(tmp, 'w') as f:
+        json.dump(shard, f)
+    tmp.replace(FEATURE_STORE_COACHING)
+    size_mb = FEATURE_STORE_COACHING.stat().st_size / 1024 / 1024
+    print(f'  Wrote {size_mb:.1f} MB')
+
+
+def main():
+    args = sys.argv[1:]
+    seasons = DEFAULT_SEASONS
+    from_cache = '--from-cache' in args
+    if '--seasons' in args:
+        idx = args.index('--seasons')
+        if idx + 1 < len(args):
+            seasons = [int(s) for s in args[idx + 1].split(',')]
+
+    if from_cache and AGGREGATES_PATH.exists():
+        print(f'Loading pre-computed aggregates from {AGGREGATES_PATH}...')
+        with open(AGGREGATES_PATH) as f:
+            aggregates = json.load(f)
+        print(f'  generated at {aggregates.get("generatedAt")}')
+        print(f'  covering seasons {aggregates.get("seasons")}')
+    else:
+        aggregates = compute_aggregates(seasons)
+        print(f'\nSaving aggregates artifact to {AGGREGATES_PATH}...')
+        AGGREGATES_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(AGGREGATES_PATH, 'w') as f:
+            json.dump(aggregates, f, indent=None, separators=(',', ':'))
+        size_kb = AGGREGATES_PATH.stat().st_size / 1024
+        print(f'  Wrote {size_kb:.0f} KB')
+
+    apply_aggregates_to_training_cache(aggregates)
+    apply_aggregates_to_feature_store(aggregates)
 
 
 if __name__ == '__main__':

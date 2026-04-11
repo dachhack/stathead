@@ -1145,15 +1145,23 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Previously caused teamRBTargetRate / teamWRTargetRate /
           // teamTETargetRate features to sit at 0% coverage across all rows.
           const playerPositionMap = new Map<string, string>();
+          // gsis_id → position: preferred over name-based lookup for PBP joins
+          // because PBP's receiver_player_name is abbreviated ("Mi.Carter"),
+          // while receiver_player_id is the gsis_id. See backfill_team_features.py
+          // for the Python mirror of this logic.
+          const gsisToPositionMap = new Map<string, string>();
           for (const r of (seasonRosters || [])) {
             if (!POSITIONS.includes(r.position)) continue;
             const name = normalizeName(r.full_name || (r as any).player_name);
             playerPositionMap.set(name, r.position);
+            if ((r as any).gsis_id) gsisToPositionMap.set((r as any).gsis_id, r.position);
           }
           for (const r of (priorRosters || [])) {
             if (!POSITIONS.includes(r.position)) continue;
             const name = normalizeName(r.full_name || (r as any).player_name);
             if (!playerPositionMap.has(name)) playerPositionMap.set(name, r.position);
+            const gsis = (r as any).gsis_id;
+            if (gsis && !gsisToPositionMap.has(gsis)) gsisToPositionMap.set(gsis, r.position);
           }
 
           interface SchemeAgg {
@@ -1200,15 +1208,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             if (play.shotgun === 1) acc.shotgunPlays += 1;
             if (play.no_huddle === 1) acc.noHuddlePlays += 1;
 
-            // Positional target breakdown — use playerPositionMap (rosters) with
-            // priorByName as a fallback. Rosters cover rookies and new vets
-            // that priorByName alone would miss.
-            if (play.play_type === 'pass' && play.receiver_player_name) {
+            // Positional target breakdown — gsis_id join is the primary lookup
+            // (PBP's receiver_player_name uses abbreviated format like
+            // "Mi.Carter" which doesn't match rosters' full_name). Fall back
+            // to playerPositionMap then priorByName for edge cases.
+            if (play.play_type === 'pass' && ((play as any).receiver_player_id || play.receiver_player_name)) {
               acc.totalTargets += 1;
-              const recName = normalizeName(play.receiver_player_name);
+              const recId: string | undefined = (play as any).receiver_player_id;
+              const recName = play.receiver_player_name
+                ? normalizeName(play.receiver_player_name)
+                : '';
               const recPos =
-                playerPositionMap.get(recName) ||
-                priorByName.get(recName)?.position;
+                (recId && gsisToPositionMap.get(recId)) ||
+                (recName && playerPositionMap.get(recName)) ||
+                (recName && priorByName.get(recName)?.position);
               if (recPos === 'RB') acc.rbTargets += 1;
               else if (recPos === 'TE') acc.teTargets += 1;
               else if (recPos === 'WR') acc.wrTargets += 1;
@@ -3153,19 +3166,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
 
             // ── Scheme features for predictions ──
-            // Name→position lookup from current + prior rosters so PBP target
-            // classification works for rookies and new-vet acquisitions (same
-            // bug as the training path; see comment there).
+            // Name→position and gsis→position lookups (same pattern as the
+            // training path above — see comment there).
             const predPlayerPositionMap = new Map<string, string>();
+            const predGsisToPositionMap = new Map<string, string>();
             for (const r of (predSeasonRosters || [])) {
               if (!POSITIONS.includes(r.position)) continue;
               const name = normalizeName(r.full_name || (r as any).player_name);
               predPlayerPositionMap.set(name, r.position);
+              if ((r as any).gsis_id) predGsisToPositionMap.set((r as any).gsis_id, r.position);
             }
             for (const r of (predPriorRosters || [])) {
               if (!POSITIONS.includes(r.position)) continue;
               const name = normalizeName(r.full_name || (r as any).player_name);
               if (!predPlayerPositionMap.has(name)) predPlayerPositionMap.set(name, r.position);
+              const gsis = (r as any).gsis_id;
+              if (gsis && !predGsisToPositionMap.has(gsis)) predGsisToPositionMap.set(gsis, r.position);
             }
 
             interface PredSchemeAgg {
@@ -3215,12 +3231,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               }
               if (play.shotgun === 1) acc.shotgunPlays += 1;
               if (play.no_huddle === 1) acc.noHuddlePlays += 1;
-              if (play.play_type === 'pass' && play.receiver_player_name) {
+              if (play.play_type === 'pass' && ((play as any).receiver_player_id || play.receiver_player_name)) {
                 acc.totalTargets += 1;
-                const recName = normalizeName(play.receiver_player_name);
+                const recId: string | undefined = (play as any).receiver_player_id;
+                const recName = play.receiver_player_name
+                  ? normalizeName(play.receiver_player_name)
+                  : '';
                 const recPos =
-                  predPlayerPositionMap.get(recName) ||
-                  predPriorByName.get(recName)?.position;
+                  (recId && predGsisToPositionMap.get(recId)) ||
+                  (recName && predPlayerPositionMap.get(recName)) ||
+                  (recName && predPriorByName.get(recName)?.position);
                 if (recPos === 'RB') acc.rbTargets += 1;
                 else if (recPos === 'TE') acc.teTargets += 1;
                 else if (recPos === 'WR') acc.wrTargets += 1;

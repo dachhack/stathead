@@ -201,6 +201,12 @@ export interface SharedContextData {
    *  season) — use this when looking up positions for PBP targets, route
    *  aggregations, or any play-level data that references players by name. */
   playerPositionMap: Map<string, string>;
+  /** gsis_id → position, built from current + prior rosters. PREFERRED
+   *  over playerPositionMap when joining on PBP data, because PBP uses
+   *  an abbreviated name format (e.g. "Mi.Carter") that doesn't match
+   *  rosters' full_name. PBP's receiver_player_id / rusher_player_id
+   *  fields ARE the gsis_id and join cleanly. */
+  gsisToPositionMap: Map<string, string>;
   vorReplacement: Record<string, number>;
 
   // Cross-season state
