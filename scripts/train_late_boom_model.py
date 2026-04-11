@@ -133,7 +133,7 @@ def train_position(rows, pos):
 
     if len(late) < 50:
         print(f'    Skipped (only {len(late)} rows)')
-        return None
+        return None, []
 
     X = np.array([make_feature_vector(r) for r in late], dtype=np.float64)
     y = np.array([
@@ -146,9 +146,10 @@ def train_position(rows, pos):
 
     if y.sum() < 10:
         print(f'    Skipped (only {int(y.sum())} booms)')
-        return None
+        return None, []
 
-    # LOSO cross-validation
+    # LOSO cross-validation — gives honest out-of-sample predictions for every late pick.
+    # These predictions are what we serve to downstream consumers (draft sim).
     loso = np.full(n, base_rate)
     for held in sorted(set(seasons)):
         tr = [i for i, s in enumerate(seasons) if s != held]
@@ -198,7 +199,18 @@ def train_position(rows, pos):
         if v > 0
     ]
 
-    model_str = final_model.model_to_string()
+    # Per-player LOSO scores — downstream consumers (draft sim) join on (pos, name, season).
+    scores = [
+        {
+            'name': r.get('name', ''),
+            'season': int(r['season']),
+            'adpPosRank': int(r.get('adpPosRank') or 0),
+            'ppgPosRank': int(r.get('ppgPosRank') or 0),
+            'lateBoomProb': round(float(loso[i]), 4),
+            'isBoom': int(y[i]),
+        }
+        for i, r in enumerate(late)
+    ]
 
     result = {
         'position': pos,
@@ -212,7 +224,6 @@ def train_position(rows, pos):
         'separation': round(high_boom_rate / max(0.01, low_boom_rate), 2),
         'featureNames': BOOM_FEATURES,
         'featureImportance': importance[:10],
-        'modelString': model_str,
     }
 
     print(f'    n={n}, booms={int(y.sum())}, base rate={base_rate*100:.0f}%, AUC={auc:.3f}')
@@ -221,7 +232,7 @@ def train_position(rows, pos):
     print(f'    Low score (Q1):  {low_boom_rate*100:.0f}% boom')
     print(f'    Separation: {high_boom_rate/max(0.01, low_boom_rate):.1f}x')
 
-    return result
+    return result, scores
 
 
 def main():
@@ -235,15 +246,18 @@ def main():
     compute_positional_ranks(rows)
 
     results = {}
+    all_scores = {}
     for pos in ['QB', 'RB', 'WR', 'TE']:
         print(f'\n  Training {pos} late-boom classifier...')
-        result = train_position(rows, pos)
+        result, scores = train_position(rows, pos)
         if result is not None:
             results[pos] = result
+            all_scores[pos] = scores
 
     with open(OUTPUT_PATH, 'w') as f:
         json.dump({
             'lateBoomModels': results,
+            'scores': all_scores,
             'thresholds': POS_THRESHOLDS,
             'rankingMethod': 'positional',
         }, f)

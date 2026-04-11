@@ -206,7 +206,13 @@ async function main() {
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
     career: `${MODEL_DIR}/model-cache-career-v69.json`,
     careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v1.json`,
+    lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
   };
+
+  // Late-boom classifier: (position, normalized name, season) → LOSO boom probability.
+  // Populated from model-cache-late-boom-v1.json written by scripts/train_late_boom_model.py.
+  // Only late picks (past positional ADP threshold) have entries; others resolve to 0.
+  const lateBoomLookup = new Map<string, number>();
 
   // Try loading per-component caches first (allows individual model retraining)
   {
@@ -245,6 +251,23 @@ async function main() {
     console.log('  Loading cached post-draft career models...');
     rookieCareerModelsPostDraft = JSON.parse(readFileSync(componentCachePaths.careerPostDraft, 'utf-8')).rookieCareerModels;
   } else { anyMissing = true; }
+
+  if (existsSync(componentCachePaths.lateBoom)) {
+    console.log('  Loading cached late-boom scores...');
+    const lb = JSON.parse(readFileSync(componentCachePaths.lateBoom, 'utf-8'));
+    const scores = lb.scores || {};
+    let total = 0;
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      const arr: Array<{ name: string; season: number; lateBoomProb: number }> = scores[pos] || [];
+      for (const s of arr) {
+        const nn = (s.name || '').toLowerCase().replace(/[.']/g, '').trim();
+        lateBoomLookup.set(`${pos}|${nn}|${s.season}`, s.lateBoomProb);
+        total++;
+      }
+    }
+    console.log(`    ${total} late-boom LOSO scores loaded (${Object.keys(scores).join(', ')})`);
+  }
+  // Note: late-boom cache is optional — sim gracefully degrades if missing.
 
   // If ALL component caches exist, skip training entirely
   const skipADP = existsSync(componentCachePaths.adp) && models?.length > 0;
@@ -1145,9 +1168,14 @@ async function main() {
     (p as any).priorPPG = info?.priorPPG || 0;
     (p as any).priorSnapPct = info?.priorSnapPct || 0;
     (p as any).noProductionFlag = info ? (info.priorSnapPct < 0.1 && info.priorTargets < 10 && info.priorPPG < 3) : false;
+    // Late-boom probability: positional boom classifier (QB12+/RB24+/WR36+/TE10+ → top-5/12/18/5).
+    // Non-late picks have no entry and resolve to 0 — the sim bonus is naturally gated to late picks.
+    (p as any).lateBoomProb = lateBoomLookup.get(`${p.position}|${nn}|${draftSimSeason}`) || 0;
   }
   const flagged = allDraftSimPlayers.filter((p: any) => p.noProductionFlag && p.adp <= 100);
   console.log(`    ${flagged.length} early-ADP players flagged as no-production bust risk`);
+  const withBoomScore = allDraftSimPlayers.filter((p: any) => p.lateBoomProb > 0).length;
+  console.log(`    ${withBoomScore} players with late-boom scores (draft sim season ${draftSimSeason})`);
 
   // Sort by ADP for draft order
   allDraftSimPlayers.sort((a, b) => a.adp - b.adp);
@@ -1174,7 +1202,7 @@ async function main() {
     };
   }
 
-  type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean };
+  type DraftPick = { name: string; position: string; adp: number; actualPPG: number; modelPPG: number; round: number; pickNum: number; isHit: boolean; isBust: boolean; lateBoomProb?: number };
 
   function simulateDraft(useModel: boolean, pickPosition: number, rng: () => number): DraftPick[] {
     const available = [...allDraftSimPlayers];
@@ -1267,7 +1295,16 @@ async function main() {
               // Late-round upside bonus: reward positive residual sleepers in rounds 7+
               const upsideBonus = round >= 6 && p.residual > 0 ? p.residual * 2.0 : 0;
 
-              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + upsideBonus + (rng() - 0.5) * 0.2;
+              // Late-round boom bonus: positional boom classifier probability of finishing
+              // top-5/12/18/5 from a late positional tier (QB12+/RB24+/WR36+/TE10+).
+              // Only non-zero for players past their positional late-pick threshold,
+              // so the effect is naturally gated to genuine late-round dart-throws.
+              // Base rates are 4-8% across positions, so a prob of 0.5 is 6-12x lift;
+              // scale by 4.0 puts a strong boom call at ~+2 PPG of equivalent value.
+              const lateBoomProb = (p as any).lateBoomProb || 0;
+              const lateBoomBonus = round >= 5 && lateBoomProb > 0 ? lateBoomProb * 4.0 : 0;
+
+              const score = vona * vonaWeight * starterMult + residualBonus + bustPenalty - reachPenalty + rawPPG + upsideBonus + lateBoomBonus + (rng() - 0.5) * 0.2;
               candidates.push({ idx: i, score });
             }
             if (candidates.length > 0) {
@@ -1317,6 +1354,7 @@ async function main() {
             actualPPG: picked.actualPPG, modelPPG: picked.modelPPG,
             round: round + 1, pickNum: overallPick + 1,
             isHit: picked.isHit, isBust: picked.isBust,
+            lateBoomProb: (picked as any).lateBoomProb || 0,
           });
         } else {
           // Other teams: pick from top ~3 ADP with some variance
@@ -1465,8 +1503,8 @@ async function main() {
   const examplePick = perPickResults.find(r => r.pickPos === 6) || perPickResults[0];
   draftSim2025 = {
     // Example draft (pick #6) for side-by-side display
-    adpTeam: examplePick.adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.adpStarters.has(p.name) })),
-    modelTeam: examplePick.modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.modelStarters.has(p.name) })),
+    adpTeam: examplePick.adpTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.adpStarters.has(p.name), lateBoomProb: p.lateBoomProb || 0 })),
+    modelTeam: examplePick.modelTeam.map(p => ({ name: p.name, position: p.position, adp: p.adp, round: p.round, pick: p.pickNum, actualPPG: p.actualPPG, modelPPG: p.modelPPG, isHit: p.isHit, isBust: p.isBust, isStarter: examplePick.modelStarters.has(p.name), lateBoomProb: p.lateBoomProb || 0 })),
     adpLineupPPG: examplePick.adpPPG,
     adpSeasonPPR: Math.round(examplePick.adpPPG * 17),
     modelLineupPPG: examplePick.modelPPG,
