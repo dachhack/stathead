@@ -21,14 +21,30 @@ and whose features are:
     physical / combine, prior production, role, team context, projection.
 
 Per-position models, per-horizon models (one per (position, horizon) pair).
+Horizons: H ∈ {7, 30, 60, 90, 120} days. The hard ceiling for any training
+sample given a 179-day data window and 30-day warmup is H ≤ 148; practical
+sample-size floor puts the ceiling at ~130. A 6-month (180-day) forecast
+is impossible from this data envelope.
 
-CV: expanding-window walk-forward. At each cutoff T, the model trains on
-(player, t) with t + H ≤ T — i.e. every training sample's target was
-already observable at T — and predicts v(T+H) for every player. Predictions
-across all cutoffs pool into one out-of-sample vector per (pos, H), from
-which honest cv_r2 / cv_mae are computed. The full-data model is trained
-on all feasible samples and serialized via lgb_to_js_gbm (init=0, lr=1
-invariant from f22f844).
+CV is scheme-dependent on the horizon:
+
+  walk-forward (H ≤ 30): expanding-window cutoffs with 14-day test blocks.
+      Measures temporal extrapolation: "given data up to T, predict the
+      next window." Requires train + test + target-observable-gap to all
+      fit inside the usable t-range, which breaks for H ≥ 60.
+
+  player-grouped (all H, but primary for H ≥ 60): K-fold with players as
+      the grouping unit. Train on 4/5 of players, test on the held-out 1/5.
+      Measures cross-player generalization: "given most players' H-day
+      trajectories, predict the held-out cohort's H-day trajectories."
+
+Both metrics are honest out-of-sample. They measure *different*
+generalization claims (temporal vs cross-player), so the JSON emits both
+where feasible and a primary_scheme field that says which to quote. For
+short horizons, agreement between the two is a sanity signal.
+
+Full-data models are trained on every feasible sample and serialized via
+lgb_to_js_gbm (init=0, lr=1 invariant from f22f844).
 
 Output: public/data/model-cache-ktc-v2.json  (v2 — v1 was the dead-end
 valueDeltaPct port that motivated this reframe).
@@ -60,13 +76,44 @@ TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v42.json'
 OUTPUT_PATH = DATA_DIR / 'model-cache-ktc-v2.json'
 
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
-HORIZONS = (7, 30, 90)
+
+# Horizons for forecasting (in days). The data envelope is 2025-10-14 →
+# 2026-04-11 = 179 days total, 149 days after the 30-day warmup. Hard
+# ceiling for *any* training sample is H ≤ 148; practical ceiling for
+# ≥20 samples/player is H ≤ 129. A 6-month (180d) forecast is impossible
+# from this dataset because no player has observed v(t) and v(t+180)
+# inside a 180-day window.
+#
+# Chosen set spans short (7, 30) and dynasty-relevant long horizons
+# (60, 90, 120). 120 days ≈ 4 months is the longest horizon where
+# samples/player stay ≥ 25.
+HORIZONS = (7, 30, 60, 90, 120)
+
 WARMUP_DAYS = 30  # days of history required before fast features become valid
-CV_FOLDS = 5      # expanding-window walk-forward cutoffs per (pos, horizon)
-CV_TEST_WINDOW_DAYS = 14  # width of each fold's test window (pools predictions
-                          # across multiple days so per-fold noise doesn't
-                          # dominate pooled R²)
-MIN_FOLD_TRAIN_ROWS = 500  # skip a fold if training set is smaller than this
+
+# CV config.
+# For each (position, horizon) pair we run the CV scheme that is honest
+# given the data envelope:
+#
+#   H ≤ 30: walk-forward is primary. Expanding-window cutoffs with a
+#           14-day test window. Measures temporal extrapolation: "given
+#           data up to T, predict what happens in the next window."
+#           Player-grouped CV is *also* reported at H ≤ 30 so we can
+#           cross-check the two schemes on the same data.
+#
+#   H ≥ 60: walk-forward is infeasible (usable t-range shrinks below the
+#           horizon + gap). Player-grouped is primary. Measures
+#           cross-player generalization: "given most players' H-day
+#           trajectories in the observed period, predict the held-out
+#           players' H-day trajectories over the same period."
+#
+# These measure *different* generalization claims. Both are honest
+# out-of-sample metrics — nothing about either is an in-sample artifact.
+CV_FOLDS = 5                  # walk-forward cutoffs
+CV_TEST_WINDOW_DAYS = 14      # width of each walk-forward fold's test window
+PLAYER_CV_FOLDS = 5           # player-grouped K
+MIN_FOLD_TRAIN_ROWS = 500     # skip a fold if training set is smaller than this
+WALK_FORWARD_MAX_H = 30       # above this, skip walk-forward entirely
 
 
 # ── Name normalization ──────────────────────────────────────────────────
@@ -487,11 +534,14 @@ def build_dataset(position, horizon, players, fast_by_pid, slow_by_pid):
             rows_pid.append(pid)
 
     if not rows_feats:
-        return np.zeros((0, len(fn_all))), np.zeros(0), np.zeros(0, dtype=np.int64), [], fn_all
+        return (np.zeros((0, len(fn_all))), np.zeros(0),
+                np.zeros(0, dtype=np.int64),
+                np.zeros(0, dtype=np.int64), fn_all)
     X = np.array(rows_feats, dtype=np.float64)
     y = np.array(rows_y, dtype=np.float64)
     t = np.array(rows_t, dtype=np.int64)
-    return X, y, t, rows_pid, fn_all
+    pids_arr = np.array(rows_pid, dtype=np.int64)
+    return X, y, t, pids_arr, fn_all
 
 
 # ── Walk-forward CV ─────────────────────────────────────────────────────
@@ -567,6 +617,82 @@ def walk_forward_cv(X, y, t, horizon, feature_names, lgb_params, n_rounds,
     return r2, mae, len(all_preds), valid_folds
 
 
+# ── Player-grouped CV ──────────────────────────────────────────────────
+
+def player_grouped_cv(X, y, pids, feature_names, lgb_params, n_rounds,
+                       verbose_tag=None):
+    """K-fold cross-validation with players as the grouping unit.
+
+    Deterministically partition the unique players into PLAYER_CV_FOLDS
+    cohorts. For each fold, train on (4/K) of the players' full (t, y)
+    samples and predict on the held-out player cohort. Pool predictions
+    across all K folds into one out-of-sample vector.
+
+    This is the correct generalization metric for long horizons where the
+    usable t-range is too short for walk-forward (see module docstring).
+    It measures: "given many players' H-day trajectories in the observed
+    period, how well does the model predict a new player's trajectory in
+    the same period?" — a different claim than walk-forward's temporal
+    extrapolation, but equally honest: no held-out player's rows appear
+    anywhere in its own fold's training set.
+
+    Returns (cv_r2, cv_mae, n_preds, n_valid_folds).
+    """
+    if len(X) < MIN_FOLD_TRAIN_ROWS * 2:
+        return float('nan'), float('nan'), 0, 0
+
+    unique_pids = np.unique(pids)
+    if len(unique_pids) < PLAYER_CV_FOLDS * 2:
+        return float('nan'), float('nan'), 0, 0
+
+    # Deterministic shuffle + modulo assignment → each fold gets ~same
+    # number of players regardless of pid distribution.
+    rng = np.random.default_rng(42)
+    shuffled = rng.permutation(unique_pids)
+    fold_of_pid = {pid: i % PLAYER_CV_FOLDS for i, pid in enumerate(shuffled)}
+    fold_assign = np.array([fold_of_pid[p] for p in pids], dtype=np.int64)
+
+    all_preds = []
+    all_actuals = []
+    valid_folds = 0
+
+    for k in range(PLAYER_CV_FOLDS):
+        train_mask = fold_assign != k
+        test_mask = fold_assign == k
+
+        if train_mask.sum() < MIN_FOLD_TRAIN_ROWS or test_mask.sum() < 10:
+            continue
+
+        X_tr = X[train_mask]
+        y_tr = y[train_mask]
+        X_te = X[test_mask]
+        y_te = y[test_mask]
+
+        booster = train_lgb_model(X_tr, y_tr, feature_names, lgb_params, n_rounds)
+        preds = booster.predict(X_te)
+        all_preds.extend(preds.tolist())
+        all_actuals.extend(y_te.tolist())
+        valid_folds += 1
+
+        if verbose_tag:
+            fold_r2 = r2_score(y_te, preds)
+            fold_mae = mean_absolute_error(y_te, preds)
+            n_test_players = len(np.unique(pids[test_mask]))
+            print(f'      [{verbose_tag}/pCV] k={k} '
+                  f'n_tr={train_mask.sum():5d} n_te={test_mask.sum():4d} '
+                  f'players_te={n_test_players:3d} '
+                  f'foldR²={fold_r2:+.4f} foldMAE={fold_mae:.5f}')
+
+    if len(all_preds) < 10:
+        return float('nan'), float('nan'), len(all_preds), valid_folds
+
+    all_preds = np.array(all_preds)
+    all_actuals = np.array(all_actuals)
+    r2 = float(r2_score(all_actuals, all_preds))
+    mae = float(mean_absolute_error(all_actuals, all_preds))
+    return r2, mae, len(all_preds), valid_folds
+
+
 # ── Main training loop ──────────────────────────────────────────────────
 
 # Starting hyperparams. These are intentionally heavily regularized for
@@ -590,11 +716,14 @@ BASE_N_ROUNDS = 60
 def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 2,
+        'schemaVersion': 3,   # 3: added player-grouped CV, extended HORIZONS
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
-        'cvFolds': CV_FOLDS,
+        'walkForwardFolds': CV_FOLDS,
+        'walkForwardTestWindowDays': CV_TEST_WINDOW_DAYS,
+        'walkForwardMaxHorizon': WALK_FORWARD_MAX_H,
+        'playerGroupedFolds': PLAYER_CV_FOLDS,
         'baseLgbParams': {k: v for k, v in BASE_LGB_PARAMS.items()},
         'baseNRounds': BASE_N_ROUNDS,
         'fastFeatures': FAST_FEATURE_NAMES,
@@ -611,9 +740,28 @@ def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
                 print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
                 continue
 
-            cv_r2, cv_mae, n_preds, valid_folds = walk_forward_cv(
-                X, y, t, horizon, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
+            # Walk-forward is only honest for short horizons (see module
+            # docstring). Skip entirely above WALK_FORWARD_MAX_H — reporting
+            # walk-forward NaN would be misleading because it's a data-
+            # envelope limitation, not a model failure.
+            if horizon <= WALK_FORWARD_MAX_H:
+                wf_r2, wf_mae, wf_n, wf_folds = walk_forward_cv(
+                    X, y, t, horizon, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
+                    verbose_tag=f'{pos}/H{horizon}' if verbose else None)
+            else:
+                wf_r2, wf_mae, wf_n, wf_folds = float('nan'), float('nan'), 0, 0
+
+            # Player-grouped CV runs for every horizon: this is the primary
+            # metric for long horizons, and a useful cross-check for short ones.
+            pg_r2, pg_mae, pg_n, pg_folds = player_grouped_cv(
+                X, y, pids, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
                 verbose_tag=f'{pos}/H{horizon}' if verbose else None)
+
+            # Primary cvR² = walk-forward if available (temporal is the
+            # stronger claim), player-grouped otherwise.
+            primary_r2 = wf_r2 if horizon <= WALK_FORWARD_MAX_H and not np.isnan(wf_r2) else pg_r2
+            primary_mae = wf_mae if horizon <= WALK_FORWARD_MAX_H and not np.isnan(wf_mae) else pg_mae
+            primary_scheme = 'walk_forward' if (horizon <= WALK_FORWARD_MAX_H and not np.isnan(wf_r2)) else 'player_grouped'
 
             # Full-data model for deployment
             booster = train_lgb_model(X, y, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS)
@@ -630,29 +778,43 @@ def train_all(players, fast_by_pid, slow_by_pid, verbose=False):
                 'yStd': float(y.std()),
                 'yMin': float(y.min()),
                 'yMax': float(y.max()),
-                'cvR2': round(cv_r2, 4) if not np.isnan(cv_r2) else None,
-                'cvMae': round(cv_mae, 5) if not np.isnan(cv_mae) else None,
-                'cvNPreds': int(n_preds),
-                'cvValidFolds': int(valid_folds),
+                # Primary metrics (the one you should quote)
+                'cvR2': round(primary_r2, 4) if not np.isnan(primary_r2) else None,
+                'cvMae': round(primary_mae, 5) if not np.isnan(primary_mae) else None,
+                'cvScheme': primary_scheme,
+                # Walk-forward breakdown (null if infeasible)
+                'cvR2WalkForward': round(wf_r2, 4) if not np.isnan(wf_r2) else None,
+                'cvMaeWalkForward': round(wf_mae, 5) if not np.isnan(wf_mae) else None,
+                'cvNPredsWalkForward': int(wf_n),
+                'cvValidFoldsWalkForward': int(wf_folds),
+                # Player-grouped breakdown (null if infeasible)
+                'cvR2PlayerGrouped': round(pg_r2, 4) if not np.isnan(pg_r2) else None,
+                'cvMaePlayerGrouped': round(pg_mae, 5) if not np.isnan(pg_mae) else None,
+                'cvNPredsPlayerGrouped': int(pg_n),
+                'cvValidFoldsPlayerGrouped': int(pg_folds),
                 'inSampleR2': gbm_js['rSquared'],
             }
-            summary_rows.append((pos, horizon, n, cv_r2, cv_mae, n_preds, valid_folds,
+            summary_rows.append((pos, horizon, n, wf_r2, pg_r2, primary_scheme,
                                  gbm_js['rSquared']))
-            print(f'  {pos} H={horizon:2d}: n={n:6d}  '
-                  f'cvR²={cv_r2:+.4f} cvMAE={cv_mae:.5f}  '
+            wf_s = f'{wf_r2:+.4f}' if not np.isnan(wf_r2) else '   N/A'
+            pg_s = f'{pg_r2:+.4f}' if not np.isnan(pg_r2) else '   N/A'
+            print(f'  {pos} H={horizon:3d}: n={n:6d}  '
+                  f'wfR²={wf_s} pgR²={pg_s}  '
                   f'in-sample R²={gbm_js["rSquared"]:+.4f}  '
-                  f'folds={valid_folds}/{CV_FOLDS}  preds={n_preds}')
+                  f'primary={primary_scheme}')
 
     print()
-    print('Summary (honest walk-forward CV):')
-    print(f'  {"pos":>4} {"H":>3} {"n":>7} {"cvR²":>8} {"cvMAE":>8} '
-          f'{"folds":>5} {"inSampR²":>9}')
+    print('Summary (honest out-of-sample CV):')
+    print('  walkForward = temporal expanding-window; playerGrouped = '
+          'cross-player K-fold')
+    print(f'  {"pos":>4} {"H":>4} {"n":>7} {"wfR²":>8} {"pgR²":>8} '
+          f'{"primary":>14} {"inSampR²":>9}')
     for row in summary_rows:
-        pos, h, n, cvr2, cvmae, npreds, folds, in_r2 = row
-        cvr2_s = f'{cvr2:+.4f}' if not np.isnan(cvr2) else '   N/A'
-        cvmae_s = f'{cvmae:.5f}' if not np.isnan(cvmae) else '   N/A'
-        print(f'  {pos:>4} {h:>3} {n:>7} {cvr2_s:>8} {cvmae_s:>8} '
-              f'{folds:>5} {in_r2:>+9.4f}')
+        pos, h, n, wfr2, pgr2, scheme, in_r2 = row
+        wf_s = f'{wfr2:+.4f}' if not np.isnan(wfr2) else '   N/A'
+        pg_s = f'{pgr2:+.4f}' if not np.isnan(pgr2) else '   N/A'
+        print(f'  {pos:>4} {h:>4} {n:>7} {wf_s:>8} {pg_s:>8} '
+              f'{scheme:>14} {in_r2:>+9.4f}')
 
     return results
 
