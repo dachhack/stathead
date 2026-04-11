@@ -19,6 +19,8 @@ public/data/*
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json
 !public/data/residual-hyperparam-sweep.json
+!public/data/ktc-feature-ablation.json
+!public/data/ktc-hyperparam-sweep.json
 .claude/
 CLAUDE.local.md
 __pycache__/
