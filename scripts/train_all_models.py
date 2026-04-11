@@ -87,15 +87,22 @@ def _convert_node(node: dict, feature_names: list[str]) -> dict:
 
 def lgb_model_to_js(model: lgb.Booster, feature_names: list[str],
                      X_train: np.ndarray, y_train: np.ndarray) -> dict:
-    """Convert a trained LightGBM model to JS-compatible GBM format."""
+    """Convert a trained LightGBM model to JS-compatible GBM format.
+
+    See scripts/train_projection_models.py::lgb_to_js_gbm for the full
+    explanation of why initialPrediction=0 and learningRate=1 are correct:
+    LightGBM bakes shrinkage and boost_from_average init directly into the
+    leaf_values returned by dump_model().
+
+    NOTE: This file is currently orphaned (not called from CI, npm, or any
+    active script) but still reachable via manual `python3 scripts/train_all_models.py`.
+    Keeping the converter consistent with train_projection_models.py to avoid
+    a dormant footgun.
+    """
     dump = model.dump_model()
     trees = []
     for tree_info in dump['tree_info']:
         trees.append(lgb_tree_to_js(tree_info, feature_names))
-
-    initial_pred = float(np.mean(y_train))
-    lr = dump['objective_function_config'].get('learning_rate',
-         model.params.get('learning_rate', 0.05))
 
     # Compute in-sample metrics
     preds = model.predict(X_train)
@@ -106,8 +113,8 @@ def lgb_model_to_js(model: lgb.Booster, feature_names: list[str],
 
     return {
         'trees': trees,
-        'initialPrediction': initial_pred,
-        'learningRate': float(lr),
+        'initialPrediction': 0.0,  # baked into leaf_values by LightGBM
+        'learningRate': 1.0,       # baked into leaf_values by LightGBM
         'featureNames': feature_names,
         'rSquared': round(r2, 6),
         'adjustedRSquared': round(1 - (1 - r2) * (n - 1) / max(1, n - len(feature_names) - 1), 6),

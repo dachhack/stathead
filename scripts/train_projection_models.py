@@ -46,7 +46,25 @@ def _convert_node(node: dict) -> dict:
 
 def lgb_to_js_gbm(model: lgb.Booster, X: np.ndarray, y: np.ndarray,
                     feature_names: list[str], loss: str = 'squared', quantile: float | None = None) -> dict:
-    """Convert trained LightGBM to JS-compatible GBM format."""
+    """Convert trained LightGBM to JS-compatible GBM format.
+
+    CRITICAL: LightGBM's dump_model() returns leaf_values that ALREADY include
+    shrinkage (learning_rate) AND the boost_from_average initial offset.
+    Empirically verified: LGB.predict(x) == sum(leaf_value across all trees).
+
+    The JS predictor at src/lib/gbm.ts computes:
+        pred = initialPrediction + learningRate * sum(leaf_value)
+
+    To match LGB.predict() exactly, we emit initialPrediction=0 and
+    learningRate=1 so the JS formula collapses to sum(leaf_value). Do NOT
+    emit mean(y) and the original lr — that double-shrinks every prediction
+    and collapses the model to a near-constant around mean(y).
+
+    This was the bug fixed after the original Python training PR (#723d21e)
+    shipped for 10+ subsequent PRs with CV R² computed against lgb.predict()
+    (correct) but production TS predictions applying the shrinkage twice.
+    See the guard test in scripts/tests/test_lgb_js_equivalence.py.
+    """
     dump = model.dump_model()
     trees = [_convert_node(t['tree_structure']) for t in dump['tree_info']]
     preds = model.predict(X)
@@ -56,8 +74,8 @@ def lgb_to_js_gbm(model: lgb.Booster, X: np.ndarray, y: np.ndarray,
     n = len(y)
     return {
         'trees': trees,
-        'initialPrediction': float(np.mean(y)),
-        'learningRate': float(model.params.get('learning_rate', 0.05)),
+        'initialPrediction': 0.0,  # baked into leaf_values by LightGBM
+        'learningRate': 1.0,       # baked into leaf_values by LightGBM
         'featureNames': feature_names,
         'rSquared': round(r2, 6),
         'adjustedRSquared': round(1 - (1 - r2) * (n - 1) / max(1, n - len(feature_names) - 1), 6),
