@@ -744,16 +744,37 @@ def train_share_models(rows):
 # ── Residual Models ─────────────────────────────────────────────────
 
 def train_residual_models(rows):
-    """Train ADP-residual models."""
+    """Train ADP-residual models.
+
+    Residual target: y_residual = rawPPG - (adp_intercept + adp_slope * adp).
+    The model learns corrections on top of a linear ADP→PPG baseline.
+
+    Features are inherited from the old cache to preserve serialization
+    compatibility, but we filter out any `actual*Share` features — they're
+    same-season outcomes and would leak the target. This mirrors the
+    LEAKY_FEATURES filter in train_adp_models() (the #110 fix was applied
+    to ADP and PPG but originally missed this function — corr(actual*Share,
+    rawPPG) is 0.57–0.80, so they were effectively letting the model read
+    the target off the features).
+    """
     old = load_old_cache('model-cache-residual-v56.json')
     if not old:
         print("  No existing residual cache, skipping")
         return None
 
+    # Same leaky-feature set as train_adp_models(). Same-season outcome
+    # shares must not appear as predictors — they're what the share models
+    # learn to predict.
+    LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
+                      'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare',
+                      'actualRushTDShare'}
+
     residual_models = []
     for old_m in old['residualModels']:
         pos = old_m['position']
-        feature_names = old_m['ridgeModel']['featureNames']
+        raw_feature_names = old_m['ridgeModel']['featureNames']
+        feature_names = [f for f in raw_feature_names if f not in LEAKY_FEATURES]
+        n_dropped = len(raw_feature_names) - len(feature_names)
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y_ppg = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
@@ -776,6 +797,62 @@ def train_residual_models(rows):
         gbm = train_lgb_model(X, y_residual, feature_names, lgb_params, 100)
         gbm_js = lgb_to_js_gbm(gbm, X, y_residual, feature_names)
 
+        # LOSO CV — hold out one season at a time. Gives an honest R² for
+        # the residual fit independent of the ADP curve. Previously there
+        # was no CV here, which hid the leakage behind in-sample metrics.
+        seasons = sorted(set(r['season'] for r in pos_rows))
+        loso_gbm = np.zeros(n)
+        loso_ridge = np.zeros(n)
+        for held in seasons:
+            tr = [i for i, r in enumerate(pos_rows) if r['season'] != held]
+            te = [i for i, r in enumerate(pos_rows) if r['season'] == held]
+            if len(tr) < 15 or not te:
+                continue
+            # Recompute residual target inside the fold using the fold's own
+            # ADP curve so the CV is honest end-to-end.
+            adps_tr = adps[tr]
+            y_ppg_tr = y_ppg[tr]
+            valid_tr = adps_tr < 250
+            if valid_tr.sum() >= 10:
+                c = np.polyfit(adps_tr[valid_tr], y_ppg_tr[valid_tr], 1)
+                s_tr, i_tr = float(c[0]), float(c[1])
+            else:
+                s_tr, i_tr = adp_slope, adp_intercept
+            y_res_tr = y_ppg_tr - (i_tr + s_tr * adps_tr)
+            y_res_te_true = y_ppg[te] - (i_tr + s_tr * adps[te])
+
+            r_fold = Ridge(alpha=8)
+            r_fold.fit(X[tr], y_res_tr)
+            rp = r_fold.predict(X[te])
+            g_fold = train_lgb_model(X[tr], y_res_tr, feature_names, lgb_params, 100)
+            gp = g_fold.predict(X[te])
+            for j, idx in enumerate(te):
+                loso_gbm[idx] = gp[j]
+                loso_ridge[idx] = rp[j]
+
+        # Compare honest residual predictions against honest per-fold targets.
+        # y_residual (above) is global-fit; for CV metrics we recompute per-fold.
+        y_residual_loso = np.zeros(n)
+        for held in seasons:
+            tr = [i for i, r in enumerate(pos_rows) if r['season'] != held]
+            te = [i for i, r in enumerate(pos_rows) if r['season'] == held]
+            if len(tr) < 15 or not te:
+                continue
+            adps_tr = adps[tr]
+            y_ppg_tr = y_ppg[tr]
+            valid_tr = adps_tr < 250
+            if valid_tr.sum() >= 10:
+                c = np.polyfit(adps_tr[valid_tr], y_ppg_tr[valid_tr], 1)
+                s_tr, i_tr = float(c[0]), float(c[1])
+            else:
+                s_tr, i_tr = adp_slope, adp_intercept
+            for idx in te:
+                y_residual_loso[idx] = y_ppg[idx] - (i_tr + s_tr * adps[idx])
+
+        cv_r2_gbm = float(r2_score(y_residual_loso, loso_gbm)) if n > 0 else 0.0
+        cv_r2_ridge = float(r2_score(y_residual_loso, loso_ridge)) if n > 0 else 0.0
+        cv_mae_gbm = float(mean_absolute_error(y_residual_loso, loso_gbm)) if n > 0 else 0.0
+
         residual_models.append({
             'position': pos,
             'gbmModel': gbm_js,
@@ -785,11 +862,15 @@ def train_residual_models(rows):
             'bestAlpha': old_m.get('bestAlpha', 1),
             'featureNames': feature_names,
             'n': n,
+            'cvR2Gbm': round(cv_r2_gbm, 3),
+            'cvR2Ridge': round(cv_r2_ridge, 3),
+            'cvMaeGbm': round(cv_mae_gbm, 2),
             'backtest': old_m.get('backtest', {}),
             'playersDraftSim': old_m.get('playersDraftSim', {}),
             'lastSeason': old_m.get('lastSeason', {}),
         })
-        print(f"    {pos}: n={n}")
+        print(f"    {pos}: n={n}, features={len(feature_names)} (-{n_dropped} leaky), "
+              f"cvR2Gbm={cv_r2_gbm:.3f}, cvR2Ridge={cv_r2_ridge:.3f}")
 
     return {'residualModels': residual_models}
 
