@@ -30,6 +30,7 @@ import './groups/vegas';
 import './groups/contract';
 import './groups/aging';
 import './groups/momentum';
+import './groups/priorMultiYear';
 import './groups/interaction';
 import './groups/qbImpact';
 import './groups/consistency';

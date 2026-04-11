@@ -922,11 +922,12 @@ export function ModelDocumentation() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                 Note: PPG model R² corrected after removing data-leaking features (current-season actual share data).
                 Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
-                Feature sets then re-tuned via Python ablation (<code>scripts/ablate_ppg_features.py</code>): pruned
-                to 19/20/21/13 features for QB/RB/WR/TE, adding priorWOPR for RB (the only ablation-positive addition
-                from the injury / advanced-receiving / QB-context batch). Pruning recovered +0.007 to +0.016 R² per
-                position. Remaining lift lies in better prior encoding (multi-year weighted priorPPG, non-linear age)
-                and richer team/scheme features.
+                Feature sets tuned via Python ablation (<code>scripts/ablate_ppg_features.py</code>): pruned
+                to 19/21/22/14 features for QB/RB/WR/TE. Multi-year derived features then added: QB replaces
+                priorPPG with priorPPG2yr (0.65·Y-1 + 0.35·Y-2, +0.007 R²), RB/WR add priorPPG2yr alongside priorPPG,
+                TE adds durabilityStreak (consecutive 15+ game seasons). Non-linear age / yearsInLeague transforms
+                and explicit availability rates all ablated as dead weight — GBMs capture those interactions natively.
+                Cumulative lift vs honest baseline: QB +0.014, RB +0.012, WR +0.005, TE +0.012.
               </p>
             </>
           );
