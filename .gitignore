@@ -8,6 +8,8 @@ public/data/
 !public/data/model-cache-*.json
 !public/data/feature-store/
 !public/data/score-store/
+!public/data/ktc_rankings_*.json
+!public/data/ktc_history.json
 .claude/
 CLAUDE.local.md
 __pycache__/

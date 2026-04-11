@@ -1,0 +1,87 @@
+name: Fetch KTC Snapshot
+
+# Fetches the latest KTC rankings + per-player history and commits the
+# snapshot back to the branch the workflow was triggered from.
+#
+# Why this workflow exists: the Claude Code sandbox running this repo has
+# an egress-control proxy that whitelists only a handful of hosts (github,
+# package registries, etc.) — keeptradecut.com is not on the list. So the
+# KTC fetch has to run somewhere with unrestricted outbound, and GitHub
+# Actions runners are the natural choice since they already have to fetch
+# KTC for the daily refresh-data.yml build.
+#
+# Trigger from the GitHub mobile app: repo → Actions → "Fetch KTC Snapshot"
+# → "Run workflow" → pick the branch. Runs in ~2-3 minutes; the commit
+# lands on the triggering branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch only, do not commit (for testing)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-ktc-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout triggering branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          # Need a full-depth checkout so the commit-back push doesn't
+          # get rejected as a shallow-history non-fast-forward.
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Remove any stale KTC snapshots
+        # The fetch script skips files that already exist. Remove them
+        # so we always get a fresh snapshot from this run.
+        run: |
+          rm -f public/data/ktc_rankings_1qb.json
+          rm -f public/data/ktc_rankings_superflex.json
+          rm -f public/data/ktc_history.json
+
+      - name: Fetch KTC rankings + history
+        run: node scripts/fetch-ktc.cjs public/data
+
+      - name: Show fetched file sizes
+        run: |
+          echo "=== fetched KTC snapshot ==="
+          ls -lh public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json 2>&1 || true
+          echo ""
+          echo "=== rankings_1qb first 3 players ==="
+          head -c 500 public/data/ktc_rankings_1qb.json || true
+          echo ""
+          echo "=== history record count ==="
+          node -e "const h = require('./public/data/ktc_history.json'); console.log('players:', h.length); console.log('first player history points:', h[0]?.oneQB?.valueHistory?.length); console.log('earliest date:', h[0]?.oneQB?.valueHistory?.[0]?.d); console.log('latest date:', h[0]?.oneQB?.valueHistory?.slice(-1)?.[0]?.d);"
+
+      - name: Commit snapshot to triggering branch
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit — snapshot already matches the tree."
+            exit 0
+          fi
+          git commit -m "Fetch KTC snapshot ($(date -u +%Y-%m-%d))
+
+          Rankings + per-player value history for the dynasty value model.
+          Fetched by .github/workflows/fetch-ktc-snapshot.yml on branch ${{ github.ref_name }}.
+
+          [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
