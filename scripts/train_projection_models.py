@@ -134,9 +134,13 @@ def load_rows():
 def load_and_persist_augmented_cache():
     """Load the training cache, augment with derived features, save back to disk.
 
-    Run this once after changing augment_derived_features() so that TS consumers
+    Run this after changing augment_derived_features() so that TS consumers
     (precompute-features.ts, draft sim, model docs) read the new features from
     the on-disk cache without needing a Python-side augmentation pass.
+
+    Also strips keys listed in DEAD_DERIVED_KEYS from each row — these are
+    Python-only derivations that were ablated as dead weight and shouldn't
+    be leaking into the on-disk cache.
     """
     print(f'Loading training cache from {CACHE_PATH}...')
     with open(CACHE_PATH) as f:
@@ -144,13 +148,29 @@ def load_and_persist_augmented_cache():
     rows = data['rows']
     print(f'  {len(rows)} rows loaded')
 
-    print('Augmenting with derived features...')
+    # Strip dead derived keys left over from earlier experiments
+    stripped_counts = {k: 0 for k in DEAD_DERIVED_KEYS}
+    for r in rows:
+        f = r.get('features')
+        if not isinstance(f, dict):
+            continue
+        for k in DEAD_DERIVED_KEYS:
+            if k in f:
+                del f[k]
+                stripped_counts[k] += 1
+    total_stripped = sum(stripped_counts.values())
+    if total_stripped > 0:
+        print(f'  Stripped {total_stripped} dead-key entries:')
+        for k, n in stripped_counts.items():
+            if n > 0:
+                print(f'    {k}: removed from {n} rows')
+
+    print('Augmenting with live derived features...')
     augment_derived_features(rows)
 
-    # Sanity-check: verify at least one row has the expected new keys populated
-    sample_keys = DERIVED_FEATURE_KEYS
-    have_key = {k: any((r.get('features') or {}).get(k, 0) != 0 for r in rows) for k in sample_keys}
-    print(f'  Derived-feature non-zero coverage:')
+    # Sanity-check: verify the live derived keys are populated
+    have_key = {k: any((r.get('features') or {}).get(k, 0) != 0 for r in rows) for k in DERIVED_FEATURE_KEYS}
+    print(f'  Live derived-feature coverage:')
     for k, present in have_key.items():
         print(f'    {k}: {"ok" if present else "EMPTY (check logic)"}')
 
@@ -166,18 +186,33 @@ def make_X(rows, keys):
 
 
 # ── Derived features ────────────────────────────────────────────────
-# Features computed in-memory at training time from the training cache
-# row graph. These exist only on the Python side — to get them into
-# production inference, they'd need to be ported to the TS feature store
-# (e.g. a priorStats extension group) once ablation shows lift.
+# Features computed in-memory at training time from the training cache row
+# graph. These mirror the TS feature store group in
+# src/lib/featureStore/groups/priorMultiYear.ts so Python training and TS
+# inference agree on feature values.
+#
+# Only features that survived ablation + appear in PPG_FEATURE_LISTS are
+# computed here — keeping the set minimal avoids drift between the on-disk
+# training cache and the TS feature store.
 DERIVED_FEATURE_KEYS = [
-    # Multi-year weighted priors
-    'priorPPG2yr', 'priorPPG3yr',
-    # Non-linear age / experience
-    'ageSquared', 'yearsInLeagueSquared', 'yearsXpriorPPG', 'ageDeviationFromPrime',
-    # Availability / durability
-    'priorAvailabilityRate', 'seasonsPlayedLast5', 'durabilityStreak',
+    'priorPPG2yr',       # QB substitution / RB+WR addition, ablation-positive
+    'durabilityStreak',  # TE addition, ablation-positive
 ]
+
+# Derived-feature keys that were TRIED and ablated as dead weight. Listed
+# here so load_and_persist_augmented_cache can strip them from any cache
+# that still has them from earlier experiments. Do not re-add without
+# running scripts/ablate_ppg_features.py to verify signal.
+DEAD_DERIVED_KEYS = [
+    'priorPPG3yr',           # correlated with priorPPG2yr, no extra signal
+    'ageSquared',            # GBMs handle non-linear age natively
+    'yearsInLeagueSquared',  # GBMs handle non-linear experience natively
+    'yearsXpriorPPG',        # GBMs learn interactions natively
+    'ageDeviationFromPrime', # another non-linear age transform, dead
+    'priorAvailabilityRate', # redundant with priorGames (already in models)
+    'seasonsPlayedLast5',    # redundant with yearsInLeague
+]
+
 # Note: priorQBRating was tested as a derived feature (partial NFL passer
 # rating computed from 3 of 4 components available in the training cache)
 # but ablation showed it adds no signal to the PPG QB model — existing
@@ -197,6 +232,9 @@ def augment_derived_features(rows):
     Multi-year lookups use rawPPG from PRIOR seasons' rows as the source of
     truth for "did they play and how well?" — this is cleaner than chaining
     priorPPG fields, which would require a season offset.
+
+    Mirrors src/lib/featureStore/groups/priorMultiYear.ts — keep both
+    implementations in sync if you change either.
     """
     lookup = {}
     for r in rows:
@@ -213,12 +251,11 @@ def augment_derived_features(rows):
         pos = r['position']
         season = r['season']
         f = r.setdefault('features', {})
+        yil = sf(f.get('yearsInLeague', 0))
 
-        # Multi-year priors (rawPPG from prior seasons)
+        # priorPPG2yr: weighted 2-year prior PPG (0.65 * Y-1 + 0.35 * Y-2)
         y1 = lookup.get((name, pos, season - 1), {}).get('rawPPG', 0.0)
         y2 = lookup.get((name, pos, season - 2), {}).get('rawPPG', 0.0)
-        y3 = lookup.get((name, pos, season - 3), {}).get('rawPPG', 0.0)
-
         if y1 > 0 and y2 > 0:
             f['priorPPG2yr'] = round(0.65 * y1 + 0.35 * y2, 2)
         elif y1 > 0:
@@ -226,36 +263,7 @@ def augment_derived_features(rows):
         else:
             f['priorPPG2yr'] = 0.0
 
-        w_sum = 0.0
-        w = 0.0
-        for y, weight in ((y1, 0.5), (y2, 0.3), (y3, 0.2)):
-            if y > 0:
-                w += weight * y
-                w_sum += weight
-        f['priorPPG3yr'] = round(w / w_sum, 2) if w_sum > 0 else 0.0
-
-        # Non-linear age / experience
-        age = sf(f.get('age', 0))
-        yil = sf(f.get('yearsInLeague', 0))
-        prior_ppg = sf(f.get('priorPPG', 0))
-        f['ageSquared'] = round(age * age, 1)
-        f['yearsInLeagueSquared'] = round(yil * yil, 1)
-        f['yearsXpriorPPG'] = round(yil * prior_ppg, 2)
-        # Distance from prime age (prime ≈ 26 across positions, roughly)
-        f['ageDeviationFromPrime'] = round(abs(age - 26), 1) if age > 0 else 0.0
-
-        # Availability / durability
-        prior_games = sf(f.get('priorGames', 0))
-        f['priorAvailabilityRate'] = round(prior_games / 17, 3) if prior_games > 0 else 0.0
-
-        # Seasons played in last 5 years (veteran longevity signal)
-        seasons_played = sum(
-            1 for delta in range(1, 6)
-            if lookup.get((name, pos, season - delta), {}).get('rawPPG', 0) > 0
-        )
-        f['seasonsPlayedLast5'] = seasons_played
-
-        # Consecutive seasons with ≥15 games looking back (durability streak)
+        # durabilityStreak: consecutive prior seasons with ≥15 games
         streak = 0
         for delta in range(1, int(yil) + 2):
             past_games = lookup.get((name, pos, season - delta), {}).get('priorGames', 0)
