@@ -92,6 +92,7 @@ export async function buildSharedContext(opts: {
     priorRosterByTeam: new Map(),
     playerTeamMap: new Map(),
     playerPositionMap: new Map(),
+    gsisToPositionMap: new Map(),
     rosterPhysicalsByName: new Map(),
     vorReplacement: {},
     playerHistoryMap: opts.staticData?.playerHistoryMap || new Map(),
@@ -352,6 +353,11 @@ export async function buildSharedContext(opts: {
     // Name → position lookup, used by PBP aggregations that reference receivers
     // by name (priorByName alone misses rookies and new-veteran acquisitions).
     data.playerPositionMap.set(name, r.position);
+    // gsis → position lookup, PREFERRED over name-based for PBP joins since
+    // receiver_player_name uses abbreviated format ("Mi.Carter") that doesn't
+    // match rosters' full_name. receiver_player_id IS the gsis_id and joins
+    // cleanly. See scripts/backfill_team_features.py for the Python mirror.
+    if (r.gsis_id) data.gsisToPositionMap.set(r.gsis_id, r.position);
     const posKey = `${r.team}:${r.position}`;
     if (!data.rosterByTeam.has(posKey)) data.rosterByTeam.set(posKey, new Set());
     data.rosterByTeam.get(posKey)!.add(name);
@@ -370,9 +376,12 @@ export async function buildSharedContext(opts: {
     const posKey = `${r.team}:${r.position}`;
     if (!data.priorRosterByTeam.has(posKey)) data.priorRosterByTeam.set(posKey, new Set());
     data.priorRosterByTeam.get(posKey)!.add(name);
-    // Add to position map with current-roster taking precedence (don't overwrite)
+    // Add to position maps with current-roster taking precedence (don't overwrite)
     if (!data.playerPositionMap.has(name)) {
       data.playerPositionMap.set(name, r.position);
+    }
+    if (r.gsis_id && !data.gsisToPositionMap.has(r.gsis_id)) {
+      data.gsisToPositionMap.set(r.gsis_id, r.position);
     }
     if (!data.rosterPhysicalsByName.has(name)) {
       const wt = Number(r.weight) || 0;
@@ -656,16 +665,19 @@ function buildSchemeAndPersonnel(
     if (play.shotgun) s.shotgunPlays += 1;
     if (play.no_huddle) s.noHuddlePlays += 1;
 
-    // Positional targets: use the broader playerPositionMap (current + prior
-    // rosters) rather than priorByName alone. priorByName only has players who
-    // played last season, so rookies and new-veteran acquisitions previously
-    // caused silent zeros and the teamRBTargetRate/teamWRTargetRate/
-    // teamTETargetRate features ended up at 0% coverage on every row.
-    if (play.play_type === 'pass' && play.receiver_player_name) {
-      const recName = normalizeName(play.receiver_player_name);
+    // Positional targets: gsis_id join is the primary lookup (PBP's
+    // receiver_player_name is abbreviated like "Mi.Carter" which doesn't
+    // match rosters' full_name). Fall back to name-based lookups for
+    // edge cases where gsis_id is missing.
+    if (play.play_type === 'pass' && (play.receiver_player_id || play.receiver_player_name)) {
+      const recId: string | undefined = (play as any).receiver_player_id;
+      const recName = play.receiver_player_name
+        ? normalizeName(play.receiver_player_name)
+        : '';
       const recPos =
-        data.playerPositionMap.get(recName) ||
-        data.priorByName.get(recName)?.position;
+        (recId && data.gsisToPositionMap.get(recId)) ||
+        (recName && data.playerPositionMap.get(recName)) ||
+        (recName && data.priorByName.get(recName)?.position);
       s.totalTargets += 1;
       if (recPos === 'RB') s.rbTargets += 1;
       else if (recPos === 'TE') s.teTargets += 1;

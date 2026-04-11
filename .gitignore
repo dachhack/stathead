@@ -11,3 +11,7 @@ public/data/
 .claude/
 CLAUDE.local.md
 __pycache__/
+# Raw nflverse downloads cached locally by scripts/backfill_team_features.py.
+# Persistent across runs so we don't re-download ~2 GB each time; not
+# committed since these are too large for git history.
+.nflverse-cache/
