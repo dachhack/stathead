@@ -652,7 +652,15 @@ def train_ppg_models(rows):
     # Follow-up PR needed: port augment_derived_features to a TS feature group.
     PPG_FEATURE_LISTS = {
         'QB': [
-            'yearsInLeague', 'nflDraftPick', 'invDraftPick', 'draftPickPctOverall',
+            'yearsInLeague', 'invDraftPick', 'draftPickPctOverall',
+            # Dropped by ablation re-pass (post-PR-1 at correct hyperparams):
+            #   nflDraftPick          Δ=-0.0015  (noise at the measured single-drop
+            #                                     level; signal carried by invDraftPick
+            #                                     and draftPickPctOverall).
+            # Tried-and-reverted: draftPickPctOverall (Δ=+0.0008) and priorKneeInjury
+            # (Δ=+0.0001) were borderline at one-at-a-time ablation, but dropping
+            # all three together regressed QB by 0.003 (mutual-signal effect).
+            # Kept in — marginal positive ≥0 always, pays their keep.
             'priorTimeToThrow', 'priorPPG2yr',  # was priorPPG (single year)
             'teamSamePosCount', 'newArrivalBestPPR',
             'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
@@ -663,7 +671,10 @@ def train_ppg_models(rows):
             'age', 'yearsInLeague', 'invDraftPick', 'draftClassDepth', 'vertical', 'bmi',
             'priorRecEPA', 'priorRushEPA', 'priorPPR', 'teamSamePosCount',
             'teammatePriorPPR', 'projPlayerPPR', 'projTargetShare', 'prospectGrade',
-            'ppgTrend', 'priorBoomRate', 'qbOwnRushYds',
+            'ppgTrend', 'priorBoomRate',
+            # Dropped by ablation re-pass (Δ=-0.0030, clear noise):
+            #   qbOwnRushYds — correlated with invDraftPick / teamQBPassRating,
+            #   adds noise. Dropping improves R² by 0.003.
             'priorWOPR', 'priorAirYardsShare', 'teamQBPassRating',
             'priorPPG2yr',
             # Forward-selection additions: combine athleticism + broader draft-capital
@@ -676,7 +687,10 @@ def train_ppg_models(rows):
             'teamWR3PlusOnField',
         ],
         'WR': [
-            'age', 'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
+            'age', 'nflDraftRound', 'invDraftPick',
+            # Dropped by ablation re-pass:
+            #   nflDraftPick  Δ=-0.0002   (redundant with invDraftPick + nflDraftRound)
+            #   logDraftPick  Δ=-0.0000   (redundant — 5 other draft-pick encodings)
             'draftPickPct', 'draftPickPctOverall', 'broadJump', 'vertical',
             'priorTargetShare', 'priorYACAboveExp', 'priorPPG', 'priorGames',
             'newArrivalBestPPR', 'priorPPGXage', 'qbOwnPPG',
@@ -691,7 +705,10 @@ def train_ppg_models(rows):
             'priorLateSeasonInjWeeks',
         ],
         'TE': [
-            'age', 'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'draftClassDepth',
+            'age', 'nflDraftRound', 'nflDraftPick', 'draftClassDepth',
+            # Dropped by ablation re-pass:
+            #   invDraftPick  Δ=-0.0005  (redundant with nflDraftPick + nflDraftRound
+            #                             + draftPickPct at TE's small feature count)
             'weight', 'bench', 'priorYACperRec', 'priorPPG', 'priorGames',
             'heightAdjSpeedScore', 'priorBoomRate',
             'priorAirYardsShare',

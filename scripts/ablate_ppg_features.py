@@ -36,16 +36,17 @@ DATA_DIR = Path('public/data')
 CACHE_PATH = DATA_DIR / 'training-rows-cache-v42.json'
 MODEL_CACHE_PATH = DATA_DIR / 'model-cache-ppg-v56.json'
 
-# Must match train_ppg_models hyperparameters exactly.
-LGB_PARAMS = {
-    'objective': 'regression', 'metric': 'mae',
-    'learning_rate': 0.05, 'max_depth': 3,
-    'min_child_samples': 8, 'subsample': 0.8,
-    'seed': 42, 'n_jobs': 1, 'verbose': -1,
+# Per-position configs MUST match train_ppg_models::PPG_CONFIG exactly.
+# Ablation results are meaningless if the training regime differs from the
+# shipped one — we'd be measuring dead weight on a model that doesn't exist.
+# Source of truth: scripts/train_projection_models.py:PPG_CONFIG
+PPG_CONFIG = {
+    'QB': {'depth': 3, 'lr': 0.08, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.9},
+    'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 200, 'min_leaf': 25, 'gbm_weight': 0.7},
+    'WR': {'depth': 3, 'lr': 0.12, 'n_rounds': 200, 'min_leaf': 3,  'gbm_weight': 0.7},
+    'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.7},
 }
-N_ROUNDS = 100
-RIDGE_ALPHA = 15
-ENSEMBLE_GBM_WEIGHT = 0.7
+RIDGE_ALPHA = 15  # matches train_ppg_models
 
 
 def sf(v):
@@ -61,11 +62,19 @@ def make_X(rows, keys):
     return np.array([[sf(r['features'].get(k, 0)) for k in keys] for r in rows])
 
 
-def loso_r2(pos_rows, feature_names, y, seasons):
-    """Run LOSO CV and return ensemble R² matching train_ppg_models."""
+def loso_r2(pos_rows, feature_names, y, seasons, cfg):
+    """Run LOSO CV and return ensemble R² matching train_ppg_models exactly
+    at the per-position hyperparameters."""
     X = make_X(pos_rows, feature_names)
     n = len(pos_rows)
     loso = np.zeros(n)
+
+    lgb_params = {
+        'objective': 'regression', 'metric': 'mae',
+        'learning_rate': cfg['lr'], 'max_depth': cfg['depth'],
+        'min_child_samples': cfg['min_leaf'], 'subsample': 0.8,
+        'seed': 42, 'n_jobs': 1, 'verbose': -1,
+    }
 
     for held in seasons:
         tr = [i for i, r in enumerate(pos_rows) if r['season'] != held]
@@ -78,27 +87,30 @@ def loso_r2(pos_rows, feature_names, y, seasons):
         rp = r_fold.predict(X[te])
         # GBM
         dt = lgb.Dataset(X[tr], y[tr], feature_name=feature_names, free_raw_data=False)
-        g_fold = lgb.train(LGB_PARAMS, dt, num_boost_round=N_ROUNDS)
+        g_fold = lgb.train(lgb_params, dt, num_boost_round=cfg['n_rounds'])
         gp = g_fold.predict(X[te])
-        # Blend
+        # Blend with per-position GBM weight
+        gbm_w = cfg['gbm_weight']
         for j, idx in enumerate(te):
-            loso[idx] = gp[j] * ENSEMBLE_GBM_WEIGHT + rp[j] * (1 - ENSEMBLE_GBM_WEIGHT)
+            loso[idx] = gp[j] * gbm_w + rp[j] * (1 - gbm_w)
 
     return float(r2_score(y, loso))
 
 
 def ablate_position(rows, pos_model, top=None):
     pos = pos_model['position']
+    cfg = PPG_CONFIG[pos]
     full_feats = pos_model['featureNames']
     pos_rows = [r for r in rows if r['position'] == pos and (r.get('adp') or 999) <= 250]
     y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
     seasons = sorted(set(r['season'] for r in pos_rows))
 
     print(f'\n{pos}: ablating {len(full_feats)} features on {len(pos_rows)} rows across {len(seasons)} seasons')
+    print(f'  cfg: lr={cfg["lr"]} n_rounds={cfg["n_rounds"]} min_leaf={cfg["min_leaf"]} gbm_w={cfg["gbm_weight"]}')
 
     # Baseline
     t0 = time.time()
-    baseline_r2 = loso_r2(pos_rows, full_feats, y, seasons)
+    baseline_r2 = loso_r2(pos_rows, full_feats, y, seasons, cfg)
     base_time = time.time() - t0
     print(f'  Baseline R² = {baseline_r2:.4f}  (fold time: {base_time:.1f}s)')
 
@@ -106,7 +118,7 @@ def ablate_position(rows, pos_model, top=None):
     results = []
     for i, drop_feat in enumerate(full_feats):
         ablated = [f for f in full_feats if f != drop_feat]
-        r2_without = loso_r2(pos_rows, ablated, y, seasons)
+        r2_without = loso_r2(pos_rows, ablated, y, seasons, cfg)
         delta = baseline_r2 - r2_without
         results.append({
             'feature': drop_feat,
