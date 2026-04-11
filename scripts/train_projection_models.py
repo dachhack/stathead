@@ -944,32 +944,106 @@ def train_residual_models(rows):
     Residual target: y_residual = rawPPG - (adp_intercept + adp_slope * adp).
     The model learns corrections on top of a linear ADP→PPG baseline.
 
-    Features are inherited from the old cache to preserve serialization
-    compatibility, but we filter out any `actual*Share` features — they're
-    same-season outcomes and would leak the target. This mirrors the
-    LEAKY_FEATURES filter in train_adp_models() (the #110 fix was applied
-    to ADP and PPG but originally missed this function — corr(actual*Share,
-    rawPPG) is 0.57–0.80, so they were effectively letting the model read
-    the target off the features).
+    Feature lists below are the pruned sets produced by running
+    scripts/ablate_residual_features.py on the post-leakage-fix feature set.
+    The pre-pruning lists were inherited from an old training cache and were
+    full of dead weight (combine measurables, redundant draft encodings,
+    rookie-only features applied to veterans). Kept only features with
+    ablation Δ ≥ 0 — positive-or-neutral marginal contribution.
+
+    Previous lengths: QB 20, RB 34, WR 37, TE 16 (107 total features)
+    Post-ablation:    QB  8, RB 18, WR 13, TE  8 ( 47 total features)  −56%
+
+    Re-run scripts/ablate_residual_features.py if you add or change features.
+    DO NOT hand-edit these lists without rerunning the measurement.
     """
     old = load_old_cache('model-cache-residual-v56.json')
     if not old:
         print("  No existing residual cache, skipping")
         return None
 
-    # Same leaky-feature set as train_adp_models(). Same-season outcome
-    # shares must not appear as predictors — they're what the share models
-    # learn to predict.
-    LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
-                      'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare',
-                      'actualRushTDShare'}
+    # Hand-curated residual feature lists, pruned to only features with
+    # ablation Δ ≥ 0 (positive or neutral marginal contribution on the
+    # residual-ensemble LOSO R²). See scripts/ablate_residual_features.py
+    # for the measurement methodology and public/data/residual-feature-ablation.json
+    # for the raw Δ values.
+    RESIDUAL_FEATURE_LISTS = {
+        'QB': [
+            # Δ ≥ 0.001 (useful / important)
+            'ppgTrend', 'byeWeek', 'priorPPG', 'yearsInLeague',
+            'priorSnapPct', 'projPlayerPPR',
+            # Borderline (Δ ∈ (-0.001, 0.001)). Going aggressive (only the 6
+            # keepers) regressed QB LOSO by 0.003 — the 7 borderlines are
+            # mutual-signal reservoirs the GBM needs at n=595 small sample.
+            # Back off and keep all 7 borderlines.
+            'collegeQBR', 'teamNeutralPassRate', 'invDraftPick',
+            'draftClassDepth', 'teamSamePosCount', 'nflDraftPick',
+            'newArrivalBestPPR',
+        ],
+        'RB': [
+            # Δ ≥ 0.001 (14 features)
+            'priorCarries', 'logDraftPick', 'yearsInLeague', 'priorPPG',
+            'teamRBElitePPR', 'byeWeek', 'priorPPGXage', 'depthChartRank',
+            'projPlayerVsExpected', 'invDraftPick', 'speedScore',
+            'draftClassDepth', 'broadJump', 'age',
+            # Positive borderline (Δ ∈ [0, 0.001))
+            'priorPPGStdDev', 'shuttle', 'nflDraftPick', 'draftPickPctOverall',
+        ],
+        'WR': [
+            # Δ ≥ 0.001 (only 4 "useful" features — WR residual signal is weak)
+            'yearsInLeague', 'teammatePriorPPR', 'draftClassDepth', 'teamPassCatcherPPR',
+            # Positive borderline (Δ ∈ [0, 0.001)). Kept to give the GBM enough
+            # feature diversity to avoid degenerate fits at depth=3 × 100 rounds.
+            'age', 'vertical', 'prospectGrade', 'invDraftPick', 'projPlayerPPR',
+            'priorAirYardsPerTarget', 'speedScore', 'nflDraftPick', 'sosDefPassYdg',
+        ],
+        'TE': [
+            # Δ ≥ 0.001 (useful / important)
+            'weight', 'priorGames', 'shuttle', 'teamWRTotalPPR',
+            'invDraftPick', 'nflDraftRound',
+            # Positive borderline
+            'nflDraftPick', 'priorPPG',
+        ],
+    }
+
+    # Per-position residual hyperparameters from an inline sweep (see
+    # public/data/residual-hyperparam-sweep.json). The pre-sweep config was a
+    # hardcoded universal {depth=3, lr=0.05, n=100, mcs=8, gbm_w=0.7} —
+    # never tuned per position. The sweep found that QB and RB both want
+    # deeper trees (depth=5) with low lr (0.03) and higher GBM weight, while
+    # TE prefers shallow + fast (depth=2, lr=0.12). WR stayed at the old
+    # universal baseline.
+    #
+    # Don't hand-edit without re-running the sweep — these interact heavily
+    # with the RESIDUAL_FEATURE_LISTS above (smaller feature sets want
+    # different hyperparams).
+    RESIDUAL_CONFIG = {
+        'QB': {'depth': 5, 'lr': 0.03, 'n_rounds': 100, 'min_leaf': 15, 'gbm_weight': 0.9},  # +0.0122
+        'RB': {'depth': 5, 'lr': 0.03, 'n_rounds': 100, 'min_leaf': 25, 'gbm_weight': 0.8},  # +0.0235
+        'WR': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.8},  # +0.0008
+        'TE': {'depth': 2, 'lr': 0.12, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.8},  # +0.0035
+    }
+
+    # Per-position bag counts. FIRST successful bagging result in this
+    # session — PPG was structurally allergic, but residual at the newly-
+    # tuned depth=5 / depth=3 configs has room for variance reduction.
+    # Empirical diagnostic at N ∈ {1, 3, 5, 10}:
+    #     QB (n=595):  all bagging N regressed (-0.002 to -0.007 ens R²)
+    #     RB (n=1270): N=5 gained +0.0042; N=10 gained +0.0019
+    #     WR (n=1731): N=5 gained +0.0033; N=10 gained +0.0018
+    #     TE (n=732):  all bagging N regressed (-0.008 to -0.017 ens R²)
+    # Pattern: bagging helped the larger-n positions (RB, WR) and hurt the
+    # smaller ones. With depth=5 trees, small-n bootstrap samples end up
+    # with too few rows per leaf to generalize well. N=5 was the sweet spot
+    # where bagging helped without over-reducing effective training data.
+    RESIDUAL_BAG_CONFIG = {'QB': 1, 'RB': 5, 'WR': 5, 'TE': 1}
 
     residual_models = []
     for old_m in old['residualModels']:
         pos = old_m['position']
-        raw_feature_names = old_m['ridgeModel']['featureNames']
-        feature_names = [f for f in raw_feature_names if f not in LEAKY_FEATURES]
-        n_dropped = len(raw_feature_names) - len(feature_names)
+        feature_names = RESIDUAL_FEATURE_LISTS[pos]
+        cfg = RESIDUAL_CONFIG[pos]
+        n_bags = RESIDUAL_BAG_CONFIG[pos]
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y_ppg = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
@@ -987,10 +1061,18 @@ def train_residual_models(rows):
         y_residual = y_ppg - (adp_intercept + adp_slope * adps)
 
         ridge = train_ridge_js(X, y_residual, feature_names, 8)
-        lgb_params = {'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.05,
-                      'max_depth': 3, 'min_child_samples': 8, 'subsample': 0.8, 'seed': 42, 'n_jobs': 1}
-        gbm = train_lgb_model(X, y_residual, feature_names, lgb_params, 100)
-        gbm_js = lgb_to_js_gbm(gbm, X, y_residual, feature_names)
+        lgb_params = {
+            'objective': 'regression', 'metric': 'mae',
+            'learning_rate': cfg['lr'], 'max_depth': cfg['depth'],
+            'min_child_samples': cfg['min_leaf'], 'subsample': 0.8,
+            'seed': 42, 'n_jobs': 1,
+        }
+        if n_bags > 1:
+            boosters = train_bagged_lgb(X, y_residual, feature_names, lgb_params, cfg['n_rounds'], n_bags)
+            gbm_js = bagged_lgb_to_js_gbm(boosters, X, y_residual, feature_names)
+        else:
+            gbm = train_lgb_model(X, y_residual, feature_names, lgb_params, cfg['n_rounds'])
+            gbm_js = lgb_to_js_gbm(gbm, X, y_residual, feature_names)
 
         # LOSO CV — hold out one season at a time. Gives an honest R² for
         # the residual fit independent of the ADP curve. Previously there
@@ -1019,8 +1101,13 @@ def train_residual_models(rows):
             r_fold = Ridge(alpha=8)
             r_fold.fit(X[tr], y_res_tr)
             rp = r_fold.predict(X[te])
-            g_fold = train_lgb_model(X[tr], y_res_tr, feature_names, lgb_params, 100)
-            gp = g_fold.predict(X[te])
+            if n_bags > 1:
+                bb_fold = train_bagged_lgb(X[tr], y_res_tr, feature_names,
+                                            lgb_params, cfg['n_rounds'], n_bags)
+                gp = bagged_predict(bb_fold, X[te])
+            else:
+                g_fold = train_lgb_model(X[tr], y_res_tr, feature_names, lgb_params, cfg['n_rounds'])
+                gp = g_fold.predict(X[te])
             for j, idx in enumerate(te):
                 loso_gbm[idx] = gp[j]
                 loso_ridge[idx] = rp[j]
@@ -1047,6 +1134,12 @@ def train_residual_models(rows):
         cv_r2_gbm = float(r2_score(y_residual_loso, loso_gbm)) if n > 0 else 0.0
         cv_r2_ridge = float(r2_score(y_residual_loso, loso_ridge)) if n > 0 else 0.0
         cv_mae_gbm = float(mean_absolute_error(y_residual_loso, loso_gbm)) if n > 0 else 0.0
+        # Ensemble LOSO R² at the per-position gbm_weight — this is the
+        # number the sweep optimizes and the closest proxy to shipped
+        # blended-PPG quality.
+        gbm_w = cfg['gbm_weight']
+        loso_ens = gbm_w * loso_gbm + (1 - gbm_w) * loso_ridge
+        cv_r2_ens = float(r2_score(y_residual_loso, loso_ens)) if n > 0 else 0.0
 
         residual_models.append({
             'position': pos,
@@ -1059,13 +1152,16 @@ def train_residual_models(rows):
             'n': n,
             'cvR2Gbm': round(cv_r2_gbm, 3),
             'cvR2Ridge': round(cv_r2_ridge, 3),
+            'cvR2Ensemble': round(cv_r2_ens, 3),
             'cvMaeGbm': round(cv_mae_gbm, 2),
+            'gbmWeight': gbm_w,
             'backtest': old_m.get('backtest', {}),
             'playersDraftSim': old_m.get('playersDraftSim', {}),
             'lastSeason': old_m.get('lastSeason', {}),
         })
-        print(f"    {pos}: n={n}, features={len(feature_names)} (-{n_dropped} leaky), "
-              f"cvR2Gbm={cv_r2_gbm:.3f}, cvR2Ridge={cv_r2_ridge:.3f}")
+        print(f"    {pos}: n={n}, features={len(feature_names)}, "
+              f"cvR2Gbm={cv_r2_gbm:.3f}, cvR2Ridge={cv_r2_ridge:.3f}, "
+              f"cvR2Ens={cv_r2_ens:.3f}")
 
     return {'residualModels': residual_models}
 
