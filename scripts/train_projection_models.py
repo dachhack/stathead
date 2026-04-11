@@ -544,6 +544,10 @@ def train_ppg_models(rows):
             'priorPPG2yr',
             # Forward-selection: team WR corps production (inverse = WR opportunity)
             'teamWRTotalPPR',
+            # Non-leaky late-prior-season injury signal (weeks 15-18 of S-1).
+            # Captures WRs who ended last year hurt and entered the new
+            # season with lingering issues. +0.0011 R² for WR.
+            'priorLateSeasonInjWeeks',
         ],
         'TE': [
             'age', 'nflDraftRound', 'nflDraftPick', 'invDraftPick', 'draftClassDepth',
@@ -557,11 +561,11 @@ def train_ppg_models(rows):
             # likely because 21-heavy teams tend to feature their single TE in key
             # looks rather than spread targets across multiple TEs. +0.0025 R².
             'team21Rate',
-            # Post-player-backfill: weeks 1-2 injury report designations (proxy
-            # for "entered the season banged up"). +0.0027 R² for TE — aging
-            # TEs carrying injuries into Week 1 visibly underperform. Only
-            # useful position from the preseason-injury backfill.
-            'preseasonInjWeeks',
+            # Non-leaky late-prior-season injury signal (weeks 15-18 of S-1).
+            # Replaces the leaky preseasonInjWeeks shipped in #120 which
+            # used weeks 1-2 of CURRENT season (outcome leakage).
+            # +0.0036 R² for TE — stronger than the leaky version actually.
+            'priorLateSeasonInjWeeks',
         ],
     }
 

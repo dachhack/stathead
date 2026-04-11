@@ -924,12 +924,12 @@ export function ModelDocumentation() {
                 Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
                 Pipeline: (1) leakage fix → honest baseline, (2) ablation-driven pruning, (3) multi-year derived features,
                 (4) per-position hyperparameter tuning, (5) forward-selection of populated-but-unused features,
-                (6) PBP/participation backfill via <code>scripts/backfill_team_features.py</code> — team formation &amp;
-                positional target-share features, (7) per-player PBP backfill via
-                <code>scripts/backfill_player_features.py</code> — priorADOT / priorDeepTargetPct / priorRZTargetShare
-                and week 1-2 injury designations (<code>preseasonInjWeeks</code>, which gained TE another +0.003 R²;
-                the advanced receiving features ablated as correlated with existing priorTargetShare / priorYACAboveExp).
-                Cumulative lift vs honest baseline: QB +0.021, RB +0.025, WR +0.018, TE +0.019.
+                (6) PBP/participation backfill via <code>scripts/backfill_team_features.py</code>, (7) per-player PBP
+                backfill via <code>scripts/backfill_player_features.py</code>. The last round added
+                <code>priorLateSeasonInjWeeks</code> — injury-report weeks 15-18 of season S-1 as a proxy for "ended
+                last year hurt, entered this year still dealing with it" — gaining TE +0.0036 and WR +0.0011 R².
+                (A previous version used weeks 1-2 of the current season which was outcome leakage; reverted.)
+                Cumulative lift vs honest baseline: QB +0.021, RB +0.025, WR +0.019, TE +0.019.
               </p>
             </>
           );
