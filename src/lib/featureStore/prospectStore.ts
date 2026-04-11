@@ -68,6 +68,14 @@ export interface ProspectFeatures {
   speedScore?: number;
   heightAdjSpeedScore?: number;
 
+  // Pre-draft Top-30 visits (populated from public/data/feature-store/visits.json).
+  // numTop30Visits is the count of NFL teams that visited/interviewed this
+  // prospect pre-draft. visitTeams lists the abbreviations so consumers can
+  // check landing-spot fit. See src/lib/featureStore/groups/visits.ts.
+  numTop30Visits?: number;
+  visitTeams?: string[];
+  visitsYear?: number;
+
   // Source tracking
   source?: string; // 'nflverse', 'manual', 'scraped'
   updatedAt?: string;
@@ -220,5 +228,8 @@ export function buildProspectFeatureRecord(
     collegeRushProductionWR: prospect.collegeRushProductionWR || 0,
     collegeTeammateScore: prospect.collegeTeammateScore || 0,
     hasCollegeStats: (prospect.collegeRecYds || prospect.collegeRushYds || prospect.collegePassYds) ? 1 : 0,
+    numTop30Visits: prospect.numTop30Visits || 0,
+    hasVisitData: (prospect.numTop30Visits !== undefined && prospect.numTop30Visits > 0) ? 1 : 0,
+    visitedByDraftTeam: 0, // unknown pre-draft; filled in post-draft by the visits feature group
   };
 }

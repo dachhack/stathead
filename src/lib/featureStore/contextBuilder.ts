@@ -583,6 +583,27 @@ export async function buildSharedContext(opts: {
     }
   } catch { /* Reddit data not available */ }
 
+  // Pre-draft Top-30 visits (WalterFootball scrape)
+  try {
+    const fs = await import('fs');
+    if (fs.existsSync('public/data/feature-store/visits.json')) {
+      const visitsShard = JSON.parse(
+        fs.readFileSync('public/data/feature-store/visits.json', 'utf-8'),
+      );
+      const visitsByName = new Map<string, { year: number; teams: string[] }[]>();
+      for (const [, rec] of Object.entries<any>(visitsShard)) {
+        if (!rec?.normalName) continue;
+        const list = visitsByName.get(rec.normalName) || [];
+        list.push({ year: Number(rec.year) || 0, teams: Array.isArray(rec.teams) ? rec.teams : [] });
+        visitsByName.set(rec.normalName, list);
+      }
+      // Sort by year desc so "most recent" falls out of the front of the list.
+      for (const list of visitsByName.values()) list.sort((a, b) => b.year - a.year);
+      (data as any).visitsByName = visitsByName;
+      log(`  Pre-draft visits: ${visitsByName.size} prospects`);
+    }
+  } catch { /* Visits data not available */ }
+
   // Build player index — primary pass (ADP players)
   const players = new Map<PlayerKey, PlayerInfo>();
   const indexedNames = new Set<string>();

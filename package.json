@@ -13,6 +13,7 @@
     "ablate:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/feature-ablation.ts",
     "test:projections": "NODE_OPTIONS='--max-old-space-size=4096' tsx scripts/test-team-projections.ts || echo 'Projection test skipped'",
     "data:local": "bash scripts/download-local-data.sh",
+    "data:visits": "tsx scripts/fetch-visits.ts",
     "build": "npm run build:semantic && npm run build:features && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

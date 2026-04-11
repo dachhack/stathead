@@ -37,6 +37,7 @@ import './groups/consistency';
 import './groups/environment';
 import './groups/projection';
 import './groups/sentiment';
+import './groups/visits';
 
 export { FeatureStore } from './store';
 export { buildSharedContext, loadStaticData } from './contextBuilder';
