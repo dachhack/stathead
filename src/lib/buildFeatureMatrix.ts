@@ -1138,6 +1138,24 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
 
           // ── Team scheme features from prior PBP ──
+          // Build a name→position map from current + prior rosters. This is
+          // broader than priorByName (which only has players who played the
+          // prior season) — needed so receivers in PBP targets are classified
+          // correctly when they're rookies or new-veteran acquisitions.
+          // Previously caused teamRBTargetRate / teamWRTargetRate /
+          // teamTETargetRate features to sit at 0% coverage across all rows.
+          const playerPositionMap = new Map<string, string>();
+          for (const r of (seasonRosters || [])) {
+            if (!POSITIONS.includes(r.position)) continue;
+            const name = normalizeName(r.player_name || (r as any).full_name);
+            playerPositionMap.set(name, r.position);
+          }
+          for (const r of (priorRosters || [])) {
+            if (!POSITIONS.includes(r.position)) continue;
+            const name = normalizeName(r.player_name || (r as any).full_name);
+            if (!playerPositionMap.has(name)) playerPositionMap.set(name, r.position);
+          }
+
           interface SchemeAgg {
             passes: number; rushes: number; plays: number; games: number;
             neutralPasses: number; neutralPlays: number;
@@ -1182,14 +1200,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             if (play.shotgun === 1) acc.shotgunPlays += 1;
             if (play.no_huddle === 1) acc.noHuddlePlays += 1;
 
-            // Positional target breakdown
+            // Positional target breakdown — use playerPositionMap (rosters) with
+            // priorByName as a fallback. Rosters cover rookies and new vets
+            // that priorByName alone would miss.
             if (play.play_type === 'pass' && play.receiver_player_name) {
               acc.totalTargets += 1;
               const recName = normalizeName(play.receiver_player_name);
-              const recPrior = priorByName.get(recName);
-              if (recPrior?.position === 'RB') acc.rbTargets += 1;
-              else if (recPrior?.position === 'TE') acc.teTargets += 1;
-              else if (recPrior?.position === 'WR') acc.wrTargets += 1;
+              const recPos =
+                playerPositionMap.get(recName) ||
+                priorByName.get(recName)?.position;
+              if (recPos === 'RB') acc.rbTargets += 1;
+              else if (recPos === 'TE') acc.teTargets += 1;
+              else if (recPos === 'WR') acc.wrTargets += 1;
             }
 
             schemeByTeam.set(team, acc);
@@ -1200,25 +1222,29 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             if (acc) acc.games = gameSet.size;
           }
 
-          // ── Team personnel grouping rates from PBP ──
-          // Parse offense_personnel from PBP plays (e.g. "1 RB, 1 TE, 3 WR")
+          // ── Team personnel grouping rates from participation ──
+          // The PBP CSV's offense_personnel field is "not always populated" (per
+          // the PlayByPlay type comment at src/types.ts:498) — using it here
+          // previously resulted in 0% coverage for team11Rate / team12Rate /
+          // team10Rate / etc. across the entire training cache. Participation
+          // data has offense_personnel reliably populated for every offensive
+          // play and is already fetched alongside PBP.
           interface PersonnelAgg {
             p11: number; p12: number; p13: number; p21: number;
             p22: number; p10: number; total: number;
             wr3plus: number; te2plus: number;
           }
           const personnelByTeam = new Map<string, PersonnelAgg>();
-          for (const play of priorPbp) {
-            if (!play.posteam || !play.offense_personnel) continue;
-            if (play.play_type !== 'pass' && play.play_type !== 'run') continue;
-            const team = play.posteam;
+          for (const part of (priorParticipation || [])) {
+            const team = (part as any).possession_team || '';
+            const pers = (part as any).offense_personnel || '';
+            if (!team || !pers) continue;
             const acc = personnelByTeam.get(team) || {
               p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0, total: 0,
               wr3plus: 0, te2plus: 0,
             };
             acc.total += 1;
 
-            const pers = play.offense_personnel;
             const rbMatch = pers.match(/(\d+)\s*RB/i);
             const teMatch = pers.match(/(\d+)\s*TE/i);
             const wrMatch = pers.match(/(\d+)\s*WR/i);
@@ -3127,6 +3153,21 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
 
             // ── Scheme features for predictions ──
+            // Name→position lookup from current + prior rosters so PBP target
+            // classification works for rookies and new-vet acquisitions (same
+            // bug as the training path; see comment there).
+            const predPlayerPositionMap = new Map<string, string>();
+            for (const r of (predSeasonRosters || [])) {
+              if (!POSITIONS.includes(r.position)) continue;
+              const name = normalizeName(r.player_name || (r as any).full_name);
+              predPlayerPositionMap.set(name, r.position);
+            }
+            for (const r of (predPriorRosters || [])) {
+              if (!POSITIONS.includes(r.position)) continue;
+              const name = normalizeName(r.player_name || (r as any).full_name);
+              if (!predPlayerPositionMap.has(name)) predPlayerPositionMap.set(name, r.position);
+            }
+
             interface PredSchemeAgg {
               passes: number; rushes: number; plays: number; games: number;
               neutralPasses: number; neutralPlays: number;
@@ -3136,7 +3177,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
             const predSchemeByTeam = new Map<string, PredSchemeAgg>();
             const predPriorGamesByTeam = new Map<string, Set<string>>();
-            // Personnel aggregation for predictions
+            // Personnel aggregation for predictions — fed from participation
+            // below (see training path for the rationale: PBP's
+            // offense_personnel field is "not always populated").
             interface PredPersonnelAgg {
               p11: number; p12: number; p13: number; p21: number;
               p22: number; p10: number; total: number;
@@ -3175,42 +3218,46 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               if (play.play_type === 'pass' && play.receiver_player_name) {
                 acc.totalTargets += 1;
                 const recName = normalizeName(play.receiver_player_name);
-                const recPrior = predPriorByName.get(recName);
-                if (recPrior?.position === 'RB') acc.rbTargets += 1;
-                else if (recPrior?.position === 'TE') acc.teTargets += 1;
-                else if (recPrior?.position === 'WR') acc.wrTargets += 1;
+                const recPos =
+                  predPlayerPositionMap.get(recName) ||
+                  predPriorByName.get(recName)?.position;
+                if (recPos === 'RB') acc.rbTargets += 1;
+                else if (recPos === 'TE') acc.teTargets += 1;
+                else if (recPos === 'WR') acc.wrTargets += 1;
               }
               predSchemeByTeam.set(team, acc);
-
-              // Personnel grouping
-              if (play.offense_personnel) {
-                const persAcc = predPersonnelByTeam.get(team) || {
-                  p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0, total: 0,
-                  wr3plus: 0, te2plus: 0,
-                };
-                persAcc.total += 1;
-                const pers = play.offense_personnel;
-                const rbM = pers.match(/(\d+)\s*RB/i);
-                const teM = pers.match(/(\d+)\s*TE/i);
-                const wrM = pers.match(/(\d+)\s*WR/i);
-                const rb = rbM ? Number(rbM[1]) : 0;
-                const te = teM ? Number(teM[1]) : 0;
-                const wr = wrM ? Number(wrM[1]) : 0;
-                const grouping = `${rb}${te}`;
-                if (grouping === '11') persAcc.p11 += 1;
-                else if (grouping === '12') persAcc.p12 += 1;
-                else if (grouping === '13') persAcc.p13 += 1;
-                else if (grouping === '21') persAcc.p21 += 1;
-                else if (grouping === '22') persAcc.p22 += 1;
-                else if (grouping === '10') persAcc.p10 += 1;
-                if (wr >= 3) persAcc.wr3plus += 1;
-                if (te >= 2) persAcc.te2plus += 1;
-                predPersonnelByTeam.set(team, persAcc);
-              }
             }
             for (const [team, gameSet] of predPriorGamesByTeam) {
               const acc = predSchemeByTeam.get(team);
               if (acc) acc.games = gameSet.size;
+            }
+
+            // Personnel aggregation from participation (reliable offense_personnel)
+            for (const part of (predPriorParticipation || [])) {
+              const team = (part as any).possession_team || '';
+              const pers = (part as any).offense_personnel || '';
+              if (!team || !pers) continue;
+              const persAcc = predPersonnelByTeam.get(team) || {
+                p11: 0, p12: 0, p13: 0, p21: 0, p22: 0, p10: 0, total: 0,
+                wr3plus: 0, te2plus: 0,
+              };
+              persAcc.total += 1;
+              const rbM = pers.match(/(\d+)\s*RB/i);
+              const teM = pers.match(/(\d+)\s*TE/i);
+              const wrM = pers.match(/(\d+)\s*WR/i);
+              const rb = rbM ? Number(rbM[1]) : 0;
+              const te = teM ? Number(teM[1]) : 0;
+              const wr = wrM ? Number(wrM[1]) : 0;
+              const grouping = `${rb}${te}`;
+              if (grouping === '11') persAcc.p11 += 1;
+              else if (grouping === '12') persAcc.p12 += 1;
+              else if (grouping === '13') persAcc.p13 += 1;
+              else if (grouping === '21') persAcc.p21 += 1;
+              else if (grouping === '22') persAcc.p22 += 1;
+              else if (grouping === '10') persAcc.p10 += 1;
+              if (wr >= 3) persAcc.wr3plus += 1;
+              if (te >= 2) persAcc.te2plus += 1;
+              predPersonnelByTeam.set(team, persAcc);
             }
 
             // Team QB rushing impact for predictions

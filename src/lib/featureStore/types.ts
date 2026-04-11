@@ -196,6 +196,11 @@ export interface SharedContextData {
   rosterByTeam: Map<string, any>;
   priorRosterByTeam: Map<string, any>;
   playerTeamMap: Map<string, string>;
+  /** Normalized name → position, built from current + prior rosters.
+   *  Broader than priorByName (which is limited to players who played last
+   *  season) — use this when looking up positions for PBP targets, route
+   *  aggregations, or any play-level data that references players by name. */
+  playerPositionMap: Map<string, string>;
   vorReplacement: Record<string, number>;
 
   // Cross-season state
