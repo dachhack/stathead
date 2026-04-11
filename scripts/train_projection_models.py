@@ -178,6 +178,13 @@ DERIVED_FEATURE_KEYS = [
     # Availability / durability
     'priorAvailabilityRate', 'seasonsPlayedLast5', 'durabilityStreak',
 ]
+# Note: priorQBRating was tested as a derived feature (partial NFL passer
+# rating computed from 3 of 4 components available in the training cache)
+# but ablation showed it adds no signal to the PPG QB model — existing
+# priorPPG2yr / ppgTrend / priorTimeToThrow features already capture QB
+# skill. The TS bug fix in priorStats.ts stands on its own as a correctness
+# fix; the feature will be populated for future cache rebuilds and is
+# available to other models if useful.
 
 
 def augment_derived_features(rows):
@@ -529,24 +536,40 @@ def train_ppg_models(rows):
         ],
     }
 
+    # Per-position hyperparameters from scripts/sweep_ppg_hyperparams.py.
+    # TE is baseline-optimal (sweep found no improvement). Don't hand-edit
+    # without re-running the sweep — fine-tuning these is noise-sensitive.
+    PPG_CONFIG = {
+        'QB': {'depth': 3, 'lr': 0.08, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.9},  # +0.0075
+        'RB': {'depth': 3, 'lr': 0.08, 'n_rounds': 200, 'min_leaf': 25, 'gbm_weight': 0.7},  # +0.0044
+        'WR': {'depth': 3, 'lr': 0.12, 'n_rounds': 200, 'min_leaf': 3,  'gbm_weight': 0.7},  # +0.0117
+        'TE': {'depth': 3, 'lr': 0.05, 'n_rounds': 100, 'min_leaf': 8,  'gbm_weight': 0.7},  # baseline optimal
+    }
+
     ppg_models = []
     for old_m in old['ppgModels']:
         pos = old_m['position']
         feature_names = list(PPG_FEATURE_LISTS[pos])
+        cfg = PPG_CONFIG[pos]
         old_feats = old_m['ridgeModel']['featureNames']
         print(f"    {pos}: {len(feature_names)} features "
               f"(pruned from {len(old_feats)}, "
               f"+{len([f for f in feature_names if f not in old_feats])} new, "
-              f"-{len([f for f in old_feats if f not in feature_names])} dropped)")
+              f"-{len([f for f in old_feats if f not in feature_names])} dropped); "
+              f"lr={cfg['lr']} n={cfg['n_rounds']} mcs={cfg['min_leaf']} gbmW={cfg['gbm_weight']}")
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
         n = len(pos_rows)
 
         ridge = train_ridge_js(X, y, feature_names, 15)
-        lgb_params = {'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.05,
-                      'max_depth': 3, 'min_child_samples': 8, 'subsample': 0.8, 'seed': 42, 'n_jobs': 1}
-        gbm = train_lgb_model(X, y, feature_names, lgb_params, 100)
+        lgb_params = {
+            'objective': 'regression', 'metric': 'mae',
+            'learning_rate': cfg['lr'], 'max_depth': cfg['depth'],
+            'min_child_samples': cfg['min_leaf'], 'subsample': 0.8,
+            'seed': 42, 'n_jobs': 1,
+        }
+        gbm = train_lgb_model(X, y, feature_names, lgb_params, cfg['n_rounds'])
         gbm_js = lgb_to_js_gbm(gbm, X, y, feature_names)
 
         # LOSO
@@ -557,9 +580,10 @@ def train_ppg_models(rows):
             te = [i for i, r in enumerate(pos_rows) if r['season'] == held]
             if len(tr) < 10 or not te: continue
             r_fold = Ridge(alpha=15); r_fold.fit(X[tr], y[tr]); rp = r_fold.predict(X[te])
-            g_fold = train_lgb_model(X[tr], y[tr], feature_names, lgb_params, 100)
+            g_fold = train_lgb_model(X[tr], y[tr], feature_names, lgb_params, cfg['n_rounds'])
             gp = g_fold.predict(X[te])
-            for j, idx in enumerate(te): loso[idx] = gp[j] * 0.7 + rp[j] * 0.3
+            gbm_w = cfg['gbm_weight']
+            for j, idx in enumerate(te): loso[idx] = gp[j] * gbm_w + rp[j] * (1 - gbm_w)
 
         cv_r2 = r2_score(y, loso)
         # Feature labels: preserve old labels for kept features, keep order consistent with feature_names
