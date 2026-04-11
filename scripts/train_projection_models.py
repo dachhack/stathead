@@ -525,10 +525,14 @@ def train_ppg_models(rows):
             'ppgTrend', 'priorBoomRate', 'qbOwnRushYds',
             'priorWOPR', 'priorAirYardsShare', 'teamQBPassRating',
             'priorPPG2yr',
-            # Forward-selection additions (see commit 2024-04): combine athleticism
-            # + broader draft-capital encoding + schedule context. RB was stuck at
-            # 0.504 for two PRs; this combo unlocks +0.006 R² (0.504 → 0.510).
+            # Forward-selection additions: combine athleticism + broader draft-capital
+            # encoding + schedule context. RB was stuck at 0.504 for two PRs; this
+            # combo unlocks +0.006 R² (0.504 → 0.510).
             'forty', 'nflDraftRound', 'sosAvgSpread',
+            # Post-backfill addition: 3+WR sets signal — RB usage drops in spread
+            # formations. Populated by scripts/backfill_team_features.py using
+            # pbp_participation offense_personnel. +0.0025 R² → 0.5125.
+            'teamWR3PlusOnField',
         ],
         'WR': [
             'age', 'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
@@ -549,6 +553,10 @@ def train_ppg_models(rows):
             'durabilityStreak',
             # Forward-selection: a second draft-pick encoding helps separate tiers
             'draftPickPct',
+            # Post-backfill: 21-personnel (2 RB, 1 TE) rate. Surprisingly helps TE —
+            # likely because 21-heavy teams tend to feature their single TE in key
+            # looks rather than spread targets across multiple TEs. +0.0025 R².
+            'team21Rate',
         ],
     }
 
