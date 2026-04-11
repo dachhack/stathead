@@ -330,10 +330,19 @@ def train_ppg_models(rows):
         print("  No existing PPG cache, skipping")
         return None
 
+    # Strip current-season actual share features that leak the target.
+    # These were fixed in train_adp_models but never applied here, so cached
+    # PPG R²s were inflated by ~0.15-0.25 for RB/WR/TE (QB wasn't affected).
+    LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
+                      'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare', 'actualRushTDShare'}
+
     ppg_models = []
     for old_m in old['ppgModels']:
         pos = old_m['position']
-        feature_names = old_m['ridgeModel']['featureNames']
+        feature_names = [f for f in old_m['ridgeModel']['featureNames'] if f not in LEAKY_FEATURES]
+        dropped = [f for f in old_m['ridgeModel']['featureNames'] if f in LEAKY_FEATURES]
+        if dropped:
+            print(f"    {pos}: dropped {len(dropped)} leaky features ({', '.join(dropped)})")
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
         y = np.array([sf(r.get('rawPPG', 0)) for r in pos_rows])
@@ -358,12 +367,17 @@ def train_ppg_models(rows):
             for j, idx in enumerate(te): loso[idx] = gp[j] * 0.7 + rp[j] * 0.3
 
         cv_r2 = r2_score(y, loso)
+        # Feature labels: preserve old labels for kept features, keep order consistent with feature_names
+        old_names = old_m['ridgeModel']['featureNames']
+        old_labels = old_m.get('featureLabels', old_names)
+        label_map = dict(zip(old_names, old_labels))
+        feature_labels = [label_map.get(f, f) for f in feature_names]
         ppg_models.append({
             'position': pos,
             'gbmModel': gbm_js,
             'ridgeModel': ridge,
             'featureNames': feature_names,
-            'featureLabels': old_m.get('featureLabels', feature_names),
+            'featureLabels': feature_labels,
             'n': n,
             'cvR2Gbm': round(cv_r2, 3),
             'cvR2Ridge': round(r2_score(y, Ridge(alpha=15).fit(X, y).predict(X)), 3),

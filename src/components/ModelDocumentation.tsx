@@ -919,6 +919,13 @@ export function ModelDocumentation() {
                   </tbody>
                 </table>
               </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Note: PPG model R² corrected after removing data-leaking features (current-season actual share data).
+                Prior metrics were inflated by up to 0.26 R² (RB). Current metrics are honest LOSO on pre-season features.
+                The ADP-free PPG task is genuinely hard because it excludes the market signal; expect further lift from
+                injury priors, advanced receiving stats (WOPR, aDOT), multi-year weighted priors, and QB context for
+                pass-catchers.
+              </p>
             </>
           );
         })()}
