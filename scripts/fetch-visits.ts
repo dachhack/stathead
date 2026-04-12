@@ -144,9 +144,22 @@ async function fetchHtmlWithBrowser(url: string): Promise<string> {
     try {
       await page.waitForSelector('.entry-content', { timeout: 10000 });
     } catch { /* might not exist on 404 pages */ }
-    // Extra wait for lazy-loaded / AJAX content
-    await new Promise((r: any) => setTimeout(r, 5000));
-    return await page.content();
+    // Scroll down to trigger lazy loading of content
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await new Promise((r: any) => setTimeout(r, 3000));
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await new Promise((r: any) => setTimeout(r, 3000));
+    // Get full page HTML
+    const html = await page.content();
+    // Also extract plain text of the article body for debugging
+    const bodyText = await page.evaluate(() => {
+      const el = document.querySelector('#article-body') || document.querySelector('.entry-content');
+      return el ? (el as HTMLElement).innerText : '';
+    });
+    if (bodyText && bodyText.length > 100) {
+      console.log(`    [article-text] (${bodyText.length} chars) ${bodyText.slice(0, 2000)}`);
+    }
+    return html;
   } finally {
     await browser.close();
   }
