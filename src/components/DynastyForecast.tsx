@@ -1,214 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-
-// ── Types for model-cache-ktc-v2.json ────────────────────────────────
-
-interface TreeNode {
-  featureIndex: number;
-  threshold: number;
-  value: number;
-  left: TreeNode | null;
-  right: TreeNode | null;
-}
-
-interface GBMModel {
-  trees: TreeNode[];
-  initialPrediction: number;
-  learningRate: number;
-  featureNames: string[];
-}
-
-interface KTCTimeSeriesModel {
-  position: string;
-  horizon: number;
-  gbmModel: GBMModel;
-  featureNames: string[];
-  n: number;
-  yMean: number;
-  yStd: number;
-  cvResidualStd: number | null;
-  cvR2: number | null;
-  cvMae: number | null;
-  cvScheme: string;
-  cvR2PlayerGrouped: number | null;
-  inSampleR2: number;
-}
-
-interface ModelCache {
-  metadata: {
-    schemaVersion: number;
-    horizons: number[];
-    positions: string[];
-    warmupDays: number;
-  };
-  models: Record<string, KTCTimeSeriesModel>;
-}
-
-// ── GBM predictor (mirrors src/lib/gbm.ts predictTree logic) ────────
-
-function predictTree(node: TreeNode, sample: number[]): number {
-  if (node.featureIndex === -1) return node.value;
-  if (sample[node.featureIndex] <= node.threshold) {
-    return predictTree(node.left!, sample);
-  }
-  return predictTree(node.right!, sample);
-}
-
-function predictGBMFromCache(model: GBMModel, featureVec: number[]): number {
-  let pred = model.initialPrediction;
-  for (const tree of model.trees) {
-    pred += model.learningRate * predictTree(tree, featureVec);
-  }
-  return pred;
-}
-
-// ── Fast feature computation (mirrors train_ktc_timeseries.py) ───────
-
-const WARMUP_DAYS = 30;
-const SEASON_START = new Date('2025-09-04');
-const REG_SEASON_END = new Date('2026-01-04');
-const PLAYOFFS_END = new Date('2026-02-08');
-
-function daysBetween(a: Date, b: Date): number {
-  return Math.round((b.getTime() - a.getTime()) / 86400000);
-}
-
-interface DailyData {
-  dates: Date[];
-  vals: number[];
-}
-
-/** Forward-fill KTC value history to daily cadence, return dates + values. */
-function toDailyTimeSeries(history: { d: string; v: number }[]): DailyData {
-  if (history.length === 0) return { dates: [], vals: [] };
-  // Deduplicate same-day, keep last
-  const byD = new Map<string, number>();
-  for (const e of history) {
-    byD.set(e.d, e.v);
-  }
-  const sorted = [...byD.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const startDate = new Date(sorted[0][0] + 'T00:00:00');
-  const endDate = new Date(sorted[sorted.length - 1][0] + 'T00:00:00');
-  const nDays = daysBetween(startDate, endDate) + 1;
-
-  const dateMap = new Map<number, number>();
-  for (const [ds, v] of sorted) {
-    const d = new Date(ds + 'T00:00:00');
-    dateMap.set(daysBetween(startDate, d), v);
-  }
-
-  const dates: Date[] = [];
-  const vals: number[] = [];
-  let prev = sorted[0][1];
-  for (let i = 0; i < nDays; i++) {
-    const d = new Date(startDate.getTime() + i * 86400000);
-    if (dateMap.has(i)) prev = dateMap.get(i)!;
-    dates.push(d);
-    vals.push(prev);
-  }
-  return { dates, vals };
-}
-
-/** Compute the 16 fast features at the last valid date (today). */
-function computeFastFeatures(daily: DailyData): number[] | null {
-  const { dates, vals } = daily;
-  const n = vals.length;
-  if (n < WARMUP_DAYS + 2) return null;
-
-  const i = n - 1; // latest day
-  const safeVals = vals.map(v => Math.max(v, 1));
-  const logVals = safeVals.map(v => Math.log(v));
-
-  // Returns
-  const ret1 = i >= 1 ? vals[i] / safeVals[i - 1] - 1 : 0;
-  const ret7 = i >= 7 ? vals[i] / safeVals[i - 7] - 1 : 0;
-  const ret14 = i >= 14 ? vals[i] / safeVals[i - 14] - 1 : 0;
-  const ret30 = i >= 30 ? vals[i] / safeVals[i - 30] - 1 : 0;
-
-  // 31-point window stats
-  const wStart = Math.max(0, i - 30);
-  const w = vals.slice(wStart, i + 1);
-  const mean = w.reduce((a, b) => a + b, 0) / w.length;
-  const std = Math.sqrt(w.reduce((s, v) => s + (v - mean) ** 2, 0) / w.length);
-  const zscore = std > 0 ? (vals[i] - mean) / std : 0;
-
-  // Daily returns in window for volatility
-  const wRets: number[] = [];
-  for (let j = wStart + 1; j <= i; j++) {
-    wRets.push(vals[j] / safeVals[j - 1] - 1);
-  }
-  const vol = wRets.length > 0
-    ? Math.sqrt(wRets.reduce((s, r) => s + r * r, 0) / wRets.length - (wRets.reduce((a, b) => a + b, 0) / wRets.length) ** 2)
-    : 0;
-
-  const wMax = Math.max(...w);
-  const wMin = Math.min(...w);
-  const drawdown = wMax > 0 ? (vals[i] - wMax) / wMax : 0;
-  const daysSinceMax = w.length - 1 - w.lastIndexOf(wMax);
-  const daysSinceMin = w.length - 1 - w.lastIndexOf(wMin);
-
-  // Season phase
-  const d = dates[i];
-  const daysSinceSeasonStart = daysBetween(SEASON_START, d);
-  const phaseReg = d >= SEASON_START && d <= REG_SEASON_END ? 1 : 0;
-  const phasePlayoffs = d > REG_SEASON_END && d <= PLAYOFFS_END ? 1 : 0;
-  const phaseOff = d > PLAYOFFS_END ? 1 : 0;
-
-  return [
-    logVals[i],    // logValue
-    ret1,          // return_1d
-    ret7,          // return_7d
-    ret14,         // return_14d
-    ret30,         // return_30d
-    zscore,        // zscore_30d
-    vol,           // vol_30d
-    drawdown,      // drawdown_30d
-    daysSinceMax,  // days_since_max_30d
-    daysSinceMin,  // days_since_min_30d
-    0,             // posRankPct (filled below)
-    0,             // posRankPctDelta_7d (filled below)
-    daysSinceSeasonStart,
-    phaseReg,
-    phasePlayoffs,
-    phaseOff,
-  ];
-}
-
-/** Build the full feature vector for a model, filling 0 for unknown features. */
-function buildFeatureVec(
-  featureNames: string[],
-  fastFeats: number[],
-  posRankPct: number,
-): number[] {
-  const FAST_NAMES = [
-    'logValue', 'return_1d', 'return_7d', 'return_14d', 'return_30d',
-    'zscore_30d', 'vol_30d', 'drawdown_30d',
-    'days_since_max_30d', 'days_since_min_30d',
-    'posRankPct', 'posRankPctDelta_7d',
-    'daysSinceSeasonStart', 'phaseRegSeason', 'phasePlayoffs', 'phaseOffseason',
-  ];
-  const fastMap = new Map<string, number>();
-  for (let i = 0; i < FAST_NAMES.length; i++) {
-    fastMap.set(FAST_NAMES[i], fastFeats[i]);
-  }
-  fastMap.set('posRankPct', posRankPct);
-
-  return featureNames.map(name => fastMap.get(name) ?? 0);
-}
+import {
+  loadModelCache, forecastPlayer,
+  type ModelCache, type ForecastResult,
+} from '../lib/ktcForecast';
 
 // ── Forecast types ───────────────────────────────────────────────────
 
-interface ForecastPoint {
-  horizon: number;
-  logReturn: number;
-  value: number;
-  ciLow: number;
-  ciHigh: number;
+interface ForecastPoint extends ForecastResult {
   cvR2: number | null;
 }
 
@@ -275,9 +79,9 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     async function load() {
       try {
         const [cacheResp, rankings] = await Promise.all([
-          fetch(`${import.meta.env.BASE_URL}data/model-cache-ktc-v2.json`).then(r => {
-            if (!r.ok) throw new Error(`Model cache: ${r.status}`);
-            return r.json() as Promise<ModelCache>;
+          loadModelCache().then(c => {
+            if (!c) throw new Error('Model cache unavailable');
+            return c;
           }),
           fetchKTCRankings('1qb'),
         ]);
@@ -324,7 +128,6 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   const allForecasts = useMemo(() => {
     if (!modelCache || players.length === 0 || historyMap.size === 0) return [];
 
-    const HORIZONS = modelCache.metadata.horizons;
     const results: PlayerForecast[] = [];
 
     for (const player of players) {
@@ -332,41 +135,19 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       const hist = historyMap.get(player.playerID);
       if (!hist) continue;
       const vh = hist.oneQB.valueHistory;
-      if (vh.length < WARMUP_DAYS + 2) continue;
-
-      const daily = toDailyTimeSeries(vh);
-      const fast = computeFastFeatures(daily);
-      if (!fast) continue;
 
       const rankPct = posRankPcts.get(player.playerID) ?? 0.5;
       const currentValue = player.value;
-      const forecasts: ForecastPoint[] = [];
+      const raw = forecastPlayer(modelCache, player.position, currentValue, vh, rankPct);
+      if (raw.length === 0) continue;
 
-      for (const H of HORIZONS) {
-        const key = `${player.position}_H${H}`;
+      const forecasts: ForecastPoint[] = raw.map(f => {
+        const key = `${player.position}_H${f.horizon}`;
         const model = modelCache.models[key];
-        if (!model) continue;
+        return { ...f, cvR2: model?.cvR2 ?? null };
+      });
 
-        const vec = buildFeatureVec(model.featureNames, fast, rankPct);
-        const logReturn = predictGBMFromCache(model.gbmModel, vec);
-        const value = currentValue * Math.exp(logReturn);
-        const residStd = model.cvResidualStd ?? model.yStd;
-        const ciLow = currentValue * Math.exp(logReturn - 1.96 * residStd);
-        const ciHigh = currentValue * Math.exp(logReturn + 1.96 * residStd);
-
-        forecasts.push({
-          horizon: H,
-          logReturn,
-          value,
-          ciLow,
-          ciHigh,
-          cvR2: model.cvR2PlayerGrouped,
-        });
-      }
-
-      if (forecasts.length > 0) {
-        results.push({ player, currentValue, forecasts });
-      }
+      results.push({ player, currentValue, forecasts });
     }
 
     return results;
