@@ -1044,6 +1044,49 @@ BASE_LGB_PARAMS = {
     'seed': 42, 'n_jobs': 1,
 }
 BASE_N_ROUNDS = 60
+
+# ── Per-(position, horizon) swept hyperparams (Commit C.2b) ───────────
+# Winners from the 48-config sweep in public/data/ktc-hyperparam-sweep.json.
+# Each entry overrides BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
+# Keys that match the baseline (QB_H90, TE_H120) are omitted — they use
+# BASE_LGB_PARAMS / BASE_N_ROUNDS as-is.
+#
+# Net effect: +1.17 pgR² across 20 models, 14 wins 0 losses, 6 ties.
+# RB long horizons jumped 4× (e.g. RB_H90: 0.079 → 0.348).
+SWEPT_PARAMS = {
+    'QB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'QB_H30':  {'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
+    'QB_H60':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0},
+    # QB_H90: baseline is winner
+    'QB_H120': {'learning_rate': 0.05, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, '_n_rounds': 100},
+    'RB_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H60':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H90':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'RB_H120': {'max_depth': 2, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 5.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H7':   {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H30':  {'max_depth': 3, 'min_child_samples': 150, 'colsample_bytree': 0.5, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    'WR_H60':  {'min_child_samples': 150, 'lambda_l2': 3.0},
+    'WR_H90':  {'min_child_samples': 150, 'lambda_l2': 3.0},
+    'WR_H120': {'max_depth': 3},
+    'TE_H7':   {'min_child_samples': 150, 'learning_rate': 0.05, 'lambda_l2': 3.0, '_n_rounds': 100},
+    'TE_H30':  {'learning_rate': 0.05, 'lambda_l2': 5.0, '_n_rounds': 100},
+    'TE_H60':  {'max_depth': 3, 'colsample_bytree': 0.8},
+    'TE_H90':  {'colsample_bytree': 0.8, 'lambda_l2': 3.0, 'learning_rate': 0.05, '_n_rounds': 100},
+    # TE_H120: baseline is winner
+}
+
+
+def get_params_for_pair(pos, horizon):
+    """Return (lgb_params, n_rounds) for a (position, horizon) pair,
+    merging any swept overrides into the base config."""
+    key = f'{pos}_H{horizon}'
+    overrides = dict(SWEPT_PARAMS.get(key, {}))
+    n_rounds = overrides.pop('_n_rounds', BASE_N_ROUNDS)
+    params = {**BASE_LGB_PARAMS, **overrides}
+    return params, n_rounds
+
+
 # A relaxed config (depth=3, mcs=300, lambda=3, n=80) was tried in Commit B
 # and regressed hard on both walk-forward H=30 (RB -0.099 → -0.526) and
 # player-grouped long horizons (WR H=90 -0.001 → -0.059, TE H=90 0.114 →
@@ -1054,10 +1097,43 @@ BASE_N_ROUNDS = 60
 # any remaining capacity; universal hyperparam bumps don't work here.
 
 
+def _compute_cv_residual_std(X, y, pids, feature_names, lgb_params, n_rounds):
+    """Compute std of CV residuals via player-grouped K-fold.
+
+    This gives the out-of-sample prediction error distribution width,
+    used for confidence interval bands on the dynasty forecast page.
+    Returns None if too few data for CV.
+    """
+    unique_pids = np.unique(pids)
+    if len(unique_pids) < PLAYER_CV_FOLDS * 2 or len(X) < MIN_FOLD_TRAIN_ROWS * 2:
+        return None
+
+    rng = np.random.default_rng(42)
+    shuffled = rng.permutation(unique_pids)
+    fold_of_pid = {pid: i % PLAYER_CV_FOLDS for i, pid in enumerate(shuffled)}
+    fold_assign = np.array([fold_of_pid[p] for p in pids], dtype=np.int64)
+
+    all_residuals = []
+    for k in range(PLAYER_CV_FOLDS):
+        train_mask = fold_assign != k
+        test_mask = fold_assign == k
+        if train_mask.sum() < MIN_FOLD_TRAIN_ROWS or test_mask.sum() < 10:
+            continue
+        booster = train_lgb_model(X[train_mask], y[train_mask],
+                                   feature_names, lgb_params, n_rounds)
+        preds = booster.predict(X[test_mask])
+        residuals = y[test_mask] - preds
+        all_residuals.extend(residuals.tolist())
+
+    if len(all_residuals) < 20:
+        return None
+    return float(np.std(all_residuals))
+
+
 def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=False):
     results = {'models': {}, 'metadata': {
         'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-        'schemaVersion': 5,   # 5: ablation-driven feature pruning (Commit C.2a)
+        'schemaVersion': 6,   # 6: per-(pos, H) swept hyperparams + cvResidualStd (C.2b)
         'horizons': list(HORIZONS),
         'positions': list(POSITIONS),
         'warmupDays': WARMUP_DAYS,
@@ -1067,6 +1143,7 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
         'playerGroupedFolds': PLAYER_CV_FOLDS,
         'baseLgbParams': {k: v for k, v in BASE_LGB_PARAMS.items()},
         'baseNRounds': BASE_N_ROUNDS,
+        'sweptParams': {k: v for k, v in SWEPT_PARAMS.items()},
         'fastFeatures': FAST_FEATURE_NAMES,
         'slowFeaturesCommon': SLOW_COMMON,
         'slowFeaturesByPos': SLOW_POS,
@@ -1086,13 +1163,16 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
                 print(f'  {pos} H={horizon}: n={n} — SKIPPED (too few rows)')
                 continue
 
+            # Per-pair hyperparams from the sweep (C.2b)
+            lgb_params, n_rounds = get_params_for_pair(pos, horizon)
+
             # Walk-forward is only honest for short horizons (see module
             # docstring). Skip entirely above WALK_FORWARD_MAX_H — reporting
             # walk-forward NaN would be misleading because it's a data-
             # envelope limitation, not a model failure.
             if horizon <= WALK_FORWARD_MAX_H:
                 wf_r2, wf_mae, wf_n, wf_folds = walk_forward_cv(
-                    X, y, t, horizon, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
+                    X, y, t, horizon, fn_all, lgb_params, n_rounds,
                     verbose_tag=f'{pos}/H{horizon}' if verbose else None)
             else:
                 wf_r2, wf_mae, wf_n, wf_folds = float('nan'), float('nan'), 0, 0
@@ -1100,7 +1180,7 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
             # Player-grouped CV runs for every horizon: this is the primary
             # metric for long horizons, and a useful cross-check for short ones.
             pg_r2, pg_mae, pg_n, pg_folds = player_grouped_cv(
-                X, y, pids, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS,
+                X, y, pids, fn_all, lgb_params, n_rounds,
                 verbose_tag=f'{pos}/H{horizon}' if verbose else None)
 
             # Primary cvR² = walk-forward if available (temporal is the
@@ -1110,8 +1190,14 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
             primary_scheme = 'walk_forward' if (horizon <= WALK_FORWARD_MAX_H and not np.isnan(wf_r2)) else 'player_grouped'
 
             # Full-data model for deployment
-            booster = train_lgb_model(X, y, fn_all, BASE_LGB_PARAMS, BASE_N_ROUNDS)
+            booster = train_lgb_model(X, y, fn_all, lgb_params, n_rounds)
             gbm_js = lgb_to_js_gbm(booster, X, y, fn_all)
+
+            # Compute CV residual std for confidence interval bands.
+            # Uses player-grouped CV residuals (available for all horizons)
+            # to estimate the std of (y_actual - y_predicted) out-of-sample.
+            cv_resid_std = _compute_cv_residual_std(
+                X, y, pids, fn_all, lgb_params, n_rounds)
 
             key = f'{pos}_H{horizon}'
             results['models'][key] = {
@@ -1119,11 +1205,14 @@ def train_all(players, fast_by_pid, slow_by_pid, weekly_by_key, wcd, verbose=Fal
                 'horizon': horizon,
                 'gbmModel': gbm_js,
                 'featureNames': fn_all,
+                'lgbParams': {k: v for k, v in lgb_params.items()},
+                'nRounds': n_rounds,
                 'n': int(n),
                 'yMean': float(y.mean()),
                 'yStd': float(y.std()),
                 'yMin': float(y.min()),
                 'yMax': float(y.max()),
+                'cvResidualStd': round(cv_resid_std, 6) if cv_resid_std is not None else None,
                 # Primary metrics (the one you should quote)
                 'cvR2': round(primary_r2, 4) if not np.isnan(primary_r2) else None,
                 'cvMae': round(primary_mae, 5) if not np.isnan(primary_mae) else None,
