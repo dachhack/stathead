@@ -1,22 +1,21 @@
 /**
  * Visits feature group: NFL Draft pre-draft "Top 30" visits.
  *
- * Teams are allowed 30 pre-draft visits with prospects each year (plus
- * unlimited local visits, combine interviews, and pro-day meetings).
- * WalterFootball has tracked these since 2013; our scraper writes a flat
- * shard at public/data/feature-store/visits.json keyed by "<normalName>::<year>".
+ * Teams are allowed 30 pre-draft visits with prospects each year. WalterFootball
+ * has tracked these since 2013; data covers 2013-2014, 2018, 2024-2026.
  *
  * Features produced (static, per-player):
- *   numTop30Visits   — count of teams recorded as visiting this prospect
- *   hasVisitData     — 1 if the prospect appears in the visit shard, else 0
- *   visitedByDraftTeam — 1 if the drafting team visited this player, else 0
+ *   numTop30Visits     — count of teams that visited this prospect
+ *   logVisitCount      — log(1 + numVisits), better for modeling
+ *   visitDensity       — numVisits / 32 (fraction of league that visited)
+ *   hasVisitData       — 1 if the prospect appears in the visit shard
+ *   visitedByDraftTeam — 1 if the drafting team visited pre-draft
+ *   visitCountXDraftCap — interaction: logVisitCount * invDraftPick
  *
  * Caveats:
- *   • WF lumps Top-30 visits with private workouts and combine interviews —
- *     the count is "pre-draft contact" broadly, not strictly Top-30.
- *   • Visits are used as smokescreens. High counts correlate with draft
- *     stock but the signal is noisier than combine metrics.
- *   • Coverage starts in 2013. Earlier drafts will have hasVisitData=0.
+ *   • WF lumps Top-30 visits with private workouts, combine interviews, etc.
+ *   • Coverage: 2013-2014, 2018, 2024-2026. Other years have hasVisitData=0.
+ *   • Visits are used as smokescreens; raw count is noisier than combine metrics.
  */
 
 import { registerGroup } from '../registry';
@@ -26,7 +25,10 @@ export const visitsGroup: FeatureGroup = {
   def: {
     id: 'visits',
     label: 'Pre-Draft Top-30 Visits',
-    featureKeys: ['numTop30Visits', 'hasVisitData', 'visitedByDraftTeam'],
+    featureKeys: [
+      'numTop30Visits', 'logVisitCount', 'visitDensity',
+      'hasVisitData', 'visitedByDraftTeam', 'visitCountXDraftCap',
+    ],
     dataDeps: ['draft'],
     scope: 'static',
   },
@@ -38,15 +40,11 @@ export const visitsGroup: FeatureGroup = {
 
     for (const [pk, player] of ctx.players) {
       const draft = ctx.data.draftByName.get(player.normalName);
-      // Rookie-year lookup: visits are recorded per draft class, so key on
-      // the draft season (falls back to player.season for pre-draft rookies
-      // whose draft row doesn't exist yet).
       const draftYear = draft?.season || player.season;
       const draftTeam = draft?.team || '';
+      const draftPick = draft?.pick || 0;
 
-      // A given prospect may have visits recorded under multiple years if
-      // the scraper was run multiple times; take the record matching the
-      // draft year, else the most recent.
+      // Match visits to the player's draft year
       let visits: { year: number; teams: string[] } | undefined;
       const candidates = visitsByName?.get(player.normalName) || [];
       if (candidates.length > 0) {
@@ -54,13 +52,21 @@ export const visitsGroup: FeatureGroup = {
       }
 
       const teams = visits?.teams || [];
-      const visitedByDraftTeam =
-        draftTeam && teams.includes(draftTeam) ? 1 : 0;
+      const numVisits = teams.length;
+      const hasData = visits ? 1 : 0;
+      const visitedByDraftTeam = draftTeam && teams.includes(draftTeam) ? 1 : 0;
+      const logVisitCount = Math.log(1 + numVisits);
+      const visitDensity = numVisits / 32;
+      const invDraftPick = draftPick > 0 ? 1 / draftPick : 0;
+      const visitCountXDraftCap = logVisitCount * invDraftPick;
 
       results.set(pk, {
-        numTop30Visits: teams.length,
-        hasVisitData: visits ? 1 : 0,
+        numTop30Visits: numVisits,
+        logVisitCount,
+        visitDensity,
+        hasVisitData: hasData,
         visitedByDraftTeam,
+        visitCountXDraftCap,
       });
     }
     return results;

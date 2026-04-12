@@ -229,7 +229,10 @@ export function buildProspectFeatureRecord(
     collegeTeammateScore: prospect.collegeTeammateScore || 0,
     hasCollegeStats: (prospect.collegeRecYds || prospect.collegeRushYds || prospect.collegePassYds) ? 1 : 0,
     numTop30Visits: prospect.numTop30Visits || 0,
+    logVisitCount: Math.log(1 + (prospect.numTop30Visits || 0)),
+    visitDensity: (prospect.numTop30Visits || 0) / 32,
     hasVisitData: (prospect.numTop30Visits !== undefined && prospect.numTop30Visits > 0) ? 1 : 0,
     visitedByDraftTeam: 0, // unknown pre-draft; filled in post-draft by the visits feature group
+    visitCountXDraftCap: 0, // unknown pre-draft
   };
 }
