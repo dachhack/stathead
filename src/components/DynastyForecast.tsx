@@ -20,6 +20,7 @@ interface PlayerForecast {
   player: KTCPlayer;
   currentValue: number;
   forecasts: ForecastPoint[];
+  signal: number; // within-position z-score of composite log-return
 }
 
 // ── Colors ───────────────────────────────────────────────────────────
@@ -102,23 +103,54 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     return () => { cancelled = true; };
   }, [onDataLoaded, format]);
 
-  // Build forecasts from pre-computed cache
+  // Build forecasts from pre-computed cache + compute within-position signal
   const allForecasts = useMemo(() => {
     if (!forecastCache || players.length === 0) return [];
 
-    const results: PlayerForecast[] = [];
+    // Weights for the composite: heavier on shorter, more reliable horizons
+    const SIGNAL_WEIGHTS: Record<number, number> = { 7: 0.15, 30: 0.30, 60: 0.30, 90: 0.25 };
+
+    // First pass: collect raw data + composite scores per position
+    const raw: Array<{ player: KTCPlayer; currentValue: number; forecasts: ForecastPoint[]; composite: number }> = [];
+    const compositesByPos = new Map<string, number[]>();
 
     for (const player of players) {
       if (!['QB', 'RB', 'WR', 'TE'].includes(player.position)) continue;
       const currentValue = format === 'superflex' ? player.superflexValue : player.value;
-      const raw = getPlayerForecasts(forecastCache, player.playerID);
-      if (raw.length === 0) continue;
+      const forecasts = getPlayerForecasts(forecastCache, player.playerID)
+        .filter(f => f.horizon !== 120) // exclude 120d from display
+        .map(f => ({ ...f, cvR2: null as number | null }));
+      if (forecasts.length === 0) continue;
 
-      const forecasts: ForecastPoint[] = raw.map(f => ({ ...f, cvR2: null }));
-      results.push({ player, currentValue, forecasts });
+      // Weighted composite of log-returns across trusted horizons
+      let wSum = 0, wTotal = 0;
+      for (const f of forecasts) {
+        const w = SIGNAL_WEIGHTS[f.horizon] ?? 0;
+        if (w > 0) { wSum += w * f.logReturn; wTotal += w; }
+      }
+      const composite = wTotal > 0 ? wSum / wTotal : 0;
+
+      raw.push({ player, currentValue, forecasts, composite });
+      const arr = compositesByPos.get(player.position) || [];
+      arr.push(composite);
+      compositesByPos.set(player.position, arr);
     }
 
-    return results;
+    // Compute per-position mean + std for z-scoring
+    const posStats = new Map<string, { mean: number; std: number }>();
+    for (const [pos, vals] of compositesByPos) {
+      const n = vals.length;
+      const mean = vals.reduce((a, b) => a + b, 0) / n;
+      const std = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / n) || 1;
+      posStats.set(pos, { mean, std });
+    }
+
+    // Second pass: z-score each player within their position
+    return raw.map(({ player, currentValue, forecasts, composite }) => {
+      const { mean, std } = posStats.get(player.position) || { mean: 0, std: 1 };
+      const signal = (composite - mean) / std;
+      return { player, currentValue, forecasts, signal };
+    });
   }, [forecastCache, players, format]);
 
   // Filtered + searched + sorted list
@@ -134,11 +166,11 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     const getSortValue = (pf: PlayerForecast): number | string => {
       if (sortCol === 'player') return pf.player.playerName.toLowerCase();
       if (sortCol === 'now') return pf.currentValue;
+      if (sortCol === 'signal') return pf.signal;
       if (sortCol === 'trend') {
         const last = pf.forecasts[pf.forecasts.length - 1];
         return last ? (last.value - pf.currentValue) / pf.currentValue : 0;
       }
-      // +7d, +30d, etc.
       const h = parseInt(sortCol);
       if (!isNaN(h)) {
         const f = pf.forecasts.find(x => x.horizon === h);
@@ -198,8 +230,8 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       <div style={{ padding: '16px 16px 8px' }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast</h2>
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
-          GBM time-series models predict KTC value changes at 7/30/60/90/120 day horizons.
-          Shaded bands show 95% confidence intervals from cross-validated residuals.
+          GBM time-series models predict KTC value changes at 7/30/60/90 day horizons.
+          Signal is a within-position z-score of composite momentum (higher = rising faster than peers).
         </p>
 
         {/* Controls */}
@@ -287,7 +319,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
                 { col: '30', label: '+30d', right: true },
                 { col: '60', label: '+60d', right: true },
                 { col: '90', label: '+90d', right: true },
-                { col: '120', label: '+120d', right: true },
+                { col: 'signal', label: 'Signal', right: true },
                 { col: 'trend', label: 'Trend', right: true },
               ] as const).map(({ col, label, right }) => (
                 <th
@@ -310,7 +342,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 100).map(({ player, currentValue, forecasts }) => {
+            {filtered.slice(0, 100).map(({ player, currentValue, forecasts, signal }) => {
               const last = forecasts[forecasts.length - 1];
               const pctChange = last ? (last.value - currentValue) / currentValue * 100 : 0;
               const isSelected = selectedId === player.playerID;
@@ -334,7 +366,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
                     <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>{player.team}</span>
                   </td>
                   <td style={tdR}>{currentValue.toLocaleString()}</td>
-                  {[7, 30, 60, 90, 120].map(h => {
+                  {[7, 30, 60, 90].map(h => {
                     const f = forecasts.find(x => x.horizon === h);
                     if (!f) return <td key={h} style={tdR}>-</td>;
                     const delta = f.value - currentValue;
@@ -344,6 +376,9 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
                       </td>
                     );
                   })}
+                  <td style={{ ...tdR, color: signalColor(signal), fontWeight: 700 }}>
+                    {signalLabel(signal)}
+                  </td>
                   <td style={{ ...tdR, color: trendColor(pctChange), fontWeight: 600 }}>
                     {pctChange >= 0 ? '+' : ''}{pctChange.toFixed(1)}%
                   </td>
@@ -472,4 +507,23 @@ function trendColor(pct: number): string {
   if (pct > -1) return 'var(--text-secondary)';
   if (pct > -5) return '#fb923c';
   return '#ef4444';
+}
+
+function signalColor(z: number): string {
+  if (z >= 1.5) return '#22c55e';
+  if (z >= 0.5) return '#4ade80';
+  if (z > -0.5) return 'var(--text-secondary)';
+  if (z > -1.5) return '#fb923c';
+  return '#ef4444';
+}
+
+function signalLabel(z: number): string {
+  const sign = z >= 0 ? '+' : '';
+  const abs = Math.abs(z);
+  let tag: string;
+  if (abs >= 2.0) tag = 'Strong';
+  else if (abs >= 1.0) tag = 'Mod';
+  else if (abs >= 0.3) tag = 'Mild';
+  else return 'Neutral';
+  return `${sign}${z.toFixed(1)} ${tag}`;
 }
