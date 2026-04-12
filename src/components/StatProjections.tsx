@@ -9,6 +9,7 @@ import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import { TeamAccuracyChart } from './TeamAccuracyChart';
 import projectionConfig from '../generated/projection-config.json';
+import teamProjectionsEnsemble from '../generated/team-projections.json';
 
 // ── Config ──
 
@@ -714,17 +715,34 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         }
         for (const k of Object.keys(leagueAvg) as (keyof TeamStats)[]) leagueAvg[k] = Math.round(leagueAvg[k] / nTeams);
 
-        // ── Step 3: Project team totals using sweep config ──
+        // ── Step 3: Project team totals ──
+        // Use ensemble projections (Ridge delta + LightGBM) when available,
+        // with blend fallback for stats/teams not covered.
         const { teamWeight } = projectionConfig.winner;
         const leagueWeight = 1 - teamWeight;
+        const ensembleTeams = (teamProjectionsEnsemble.season === PREDICT_SEASON
+          ? teamProjectionsEnsemble.teams : null) as Record<string, Record<string, number>> | null;
 
         const projectedTeamTotals = new Map<string, TeamStats>();
         for (const [team, prior] of priorTeamTotals) {
-          const proj: TeamStats = {} as TeamStats;
+          const blend: TeamStats = {} as TeamStats;
           for (const k of Object.keys(leagueAvg) as (keyof TeamStats)[]) {
-            proj[k] = Math.round(prior[k] * teamWeight + leagueAvg[k] * leagueWeight);
+            blend[k] = Math.round(prior[k] * teamWeight + leagueAvg[k] * leagueWeight);
           }
-          projectedTeamTotals.set(team, proj);
+          const ep = ensembleTeams?.[team];
+          if (ep) {
+            // Use ensemble for volume stats, blend for the rest
+            blend.passAtt    = ep.passAtt    ?? blend.passAtt;
+            blend.rushAtt    = ep.rushAtt    ?? blend.rushAtt;
+            blend.targets    = ep.targets    ?? blend.targets;
+            blend.receptions = ep.receptions ?? blend.receptions;
+            blend.passTD     = ep.passTD     ?? blend.passTD;
+            blend.rushTD     = ep.rushTD     ?? blend.rushTD;
+            blend.passYds    = ep.passYds    ?? blend.passYds;
+            blend.rushYds    = ep.rushYds    ?? blend.rushYds;
+            blend.recYds     = ep.recYds     ?? blend.recYds;
+          }
+          projectedTeamTotals.set(team, blend);
         }
 
         // Build projected team totals map for share display in team view

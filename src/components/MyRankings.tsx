@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
-import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 
@@ -18,7 +18,16 @@ interface ADPScoreEntry {
   position: string;
   team: string;
   adp: number;
-  hitProb: string;
+  predictedVor: number;
+  ciLower: number;
+  ciUpper: number;
+  isRookie: boolean;
+}
+
+interface PPGScoreEntry {
+  name: string;
+  position: string;
+  predictedPPG: number;
 }
 
 interface PriorStatsEntry {
@@ -43,9 +52,10 @@ interface RankingRow {
   ppg: number;
   // ADP
   adp: number;
-  // Model signals
-  adpEdge: number;
-  hitProb: string;       // boom/bust label
+  // Model signals — VOR boom/bust from ADP model
+  predictedVor: number;
+  boomPct: number;       // upside % from CI
+  bustPct: number;       // downside % from CI
   // Projected shares (from SDIO team totals)
   projTgtShare: number;  // 0-1
   projRushShare: number; // 0-1
@@ -64,6 +74,7 @@ interface SavedRanking {
   savedAt: string;
   order: string[];
   lockedIds: string[];
+  scenarioId?: string;  // link to a saved projection scenario
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
@@ -84,23 +95,18 @@ function pct(v: number): string {
   return `${Math.round(v * 100)}%`;
 }
 
-function hitProbColor(h: string): string {
-  if (h.includes('Likely Hit')) return '#22c55e';
-  if (h.includes('Probable Hit')) return '#86efac';
-  if (h.includes('Possible Hit')) return '#a3e635';
-  if (h.includes('Probable Bust')) return '#fca5a5';
-  if (h.includes('Likely Bust')) return '#ef4444';
+function boomColor(v: number): string {
+  if (v >= 40) return '#22c55e';
+  if (v >= 25) return '#86efac';
+  if (v >= 15) return '#a3e635';
   return 'var(--text-muted)';
 }
 
-function hitProbShort(h: string): string {
-  if (h.includes('Likely Hit')) return 'Hit';
-  if (h.includes('Probable Hit')) return 'Prob Hit';
-  if (h.includes('Possible Hit')) return 'Poss Hit';
-  if (h.includes('Possible Bust')) return 'Poss Bust';
-  if (h.includes('Probable Bust')) return 'Prob Bust';
-  if (h.includes('Likely Bust')) return 'Bust';
-  return h.replace('Likely ', '').replace('Probable ', 'Prob ').replace('Possible ', 'Poss ');
+function bustColor(v: number): string {
+  if (v >= 40) return '#ef4444';
+  if (v >= 25) return '#fca5a5';
+  if (v >= 15) return '#fb923c';
+  return 'var(--text-muted)';
 }
 
 // ── Component ──
@@ -111,6 +117,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
   const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
+  const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
   const [priorStats, setPriorStats] = useState<Record<string, PriorStatsEntry>>({});
   const [competition, setCompetition] = useState<Record<string, CompetitionEntry>>({});
 
@@ -123,6 +130,10 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
 
+  // Projection scenario selection
+  const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>([]);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
+
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
@@ -133,13 +144,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
+      fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/feature-store/priorStats.json`).then(r => r.json()).catch(() => ({})),
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
-    ]).then(([rdData, ffcData, sdioData, adpData, priorData, compData]) => {
+    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, priorData, compData]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
       setSdio(sdioData);
       setAdpScores(adpData);
+      setPpgScores(ppgData);
       setPriorStats(priorData);
       setCompetition(compData);
       setLoading(false);
@@ -151,6 +164,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setSavedList(JSON.parse(raw));
     } catch { /* ignore */ }
+    setSavedScenarios(loadAllScenarios());
   }, []);
 
   // Lookup maps
@@ -165,6 +179,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     for (const p of adpScores) m.set(normName(p.name), p);
     return m;
   }, [adpScores]);
+
+  const ppgScoreByName = useMemo(() => {
+    const m = new Map<string, PPGScoreEntry>();
+    for (const p of ppgScores) m.set(normName(p.name), p);
+    return m;
+  }, [ppgScores]);
 
   // Prior data uses "name::2025" keys for the 2026 projection year
   const priorByName = useMemo(() => {
@@ -194,11 +214,20 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [competition]);
 
+  // Resolve active scenario: user-selected scenario overrides prop scenario
+  const activeScenario = useMemo(() => {
+    if (selectedScenarioId) {
+      const found = savedScenarios.find(s => s.id === selectedScenarioId);
+      if (found) return found;
+    }
+    return scenario;
+  }, [selectedScenarioId, savedScenarios, scenario]);
+
   // Apply scenario to SDIO projections
   const scenarioSdio = useMemo(() => {
-    if (!sdio.length || isScenarioEmpty(scenario)) return sdio;
-    return applyScenario(sdio, scenario);
-  }, [sdio, scenario]);
+    if (!sdio.length || isScenarioEmpty(activeScenario)) return sdio;
+    return applyScenario(sdio, activeScenario);
+  }, [sdio, activeScenario]);
 
   const sdioByName = useMemo(() => {
     const m = new Map<string, SDIOProjection>();
@@ -237,17 +266,28 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const nn = normName(name);
       const ffcP = ffcByName.get(nn);
       const adpS = adpScoreByName.get(nn);
+      const ppgS = ppgScoreByName.get(nn);
       const sdioP = sdioByName.get(nn);
       const prior = priorByName.get(nn);
       const comp = compByName.get(nn);
 
-      // PPG: prefer SDIO scenario-adjusted
-      let ppg = basePpg;
-      if (sdioP && (sdioP.FantasyPointsPPR ?? 0) > 0) {
+      // PPG priority: 1) ML pipeline score-store predictedPPG, 2) redraft projections fallback
+      let ppg = ppgS?.predictedPPG ?? basePpg;
+      // If SDIO scenario-adjusted is available and a scenario is active, use it
+      if (sdioP && !isScenarioEmpty(activeScenario) && (sdioP.FantasyPointsPPR ?? 0) > 0) {
         ppg = Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10;
       }
 
-      const resolvedTeam = ffcP?.team ?? sdioP?.Team ?? team;
+      const resolvedTeam = ffcP?.team ?? adpS?.team ?? sdioP?.Team ?? team;
+
+      // Boom/bust from ADP model's VOR confidence interval
+      const vor = adpS?.predictedVor ?? 0;
+      const ciLow = adpS?.ciLower ?? 0;
+      const ciHigh = adpS?.ciUpper ?? 0;
+      // Boom%: how much upside above predicted (CI upper - predicted) / predicted
+      const boomPct = vor > 0 ? Math.round(((ciHigh - vor) / vor) * 100) : 0;
+      // Bust%: how much downside below predicted (predicted - CI lower) / predicted
+      const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
 
       // Projected shares from SDIO
       let projTgtShare = 0;
@@ -272,8 +312,9 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         team: resolvedTeam,
         ppg,
         adp: ffcP?.adp ?? adpS?.adp ?? 999,
-        adpEdge: 0,
-        hitProb: adpS?.hitProb ?? '',
+        predictedVor: vor,
+        boomPct,
+        bustPct,
         projTgtShare,
         projRushShare,
         priorPPG: prior?.priorPPG ?? 0,
@@ -300,18 +341,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     // Sort by PPG descending
     rows.sort((a, b) => b.ppg - a.ppg);
 
-    // Compute edge
-    const ppgRanks = rows.map((r, i) => ({ id: r.id, ppgRank: i + 1 }));
-    const adpSorted = [...rows].sort((a, b) => a.adp - b.adp);
-    const adpRankMap = new Map<string, number>();
-    adpSorted.forEach((r, i) => adpRankMap.set(r.id, i + 1));
-    for (const pr of ppgRanks) {
-      const row = rows.find(r => r.id === pr.id);
-      if (row) row.adpEdge = (adpRankMap.get(row.id) ?? rows.length) - pr.ppgRank;
-    }
-
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, sdioByName, priorByName, compByName, teamTotals]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -368,14 +399,16 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const entry: SavedRanking = {
       id: `rank-${Date.now()}`, name: rankingName, savedAt: new Date().toISOString(),
       order: customOrder ?? rankedRows.map(r => r.id), lockedIds: [...lockedIds],
+      scenarioId: selectedScenarioId || undefined,
     };
     const updated = [...savedList.filter(s => s.name !== rankingName), entry];
     setSavedList(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  }, [rankingName, customOrder, rankedRows, lockedIds, savedList]);
+  }, [rankingName, customOrder, rankedRows, lockedIds, savedList, selectedScenarioId]);
 
   const loadSaved = useCallback((s: SavedRanking) => {
     setCustomOrder(s.order); setLockedIds(new Set(s.lockedIds)); setRankingName(s.name); setShowSaved(false);
+    setSelectedScenarioId(s.scenarioId ?? '');
   }, []);
 
   const deleteSaved = useCallback((id: string) => {
@@ -384,7 +417,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   }, [savedList]);
 
-  const hasScenario = !isScenarioEmpty(scenario);
+  const hasScenario = !isScenarioEmpty(activeScenario);
 
   if (loading) {
     return (
@@ -394,8 +427,6 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       </div>
     );
   }
-
-  const edgeColor = (v: number) => v > 10 ? '#22c55e' : v > 3 ? '#86efac' : v < -10 ? '#ef4444' : v < -3 ? '#fca5a5' : 'var(--text-secondary)';
 
   const th: React.CSSProperties = { padding: '6px 5px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '5px 5px', fontSize: 12 };
@@ -410,10 +441,27 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             fontSize: 11, background: '#6366f122', color: '#6366f1',
             border: '1px solid #6366f144', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
           }}>
-            Scenario Active
+            {selectedScenarioId
+              ? `Scenario: ${savedScenarios.find(s => s.id === selectedScenarioId)?.name ?? 'Active'}`
+              : 'Scenario Active'}
           </span>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Scenario picker */}
+          <select
+            value={selectedScenarioId}
+            onChange={e => setSelectedScenarioId(e.target.value)}
+            style={{
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 6, padding: '4px 8px', fontSize: 11, color: 'var(--text-primary)',
+              fontFamily: 'inherit', maxWidth: 150,
+            }}
+          >
+            <option value="">No Scenario</option>
+            {savedScenarios.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
           <input
             value={rankingName}
             onChange={e => setRankingName(e.target.value)}
@@ -456,6 +504,14 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
                   {new Date(s.savedAt).toLocaleDateString()}
                 </span>
+                {s.scenarioId && (
+                  <span style={{
+                    fontSize: 10, background: '#6366f122', color: '#6366f1',
+                    borderRadius: 4, padding: '1px 5px', marginLeft: 6,
+                  }}>
+                    {savedScenarios.find(sc => sc.id === s.scenarioId)?.name ?? 'Scenario'}
+                  </span>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="scenario-link-btn" onClick={() => loadSaved(s)}>Load</button>
@@ -505,8 +561,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>PPG</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>ADP</th>
-              <th style={{ ...th, textAlign: 'right', width: 40 }}>Edge</th>
-              <th style={{ ...th, textAlign: 'center', width: 65 }}>Boom/Bust</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>
+                <span title="Predicted Value Over Replacement from ADP model">VOR</span>
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 40 }}>
+                <span title="Upside % — CI upper vs predicted VOR">Boom%</span>
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 40 }}>
+                <span title="Downside % — predicted VOR vs CI lower">Bust%</span>
+              </th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>Tgt%</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>Rush%</th>
               <th style={{ ...th, textAlign: 'right', width: 44, borderLeft: '1px solid var(--border)' }}>
@@ -549,11 +612,14 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
                 <td style={{ ...td, textAlign: 'center', color: 'var(--text-muted)' }}>{r.team}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{r.ppg > 0 ? r.ppg.toFixed(1) : '—'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>{r.adp < 999 ? r.adp.toFixed(1) : '—'}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: edgeColor(r.adpEdge) }}>
-                  {r.adpEdge > 0 ? `+${r.adpEdge}` : r.adpEdge || '—'}
+                <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>
+                  {r.predictedVor > 0 ? r.predictedVor.toFixed(1) : '—'}
                 </td>
-                <td style={{ ...td, textAlign: 'center', fontSize: 10, fontWeight: 600, color: hitProbColor(r.hitProb) }}>
-                  {r.hitProb ? hitProbShort(r.hitProb) : '—'}
+                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: boomColor(r.boomPct) }}>
+                  {r.boomPct > 0 ? `${r.boomPct}%` : '—'}
+                </td>
+                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: bustColor(r.bustPct) }}>
+                  {r.bustPct > 0 ? `${r.bustPct}%` : '—'}
                 </td>
                 <td style={{ ...td, textAlign: 'right', color: 'var(--text-secondary)' }}>
                   {r.projTgtShare > 0 ? pct(r.projTgtShare) : '—'}
