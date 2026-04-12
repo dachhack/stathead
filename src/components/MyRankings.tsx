@@ -289,7 +289,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       // Bust%: how much downside below predicted (predicted - CI lower) / predicted
       const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
 
-      // Projected shares from SDIO
+      // Projected shares: prefer SDIO, fall back to prior year shares
       let projTgtShare = 0;
       let projRushShare = 0;
       if (sdioP && resolvedTeam) {
@@ -302,6 +302,13 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             projRushShare = (sdioP.RushingAttempts || 0) / tt.rushAtt;
           }
         }
+      }
+      // Fallback: use prior year shares when SDIO unavailable
+      if (!projTgtShare && comp) {
+        projTgtShare = comp.priorTeamTargetShare ?? 0;
+      }
+      if (!projRushShare && comp && position === 'RB') {
+        projRushShare = comp.priorTeamTouchShare ?? 0;
       }
 
       return {
