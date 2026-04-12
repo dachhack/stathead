@@ -151,37 +151,43 @@ export function applyScenario(
   for (const override of scenario.volumeOverrides) {
     const player = result.find((p) => p.PlayerID === override.playerId);
     if (!player) continue;
-    const factor = 1 + override.volumeDelta / 100;
+    const rushF = 1 + (override.rushDelta ?? override.volumeDelta) / 100;
+    const recF = 1 + (override.recDelta ?? override.volumeDelta) / 100;
     if (player.Position === 'RB') {
       rushOrigOvr.set(player.Team, (rushOrigOvr.get(player.Team) ?? 0) + (player.RushingAttempts || 0));
-      rushNewOvr.set(player.Team, (rushNewOvr.get(player.Team) ?? 0) + (player.RushingAttempts || 0) * factor);
+      rushNewOvr.set(player.Team, (rushNewOvr.get(player.Team) ?? 0) + (player.RushingAttempts || 0) * rushF);
     }
     if (player.Position !== 'QB' && player.Position !== 'K') {
       recOrigOvr.set(player.Team, (recOrigOvr.get(player.Team) ?? 0) + (player.Receptions || 0));
-      recNewOvr.set(player.Team, (recNewOvr.get(player.Team) ?? 0) + (player.Receptions || 0) * factor);
+      recNewOvr.set(player.Team, (recNewOvr.get(player.Team) ?? 0) + (player.Receptions || 0) * recF);
     }
   }
 
   const overriddenIds = new Set(scenario.volumeOverrides.map((v) => v.playerId));
 
-  // Boost overridden players
+  // Boost overridden players (per-stat deltas override the blanket volumeDelta)
   for (const override of scenario.volumeOverrides) {
     const player = result.find((p) => p.PlayerID === override.playerId);
     if (!player) continue;
-    const factor = 1 + override.volumeDelta / 100;
+    const rushF = 1 + (override.rushDelta ?? override.volumeDelta) / 100;
+    const recF = 1 + (override.recDelta ?? override.volumeDelta) / 100;
+    const passF = 1 + (override.passDelta ?? override.volumeDelta) / 100;
     if (player.Position === 'QB') {
-      player.PassingAttempts = (player.PassingAttempts || 0) * factor;
-      player.PassingCompletions = (player.PassingCompletions || 0) * factor;
-      player.PassingYards = (player.PassingYards || 0) * factor;
-      player.PassingTouchdowns = (player.PassingTouchdowns || 0) * factor;
+      player.PassingAttempts = (player.PassingAttempts || 0) * passF;
+      player.PassingCompletions = (player.PassingCompletions || 0) * passF;
+      player.PassingYards = (player.PassingYards || 0) * passF;
+      player.PassingTouchdowns = (player.PassingTouchdowns || 0) * passF;
+      player.RushingAttempts = (player.RushingAttempts || 0) * rushF;
+      player.RushingYards = (player.RushingYards || 0) * rushF;
+      player.RushingTouchdowns = (player.RushingTouchdowns || 0) * rushF;
     } else {
-      player.Receptions = (player.Receptions || 0) * factor;
-      player.ReceivingYards = (player.ReceivingYards || 0) * factor;
-      player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * factor;
+      player.Receptions = (player.Receptions || 0) * recF;
+      player.ReceivingYards = (player.ReceivingYards || 0) * recF;
+      player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * recF;
       if (player.Position === 'RB') {
-        player.RushingAttempts = (player.RushingAttempts || 0) * factor;
-        player.RushingYards = (player.RushingYards || 0) * factor;
-        player.RushingTouchdowns = (player.RushingTouchdowns || 0) * factor;
+        player.RushingAttempts = (player.RushingAttempts || 0) * rushF;
+        player.RushingYards = (player.RushingYards || 0) * rushF;
+        player.RushingTouchdowns = (player.RushingTouchdowns || 0) * rushF;
       }
     }
     const { ppr, std } = recalcPoints(player);

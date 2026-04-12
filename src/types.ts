@@ -996,7 +996,11 @@ export interface VolumeOverride {
   playerName: string;
   team: string;
   position: string;
-  volumeDelta: number; // percentage change, e.g. 25 = +25%
+  volumeDelta: number; // percentage change, e.g. 25 = +25%  (overall default)
+  // Optional per-stat-pool overrides (when set, override the blanket volumeDelta for that pool)
+  rushDelta?: number;   // rush att/yds/td override
+  recDelta?: number;    // targets/rec/recYds/recTD override
+  passDelta?: number;   // pass att/comp/yds/td/int override (QB only)
 }
 
 export interface PlayerMovement {

@@ -70,6 +70,11 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
   const [volSearch, setVolSearch] = useState('');
   const [volPlayer, setVolPlayer] = useState<SDIOProjection | null>(null);
   const [volDelta, setVolDelta] = useState(0);
+  const [volPerStat, setVolPerStat] = useState(false);
+  const [volRush, setVolRush] = useState<number | undefined>(undefined);
+  const [volRec, setVolRec] = useState<number | undefined>(undefined);
+  const [volPass, setVolPass] = useState<number | undefined>(undefined);
+  const [expandedOverride, setExpandedOverride] = useState<number | null>(null);
   const volResults = usePlayerSearch(projections, volSearch);
 
   // Player movement add form
@@ -189,7 +194,9 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
 
   // --- Volume override actions ---
   const addVolumeOverride = () => {
-    if (!volPlayer || volDelta === 0) return;
+    if (!volPlayer) return;
+    const hasAny = volDelta !== 0 || volRush !== undefined || volRec !== undefined || volPass !== undefined;
+    if (!hasAny) return;
     if (scenario.volumeOverrides.find((v) => v.playerId === volPlayer.PlayerID)) return;
     const override: VolumeOverride = {
       playerId: volPlayer.PlayerID,
@@ -197,11 +204,18 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
       team: volPlayer.Team,
       position: volPlayer.Position,
       volumeDelta: volDelta,
+      rushDelta: volRush,
+      recDelta: volRec,
+      passDelta: volPass,
     };
     update({ volumeOverrides: [...scenario.volumeOverrides, override] });
     setVolSearch('');
     setVolPlayer(null);
     setVolDelta(0);
+    setVolPerStat(false);
+    setVolRush(undefined);
+    setVolRec(undefined);
+    setVolPass(undefined);
   };
   const removeVolumeOverride = (id: number) =>
     update({ volumeOverrides: scenario.volumeOverrides.filter((v) => v.playerId !== id) });
@@ -209,6 +223,12 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
     update({
       volumeOverrides: scenario.volumeOverrides.map((v) =>
         v.playerId === id ? { ...v, volumeDelta: delta } : v
+      ),
+    });
+  const updateVolumeStatDelta = (id: number, field: 'rushDelta' | 'recDelta' | 'passDelta', value: number | undefined) =>
+    update({
+      volumeOverrides: scenario.volumeOverrides.map((v) =>
+        v.playerId === id ? { ...v, [field]: value } : v
       ),
     });
 
@@ -757,7 +777,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
                     <span className="scenario-dropdown-team">{volPlayer.Team}</span>
                     <button
                       className="scenario-clear-selection"
-                      onClick={() => setVolPlayer(null)}
+                      onClick={() => { setVolPlayer(null); setVolPerStat(false); setVolRush(undefined); setVolRec(undefined); setVolPass(undefined); }}
                     >
                       ✕
                     </button>
@@ -780,13 +800,58 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
                         volDelta > 0 ? 'positive' : volDelta < 0 ? 'negative' : ''
                       }`}
                     >
-                      Volume: {deltaLabel(volDelta, 'volume')}
+                      Overall: {deltaLabel(volDelta, 'volume')}
                     </span>
+                    <button
+                      className="scenario-link-btn"
+                      style={{ marginLeft: 8, fontSize: 11 }}
+                      onClick={() => setVolPerStat((v) => !v)}
+                    >
+                      {volPerStat ? 'Hide per-stat' : 'Per-stat'}
+                    </button>
                   </div>
+                  {volPerStat && (
+                    <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                      {(volPlayer.Position === 'QB' ? [
+                        { label: 'Passing', field: 'pass' as const, val: volPass, set: setVolPass },
+                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
+                      ] : volPlayer.Position === 'RB' ? [
+                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
+                        { label: 'Receiving', field: 'rec' as const, val: volRec, set: setVolRec },
+                      ] : [
+                        { label: 'Receiving', field: 'rec' as const, val: volRec, set: setVolRec },
+                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
+                      ]).map(({ label, val, set }) => (
+                        <div key={label} style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, minWidth: 60 }}>{label}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              {val !== undefined ? deltaLabel(val, 'volume') : `(uses overall: ${deltaLabel(volDelta, 'volume')})`}
+                            </span>
+                            {val !== undefined && (
+                              <button className="scenario-link-btn" style={{ fontSize: 10 }} onClick={() => set(undefined)}>
+                                reset
+                              </button>
+                            )}
+                          </div>
+                          <div className="scenario-slider-row" style={{ marginBottom: 0 }}>
+                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>−50%</span>
+                            <input
+                              type="range" min={-50} max={100}
+                              value={val ?? volDelta}
+                              onChange={(e) => set(Number(e.target.value))}
+                              className="scenario-slider"
+                            />
+                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>+100%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <button
                     className="scenario-confirm-btn"
                     onClick={addVolumeOverride}
-                    disabled={volDelta === 0}
+                    disabled={volDelta === 0 && volRush === undefined && volRec === undefined && volPass === undefined}
                   >
                     Add Override
                   </button>
@@ -794,37 +859,87 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
               )}
             </div>
 
-            {scenario.volumeOverrides.map((v) => (
-              <div key={v.playerId} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className={`pos-badge pos-${v.position}`}>{v.position}</span>
-                  <span className="scenario-item-name">{v.playerName}</span>
-                  <span
-                    className={`scenario-item-delta ${
-                      v.volumeDelta > 0 ? 'positive' : 'negative'
-                    }`}
-                  >
-                    {deltaLabel(v.volumeDelta, 'volume')}
-                  </span>
+            {scenario.volumeOverrides.map((v) => {
+              const hasPerStat = v.rushDelta !== undefined || v.recDelta !== undefined || v.passDelta !== undefined;
+              const isExpanded = expandedOverride === v.playerId;
+              const perStatEntries = v.position === 'QB'
+                ? [{ label: 'Passing', field: 'passDelta' as const, val: v.passDelta }, { label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }]
+                : v.position === 'RB'
+                ? [{ label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }, { label: 'Receiving', field: 'recDelta' as const, val: v.recDelta }]
+                : [{ label: 'Receiving', field: 'recDelta' as const, val: v.recDelta }, { label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }];
+              return (
+                <div key={v.playerId}>
+                  <div className="scenario-item">
+                    <div className="scenario-item-left">
+                      <span className={`pos-badge pos-${v.position}`}>{v.position}</span>
+                      <span className="scenario-item-name">{v.playerName}</span>
+                      <span
+                        className={`scenario-item-delta ${
+                          v.volumeDelta > 0 ? 'positive' : v.volumeDelta < 0 ? 'negative' : ''
+                        }`}
+                      >
+                        {deltaLabel(v.volumeDelta, 'volume')}
+                      </span>
+                      {hasPerStat && (
+                        <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>+per-stat</span>
+                      )}
+                    </div>
+                    <div className="scenario-item-controls">
+                      <button
+                        className="scenario-link-btn"
+                        style={{ fontSize: 10, marginRight: 4 }}
+                        onClick={() => setExpandedOverride(isExpanded ? null : v.playerId)}
+                      >
+                        {isExpanded ? 'Less' : 'More'}
+                      </button>
+                      <input
+                        type="range"
+                        min={-50}
+                        max={100}
+                        value={v.volumeDelta}
+                        onChange={(e) => updateVolumeDelta(v.playerId, Number(e.target.value))}
+                        className="scenario-slider-inline"
+                      />
+                      <button
+                        className="scenario-remove-btn"
+                        onClick={() => removeVolumeOverride(v.playerId)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div style={{ padding: '4px 12px 8px', borderBottom: '1px solid var(--border)' }}>
+                      {perStatEntries.map(({ label, field, val }) => (
+                        <div key={field} style={{ marginBottom: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, minWidth: 60 }}>{label}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              {val !== undefined ? deltaLabel(val, 'volume') : `(overall: ${deltaLabel(v.volumeDelta, 'volume')})`}
+                            </span>
+                            {val !== undefined && (
+                              <button className="scenario-link-btn" style={{ fontSize: 10 }} onClick={() => updateVolumeStatDelta(v.playerId, field, undefined)}>
+                                reset
+                              </button>
+                            )}
+                          </div>
+                          <div className="scenario-slider-row" style={{ marginBottom: 0 }}>
+                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>−50%</span>
+                            <input
+                              type="range" min={-50} max={100}
+                              value={val ?? v.volumeDelta}
+                              onChange={(e) => updateVolumeStatDelta(v.playerId, field, Number(e.target.value))}
+                              className="scenario-slider"
+                            />
+                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>+100%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="range"
-                    min={-50}
-                    max={100}
-                    value={v.volumeDelta}
-                    onChange={(e) => updateVolumeDelta(v.playerId, Number(e.target.value))}
-                    className="scenario-slider-inline"
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removeVolumeOverride(v.playerId)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {scenario.volumeOverrides.length === 0 && !volPlayer && !volSearch && (
               <div className="scenario-section-empty">No volume overrides</div>
