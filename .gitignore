@@ -17,6 +17,8 @@ public/data/*
 !public/data/residual-hyperparam-sweep.json
 !public/data/ktc-feature-ablation.json
 !public/data/ktc-hyperparam-sweep.json
+!public/data/ktc-forecasts-*.json
+!public/data/redraft-projections.json
 .claude/
 CLAUDE.local.md
 __pycache__/

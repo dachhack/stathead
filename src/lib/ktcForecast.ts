@@ -96,3 +96,59 @@ export function getProjectedValueFromCache(
   const f = entry.forecasts[String(horizon)];
   return f ? f.value : null;
 }
+
+// ── Redraft projections ─────────────────────────────────────────────
+
+export interface RedraftPlayer {
+  name: string;
+  position: string;
+  projPPG: number;
+  projPPR: number;
+  priorPPG: number;
+}
+
+export interface RedraftProjections {
+  season: number;
+  generatedAt: string;
+  scoring: string;
+  players: RedraftPlayer[];
+}
+
+/** Lookup map: normalized "name|position" → RedraftPlayer */
+export type RedraftLookup = Map<string, RedraftPlayer>;
+
+function normalizeForJoin(name: string): string {
+  return name.toLowerCase().replace(/[.\-']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
+}
+
+let _redraftPromise: Promise<RedraftProjections | null> | null = null;
+
+export function loadRedraftProjections(): Promise<RedraftProjections | null> {
+  if (!_redraftPromise) {
+    _redraftPromise = fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`)
+      .then(r => r.ok ? r.json() as Promise<RedraftProjections> : null)
+      .catch(() => null);
+  }
+  return _redraftPromise;
+}
+
+/** Build a lookup map from redraft projections, keyed by normalized "name|position". */
+export function buildRedraftLookup(proj: RedraftProjections): RedraftLookup {
+  const map: RedraftLookup = new Map();
+  for (const p of proj.players) {
+    const key = `${normalizeForJoin(p.name)}|${p.position}`;
+    map.set(key, p);
+  }
+  return map;
+}
+
+/** Look up a KTC player's redraft PPG from the projections map. */
+export function getRedraftPPG(
+  lookup: RedraftLookup,
+  playerName: string,
+  position: string,
+): number | null {
+  const key = `${normalizeForJoin(playerName)}|${position}`;
+  const entry = lookup.get(key);
+  return entry ? entry.projPPG : null;
+}
