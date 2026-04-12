@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadModelCache, forecastPlayer, type ModelCache, type ForecastResult } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, type ForecastCache, type ForecastResult } from '../lib/ktcForecast';
 
 type FormatMode = '1qb' | 'superflex';
 
@@ -92,7 +92,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [historyData, setHistoryData] = useState<KTCPlayerHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [tradeDate, setTradeDate] = useState<string>('');
-  const [modelCache, setModelCache] = useState<ModelCache | null>(null);
+  const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -105,10 +105,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       .finally(() => setLoading(false));
   }, [format, onDataLoaded]);
 
-  // Load KTC time-series model cache (fire-and-forget, non-blocking)
+  // Load pre-computed KTC forecasts (fire-and-forget, non-blocking)
   useEffect(() => {
-    loadModelCache().then(c => { if (c) setModelCache(c); });
-  }, []);
+    loadForecasts(format === 'superflex' ? 'superflex' : '1qb')
+      .then(c => { if (c) setForecastCache(c); });
+  }, [format]);
 
   // Fetch history for all players in the trade
   const allTradePlayerIds = useMemo(
@@ -136,46 +137,24 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return format === 'superflex' ? h.superflex.valueHistory : h.oneQB.valueHistory;
   };
 
-  // GBM-based projected values for trade players (keyed by playerID)
+  // Pre-computed GBM forecasts for trade players (keyed by playerID)
   const gbmForecasts = useMemo(() => {
     const map = new Map<number, ForecastResult[]>();
-    if (!modelCache || historyData.length === 0) return map;
-
-    // Compute position rank percentiles from all loaded players
-    const byPos = new Map<string, KTCPlayer[]>();
-    for (const p of players) {
-      const list = byPos.get(p.position) || [];
-      list.push(p);
-      byPos.set(p.position, list);
-    }
-    const rankPcts = new Map<number, number>();
-    for (const [, list] of byPos) {
-      list.sort((a, b) => b.value - a.value);
-      const denom = Math.max(1, list.length - 1);
-      list.forEach((p, i) => rankPcts.set(p.playerID, i / denom));
-    }
-
+    if (!forecastCache) return map;
     const tradePlayers = [...sideA, ...sideB];
     for (const p of tradePlayers) {
       if (map.has(p.playerID)) continue;
-      const hist = getHistory(p.playerID);
-      if (hist.length === 0) continue;
-      const rankPct = rankPcts.get(p.playerID) ?? 0.5;
-      const forecasts = forecastPlayer(modelCache, p.position, getValue(p), hist, rankPct);
+      const forecasts = getPlayerForecasts(forecastCache, p.playerID);
       if (forecasts.length > 0) map.set(p.playerID, forecasts);
     }
     return map;
-  }, [modelCache, historyData, sideA, sideB, players, format]);
+  }, [forecastCache, sideA, sideB]);
 
   /** Get GBM projected value at ~90 days, falling back to linear trend. */
   const getProjectedValue = (p: KTCPlayer): number => {
-    const forecasts = gbmForecasts.get(p.playerID);
-    if (forecasts) {
-      // Prefer H=90, fall back to longest available
-      const h90 = forecasts.find(f => f.horizon === 90);
-      if (h90) return Math.round(h90.value);
-      const longest = forecasts[forecasts.length - 1];
-      if (longest) return Math.round(longest.value);
+    if (forecastCache) {
+      const val = getProjectedValueFromCache(forecastCache, p.playerID, 90);
+      if (val !== null) return val;
     }
     // Fallback to old linear projection
     return projectValue(getValue(p), p.trend30Day);
