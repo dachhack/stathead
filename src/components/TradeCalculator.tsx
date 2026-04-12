@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftProjections, buildRedraftLookup, getRedraftPPG, TEP_TE_DYNASTY_BOOST, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_TE_DYNASTY_BOOST, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -115,9 +115,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   // Load redraft PPG projections (one-time, format-independent)
   useEffect(() => {
-    loadRedraftProjections().then(proj => {
-      if (proj) setRedraftLookup(buildRedraftLookup(proj));
-    });
+    loadRedraftLookup().then(setRedraftLookup);
   }, []);
 
   // Fetch history for all players in the trade

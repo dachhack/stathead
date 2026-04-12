@@ -97,50 +97,80 @@ export function getProjectedValueFromCache(
   return f ? f.value : null;
 }
 
-// ── Redraft projections ─────────────────────────────────────────────
+// ── Redraft PPG (ML-predicted) ──────────────────────────────────────
 
-export interface RedraftPlayer {
-  name: string;
-  position: string;
-  ppg: number;       // actual 2025 per-game PPR output
-  recPG: number;     // prior-season receptions per game (for TEP adjustment)
-}
-
-export interface RedraftProjections {
-  season: number;
-  generatedAt: string;
-  scoring: string;
-  players: RedraftPlayer[];
-}
-
-/** Lookup map: normalized "name|position" → RedraftPlayer */
-export type RedraftLookup = Map<string, RedraftPlayer>;
+import { loadPPGScores, loadCareerScores } from './modelScoreClient';
 
 export type ScoringFormat = '1qb' | 'superflex' | 'tep';
+
+interface PPGEntry {
+  ppg: number;
+  recPG: number; // receptions per game (for TEP adjustment)
+}
+
+/** Lookup map: normalized "name|position" → PPGEntry */
+export type RedraftLookup = Map<string, PPGEntry>;
 
 function normalizeForJoin(name: string): string {
   return name.toLowerCase().replace(/[.\-']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 }
 
-let _redraftPromise: Promise<RedraftProjections | null> | null = null;
-
-export function loadRedraftProjections(): Promise<RedraftProjections | null> {
-  if (!_redraftPromise) {
-    _redraftPromise = fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`)
-      .then(r => r.ok ? r.json() as Promise<RedraftProjections> : null)
-      .catch(() => null);
-  }
-  return _redraftPromise;
+interface SupplementaryPlayer {
+  name: string;
+  position: string;
+  ppg: number;
+  recPG: number;
 }
 
-/** Build a lookup map from redraft projections, keyed by normalized "name|position". */
-export function buildRedraftLookup(proj: RedraftProjections): RedraftLookup {
-  const map: RedraftLookup = new Map();
-  for (const p of proj.players) {
-    const key = `${normalizeForJoin(p.name)}|${p.position}`;
-    map.set(key, p);
-  }
-  return map;
+let _redraftPromise: Promise<RedraftLookup> | null = null;
+
+/**
+ * Build a unified PPG lookup merging three sources:
+ * 1. score-store/ppg.json — ML-predicted PPG for 152 vets (primary)
+ * 2. score-store/career.json — career model PPG for rookies
+ * 3. redraft-projections.json — fallback PPG + recPG for TEP
+ */
+export function loadRedraftLookup(): Promise<RedraftLookup> {
+  if (_redraftPromise) return _redraftPromise;
+  _redraftPromise = (async () => {
+    const map: RedraftLookup = new Map();
+
+    // Load all sources in parallel
+    const [ppgScores, careerScores, supplementary] = await Promise.all([
+      loadPPGScores(),
+      loadCareerScores(),
+      fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`)
+        .then(r => r.ok ? r.json() as Promise<{ players: SupplementaryPlayer[] }> : null)
+        .catch(() => null),
+    ]);
+
+    // Layer 1: supplementary file (fallback PPG + recPG data for TEP)
+    if (supplementary?.players) {
+      for (const p of supplementary.players) {
+        const key = `${normalizeForJoin(p.name)}|${p.position}`;
+        map.set(key, { ppg: p.ppg, recPG: p.recPG });
+      }
+    }
+
+    // Layer 2: career model predictions for recent draft classes (rookies)
+    for (const c of careerScores) {
+      if (c.draftSeason >= 2024 && c.predictedPPG > 0) {
+        const key = `${normalizeForJoin(c.name)}|${c.position}`;
+        const existing = map.get(key);
+        map.set(key, { ppg: c.predictedPPG, recPG: existing?.recPG ?? 0 });
+      }
+    }
+
+    // Layer 3: ML PPG predictions from score store (highest priority)
+    for (const p of ppgScores) {
+      const key = `${normalizeForJoin(p.name)}|${p.position}`;
+      const existing = map.get(key);
+      map.set(key, { ppg: p.predictedPPG, recPG: existing?.recPG ?? 0 });
+    }
+
+    return map;
+  })();
+  return _redraftPromise;
 }
 
 /** Look up a KTC player's redraft PPG, adjusted for scoring format.
