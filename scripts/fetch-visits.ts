@@ -123,15 +123,18 @@ async function fetchHtml(url: string): Promise<string> {
   return await resp.text();
 }
 
+// Store article text from the last browser fetch (set by fetchHtmlWithBrowser)
+let lastArticleText = '';
+
 /**
  * Fetch a page using a headless browser (Puppeteer) so JS-rendered content
- * is included. Required for WF's newer (2024+) pages which load visit data
- * dynamically. Falls back to static fetch if Puppeteer isn't installed.
+ * is included. Also extracts the article's innerText for text-based parsing.
  */
 async function fetchHtmlWithBrowser(url: string): Promise<string> {
   if (!puppeteer) {
     throw new Error('Puppeteer not installed — run: npm install puppeteer');
   }
+  lastArticleText = '';
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -157,6 +160,7 @@ async function fetchHtmlWithBrowser(url: string): Promise<string> {
       return el ? (el as HTMLElement).innerText : '';
     });
     if (bodyText && bodyText.length > 100) {
+      lastArticleText = bodyText;
       console.log(`    [article-text] (${bodyText.length} chars) ${bodyText.slice(0, 2000)}`);
     }
     return html;
@@ -349,6 +353,92 @@ function parseByTeam(html: string, year: number): VisitRecord[] {
   return records;
 }
 
+// ── Parse: plain-text article content (WordPress rendered text) ────────
+
+/** Map full position names to standard abbreviations. */
+const POS_MAP: Record<string, string> = {
+  'quarterback': 'QB', 'running back': 'RB', 'wide receiver': 'WR',
+  'tight end': 'TE', 'offensive tackle': 'OT', 'offensive guard': 'OG',
+  'center': 'C', 'offensive lineman': 'OL',
+  'defensive end': 'DE', 'defensive tackle': 'DT', 'nose tackle': 'NT',
+  '3-4 defensive end': 'DE', 'edge': 'EDGE', 'edge rusher': 'EDGE',
+  'inside linebacker': 'ILB', 'outside linebacker': 'OLB', 'linebacker': 'LB',
+  'cornerback': 'CB', 'safety': 'S', 'free safety': 'FS', 'strong safety': 'SS',
+  'kicker': 'K', 'punter': 'P', 'long snapper': 'LS',
+  'kick returner': 'KR', 'defensive back': 'DB', 'nickelback': 'CB',
+  'fullback': 'FB', 'h-back': 'TE',
+};
+
+function resolvePos(raw: string): string {
+  const key = raw.toLowerCase().trim();
+  return POS_MAP[key] || raw.toUpperCase();
+}
+
+/**
+ * Parse the plain-text article content from WF's WordPress pages.
+ * Format (by team):
+ *   Arizona Cardinals
+ *   David Bailey, Defensive End, Texas Tech (T30)
+ *   Caleb Banks, Defensive Tackle, Florida (T30)
+ *   ...
+ *   Atlanta Falcons
+ *   ...
+ */
+function parseArticleText(text: string, year: number): VisitRecord[] {
+  const prospectMap = new Map<string, { name: string; pos: string; school: string; teams: Set<string> }>();
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  let currentTeam: string | null = null;
+
+  for (const line of lines) {
+    // Check if this line is an NFL team name
+    const teamAbbr = resolveTeam(line);
+    if (teamAbbr && VALID_TEAMS.has(teamAbbr)) {
+      // Verify it's a standalone team header (not a prospect line with commas)
+      if (!line.includes(',') || /^(Arizona|Atlanta|Baltimore|Buffalo|Carolina|Chicago|Cincinnati|Cleveland|Dallas|Denver|Detroit|Green Bay|Houston|Indianapolis|Jacksonville|Kansas City|Las Vegas|Los Angeles|Miami|Minnesota|New England|New Orleans|New York|Oakland|Philadelphia|Pittsburgh|San Diego|San Francisco|Seattle|St\.?\s*Louis|Tampa Bay|Tennessee|Washington)/i.test(line)) {
+        currentTeam = teamAbbr;
+        continue;
+      }
+    }
+
+    if (!currentTeam) continue;
+
+    // Parse prospect line: "Name, Position, School (Type)"
+    // Also handles: "Name, Position, School (Type1, Type2)"
+    const prospectMatch = line.match(
+      /^([A-Z][A-Za-z'\-. ]+(?:\s+[A-Z][A-Za-z'\-. ]+)*)\^?\s*,\s*(.+?)\s*,\s*(.+?)(?:\s*\(([^)]+)\))?\s*$/
+    );
+    if (!prospectMatch) continue;
+
+    const name = prospectMatch[1].trim();
+    const posRaw = prospectMatch[2].trim();
+    const school = prospectMatch[3].trim();
+    const pos = resolvePos(posRaw);
+
+    // Skip false positives
+    if (name.length < 3 || school.length < 2) continue;
+    if (/^(By |Updated|This is|SR |EW |COM |INT |PRO |LOC |T30 |WOR |STM |VIR |Click)/i.test(name)) continue;
+
+    const key = normalizeName(name);
+    const existing = prospectMap.get(key);
+    if (existing) {
+      existing.teams.add(currentTeam);
+    } else {
+      prospectMap.set(key, { name, pos, school, teams: new Set([currentTeam]) });
+    }
+  }
+
+  const records: VisitRecord[] = [];
+  for (const [key, p] of prospectMap) {
+    records.push({
+      name: p.name, normalName: key, pos: p.pos, school: p.school,
+      year, teams: [...p.teams].sort(), source: 'walterfootball',
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  return records;
+}
+
 // ── Main parse dispatcher ──────────────────────────────────────────────
 
 function parseHtml(html: string, year: number, mode: 'prospect' | 'team'): VisitRecord[] {
@@ -430,19 +520,13 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
       try {
         process.stdout.write(`  ${year}: fetching (browser) ${url} ... `);
         const html = await fetchHtmlWithBrowser(url);
-        const records = parseHtml(html, year, mode);
+        let records = parseHtml(html, year, mode);
         console.log(`ok (${records.length} records, mode=${mode})`);
-        if (records.length < 10) {
-          // Dump the WordPress entry-content div (where visit data lives)
-          const entryMatch = html.match(/<div[^>]*class="entry-content"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/article>/i);
-          if (entryMatch) {
-            console.log(`    [entry-content] ${entryMatch[1].slice(0, 3000)}`);
-          } else {
-            const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-            const body = bodyMatch ? bodyMatch[1] : html;
-            const articleMatch = body.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-            console.log(`    [raw-html] ${(articleMatch ? articleMatch[1] : body).slice(0, 2000)}`);
-          }
+        // If HTML parser found < 10 records, try text-based parsing of article content
+        if (records.length < 10 && lastArticleText.length > 200) {
+          const textRecords = parseArticleText(lastArticleText, year);
+          console.log(`    [text-parse] ${textRecords.length} records from article text`);
+          if (textRecords.length > records.length) records = textRecords;
         }
         if (records.length > bestBrowser.length) bestBrowser = records;
         if (records.length >= 10) return records;
