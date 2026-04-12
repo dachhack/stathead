@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type TepLevel } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat, type TepLevel } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -92,9 +92,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [tradeDate, setTradeDate] = useState<string>('');
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
+  const [redraftLookup, setRedraftLookup] = useState<RedraftLookup | null>(null);
 
   // KTC only has 1QB and superflex; TEP is an orthogonal overlay
   const ktcFormat = leagueFormat;
+  const scoringFormat: ScoringFormat = tepLevel > 0 ? 'tep' : leagueFormat;
 
   useEffect(() => {
     // Only show full loading spinner on initial load — format switches update silently
@@ -113,6 +115,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     loadForecasts(ktcFormat as '1qb' | 'superflex')
       .then(c => { if (c) setForecastCache(c); });
   }, [ktcFormat]);
+
+  // Load redraft PPG projections (one-time, format-independent)
+  useEffect(() => {
+    loadRedraftLookup().then(setRedraftLookup);
+  }, []);
 
   // Fetch history for all players in the trade
   const allTradePlayerIds = useMemo(
@@ -187,9 +194,21 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return best.v;
   };
 
+  /** Get redraft projected PPG for a player, adjusted for scoring format. */
+  const getPlayerPPG = (p: KTCPlayer): number | null => {
+    if (!redraftLookup) return null;
+    return getRedraftPPG(redraftLookup, p.playerName, p.position, scoringFormat);
+  };
+
   const totalA = sideA.reduce((sum, p) => sum + getValue(p), 0);
   const totalB = sideB.reduce((sum, p) => sum + getValue(p), 0);
   const diff = totalA - totalB;
+
+  // Redraft PPG totals (only meaningful for current-date evaluation)
+  const redraftA = sideA.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
+  const redraftB = sideB.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
+  const redraftDiff = redraftA - redraftB;
+  const hasRedraft = !tradeDateTotals && redraftLookup !== null && (redraftA > 0 || redraftB > 0);
 
   // Trade-date values (if a date is set)
   const tradeDateTotals = useMemo(() => {
@@ -361,6 +380,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const projDelta = proj - val;
     const hist = getHistory(p.playerID);
     const deltas = computeHistoricalDeltas(hist);
+    const ppg = !tradeDateTotals ? getPlayerPPG(p) : null;
 
     return (
       <div
@@ -381,6 +401,15 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             <span style={{ color: valueColor(val), fontWeight: 600 }}>
               {val.toLocaleString()}
             </span>
+            {ppg !== null && (
+              <span style={{
+                fontSize: 11, color: '#60a5fa', fontWeight: 600,
+                padding: '1px 6px', background: 'rgba(96,165,250,0.1)',
+                borderRadius: 4,
+              }}>
+                {ppg.toFixed(1)} ppg
+              </span>
+            )}
             <button
               onClick={() => setSide(side.filter((s) => s.playerID !== p.playerID))}
               style={{
@@ -445,6 +474,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     projTotal: number,
     color: string,
     todayTotal?: number,
+    redraftPPG?: number,
   ) => (
     <div style={{ flex: 1, minWidth: 280 }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 15, color }}>
@@ -484,8 +514,15 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                     {p.position} · {p.team}
                   </span>
                 </span>
-                <span style={{ color: valueColor(getValue(p)), fontWeight: 600, fontSize: 12 }}>
-                  {getValue(p).toLocaleString()}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: valueColor(getValue(p)), fontWeight: 600, fontSize: 12 }}>
+                    {getValue(p).toLocaleString()}
+                  </span>
+                  {!tradeDateTotals && getPlayerPPG(p) !== null && (
+                    <span style={{ fontSize: 10, color: '#60a5fa' }}>
+                      {getPlayerPPG(p)!.toFixed(1)}
+                    </span>
+                  )}
                 </span>
               </button>
             ))}
@@ -524,6 +561,14 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Projected (3mo)</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: deltaColor(projTotal - total) }}>
               {projTotal.toLocaleString()} ({fmtDelta(projTotal - total)})
+            </span>
+          </div>
+        )}
+        {redraftPPG != null && redraftPPG > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+            <span style={{ fontSize: 12, color: '#60a5fa' }}>Redraft PPG</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#60a5fa' }}>
+              {redraftPPG.toFixed(1)} ppg
             </span>
           </div>
         )}
@@ -580,7 +625,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
       <div style={{ padding: '0 16px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         {renderSide('Side A', sideA, setSideA, searchA, setSearchA, suggestionsA,
-          evalA, projA, SIDE_A_COLOR, tradeDateTotals ? totalA : undefined)}
+          evalA, projA, SIDE_A_COLOR, tradeDateTotals ? totalA : undefined,
+          !tradeDateTotals ? redraftA : undefined)}
 
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -632,6 +678,30 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             </>
           )}
 
+          {/* Win Now PPG comparison (only for current-date evaluation) */}
+          {hasRedraft && hasPlayers && (
+            <>
+              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
+              <div style={{ fontSize: 11, color: '#60a5fa', marginBottom: 4 }}>WIN NOW</div>
+              <div style={{
+                fontSize: 18, fontWeight: 700, color: '#60a5fa', textAlign: 'center',
+              }}>
+                {redraftA.toFixed(1)} vs {redraftB.toFixed(1)}
+              </div>
+              {Math.abs(redraftDiff) >= 1 && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+                  {redraftDiff > 0 ? 'Side A' : 'Side B'} by{' '}
+                  <strong style={{ color: '#60a5fa' }}>{Math.abs(redraftDiff).toFixed(1)} ppg</strong>
+                </div>
+              )}
+              {Math.abs(redraftDiff) < 1 && (
+                <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', fontWeight: 600 }}>
+                  Even for this season
+                </div>
+              )}
+            </>
+          )}
+
           {/* Projected section (only when no trade date) */}
           {!tradeDateTotals && hasPlayers && projDiff !== diff && (
             <>
@@ -659,7 +729,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         </div>
 
         {renderSide('Side B', sideB, setSideB, searchB, setSearchB, suggestionsB,
-          evalB, projB, SIDE_B_COLOR, tradeDateTotals ? totalB : undefined)}
+          evalB, projB, SIDE_B_COLOR, tradeDateTotals ? totalB : undefined,
+          !tradeDateTotals ? redraftB : undefined)}
       </div>
 
       {/* Value History Chart */}
@@ -741,6 +812,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
       <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)' }}>
         Values from KeepTradeCut · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepLevel > 0 ? ` ${TEP_LABELS[tepLevel]}` : ''} · Projections via GBM time-series
+        {hasRedraft && ` · Redraft PPG = ML predicted${tepLevel > 0 ? ' (TEs +0.5/rec)' : ''}`}
       </div>
     </>
   );
