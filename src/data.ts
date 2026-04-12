@@ -38,6 +38,31 @@ import type {
 const NFLVERSE_REMOTE =
   'https://github.com/nflverse/nflverse-data/releases/download';
 
+// ── Fetch timeout wrapper ──
+// All network requests use this to avoid hanging indefinitely.
+const DEFAULT_TIMEOUT = 30_000;  // 30s for API calls
+const LARGE_CSV_TIMEOUT = 60_000; // 60s for large CSVs (PBP, stats)
+
+async function fetchWithTimeout(
+  url: string,
+  options?: RequestInit & { timeout?: number },
+): Promise<Response> {
+  const ms = options?.timeout ?? DEFAULT_TIMEOUT;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    const { timeout: _, ...fetchOpts } = options ?? {};
+    return await fetch(url, { ...fetchOpts, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${ms}ms: ${url.slice(0, 120)}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // In production, nflverse CSVs are pre-downloaded into /data/ at build time
 // as a flat directory. Locally, fetch directly from GitHub releases.
 const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
@@ -71,7 +96,7 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   }
   if (!IS_PROD) return null;
   try {
-    const resp = await fetch(`${import.meta.env.BASE_URL}data/${filename}`);
+    const resp = await fetchWithTimeout(`${import.meta.env.BASE_URL}data/${filename}`);
     if (!resp.ok) return null;
     return await resp.json();
   } catch {
@@ -139,7 +164,7 @@ export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
 
   let text = '';
   for (const url of urls) {
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
     if (response.ok) {
       text = await response.text();
       if (text.trim()) break;
@@ -269,7 +294,7 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
     return result.data;
   }
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`);
   }
@@ -320,7 +345,7 @@ export async function fetchAdvancedStats(
 export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
   const url = nflUrl(`pbp/play_by_play_${season}.csv`);
   // PBP files are large, so we parse with specific columns to save memory
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
   if (!response.ok) {
     throw new Error(`Failed to fetch PBP for ${season}: ${response.status}`);
   }
@@ -472,7 +497,7 @@ export async function fetchFfcADP(
   }
 
   const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new Error(`FFC API returned ${response.status}`);
   }
@@ -599,7 +624,7 @@ export async function fetchEspnADP(season: number): Promise<EspnADPPlayer[]> {
     },
   };
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       'x-fantasy-filter': JSON.stringify(filter),
     },
@@ -625,7 +650,7 @@ let sleeperPlayersCache: Map<string, SleeperPlayer> | null = null;
 export async function fetchSleeperPlayers(): Promise<Map<string, SleeperPlayer>> {
   if (sleeperPlayersCache) return sleeperPlayersCache;
 
-  const response = await fetch(`${SLEEPER}/players/nfl`);
+  const response = await fetchWithTimeout(`${SLEEPER}/players/nfl`);
   if (!response.ok) throw new Error(`Sleeper players API returned ${response.status}`);
 
   const raw: Record<string, Record<string, unknown>> = await response.json();
@@ -661,7 +686,7 @@ export async function fetchSleeperTrending(
   limit: number = 50
 ): Promise<SleeperTrendingRow[]> {
   const [trendingRes, players] = await Promise.all([
-    fetch(`${SLEEPER}/players/nfl/trending/${type}?lookback_hours=${hours}&limit=${limit}`),
+    fetchWithTimeout(`${SLEEPER}/players/nfl/trending/${type}?lookback_hours=${hours}&limit=${limit}`),
     fetchSleeperPlayers(),
   ]);
 
@@ -699,7 +724,7 @@ export async function fetchSleeperProjections(
     : `${SLEEPER}/projections/nfl/${season}`;
 
   const [projRes, players] = await Promise.all([
-    fetch(url),
+    fetchWithTimeout(url),
     fetchSleeperPlayers(),
   ]);
 
@@ -779,7 +804,7 @@ export async function fetchKTCRankings(
     const url = IS_PROD
       ? `${KTC_PROXY}${ktcPath}`
       : `https://keeptradecut.com${ktcPath}`;
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       if (page === 0) throw new Error(`KTC returned ${response.status}`);
       break; // Later pages may not exist
@@ -869,7 +894,7 @@ export async function fetchKTCHistory(
     const historyUrl = IS_PROD
       ? `${KTC_PROXY}/dynasty-rankings/histories`
       : 'https://keeptradecut.com/dynasty-rankings/histories';
-    const response = await fetch(historyUrl, {
+    const response = await fetchWithTimeout(historyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(toFetch),
@@ -924,7 +949,7 @@ export async function fetchFantasyCalcRankings(
 
   // Fetch both in parallel so we can populate both value fields
   const [oneQbData, sfData] = await Promise.all([
-    fetch(url1qb).then((r) => {
+    fetchWithTimeout(url1qb).then((r) => {
       if (!r.ok) throw new Error(`FantasyCalc API returned ${r.status}`);
       return r.json() as Promise<Array<{
         player: { id: number; name: string; position: string; maybeTeam?: string; maybeAge?: number; maybeYoe?: number };
@@ -935,7 +960,7 @@ export async function fetchFantasyCalcRankings(
         maybeTier?: number;
       }>>;
     }),
-    fetch(urlSf).then((r) => {
+    fetchWithTimeout(urlSf).then((r) => {
       if (!r.ok) throw new Error(`FantasyCalc SF API returned ${r.status}`);
       return r.json() as Promise<Array<{
         player: { id: number; name: string };
@@ -999,7 +1024,7 @@ export async function fetchFantasyCalcValues(
   }
 
   const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new Error(`FantasyCalc API returned ${response.status}`);
   }
@@ -1029,7 +1054,7 @@ export async function fetchNextGenStats(
   for (const url of urls) {
     const cached = csvCache.get(url);
     if (cached) return cached as NextGenStats[];
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
     if (!response.ok) continue;
     const buf = await response.arrayBuffer();
     const decompressed = new TextDecoder().decode(
@@ -1188,7 +1213,7 @@ export async function fetchOddsGameLines(): Promise<OddsGameLine[]> {
   if (!apiKey) return [];
 
   const url = `${ODDS_API_BASE}/sports/${ODDS_SPORT}/odds?regions=us&markets=spreads,totals&oddsFormat=american&apiKey=${apiKey}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) return [];
 
   const data: Array<{
@@ -1285,7 +1310,7 @@ export async function fetchOddsPlayerProps(
 
   const marketsParam = markets.join(',');
   const url = `${ODDS_API_BASE}/sports/${ODDS_SPORT}/events/${eventId}/odds?regions=us&markets=${marketsParam}&oddsFormat=american&apiKey=${apiKey}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   if (!response.ok) return [];
 
   const data: {

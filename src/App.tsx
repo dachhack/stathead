@@ -27,6 +27,9 @@ import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
 import { ModelDocumentation } from './components/ModelDocumentation';
 import { RookieCareerBacktest } from './components/RookieCareerBacktest';
 import { ZapComparison } from './components/ZapComparison';
+import { DocsRookie } from './components/DocsRookie';
+import { DocsDynasty } from './components/DocsDynasty';
+import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -49,6 +52,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
+      { id: 'docs-season-ppg', label: 'PPG Model Docs' },
     ],
   },
   {
@@ -60,6 +64,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'prospects', label: 'Prospects' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
+      { id: 'docs-dynasty', label: 'Dynasty Model Docs' },
     ],
   },
   {
@@ -82,6 +87,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'charts', label: 'Chart Builder' },
       { id: 'career-backtest', label: 'Career Backtest' },
       { id: 'zap-compare', label: 'ZAP Compare' },
+      { id: 'docs-rookie', label: 'Rookie Model Docs' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
   },
@@ -245,6 +251,9 @@ function App() {
         {tab === 'career-backtest' && <RookieCareerBacktest />}
         {tab === 'zap-compare' && <ZapComparison />}
         {tab === 'model-docs' && <ModelDocumentation />}
+        {tab === 'docs-rookie' && <DocsRookie />}
+        {tab === 'docs-dynasty' && <DocsDynasty />}
+        {tab === 'docs-season-ppg' && <DocsSeasonPPG />}
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}

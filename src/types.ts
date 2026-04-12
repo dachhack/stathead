@@ -205,7 +205,10 @@ export type Tab =
   | 'dynasty-forecast'
   | 'model-docs'
   | 'career-backtest'
-  | 'zap-compare';
+  | 'zap-compare'
+  | 'docs-rookie'
+  | 'docs-dynasty'
+  | 'docs-season-ppg';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
