@@ -139,9 +139,13 @@ async function fetchHtmlWithBrowser(url: string): Promise<string> {
   try {
     const page = await browser.newPage();
     await page.setUserAgent(UA);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    // Give extra time for any lazy-loaded content
-    await new Promise((r: any) => setTimeout(r, 2000));
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    // Wait for the entry-content div to appear (WordPress article body)
+    try {
+      await page.waitForSelector('.entry-content', { timeout: 10000 });
+    } catch { /* might not exist on 404 pages */ }
+    // Extra wait for lazy-loaded / AJAX content
+    await new Promise((r: any) => setTimeout(r, 5000));
     return await page.content();
   } finally {
     await browser.close();
@@ -416,15 +420,16 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
         const records = parseHtml(html, year, mode);
         console.log(`ok (${records.length} records, mode=${mode})`);
         if (records.length < 10) {
-          // Dump raw HTML (not stripped) so we can see the actual DOM structure
-          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-          const body = bodyMatch ? bodyMatch[1] : html;
-          // Skip nav/header — find the main content area
-          const mainMatch = body.match(/<main[^>]*>([\s\S]*)<\/main>/i) ||
-            body.match(/<article[^>]*>([\s\S]*)<\/article>/i) ||
-            body.match(/<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-          const content = mainMatch ? mainMatch[1] : body;
-          console.log(`    [raw-html] ${content.slice(0, 1500)}`);
+          // Dump the WordPress entry-content div (where visit data lives)
+          const entryMatch = html.match(/<div[^>]*class="entry-content"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/article>/i);
+          if (entryMatch) {
+            console.log(`    [entry-content] ${entryMatch[1].slice(0, 3000)}`);
+          } else {
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            const body = bodyMatch ? bodyMatch[1] : html;
+            const articleMatch = body.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+            console.log(`    [raw-html] ${(articleMatch ? articleMatch[1] : body).slice(0, 2000)}`);
+          }
         }
         if (records.length > bestBrowser.length) bestBrowser = records;
         if (records.length >= 10) return records;
