@@ -11,7 +11,8 @@ import { normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThres
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
-import { writeCareerScores, writeADPScores, writePPGScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
+import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
+import type { ShareScore } from '../src/lib/modelScoreStore';
 import type { CareerScore, ADPScore, PPGScore } from '../src/lib/modelScoreStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
@@ -1344,6 +1345,24 @@ async function main() {
     }));
     writePPGScores(ppgScores);
     console.log(`    ppg: ${ppgScores.length} predictions`);
+
+    // Share scores — predicted target and rush shares from share models
+    const shareScores: ShareScore[] = [];
+    for (const r of (result.predRows as Array<{ name: string; position: string; team: string; adp: number; features: Record<string, number> }>)) {
+      if (r.adp > MAX_ADP) continue;
+      const f = r.features;
+      if ((f.predTargetShare ?? 0) > 0 || (f.predRushShare ?? 0) > 0) {
+        shareScores.push({
+          name: r.name,
+          position: r.position,
+          team: r.team || '',
+          predTargetShare: Math.round((f.predTargetShare || 0) * 1000) / 1000,
+          predRushShare: Math.round((f.predRushShare || 0) * 1000) / 1000,
+        });
+      }
+    }
+    writeShareScores(shareScores);
+    console.log(`    shares: ${shareScores.length} predictions`);
 
     // Manifest
     writeScoreManifest({

@@ -57,6 +57,14 @@ export interface PPGScore {
   predictedPPG: number;
 }
 
+export interface ShareScore {
+  name: string;
+  position: string;
+  team: string;
+  predTargetShare: number;
+  predRushShare: number;
+}
+
 export interface ResidualScore {
   name: string;
   position: string;
@@ -94,6 +102,11 @@ export function writeADPScores(scores: ADPScore[]): void {
 export function writePPGScores(scores: PPGScore[]): void {
   ensureDir();
   writeFileSync(join(STORE_DIR, 'ppg.json'), JSON.stringify(scores));
+}
+
+export function writeShareScores(scores: ShareScore[]): void {
+  ensureDir();
+  writeFileSync(join(STORE_DIR, 'shares.json'), JSON.stringify(scores));
 }
 
 export function writeResidualScores(scores: ResidualScore[]): void {

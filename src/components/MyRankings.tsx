@@ -30,6 +30,14 @@ interface PPGScoreEntry {
   predictedPPG: number;
 }
 
+interface ShareScoreEntry {
+  name: string;
+  position: string;
+  team: string;
+  predTargetShare: number;
+  predRushShare: number;
+}
+
 interface PriorStatsEntry {
   priorPPG: number;
   priorCarries: number;
@@ -118,6 +126,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
   const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
+  const [shareScores, setShareScores] = useState<ShareScoreEntry[]>([]);
   const [priorStats, setPriorStats] = useState<Record<string, PriorStatsEntry>>({});
   const [competition, setCompetition] = useState<Record<string, CompetitionEntry>>({});
 
@@ -145,14 +154,16 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
+      fetch(`${BASE}data/score-store/shares.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/feature-store/priorStats.json`).then(r => r.json()).catch(() => ({})),
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
-    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, priorData, compData]) => {
+    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, shareData, priorData, compData]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
       setSdio(sdioData);
       setAdpScores(adpData);
       setPpgScores(ppgData);
+      setShareScores(shareData);
       setPriorStats(priorData);
       setCompetition(compData);
       setLoading(false);
@@ -185,6 +196,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     for (const p of ppgScores) m.set(normName(p.name), p);
     return m;
   }, [ppgScores]);
+
+  const shareScoreByName = useMemo(() => {
+    const m = new Map<string, ShareScoreEntry>();
+    for (const p of shareScores) m.set(normName(p.name), p);
+    return m;
+  }, [shareScores]);
 
   // Prior data uses "name::2025" keys for the 2026 projection year
   const priorByName = useMemo(() => {
@@ -267,6 +284,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const ffcP = ffcByName.get(nn);
       const adpS = adpScoreByName.get(nn);
       const ppgS = ppgScoreByName.get(nn);
+      const shareS = shareScoreByName.get(nn);
       const sdioP = sdioByName.get(nn);
       const prior = priorByName.get(nn);
       const comp = compByName.get(nn);
@@ -289,7 +307,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       // Bust%: how much downside below predicted (predicted - CI lower) / predicted
       const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
 
-      // Projected shares: prefer SDIO, fall back to prior year shares
+      // Projected shares: SDIO (scenario) > share model predictions > prior year
       let projTgtShare = 0;
       let projRushShare = 0;
       if (sdioP && resolvedTeam) {
@@ -303,7 +321,14 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
           }
         }
       }
-      // Fallback: use prior year shares when SDIO unavailable
+      // Share model predictions (primary source when no SDIO)
+      if (!projTgtShare && shareS) {
+        projTgtShare = shareS.predTargetShare ?? 0;
+      }
+      if (!projRushShare && shareS) {
+        projRushShare = shareS.predRushShare ?? 0;
+      }
+      // Final fallback: prior year shares
       if (!projTgtShare && comp) {
         projTgtShare = comp.priorTeamTargetShare ?? 0;
       }
@@ -349,7 +374,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
