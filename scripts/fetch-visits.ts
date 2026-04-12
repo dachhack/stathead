@@ -94,21 +94,22 @@ type VisitsStore = Record<string, VisitRecord>;
 function urlsForYear(year: number): { url: string; mode: 'prospect' | 'team' }[] {
   const urls: { url: string; mode: 'prospect' | 'team' }[] = [];
 
-  // New scheme (confirmed 2024-2026; may also cover 2023)
+  // React app routes (discovered via Google: /prospectmeetings/byteam/YYYY).
+  // This is WF's newest scheme and appears to cover ALL years including
+  // 2015-2023 which 404 on the older URL patterns. JS-rendered, needs Puppeteer.
+  urls.push({ url: `https://walterfootball.com/prospectmeetings/byteam/${year}`, mode: 'team' });
+  urls.push({ url: `https://walterfootball.com/prospectmeetings/byprospect/${year}`, mode: 'prospect' });
+
+  // .php scheme (confirmed 2024-2026)
   if (year >= 2023) {
     urls.push({ url: `https://walterfootball.com/ProspectMeetingsByProspect${year}.php`, mode: 'prospect' });
     urls.push({ url: `https://walterfootball.com/ProspectMeetingsByTeam${year}.php`, mode: 'team' });
-    // Also lowercase variant
-    urls.push({ url: `https://walterfootball.com/prospectmeetingsbyteam${year}.php`, mode: 'team' });
   }
-  // Old scheme (confirmed 2013-2014; 2018 used draft{YYYY}meetings.php)
+  // Legacy .php scheme (confirmed 2013-2014, 2018)
   if (year < 2024) {
     urls.push({ url: `https://walterfootball.com/draft${year}meetingsprospects.php`, mode: 'prospect' });
     urls.push({ url: `https://walterfootball.com/draft${year}meetingsteams.php`, mode: 'team' });
     urls.push({ url: `https://walterfootball.com/draft${year}meetings.php`, mode: 'prospect' });
-    // Try ProspectMeetings scheme for years that may have been backfilled
-    urls.push({ url: `https://walterfootball.com/ProspectMeetingsByTeam${year}.php`, mode: 'team' });
-    urls.push({ url: `https://walterfootball.com/ProspectMeetingsByProspect${year}.php`, mode: 'prospect' });
   }
   return urls;
 }
@@ -405,16 +406,14 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
     return null;
   }
 
-  // For 2024+ pages, WF uses JS rendering. Try Puppeteer first if available.
-  const useBrowser = year >= 2024 && puppeteer;
   const candidates = urlsForYear(year);
 
-  // Browser-based fetch for JS-rendered pages
-  if (useBrowser) {
-    // Only try the most likely URLs with the browser (it's slow)
+  // Try Puppeteer for JS-rendered pages (React app routes + newer .php pages).
+  // The /prospectmeetings/ routes are always JS-rendered for all years.
+  if (puppeteer) {
     const browserUrls = candidates.filter(c =>
-      c.url.includes('ProspectMeetings') || c.url.includes('meetingsteams')
-    ).slice(0, 3);
+      c.url.includes('/prospectmeetings/') || c.url.includes('ProspectMeetings')
+    ).slice(0, 4);
 
     for (const { url, mode } of browserUrls) {
       try {
@@ -442,7 +441,7 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
       const records = parseHtml(html, year, mode);
       console.log(`ok (${records.length} records, mode=${mode})`);
 
-      if (records.length === 0 && !useBrowser) {
+      if (records.length === 0) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
         const body = bodyMatch ? bodyMatch[1] : html;
         const preview = stripTags(body.slice(0, 2000)).slice(0, 800);
