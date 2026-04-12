@@ -2,15 +2,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
-import projectionConfig from '../generated/projection-config.json';
 import teamProjections from '../generated/team-projections.json';
-
-const STAT_LABELS: Record<string, string> = {
-  passAtt: 'Pass Att', passComp: 'Pass Comp', passYds: 'Pass Yards',
-  passTD: 'Pass TDs', int: 'INTs', rushAtt: 'Rush Att',
-  rushYds: 'Rush Yards', rushTD: 'Rush TDs', targets: 'Targets',
-  receptions: 'Receptions', recYds: 'Rec Yards', recTD: 'Rec TDs',
-};
 
 function pctColor(pct: number): string {
   if (pct <= 10) return '#22c55e';
@@ -30,26 +22,15 @@ const ENSEMBLE_STAT_LABELS: Record<string, string> = {
 };
 
 export function DocsSeasonPPG() {
-  const cfg = projectionConfig;
   const tp = teamProjections as {
     season: number; model: string; description: string;
     ridgeWeight: number; gbmWeight: number;
     ridgeFeatures: string[]; gbmFeatures: string[];
-    lgbParams: Record<string, number>;
+    lgbParams: Record<string, string | number>;
     nRounds: number; trainingSeasons: number[]; nTrainingRows: number;
     avgPctError: number;
     cvMetrics: Record<string, { mae: number; pctError: number; r2: number; meanActual: number }>;
   };
-  const detail = cfg.perStatDetail as Record<string, { mae: number; rmse: number; meanActual: number; pctError: number }>;
-
-  const errorData = Object.entries(detail).map(([key, d]) => ({
-    stat: STAT_LABELS[key] || key,
-    pctError: d.pctError,
-    mae: d.mae,
-    rmse: d.rmse,
-    meanActual: d.meanActual,
-  }));
-
   const ensembleErrorData = Object.entries(tp.cvMetrics).map(([key, d]) => ({
     stat: ENSEMBLE_STAT_LABELS[key] || key,
     pctError: d.pctError,
