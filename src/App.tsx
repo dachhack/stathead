@@ -24,6 +24,9 @@ import { RookieProspectsView } from './components/RookieProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
 import { ModelDocs } from './components/ModelDocs';
+import { DocsRookie } from './components/DocsRookie';
+import { DocsDynasty } from './components/DocsDynasty';
+import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -48,6 +51,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'prospects', label: 'Prospects' },
       { id: 'draft-strategy', label: 'Draft Strategy' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
+      { id: 'docs-season-ppg', label: 'PPG Model Docs' },
     ],
   },
   {
@@ -57,6 +61,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
+      { id: 'docs-dynasty', label: 'Dynasty Model Docs' },
     ],
   },
   {
@@ -77,6 +82,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'combine', label: 'Combine' },
       { id: 'draft', label: 'Draft History' },
       { id: 'charts', label: 'Chart Builder' },
+      { id: 'docs-rookie', label: 'Rookie Model Docs' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
   },
@@ -235,6 +241,9 @@ function App() {
         )}
         {tab === 'charts' && <RookieRBChart />}
         {tab === 'model-docs' && <ModelDocs />}
+        {tab === 'docs-rookie' && <DocsRookie />}
+        {tab === 'docs-dynasty' && <DocsDynasty />}
+        {tab === 'docs-season-ppg' && <DocsSeasonPPG />}
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
