@@ -22,6 +22,7 @@ import { KTCView } from './components/KTCView';
 import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
+import { DynastyForecast } from './components/DynastyForecast';
 import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
 import { ModelDocumentation } from './components/ModelDocumentation';
 import { RookieCareerBacktest } from './components/RookieCareerBacktest';
@@ -55,6 +56,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
+      { id: 'dynasty-forecast', label: 'Value Forecast' },
       { id: 'prospects', label: 'Prospects' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
@@ -229,6 +231,7 @@ function App() {
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
+        {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
         )}
