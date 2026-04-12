@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchFfcADP, fetchKTCRankings } from '../data';
+import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
-import type { ScenarioConfig, FfcADPPlayer, KTCPlayer, SDIOProjection } from '../types';
+import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 
 // ── Types ──
 
@@ -13,6 +13,26 @@ interface RedraftPlayer {
   recPG: number;
 }
 
+interface ADPScoreEntry {
+  name: string;
+  position: string;
+  team: string;
+  adp: number;
+  hitProb: string;
+}
+
+interface PriorStatsEntry {
+  priorPPG: number;
+  priorCarries: number;
+  priorTargets: number;
+  priorGames: number;
+}
+
+interface CompetitionEntry {
+  priorTeamTouchShare: number;
+  priorTeamTargetShare: number;
+}
+
 interface RankingRow {
   id: string;
   rank: number;
@@ -20,32 +40,36 @@ interface RankingRow {
   position: string;
   team: string;
   // Projections
-  ppg: number;          // projected PPG (from redraft-projections or SDIO)
-  totalPts: number;     // PPG * 17
+  ppg: number;
   // ADP
   adp: number;
-  adpHigh: number;
-  adpLow: number;
-  // KTC dynasty
-  ktcValue: number;
   // Model signals
-  adpEdge: number;      // ppg rank vs adp rank (positive = value)
+  adpEdge: number;
+  hitProb: string;       // boom/bust label
+  // Projected shares (from SDIO team totals)
+  projTgtShare: number;  // 0-1
+  projRushShare: number; // 0-1
+  // Prior year
+  priorPPG: number;
+  priorTgtShare: number; // 0-1
+  priorRushShare: number; // 0-1
   // Meta
   isRookie: boolean;
-  isLocked: boolean;     // user locked this rank
+  isLocked: boolean;
 }
 
 interface SavedRanking {
   id: string;
   name: string;
   savedAt: string;
-  order: string[];      // player IDs in ranked order
-  lockedIds: string[];  // which IDs are rank-locked
+  order: string[];
+  lockedIds: string[];
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
+const BASE = import.meta.env.BASE_URL;
 
 function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
@@ -55,49 +79,73 @@ function makeId(name: string, pos: string): string {
   return `${normName(name)}:${pos}`;
 }
 
+function pct(v: number): string {
+  if (!v) return '—';
+  return `${Math.round(v * 100)}%`;
+}
+
+function hitProbColor(h: string): string {
+  if (h.includes('Likely Hit')) return '#22c55e';
+  if (h.includes('Probable Hit')) return '#86efac';
+  if (h.includes('Possible Hit')) return '#a3e635';
+  if (h.includes('Probable Bust')) return '#fca5a5';
+  if (h.includes('Likely Bust')) return '#ef4444';
+  return 'var(--text-muted)';
+}
+
+function hitProbShort(h: string): string {
+  if (h.includes('Likely Hit')) return 'Hit';
+  if (h.includes('Probable Hit')) return 'Prob Hit';
+  if (h.includes('Possible Hit')) return 'Poss Hit';
+  if (h.includes('Possible Bust')) return 'Poss Bust';
+  if (h.includes('Probable Bust')) return 'Prob Bust';
+  if (h.includes('Likely Bust')) return 'Bust';
+  return h.replace('Likely ', '').replace('Probable ', 'Prob ').replace('Possible ', 'Poss ');
+}
+
 // ── Component ──
 
 export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
-  // Data loading
   const [loading, setLoading] = useState(true);
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [sdio, setSdio] = useState<SDIOProjection[]>([]);
+  const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
+  const [priorStats, setPriorStats] = useState<Record<string, PriorStatsEntry>>({});
+  const [competition, setCompetition] = useState<Record<string, CompetitionEntry>>({});
 
-  // View state
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [showSaved, setShowSaved] = useState(false);
   const [savedList, setSavedList] = useState<SavedRanking[]>([]);
   const [rankingName, setRankingName] = useState('My Rankings');
 
-  // Ranking state
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
 
-  // Drag state
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
-  // Load data
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
+      fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
-      fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
-    ]).then(([rdData, ffcData, ktcData, sdioData]) => {
+      fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
+      fetch(`${BASE}data/feature-store/priorStats.json`).then(r => r.json()).catch(() => ({})),
+      fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
+    ]).then(([rdData, ffcData, sdioData, adpData, priorData, compData]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
-      setKtc(ktcData);
       setSdio(sdioData);
+      setAdpScores(adpData);
+      setPriorStats(priorData);
+      setCompetition(compData);
       setLoading(false);
     });
   }, []);
 
-  // Load saved rankings on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -112,11 +160,39 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [ffc]);
 
-  const ktcByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
-    for (const p of ktc) m.set(normName(p.playerName), p);
+  const adpScoreByName = useMemo(() => {
+    const m = new Map<string, ADPScoreEntry>();
+    for (const p of adpScores) m.set(normName(p.name), p);
     return m;
-  }, [ktc]);
+  }, [adpScores]);
+
+  // Prior data uses "name::2025" keys for the 2026 projection year
+  const priorByName = useMemo(() => {
+    const m = new Map<string, PriorStatsEntry>();
+    for (const [key, val] of Object.entries(priorStats)) {
+      if (key.endsWith('::2025') || key.endsWith('::2026')) {
+        const name = key.replace(/::20\d{2}$/, '');
+        // Prefer 2025 (most recent full season), skip if already have it
+        if (!m.has(name) || key.endsWith('::2025')) {
+          m.set(name, val as PriorStatsEntry);
+        }
+      }
+    }
+    return m;
+  }, [priorStats]);
+
+  const compByName = useMemo(() => {
+    const m = new Map<string, CompetitionEntry>();
+    for (const [key, val] of Object.entries(competition)) {
+      if (key.endsWith('::2025') || key.endsWith('::2026')) {
+        const name = key.replace(/::20\d{2}$/, '');
+        if (!m.has(name) || key.endsWith('::2025')) {
+          m.set(name, val as CompetitionEntry);
+        }
+      }
+    }
+    return m;
+  }, [competition]);
 
   // Apply scenario to SDIO projections
   const scenarioSdio = useMemo(() => {
@@ -130,111 +206,125 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [scenarioSdio]);
 
+  // Team totals from SDIO for projected share computation
+  const teamTotals = useMemo(() => {
+    const totals = new Map<string, { rushAtt: number; tgt: number }>();
+    for (const p of scenarioSdio) {
+      if (!p.Team) continue;
+      const t = totals.get(p.Team) ?? { rushAtt: 0, tgt: 0 };
+      if (p.Position === 'RB') {
+        t.rushAtt += p.RushingAttempts || 0;
+      }
+      // Targets = receptions for non-QBs (SDIO doesn't have explicit targets, use receptions as proxy)
+      if (p.Position !== 'QB' && p.Position !== 'K') {
+        t.tgt += p.Receptions || 0;
+      }
+      totals.set(p.Team, t);
+    }
+    return totals;
+  }, [scenarioSdio]);
+
   // Build merged rows
   const allRows = useMemo((): RankingRow[] => {
-    // Start from redraft projections as the base player list
     const seen = new Set<string>();
     const rows: RankingRow[] = [];
 
-    for (const p of redraft) {
-      const nn = normName(p.name);
-      const id = makeId(p.name, p.position);
-      if (seen.has(id)) continue;
+    const buildRow = (name: string, position: string, basePpg: number, team: string): RankingRow | null => {
+      const id = makeId(name, position);
+      if (seen.has(id)) return null;
       seen.add(id);
 
+      const nn = normName(name);
       const ffcP = ffcByName.get(nn);
-      const ktcP = ktcByName.get(nn);
+      const adpS = adpScoreByName.get(nn);
       const sdioP = sdioByName.get(nn);
+      const prior = priorByName.get(nn);
+      const comp = compByName.get(nn);
 
-      // PPG: prefer SDIO (scenario-adjusted) if available, else redraft
-      let ppg = p.ppg;
-      if (sdioP && (sdioP.FantasyPointsPPR ?? 0) > 0) {
-        const games = sdioP.FantasyPointsPPR > 100 ? GAMES : 1; // SDIO is season total
-        ppg = Math.round((sdioP.FantasyPointsPPR / games) * 10) / 10;
-      }
-
-      rows.push({
-        id,
-        rank: 0,
-        name: p.name,
-        position: p.position,
-        team: ffcP?.team ?? sdioP?.Team ?? '',
-        ppg,
-        totalPts: Math.round(ppg * GAMES),
-        adp: ffcP?.adp ?? 999,
-        adpHigh: ffcP?.high ?? 0,
-        adpLow: ffcP?.low ?? 0,
-        ktcValue: ktcP?.value ?? 0,
-        adpEdge: 0,
-        isRookie: ktcP?.isRookie ?? false,
-        isLocked: false,
-      });
-    }
-
-    // Add any FFC ADP players not in redraft
-    for (const p of ffc) {
-      const id = makeId(p.name, p.position);
-      if (seen.has(id) || !['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
-      seen.add(id);
-      const ktcP = ktcByName.get(normName(p.name));
-      const sdioP = sdioByName.get(normName(p.name));
-      let ppg = 0;
+      // PPG: prefer SDIO scenario-adjusted
+      let ppg = basePpg;
       if (sdioP && (sdioP.FantasyPointsPPR ?? 0) > 0) {
         ppg = Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10;
       }
-      rows.push({
+
+      const resolvedTeam = ffcP?.team ?? sdioP?.Team ?? team;
+
+      // Projected shares from SDIO
+      let projTgtShare = 0;
+      let projRushShare = 0;
+      if (sdioP && resolvedTeam) {
+        const tt = teamTotals.get(resolvedTeam);
+        if (tt) {
+          if (position !== 'QB' && tt.tgt > 0) {
+            projTgtShare = (sdioP.Receptions || 0) / tt.tgt;
+          }
+          if (position === 'RB' && tt.rushAtt > 0) {
+            projRushShare = (sdioP.RushingAttempts || 0) / tt.rushAtt;
+          }
+        }
+      }
+
+      return {
         id,
         rank: 0,
-        name: p.name,
-        position: p.position,
-        team: p.team,
+        name,
+        position,
+        team: resolvedTeam,
         ppg,
-        totalPts: Math.round(ppg * GAMES),
-        adp: p.adp,
-        adpHigh: p.high,
-        adpLow: p.low,
-        ktcValue: ktcP?.value ?? 0,
+        adp: ffcP?.adp ?? adpS?.adp ?? 999,
         adpEdge: 0,
-        isRookie: ktcP?.isRookie ?? false,
+        hitProb: adpS?.hitProb ?? '',
+        projTgtShare,
+        projRushShare,
+        priorPPG: prior?.priorPPG ?? 0,
+        priorTgtShare: comp?.priorTeamTargetShare ?? 0,
+        priorRushShare: comp?.priorTeamTouchShare ?? 0,
+        isRookie: !prior || (prior.priorGames ?? 0) === 0,
         isLocked: false,
-      });
+      };
+    };
+
+    // Start from redraft projections
+    for (const p of redraft) {
+      const row = buildRow(p.name, p.position, p.ppg, '');
+      if (row) rows.push(row);
     }
 
-    // Sort by PPG descending as default order
+    // Add FFC ADP players not in redraft
+    for (const p of ffc) {
+      if (!['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
+      const row = buildRow(p.name, p.position, 0, p.team);
+      if (row) rows.push(row);
+    }
+
+    // Sort by PPG descending
     rows.sort((a, b) => b.ppg - a.ppg);
 
-    // Compute edge: ppg-rank vs adp-rank
-    const ppgRanks = [...rows].map((r, i) => ({ id: r.id, ppgRank: i + 1 }));
+    // Compute edge
+    const ppgRanks = rows.map((r, i) => ({ id: r.id, ppgRank: i + 1 }));
     const adpSorted = [...rows].sort((a, b) => a.adp - b.adp);
     const adpRankMap = new Map<string, number>();
     adpSorted.forEach((r, i) => adpRankMap.set(r.id, i + 1));
     for (const pr of ppgRanks) {
       const row = rows.find(r => r.id === pr.id);
-      if (row) {
-        row.adpEdge = (adpRankMap.get(row.id) ?? rows.length) - pr.ppgRank;
-      }
+      if (row) row.adpEdge = (adpRankMap.get(row.id) ?? rows.length) - pr.ppgRank;
     }
 
     return rows;
-  }, [redraft, ffc, ffcByName, ktcByName, sdioByName]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, sdioByName, priorByName, compByName, teamTotals]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
     let ordered: RankingRow[];
     if (customOrder) {
       const orderMap = new Map(customOrder.map((id, i) => [id, i]));
-      ordered = [...allRows].sort((a, b) => {
-        const ai = orderMap.get(a.id) ?? 99999;
-        const bi = orderMap.get(b.id) ?? 99999;
-        return ai - bi;
-      });
+      ordered = [...allRows].sort((a, b) => (orderMap.get(a.id) ?? 99999) - (orderMap.get(b.id) ?? 99999));
     } else {
       ordered = [...allRows];
     }
     return ordered.map((r, i) => ({ ...r, rank: i + 1, isLocked: lockedIds.has(r.id) }));
   }, [allRows, customOrder, lockedIds]);
 
-  // Filtered rows for display
   const displayRows = useMemo(() => {
     let rows = rankedRows;
     if (posFilter !== 'ALL') rows = rows.filter(r => r.position === posFilter);
@@ -246,24 +336,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   }, [rankedRows, posFilter, search]);
 
   // Drag handlers
-  const onDragStart = useCallback((idx: number) => {
-    dragIdx.current = idx;
-  }, []);
-
-  const onDragOver = useCallback((e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    dragOverIdx.current = idx;
-  }, []);
+  const onDragStart = useCallback((idx: number) => { dragIdx.current = idx; }, []);
+  const onDragOver = useCallback((e: React.DragEvent, idx: number) => { e.preventDefault(); dragOverIdx.current = idx; }, []);
 
   const onDrop = useCallback(() => {
-    if (dragIdx.current === null || dragOverIdx.current === null) return;
-    if (dragIdx.current === dragOverIdx.current) return;
-
+    if (dragIdx.current === null || dragOverIdx.current === null || dragIdx.current === dragOverIdx.current) return;
     const fromRow = displayRows[dragIdx.current];
     const toRow = displayRows[dragOverIdx.current];
     if (!fromRow || !toRow) return;
 
-    // Work with full ranked order
     const currentOrder = customOrder ?? rankedRows.map(r => r.id);
     const fromGlobal = currentOrder.indexOf(fromRow.id);
     const toGlobal = currentOrder.indexOf(toRow.id);
@@ -272,35 +353,21 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const newOrder = [...currentOrder];
     newOrder.splice(fromGlobal, 1);
     newOrder.splice(toGlobal, 0, fromRow.id);
-
     setCustomOrder(newOrder);
     dragIdx.current = null;
     dragOverIdx.current = null;
   }, [displayRows, customOrder, rankedRows]);
 
-  // Lock/unlock
   const toggleLock = useCallback((id: string) => {
-    setLockedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    setLockedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }, []);
 
-  // Reset to default
-  const resetOrder = useCallback(() => {
-    setCustomOrder(null);
-    setLockedIds(new Set());
-  }, []);
+  const resetOrder = useCallback(() => { setCustomOrder(null); setLockedIds(new Set()); }, []);
 
-  // Save/Load/Delete
   const saveCurrent = useCallback(() => {
     const entry: SavedRanking = {
-      id: `rank-${Date.now()}`,
-      name: rankingName,
-      savedAt: new Date().toISOString(),
-      order: customOrder ?? rankedRows.map(r => r.id),
-      lockedIds: [...lockedIds],
+      id: `rank-${Date.now()}`, name: rankingName, savedAt: new Date().toISOString(),
+      order: customOrder ?? rankedRows.map(r => r.id), lockedIds: [...lockedIds],
     };
     const updated = [...savedList.filter(s => s.name !== rankingName), entry];
     setSavedList(updated);
@@ -308,10 +375,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   }, [rankingName, customOrder, rankedRows, lockedIds, savedList]);
 
   const loadSaved = useCallback((s: SavedRanking) => {
-    setCustomOrder(s.order);
-    setLockedIds(new Set(s.lockedIds));
-    setRankingName(s.name);
-    setShowSaved(false);
+    setCustomOrder(s.order); setLockedIds(new Set(s.lockedIds)); setRankingName(s.name); setShowSaved(false);
   }, []);
 
   const deleteSaved = useCallback((id: string) => {
@@ -320,7 +384,6 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   }, [savedList]);
 
-  // Scenario indicator
   const hasScenario = !isScenarioEmpty(scenario);
 
   if (loading) {
@@ -334,8 +397,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
   const edgeColor = (v: number) => v > 10 ? '#22c55e' : v > 3 ? '#86efac' : v < -10 ? '#ef4444' : v < -3 ? '#fca5a5' : 'var(--text-secondary)';
 
+  const th: React.CSSProperties = { padding: '6px 5px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { padding: '5px 5px', fontSize: 12 };
+
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>My Rankings</h1>
@@ -403,11 +469,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map(p => (
-          <button
-            key={p}
-            className={`pos-filter ${posFilter === p ? 'active' : ''}`}
-            onClick={() => setPosFilter(p)}
-          >
+          <button key={p} className={`pos-filter ${posFilter === p ? 'active' : ''}`} onClick={() => setPosFilter(p)}>
             {p}
           </button>
         ))}
@@ -422,40 +484,41 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             width: 160, fontFamily: 'inherit', marginLeft: 'auto',
           }}
         />
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {displayRows.length} players
-        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{displayRows.length} players</span>
       </div>
 
       {/* Hint */}
-      {!customOrder && (
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
-          Drag rows to reorder. Default sort: projected PPG.
-          {hasScenario ? ' Scenario adjustments applied to projections.' : ''}
-        </div>
-      )}
-      {customOrder && (
-        <div style={{ fontSize: 11, color: '#6366f1', marginBottom: 8 }}>
-          Custom ranking active. Drag to adjust, or Reset to return to default.
-        </div>
-      )}
+      <div style={{ fontSize: 11, color: customOrder ? '#6366f1' : 'var(--text-muted)', marginBottom: 8 }}>
+        {customOrder
+          ? 'Custom ranking active. Drag to adjust, or Reset to return to default.'
+          : `Drag rows to reorder. Default sort: projected PPG.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
+      </div>
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border)' }}>
-              <th style={{ textAlign: 'center', padding: '8px 4px', width: 30 }}>#</th>
-              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Player</th>
-              <th style={{ textAlign: 'center', padding: '8px 4px', width: 40 }}>Pos</th>
-              <th style={{ textAlign: 'center', padding: '8px 4px', width: 40 }}>Team</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 55 }}>PPG</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 60 }}>Total</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 55 }}>ADP</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 65 }}>ADP Range</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 55 }}>KTC</th>
-              <th style={{ textAlign: 'right', padding: '8px 6px', width: 50 }}>Edge</th>
-              <th style={{ textAlign: 'center', padding: '8px 4px', width: 30 }}></th>
+              <th style={{ ...th, textAlign: 'center', width: 28 }}>#</th>
+              <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>Player</th>
+              <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
+              <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>PPG</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 40 }}>Edge</th>
+              <th style={{ ...th, textAlign: 'center', width: 65 }}>Boom/Bust</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>Tgt%</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>Rush%</th>
+              <th style={{ ...th, textAlign: 'right', width: 44, borderLeft: '1px solid var(--border)' }}>
+                <span title="Prior season PPG">Pr PPG</span>
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>
+                <span title="Prior season target share">Pr Tgt%</span>
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}>
+                <span title="Prior season rush share">Pr Rush%</span>
+              </th>
+              <th style={{ ...th, textAlign: 'center', width: 24 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -466,52 +529,57 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
                 onDragStart={() => onDragStart(i)}
                 onDragOver={(e) => onDragOver(e, i)}
                 onDrop={onDrop}
+                onDragEnter={(e) => { (e.currentTarget as HTMLElement).style.borderTop = '2px solid #6366f1'; }}
+                onDragLeave={(e) => { (e.currentTarget as HTMLElement).style.borderTop = ''; }}
+                onDragEnd={(e) => { (e.currentTarget as HTMLElement).style.borderTop = ''; }}
                 style={{
                   borderBottom: '1px solid var(--border)',
                   cursor: 'grab',
                   background: r.isLocked ? 'var(--bg-tertiary)' : undefined,
-                  opacity: 1,
                 }}
-                onDragEnter={(e) => { (e.currentTarget as HTMLElement).style.borderTop = '2px solid #6366f1'; }}
-                onDragLeave={(e) => { (e.currentTarget as HTMLElement).style.borderTop = ''; }}
-                onDragEnd={(e) => { (e.currentTarget as HTMLElement).style.borderTop = ''; }}
               >
-                <td style={{ textAlign: 'center', padding: '6px 4px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                  {r.rank}
-                </td>
-                <td style={{ padding: '6px 6px', fontWeight: 600 }}>
+                <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>{r.rank}</td>
+                <td style={{ ...td, fontWeight: 600 }}>
                   {r.name}
                   {r.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
                 </td>
-                <td style={{ textAlign: 'center', padding: '6px 4px' }}>
+                <td style={{ ...td, textAlign: 'center' }}>
                   <span className={`pos-badge pos-${r.position}`} style={{ fontSize: 10 }}>{r.position}</span>
                 </td>
-                <td style={{ textAlign: 'center', padding: '6px 4px', color: 'var(--text-muted)' }}>{r.team}</td>
-                <td style={{ textAlign: 'right', padding: '6px 6px', fontWeight: 700 }}>{r.ppg.toFixed(1)}</td>
-                <td style={{ textAlign: 'right', padding: '6px 6px', color: 'var(--text-secondary)' }}>{r.totalPts}</td>
-                <td style={{ textAlign: 'right', padding: '6px 6px' }}>
-                  {r.adp < 999 ? r.adp.toFixed(1) : '—'}
+                <td style={{ ...td, textAlign: 'center', color: 'var(--text-muted)' }}>{r.team}</td>
+                <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{r.ppg > 0 ? r.ppg.toFixed(1) : '—'}</td>
+                <td style={{ ...td, textAlign: 'right' }}>{r.adp < 999 ? r.adp.toFixed(1) : '—'}</td>
+                <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: edgeColor(r.adpEdge) }}>
+                  {r.adpEdge > 0 ? `+${r.adpEdge}` : r.adpEdge || '—'}
                 </td>
-                <td style={{ textAlign: 'right', padding: '6px 6px', fontSize: 11, color: 'var(--text-muted)' }}>
-                  {r.adp < 999 ? `${r.adpHigh}–${r.adpLow}` : ''}
+                <td style={{ ...td, textAlign: 'center', fontSize: 10, fontWeight: 600, color: hitProbColor(r.hitProb) }}>
+                  {r.hitProb ? hitProbShort(r.hitProb) : '—'}
                 </td>
-                <td style={{ textAlign: 'right', padding: '6px 6px', color: r.ktcValue > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.ktcValue > 0 ? r.ktcValue.toLocaleString() : '—'}
+                <td style={{ ...td, textAlign: 'right', color: 'var(--text-secondary)' }}>
+                  {r.projTgtShare > 0 ? pct(r.projTgtShare) : '—'}
                 </td>
-                <td style={{ textAlign: 'right', padding: '6px 6px', fontWeight: 600, color: edgeColor(r.adpEdge) }}>
-                  {r.adpEdge > 0 ? `+${r.adpEdge}` : r.adpEdge}
+                <td style={{ ...td, textAlign: 'right', color: 'var(--text-secondary)' }}>
+                  {r.projRushShare > 0 ? pct(r.projRushShare) : '—'}
                 </td>
-                <td style={{ textAlign: 'center', padding: '6px 4px' }}>
+                <td style={{ ...td, textAlign: 'right', borderLeft: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                  {r.priorPPG > 0 ? r.priorPPG.toFixed(1) : '—'}
+                </td>
+                <td style={{ ...td, textAlign: 'right', color: 'var(--text-muted)' }}>
+                  {r.priorTgtShare > 0 ? pct(r.priorTgtShare) : '—'}
+                </td>
+                <td style={{ ...td, textAlign: 'right', color: 'var(--text-muted)' }}>
+                  {r.priorRushShare > 0 ? pct(r.priorRushShare) : '—'}
+                </td>
+                <td style={{ ...td, textAlign: 'center' }}>
                   <button
                     onClick={() => toggleLock(r.id)}
                     title={r.isLocked ? 'Unlock rank' : 'Lock rank'}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: r.isLocked ? '#6366f1' : 'var(--text-muted)',
-                      fontSize: 12, padding: 0,
+                      color: r.isLocked ? '#6366f1' : 'var(--text-muted)', fontSize: 11, padding: 0,
                     }}
                   >
-                    {r.isLocked ? '🔒' : '📌'}
+                    {r.isLocked ? '\u{1F512}' : '\u{1F4CC}'}
                   </button>
                 </td>
               </tr>
