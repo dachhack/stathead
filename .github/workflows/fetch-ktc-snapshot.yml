@@ -15,6 +15,10 @@ name: Fetch KTC Snapshot
 # lands on the triggering branch.
 
 on:
+  schedule:
+    # Run daily at 6:00 AM UTC (1:00 AM ET / 10:00 PM PT)
+    # KTC updates overnight US time; this catches the fresh snapshot each morning.
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -33,12 +37,12 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout triggering branch
+      - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
-          # Need a full-depth checkout so the commit-back push doesn't
-          # get rejected as a shallow-history non-fast-forward.
+          # For scheduled runs, push to main. For manual dispatch, use the
+          # triggering branch so you can test on feature branches.
+          ref: ${{ github.event_name == 'schedule' && 'main' || github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Node
@@ -81,10 +85,11 @@ jobs:
             echo "No changes to commit — snapshot already matches the tree."
             exit 0
           fi
+          TARGET_BRANCH="${{ github.event_name == 'schedule' && 'main' || github.ref_name }}"
           git commit -m "Fetch KTC snapshot ($(date -u +%Y-%m-%d))
 
           Rankings + per-player value history for the dynasty value model.
-          Fetched by .github/workflows/fetch-ktc-snapshot.yml on branch ${{ github.ref_name }}.
+          Fetched by .github/workflows/fetch-ktc-snapshot.yml on branch ${TARGET_BRANCH}.
 
           [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin HEAD:${TARGET_BRANCH}

@@ -10,16 +10,17 @@ public/data/*
 !public/data/score-store/
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
-# Ablation + sweep result files: force-added throughout the tuning session.
-# Whitelisting here so future re-runs commit cleanly via normal `git add`.
+!public/data/nflverse_weekly_2025.json
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json
 !public/data/residual-hyperparam-sweep.json
+!public/data/ktc-feature-ablation.json
+!public/data/ktc-hyperparam-sweep.json
+!public/data/ktc-forecasts-*.json
+!public/data/redraft-projections.json
 .claude/
 CLAUDE.local.md
 __pycache__/
-# Raw nflverse downloads cached locally by scripts/backfill_team_features.py.
-# Persistent across runs so we don't re-download ~2 GB each time; not
-# committed since these are too large for git history.
 .nflverse-cache/
+.cache/

@@ -2,16 +2,16 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, "claude/nfl-fantasy-workbench-6D1yd"]
+    branches: [main, "claude/nfl-fantasy-workbench-6D1yd", "claude/ktc-forecast-integration-MxLri"]
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -22,46 +22,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
-
-      # Cache static data files between builds
-      - name: Cache static data
-        uses: actions/cache@v4
-        with:
-          path: public/data
-          key: static-data-v14
-
-      # Restore committed prospect store and score store (cache may have stale versions)
-      - name: Restore committed stores over cache
-        run: |
-          git checkout HEAD -- public/data/feature-store/prospects.json 2>/dev/null || true
-          git checkout HEAD -- public/data/score-store/ 2>/dev/null || true
-
       - run: npm ci
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
-      - name: Backfill college stats for historical rookies
-        run: npx tsx scripts/backfill-college-stats.ts || true
       - run: npm run build
-
-      # Commit training rows cache back to repo so future builds skip data fetching
-      - name: Commit training rows cache and feature store
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ls public/data/training-rows-cache-*.json 1>/dev/null 2>&1; then
-            git add -f public/data/training-rows-cache-*.json
-          fi
-          if ls public/data/trained-models-cache-*.json public/data/model-cache-*.json 1>/dev/null 2>&1; then
-            git add -f public/data/trained-models-cache-*.json public/data/model-cache-*.json 2>/dev/null || true
-          fi
-          if [ -d public/data/feature-store ]; then
-            git add -f public/data/feature-store/
-          fi
-          if [ -d public/data/score-store ]; then
-            git add -f public/data/score-store/
-          fi
-          git diff --cached --quiet || git commit -m "Auto-commit caches: training rows + models + feature store [skip ci]" && git push || true
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
