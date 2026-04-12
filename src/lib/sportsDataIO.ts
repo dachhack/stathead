@@ -18,9 +18,22 @@ function getKey(): string {
 async function sdioFetch<T>(path: string): Promise<T> {
   const key = getKey();
   const url = `${BASE}/${path}`;
-  const response = await fetch(url, {
-    headers: { 'Ocp-Apim-Subscription-Key': key },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { 'Ocp-Apim-Subscription-Key': key },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`SportsDataIO request timed out: ${path}`);
+    }
+    throw err;
+  }
+  clearTimeout(timeout);
   if (response.status === 401) {
     throw new Error('Invalid SportsDataIO API key. Check your key in Settings.');
   }
