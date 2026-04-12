@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_TE_DYNASTY_BOOST, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat, type TepLevel } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -83,7 +83,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leagueFormat, setLeagueFormat] = useState<'1qb' | 'superflex'>('1qb');
-  const [tepEnabled, setTepEnabled] = useState(false);
+  const [tepLevel, setTepLevel] = useState<TepLevel>(0);
   const [sideA, setSideA] = useState<KTCPlayer[]>([]);
   const [sideB, setSideB] = useState<KTCPlayer[]>([]);
   const [searchA, setSearchA] = useState('');
@@ -96,6 +96,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   // KTC only has 1QB and superflex; TEP is an orthogonal overlay
   const ktcFormat = leagueFormat;
+  const tepEnabled = tepLevel > 0;
   const scoringFormat: ScoringFormat = tepEnabled ? 'tep' : leagueFormat;
 
   useEffect(() => {
@@ -141,16 +142,15 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   const getValue = (p: KTCPlayer) => {
     const base = leagueFormat === '1qb' ? p.value : p.superflexValue;
-    // TEP: TEs are ~20% more valuable in TE-Premium leagues
-    if (tepEnabled && p.position === 'TE') {
-      return Math.round(base * TEP_TE_DYNASTY_BOOST);
+    if (tepLevel > 0 && p.position === 'TE') {
+      return Math.round(base * TEP_MULTIPLIERS[tepLevel]);
     }
     return base;
   };
 
   /** Apply TEP boost to a raw KTC value for a player (used for history/forecasts) */
   const tepAdjust = (p: KTCPlayer, val: number): number =>
-    tepEnabled && p.position === 'TE' ? Math.round(val * TEP_TE_DYNASTY_BOOST) : val;
+    tepLevel > 0 && p.position === 'TE' ? Math.round(val * TEP_MULTIPLIERS[tepLevel]) : val;
 
   const getHistory = (playerID: number) => {
     const h = historyData.find((d) => d.playerID === playerID);
@@ -231,7 +231,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     }
     if (!valid || (sideA.length === 0 && sideB.length === 0)) return null;
     return { aTotal, bTotal, diff: aTotal - bTotal };
-  }, [tradeDate, sideA, sideB, historyData, leagueFormat, tepEnabled]);
+  }, [tradeDate, sideA, sideB, historyData, leagueFormat, tepLevel]);
 
   // Projected totals (GBM at H=90, with linear fallback)
   const projA = sideA.reduce((sum, p) => sum + getProjectedValue(p), 0);
@@ -328,7 +328,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     }
 
     return rows;
-  }, [sideA, sideB, historyData, leagueFormat, tepEnabled]);
+  }, [sideA, sideB, historyData, leagueFormat, tepLevel]);
 
   // Balance suggestions
   const balanceSuggestions = useMemo(() => {
@@ -342,7 +342,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       .sort((a, b) => a.delta - b.delta)
       .slice(0, 5)
       .map((x) => ({ ...x, side: losing }));
-  }, [diff, players, sideA, sideB, leagueFormat, tepEnabled]);
+  }, [diff, players, sideA, sideB, leagueFormat, tepLevel]);
 
   if (loading)
     return (
@@ -573,15 +573,14 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             <option value="superflex">Superflex</option>
           </select>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={tepEnabled}
-            onChange={(e) => setTepEnabled(e.target.checked)}
-            style={{ margin: 0 }}
-          />
-          TEP
-        </label>
+        <div className="control-group">
+          <label className="control-label">TEP</label>
+          <select value={tepLevel} onChange={(e) => setTepLevel(Number(e.target.value) as TepLevel)}>
+            {([0, 1, 2, 3] as TepLevel[]).map(lv => (
+              <option key={lv} value={lv}>{TEP_LABELS[lv]}</option>
+            ))}
+          </select>
+        </div>
         <button
           onClick={() => { setSideA([]); setSideB([]); setSearchA(''); setSearchB(''); }}
           style={{
@@ -817,7 +816,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       )}
 
       <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)' }}>
-        Values from KeepTradeCut · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepEnabled ? ' TEP' : ''} format · Projections via GBM time-series
+        Values from KeepTradeCut · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepLevel > 0 ? ` ${TEP_LABELS[tepLevel]}` : ''} · Projections via GBM time-series
         {hasRedraft && ` · Redraft PPG = ML predicted${tepEnabled ? ' (TEs +0.5/rec)' : ''}`}
       </div>
     </>
