@@ -10,12 +10,17 @@ public/data/*
 !public/data/score-store/
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
+# Preprocessed nflverse weekly cache consumed by scripts/train_ktc_timeseries.py
+# (Commit B). Rebuilt by scripts/build_nflverse_weekly_cache.py from raw CSVs.
+!public/data/nflverse_weekly_2025.json
 # Ablation + sweep result files: force-added throughout the tuning session.
 # Whitelisting here so future re-runs commit cleanly via normal `git add`.
 !public/data/ppg-feature-ablation.json
 !public/data/ppg-hyperparam-sweep.json
 !public/data/residual-feature-ablation.json
 !public/data/residual-hyperparam-sweep.json
+!public/data/ktc-feature-ablation.json
+!public/data/ktc-hyperparam-sweep.json
 .claude/
 CLAUDE.local.md
 __pycache__/
@@ -23,3 +28,7 @@ __pycache__/
 # Persistent across runs so we don't re-download ~2 GB each time; not
 # committed since these are too large for git history.
 .nflverse-cache/
+# Dataset pickles produced by scripts/sweep_ktc_hyperparams.py (Commit C.2b).
+# Keyed by feature-list hash; each pickle is ~100 MB and rebuilt cheaply
+# from training-rows-cache + ktc_history + weekly cache.
+.cache/
