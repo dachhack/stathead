@@ -361,10 +361,11 @@ function ForecastChart({ currentValue, forecasts, position }: {
             borderRadius: 6,
             fontSize: 12,
           }}
-          formatter={(value: number, name: string) => {
-            if (name === 'ciRange') return [null, null];
-            return [Math.round(value).toLocaleString(), name];
-          }}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          formatter={((value: any, name: any) => {
+            if (name === 'ciRange' || name === 'ciLow') return [null, null];
+            return [Math.round(Number(value)).toLocaleString(), name];
+          }) as any}
           labelFormatter={(label) => String(label)}
         />
         <Area
@@ -379,7 +380,7 @@ function ForecastChart({ currentValue, forecasts, position }: {
           stroke="none"
           fill={ciColor}
           legendType="none"
-          baseLine={data.map(d => d.ciLow)}
+          baseLine={data.map(d => d.ciLow) as any}
         />
         <Line
           type="monotone"
