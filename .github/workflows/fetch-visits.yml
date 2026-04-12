@@ -79,4 +79,6 @@ jobs:
           Fetched by .github/workflows/fetch-visits.yml on branch ${{ github.ref_name }}.
 
           [skip ci]"
+          # Rebase on top of any commits that landed since checkout
+          git pull --rebase origin ${{ github.ref_name }}
           git push origin HEAD:${{ github.ref_name }}
