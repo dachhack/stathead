@@ -1,0 +1,2095 @@
+{
+  "generatedAt": "2026-04-11T20:13:27Z",
+  "featureFingerprint": "18b194ec78",
+  "gridAxes": {
+    "max_depth": [
+      2,
+      3
+    ],
+    "min_child_samples": [
+      150,
+      300,
+      500
+    ],
+    "lr_n": [
+      [
+        0.03,
+        60
+      ],
+      [
+        0.05,
+        100
+      ]
+    ],
+    "colsample_bytree": [
+      0.5,
+      0.8
+    ],
+    "lambda_l2": [
+      3.0,
+      5.0
+    ]
+  },
+  "fixedParams": {
+    "objective": "regression",
+    "metric": "mae",
+    "subsample": 0.7,
+    "bagging_freq": 1,
+    "seed": 42,
+    "n_jobs": 1
+  },
+  "baselineConfig": {
+    "max_depth": 2,
+    "min_child_samples": 500,
+    "lr_n": [
+      0.03,
+      60
+    ],
+    "colsample_bytree": 0.5,
+    "lambda_l2": 5.0
+  },
+  "nConfigs": 48,
+  "pairs": {
+    "QB_H7": {
+      "position": "QB",
+      "horizon": 7,
+      "n": 9375,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.14682,
+        "pg_mae": 0.009178
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.19363,
+        "pg_mae": 0.009439
+      },
+      "delta": 0.04681,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.19363
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.19267
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1923
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.19194
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.19072
+        }
+      ],
+      "elapsed_sec": 24.6
+    },
+    "QB_H30": {
+      "position": "QB",
+      "horizon": 30,
+      "n": 7800,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.13538,
+        "pg_mae": 0.030713
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.14228,
+        "pg_mae": 0.032759
+      },
+      "delta": 0.0069,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.14228
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13875
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1355
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13538
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.1305
+        }
+      ],
+      "elapsed_sec": 20.2
+    },
+    "QB_H60": {
+      "position": "QB",
+      "horizon": 60,
+      "n": 5850,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.15603,
+        "pg_mae": 0.052531
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.15867,
+        "pg_mae": 0.05232
+      },
+      "delta": 0.00264,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.15867
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.15823
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.15603
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.15563
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.15539
+        }
+      ],
+      "elapsed_sec": 16.6
+    },
+    "QB_H90": {
+      "position": "QB",
+      "horizon": 90,
+      "n": 3900,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.16327,
+        "pg_mae": 0.07509
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.16327,
+        "pg_mae": 0.07509
+      },
+      "delta": 0.0,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.16327
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1627
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.16224
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.16162
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.16105
+        }
+      ],
+      "elapsed_sec": 11.0
+    },
+    "QB_H120": {
+      "position": "QB",
+      "horizon": 120,
+      "n": 1950,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.10407,
+        "pg_mae": 0.113903
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.10595,
+        "pg_mae": 0.118582
+      },
+      "delta": 0.00188,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.10595
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.10595
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.10584
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.10584
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.10515
+        }
+      ],
+      "elapsed_sec": 5.7
+    },
+    "RB_H7": {
+      "position": "RB",
+      "horizon": 7,
+      "n": 17759,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.04989,
+        "pg_mae": 0.014823
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.09566,
+        "pg_mae": 0.015143
+      },
+      "delta": 0.04577,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09566
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09422
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.08983
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.08955
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.0893
+        }
+      ],
+      "elapsed_sec": 47.8
+    },
+    "RB_H30": {
+      "position": "RB",
+      "horizon": 30,
+      "n": 14738,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.09297,
+        "pg_mae": 0.047101
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.28508,
+        "pg_mae": 0.046538
+      },
+      "delta": 0.19211,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.28508
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.27835
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.26706
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.26552
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.26116
+        }
+      ],
+      "elapsed_sec": 40.7
+    },
+    "RB_H60": {
+      "position": "RB",
+      "horizon": 60,
+      "n": 11048,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.10773,
+        "pg_mae": 0.075449
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.31597,
+        "pg_mae": 0.07348
+      },
+      "delta": 0.20823,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.31597
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.30959
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.28836
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.28803
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.28742
+        }
+      ],
+      "elapsed_sec": 30.7
+    },
+    "RB_H90": {
+      "position": "RB",
+      "horizon": 90,
+      "n": 7358,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.07947,
+        "pg_mae": 0.101837
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.34767,
+        "pg_mae": 0.099316
+      },
+      "delta": 0.2682,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.34767
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.34479
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.32873
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.32838
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.30975
+        }
+      ],
+      "elapsed_sec": 21.4
+    },
+    "RB_H120": {
+      "position": "RB",
+      "horizon": 120,
+      "n": 3668,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.07745,
+        "pg_mae": 0.136909
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.32927,
+        "pg_mae": 0.136983
+      },
+      "delta": 0.25183,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.32927
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.32766
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.32185
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.32027
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.31993
+        }
+      ],
+      "elapsed_sec": 12.2
+    },
+    "WR_H7": {
+      "position": "WR",
+      "horizon": 7,
+      "n": 24164,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.13688,
+        "pg_mae": 0.013065
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.17392,
+        "pg_mae": 0.012885
+      },
+      "delta": 0.03704,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.17392
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.17385
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.17285
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.17181
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.16741
+        }
+      ],
+      "elapsed_sec": 64.6
+    },
+    "WR_H30": {
+      "position": "WR",
+      "horizon": 30,
+      "n": 20003,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.11136,
+        "pg_mae": 0.037579
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.1381,
+        "pg_mae": 0.037486
+      },
+      "delta": 0.02674,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1381
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.13504
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.1326
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13077
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 300,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.12371
+        }
+      ],
+      "elapsed_sec": 54.7
+    },
+    "WR_H60": {
+      "position": "WR",
+      "horizon": 60,
+      "n": 14993,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.04685,
+        "pg_mae": 0.06141
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.07186,
+        "pg_mae": 0.060373
+      },
+      "delta": 0.02501,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.07186
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.07141
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.07119
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.06838
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.06688
+        }
+      ],
+      "elapsed_sec": 42.4
+    },
+    "WR_H90": {
+      "position": "WR",
+      "horizon": 90,
+      "n": 9983,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": -0.00015,
+        "pg_mae": 0.084138
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.00134,
+        "pg_mae": 0.083667
+      },
+      "delta": 0.00148,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.00134
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.00072
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": -0.00015
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": -0.00248
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": -0.00526
+        }
+      ],
+      "elapsed_sec": 29.3
+    },
+    "WR_H120": {
+      "position": "WR",
+      "horizon": 120,
+      "n": 4979,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.02294,
+        "pg_mae": 0.108138
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.02633,
+        "pg_mae": 0.107898
+      },
+      "delta": 0.00339,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.02633
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.02567
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.02294
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.02108
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.01964
+        }
+      ],
+      "elapsed_sec": 16.0
+    },
+    "TE_H7": {
+      "position": "TE",
+      "horizon": 7,
+      "n": 9656,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.11667,
+        "pg_mae": 0.014287
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 150,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.12807,
+        "pg_mae": 0.014242
+      },
+      "delta": 0.0114,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.12807
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.12709
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 300,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.12406
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.12379
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 300,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.12325
+        }
+      ],
+      "elapsed_sec": 27.5
+    },
+    "TE_H30": {
+      "position": "TE",
+      "horizon": 30,
+      "n": 8035,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.08294,
+        "pg_mae": 0.043363
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.09784,
+        "pg_mae": 0.043616
+      },
+      "delta": 0.01489,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09784
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09318
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09134
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09071
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.08994
+        }
+      ],
+      "elapsed_sec": 23.3
+    },
+    "TE_H60": {
+      "position": "TE",
+      "horizon": 60,
+      "n": 6025,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.08014,
+        "pg_mae": 0.067323
+      },
+      "winner": {
+        "config": {
+          "max_depth": 3,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.09154,
+        "pg_mae": 0.06718
+      },
+      "delta": 0.0114,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.09154
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.09121
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.08756
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 150,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.08679
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.08667
+        }
+      ],
+      "elapsed_sec": 18.0
+    },
+    "TE_H90": {
+      "position": "TE",
+      "horizon": 90,
+      "n": 4015,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.12542,
+        "pg_mae": 0.087854
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.05,
+            100
+          ],
+          "colsample_bytree": 0.8,
+          "lambda_l2": 3.0
+        },
+        "pg_r2": 0.1353,
+        "pg_mae": 0.089238
+      },
+      "delta": 0.00988,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1353
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.133
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.1327
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.05,
+              100
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13223
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.13221
+        }
+      ],
+      "elapsed_sec": 12.5
+    },
+    "TE_H120": {
+      "position": "TE",
+      "horizon": 120,
+      "n": 2005,
+      "baseline": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.14923,
+        "pg_mae": 0.107647
+      },
+      "winner": {
+        "config": {
+          "max_depth": 2,
+          "min_child_samples": 500,
+          "lr_n": [
+            0.03,
+            60
+          ],
+          "colsample_bytree": 0.5,
+          "lambda_l2": 5.0
+        },
+        "pg_r2": 0.14923,
+        "pg_mae": 0.107647
+      },
+      "delta": 0.0,
+      "top5": [
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.14923
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.14923
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.14823
+        },
+        {
+          "config": {
+            "max_depth": 3,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.5,
+            "lambda_l2": 3.0
+          },
+          "pg_r2": 0.14823
+        },
+        {
+          "config": {
+            "max_depth": 2,
+            "min_child_samples": 500,
+            "lr_n": [
+              0.03,
+              60
+            ],
+            "colsample_bytree": 0.8,
+            "lambda_l2": 5.0
+          },
+          "pg_r2": 0.14418
+        }
+      ],
+      "elapsed_sec": 6.3
+    }
+  },
+  "elapsed_sec": 525.6
+}

@@ -1,0 +1,88 @@
+name: Fetch Draft Visits
+
+# Scrapes WalterFootball's pre-draft Top-30 visits tracker and commits
+# the visits.json shard back to the triggering branch.
+#
+# WalterFootball coverage starts 2013. The scraper handles the URL-scheme
+# split (draft{YYYY}meetingsprospects.php vs ProspectMeetingsByProspect{YYYY}.php)
+# and resolves team names to standard abbreviations.
+#
+# Why a workflow: the Claude Code sandbox has an egress proxy that blocks
+# walterfootball.com. GitHub Actions runners have unrestricted outbound.
+#
+# Trigger: repo → Actions → "Fetch Draft Visits" → "Run workflow" → pick branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: 'Year range to fetch (e.g. "2013-2026" or "2026")'
+        required: false
+        default: '2013-2026'
+      dry_run:
+        description: 'Fetch only, do not commit (for testing)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-visits-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout triggering branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Puppeteer (for JS-rendered 2024+ pages)
+        run: npm install puppeteer
+
+      - name: Fetch visits from WalterFootball
+        run: npx tsx scripts/fetch-visits.ts --years "${{ inputs.years }}"
+
+      - name: Show results
+        run: |
+          echo "=== visits.json size ==="
+          ls -lh public/data/feature-store/visits.json 2>&1 || true
+          echo ""
+          echo "=== record count by year ==="
+          npx tsx scripts/fetch-visits.ts --list
+          echo ""
+          echo "=== sample (first 30 lines) ==="
+          head -30 public/data/feature-store/visits.json || true
+
+      - name: Commit visits to triggering branch
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -f public/data/feature-store/visits.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit — visits.json already up to date."
+            exit 0
+          fi
+          git commit -m "Fetch draft visits ($(date -u +%Y-%m-%d))
+
+          Pre-draft Top-30 visits from WalterFootball (${{ inputs.years }}).
+          Fetched by .github/workflows/fetch-visits.yml on branch ${{ github.ref_name }}.
+
+          [skip ci]"
+          # Clean unstaged changes from npm install puppeteer before rebase
+          git checkout -- . || true
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}

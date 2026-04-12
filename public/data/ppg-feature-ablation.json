@@ -1,0 +1,462 @@
+{
+  "generatedAt": "2026-04-11T14:18:39",
+  "positions": {
+    "QB": {
+      "position": "QB",
+      "baseline": 0.614391835037216,
+      "n": 595,
+      "nFeatures": 19,
+      "results": [
+        {
+          "feature": "priorPPG2yr",
+          "r2_without": 0.597,
+          "delta": 0.0174
+        },
+        {
+          "feature": "ppgTrend",
+          "r2_without": 0.5975,
+          "delta": 0.0169
+        },
+        {
+          "feature": "teamShotgunRate",
+          "r2_without": 0.6054,
+          "delta": 0.009
+        },
+        {
+          "feature": "vegasImpliedSpread",
+          "r2_without": 0.6055,
+          "delta": 0.0089
+        },
+        {
+          "feature": "yearsInLeague",
+          "r2_without": 0.6072,
+          "delta": 0.0072
+        },
+        {
+          "feature": "teamRosterTurnover",
+          "r2_without": 0.6077,
+          "delta": 0.0066
+        },
+        {
+          "feature": "newArrivalBestPPR",
+          "r2_without": 0.6079,
+          "delta": 0.0065
+        },
+        {
+          "feature": "teamNeutralPassRate",
+          "r2_without": 0.6079,
+          "delta": 0.0065
+        },
+        {
+          "feature": "collegeSosFinalYr",
+          "r2_without": 0.6086,
+          "delta": 0.0058
+        },
+        {
+          "feature": "priorTimeToThrow",
+          "r2_without": 0.6095,
+          "delta": 0.0049
+        },
+        {
+          "feature": "teamSamePosCount",
+          "r2_without": 0.6109,
+          "delta": 0.0034
+        },
+        {
+          "feature": "vegasWinPct",
+          "r2_without": 0.611,
+          "delta": 0.0033
+        },
+        {
+          "feature": "collegeQBR",
+          "r2_without": 0.6116,
+          "delta": 0.0028
+        },
+        {
+          "feature": "invDraftPick",
+          "r2_without": 0.6117,
+          "delta": 0.0027
+        },
+        {
+          "feature": "priorInjuryWeeks",
+          "r2_without": 0.6117,
+          "delta": 0.0027
+        },
+        {
+          "feature": "injuryRecurrence",
+          "r2_without": 0.613,
+          "delta": 0.0014
+        },
+        {
+          "feature": "draftPickPctOverall",
+          "r2_without": 0.6136,
+          "delta": 0.0008
+        },
+        {
+          "feature": "priorKneeInjury",
+          "r2_without": 0.6143,
+          "delta": 0.0001
+        },
+        {
+          "feature": "nflDraftPick",
+          "r2_without": 0.6159,
+          "delta": -0.0015
+        }
+      ]
+    },
+    "RB": {
+      "position": "RB",
+      "baseline": 0.5124798182021435,
+      "n": 1270,
+      "nFeatures": 25,
+      "results": [
+        {
+          "feature": "ppgTrend",
+          "r2_without": 0.4826,
+          "delta": 0.0299
+        },
+        {
+          "feature": "invDraftPick",
+          "r2_without": 0.4998,
+          "delta": 0.0127
+        },
+        {
+          "feature": "priorPPG2yr",
+          "r2_without": 0.5011,
+          "delta": 0.0114
+        },
+        {
+          "feature": "priorWOPR",
+          "r2_without": 0.5023,
+          "delta": 0.0102
+        },
+        {
+          "feature": "draftClassDepth",
+          "r2_without": 0.5039,
+          "delta": 0.0086
+        },
+        {
+          "feature": "forty",
+          "r2_without": 0.5046,
+          "delta": 0.0079
+        },
+        {
+          "feature": "teammatePriorPPR",
+          "r2_without": 0.5054,
+          "delta": 0.0071
+        },
+        {
+          "feature": "priorRushEPA",
+          "r2_without": 0.5058,
+          "delta": 0.0067
+        },
+        {
+          "feature": "sosAvgSpread",
+          "r2_without": 0.5061,
+          "delta": 0.0064
+        },
+        {
+          "feature": "vertical",
+          "r2_without": 0.5069,
+          "delta": 0.0056
+        },
+        {
+          "feature": "bmi",
+          "r2_without": 0.507,
+          "delta": 0.0055
+        },
+        {
+          "feature": "priorBoomRate",
+          "r2_without": 0.5073,
+          "delta": 0.0052
+        },
+        {
+          "feature": "age",
+          "r2_without": 0.5073,
+          "delta": 0.0051
+        },
+        {
+          "feature": "projPlayerPPR",
+          "r2_without": 0.5074,
+          "delta": 0.0051
+        },
+        {
+          "feature": "priorRecEPA",
+          "r2_without": 0.5079,
+          "delta": 0.0045
+        },
+        {
+          "feature": "priorPPR",
+          "r2_without": 0.5081,
+          "delta": 0.0044
+        },
+        {
+          "feature": "teamSamePosCount",
+          "r2_without": 0.5089,
+          "delta": 0.0035
+        },
+        {
+          "feature": "yearsInLeague",
+          "r2_without": 0.5092,
+          "delta": 0.0033
+        },
+        {
+          "feature": "projTargetShare",
+          "r2_without": 0.5095,
+          "delta": 0.003
+        },
+        {
+          "feature": "teamWR3PlusOnField",
+          "r2_without": 0.51,
+          "delta": 0.0025
+        },
+        {
+          "feature": "nflDraftRound",
+          "r2_without": 0.5107,
+          "delta": 0.0017
+        },
+        {
+          "feature": "prospectGrade",
+          "r2_without": 0.5112,
+          "delta": 0.0013
+        },
+        {
+          "feature": "priorAirYardsShare",
+          "r2_without": 0.5114,
+          "delta": 0.0011
+        },
+        {
+          "feature": "teamQBPassRating",
+          "r2_without": 0.5114,
+          "delta": 0.0011
+        },
+        {
+          "feature": "qbOwnRushYds",
+          "r2_without": 0.5155,
+          "delta": -0.003
+        }
+      ]
+    },
+    "WR": {
+      "position": "WR",
+      "baseline": 0.5698539342315434,
+      "n": 1731,
+      "nFeatures": 24,
+      "results": [
+        {
+          "feature": "teamDomeGames",
+          "r2_without": 0.5579,
+          "delta": 0.0119
+        },
+        {
+          "feature": "priorYACAboveExp",
+          "r2_without": 0.5582,
+          "delta": 0.0116
+        },
+        {
+          "feature": "priorInjuryWeeks",
+          "r2_without": 0.5587,
+          "delta": 0.0111
+        },
+        {
+          "feature": "age",
+          "r2_without": 0.5604,
+          "delta": 0.0095
+        },
+        {
+          "feature": "qbOwnPPG",
+          "r2_without": 0.5606,
+          "delta": 0.0093
+        },
+        {
+          "feature": "newArrivalBestPPR",
+          "r2_without": 0.5623,
+          "delta": 0.0076
+        },
+        {
+          "feature": "teamWRTotalPPR",
+          "r2_without": 0.5639,
+          "delta": 0.0059
+        },
+        {
+          "feature": "priorBoomRate",
+          "r2_without": 0.5641,
+          "delta": 0.0058
+        },
+        {
+          "feature": "priorBustGameRate",
+          "r2_without": 0.5642,
+          "delta": 0.0057
+        },
+        {
+          "feature": "priorTargetShare",
+          "r2_without": 0.5644,
+          "delta": 0.0055
+        },
+        {
+          "feature": "priorGames",
+          "r2_without": 0.5644,
+          "delta": 0.0054
+        },
+        {
+          "feature": "draftPickPctOverall",
+          "r2_without": 0.5646,
+          "delta": 0.0052
+        },
+        {
+          "feature": "vertical",
+          "r2_without": 0.5651,
+          "delta": 0.0048
+        },
+        {
+          "feature": "priorPPG2yr",
+          "r2_without": 0.5651,
+          "delta": 0.0048
+        },
+        {
+          "feature": "priorPPGXage",
+          "r2_without": 0.5661,
+          "delta": 0.0038
+        },
+        {
+          "feature": "draftPickPct",
+          "r2_without": 0.5661,
+          "delta": 0.0037
+        },
+        {
+          "feature": "broadJump",
+          "r2_without": 0.5668,
+          "delta": 0.003
+        },
+        {
+          "feature": "injuryRecurrence",
+          "r2_without": 0.5674,
+          "delta": 0.0024
+        },
+        {
+          "feature": "nflDraftRound",
+          "r2_without": 0.568,
+          "delta": 0.0018
+        },
+        {
+          "feature": "priorPPG",
+          "r2_without": 0.5686,
+          "delta": 0.0013
+        },
+        {
+          "feature": "invDraftPick",
+          "r2_without": 0.5686,
+          "delta": 0.0012
+        },
+        {
+          "feature": "priorLateSeasonInjWeeks",
+          "r2_without": 0.5688,
+          "delta": 0.0011
+        },
+        {
+          "feature": "logDraftPick",
+          "r2_without": 0.5699,
+          "delta": -0.0
+        },
+        {
+          "feature": "nflDraftPick",
+          "r2_without": 0.57,
+          "delta": -0.0002
+        }
+      ]
+    },
+    "TE": {
+      "position": "TE",
+      "baseline": 0.627454926468412,
+      "n": 732,
+      "nFeatures": 17,
+      "results": [
+        {
+          "feature": "priorPPG",
+          "r2_without": 0.6068,
+          "delta": 0.0206
+        },
+        {
+          "feature": "age",
+          "r2_without": 0.613,
+          "delta": 0.0144
+        },
+        {
+          "feature": "bench",
+          "r2_without": 0.6144,
+          "delta": 0.013
+        },
+        {
+          "feature": "priorGames",
+          "r2_without": 0.6198,
+          "delta": 0.0076
+        },
+        {
+          "feature": "draftClassDepth",
+          "r2_without": 0.6202,
+          "delta": 0.0072
+        },
+        {
+          "feature": "weight",
+          "r2_without": 0.6207,
+          "delta": 0.0068
+        },
+        {
+          "feature": "priorBoomRate",
+          "r2_without": 0.6216,
+          "delta": 0.0059
+        },
+        {
+          "feature": "priorYACperRec",
+          "r2_without": 0.6218,
+          "delta": 0.0057
+        },
+        {
+          "feature": "priorAirYardsShare",
+          "r2_without": 0.6224,
+          "delta": 0.005
+        },
+        {
+          "feature": "draftPickPct",
+          "r2_without": 0.6237,
+          "delta": 0.0038
+        },
+        {
+          "feature": "team21Rate",
+          "r2_without": 0.6236,
+          "delta": 0.0038
+        },
+        {
+          "feature": "priorLateSeasonInjWeeks",
+          "r2_without": 0.6239,
+          "delta": 0.0036
+        },
+        {
+          "feature": "heightAdjSpeedScore",
+          "r2_without": 0.625,
+          "delta": 0.0024
+        },
+        {
+          "feature": "nflDraftRound",
+          "r2_without": 0.6253,
+          "delta": 0.0021
+        },
+        {
+          "feature": "nflDraftPick",
+          "r2_without": 0.6253,
+          "delta": 0.0021
+        },
+        {
+          "feature": "durabilityStreak",
+          "r2_without": 0.6253,
+          "delta": 0.0021
+        },
+        {
+          "feature": "invDraftPick",
+          "r2_without": 0.6279,
+          "delta": -0.0005
+        }
+      ]
+    }
+  }
+}

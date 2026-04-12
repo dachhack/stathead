@@ -1,0 +1,2436 @@
+{
+  "generatedAt": "2026-04-11T14:26:54",
+  "baseline": {
+    "QB": {
+      "max_depth": 3,
+      "learning_rate": 0.08,
+      "n_rounds": 100,
+      "min_child_samples": 8,
+      "gbm_weight": 0.9
+    },
+    "RB": {
+      "max_depth": 3,
+      "learning_rate": 0.08,
+      "n_rounds": 200,
+      "min_child_samples": 25,
+      "gbm_weight": 0.7
+    },
+    "WR": {
+      "max_depth": 3,
+      "learning_rate": 0.12,
+      "n_rounds": 200,
+      "min_child_samples": 3,
+      "gbm_weight": 0.7
+    },
+    "TE": {
+      "max_depth": 3,
+      "learning_rate": 0.05,
+      "n_rounds": 100,
+      "min_child_samples": 8,
+      "gbm_weight": 0.7
+    }
+  },
+  "ridge_alpha": 15,
+  "positions": {
+    "QB": {
+      "position": "QB",
+      "n": 595,
+      "features": 18,
+      "baseline_r2": 0.6159284179571289,
+      "best_r2": 0.6159284179571289,
+      "best_params": {
+        "max_depth": 3,
+        "learning_rate": 0.08,
+        "n_rounds": 100,
+        "min_child_samples": 8,
+        "gbm_weight": 0.9
+      },
+      "delta": 0.0,
+      "all_results": [
+        {
+          "stage": "baseline",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6159284179571289
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5920191185913415
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5977044153775142
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6031550723476973
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6065822666070123
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6035751993182825
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6037842001242268
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6106809130579844
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6159284179571289
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6083540774247985
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.600667149767395
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6015239113800647
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6063012727406032
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6008005924977746
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5942771869441591
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5860024018454588
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5983298797854456
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5984347261458447
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5925223481811621
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5842944297459436
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5730308565689963
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6048805168713385
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 5,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6057593757449093
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6130560664200875
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 15,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6035396023794071
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6074496111238983
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6029828688724348
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 5,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6039776283003226
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6159284179571289
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 15,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6043943571044447
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6026919639290673
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5976553063514507
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 5,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5983039142848322
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.610394379984057
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 15,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6026124683012681
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5963875304078787
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5922220361749422
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 5,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5927507716911606
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6056135067084062
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 15,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5984698767394221
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5934155426106369
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5802555164742036
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 5,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5839763582687854
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5973390687903735
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 15,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5914084073831155
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5906614845339015
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.4
+          },
+          "r2": 0.5900543665700728
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.5
+          },
+          "r2": 0.5995305188250348
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.6
+          },
+          "r2": 0.6068560000912214
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6120308103686325
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.8
+          },
+          "r2": 0.6150549496572684
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6159284179571289
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 1.0
+          },
+          "r2": 0.614651215268214
+        }
+      ]
+    },
+    "RB": {
+      "position": "RB",
+      "n": 1270,
+      "features": 24,
+      "baseline_r2": 0.515500519877917,
+      "best_r2": 0.5160006249978413,
+      "best_params": {
+        "max_depth": 3,
+        "learning_rate": 0.08,
+        "n_rounds": 150,
+        "min_child_samples": 25,
+        "gbm_weight": 0.8
+      },
+      "delta": 0.0005001051199242657,
+      "all_results": [
+        {
+          "stage": "baseline",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.515500519877917
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4985805810866415
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5039763890789646
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5080681984713065
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5087226717115643
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5089742069523518
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5061085797954934
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5076109665463436
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.515500519877917
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5056124594093105
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.49920378658971976
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5076486617926568
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5074682646898596
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5040123202968352
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4955674363870397
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.48497063858746803
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5063986243808418
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5051234153502056
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5017629797157079
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.49716701747102643
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4786547245745336
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4994492146222831
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.499503609938061
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5015386359288863
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5030255013240714
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 60,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5058281674175922
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5011466820700228
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5012667150568495
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5040668587943357
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5065618112612122
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5110934830382189
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4992860119064363
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4989796093774709
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5034474288412165
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5108363701824344
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5155650073166871
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.498913901750452
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.49782766666200706
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5027430871566703
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5115234985209618
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.515500519877917
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4963900380153884
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.49165994910934185
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.4982948935879812
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5080366673873422
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 300,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5108169482182512
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.4
+          },
+          "r2": 0.5033238675214926
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.5
+          },
+          "r2": 0.5092266285785128
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.6
+          },
+          "r2": 0.5133070085102442
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5155650073166871
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.8
+          },
+          "r2": 0.5160006249978413
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5146138615537068
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 1.0
+          },
+          "r2": 0.5114047169842836
+        }
+      ]
+    },
+    "WR": {
+      "position": "WR",
+      "n": 1731,
+      "features": 22,
+      "baseline_r2": 0.569830015454726,
+      "best_r2": 0.569830015454726,
+      "best_params": {
+        "max_depth": 3,
+        "learning_rate": 0.12,
+        "n_rounds": 200,
+        "min_child_samples": 3,
+        "gbm_weight": 0.7
+      },
+      "delta": 0.0,
+      "all_results": [
+        {
+          "stage": "baseline",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.569830015454726
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.551881921743549
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5556178268491242
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5598233980020235
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5639557236502848
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5649383123371987
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5580381239284388
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5628327743491659
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5658126932720237
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.569830015454726
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5608977726310567
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5578614852022851
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5604769174941528
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.562719114238996
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5551898912225236
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5465876904128948
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.03,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.553827334159483
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5530382222095874
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.08,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5549980241780885
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5447800432901388
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.18,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.53727950115875
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 60,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5608240461186217
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 60,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5594388408430835
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 60,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5587692975619623
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 60,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.560077475499926
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 60,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5621589752602412
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5662001144474222
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5636314275768366
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5612936441174522
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5621347996749063
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5657153471156016
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 150,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5691909020015878
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 150,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.565060138470489
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5605628925705983
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 150,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5620681600700363
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5677580811337317
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.569830015454726
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5652346690867986
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.560240589712372
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5605529244447753
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5667421019854593
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 300,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5660933003740054
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 300,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5618950074537195
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 300,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5580066158660493
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 300,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5587655378141838
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 300,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5634034409121969
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.4
+          },
+          "r2": 0.5624342717204569
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.5
+          },
+          "r2": 0.5665799345025039
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.6
+          },
+          "r2": 0.5690451824139269
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.569830015454726
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.8
+          },
+          "r2": 0.5689344336249011
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.5663584369244525
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 1.0
+          },
+          "r2": 0.5621020253533799
+        }
+      ]
+    },
+    "TE": {
+      "position": "TE",
+      "n": 732,
+      "features": 16,
+      "baseline_r2": 0.6279085112669176,
+      "best_r2": 0.6287162109833624,
+      "best_params": {
+        "max_depth": 3,
+        "learning_rate": 0.05,
+        "n_rounds": 150,
+        "min_child_samples": 8,
+        "gbm_weight": 0.7
+      },
+      "delta": 0.0008076997164447874,
+      "all_results": [
+        {
+          "stage": "baseline",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6279085112669176
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6127357091702097
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6163876030306297
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6186584584340165
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6165566884029512
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 2,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6157186515392916
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6222096590475968
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6279085112669176
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6268952699235251
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6252486998077177
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6154481284592443
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6248911481480912
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6262991217938243
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6269708702622077
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.618877434573993
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 4,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6066534942224658
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.03,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6161138549878213
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6165563705093786
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.08,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6140141393143497
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.12,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6040847043807002
+        },
+        {
+          "stage": "stage1",
+          "params": {
+            "max_depth": 5,
+            "learning_rate": 0.18,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.5951245100020939
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 60,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6197580817154873
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 60,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6229618971066382
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 60,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.622942370208819
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 60,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6215669465510909
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 60,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6199972349102196
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6242261123031028
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6252305720190593
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6279085112669176
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6247069377400316
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 100,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6225880001868234
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.62338316741175
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6259455309054904
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6287162109833624
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.62398849458759
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6222657840039499
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6206464656141647
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6251699395227146
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6279336220242077
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6217657594093653
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 200,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6206539578155805
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 300,
+            "min_child_samples": 3,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6153584799864127
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 300,
+            "min_child_samples": 5,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6202504394773827
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 300,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6249913241698286
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 300,
+            "min_child_samples": 15,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.617567425535287
+        },
+        {
+          "stage": "stage2",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 300,
+            "min_child_samples": 25,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6168894945438745
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.4
+          },
+          "r2": 0.6206138460374124
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.5
+          },
+          "r2": 0.6248691092240963
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.6
+          },
+          "r2": 0.6275698975394131
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.7
+          },
+          "r2": 0.6287162109833624
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.8
+          },
+          "r2": 0.6283080495559447
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 0.9
+          },
+          "r2": 0.6263454132571596
+        },
+        {
+          "stage": "stage3",
+          "params": {
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "n_rounds": 150,
+            "min_child_samples": 8,
+            "gbm_weight": 1.0
+          },
+          "r2": 0.6228283020870076
+        }
+      ]
+    }
+  }
+}

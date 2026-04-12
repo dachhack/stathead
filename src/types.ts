@@ -200,10 +200,12 @@ export type Tab =
   | 'ktc'
   | 'sportsdata'
   | 'prospects'
-  | 'draft-strategy'
   | 'draft-optimizer'
   | 'trade-calc'
+  | 'dynasty-forecast'
   | 'model-docs'
+  | 'career-backtest'
+  | 'zap-compare'
   | 'docs-rookie'
   | 'docs-dynasty'
   | 'docs-season-ppg';
