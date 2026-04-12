@@ -439,6 +439,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
+  const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
 
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
@@ -720,6 +721,17 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           projectedTeamTotals.set(team, proj);
         }
 
+        // Build projected team totals map for share display in team view
+        const ptmMap = new Map<string, TeamTotalRow>();
+        for (const [team, t] of projectedTeamTotals) {
+          ptmMap.set(team, {
+            team, passAtt: t.passAtt, passComp: t.passComp, passYds: t.passYds, passTD: t.passTD, int: t.int,
+            rushAtt: t.rushAtt, rushYds: t.rushYds, rushTD: t.rushTD,
+            tgt: t.targets, rec: t.receptions, recYds: t.recYds, recTD: t.recTD,
+            pprPts: 0,
+          });
+        }
+
         // ── Step 3b: Compute per-team position pool shares from prior season ──
         // Instead of hardcoded "RBs get 88% of rush att", compute actual shares
         interface PosPoolShares {
@@ -967,6 +979,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               // guaranteeing QB totals always equal the team's projected passing budget.
               let allocatedPassAtt = 0;
               let allocatedPassTD = 0;
+              let allocatedPassYds = 0;
               let allocatedRushAtt = 0;
 
               for (let idx = 0; idx < players.length; idx++) {
@@ -986,8 +999,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   passAtt = Math.round(qbPassPool * gamesScale);
                   const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
                   passComp = Math.round(passAtt * compRate);
-                  const ypa = (prior.attempts || 0) > 0 ? (prior.passing_yards || 0) / prior.attempts : 7.0;
-                  passYds = Math.round(passAtt * ypa);
+                  // Anchor passYds to the team's projected passing yards so QB passYds
+                  // reconcile with receiver recYds (same pool, gamesScale applied like receivers)
+                  passYds = Math.round(projTeam.passYds * gamesScale);
                   // Anchor TDs to the team's projected receiving TD budget so QB passTDs
                   // reconcile with receiver recTDs (same pool, gamesScale applied like receivers)
                   passTD = Math.round(projTeam.recTD * gamesScale);
@@ -1004,12 +1018,11 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   // Backup QB: fill remaining pool for exact reconciliation with team totals.
                   // Use starter's per-play efficiency rates (slightly discounted).
                   const compRate = sp && sp.attempts > 0 ? Math.min(0.68, (sp.completions || 0) / sp.attempts) : 0.60;
-                  const ypa = sp && sp.attempts > 0 ? Math.min(8.5, (sp.passing_yards || 0) / sp.attempts) * 0.92 : 6.5;
                   const intRate = sp && sp.attempts > 0 ? Math.max(0.025, ((sp.interceptions || 0) / sp.attempts) * 1.15) : 0.032;
 
                   passAtt = Math.max(0, Math.round(qbPassPool) - allocatedPassAtt);
                   passComp = Math.round(passAtt * compRate);
-                  passYds = Math.round(passAtt * ypa);
+                  passYds = Math.max(0, Math.round(projTeam.passYds) - allocatedPassYds);
                   passTD = Math.max(0, Math.round(projTeam.recTD) - allocatedPassTD);
                   ints = Math.round(passAtt * intRate);
 
@@ -1020,6 +1033,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
 
                 allocatedPassAtt += passAtt;
                 allocatedPassTD += passTD;
+                allocatedPassYds += passYds;
                 allocatedRushAtt += rushAtt;
 
                 const pts = computePPR({ passYds, passTD, int: ints, rushYds, rushTD });
@@ -1205,6 +1219,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           setWRProjections(wrs);
           setTEProjections(tes);
           setOddsSource(usingLiveOdds ? 'live' : 'historical');
+          setProjTeamTotalsMap(ptmMap);
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to build projections');
@@ -1409,6 +1424,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             const tdStyle = { fontSize: 11, padding: '3px 6px' };
             const subtotalStyle = { ...tdStyle, fontWeight: 700 as const, background: 'var(--bg-tertiary)', borderTop: '1px solid var(--border)' };
             const totalStyle = { ...tdStyle, fontWeight: 700 as const, background: 'var(--bg-tertiary)', borderTop: '2px solid var(--text-muted)' };
+            const shareStyle = { fontSize: 9, color: 'var(--text-muted)', marginLeft: 2, fontWeight: 400 as const };
+
+            // Projected team totals from the blend model (reference for share %)
+            const projTotal = projTeamTotalsMap.get(g.team);
+
+            function pct(val: number, ref: number | undefined): string {
+              if (!val || !ref) return '';
+              return `${Math.round(val / ref * 100)}%`;
+            }
 
             function playerRow(pos: string, name: string, gm: number, pAtt: number, pComp: number, pYds: number, pTD: number, pInt: number, rAtt: number, rYds: number, rTD: number, tgt: number, rec: number, recYds: number, recTD: number, ppr: number) {
               return (
@@ -1418,15 +1442,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{gm}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{pAtt || ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{pComp || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pYds ? pYds.toLocaleString() : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pYds ? <>{pYds.toLocaleString()}<span style={shareStyle}>{pct(pYds, projTotal?.passYds)}</span></> : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: pTD ? 700 : 400 }}>{pTD || ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: pInt ? '#ef4444' : undefined }}>{pInt || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rAtt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rAtt ? <>{rAtt}<span style={shareStyle}>{pct(rAtt, projTotal?.rushAtt)}</span></> : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{rYds ? rYds.toLocaleString() : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: rTD ? 700 : 400 }}>{rTD || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{tgt || ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{tgt ? <>{tgt}<span style={shareStyle}>{pct(tgt, projTotal?.tgt)}</span></> : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{rec || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{recYds ? recYds.toLocaleString() : ''}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{recYds ? <>{recYds.toLocaleString()}<span style={shareStyle}>{pct(recYds, projTotal?.recYds)}</span></> : ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: recTD ? 700 : 400 }}>{recTD || ''}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: POS_COLORS[pos] }}>{ppr}</td>
                 </tr>
@@ -1440,15 +1464,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}></td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passAtt || ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passComp || ''}</td>
-                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passYds ? s.passYds.toLocaleString() : ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passYds ? <>{s.passYds.toLocaleString()}<span style={shareStyle}>{pct(s.passYds, projTotal?.passYds)}</span></> : ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.passTD || ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.int || ''}</td>
-                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushAtt || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushAtt ? <>{s.rushAtt}<span style={shareStyle}>{pct(s.rushAtt, projTotal?.rushAtt)}</span></> : ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushYds ? s.rushYds.toLocaleString() : ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rushTD || ''}</td>
-                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.tgt || ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.tgt ? <>{s.tgt}<span style={shareStyle}>{pct(s.tgt, projTotal?.tgt)}</span></> : ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.rec || ''}</td>
-                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.recYds ? s.recYds.toLocaleString() : ''}</td>
+                  <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.recYds ? <>{s.recYds.toLocaleString()}<span style={shareStyle}>{pct(s.recYds, projTotal?.recYds)}</span></> : ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right' }}>{s.recTD || ''}</td>
                   <td style={{ ...subtotalStyle, textAlign: 'right', color }}>{s.ppr}</td>
                 </tr>
@@ -1512,20 +1536,39 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                     <tr>
                       <td colSpan={2} style={{ ...totalStyle, fontSize: 12 }}>Total</td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}></td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passAtt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passAtt}<span style={shareStyle}>{pct(total.passAtt, projTotal?.passAtt)}</span></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passComp}</td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passYds.toLocaleString()}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passYds.toLocaleString()}<span style={shareStyle}>{pct(total.passYds, projTotal?.passYds)}</span></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.passTD}</td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.int}</td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushAtt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushAtt}<span style={shareStyle}>{pct(total.rushAtt, projTotal?.rushAtt)}</span></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushYds.toLocaleString()}</td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rushTD}</td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.tgt}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.tgt}<span style={shareStyle}>{pct(total.tgt, projTotal?.tgt)}</span></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.rec}</td>
-                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.recYds.toLocaleString()}</td>
+                      <td style={{ ...totalStyle, textAlign: 'right' }}>{total.recYds.toLocaleString()}<span style={shareStyle}>{pct(total.recYds, projTotal?.recYds)}</span></td>
                       <td style={{ ...totalStyle, textAlign: 'right' }}>{total.recTD}</td>
                       <td style={{ ...totalStyle, textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>{total.ppr}</td>
                     </tr>
+                    {projTotal && (
+                    <tr>
+                      <td colSpan={2} style={{ ...tdStyle, fontSize: 10, color: 'var(--text-muted)' }}>Proj. Team</td>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}></td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.passAtt}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.passComp}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.passYds.toLocaleString()}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.passTD}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.int}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.rushAtt}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.rushYds.toLocaleString()}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.rushTD}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.tgt}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.rec}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.recYds.toLocaleString()}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}>{projTotal.recTD}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)', fontSize: 10 }}></td>
+                    </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
