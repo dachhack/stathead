@@ -16,6 +16,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { normalizeName } from '../src/lib/featureTypes';
 
+// Puppeteer is optional — only needed for JS-rendered pages (2024+).
+// Install: npm install puppeteer
+let puppeteer: any = null;
+const PUPPETEER_MODULE = 'puppeteer';
+try { puppeteer = await import(PUPPETEER_MODULE); } catch { /* not installed */ }
+
 // ── Config ─────────────────────────────────────────────────────────────
 
 const OUT_DIR = 'public/data/feature-store';
@@ -120,6 +126,31 @@ async function fetchHtml(url: string): Promise<string> {
   });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
   return await resp.text();
+}
+
+/**
+ * Fetch a page using a headless browser (Puppeteer) so JS-rendered content
+ * is included. Required for WF's newer (2024+) pages which load visit data
+ * dynamically. Falls back to static fetch if Puppeteer isn't installed.
+ */
+async function fetchHtmlWithBrowser(url: string): Promise<string> {
+  if (!puppeteer) {
+    throw new Error('Puppeteer not installed — run: npm install puppeteer');
+  }
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent(UA);
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    // Give extra time for any lazy-loaded content
+    await new Promise((r: any) => setTimeout(r, 2000));
+    return await page.content();
+  } finally {
+    await browser.close();
+  }
 }
 
 // ── Parse helpers ──────────────────────────────────────────────────────
@@ -373,7 +404,37 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
     console.log(`  [skip] ${year}: coverage starts at ${EARLIEST_YEAR}`);
     return null;
   }
+
+  // For 2024+ pages, WF uses JS rendering. Try Puppeteer first if available.
+  const useBrowser = year >= 2024 && puppeteer;
   const candidates = urlsForYear(year);
+
+  // Browser-based fetch for JS-rendered pages
+  if (useBrowser) {
+    // Only try the most likely URLs with the browser (it's slow)
+    const browserUrls = candidates.filter(c =>
+      c.url.includes('ProspectMeetings') || c.url.includes('meetingsteams')
+    ).slice(0, 3);
+
+    for (const { url, mode } of browserUrls) {
+      try {
+        process.stdout.write(`  ${year}: fetching (browser) ${url} ... `);
+        const html = await fetchHtmlWithBrowser(url);
+        const records = parseHtml(html, year, mode);
+        console.log(`ok (${records.length} records, mode=${mode})`);
+        if (records.length === 0) {
+          const preview = stripTags(html.slice(0, 3000)).slice(0, 500);
+          console.log(`    [html-preview] ${preview}`);
+        }
+        if (records.length > 0) return records;
+      } catch (err) {
+        const msg = (err as Error).message || String(err);
+        console.log(`failed (${msg})`);
+      }
+    }
+  }
+
+  // Static fetch (works for pre-2024 old-format pages)
   for (const { url, mode } of candidates) {
     try {
       process.stdout.write(`  ${year}: fetching ${url} ... `);
@@ -381,8 +442,7 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
       const records = parseHtml(html, year, mode);
       console.log(`ok (${records.length} records, mode=${mode})`);
 
-      // Dump HTML sample when page loads but parser finds nothing (for debugging)
-      if (records.length === 0) {
+      if (records.length === 0 && !useBrowser) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
         const body = bodyMatch ? bodyMatch[1] : html;
         const preview = stripTags(body.slice(0, 2000)).slice(0, 800);

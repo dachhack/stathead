@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Puppeteer (for JS-rendered 2024+ pages)
+        run: npm install puppeteer
+
       - name: Fetch visits from WalterFootball
         run: npx tsx scripts/fetch-visits.ts --years "${{ inputs.years }}"
 
