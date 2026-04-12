@@ -203,7 +203,10 @@ export type Tab =
   | 'draft-strategy'
   | 'draft-optimizer'
   | 'trade-calc'
-  | 'model-docs';
+  | 'dynasty-forecast'
+  | 'model-docs'
+  | 'career-backtest'
+  | 'zap-compare';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
