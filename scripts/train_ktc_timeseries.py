@@ -1315,6 +1315,11 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
     Returns a format-independent dict with raw log-returns and residual stds
     per (player, horizon). `apply_format()` then converts these to absolute
     values using either 1QB or superflex current values.
+
+    Log-returns are dampened by min(1, pgR² / inSampleR²) to shrink
+    overconfident predictions where the model overfits (large gap between
+    in-sample and cross-validated R²). This primarily affects long-horizon
+    RB models where in-sample R² ≈ 0.72 but pgR² ≈ 0.33.
     """
     models = results['models']
     horizons = results['metadata']['horizons']
@@ -1372,10 +1377,23 @@ def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
             for tree in gbm['trees']:
                 log_return += gbm['learningRate'] * _walk_tree(tree, x)
 
+            # Dampen: shrink toward zero by the ratio of honest CV R² to
+            # in-sample R². Where the model overfits (large gap), predictions
+            # are pulled toward "no change". Floor at 0.1 to avoid zeroing
+            # out models with very small but positive pgR².
+            in_r2 = model.get('inSampleR2', 1.0)
+            pg_r2 = model.get('cvR2PlayerGrouped')
+            if in_r2 > 0 and pg_r2 is not None and pg_r2 > 0:
+                dampen = min(1.0, max(0.1, pg_r2 / in_r2))
+            else:
+                dampen = 0.1
+            log_return = float(log_return) * dampen
+
             resid_std = model.get('cvResidualStd') or model.get('yStd', 0.1)
             player_forecasts[str(H)] = {
                 'logReturn': round(float(log_return), 6),
                 'residStd': round(float(resid_std), 6),
+                'dampen': round(dampen, 4),
             }
 
         if player_forecasts:
