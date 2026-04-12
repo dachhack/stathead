@@ -94,12 +94,6 @@ type VisitsStore = Record<string, VisitRecord>;
 function urlsForYear(year: number): { url: string; mode: 'prospect' | 'team' }[] {
   const urls: { url: string; mode: 'prospect' | 'team' }[] = [];
 
-  // React app routes (discovered via Google: /prospectmeetings/byteam/YYYY).
-  // This is WF's newest scheme and appears to cover ALL years including
-  // 2015-2023 which 404 on the older URL patterns. JS-rendered, needs Puppeteer.
-  urls.push({ url: `https://walterfootball.com/prospectmeetings/byteam/${year}`, mode: 'team' });
-  urls.push({ url: `https://walterfootball.com/prospectmeetings/byprospect/${year}`, mode: 'prospect' });
-
   // .php scheme (confirmed 2024-2026)
   if (year >= 2023) {
     urls.push({ url: `https://walterfootball.com/ProspectMeetingsByProspect${year}.php`, mode: 'prospect' });
@@ -407,9 +401,9 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
   }
 
   const candidates = urlsForYear(year);
+  let bestBrowser: VisitRecord[] = [];
 
-  // Try Puppeteer for JS-rendered pages (React app routes + newer .php pages).
-  // The /prospectmeetings/ routes are always JS-rendered for all years.
+  // Try Puppeteer for JS-rendered pages (.php pages on newer WF WordPress theme).
   if (puppeteer) {
     const browserUrls = candidates.filter(c =>
       c.url.includes('/prospectmeetings/') || c.url.includes('ProspectMeetings')
@@ -421,19 +415,32 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
         const html = await fetchHtmlWithBrowser(url);
         const records = parseHtml(html, year, mode);
         console.log(`ok (${records.length} records, mode=${mode})`);
-        if (records.length === 0) {
-          const preview = stripTags(html.slice(0, 3000)).slice(0, 500);
-          console.log(`    [html-preview] ${preview}`);
+        if (records.length < 10) {
+          // Dump raw HTML (not stripped) so we can see the actual DOM structure
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          const body = bodyMatch ? bodyMatch[1] : html;
+          // Skip nav/header — find the main content area
+          const mainMatch = body.match(/<main[^>]*>([\s\S]*)<\/main>/i) ||
+            body.match(/<article[^>]*>([\s\S]*)<\/article>/i) ||
+            body.match(/<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+          const content = mainMatch ? mainMatch[1] : body;
+          console.log(`    [raw-html] ${content.slice(0, 1500)}`);
         }
-        if (records.length > 0) return records;
+        if (records.length > bestBrowser.length) bestBrowser = records;
+        if (records.length >= 10) return records;
       } catch (err) {
         const msg = (err as Error).message || String(err);
         console.log(`failed (${msg})`);
       }
     }
+    if (bestBrowser.length > 0) {
+      // Got some records from browser but < 10 — still use them if static
+      // fetch doesn't do better
+    }
   }
 
   // Static fetch (works for pre-2024 old-format pages)
+  let bestStatic: VisitRecord[] = [];
   for (const { url, mode } of candidates) {
     try {
       process.stdout.write(`  ${year}: fetching ${url} ... `);
@@ -441,15 +448,15 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
       const records = parseHtml(html, year, mode);
       console.log(`ok (${records.length} records, mode=${mode})`);
 
-      if (records.length === 0) {
+      if (records.length < 10) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
         const body = bodyMatch ? bodyMatch[1] : html;
-        const preview = stripTags(body.slice(0, 2000)).slice(0, 800);
-        console.log(`    [html-preview] ${preview.slice(0, 400)}`);
-        console.log(`    [html-preview-cont] ${preview.slice(400, 800)}`);
+        const preview = stripTags(body.slice(0, 2000)).slice(0, 400);
+        console.log(`    [html-preview] ${preview}`);
       }
 
-      if (records.length > 0) return records;
+      if (records.length > bestStatic.length) bestStatic = records;
+      if (records.length >= 10) return records;
     } catch (err) {
       const msg = (err as Error).message || String(err);
       console.log(`failed (${msg})`);
@@ -458,7 +465,9 @@ async function fetchYear(year: number): Promise<VisitRecord[] | null> {
       }
     }
   }
-  return [];
+  // Return whichever approach got more records
+  const best = bestBrowser.length > bestStatic.length ? bestBrowser : bestStatic;
+  return best.length > 0 ? best : [];
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────
