@@ -148,6 +148,10 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return base;
   };
 
+  /** Apply TEP boost to a raw KTC value for a player (used for history/forecasts) */
+  const tepAdjust = (p: KTCPlayer, val: number): number =>
+    tepEnabled && p.position === 'TE' ? Math.round(val * TEP_TE_DYNASTY_BOOST) : val;
+
   const getHistory = (playerID: number) => {
     const h = historyData.find((d) => d.playerID === playerID);
     if (!h) return [];
@@ -171,9 +175,9 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const getProjectedValue = (p: KTCPlayer): number => {
     if (forecastCache) {
       const val = getProjectedValueFromCache(forecastCache, p.playerID, 90);
-      if (val !== null) return val;
+      if (val !== null) return tepAdjust(p, val);
     }
-    // Fallback to old linear projection
+    // Fallback: getValue already includes TEP boost
     return projectValue(getValue(p), p.trend30Day);
   };
 
@@ -216,13 +220,13 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     for (const p of sideA) {
       const v = getValueAtDate(p.playerID, tradeDate);
       if (v == null) { valid = false; break; }
-      aTotal += v;
+      aTotal += tepAdjust(p, v);
     }
     if (valid) {
       for (const p of sideB) {
         const v = getValueAtDate(p.playerID, tradeDate);
         if (v == null) { valid = false; break; }
-        bTotal += v;
+        bTotal += tepAdjust(p, v);
       }
     }
     if (!valid || (sideA.length === 0 && sideB.length === 0)) return null;
@@ -273,7 +277,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const cutoffStr = cutoff.toISOString().slice(0, 10);
     const filteredDates = dates.filter((d) => d >= cutoffStr);
 
-    // Build running last-known values
+    // Build running last-known values (with TEP boost for TEs)
     const rows = filteredDates.map((date) => {
       let aTotal = 0;
       let bTotal = 0;
@@ -287,7 +291,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             if (h.d <= date) val = h.v;
             else break;
           }
-          aTotal += val;
+          aTotal += tepAdjust(p, val);
         }
       }
       for (const p of sideB) {
@@ -299,7 +303,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             if (h.d <= date) val = h.v;
             else break;
           }
-          bTotal += val;
+          bTotal += tepAdjust(p, val);
         }
       }
       return { date, 'Side A': aTotal, 'Side B': bTotal };
