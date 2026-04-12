@@ -237,7 +237,13 @@ export function ModelDocumentation() {
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
-  const [section, setSection] = useState<'projection' | 'rookie'>('projection');
+  const [section, setSection] = useState<'projection' | 'rookie' | 'ktc-forecast'>('projection');
+  const [ktcModels, setKtcModels] = useState<Record<string, {
+    position: string; horizon: number; n: number;
+    cvR2: number | null; cvMae: number | null; cvScheme: string;
+    cvR2PlayerGrouped: number | null; cvR2WalkForward: number | null;
+    cvResidualStd: number | null; inSampleR2: number;
+  }> | null>(null);
   const [rookieSimFormat, setRookieSimFormat] = useState<'1qb' | 'superflex'>('1qb');
 
   useEffect(() => {
@@ -282,6 +288,25 @@ export function ModelDocumentation() {
       setLoading(false);
     }
     load();
+
+    // Load KTC time-series model cache (lightweight — only metrics, no trees)
+    fetch(`${import.meta.env.BASE_URL}data/model-cache-ktc-v2.json`)
+      .then(r => r.ok ? r.json() : null)
+      .then(cache => {
+        if (!cache?.models) return;
+        const summary: Record<string, any> = {};
+        for (const [key, m] of Object.entries(cache.models) as [string, any][]) {
+          summary[key] = {
+            position: m.position, horizon: m.horizon, n: m.n,
+            cvR2: m.cvR2, cvMae: m.cvMae, cvScheme: m.cvScheme,
+            cvR2PlayerGrouped: m.cvR2PlayerGrouped,
+            cvR2WalkForward: m.cvR2WalkForward,
+            cvResidualStd: m.cvResidualStd, inSampleR2: m.inSampleR2,
+          };
+        }
+        setKtcModels(summary);
+      })
+      .catch(() => {});
   }, []);
 
   const model = useMemo(
@@ -378,13 +403,14 @@ export function ModelDocumentation() {
           {([
             { key: 'projection' as const, label: 'Projection Validation', desc: 'Veteran VOR / PPG / Hit-Bust' },
             { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
+            { key: 'ktc-forecast' as const, label: 'KTC Forecast Validation', desc: 'Dynasty value time-series models' },
           ]).map(({ key, label, desc }) => (
             <button
               key={key}
               onClick={() => {
                 setSection(key);
                 if (key === 'projection') setModelCategory('vor');
-                else setModelCategory('career');
+                else if (key === 'rookie') setModelCategory('career');
               }}
               style={{
                 flex: 1, padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
@@ -400,6 +426,11 @@ export function ModelDocumentation() {
           ))}
         </div>
 
+        {section === 'ktc-forecast' && (
+          <KTCForecastValidation models={ktcModels} />
+        )}
+
+        {section !== 'ktc-forecast' && (
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>
             {section === 'projection' ? 'Projection Pipeline Overview' : 'Rookie Career Pipeline Overview'}
@@ -1942,7 +1973,142 @@ export function ModelDocumentation() {
             </div>
           </>
         )}
+        )} {/* end section !== 'ktc-forecast' */}
       </div>
     </>
   );
 }
+
+// ── KTC Forecast Validation Section ─────────────────────────────────
+
+function KTCForecastValidation({ models }: { models: Record<string, any> | null }) {
+  if (!models) {
+    return (
+      <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
+        Loading KTC forecast model data...
+      </div>
+    );
+  }
+
+  const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
+  const HORIZONS = [7, 30, 60, 90, 120];
+  const posColors: Record<string, string> = { QB: '#6366f1', RB: '#22c55e', WR: '#f59e0b', TE: '#ec4899' };
+
+  return (
+    <>
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, marginBottom: 20, border: '1px solid var(--border)' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>KTC Dynasty Value Forecast Pipeline</h3>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
+          Per-(position, horizon) LightGBM models predict log-returns on KTC dynasty values.
+          Trained on 6 months of daily KTC price history (Oct 2025 &ndash; Apr 2026) with
+          fast features (momentum, volatility, rank), slow features (age, draft capital,
+          production), and weekly nflverse features (snap%, targets, carries).
+          Validated via player-grouped 5-fold CV (no held-out player&apos;s data leaks into training).
+        </p>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: 8, marginTop: 12,
+        }}>
+          {[
+            { label: 'Positions', value: '4 (QB, RB, WR, TE)' },
+            { label: 'Horizons', value: '7, 30, 60, 90, 120 days' },
+            { label: 'Total Models', value: '20' },
+            { label: 'CV Scheme', value: 'Player-grouped 5-fold' },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ background: 'var(--bg-tertiary)', borderRadius: 6, padding: '8px 12px' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{label}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginTop: 2 }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Per-(pos, H) metrics table */}
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, marginBottom: 20, border: '1px solid var(--border)' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Cross-Validated Metrics by Position &times; Horizon</h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                <th style={ktcTh}>Pos</th>
+                <th style={ktcTh}>H (days)</th>
+                <th style={ktcThR}>N</th>
+                <th style={ktcThR}>pgR²</th>
+                <th style={ktcThR}>wfR²</th>
+                <th style={ktcThR}>MAE</th>
+                <th style={ktcThR}>Resid Std</th>
+                <th style={ktcThR}>In-Sample R²</th>
+              </tr>
+            </thead>
+            <tbody>
+              {POSITIONS.map(pos =>
+                HORIZONS.map(h => {
+                  const key = `${pos}_H${h}`;
+                  const m = models[key];
+                  if (!m) return null;
+                  const pgR2 = m.cvR2PlayerGrouped;
+                  return (
+                    <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '5px 8px', color: posColors[pos], fontWeight: 700 }}>{pos}</td>
+                      <td style={{ padding: '5px 8px' }}>{h}</td>
+                      <td style={ktcTdR}>{m.n.toLocaleString()}</td>
+                      <td style={{
+                        ...ktcTdR,
+                        color: pgR2 != null && pgR2 > 0.1 ? '#22c55e' : pgR2 != null && pgR2 > 0.02 ? '#a3e635' : 'var(--text-secondary)',
+                        fontWeight: 600,
+                      }}>
+                        {pgR2 != null ? pgR2.toFixed(4) : '-'}
+                      </td>
+                      <td style={ktcTdR}>
+                        {m.cvR2WalkForward != null ? m.cvR2WalkForward.toFixed(4) : '-'}
+                      </td>
+                      <td style={ktcTdR}>{m.cvMae != null ? m.cvMae.toFixed(5) : '-'}</td>
+                      <td style={ktcTdR}>{m.cvResidualStd != null ? m.cvResidualStd.toFixed(4) : '-'}</td>
+                      <td style={ktcTdR}>{m.inSampleR2.toFixed(4)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+          pgR² = player-grouped CV R². wfR² = walk-forward CV R² (only available at H ≤ 30).
+          Resid Std = std of out-of-sample residuals (used for confidence intervals).
+        </p>
+      </div>
+
+      {/* Interpretation guide */}
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, border: '1px solid var(--border)' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Interpreting Forecast Quality</h3>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>pgR² &gt; 0.10</strong> &mdash; Strong signal. The model explains &gt;10% of cross-player
+            value movement variance. QB and RB models are strongest (QB short, RB medium-long).
+          </p>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>0.02 &lt; pgR² &lt; 0.10</strong> &mdash; Moderate signal. Better than a flat &ldquo;no change&rdquo;
+            baseline but forecasts carry wide confidence intervals. WR long-horizon models fall here.
+          </p>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>pgR² &lt; 0.02</strong> &mdash; Weak signal. Forecast is barely better than predicting
+            zero change. WR H=90 is the weakest model; its CI band is very wide.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>Confidence intervals</strong> use ±1.96 × cvResidualStd on the log-return, then
+            exponentiate back to KTC value space. Wider residual std = wider CI bands on the forecast chart.
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const ktcTh: React.CSSProperties = {
+  padding: '5px 8px', textAlign: 'left', fontSize: 11,
+  color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase',
+};
+const ktcThR: React.CSSProperties = { ...ktcTh, textAlign: 'right' };
+const ktcTdR: React.CSSProperties = {
+  padding: '5px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+};
