@@ -4,9 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftProjections, buildRedraftLookup, getRedraftPPG, type ForecastCache, type ForecastResult, type RedraftLookup } from '../lib/ktcForecast';
-
-type FormatMode = '1qb' | 'superflex';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftProjections, buildRedraftLookup, getRedraftPPG, TEP_TE_DYNASTY_BOOST, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -84,7 +82,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [players, setPlayers] = useState<KTCPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [format, setFormat] = useState<FormatMode>('1qb');
+  const [format, setFormat] = useState<ScoringFormat>('1qb');
   const [sideA, setSideA] = useState<KTCPlayer[]>([]);
   const [sideB, setSideB] = useState<KTCPlayer[]>([]);
   const [searchA, setSearchA] = useState('');
@@ -95,22 +93,25 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
   const [redraftLookup, setRedraftLookup] = useState<RedraftLookup | null>(null);
 
+  // KTC only has 1QB and superflex; TEP uses superflex values + TE boost
+  const ktcFormat = format === '1qb' ? '1qb' : 'superflex';
+
   useEffect(() => {
     setLoading(true);
-    fetchKTCRankings(format)
+    fetchKTCRankings(ktcFormat as '1qb' | 'superflex')
       .then((data) => {
         setPlayers(data);
         onDataLoaded?.(data);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
-  }, [format, onDataLoaded]);
+  }, [ktcFormat, onDataLoaded]);
 
   // Load pre-computed KTC forecasts (fire-and-forget, non-blocking)
   useEffect(() => {
-    loadForecasts(format === 'superflex' ? 'superflex' : '1qb')
+    loadForecasts(ktcFormat as '1qb' | 'superflex')
       .then(c => { if (c) setForecastCache(c); });
-  }, [format]);
+  }, [ktcFormat]);
 
   // Load redraft PPG projections (one-time, format-independent)
   useEffect(() => {
@@ -137,12 +138,19 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       .finally(() => setHistoryLoading(false));
   }, [allTradePlayerIds]);
 
-  const getValue = (p: KTCPlayer) => format === 'superflex' ? p.superflexValue : p.value;
+  const getValue = (p: KTCPlayer) => {
+    const base = format === '1qb' ? p.value : p.superflexValue;
+    // TEP: TEs are ~20% more valuable in TE-Premium leagues
+    if (format === 'tep' && p.position === 'TE') {
+      return Math.round(base * TEP_TE_DYNASTY_BOOST);
+    }
+    return base;
+  };
 
   const getHistory = (playerID: number) => {
     const h = historyData.find((d) => d.playerID === playerID);
     if (!h) return [];
-    return format === 'superflex' ? h.superflex.valueHistory : h.oneQB.valueHistory;
+    return format === '1qb' ? h.oneQB.valueHistory : h.superflex.valueHistory;
   };
 
   // Pre-computed GBM forecasts for trade players (keyed by playerID)
@@ -182,10 +190,10 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return best.v;
   };
 
-  /** Get redraft projected PPG for a player, or null if not available. */
+  /** Get redraft projected PPG for a player, adjusted for scoring format. */
   const getPlayerPPG = (p: KTCPlayer): number | null => {
     if (!redraftLookup) return null;
-    return getRedraftPPG(redraftLookup, p.playerName, p.position);
+    return getRedraftPPG(redraftLookup, p.playerName, p.position, format);
   };
 
   const totalA = sideA.reduce((sum, p) => sum + getValue(p), 0);
@@ -555,9 +563,10 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       <div className="controls" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div className="control-group">
           <label className="control-label">Format</label>
-          <select value={format} onChange={(e) => { setFormat(e.target.value as FormatMode); setSideA([]); setSideB([]); }}>
+          <select value={format} onChange={(e) => { setFormat(e.target.value as ScoringFormat); setSideA([]); setSideB([]); }}>
             <option value="1qb">1QB</option>
             <option value="superflex">Superflex</option>
+            <option value="tep">SF TEP</option>
           </select>
         </div>
         <button
@@ -795,8 +804,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       )}
 
       <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)' }}>
-        Values from KeepTradeCut · {format === 'superflex' ? 'Superflex' : '1QB'} format · Projections via GBM time-series
-        {hasRedraft && ' · Redraft PPG = projected PPR/17 (win-now overlay)'}
+        Values from KeepTradeCut · {format === 'tep' ? 'SF TEP' : format === 'superflex' ? 'Superflex' : '1QB'} format · Projections via GBM time-series
+        {hasRedraft && ` · Redraft PPG = 2025 per-game PPR${format === 'tep' ? ' (TEs +0.5/rec)' : ''}`}
       </div>
     </>
   );

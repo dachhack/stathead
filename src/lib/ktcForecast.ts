@@ -102,9 +102,8 @@ export function getProjectedValueFromCache(
 export interface RedraftPlayer {
   name: string;
   position: string;
-  projPPG: number;
-  projPPR: number;
-  priorPPG: number;
+  ppg: number;       // actual 2025 per-game PPR output
+  recPG: number;     // prior-season receptions per game (for TEP adjustment)
 }
 
 export interface RedraftProjections {
@@ -116,6 +115,8 @@ export interface RedraftProjections {
 
 /** Lookup map: normalized "name|position" → RedraftPlayer */
 export type RedraftLookup = Map<string, RedraftPlayer>;
+
+export type ScoringFormat = '1qb' | 'superflex' | 'tep';
 
 function normalizeForJoin(name: string): string {
   return name.toLowerCase().replace(/[.\-']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
@@ -142,13 +143,23 @@ export function buildRedraftLookup(proj: RedraftProjections): RedraftLookup {
   return map;
 }
 
-/** Look up a KTC player's redraft PPG from the projections map. */
+/** Look up a KTC player's redraft PPG, adjusted for scoring format.
+ *  TEP: TEs get +0.5 per reception (TE Premium). */
 export function getRedraftPPG(
   lookup: RedraftLookup,
   playerName: string,
   position: string,
+  scoringFormat: ScoringFormat = '1qb',
 ): number | null {
   const key = `${normalizeForJoin(playerName)}|${position}`;
   const entry = lookup.get(key);
-  return entry ? entry.projPPG : null;
+  if (!entry) return null;
+  let ppg = entry.ppg;
+  if (scoringFormat === 'tep' && position === 'TE') {
+    ppg += 0.5 * entry.recPG; // TE Premium: +0.5 per reception
+  }
+  return ppg;
 }
+
+/** TE Premium dynasty value boost: TEs are ~20% more valuable in TEP leagues. */
+export const TEP_TE_DYNASTY_BOOST = 1.20;
