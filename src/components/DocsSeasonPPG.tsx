@@ -75,10 +75,11 @@ Average % error across all stats: ${cfg.avgPctError}%`}
               <YAxis tick={{ fontSize: 11 }} domain={[0, 30]} unit="%" />
               <Tooltip
                 contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                formatter={(value: number, name: string) => {
+                formatter={((value: number, name: string) => {
                   if (name === 'pctError') return [`${value}%`, '% Error'];
                   return [value, name];
-                }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                }) as any}
               />
               <Bar dataKey="pctError" radius={[4, 4, 0, 0]}>
                 {errorData.map((d, i) => (
