@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat, type TepLevel } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type TepLevel } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -92,12 +92,9 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [tradeDate, setTradeDate] = useState<string>('');
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
-  const [redraftLookup, setRedraftLookup] = useState<RedraftLookup | null>(null);
 
   // KTC only has 1QB and superflex; TEP is an orthogonal overlay
   const ktcFormat = leagueFormat;
-  const tepEnabled = tepLevel > 0;
-  const scoringFormat: ScoringFormat = tepEnabled ? 'tep' : leagueFormat;
 
   useEffect(() => {
     // Only show full loading spinner on initial load — format switches update silently
@@ -116,11 +113,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     loadForecasts(ktcFormat as '1qb' | 'superflex')
       .then(c => { if (c) setForecastCache(c); });
   }, [ktcFormat]);
-
-  // Load redraft PPG projections (one-time, format-independent)
-  useEffect(() => {
-    loadRedraftLookup().then(setRedraftLookup);
-  }, []);
 
   // Fetch history for all players in the trade
   const allTradePlayerIds = useMemo(
@@ -195,21 +187,9 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return best.v;
   };
 
-  /** Get redraft projected PPG for a player, adjusted for scoring format. */
-  const getPlayerPPG = (p: KTCPlayer): number | null => {
-    if (!redraftLookup) return null;
-    return getRedraftPPG(redraftLookup, p.playerName, p.position, scoringFormat);
-  };
-
   const totalA = sideA.reduce((sum, p) => sum + getValue(p), 0);
   const totalB = sideB.reduce((sum, p) => sum + getValue(p), 0);
   const diff = totalA - totalB;
-
-  // Redraft PPG totals (sum of projected weekly PPG per side)
-  const redraftA = sideA.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
-  const redraftB = sideB.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
-  const redraftDiff = redraftA - redraftB;
-  const hasRedraft = redraftLookup !== null && (redraftA > 0 || redraftB > 0);
 
   // Trade-date values (if a date is set)
   const tradeDateTotals = useMemo(() => {
@@ -237,6 +217,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const projA = sideA.reduce((sum, p) => sum + getProjectedValue(p), 0);
   const projB = sideB.reduce((sum, p) => sum + getProjectedValue(p), 0);
   const projDiff = projA - projB;
+
+  // Effective evaluation: use trade-date values when set, otherwise current
+  const evalA = tradeDateTotals ? tradeDateTotals.aTotal : totalA;
+  const evalB = tradeDateTotals ? tradeDateTotals.bTotal : totalB;
+  const evalDiff = evalA - evalB;
 
   const suggestionsA = useMemo(() => {
     if (!searchA) return [];
@@ -360,13 +345,13 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     );
 
   const verdict =
-    Math.abs(diff) < 200 ? 'Fair Trade' :
-    Math.abs(diff) < 500 ? 'Slight Edge' :
-    Math.abs(diff) < 1500 ? 'Uneven' : 'Lopsided';
+    Math.abs(evalDiff) < 200 ? 'Fair Trade' :
+    Math.abs(evalDiff) < 500 ? 'Slight Edge' :
+    Math.abs(evalDiff) < 1500 ? 'Uneven' : 'Lopsided';
   const verdictColor =
-    Math.abs(diff) < 200 ? '#22c55e' :
-    Math.abs(diff) < 500 ? '#a3e635' :
-    Math.abs(diff) < 1500 ? '#facc15' : '#ef4444';
+    Math.abs(evalDiff) < 200 ? '#22c55e' :
+    Math.abs(evalDiff) < 500 ? '#a3e635' :
+    Math.abs(evalDiff) < 1500 ? '#facc15' : '#ef4444';
 
   const hasPlayers = sideA.length > 0 || sideB.length > 0;
 
@@ -376,7 +361,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const projDelta = proj - val;
     const hist = getHistory(p.playerID);
     const deltas = computeHistoricalDeltas(hist);
-    const ppg = getPlayerPPG(p);
 
     return (
       <div
@@ -397,15 +381,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             <span style={{ color: valueColor(val), fontWeight: 600 }}>
               {val.toLocaleString()}
             </span>
-            {ppg !== null && (
-              <span style={{
-                fontSize: 11, color: '#60a5fa', fontWeight: 600,
-                padding: '1px 6px', background: 'rgba(96,165,250,0.1)',
-                borderRadius: 4,
-              }}>
-                {ppg.toFixed(1)} ppg
-              </span>
-            )}
             <button
               onClick={() => setSide(side.filter((s) => s.playerID !== p.playerID))}
               style={{
@@ -469,7 +444,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     total: number,
     projTotal: number,
     color: string,
-    redraftPPG: number,
+    todayTotal?: number,
   ) => (
     <div style={{ flex: 1, minWidth: 280 }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 15, color }}>
@@ -509,15 +484,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                     {p.position} · {p.team}
                   </span>
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: valueColor(getValue(p)), fontWeight: 600, fontSize: 12 }}>
-                    {getValue(p).toLocaleString()}
-                  </span>
-                  {getPlayerPPG(p) !== null && (
-                    <span style={{ fontSize: 10, color: '#60a5fa' }}>
-                      {getPlayerPPG(p)!.toFixed(1)}
-                    </span>
-                  )}
+                <span style={{ color: valueColor(getValue(p)), fontWeight: 600, fontSize: 12 }}>
+                  {getValue(p).toLocaleString()}
                 </span>
               </button>
             ))}
@@ -538,24 +506,24 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         borderRadius: 6, borderTop: `2px solid ${color}`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontWeight: 600, fontSize: 13 }}>Current Total</span>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>{todayTotal != null ? 'At Trade' : 'Total'}</span>
           <span style={{ fontWeight: 700, fontSize: 15, color: valueColor(total) }}>
             {total.toLocaleString()}
           </span>
         </div>
-        {projTotal !== total && (
+        {todayTotal != null && (
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Today</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: deltaColor(todayTotal - total) }}>
+              {todayTotal.toLocaleString()} ({fmtDelta(todayTotal - total)})
+            </span>
+          </div>
+        )}
+        {todayTotal == null && projTotal !== total && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Projected (3mo)</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: deltaColor(projTotal - total) }}>
               {projTotal.toLocaleString()} ({fmtDelta(projTotal - total)})
-            </span>
-          </div>
-        )}
-        {redraftPPG > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
-            <span style={{ fontSize: 12, color: '#60a5fa' }}>Redraft PPG</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#60a5fa' }}>
-              {redraftPPG.toFixed(1)} ppg
             </span>
           </div>
         )}
@@ -603,63 +571,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         </div>
       </div>
 
-      {/* Trade date analysis */}
-      {tradeDate && tradeDateTotals && hasPlayers && (
-        <div style={{
-          margin: '0 16px 12px', padding: '12px 16px', background: 'var(--bg-tertiary)',
-          borderRadius: 8, border: '1px solid var(--border)',
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--text-secondary)' }}>
-            Trade Analysis: {new Date(tradeDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} vs Today
-          </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12 }}>
-            <div>
-              <span style={{ color: SIDE_A_COLOR, fontWeight: 600 }}>Side A</span>{' '}
-              <span style={{ color: 'var(--text-muted)' }}>then:</span>{' '}
-              <strong>{tradeDateTotals.aTotal.toLocaleString()}</strong>
-              <span style={{ color: 'var(--text-muted)' }}> → now:</span>{' '}
-              <strong>{totalA.toLocaleString()}</strong>{' '}
-              <span style={{ color: deltaColor(totalA - tradeDateTotals.aTotal), fontWeight: 600 }}>
-                ({fmtDelta(totalA - tradeDateTotals.aTotal)})
-              </span>
-            </div>
-            <div>
-              <span style={{ color: SIDE_B_COLOR, fontWeight: 600 }}>Side B</span>{' '}
-              <span style={{ color: 'var(--text-muted)' }}>then:</span>{' '}
-              <strong>{tradeDateTotals.bTotal.toLocaleString()}</strong>
-              <span style={{ color: 'var(--text-muted)' }}> → now:</span>{' '}
-              <strong>{totalB.toLocaleString()}</strong>{' '}
-              <span style={{ color: deltaColor(totalB - tradeDateTotals.bTotal), fontWeight: 600 }}>
-                ({fmtDelta(totalB - tradeDateTotals.bTotal)})
-              </span>
-            </div>
-          </div>
-          <div style={{ marginTop: 8, fontSize: 13 }}>
-            {(() => {
-              const thenDiff = tradeDateTotals.diff;
-              const aGain = totalA - tradeDateTotals.aTotal;
-              const bGain = totalB - tradeDateTotals.bTotal;
-              const winner = aGain > bGain ? 'Side A' : aGain < bGain ? 'Side B' : null;
-              const winColor = winner === 'Side A' ? SIDE_A_COLOR : SIDE_B_COLOR;
-              const margin = Math.abs(aGain - bGain);
-              if (!winner || margin < 100) {
-                return <span style={{ color: '#22c55e', fontWeight: 700 }}>Dead even — no clear winner</span>;
-              }
-              return (
-                <span>
-                  <span style={{ color: winColor, fontWeight: 700 }}>{winner} won the trade</span>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {' '}— gained <strong style={{ color: 'var(--text-primary)' }}>{margin.toLocaleString()}</strong> more value since the trade
-                    {Math.abs(thenDiff) >= 200 && (
-                      <> (was {thenDiff > 0 ? 'Side A' : 'Side B'} by {Math.abs(thenDiff).toLocaleString()} at trade time)</>
-                    )}
-                  </span>
-                </span>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+      {/* Warning when trade date has no history */}
       {tradeDate && !tradeDateTotals && hasPlayers && !historyLoading && (
         <div style={{ margin: '0 16px 12px', padding: '8px 16px', fontSize: 12, color: 'var(--text-muted)' }}>
           No history data available for that trade date. Try a more recent date.
@@ -667,27 +579,61 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       )}
 
       <div style={{ padding: '0 16px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-        {renderSide('Side A', sideA, setSideA, searchA, setSearchA, suggestionsA, totalA, projA, SIDE_A_COLOR, redraftA)}
+        {renderSide('Side A', sideA, setSideA, searchA, setSearchA, suggestionsA,
+          evalA, projA, SIDE_A_COLOR, tradeDateTotals ? totalA : undefined)}
 
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           minWidth: 120, padding: '20px 0',
         }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>NOW</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+            {tradeDateTotals
+              ? new Date(tradeDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'NOW'}
+          </div>
           <div style={{
             fontSize: 28, fontWeight: 800, color: verdictColor,
             textAlign: 'center', lineHeight: 1.2,
           }}>
             {verdict}
           </div>
-          {Math.abs(diff) >= 200 && (
+          {Math.abs(evalDiff) >= 200 && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
-              {diff > 0 ? 'Side A' : 'Side B'} by{' '}
-              <strong style={{ color: 'var(--text-primary)' }}>{Math.abs(diff).toLocaleString()}</strong>
+              {evalDiff > 0 ? 'Side A' : 'Side B'} by{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>{Math.abs(evalDiff).toLocaleString()}</strong>
             </div>
           )}
 
-          {hasPlayers && projDiff !== diff && (
+          {/* "Since Trade" retrospective when trade date is set */}
+          {tradeDateTotals && hasPlayers && (
+            <>
+              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>SINCE TRADE</div>
+              {(() => {
+                const aGain = totalA - tradeDateTotals.aTotal;
+                const bGain = totalB - tradeDateTotals.bTotal;
+                const winner = aGain > bGain ? 'Side A' : aGain < bGain ? 'Side B' : null;
+                const winColor = winner === 'Side A' ? SIDE_A_COLOR : SIDE_B_COLOR;
+                const margin = Math.abs(aGain - bGain);
+                if (!winner || margin < 100) {
+                  return <div style={{ fontSize: 13, color: '#22c55e', fontWeight: 700, textAlign: 'center' }}>Dead even</div>;
+                }
+                return (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: winColor, textAlign: 'center' }}>
+                      {winner} won
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
+                      +{margin.toLocaleString()} more value gained
+                    </div>
+                  </>
+                );
+              })()}
+            </>
+          )}
+
+          {/* Projected section (only when no trade date) */}
+          {!tradeDateTotals && hasPlayers && projDiff !== diff && (
             <>
               <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>PROJECTED</div>
@@ -710,32 +656,10 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               )}
             </>
           )}
-
-          {hasRedraft && hasPlayers && (
-            <>
-              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
-              <div style={{ fontSize: 11, color: '#60a5fa', marginBottom: 4 }}>WIN NOW</div>
-              <div style={{
-                fontSize: 18, fontWeight: 700, color: '#60a5fa', textAlign: 'center',
-              }}>
-                {redraftA.toFixed(1)} vs {redraftB.toFixed(1)}
-              </div>
-              {Math.abs(redraftDiff) >= 1 && (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-                  {redraftDiff > 0 ? 'Side A' : 'Side B'} by{' '}
-                  <strong style={{ color: '#60a5fa' }}>{Math.abs(redraftDiff).toFixed(1)} ppg</strong>
-                </div>
-              )}
-              {Math.abs(redraftDiff) < 1 && (
-                <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', fontWeight: 600 }}>
-                  Even for this season
-                </div>
-              )}
-            </>
-          )}
         </div>
 
-        {renderSide('Side B', sideB, setSideB, searchB, setSearchB, suggestionsB, totalB, projB, SIDE_B_COLOR, redraftB)}
+        {renderSide('Side B', sideB, setSideB, searchB, setSearchB, suggestionsB,
+          evalB, projB, SIDE_B_COLOR, tradeDateTotals ? totalB : undefined)}
       </div>
 
       {/* Value History Chart */}
@@ -784,8 +708,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         </div>
       )}
 
-      {/* Balance suggestions */}
-      {balanceSuggestions.length > 0 && hasPlayers && (
+      {/* Balance suggestions (only for current-date evaluation) */}
+      {!tradeDateTotals && balanceSuggestions.length > 0 && hasPlayers && (
         <div style={{ padding: '0 16px 16px' }}>
           <h4 style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-muted)' }}>
             Add to {diff > 0 ? 'Side B' : 'Side A'} to balance:
@@ -817,7 +741,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
       <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)' }}>
         Values from KeepTradeCut · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepLevel > 0 ? ` ${TEP_LABELS[tepLevel]}` : ''} · Projections via GBM time-series
-        {hasRedraft && ` · Redraft PPG = ML predicted${tepEnabled ? ' (TEs +0.5/rec)' : ''}`}
       </div>
     </>
   );
