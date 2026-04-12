@@ -65,8 +65,10 @@ def load_player_stats_csv(season: int) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(path, low_memory=False)
-    # Filter to regular season
     df = df[df['season_type'] == 'REG'].copy()
+    # Normalize team column (2025+ uses 'team' instead of 'recent_team')
+    if 'recent_team' not in df.columns and 'team' in df.columns:
+        df['recent_team'] = df['team']
     return df
 
 

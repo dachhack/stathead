@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
 import projectionConfig from '../generated/projection-config.json';
+import teamProjections from '../generated/team-projections.json';
 
 const STAT_LABELS: Record<string, string> = {
   passAtt: 'Pass Att', passComp: 'Pass Comp', passYds: 'Pass Yards',
@@ -21,8 +22,24 @@ function pctColor(pct: number): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pctFormatter = (v: any) => v != null ? `${v}%` : '';
 
+const ENSEMBLE_STAT_LABELS: Record<string, string> = {
+  passAtt: 'Pass Att', rushAtt: 'Rush Att', targets: 'Targets',
+  passTD: 'Pass TDs', rushTD: 'Rush TDs',
+  passYds: 'Pass Yards', rushYds: 'Rush Yards', recYds: 'Rec Yards',
+  receptions: 'Receptions',
+};
+
 export function DocsSeasonPPG() {
   const cfg = projectionConfig;
+  const tp = teamProjections as {
+    season: number; model: string; description: string;
+    ridgeWeight: number; gbmWeight: number;
+    ridgeFeatures: string[]; gbmFeatures: string[];
+    lgbParams: Record<string, number>;
+    nRounds: number; trainingSeasons: number[]; nTrainingRows: number;
+    avgPctError: number;
+    cvMetrics: Record<string, { mae: number; pctError: number; r2: number; meanActual: number }>;
+  };
   const detail = cfg.perStatDetail as Record<string, { mae: number; rmse: number; meanActual: number; pctError: number }>;
 
   const errorData = Object.entries(detail).map(([key, d]) => ({
@@ -31,6 +48,14 @@ export function DocsSeasonPPG() {
     mae: d.mae,
     rmse: d.rmse,
     meanActual: d.meanActual,
+  }));
+
+  const ensembleErrorData = Object.entries(tp.cvMetrics).map(([key, d]) => ({
+    stat: ENSEMBLE_STAT_LABELS[key] || key,
+    pctError: d.pctError,
+    mae: d.mae,
+    meanActual: d.meanActual,
+    r2: d.r2,
   }));
 
   return (
@@ -46,30 +71,72 @@ export function DocsSeasonPPG() {
           1. Team-Level Stat Projections
         </h2>
         <p style={{ lineHeight: 1.7, marginBottom: 12 }}>
-          The foundation of StatHead's projections. For each of 12 counting stats we blend
-          each team's prior-season total with the league average:
+          The foundation of StatHead's projections. Team volumes are predicted by an <strong>ensemble</strong> of
+          two models trained on {tp.nTrainingRows} team-seasons ({tp.trainingSeasons[0]}&ndash;{tp.trainingSeasons[tp.trainingSeasons.length - 1]}):
         </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: '#6366f1' }}>Ridge Delta Model ({Math.round(tp.ridgeWeight * 100)}%)</div>
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+              Predicts <em>year-over-year changes</em> in team volumes, then adds the predicted delta
+              to the prior-season baseline. Focuses on what <em>changes</em> &mdash; coaching, QB mobility,
+              Vegas-implied scoring, offensive trends.
+            </p>
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: '#22c55e' }}>LightGBM Model ({Math.round(tp.gbmWeight * 100)}%)</div>
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+              Predicts <em>absolute</em> team volumes from 32 features including scheme metrics,
+              personnel rates, O-line quality, and roster investment. {tp.lgbParams.max_depth}-depth trees,
+              {' '}{tp.nRounds} rounds, {tp.lgbParams.learning_rate} learning rate.
+            </p>
+          </div>
+        </div>
+
         <pre style={{
           background: 'var(--bg-secondary)', border: '1px solid var(--border)',
           borderRadius: 8, padding: 16, fontSize: 13, overflowX: 'auto', marginBottom: 16,
         }}>
-{`projected[stat] = prior[stat] × teamWeight + leagueAvg[stat] × leagueWeight
+{`Ensemble: ${Math.round(tp.ridgeWeight * 100)}% Ridge delta + ${Math.round(tp.gbmWeight * 100)}% LightGBM
 
-Optimal weights (grid search, ${cfg.configsTested} configs):
-  teamWeight  = ${cfg.winner.teamWeight}
-  leagueWeight = ${cfg.winner.leagueWeight}
-  Vegas lines  = ${cfg.winner.useVegas ? 'enabled' : 'disabled'}
+Ridge:  projected = prior + Ridge.predict(delta_features)
+GBM:    projected = GBM.predict(full_features)
+Final:  projected = ${tp.ridgeWeight} × Ridge + ${tp.gbmWeight} × GBM
 
-Average % error across all stats: ${cfg.avgPctError}%`}
+Average % error (LOSO CV): ${tp.avgPctError}%
+Training: ${tp.nTrainingRows} team-seasons (${tp.trainingSeasons[0]}–${tp.trainingSeasons[tp.trainingSeasons.length - 1]})`}
         </pre>
 
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Per-Stat Accuracy (Team-Level)</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Feature Groups</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {[
+            { label: 'Prior Volumes', color: '#f59e0b', desc: 'passAtt, rushAtt, targets, TDs, yards' },
+            { label: 'Volume Trends', color: '#ef4444', desc: '2-year changes in pass/rush/target volumes' },
+            { label: 'Coaching', color: '#64748b', desc: 'new head coach, coach prior team PPR' },
+            { label: 'Scheme', color: '#6366f1', desc: 'pass rate, neutral pass rate, pace, shotgun%, no-huddle%, 1st-down run%' },
+            { label: 'Vegas', color: '#eab308', desc: 'implied total, win%, spread, season win total, game total' },
+            { label: 'O-Line', color: '#ec4899', desc: 'sack rate, rush YPC' },
+            { label: 'Personnel', color: '#06b6d4', desc: '11 personnel%, 12 personnel%' },
+            { label: 'Target Rates', color: '#10b981', desc: 'RB/TE/WR target rates' },
+            { label: 'Roster', color: '#a855f7', desc: 'roster turnover rate' },
+          ].map((c) => (
+            <span key={c.label} title={c.desc} style={{
+              background: c.color + '22', color: c.color, border: `1px solid ${c.color}44`,
+              borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'help',
+            }}>
+              {c.label}
+            </span>
+          ))}
+        </div>
+
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Per-Stat Accuracy (Ensemble LOSO CV)</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-          Backtested over {cfg.testSeasons.length} seasons ({cfg.testSeasons[cfg.testSeasons.length - 1]}&#8211;{cfg.testSeasons[0]}), {cfg.configsTested} configurations tested.
+          Backtested over {tp.trainingSeasons.length} seasons ({tp.trainingSeasons[0]}&ndash;{tp.trainingSeasons[tp.trainingSeasons.length - 1]}), leave-one-season-out cross-validation.
         </p>
         <div style={{ width: '100%', height: 320, marginBottom: 16 }}>
           <ResponsiveContainer>
-            <BarChart data={errorData} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+            <BarChart data={ensembleErrorData} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="stat" tick={{ fontSize: 11 }} interval={0} angle={-35} textAnchor="end" height={60} />
               <YAxis tick={{ fontSize: 11 }} domain={[0, 30]} unit="%" />
@@ -82,7 +149,7 @@ Average % error across all stats: ${cfg.avgPctError}%`}
                 }) as any}
               />
               <Bar dataKey="pctError" radius={[4, 4, 0, 0]}>
-                {errorData.map((d, i) => (
+                {ensembleErrorData.map((d, i) => (
                   <Cell key={i} fill={pctColor(d.pctError)} />
                 ))}
                 <LabelList dataKey="pctError" position="top" fontSize={10} formatter={pctFormatter} />
@@ -96,23 +163,44 @@ Average % error across all stats: ${cfg.avgPctError}%`}
             <tr style={{ borderBottom: '2px solid var(--border)' }}>
               <th style={{ textAlign: 'left', padding: '8px 12px' }}>Stat</th>
               <th style={{ textAlign: 'right', padding: '8px 12px' }}>MAE</th>
-              <th style={{ textAlign: 'right', padding: '8px 12px' }}>RMSE</th>
               <th style={{ textAlign: 'right', padding: '8px 12px' }}>Mean Actual</th>
               <th style={{ textAlign: 'right', padding: '8px 12px' }}>% Error</th>
+              <th style={{ textAlign: 'right', padding: '8px 12px' }}>R&sup2;</th>
             </tr>
           </thead>
           <tbody>
-            {errorData.map((d) => (
+            {ensembleErrorData.map((d) => (
               <tr key={d.stat} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '6px 12px', fontWeight: 600 }}>{d.stat}</td>
                 <td style={{ textAlign: 'right', padding: '6px 12px' }}>{d.mae}</td>
-                <td style={{ textAlign: 'right', padding: '6px 12px' }}>{d.rmse}</td>
-                <td style={{ textAlign: 'right', padding: '6px 12px' }}>{d.meanActual.toLocaleString()}</td>
+                <td style={{ textAlign: 'right', padding: '6px 12px' }}>{d.meanActual?.toLocaleString()}</td>
                 <td style={{ textAlign: 'right', padding: '6px 12px', color: pctColor(d.pctError), fontWeight: 700 }}>{d.pctError}%</td>
+                <td style={{ textAlign: 'right', padding: '6px 12px', color: 'var(--text-secondary)' }}>{d.r2?.toFixed(3)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        <details style={{ marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)' }}>
+            All 32 GBM Features
+          </summary>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+            {tp.gbmFeatures.map((f: string) => (
+              <code key={f} style={{ padding: '2px 6px', background: 'var(--bg-tertiary)', borderRadius: 4 }}>{f}</code>
+            ))}
+          </div>
+        </details>
+        <details style={{ marginTop: 8, marginBottom: 8 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)' }}>
+            Ridge Delta Features ({tp.ridgeFeatures.length})
+          </summary>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 4, marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+            {tp.ridgeFeatures.map((f: string) => (
+              <code key={f} style={{ padding: '2px 6px', background: 'var(--bg-tertiary)', borderRadius: 4 }}>{f}</code>
+            ))}
+          </div>
+        </details>
       </section>
 
       {/* ── Player Projection Pipeline ── */}
@@ -226,12 +314,14 @@ Where:
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
           {[
             {
-              title: 'Team Projections',
+              title: 'Team Projections (Ensemble)',
               items: [
-                `Avg % error: ${cfg.avgPctError}%`,
-                `Best stat: Targets (${cfg.perStatErrors.targets}%)`,
-                `Hardest stat: INTs (${cfg.perStatErrors.int}%)`,
-                `Backtested: ${cfg.testSeasons.length} seasons (${cfg.testSeasons[cfg.testSeasons.length - 1]}–${cfg.testSeasons[0]})`,
+                `Model: ${Math.round(tp.ridgeWeight * 100)}% Ridge delta + ${Math.round(tp.gbmWeight * 100)}% LightGBM`,
+                `Avg % error: ${tp.avgPctError}%`,
+                `Pass Att: ${tp.cvMetrics.passAtt?.pctError}% error`,
+                `Rush Att: ${tp.cvMetrics.rushAtt?.pctError}% error`,
+                `Features: ${tp.gbmFeatures.length} (GBM) / ${tp.ridgeFeatures.length} (Ridge)`,
+                `Backtested: ${tp.trainingSeasons.length} seasons (${tp.trainingSeasons[0]}–${tp.trainingSeasons[tp.trainingSeasons.length - 1]})`,
               ],
             },
             {
