@@ -108,7 +108,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     if (!forecastCache || players.length === 0) return [];
 
     // Weights for the composite: heavier on shorter, more reliable horizons
-    const SIGNAL_WEIGHTS: Record<number, number> = { 7: 0.15, 30: 0.30, 60: 0.30, 90: 0.25 };
+    const SIGNAL_WEIGHTS: Record<number, number> = { 7: 0.10, 30: 0.25, 60: 0.25, 90: 0.25, 120: 0.15 };
 
     // First pass: collect raw data + composite scores per position
     const raw: Array<{ player: KTCPlayer; currentValue: number; forecasts: ForecastPoint[]; composite: number }> = [];
@@ -117,14 +117,16 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     for (const player of players) {
       if (!['QB', 'RB', 'WR', 'TE'].includes(player.position)) continue;
       const currentValue = format === 'superflex' ? player.superflexValue : player.value;
-      const forecasts = getPlayerForecasts(forecastCache, player.playerID)
-        .filter(f => f.horizon !== 120) // exclude 120d from display
+      const allHorizons = getPlayerForecasts(forecastCache, player.playerID);
+      // Display H=7..90; 120d feeds the signal but isn't shown as a column
+      const forecasts = allHorizons
+        .filter(f => f.horizon !== 120)
         .map(f => ({ ...f, cvR2: null as number | null }));
       if (forecasts.length === 0) continue;
 
-      // Weighted composite of log-returns across trusted horizons
+      // Weighted composite of log-returns across all horizons (including 120d)
       let wSum = 0, wTotal = 0;
-      for (const f of forecasts) {
+      for (const f of allHorizons) {
         const w = SIGNAL_WEIGHTS[f.horizon] ?? 0;
         if (w > 0) { wSum += w * f.logReturn; wTotal += w; }
       }
