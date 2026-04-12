@@ -1289,6 +1289,154 @@ def main():
     size_mb = OUTPUT_PATH.stat().st_size / 1024 / 1024
     print(f'  {size_mb:.2f} MB')
 
+    # Generate per-player forecasts at the latest date using full feature vectors
+    # Produce both 1QB and superflex versions (same log-return applied to
+    # each format's current value).
+    print()
+    print('Generating per-player forecasts...')
+    forecasts = generate_player_forecasts(
+        results, players, fast_by_pid, slow_by_pid, weekly_by_key, wcd)
+    for fmt in ('1qb', 'superflex'):
+        forecast_path = DATA_DIR / f'ktc-forecasts-{fmt}.json'
+        out = apply_format(forecasts, fmt)
+        with open(forecast_path, 'w') as f:
+            json.dump(out, f)
+        print(f'  {fmt}: {len(out["players"])} players → {forecast_path} '
+              f'({forecast_path.stat().st_size / 1024:.1f} KB)')
+
+
+KTC_VALUE_CAP = 9999  # KTC scale maximum
+
+
+def generate_player_forecasts(results, players, fast_by_pid, slow_by_pid,
+                               weekly_by_key, wcd):
+    """Run trained models on every player's latest-date features.
+
+    Returns a format-independent dict with raw log-returns and residual stds
+    per (player, horizon). `apply_format()` then converts these to absolute
+    values using either 1QB or superflex current values.
+    """
+    models = results['models']
+    horizons = results['metadata']['horizons']
+    rank_by_pid = {}
+    with open(KTC_RANKINGS_PATH) as f:
+        for r in json.load(f):
+            rank_by_pid[r['playerID']] = r
+
+    out_players = {}
+    for p in players:
+        pid = p['pid']
+        pos = p['position']
+        if pid not in fast_by_pid:
+            continue
+        rank_entry = rank_by_pid.get(pid)
+        if not rank_entry:
+            continue
+        value_1qb = rank_entry.get('value', 0)
+        value_sf = rank_entry.get('superflexValue', 0)
+        if value_1qb <= 0 and value_sf <= 0:
+            continue
+
+        pdat = fast_by_pid[pid]
+        valid_dates = pdat['valid_dates']
+        if not valid_dates:
+            continue
+        last_idx = len(valid_dates) - 1
+        fast_vec = pdat['feats'][last_idx]
+
+        slow_dict = slow_by_pid.get(pid, {})
+        slow_keys = slow_feature_names(pos)
+        slow_vec = np.array([sf(slow_dict.get(k, 0.0)) for k in slow_keys],
+                            dtype=np.float64)
+
+        weekly_key = f'{normalize_name(p["name"])}::{pos}'
+        weekly_entry = weekly_by_key.get(weekly_key)
+        weekly_compute = compute_weekly_features_for_player(weekly_entry, wcd)
+        weekly_vec = weekly_compute(valid_dates[-1])
+
+        full_vec = np.concatenate([fast_vec, slow_vec, weekly_vec])
+        fn_full = FAST_FEATURE_NAMES + slow_keys + WEEKLY_FEATURE_NAMES
+
+        player_forecasts = {}
+        for H in horizons:
+            key = f'{pos}_H{H}'
+            model = models.get(key)
+            if not model:
+                continue
+            fn_model = model['featureNames']
+            fn_full_map = {name: float(full_vec[i]) for i, name in enumerate(fn_full)}
+            x = np.array([fn_full_map.get(f, 0.0) for f in fn_model], dtype=np.float64)
+
+            gbm = model['gbmModel']
+            log_return = gbm['initialPrediction']
+            for tree in gbm['trees']:
+                log_return += gbm['learningRate'] * _walk_tree(tree, x)
+
+            resid_std = model.get('cvResidualStd') or model.get('yStd', 0.1)
+            player_forecasts[str(H)] = {
+                'logReturn': round(float(log_return), 6),
+                'residStd': round(float(resid_std), 6),
+            }
+
+        if player_forecasts:
+            out_players[str(pid)] = {
+                'name': p['name'],
+                'position': pos,
+                'value1qb': value_1qb,
+                'valueSF': value_sf,
+                'forecasts': player_forecasts,
+            }
+
+    return {
+        'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'horizons': horizons,
+        'players': out_players,
+    }
+
+
+def apply_format(raw_forecasts, fmt):
+    """Convert raw log-returns to absolute values for a scoring format."""
+    val_key = 'value1qb' if fmt == '1qb' else 'valueSF'
+    out_players = {}
+    for pid, p in raw_forecasts['players'].items():
+        current = p[val_key]
+        if current <= 0:
+            continue
+        forecasts = {}
+        for h, f in p['forecasts'].items():
+            lr = f['logReturn']
+            rs = f['residStd']
+            value = current * float(np.exp(lr))
+            ci_low = current * float(np.exp(lr - 1.96 * rs))
+            ci_high = current * float(np.exp(lr + 1.96 * rs))
+            forecasts[h] = {
+                'value': round(min(value, KTC_VALUE_CAP)),
+                'logReturn': lr,
+                'ciLow': round(max(ci_low, 0)),
+                'ciHigh': round(min(ci_high, KTC_VALUE_CAP)),
+            }
+        out_players[pid] = {
+            'name': p['name'],
+            'position': p['position'],
+            'currentValue': current,
+            'forecasts': forecasts,
+        }
+    return {
+        'generatedAt': raw_forecasts['generatedAt'],
+        'horizons': raw_forecasts['horizons'],
+        'format': fmt,
+        'players': out_players,
+    }
+
+
+def _walk_tree(node, x):
+    """Walk a serialized GBM tree dict to get prediction for sample x."""
+    if node.get('featureIndex', -1) == -1:
+        return node['value']
+    if x[node['featureIndex']] <= node['threshold']:
+        return _walk_tree(node['left'], x)
+    return _walk_tree(node['right'], x)
+
 
 if __name__ == '__main__':
     main()

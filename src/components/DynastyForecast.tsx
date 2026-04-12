@@ -3,11 +3,11 @@ import {
   Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory } from '../types';
-import { fetchKTCRankings, fetchKTCHistory } from '../data';
+import type { KTCPlayer } from '../types';
+import { fetchKTCRankings } from '../data';
 import {
-  loadModelCache, forecastPlayer,
-  type ModelCache, type ForecastResult,
+  loadForecasts, getPlayerForecasts,
+  type ForecastCache, type ForecastResult,
 } from '../lib/ktcForecast';
 
 // ── Forecast types ───────────────────────────────────────────────────
@@ -64,39 +64,32 @@ function buildChartData(currentValue: number, forecasts: ForecastPoint[]): Chart
 // ── Component ────────────────────────────────────────────────────────
 
 export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]) => void }) {
-  const [modelCache, setModelCache] = useState<ModelCache | null>(null);
+  const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
   const [players, setPlayers] = useState<KTCPlayer[]>([]);
-  const [historyMap, setHistoryMap] = useState<Map<number, KTCPlayerHistory>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
+  const [format, setFormat] = useState<'1qb' | 'superflex'>('1qb');
 
   // Load data
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setLoading(true);
       try {
-        const [cacheResp, rankings] = await Promise.all([
-          loadModelCache().then(c => {
-            if (!c) throw new Error('Model cache unavailable');
+        const [cache, rankings] = await Promise.all([
+          loadForecasts(format).then(c => {
+            if (!c) throw new Error('Forecast data unavailable');
             return c;
           }),
-          fetchKTCRankings('1qb'),
+          fetchKTCRankings(format),
         ]);
         if (cancelled) return;
-        setModelCache(cacheResp);
+        setForecastCache(cache);
         setPlayers(rankings);
         onDataLoaded?.(rankings);
-
-        // Load history for all players
-        const ids = rankings.map(p => p.playerID);
-        const histories = await fetchKTCHistory(ids);
-        if (cancelled) return;
-        const hMap = new Map<number, KTCPlayerHistory>();
-        for (const h of histories) hMap.set(h.playerID, h);
-        setHistoryMap(hMap);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
       } finally {
@@ -105,53 +98,26 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     }
     load();
     return () => { cancelled = true; };
-  }, [onDataLoaded]);
+  }, [onDataLoaded, format]);
 
-  // Compute position rank percentiles
-  const posRankPcts = useMemo(() => {
-    const byPos = new Map<string, KTCPlayer[]>();
-    for (const p of players) {
-      const list = byPos.get(p.position) || [];
-      list.push(p);
-      byPos.set(p.position, list);
-    }
-    const pcts = new Map<number, number>();
-    for (const [, list] of byPos) {
-      list.sort((a, b) => b.value - a.value);
-      const denom = Math.max(1, list.length - 1);
-      list.forEach((p, i) => pcts.set(p.playerID, i / denom));
-    }
-    return pcts;
-  }, [players]);
-
-  // Generate forecasts for all players
+  // Build forecasts from pre-computed cache
   const allForecasts = useMemo(() => {
-    if (!modelCache || players.length === 0 || historyMap.size === 0) return [];
+    if (!forecastCache || players.length === 0) return [];
 
     const results: PlayerForecast[] = [];
 
     for (const player of players) {
       if (!['QB', 'RB', 'WR', 'TE'].includes(player.position)) continue;
-      const hist = historyMap.get(player.playerID);
-      if (!hist) continue;
-      const vh = hist.oneQB.valueHistory;
-
-      const rankPct = posRankPcts.get(player.playerID) ?? 0.5;
-      const currentValue = player.value;
-      const raw = forecastPlayer(modelCache, player.position, currentValue, vh, rankPct);
+      const currentValue = format === 'superflex' ? player.superflexValue : player.value;
+      const raw = getPlayerForecasts(forecastCache, player.playerID);
       if (raw.length === 0) continue;
 
-      const forecasts: ForecastPoint[] = raw.map(f => {
-        const key = `${player.position}_H${f.horizon}`;
-        const model = modelCache.models[key];
-        return { ...f, cvR2: model?.cvR2 ?? null };
-      });
-
+      const forecasts: ForecastPoint[] = raw.map(f => ({ ...f, cvR2: null }));
       results.push({ player, currentValue, forecasts });
     }
 
     return results;
-  }, [modelCache, players, historyMap, posRankPcts]);
+  }, [forecastCache, players, format]);
 
   // Filtered + searched list
   const filtered = useMemo(() => {
@@ -204,6 +170,17 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
 
         {/* Controls */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            value={format}
+            onChange={e => setFormat(e.target.value as '1qb' | 'superflex')}
+            style={{
+              padding: '4px 8px', fontSize: 12, background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text-primary)',
+            }}
+          >
+            <option value="1qb">1QB</option>
+            <option value="superflex">Superflex</option>
+          </select>
           <input
             type="text"
             placeholder="Search player..."
