@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type ScoringFormat, type TepLevel } from '../lib/ktcForecast';
+import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type TepLevel } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -96,7 +96,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   // KTC only has 1QB and superflex; TEP is an orthogonal overlay
   const ktcFormat = leagueFormat;
-  const scoringFormat: ScoringFormat = tepLevel > 0 ? 'tep' : leagueFormat;
+  // scoringFormat is no longer needed — tepLevel is passed directly to getRedraftPPG
 
   useEffect(() => {
     // Only show full loading spinner on initial load — format switches update silently
@@ -197,7 +197,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   /** Get redraft projected PPG for a player, adjusted for scoring format. */
   const getPlayerPPG = (p: KTCPlayer): number | null => {
     if (!redraftLookup) return null;
-    return getRedraftPPG(redraftLookup, p.playerName, p.position, scoringFormat);
+    return getRedraftPPG(redraftLookup, p.playerName, p.position, tepLevel);
   };
 
   const totalA = sideA.reduce((sum, p) => sum + getValue(p), 0);

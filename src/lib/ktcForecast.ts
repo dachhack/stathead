@@ -174,20 +174,33 @@ export function loadRedraftLookup(): Promise<RedraftLookup> {
   return _redraftPromise;
 }
 
-/** Look up a KTC player's redraft PPG, adjusted for scoring format.
- *  TEP: TEs get +0.5 per reception (TE Premium). */
+/**
+ * Per-reception PPG bonus for each TEP tier.
+ *   TE+  → +0.5 per reception
+ *   TE++ → +1.0 per reception
+ *   TE+++→ +1.5 per reception
+ */
+export const TEP_PPG_BONUS: Record<TepLevel, number> = {
+  0: 0,
+  1: 0.5,
+  2: 1.0,
+  3: 1.5,
+};
+
+/** Look up a KTC player's redraft PPG, adjusted for TEP tier.
+ *  TEs get a per-reception bonus scaled by tepLevel. */
 export function getRedraftPPG(
   lookup: RedraftLookup,
   playerName: string,
   position: string,
-  scoringFormat: ScoringFormat = '1qb',
+  tepLevel: TepLevel = 0,
 ): number | null {
   const key = `${normalizeForJoin(playerName)}|${position}`;
   const entry = lookup.get(key);
   if (!entry) return null;
   let ppg = entry.ppg;
-  if (scoringFormat === 'tep' && position === 'TE') {
-    ppg += 0.5 * entry.recPG; // TE Premium: +0.5 per reception
+  if (tepLevel > 0 && position === 'TE') {
+    ppg += TEP_PPG_BONUS[tepLevel] * entry.recPG;
   }
   return ppg;
 }
