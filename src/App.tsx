@@ -30,6 +30,7 @@ import { ZapComparison } from './components/ZapComparison';
 import { DocsRookie } from './components/DocsRookie';
 import { DocsDynasty } from './components/DocsDynasty';
 import { DocsSeasonPPG } from './components/DocsSeasonPPG';
+import { MyRankings } from './components/MyRankings';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -49,6 +50,7 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Draft Prep',
     tabs: [
       { id: 'projections', label: 'Projections' },
+      { id: 'my-rankings', label: 'My Rankings' },
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
@@ -204,6 +206,7 @@ function App() {
       </header>
       <main className="main">
         {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
+        {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
           ? <ExternalRankings2026 />
           : tab === 'stats' && (
