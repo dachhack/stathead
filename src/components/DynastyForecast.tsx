@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
 import type { KTCPlayer } from '../types';
-import { fetchKTCRankings } from '../data';
+import { fetchKTCRankings, fetchKTCHistory } from '../data';
 import {
   loadForecasts, getPlayerForecasts,
   type ForecastCache, type ForecastResult,
@@ -39,26 +39,60 @@ function posColor(pos: string): string {
 // ── Chart data ───────────────────────────────────────────────────────
 
 interface ChartRow {
-  label: string;
   days: number;
-  value: number;
+  history?: number;
+  forecast?: number;
   ciLow: number;
   ciHigh: number;
 }
 
-function buildChartData(currentValue: number, forecasts: ForecastPoint[]): ChartRow[] {
-  const rows: ChartRow[] = [
-    { label: 'Now', days: 0, value: currentValue, ciLow: currentValue, ciHigh: currentValue },
-  ];
+function buildChartData(
+  currentValue: number,
+  forecasts: ForecastPoint[],
+  history: { d: string; v: number }[],
+): ChartRow[] {
+  const rows: ChartRow[] = [];
+  const now = Date.now();
+
+  // Historical data: last 180 days, sampled to ~20 points
+  if (history.length > 0) {
+    const cutoff = now - 180 * 86400000;
+    const recent = history.filter(h => new Date(h.d).getTime() >= cutoff);
+    const step = Math.max(1, Math.ceil(recent.length / 20));
+    for (let i = 0; i < recent.length; i += step) {
+      const h = recent[i];
+      const days = Math.round((new Date(h.d).getTime() - now) / 86400000);
+      rows.push({ days, history: h.v, ciLow: h.v, ciHigh: h.v });
+    }
+    // Always include the last history point for a smooth bridge to "Now"
+    const last = recent[recent.length - 1];
+    if (last && rows.length > 0) {
+      const lastDays = Math.round((new Date(last.d).getTime() - now) / 86400000);
+      if (rows[rows.length - 1].days !== lastDays) {
+        rows.push({ days: lastDays, history: last.v, ciLow: last.v, ciHigh: last.v });
+      }
+    }
+  }
+
+  // "Now" bridge: connects history and forecast lines
+  rows.push({
+    days: 0,
+    history: currentValue,
+    forecast: currentValue,
+    ciLow: currentValue,
+    ciHigh: currentValue,
+  });
+
+  // Forecast points
   for (const f of forecasts) {
     rows.push({
-      label: `+${f.horizon}d`,
       days: f.horizon,
-      value: Math.round(f.value),
+      forecast: Math.round(f.value),
       ciLow: Math.round(f.ciLow),
       ciHigh: Math.round(f.ciHigh),
     });
   }
+
   return rows;
 }
 
@@ -75,6 +109,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   const [format, setFormat] = useState<'1qb' | 'superflex'>('1qb');
   const [sortCol, setSortCol] = useState<string>('now');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [selectedHistory, setSelectedHistory] = useState<{ d: string; v: number }[]>([]);
 
   // Load data
   useEffect(() => {
@@ -102,6 +137,21 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     load();
     return () => { cancelled = true; };
   }, [onDataLoaded, format]);
+
+  // Fetch value history for the selected player (for chart)
+  useEffect(() => {
+    if (selectedId === null) { setSelectedHistory([]); return; }
+    fetchKTCHistory([selectedId])
+      .then(data => {
+        const h = data.find(d => d.playerID === selectedId);
+        if (h) {
+          setSelectedHistory(format === 'superflex' ? h.superflex.valueHistory : h.oneQB.valueHistory);
+        } else {
+          setSelectedHistory([]);
+        }
+      })
+      .catch(() => setSelectedHistory([]));
+  }, [selectedId, format]);
 
   // Build forecasts from pre-computed cache + compute within-position signal
   const allForecasts = useMemo(() => {
@@ -305,6 +355,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
             currentValue={selectedForecast.currentValue}
             forecasts={selectedForecast.forecasts}
             position={selectedForecast.player.position}
+            history={selectedHistory}
           />
         </div>
       )}
@@ -401,20 +452,34 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
 
 // ── Sub-components ───────────────────────────────────────────────────
 
-function ForecastChart({ currentValue, forecasts, position }: {
+function ForecastChart({ currentValue, forecasts, position, history }: {
   currentValue: number;
   forecasts: ForecastPoint[];
   position: string;
+  history: { d: string; v: number }[];
 }) {
-  const data = buildChartData(currentValue, forecasts);
+  const data = buildChartData(currentValue, forecasts, history);
   const color = posColor(position);
   const ciColor = color + '20';
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={260}>
       <ComposedChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis dataKey="label" stroke="var(--text-muted)" fontSize={11} />
+        <XAxis
+          dataKey="days"
+          type="number"
+          domain={['dataMin', 'dataMax']}
+          tickFormatter={(days: number) => {
+            if (days === 0) return 'Now';
+            if (days > 0) return `+${days}d`;
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+          }}
+          stroke="var(--text-muted)"
+          fontSize={11}
+        />
         <YAxis
           stroke="var(--text-muted)"
           fontSize={10}
@@ -430,53 +495,51 @@ function ForecastChart({ currentValue, forecasts, position }: {
           }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter={((value: any, name: any) => {
-            if (name === 'ciRange' || name === 'ciLow') return [null, null];
-            return [Math.round(Number(value)).toLocaleString(), name];
+            if (name === 'ciHigh' || name === 'ciLow') return [null, null];
+            const label = name === 'history' ? 'Value' : 'Forecast';
+            return [Math.round(Number(value)).toLocaleString(), label];
           }) as any}
-          labelFormatter={(label) => String(label)}
+          labelFormatter={(days) => {
+            const d = Number(days);
+            if (d === 0) return 'Today';
+            if (d > 0) return `+${d} days`;
+            const date = new Date();
+            date.setDate(date.getDate() + d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }}
         />
+        {/* CI band: fills between ciLow and ciHigh (zero-width over history) */}
         <Area
-          dataKey="ciLow"
-          stroke="none"
-          fill="none"
-          legendType="none"
-          tooltipType="none"
-        />
-        <Area
-          dataKey="ciRange"
+          dataKey="ciHigh"
           stroke="none"
           fill={ciColor}
           legendType="none"
+          tooltipType="none"
           baseLine={data.map(d => d.ciLow) as any}
         />
+        {/* Historical value: solid line */}
         <Line
           type="monotone"
-          dataKey="ciHigh"
+          dataKey="history"
           stroke={color}
-          strokeWidth={1}
-          strokeDasharray="4 4"
+          strokeWidth={2}
           dot={false}
-          legendType="none"
-          tooltipType="none"
+          name="history"
+          connectNulls={false}
         />
+        {/* Forecast: dashed line with dots */}
         <Line
           type="monotone"
-          dataKey="ciLow"
-          stroke={color}
-          strokeWidth={1}
-          strokeDasharray="4 4"
-          dot={false}
-          legendType="none"
-          tooltipType="none"
-        />
-        <Line
-          type="monotone"
-          dataKey="value"
+          dataKey="forecast"
           stroke={color}
           strokeWidth={2.5}
+          strokeDasharray="6 3"
           dot={{ fill: color, r: 4 }}
-          name="Forecast"
+          name="forecast"
+          connectNulls={false}
         />
+        {/* "Now" reference line */}
+        <ReferenceLine x={0} stroke="var(--text-muted)" strokeDasharray="3 3" />
       </ComposedChart>
     </ResponsiveContainer>
   );
