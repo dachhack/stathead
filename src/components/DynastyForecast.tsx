@@ -119,7 +119,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     return results;
   }, [forecastCache, players, format]);
 
-  // Filtered + searched list
+  // Filtered + searched list, sorted by current value descending
   const filtered = useMemo(() => {
     let list = allForecasts;
     if (posFilter !== 'ALL') {
@@ -129,7 +129,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       const q = search.toLowerCase();
       list = list.filter(f => f.player.playerName.toLowerCase().includes(q));
     }
-    return list;
+    return [...list].sort((a, b) => b.currentValue - a.currentValue);
   }, [allForecasts, posFilter, search]);
 
   const selectedForecast = useMemo(() => {
