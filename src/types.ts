@@ -208,7 +208,8 @@ export type Tab =
   | 'zap-compare'
   | 'docs-rookie'
   | 'docs-dynasty'
-  | 'docs-season-ppg';
+  | 'docs-season-ppg'
+  | 'my-rankings';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
