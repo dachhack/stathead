@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, "claude/nfl-fantasy-workbench-6D1yd"]
+    branches: [main, "claude/nfl-fantasy-workbench-6D1yd", "claude/ktc-forecast-integration-MxLri"]
 
 permissions:
   contents: write
