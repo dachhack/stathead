@@ -208,7 +208,6 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const redraftA = sideA.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
   const redraftB = sideB.reduce((sum, p) => sum + (getPlayerPPG(p) ?? 0), 0);
   const redraftDiff = redraftA - redraftB;
-  const hasRedraft = !tradeDateTotals && redraftLookup !== null && (redraftA > 0 || redraftB > 0);
 
   // Trade-date values (if a date is set)
   const tradeDateTotals = useMemo(() => {
@@ -231,6 +230,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     if (!valid || (sideA.length === 0 && sideB.length === 0)) return null;
     return { aTotal, bTotal, diff: aTotal - bTotal };
   }, [tradeDate, sideA, sideB, historyData, leagueFormat, tepLevel]);
+
+  const hasRedraft = !tradeDateTotals && redraftLookup !== null && (redraftA > 0 || redraftB > 0);
 
   // Projected totals (GBM at H=90, with linear fallback)
   const projA = sideA.reduce((sum, p) => sum + getProjectedValue(p), 0);
