@@ -430,7 +430,7 @@ export function ModelDocumentation() {
           <KTCForecastValidation models={ktcModels} />
         )}
 
-        {section !== 'ktc-forecast' && (
+        {section !== 'ktc-forecast' && (<>
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>
             {section === 'projection' ? 'Projection Pipeline Overview' : 'Rookie Career Pipeline Overview'}
@@ -1973,7 +1973,7 @@ export function ModelDocumentation() {
             </div>
           </>
         )}
-        )} {/* end section !== 'ktc-forecast' */}
+        </>)}
       </div>
     </>
   );

@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
 import { fetchKTCRankings, fetchKTCHistory } from '../data';
+import { loadModelCache, forecastPlayer, type ModelCache, type ForecastResult } from '../lib/ktcForecast';
 
 type FormatMode = '1qb' | 'superflex';
 
@@ -91,6 +92,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [historyData, setHistoryData] = useState<KTCPlayerHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [tradeDate, setTradeDate] = useState<string>('');
+  const [modelCache, setModelCache] = useState<ModelCache | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -102,6 +104,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [format, onDataLoaded]);
+
+  // Load KTC time-series model cache (fire-and-forget, non-blocking)
+  useEffect(() => {
+    loadModelCache().then(c => { if (c) setModelCache(c); });
+  }, []);
 
   // Fetch history for all players in the trade
   const allTradePlayerIds = useMemo(
@@ -127,6 +134,51 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     const h = historyData.find((d) => d.playerID === playerID);
     if (!h) return [];
     return format === 'superflex' ? h.superflex.valueHistory : h.oneQB.valueHistory;
+  };
+
+  // GBM-based projected values for trade players (keyed by playerID)
+  const gbmForecasts = useMemo(() => {
+    const map = new Map<number, ForecastResult[]>();
+    if (!modelCache || historyData.length === 0) return map;
+
+    // Compute position rank percentiles from all loaded players
+    const byPos = new Map<string, KTCPlayer[]>();
+    for (const p of players) {
+      const list = byPos.get(p.position) || [];
+      list.push(p);
+      byPos.set(p.position, list);
+    }
+    const rankPcts = new Map<number, number>();
+    for (const [, list] of byPos) {
+      list.sort((a, b) => b.value - a.value);
+      const denom = Math.max(1, list.length - 1);
+      list.forEach((p, i) => rankPcts.set(p.playerID, i / denom));
+    }
+
+    const tradePlayers = [...sideA, ...sideB];
+    for (const p of tradePlayers) {
+      if (map.has(p.playerID)) continue;
+      const hist = getHistory(p.playerID);
+      if (hist.length === 0) continue;
+      const rankPct = rankPcts.get(p.playerID) ?? 0.5;
+      const forecasts = forecastPlayer(modelCache, p.position, getValue(p), hist, rankPct);
+      if (forecasts.length > 0) map.set(p.playerID, forecasts);
+    }
+    return map;
+  }, [modelCache, historyData, sideA, sideB, players, format]);
+
+  /** Get GBM projected value at ~90 days, falling back to linear trend. */
+  const getProjectedValue = (p: KTCPlayer): number => {
+    const forecasts = gbmForecasts.get(p.playerID);
+    if (forecasts) {
+      // Prefer H=90, fall back to longest available
+      const h90 = forecasts.find(f => f.horizon === 90);
+      if (h90) return Math.round(h90.value);
+      const longest = forecasts[forecasts.length - 1];
+      if (longest) return Math.round(longest.value);
+    }
+    // Fallback to old linear projection
+    return projectValue(getValue(p), p.trend30Day);
   };
 
   /** Get a player's value on or near a specific date from history */
@@ -169,9 +221,9 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return { aTotal, bTotal, diff: aTotal - bTotal };
   }, [tradeDate, sideA, sideB, historyData, format]);
 
-  // Projected totals (using trend)
-  const projA = sideA.reduce((sum, p) => sum + projectValue(getValue(p), p.trend30Day), 0);
-  const projB = sideB.reduce((sum, p) => sum + projectValue(getValue(p), p.trend30Day), 0);
+  // Projected totals (GBM at H=90, with linear fallback)
+  const projA = sideA.reduce((sum, p) => sum + getProjectedValue(p), 0);
+  const projB = sideB.reduce((sum, p) => sum + getProjectedValue(p), 0);
   const projDiff = projA - projB;
 
   const suggestionsA = useMemo(() => {
@@ -244,6 +296,27 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       }
       return { date, 'Side A': aTotal, 'Side B': bTotal };
     });
+
+    // Add projected dashed segment: bridge from last actual to 90-day projection
+    if (rows.length > 0 && (sideA.length > 0 || sideB.length > 0)) {
+      const last = rows[rows.length - 1];
+      // Tag the last actual point with projected values too (so the line connects)
+      const projATotal = sideA.reduce((sum, p) => sum + getProjectedValue(p), 0);
+      const projBTotal = sideB.reduce((sum, p) => sum + getProjectedValue(p), 0);
+      last['Side A Proj'] = last['Side A'];
+      last['Side B Proj'] = last['Side B'];
+
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 90);
+      const futureDateStr = futureDate.toISOString().slice(0, 10);
+      rows.push({
+        date: futureDateStr,
+        'Side A Proj': projATotal,
+        'Side B Proj': projBTotal,
+      } as any);
+    }
+
+    return rows;
   }, [sideA, sideB, historyData, format]);
 
   // Balance suggestions
@@ -288,7 +361,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   const renderPlayerRow = (p: KTCPlayer, side: KTCPlayer[], setSide: (v: KTCPlayer[]) => void) => {
     const val = getValue(p);
-    const proj = projectValue(val, p.trend30Day);
+    const proj = getProjectedValue(p);
     const projDelta = proj - val;
     const hist = getHistory(p.playerID);
     const deltas = computeHistoricalDeltas(hist);
@@ -345,6 +418,22 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             </span>
           )}
         </div>
+        {/* GBM multi-horizon forecasts */}
+        {gbmForecasts.has(p.playerID) && (
+          <div style={{ display: 'flex', gap: 10, fontSize: 10, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600 }}>GBM:</span>
+            {gbmForecasts.get(p.playerID)!
+              .filter(f => [30, 60, 90, 120].includes(f.horizon))
+              .map(f => {
+                const delta = Math.round(f.value) - val;
+                return (
+                  <span key={f.horizon} style={{ color: deltaColor(delta) }}>
+                    +{f.horizon}d: {Math.round(f.value).toLocaleString()}
+                  </span>
+                );
+              })}
+          </div>
+        )}
       </div>
     );
   };
