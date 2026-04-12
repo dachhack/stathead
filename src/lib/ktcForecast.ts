@@ -102,6 +102,7 @@ export function getProjectedValueFromCache(
 import { loadPPGScores, loadCareerScores } from './modelScoreClient';
 
 export type ScoringFormat = '1qb' | 'superflex' | 'tep';
+export type TepLevel = 0 | 1 | 2 | 3; // 0=off, 1=TE+, 2=TE++, 3=TE+++
 
 interface PPGEntry {
   ppg: number;
@@ -191,5 +192,21 @@ export function getRedraftPPG(
   return ppg;
 }
 
-/** TE Premium dynasty value boost: TEs are ~20% more valuable in TEP leagues. */
-export const TEP_TE_DYNASTY_BOOST = 1.20;
+/**
+ * TE Premium dynasty value multipliers derived from KTC's TE+/++/+++ tiers.
+ * Empirical averages from KTC Superflex rankings (Apr 2026):
+ *   TE+  ≈ 1.11x   TE++  ≈ 1.215x   TE+++  ≈ 1.32x
+ */
+export const TEP_MULTIPLIERS: Record<TepLevel, number> = {
+  0: 1.0,
+  1: 1.11,
+  2: 1.215,
+  3: 1.32,
+};
+
+export const TEP_LABELS: Record<TepLevel, string> = {
+  0: 'Off',
+  1: 'TE+',
+  2: 'TE++',
+  3: 'TE+++',
+};
