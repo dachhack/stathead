@@ -1,7 +1,7 @@
 declare const __APP_VERSION__: string;
 declare const __BUILD_HASH__: string;
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -24,7 +24,9 @@ import { RookieProspectsView } from './components/RookieProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { DynastyForecast } from './components/DynastyForecast';
 import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
-import { ModelDocs } from './components/ModelDocs';
+import { ModelDocumentation } from './components/ModelDocumentation';
+import { RookieCareerBacktest } from './components/RookieCareerBacktest';
+import { ZapComparison } from './components/ZapComparison';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -46,8 +48,6 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'projections', label: 'Projections' },
       { id: 'stats', label: 'Rankings' },
       { id: 'adp', label: 'ADP Research' },
-      { id: 'prospects', label: 'Prospects' },
-      { id: 'draft-strategy', label: 'Draft Strategy' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
     ],
   },
@@ -80,6 +80,8 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'combine', label: 'Combine' },
       { id: 'draft', label: 'Draft History' },
       { id: 'charts', label: 'Chart Builder' },
+      { id: 'career-backtest', label: 'Career Backtest' },
+      { id: 'zap-compare', label: 'ZAP Compare' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
   },
@@ -88,7 +90,7 @@ const TAB_GROUPS: TabGroup[] = [
 
 function App() {
   const [tab, setTab] = useState<Tab>('projections');
-  const [season, setSeason] = useState(2025);
+  const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setApiKeysVersion] = useState(0);
@@ -101,7 +103,10 @@ function App() {
     setExtraData(data);
   }, []);
 
-  const dataContext = buildDataContext(tab, season, seasonTotals, extraData);
+  const dataContext = useMemo(
+    () => buildDataContext(tab, season, seasonTotals, extraData),
+    [tab, season, seasonTotals, extraData],
+  );
 
 
   return (
@@ -224,7 +229,6 @@ function App() {
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
-        {tab === 'draft-strategy' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
@@ -238,7 +242,9 @@ function App() {
           <PlayByPlayView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'charts' && <RookieRBChart />}
-        {tab === 'model-docs' && <ModelDocs />}
+        {tab === 'career-backtest' && <RookieCareerBacktest />}
+        {tab === 'zap-compare' && <ZapComparison />}
+        {tab === 'model-docs' && <ModelDocumentation />}
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}

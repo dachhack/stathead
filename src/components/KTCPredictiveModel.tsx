@@ -15,6 +15,7 @@ import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBMWithCI, predictGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 import { loadAllScenarios } from '../lib/scenarioEngine';
+import { loadShards, KTC_MODEL_GROUPS } from '../lib/featureStoreClient';
 
 // ── Types ──
 
@@ -264,6 +265,10 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
           if (d.position === position) draftByName.set(normalizeName(d.pfr_player_name), d);
         }
 
+        // ── Load shared features from feature store (pre-computed) ──
+        setLoadingStatus('Loading feature store...');
+        const storeFeatures = await loadShards([...KTC_MODEL_GROUPS]).catch(() => new Map());
+
         // ── 2. Build training rows for each season ──
         const rows: ModelRow[] = [];
 
@@ -424,52 +429,53 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
 
             const yrsInLeague = draft ? season - draft.season : 0;
 
+            // Pull shared features from feature store (pre-computed)
+            const storeKey = `${normalName}::${season}`;
+            const stored = storeFeatures.get(storeKey) || {};
+
             const features: Record<string, number> = {
+              // KTC-specific features (not in feature store)
               septValue: septVal,
-              age: ktcPlayer.age || 0,
-              draftRound: draft?.round || 8,
-              draftPick: draft?.pick || 300,
-              yearsInLeague: yrsInLeague,
-              weight: wt,
-              bmi: Math.round(bmi * 10) / 10,
-              forty: fortyTime,
-              speedScore: Math.round(speedScore * 10) / 10,
-              depthChartRank: dcRank,
-              priorDepthChartRank: priorDcRank,
               depthChartChange: dcChange,
-              priorGames: priorGamesPlayed,
-              priorRushYards: priorRushYds,
-              priorRushTDs: prior?.rushing_tds || 0,
-              priorYPC: priorCarries > 0 ? Math.round((priorRushYds / priorCarries) * 10) / 10 : 0,
-              priorTargets: prior?.targets || 0,
-              priorReceptions: prior?.receptions || 0,
-              priorRecYards: prior?.receiving_yards || 0,
-              priorRecTDs: prior?.receiving_tds || 0,
-              priorPassYards: prior?.passing_yards || 0,
-              priorPassTDs: prior?.passing_tds || 0,
-              priorINTs: prior?.interceptions || 0,
+              priorDepthChartRank: priorDcRank,
               priorCompletions: prior?.completions || 0,
               priorAttempts: prior?.attempts || 0,
               priorFantasyPPR: Math.round(priorPPR * 10) / 10,
-              priorPPG: priorGamesPlayed > 0 ? Math.round((priorPPR / priorGamesPlayed) * 10) / 10 : 0,
-              priorTotalTouches: priorCarries + (prior?.receptions || 0),
-              priorSnapPct: Math.round(snapPct * 10) / 10,
-              priorInjuryWeeks: injHist.weeks,
-              priorGamesOut: injHist.out,
-              priorGamesMissed: gamesMissed,
               teamWins: tw,
               teamPPG: Math.round(tppg * 10) / 10,
-              // Projection model features
-              ...(() => {
-                const pf = projFeatures.get(normalizeName(ktcPlayer.playerName));
-                return {
-                  projTeamPassAtt:      pf?.projTeamPassAtt      ?? 0,
-                  projTeamPassVolChg:   pf?.projTeamPassVolChg    ?? 0,
-                  projPlayerPPR:        pf?.projPlayerPPR         ?? 0,
-                  projPlayerVsExpected: pf?.projPlayerVsExpected  ?? 0,
-                  projTargetShare:      pf?.projTargetShare        ?? 0,
-                };
-              })(),
+              // Shared features: prefer store, fall back to inline
+              age: stored.age || ktcPlayer.age || 0,
+              draftRound: stored.nflDraftRound || draft?.round || 8,
+              draftPick: stored.nflDraftPick || draft?.pick || 300,
+              yearsInLeague: stored.yearsInLeague ?? yrsInLeague,
+              weight: stored.weight || wt,
+              bmi: stored.bmi || Math.round(bmi * 10) / 10,
+              forty: stored.forty || fortyTime,
+              speedScore: stored.speedScore || Math.round(speedScore * 10) / 10,
+              depthChartRank: stored.depthChartRank || dcRank,
+              priorGames: stored.priorGames ?? priorGamesPlayed,
+              priorRushYards: stored.priorRushYards ?? (prior?.rushing_yards || 0),
+              priorRushTDs: stored.priorRushTDs ?? (prior?.rushing_tds || 0),
+              priorYPC: stored.priorYPC ?? (priorCarries > 0 ? Math.round((priorRushYds / priorCarries) * 10) / 10 : 0),
+              priorTargets: stored.priorTargets ?? (prior?.targets || 0),
+              priorReceptions: stored.priorReceptions ?? (prior?.receptions || 0),
+              priorRecYards: stored.priorRecYards ?? (prior?.receiving_yards || 0),
+              priorRecTDs: stored.priorRecTDs ?? (prior?.receiving_tds || 0),
+              priorPassYards: stored.priorPassYards ?? (prior?.passing_yards || 0),
+              priorPassTDs: stored.priorPassTDs ?? (prior?.passing_tds || 0),
+              priorINTs: stored.priorINTs ?? (prior?.interceptions || 0),
+              priorPPG: stored.priorPPG ?? (priorGamesPlayed > 0 ? Math.round((priorPPR / priorGamesPlayed) * 10) / 10 : 0),
+              priorTotalTouches: stored.priorTotalTouches ?? (priorCarries + (prior?.receptions || 0)),
+              priorSnapPct: stored.priorSnapPct ?? Math.round(snapPct * 10) / 10,
+              priorInjuryWeeks: stored.priorInjuryWeeks ?? injHist.weeks,
+              priorGamesOut: stored.priorGamesOut ?? injHist.out,
+              priorGamesMissed: stored.priorGamesMissed ?? gamesMissed,
+              // Projection features from store or inline
+              projTeamPassAtt: stored.projTeamPassAtt ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTeamPassAtt ?? 0; })(),
+              projTeamPassVolChg: stored.projTeamPassVolChg ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTeamPassVolChg ?? 0; })(),
+              projPlayerPPR: stored.projPlayerPPR ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projPlayerPPR ?? 0; })(),
+              projPlayerVsExpected: stored.projPlayerVsExpected ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projPlayerVsExpected ?? 0; })(),
+              projTargetShare: stored.projTargetShare ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTargetShare ?? 0; })(),
             };
 
             rows.push({

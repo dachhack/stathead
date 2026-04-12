@@ -1,11 +1,11 @@
 /**
  * Team-level projection engine.
  *
- * Mirrors the methodology used in StatProjections for 2026:
- *   projected[k] = prior[k] * teamWeight + leagueAvg[k] * (1 - teamWeight)
+ * Simple regression to mean: projected[k] = prior[k] * teamWeight + leagueAvg[k] * (1 - teamWeight)
  *
- * This lets us run the same model retroactively for any historical season
- * by supplying the prior year's aggregated player stats.
+ * Backtesting showed this simple blend outperforms complex adjustments
+ * (Vegas, coaching changes, QB rushing) — the adjustments add more noise
+ * than signal with only 32 teams of data.
  */
 
 import type { SeasonTotals } from '../types';
@@ -23,7 +23,7 @@ export interface TeamTotals {
   targets:  number;
   receptions: number;
   totalTD:  number;
-  pprPts:   number; // approximate from projected component stats
+  pprPts:   number;
 }
 
 const KEYS: (keyof Omit<TeamTotals, 'totalTD' | 'pprPts'>)[] = [
@@ -42,18 +42,12 @@ function zero(): Omit<TeamTotals, 'totalTD' | 'pprPts'> {
   };
 }
 
-/**
- * Given the aggregated player stats for the PRIOR season, return a map of
- * team → projected TeamTotals for the CURRENT season, using the same
- * team/league blend weights as the live 2026 projection.
- */
 export function projectTeamTotals(
   priorTotals: SeasonTotals[],
   teamWeight = projectionConfig.winner.teamWeight,
 ): Map<string, TeamTotals> {
   const leagueWeight = 1 - teamWeight;
 
-  // ── Step 1: prior-season team totals ──
   const priorByTeam = new Map<string, ReturnType<typeof zero>>();
   for (const p of priorTotals) {
     const team = p.recent_team;
@@ -72,7 +66,6 @@ export function projectTeamTotals(
     t.receptions += p.receptions        || 0;
   }
 
-  // ── Step 2: league averages ──
   const n = priorByTeam.size || 1;
   const avg = zero();
   for (const t of priorByTeam.values()) {
@@ -80,7 +73,6 @@ export function projectTeamTotals(
   }
   for (const k of KEYS) (avg as Record<string, number>)[k] /= n;
 
-  // ── Step 3: blend ──
   const result = new Map<string, TeamTotals>();
   for (const [team, prior] of priorByTeam) {
     const raw = zero();
@@ -91,8 +83,6 @@ export function projectTeamTotals(
       );
     }
     const totalTD = raw.passTD + raw.rushTD;
-    // Approximate team PPR: QB pass + team rush + all receiving
-    // receptions ≈ raw.receptions (from receivers); for teams missing that, estimate from completions
     const recs = raw.receptions > 0 ? raw.receptions : Math.round(raw.passAtt * 0.635);
     const pprPts = Math.round(
       raw.passYds * 0.04 + raw.passTD * 4 +

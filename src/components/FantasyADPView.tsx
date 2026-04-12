@@ -37,7 +37,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
   const [ffcSearch, setFfcSearch] = useState('');
   const [ffcPosFilter, setFfcPosFilter] = useState('ALL');
   const [ffcScoring, setFfcScoring] = useState<'ppr' | 'half-ppr' | 'standard'>('ppr');
-  const [ffcYear, setFfcYear] = useState(2024);
+  const [ffcYear, setFfcYear] = useState(2025);
 
   useEffect(() => {
     fetchFantasyRankings()
