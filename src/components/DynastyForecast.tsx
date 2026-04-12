@@ -72,6 +72,8 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
   const [format, setFormat] = useState<'1qb' | 'superflex'>('1qb');
+  const [sortCol, setSortCol] = useState<string>('now');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Load data
   useEffect(() => {
@@ -119,7 +121,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     return results;
   }, [forecastCache, players, format]);
 
-  // Filtered + searched list, sorted by current value descending
+  // Filtered + searched + sorted list
   const filtered = useMemo(() => {
     let list = allForecasts;
     if (posFilter !== 'ALL') {
@@ -129,8 +131,28 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       const q = search.toLowerCase();
       list = list.filter(f => f.player.playerName.toLowerCase().includes(q));
     }
-    return [...list].sort((a, b) => b.currentValue - a.currentValue);
-  }, [allForecasts, posFilter, search]);
+    const getSortValue = (pf: PlayerForecast): number | string => {
+      if (sortCol === 'player') return pf.player.playerName.toLowerCase();
+      if (sortCol === 'now') return pf.currentValue;
+      if (sortCol === 'trend') {
+        const last = pf.forecasts[pf.forecasts.length - 1];
+        return last ? (last.value - pf.currentValue) / pf.currentValue : 0;
+      }
+      // +7d, +30d, etc.
+      const h = parseInt(sortCol);
+      if (!isNaN(h)) {
+        const f = pf.forecasts.find(x => x.horizon === h);
+        return f ? f.value : 0;
+      }
+      return 0;
+    };
+    return [...list].sort((a, b) => {
+      const va = getSortValue(a);
+      const vb = getSortValue(b);
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+  }, [allForecasts, posFilter, search, sortCol, sortDir]);
 
   const selectedForecast = useMemo(() => {
     if (selectedId === null) return null;
@@ -139,6 +161,18 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
 
   const handlePlayerClick = useCallback((id: number) => {
     setSelectedId(prev => prev === id ? null : id);
+  }, []);
+
+  const handleSort = useCallback((col: string) => {
+    setSortCol(prev => {
+      if (prev === col) {
+        setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+        return col;
+      }
+      // Default: descending for numbers, ascending for player name
+      setSortDir(col === 'player' ? 'asc' : 'desc');
+      return col;
+    });
   }, []);
 
   if (loading) {
@@ -246,14 +280,33 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border)' }}>
-              <th style={thStyle}>Player</th>
-              <th style={thStyleR}>Now</th>
-              <th style={thStyleR}>+7d</th>
-              <th style={thStyleR}>+30d</th>
-              <th style={thStyleR}>+60d</th>
-              <th style={thStyleR}>+90d</th>
-              <th style={thStyleR}>+120d</th>
-              <th style={thStyleR}>Trend</th>
+              {([
+                { col: 'player', label: 'Player', right: false },
+                { col: 'now', label: 'Now', right: true },
+                { col: '7', label: '+7d', right: true },
+                { col: '30', label: '+30d', right: true },
+                { col: '60', label: '+60d', right: true },
+                { col: '90', label: '+90d', right: true },
+                { col: '120', label: '+120d', right: true },
+                { col: 'trend', label: 'Trend', right: true },
+              ] as const).map(({ col, label, right }) => (
+                <th
+                  key={col}
+                  onClick={() => handleSort(col)}
+                  style={{
+                    ...(right ? thStyleR : thStyle),
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
+                >
+                  {label}
+                  {sortCol === col && (
+                    <span style={{ marginLeft: 3, fontSize: 9 }}>
+                      {sortDir === 'desc' ? '\u25BC' : '\u25B2'}
+                    </span>
+                  )}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
