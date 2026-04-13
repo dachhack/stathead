@@ -234,7 +234,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     let cancelled = false;
 
     // Cache key based on vorBasis + scenario (features depend on these)
-    const cacheKey = `adp_features_v3_${vorBasis}_${activeScenario?.id ?? 'none'}`;
+    const cacheKey = `adp_features_v4_${vorBasis}_${activeScenario?.id ?? 'none'}`;
 
     async function run() {
       try {
@@ -431,7 +431,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         season: r.season,
         adp: r.adp,
         actualVor: r.vor,
-        predictedVor: Math.round(result.predicted * 10) / 10,
+        predictedVor: Number.isFinite(result.predicted) ? Math.round(result.predicted * 10) / 10 : 0,
         isHit: isHitForPos(r.position, r.vor),
         isBust: isBustForPos(r.position, r.vor),
         factors,
@@ -491,6 +491,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         const f = featuresByName.get(p.name);
         return {
           ...p,
+          predictedVor: Number.isFinite(p.predictedVor) ? p.predictedVor : 0,
           redditMentions: f?.redditMentions4w || 0,
           redditSentiment: f?.redditSentiment4w || 0,
           redditHype: f?.redditHype1w || 0,
@@ -507,7 +508,8 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         const result = m.gbmModel
           ? predictGBM(m.gbmModel, r.features)
           : predict(m.ridgeModel!, r.features);
-        const pred = Math.round(result.predicted * 10) / 10;
+        const rawPred = Math.round(result.predicted * 10) / 10;
+        const pred = Number.isFinite(rawPred) ? rawPred : 0;
         return {
           name: r.name,
           team: r.team,
@@ -763,12 +765,12 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           name:         p.name,
           team:         p.team,
           adp:          p.adp,
-          predictedVor: p.predictedVor,
+          predictedVor: Number.isFinite(p.predictedVor) ? p.predictedVor : 0,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
           // Convert VOR z-score to estimated full-season PPR
           // VOR is total PPR over replacement, z-scored by position
-          estPPR: norm2026
+          estPPR: norm2026 && Number.isFinite(p.predictedVor)
             ? Math.round(REP_PPR[best.pos] + norm2026.mean + p.predictedVor * norm2026.std)
             : 0,
           redditSentiment: (p as any).redditSentiment || 0,
@@ -1333,7 +1335,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
                   {/* Expected total points summary (starters only) */}
                   {(() => {
                     const starterRows = optimizerPlan.filter((r) => !r.isBench);
-                    const totalEstPPR  = starterRows.reduce((s, r) => s + (r.suggestions[0]?.estPPR ?? 0), 0);
+                    const totalEstPPR  = starterRows.reduce((s, r) => { const v = r.suggestions[0]?.estPPR; return s + (Number.isFinite(v) ? v : 0); }, 0);
                     const totalVor     = starterRows.reduce((s, r) => s + r.vorScore, 0);
                     return (
                       <div style={{
