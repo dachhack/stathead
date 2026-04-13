@@ -349,13 +349,14 @@ async function main() {
   }
   console.log(`  Share predictions: ${sharePredCount} player-metric pairs`);
 
-  // Carry forward prior rush shares for WR/TE (low volume, not worth predicting)
+  // WR/TE rush shares are negligible — zero them out so they don't leak
+  // target share (priorTeamTouchShare for WR/TE is targets/teamTargets, not rushes)
   for (const r of result.predRows as Array<{ position: string; adp: number; features: Record<string, number> }>) {
     if (r.adp > MAX_ADP) continue;
     if (r.position === 'WR' || r.position === 'TE') {
-      r.features.predRushShare = r.features.priorTeamTouchShare || 0;
-      r.features.predRushYdsShare = r.features.priorTeamTouchShare || 0;
-      r.features.predRushTDShare = 0; // WR/TE rush TDs are too rare to carry forward
+      r.features.predRushShare = 0;
+      r.features.predRushYdsShare = 0;
+      r.features.predRushTDShare = 0;
     }
   }
 

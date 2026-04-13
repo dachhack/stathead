@@ -325,7 +325,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       if (!projTgtShare && shareS) {
         projTgtShare = shareS.predTargetShare ?? 0;
       }
-      if (!projRushShare && shareS) {
+      if (!projRushShare && shareS && position === 'RB') {
         projRushShare = shareS.predRushShare ?? 0;
       }
       // Final fallback: prior year shares
