@@ -352,7 +352,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         projRushShare,
         priorPPG: prior?.priorPPG ?? 0,
         priorTgtShare: comp?.priorTeamTargetShare ?? 0,
-        priorRushShare: comp?.priorTeamTouchShare ?? 0,
+        priorRushShare: position === 'RB' ? (comp?.priorTeamTouchShare ?? 0) : 0,
         isRookie: !prior || (prior.priorGames ?? 0) === 0,
         isLocked: false,
       };
