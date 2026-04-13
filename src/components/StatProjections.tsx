@@ -1085,14 +1085,16 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(tgt, g) : tgt);
               }, 0);
-              const rbRushPool = projTeam.rushAtt * pools.rbRushAtt;
-              const rbTgtPool = projTeam.targets * pools.rbTgt;
-              const rbRushTDPool = projTeam.rushTD * pools.rbRushTD;
-              const rbRecTDPool = projTeam.recTD * pools.rbRecTD;
-
-              // Pre-compute ML share sums for within-group normalization
+              // Pre-compute ML share sums — these are team-wide fractions
               const mlRushShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predRushShare || 0), 0);
               const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
+
+              // When ML shares exist, use their sum to size the position pool so
+              // individual projections match ML-predicted team-wide shares.
+              const rbRushPool = mlRushShareSum > 0 ? projTeam.rushAtt * mlRushShareSum : projTeam.rushAtt * pools.rbRushAtt;
+              const rbTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.rbTgt;
+              const rbRushTDPool = mlRushShareSum > 0 ? projTeam.rushTD * mlRushShareSum : projTeam.rushTD * pools.rbRushTD;
+              const rbRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.rbRecTD;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1163,14 +1165,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(car, g) : car);
               }, 0);
-              const wrTgtPool = projTeam.targets * pools.wrTgt;
-              const wrRushPool = projTeam.rushAtt * pools.wrRushAtt;
-              const wrRecTDPool = projTeam.recTD * pools.wrRecTD;
-              const wrRushTDPool = projTeam.rushTD * pools.wrRushTD;
-
-              // Pre-compute ML share sums for within-group normalization
+              // Pre-compute ML share sums — these are team-wide fractions
               const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
               const mlRushShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predRushShare || 0), 0);
+
+              // When ML shares exist, use their sum to size the position pool
+              const wrTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.wrTgt;
+              const wrRushPool = mlRushShareSum > 0 ? projTeam.rushAtt * mlRushShareSum : projTeam.rushAtt * pools.wrRushAtt;
+              const wrRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.wrRecTD;
+              const wrRushTDPool = mlRushShareSum > 0 ? projTeam.rushTD * mlRushShareSum : projTeam.rushTD * pools.wrRushTD;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1234,11 +1237,12 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(tgt, g) : tgt);
               }, 0);
-              const teTgtPool = projTeam.targets * pools.teTgt;
-              const teRecTDPool = projTeam.recTD * pools.teRecTD;
-
-              // Pre-compute ML share sum for within-group normalization
+              // Pre-compute ML share sum — these are team-wide fractions
               const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
+
+              // When ML shares exist, use their sum to size the position pool
+              const teTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.teTgt;
+              const teRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.teRecTD;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
