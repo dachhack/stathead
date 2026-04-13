@@ -83,17 +83,22 @@ async function main() {
       predictSeason: PREDICT_SEASON,
       positions: POSITIONS,
       replacementRanks: REPLACEMENT_RANKS,
-      vorBasis: 'total',
+      vorBasis: 'ppg',
       onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
     });
 
-    // Compute VOR normalization
+    // Compute VOR normalization from raw PPG VOR (before z-scoring)
+    const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
     const vorNorm: Record<string, { mean: number; std: number }> = {};
     for (const pos of POSITIONS) {
-      const vals = storeRows.filter(r => r.position === pos).map(r => r.vor);
-      if (vals.length < 4) continue;
-      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+      const posRows = storeRows.filter(r => r.position === pos);
+      if (posRows.length < 4) continue;
+      // PPG-based replacement level per position
+      const sorted = [...posRows].sort((a, b) => b.rawPPG - a.rawPPG);
+      const repPPG = sorted[(REPLACEMENT_RANKS[pos] ?? 24) - 1]?.rawPPG ?? 0;
+      const rawVals = posRows.map(r => r.rawPPG - repPPG);
+      const mean = rawVals.reduce((a, b) => a + b, 0) / rawVals.length;
+      const variance = rawVals.reduce((s, v) => s + (v - mean) ** 2, 0) / rawVals.length;
       vorNorm[pos] = { mean, std: Math.sqrt(variance) || 1 };
     }
 
@@ -116,7 +121,7 @@ async function main() {
       predictSeason: PREDICT_SEASON,
       positions: POSITIONS,
       replacementRanks: REPLACEMENT_RANKS,
-      vorBasis: 'total',
+      vorBasis: 'ppg',
       onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
     });
 
@@ -138,7 +143,7 @@ async function main() {
       predictSeason: PREDICT_SEASON,
       positions: POSITIONS,
       replacementRanks: REPLACEMENT_RANKS,
-      vorBasis: 'total',
+      vorBasis: 'ppg',
       onStatus: (msg) => { console.log(`  ${msg}`); if (global.gc) global.gc(); },
     });
 

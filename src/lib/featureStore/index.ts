@@ -298,15 +298,25 @@ export class FeatureStoreBuilder {
 
   /**
    * Z-score VOR per position so it's comparable across positions.
-   * VOR = raw season PPR minus replacement level, then z-scored.
+   * VOR = PPG minus PPG replacement level, then z-scored.
    */
   private computeVOR(rows: PlayerRow[]): Record<string, { mean: number; std: number }> {
-    // POSITIONS and REPLACEMENT_RANKS imported at top level
+    const REPLACEMENT_RANKS: Record<string, number> = { QB: 12, RB: 24, WR: 24, TE: 12 };
     const vorNorm: Record<string, { mean: number; std: number }> = {};
 
     for (const pos of POSITIONS) {
       const posRows = rows.filter(r => r.position === pos);
       if (posRows.length < 4) continue;
+
+      // PPG-based replacement level
+      const sorted = [...posRows].sort((a, b) => b.rawPPG - a.rawPPG);
+      const repIdx = (REPLACEMENT_RANKS[pos] ?? 24) - 1;
+      const repPPG = sorted[repIdx]?.rawPPG ?? 0;
+
+      // Compute PPG-based VOR
+      for (const row of posRows) {
+        row.vor = Math.round((row.rawPPG - repPPG) * 10) / 10;
+      }
 
       const vals = posRows.map(r => r.vor);
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;

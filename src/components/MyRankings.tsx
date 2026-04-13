@@ -595,7 +595,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'right', width: 44 }}>PPG</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>
-                <span title="Predicted Value Over Replacement from ADP model">VOR</span>
+                <span title="Predicted PPG Value Over Replacement from ADP model">VOR</span>
               </th>
               <th style={{ ...th, textAlign: 'right', width: 40 }}>
                 <span title="Upside % — CI upper vs predicted VOR">Boom%</span>

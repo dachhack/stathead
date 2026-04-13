@@ -21,7 +21,7 @@ import {
 import ncaaTeamData from '../data/ncaa-team-data.json';
 
 export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<FeatureMatrixResult> {
-  const { seasons, predictSeason, scenario, onStatus } = config;
+  const { seasons, predictSeason, scenario, vorBasis, onStatus } = config;
 
         // Load Reddit sentiment data (precomputed by fetch-reddit-sentiment.ts)
         let redditBuzz = new Map<string, { mentions: number; upvotes: number; sentiment: number; hype: number }>();
@@ -903,7 +903,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
           // Compute player values for VOR
           const getPlayerValue = (p: SeasonTotals): number => {
-            return p.fantasy_points_ppr || 0;
+            const total = p.fantasy_points_ppr || 0;
+            if (vorBasis === 'ppg') {
+              return p.games > 0 ? total / p.games : 0;
+            }
+            return total;
           };
 
           // Current stats lookup

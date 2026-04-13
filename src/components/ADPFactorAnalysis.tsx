@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS, REP_PPR, ROOKIE_FEATURES,
+  FEATURES, CATEGORY_COLORS, REP_PPR, REP_PPG, ROOKIE_FEATURES,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
@@ -101,7 +101,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
   const [optimizerMetric, setOptimizerMetric] = useState<'vor' | 'hitbust'>('vor');
   const [roundOverrides, setRoundOverrides] = useState<Record<number, string>>({});
   const [vorNormParams, setVorNormParams] = useState<Map<string, { mean: number; std: number }>>(new Map());
-  const [vorBasis, setVorBasis] = useState<'total' | 'ppg'>('total');
+  const [vorBasis, setVorBasis] = useState<'total' | 'ppg'>('ppg');
   const [precomputedPredictions, setPrecomputedPredictions] = useState<Array<{
     name: string; team: string; adp: number; position: string;
     headshotUrl?: string; predictedVor: number; hitProb: string;
@@ -234,7 +234,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     let cancelled = false;
 
     // Cache key based on vorBasis + scenario (features depend on these)
-    const cacheKey = `adp_features_v4_${vorBasis}_${activeScenario?.id ?? 'none'}`;
+    const cacheKey = `adp_features_v5_${vorBasis}_${activeScenario?.id ?? 'none'}`;
 
     async function run() {
       try {
@@ -262,7 +262,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         } catch { /* cache miss */ }
 
         // Try precomputed build-time data (only for default settings, no scenario)
-        if (vorBasis === 'total' && !activeScenario) {
+        if (vorBasis === 'ppg' && !activeScenario) {
           try {
             const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
             if (resp.ok) {
@@ -768,10 +768,10 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
           predictedVor: Number.isFinite(p.predictedVor) ? p.predictedVor : 0,
           hitProb:      p.hitProb,
           headshotUrl:  p.headshotUrl,
-          // Convert VOR z-score to estimated full-season PPR
-          // VOR is total PPR over replacement, z-scored by position
+          // Convert PPG VOR z-score to estimated full-season PPR
+          // VOR is PPG over replacement, z-scored by position
           estPPR: norm2026 && Number.isFinite(p.predictedVor)
-            ? Math.round(REP_PPR[best.pos] + norm2026.mean + p.predictedVor * norm2026.std)
+            ? Math.round(((REP_PPG[best.pos] || 0) + norm2026.mean + p.predictedVor * norm2026.std) * 17)
             : 0,
           redditSentiment: (p as any).redditSentiment || 0,
           redditHype: (p as any).redditHype || 0,
@@ -869,7 +869,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
     <>
       {!initialView && <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} models trained per position on {allRows.length} player-seasons ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
-        Predicts VOR Score — a standardised (z-score) measure of Value Over Replacement, comparable across all positions (+1.0 = 1 std dev above the positional mean).
+        Predicts VOR Score — a standardised (z-score) measure of PPG Value Over Replacement, comparable across all positions (+1.0 = 1 std dev above the positional mean).
         Features from prior-season stats, advanced metrics (WOPR, RACR, aDOT), Next Gen Stats (separation, RYOE, CPOE), combine, draft capital, injuries, and workload.
       </p>}
 
@@ -1656,7 +1656,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
             )}
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-            Trained on {SEASONS[0]}–{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. VOR Score is standardised per position: 0 = positional average, +1.0 = 1 std dev above.
+            Trained on {SEASONS[0]}–{SEASONS[SEASONS.length - 1]} outcomes, applied to {PREDICT_SEASON} preseason ADP + {PREDICT_SEASON - 1} stats. VOR Score is PPG-based, standardised per position: 0 = positional average, +1.0 = 1 std dev above.
           </p>
           {vorNormParams.size > 0 && (
             <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
