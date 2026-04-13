@@ -91,7 +91,7 @@ const GAMES = 17;
 const BASE = import.meta.env.BASE_URL;
 
 function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 }
 
 function makeId(name: string, pos: string): string {
