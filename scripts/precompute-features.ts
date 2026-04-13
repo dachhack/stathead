@@ -164,6 +164,65 @@ async function main() {
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
 
+  // Write ::2026 entries to feature store from prediction row features
+  // so MyRankings can display 2025 prior stats (targets, PPG, shares)
+  if (result.predRows.length > 0) {
+    const priorPath = `${featureStorePath}/priorStats.json`;
+    const compPath = `${featureStorePath}/competition.json`;
+    const priorShard = existsSync(priorPath) ? JSON.parse(readFileSync(priorPath, 'utf-8')) : {};
+    const compShard = existsSync(compPath) ? JSON.parse(readFileSync(compPath, 'utf-8')) : {};
+
+    let priorCount = 0;
+    let compCount = 0;
+    for (const r of result.predRows as Array<{ name: string; position: string; features: Record<string, number> }>) {
+      const key = `${normalizeName(r.name)}::${PREDICT_SEASON}`;
+      const f = r.features;
+
+      // Write prior stats entry (2025 actuals as "prior" for 2026)
+      priorShard[key] = {
+        priorPassYards: f.priorPassYards || 0,
+        priorPassTDs: f.priorPassTDs || 0,
+        priorINTs: f.priorINTs || 0,
+        priorPassYPA: f.priorPassYPA || 0,
+        priorQBRating: f.priorQBRating || 0,
+        priorRushYards: f.priorRushYards || 0,
+        priorRushTDs: f.priorRushTDs || 0,
+        priorYPC: f.priorYPC || 0,
+        priorCarries: f.priorCarries || 0,
+        priorTargets: f.priorTargets || 0,
+        priorReceptions: f.priorReceptions || 0,
+        priorRecYards: f.priorRecYards || 0,
+        priorRecTDs: f.priorRecTDs || 0,
+        priorYPR: f.priorYPR || 0,
+        priorPPR: f.priorPPR || 0,
+        priorPPG: f.priorPPG || 0,
+        priorGames: f.priorGames || 0,
+        priorGamesMissed: f.priorGamesMissed || 0,
+        priorTotalTouches: f.priorTotalTouches || 0,
+        priorSnapPct: f.priorSnapPct || 0,
+      };
+      priorCount++;
+
+      // Write competition entry
+      compShard[key] = {
+        teamSamePosCount: f.teamSamePosCount || 0,
+        depthChartRank: f.depthChartRank || 0,
+        priorTeamTouchShare: f.priorTeamTouchShare || 0,
+        priorTeamTargetShare: f.priorTeamTargetShare || 0,
+        newSamePosAdded: f.newSamePosAdded || 0,
+        teamDraftedSamePos: f.teamDraftedSamePos || 0,
+        draftCapitalSamePos: f.draftCapitalSamePos || 0,
+        teammatePriorPPR: f.teammatePriorPPR || 0,
+        teamRosterTurnover: f.teamRosterTurnover || 0,
+      };
+      compCount++;
+    }
+
+    writeFileSync(priorPath, JSON.stringify(priorShard));
+    writeFileSync(compPath, JSON.stringify(compShard));
+    console.log(`  Feature store updated: ${priorCount} priorStats + ${compCount} competition ::${PREDICT_SEASON} entries`);
+  }
+
   // Diagnostic: check ZAP feature coverage for WR rookies
   {
     const wrRookies = result.rows.filter((r: any) => r.position === 'WR' && (r.features?.yearsInLeague ?? 99) <= 1);
