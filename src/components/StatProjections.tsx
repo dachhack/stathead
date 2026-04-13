@@ -1085,16 +1085,16 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(tgt, g) : tgt);
               }, 0);
-              // Pre-compute ML share sums — these are team-wide fractions
-              const mlRushShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predRushShare || 0), 0);
-              const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
+              // ML shares are team-wide fractions — use directly from team totals
+              // Fall back to position-pool allocation when ML shares unavailable
+              const rbRushPool = projTeam.rushAtt * pools.rbRushAtt;
+              const rbTgtPool = projTeam.targets * pools.rbTgt;
+              const rbRushTDPool = projTeam.rushTD * pools.rbRushTD;
+              const rbRecTDPool = projTeam.recTD * pools.rbRecTD;
 
-              // When ML shares exist, use their sum to size the position pool so
-              // individual projections match ML-predicted team-wide shares.
-              const rbRushPool = mlRushShareSum > 0 ? projTeam.rushAtt * mlRushShareSum : projTeam.rushAtt * pools.rbRushAtt;
-              const rbTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.rbTgt;
-              const rbRushTDPool = mlRushShareSum > 0 ? projTeam.rushTD * mlRushShareSum : projTeam.rushTD * pools.rbRushTD;
-              const rbRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.rbRecTD;
+              // Prior-year within-group sums (for fallback allocation)
+              const priorRushTotal2 = priorRushTotal;
+              const priorTgtTotal2 = priorTgtTotal;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1110,33 +1110,33 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const ml = mlShares.get(normalizeName(player.name));
 
                 if (prior && prior.games >= 3) {
-                  // Rush share: prefer ML prediction, fall back to prior-year
-                  let rushShare: number;
-                  if (ml && ml.predRushShare > 0 && mlRushShareSum > 0) {
-                    rushShare = ml.predRushShare / mlRushShareSum;
+                  // Rush: ML share directly from team totals, or fall back to pool
+                  if (ml && ml.predRushShare > 0) {
+                    rushAtt = Math.round(projTeam.rushAtt * ml.predRushShare * gamesScale);
+                    rushTD = Math.max(0, Math.round(projTeam.rushTD * ml.predRushShare * gamesScale));
                   } else {
                     const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
-                    rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 1 / players.length;
+                    const rushShare = priorRushTotal2 > 0 ? adjCar / priorRushTotal2 : 1 / players.length;
+                    rushAtt = Math.round(rbRushPool * rushShare * af * gamesScale);
+                    rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * gamesScale));
                   }
-                  rushAtt = Math.round(rbRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
-                  rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * gamesScale));
 
-                  // Target share: prefer ML prediction, fall back to prior-year
-                  let tgtShare: number;
-                  if (ml && ml.predTargetShare > 0 && mlTgtShareSum > 0) {
-                    tgtShare = ml.predTargetShare / mlTgtShareSum;
+                  // Targets: ML share directly from team totals, or fall back to pool
+                  if (ml && ml.predTargetShare > 0) {
+                    tgt = Math.round(projTeam.targets * ml.predTargetShare * gamesScale);
+                    recTD = Math.max(0, Math.round(projTeam.recTD * ml.predTargetShare));
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
-                    tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+                    const tgtShare = priorTgtTotal2 > 0 ? adjTgt / priorTgtTotal2 : 1 / players.length;
+                    tgt = Math.round(rbTgtPool * tgtShare * af * gamesScale);
+                    recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare));
                   }
-                  tgt = Math.round(rbTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare));
                 } else {
                   const share = 1 / (players.length * 4);
                   rushAtt = Math.round(rbRushPool * share * gamesScale);
@@ -1165,15 +1165,11 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(car, g) : car);
               }, 0);
-              // Pre-compute ML share sums — these are team-wide fractions
-              const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
-              const mlRushShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predRushShare || 0), 0);
-
-              // When ML shares exist, use their sum to size the position pool
-              const wrTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.wrTgt;
-              const wrRushPool = mlRushShareSum > 0 ? projTeam.rushAtt * mlRushShareSum : projTeam.rushAtt * pools.wrRushAtt;
-              const wrRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.wrRecTD;
-              const wrRushTDPool = mlRushShareSum > 0 ? projTeam.rushTD * mlRushShareSum : projTeam.rushTD * pools.wrRushTD;
+              // Fallback pools (used when ML shares unavailable)
+              const wrTgtPool = projTeam.targets * pools.wrTgt;
+              const wrRushPool = projTeam.rushAtt * pools.wrRushAtt;
+              const wrRecTDPool = projTeam.recTD * pools.wrRecTD;
+              const wrRushTDPool = projTeam.rushTD * pools.wrRushTD;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1189,29 +1185,24 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const ml = mlShares.get(normalizeName(player.name));
 
                 if (prior && prior.games >= 3) {
-                  // Target share: prefer ML prediction, fall back to prior-year
-                  let tgtShare: number;
-                  if (ml && ml.predTargetShare > 0 && mlTgtShareSum > 0) {
-                    tgtShare = ml.predTargetShare / mlTgtShareSum;
+                  // Targets: ML share directly from team totals, or fall back to pool
+                  if (ml && ml.predTargetShare > 0) {
+                    tgt = Math.round(projTeam.targets * ml.predTargetShare * gamesScale);
+                    recTD = Math.max(0, Math.round(projTeam.recTD * ml.predTargetShare));
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
-                    tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+                    const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+                    tgt = Math.round(wrTgtPool * tgtShare * af * gamesScale);
+                    recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare));
                   }
-                  tgt = Math.round(wrTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare));
 
-                  // Rush share: prefer ML prediction, fall back to prior-year
-                  let rushShare: number;
-                  if (ml && ml.predRushShare > 0 && mlRushShareSum > 0) {
-                    rushShare = ml.predRushShare / mlRushShareSum;
-                  } else {
-                    const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
-                    rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 0;
-                  }
+                  // Rush: WR rush shares are negligible, use prior-year pool allocation
+                  const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
+                  const rushShare = priorRushTotal > 0 ? adjCar / priorRushTotal : 0;
                   rushAtt = Math.round(wrRushPool * rushShare * af * gamesScale);
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 5.0;
                   rushYds = Math.round(rushAtt * ypc);
@@ -1237,12 +1228,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const g = p.prior?.games ?? 17;
                 return s + (i === 0 ? healthAdjust(tgt, g) : tgt);
               }, 0);
-              // Pre-compute ML share sum — these are team-wide fractions
-              const mlTgtShareSum = players.reduce((s, p) => s + (mlShares.get(normalizeName(p.name))?.predTargetShare || 0), 0);
-
-              // When ML shares exist, use their sum to size the position pool
-              const teTgtPool = mlTgtShareSum > 0 ? projTeam.targets * mlTgtShareSum : projTeam.targets * pools.teTgt;
-              const teRecTDPool = mlTgtShareSum > 0 ? projTeam.recTD * mlTgtShareSum : projTeam.recTD * pools.teRecTD;
+              // Fallback pools
+              const teTgtPool = projTeam.targets * pools.teTgt;
+              const teRecTDPool = projTeam.recTD * pools.teRecTD;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1257,20 +1245,20 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 const ml = mlShares.get(normalizeName(player.name));
 
                 if (prior && prior.games >= 3) {
-                  // Target share: prefer ML prediction, fall back to prior-year
-                  let tgtShare: number;
-                  if (ml && ml.predTargetShare > 0 && mlTgtShareSum > 0) {
-                    tgtShare = ml.predTargetShare / mlTgtShareSum;
+                  // Targets: ML share directly from team totals, or fall back to pool
+                  if (ml && ml.predTargetShare > 0) {
+                    tgt = Math.round(projTeam.targets * ml.predTargetShare * gamesScale);
+                    recTD = Math.max(0, Math.round(projTeam.recTD * ml.predTargetShare));
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
-                    tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+                    const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+                    tgt = Math.round(teTgtPool * tgtShare * af * gamesScale);
+                    recTD = Math.max(0, Math.round(teRecTDPool * tgtShare));
                   }
-                  tgt = Math.round(teTgtPool * tgtShare * af * gamesScale);
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
                   rec = Math.round(tgt * catchRate);
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
                   recYds = Math.round(rec * ypr);
-                  recTD = Math.max(0, Math.round(teRecTDPool * tgtShare));
                 } else {
                   const share = 1 / (players.length * 4);
                   tgt = Math.round(teTgtPool * share * gamesScale);
