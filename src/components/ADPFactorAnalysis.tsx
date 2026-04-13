@@ -13,7 +13,7 @@ import { loadAllScenarios } from '../lib/scenarioEngine';
 import { buildFeatureMatrix } from '../lib/buildFeatureMatrix';
 import {
   SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, POS_COLORS,
-  FEATURES, CATEGORY_COLORS, REP_PPR, REP_PPG, ROOKIE_FEATURES,
+  FEATURES, CATEGORY_COLORS, REP_PPG, ROOKIE_FEATURES,
   cvR2, cvMae,
   type PlayerRow, type PredictionRow,
 } from '../lib/featureTypes';
