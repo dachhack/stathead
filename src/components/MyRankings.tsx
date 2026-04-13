@@ -208,7 +208,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const m = new Map<string, PriorStatsEntry>();
     for (const [key, val] of Object.entries(priorStats)) {
       if (key.endsWith('::2025') || key.endsWith('::2026')) {
-        const name = key.replace(/::20\d{2}$/, '');
+        const rawName = key.replace(/::20\d{2}$/, '');
+        const name = normName(rawName);
         // Prefer ::2026 (has 2025 actuals) over ::2025 (has 2024 actuals)
         if (!m.has(name) || key.endsWith('::2026')) {
           m.set(name, val as PriorStatsEntry);
@@ -222,7 +223,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const m = new Map<string, CompetitionEntry>();
     for (const [key, val] of Object.entries(competition)) {
       if (key.endsWith('::2025') || key.endsWith('::2026')) {
-        const name = key.replace(/::20\d{2}$/, '');
+        const rawName = key.replace(/::20\d{2}$/, '');
+        const name = normName(rawName);
         // Prefer ::2026 (which has 2025 actuals as "prior") over ::2025 (which has 2024 actuals)
         if (!m.has(name) || key.endsWith('::2026')) {
           m.set(name, val as CompetitionEntry);
