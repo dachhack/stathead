@@ -199,7 +199,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const existingKey = `${cs.statistic}:latest`;
           const existingSeason = existing.get(existingKey) || 0;
           if (cs.season >= existingSeason) {
-            existing.set(cs.statistic, cs.value || 0);
+            existing.set(cs.statistic, typeof cs.value === 'number' && isFinite(cs.value) ? cs.value : 0);
             existing.set(existingKey, cs.season);
           }
         }
@@ -307,17 +307,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               t.seasonSchools.set(cs.season, school);
             }
             const stat = (cs.statistic || '').toLowerCase();
+            // Coerce 'NA' strings to 0 — same trap as playerSeasonStats above.
+            const v = typeof cs.value === 'number' && isFinite(cs.value) ? cs.value : 0;
             if (stat.includes('game')) {
-              // Track games per season so we sum across seasons correctly
               const cur = t.gamesBySeason.get(cs.season) || 0;
-              t.gamesBySeason.set(cs.season, Math.max(cur, cs.value || 0));
+              t.gamesBySeason.set(cs.season, Math.max(cur, v));
             }
-            else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) t.receptions += cs.value || 0;
-            else if (stat.includes('receiving yard')) t.recYds += cs.value || 0;
-            else if (stat.includes('rushing yard')) t.rushYds += cs.value || 0;
-            else if (stat.includes('rushing attempt') || stat.includes('carries')) t.rushAtt += cs.value || 0;
-            else if (stat.includes('touchdown')) t.tds += cs.value || 0;
-            else if (stat.includes('passing yard')) t.passYds += cs.value || 0;
+            else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) t.receptions += v;
+            else if (stat.includes('receiving yard')) t.recYds += v;
+            else if (stat.includes('rushing yard')) t.rushYds += v;
+            else if (stat.includes('rushing attempt') || stat.includes('carries')) t.rushAtt += v;
+            else if (stat.includes('touchdown')) t.tds += v;
+            else if (stat.includes('passing yard')) t.passYds += v;
           }
           for (const [name, t] of collegeTotals) {
             // Sum games across all seasons for true career total, backfilling
@@ -464,34 +465,39 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const season = cs.season;
           const school = (cs.school || cs.school_abbr || '').toLowerCase();
           const stat = (cs.statistic || '').toLowerCase();
+          // JackLich10's CSV sometimes emits literal 'NA' strings for missing
+          // values; those need to be coerced to 0 before any += or Math.max.
+          // Without this, string concat poisons teamPassAtt etc. downstream
+          // (e.g. _rawTeamPassAtt ended up as '9960NA40141' in v45).
+          const v = typeof cs.value === 'number' && isFinite(cs.value) ? cs.value : 0;
 
           // Player per-season
           if (!playerSeasonStats.has(name)) playerSeasonStats.set(name, new Map());
           const seasons = playerSeasonStats.get(name)!;
           if (!seasons.has(season)) seasons.set(season, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, passAtt: 0, completions: 0, games: 0, school, pos: cs.pos_abbr || '' });
           const ps = seasons.get(season)!;
-          if (stat.includes('receiving yard')) ps.recYds += cs.value || 0;
-          else if (stat.includes('receiving touchdown')) ps.recTDs += cs.value || 0;
-          else if (stat.includes('rushing yard')) ps.rushYds += cs.value || 0;
-          else if (stat.includes('rushing touchdown')) ps.rushTDs += cs.value || 0;
-          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) ps.receptions += cs.value || 0;
-          else if (stat.includes('rushing attempt') || stat.includes('carries')) ps.rushAtt += cs.value || 0;
-          else if (stat.includes('passing attempt') || stat === 'pass attempts') ps.passAtt += cs.value || 0;
-          else if (stat.includes('completion') && !stat.includes('pct')) ps.completions += cs.value || 0;
-          else if (stat.includes('games played') || stat === 'games') ps.games = Math.max(ps.games, cs.value || 0);
+          if (stat.includes('receiving yard')) ps.recYds += v;
+          else if (stat.includes('receiving touchdown')) ps.recTDs += v;
+          else if (stat.includes('rushing yard')) ps.rushYds += v;
+          else if (stat.includes('rushing touchdown')) ps.rushTDs += v;
+          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) ps.receptions += v;
+          else if (stat.includes('rushing attempt') || stat.includes('carries')) ps.rushAtt += v;
+          else if (stat.includes('passing attempt') || stat === 'pass attempts') ps.passAtt += v;
+          else if (stat.includes('completion') && !stat.includes('pct')) ps.completions += v;
+          else if (stat.includes('games played') || stat === 'games') ps.games = Math.max(ps.games, v);
 
           // School per-season totals (aggregate all players' stats)
           const schoolKey = `${school}:${season}`;
           if (!schoolSeasonTotals.has(schoolKey)) schoolSeasonTotals.set(schoolKey, { recYds: 0, recTDs: 0, rushYds: 0, rushTDs: 0, receptions: 0, rushAtt: 0, passAtt: 0, completions: 0, totalPlays: 0 });
           const st = schoolSeasonTotals.get(schoolKey)!;
-          if (stat.includes('receiving yard')) st.recYds += cs.value || 0;
-          else if (stat.includes('receiving touchdown')) st.recTDs += cs.value || 0;
-          else if (stat.includes('rushing yard')) st.rushYds += cs.value || 0;
-          else if (stat.includes('rushing touchdown')) st.rushTDs += cs.value || 0;
-          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) st.receptions += cs.value || 0;
-          else if (stat.includes('rushing attempt') || stat.includes('carries')) { st.rushAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
-          else if (stat.includes('passing attempt') || stat === 'pass attempts') { st.passAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
-          else if (stat.includes('completion') && !stat.includes('pct')) st.completions += cs.value || 0;
+          if (stat.includes('receiving yard')) st.recYds += v;
+          else if (stat.includes('receiving touchdown')) st.recTDs += v;
+          else if (stat.includes('rushing yard')) st.rushYds += v;
+          else if (stat.includes('rushing touchdown')) st.rushTDs += v;
+          else if (stat.includes('reception') && !stat.includes('yard') && !stat.includes('td')) st.receptions += v;
+          else if (stat.includes('rushing attempt') || stat.includes('carries')) { st.rushAtt += v; st.totalPlays += v; }
+          else if (stat.includes('passing attempt') || stat === 'pass attempts') { st.passAtt += v; st.totalPlays += v; }
+          else if (stat.includes('completion') && !stat.includes('pct')) st.completions += v;
         }
 
         // Games-played: prefer CFBD's exact per-team-season count when
@@ -2648,9 +2654,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             features.actualPassTDShare = Math.round((current.receiving_tds || 0) / curTmPassTD * 1000) / 1000;
             features.actualRushTDShare = Math.round((current.rushing_tds || 0) / curTmRushTD * 1000) / 1000;
 
-            // Compute raw PPG for the PPG prediction model
+            // Compute raw PPG for the PPG prediction model.
+            // playerPPR is PPG-valued when vorBasis='ppg' (set by
+            // getPlayerValue), so in that path we skip the /games divide.
+            // Previously this double-divided and produced values like 1.4
+            // instead of 24 for top QBs — nuked every career-model training
+            // run built against v43/v44/v45 caches.
             const playerGames = current.games || 1;
-            const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
+            const totalPPR = current.fantasy_points_ppr || 0;
+            const rawPPG = Math.round((totalPPR / Math.max(1, playerGames)) * 10) / 10;
 
             rows.push({
               name: adpPlayer.name,
@@ -2691,7 +2703,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const snapPct = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
               const wt = combine?.wt || rosterPhysical?.weight || 0;
               const playerGames = current.games || 1;
-              const rawPPG = Math.round((playerPPR / Math.max(1, playerGames)) * 10) / 10;
+              // Use total PPR (not playerPPR — which is PPG under ppg-basis)
+              // to avoid double-dividing by games. Same bug as rookie path above.
+              const totalPPR = current.fantasy_points_ppr || 0;
+              const rawPPG = Math.round((totalPPR / Math.max(1, playerGames)) * 10) / 10;
               const proxyAdp = draft.pick;
 
               const features: Record<string, number> = {
