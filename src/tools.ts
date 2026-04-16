@@ -1382,7 +1382,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       data = data.filter((d) => nameMatch(d.player_name, playerName));
       if (season) data = data.filter((d) => d.season === season);
       if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
-      if (school) data = data.filter((d) => nameMatch(d.school_abbr, school) || nameMatch(d.school, school));
+      if (school) data = data.filter((d) => nameMatch(d.school_abbr || '', school) || nameMatch(d.school, school));
       data = data.slice(0, limit);
 
       if (data.length === 0) return `No college stats found for "${playerName}".`;

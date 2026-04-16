@@ -818,12 +818,12 @@ export interface DraftProfile {
 }
 
 export interface CollegeStats {
-  player_id: number;
-  alt_player_id: number;
+  player_id?: number;
+  alt_player_id?: number;
   player_name: string;
   pos_abbr: string;
   school: string;
-  school_abbr: string;
+  school_abbr?: string;
   season: number;
   statistic: string;
   value: number;
