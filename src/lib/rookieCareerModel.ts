@@ -523,24 +523,32 @@ export function trainRookieCareerModels(
     const thresholdConfig = PPG_THRESHOLD_CONFIG[pos];
 
     // ── Temporal sample weighting via row duplication ─────────────────
-    // NFL offense has shifted heavily toward passing since ~2012. Training
-    // on 2010 rookies with equal weight to 2024 rookies washes out the
-    // modern signal. Duplicate recent rows so they dominate the loss:
-    //   0-3 years ago: 3x, 4-7: 2x, 8+: 1x. Applied only to the training
-    //   fold (never to the held-out test fold) so LOSO stays honest.
-    //
-    // RB is excluded: the position has had enough modern-era turnover
-    // (role churn, "dead zone", high bust rates) that upweighting recent
-    // classes introduces more noise than signal. Measured -0.01 LOSO R²
-    // vs an unweighted baseline.
-    const useRecencyWeighting = pos !== 'RB';
+    // NFL offense has shifted heavily toward passing since ~2012, but the
+    // shift isn't uniform across positions and aggressive recency weighting
+    // can over-amplify modern outliers on small samples. Per-position
+    // schemes set by a LOSO sweep — see POS_RECENCY_SCHEMES in
+    // scripts/train_career_models.py for the full validation.
+    //   QB (n=133): no weighting — sharp recency over-inflates modern #1s.
+    //   RB (n=315): (3,1,1) — earlier "exclude RB" decision was stale.
+    //   WR (n=456): no weighting — flat across all schemes.
+    //   TE (n=207): (3,1,1) — sharp recency wins on the small sample.
+    // Applied only to the training fold so LOSO stays honest.
+    const POS_RECENCY: Record<string, [number, number, number] | null> = {
+      QB: null,
+      RB: [3, 1, 1],
+      WR: null,
+      TE: [3, 1, 1],
+    };
+    const recencyScheme = POS_RECENCY[pos] || null;
+    const useRecencyWeighting = recencyScheme !== null;
     const maxSeason = Math.max(...seasons);
     const recencyWeight = (season: number): number => {
-      if (!useRecencyWeighting) return 1;
+      if (!recencyScheme) return 1;
+      const [r, m, o] = recencyScheme;
       const gap = maxSeason - season;
-      if (gap <= 3) return 3;
-      if (gap <= 7) return 2;
-      return 1;
+      if (gap <= 3) return r;
+      if (gap <= 7) return m;
+      return o;
     };
     const expand = <T extends { draftSeason: number }>(rows: T[]): T[] => {
       if (!useRecencyWeighting) return rows;
