@@ -22,6 +22,9 @@ public/data/*
 !public/data/cfbd-college-stats.json
 !public/data/cfbd-sp-ratings.json
 !public/data/cfbd-recruiting.json
+!public/data/cfbd-games.json
+!public/data/cfbd-team-talent.json
+!public/data/cfbd-player-usage.json
 .claude/
 CLAUDE.local.md
 __pycache__/

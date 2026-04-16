@@ -9,8 +9,9 @@ import {
   fetchRosters, fetchDepthCharts, fetchGames,
   fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
   fetchCfbdCollegeStats, fetchCfbdSpRatings, fetchCfbdRecruiting,
+  fetchCfbdGames, fetchCfbdTeamTalent, fetchCfbdPlayerUsage,
 } from '../data';
-import type { CfbdSpRating, CfbdRecruit } from '../data';
+import type { CfbdSpRating, CfbdRecruit, CfbdPlayerUsage } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 // Volume projection module available for future ML team-level models
@@ -82,7 +83,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         // Load combine + draft + games + contracts + college once (static)
         onStatus?.('Loading combine, draft, games, contracts & college data...');
         const [combineData, draftData, gamesData, contractsData, collegeStatsBase, collegeQBRData, draftProspectData,
-               cfbdStats, cfbdSp, cfbdRecruiting] = await Promise.all([
+               cfbdStats, cfbdSp, cfbdRecruiting, cfbdGames, cfbdTeamTalent, cfbdPlayerUsage] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
@@ -93,6 +94,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           fetchCfbdCollegeStats().catch(() => [] as CollegeStats[]),
           fetchCfbdSpRatings().catch(() => ({} as Record<string, CfbdSpRating>)),
           fetchCfbdRecruiting().catch(() => ({} as Record<string, CfbdRecruit>)),
+          fetchCfbdGames().catch(() => ({} as Record<string, number>)),
+          fetchCfbdTeamTalent().catch(() => ({} as Record<string, number>)),
+          fetchCfbdPlayerUsage().catch(() => ({} as Record<string, CfbdPlayerUsage>)),
         ]);
 
         // Merge CFBD player stats with the JackLich10 source. Both share the
@@ -103,7 +107,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         // source is missing.
         const collegeStatsData: CollegeStats[] = [...collegeStatsBase, ...cfbdStats];
         if (cfbdStats.length > 0) {
-          onStatus?.(`CFBD merged: ${cfbdStats.length} stat rows, ${Object.keys(cfbdSp).length} SP+ ratings, ${Object.keys(cfbdRecruiting).length} recruits`);
+          onStatus?.(`CFBD merged: ${cfbdStats.length} stat rows, ${Object.keys(cfbdSp).length} SP+ ratings, ${Object.keys(cfbdRecruiting).length} recruits, ${Object.keys(cfbdGames).length} game counts, ${Object.keys(cfbdTeamTalent).length} team-talent, ${Object.keys(cfbdPlayerUsage).length} player-usage`);
         }
 
         // Build lookup maps
@@ -423,15 +427,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           else if (stat.includes('completion') && !stat.includes('pct')) st.completions += cs.value || 0;
         }
 
-        // Games-played proxy: the upstream sources don't include a 'games
-        // played' stat, so any per-season totals here would otherwise divide
-        // by zero. Backfill ps.games to 12 (typical FBS regular season) for
-        // every season the player has any recorded stat. Only fires when
-        // ps.games stayed 0 — preserves real values if a future source
-        // populates them.
+        // Games-played: prefer CFBD's exact per-team-season count when
+        // available, fall back to 12 (typical FBS regular season) for any
+        // school+season the games endpoint missed. Replaces the previous
+        // blanket 12-game default that was washing out variance.
         for (const [, seasons] of playerSeasonStats) {
-          for (const [, ps] of seasons) {
-            if (ps.games === 0) ps.games = 12;
+          for (const [seasonYear, ps] of seasons) {
+            if (ps.games > 0) continue;
+            const teamGames = cfbdGames[`${ps.school}:${seasonYear}`];
+            ps.games = (typeof teamGames === 'number' && teamGames > 0) ? teamGames : 12;
           }
         }
 
@@ -2301,6 +2305,39 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   // for players the legacy prospect source missed.
                   recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
                   recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
+                  // Aggregate 247 talent of the player's most recent college team.
+                  // Looked up by school:lastSeason from playerSeasonStats.
+                  collegeTeamTalent: (() => {
+                    const ps = playerSeasonStats.get(normalName);
+                    if (!ps) return 0;
+                    const lastSeason = Math.max(...ps.keys());
+                    const lastSchool = ps.get(lastSeason)?.school || '';
+                    return cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0;
+                  })(),
+                  // CFBD player usage rate from their final college season —
+                  // direct measure of how featured the player was on offense
+                  // (replaces dominator/market-share approximations).
+                  collegeUsageOverall: (() => {
+                    const ps = playerSeasonStats.get(normalName);
+                    if (!ps) return 0;
+                    const lastSeason = Math.max(...ps.keys());
+                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
+                    return cfbdPlayerUsage[k]?.overall || 0;
+                  })(),
+                  collegeUsagePass: (() => {
+                    const ps = playerSeasonStats.get(normalName);
+                    if (!ps) return 0;
+                    const lastSeason = Math.max(...ps.keys());
+                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
+                    return cfbdPlayerUsage[k]?.pass || 0;
+                  })(),
+                  collegeUsageRush: (() => {
+                    const ps = playerSeasonStats.get(normalName);
+                    if (!ps) return 0;
+                    const lastSeason = Math.max(...ps.keys());
+                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
+                    return cfbdPlayerUsage[k]?.rush || 0;
+                  })(),
                   collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                   collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
                   collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
@@ -3956,6 +3993,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectOvlRank: prospect?.ovr_rk || 0,
                     recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
                     recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
+                    collegeTeamTalent: (() => {
+                      const ps = playerSeasonStats.get(normalName);
+                      if (!ps) return 0;
+                      const lastSeason = Math.max(...ps.keys());
+                      const lastSchool = ps.get(lastSeason)?.school || '';
+                      return cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0;
+                    })(),
+                    collegeUsageOverall: (() => {
+                      const ps = playerSeasonStats.get(normalName);
+                      if (!ps) return 0;
+                      const lastSeason = Math.max(...ps.keys());
+                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.overall || 0;
+                    })(),
+                    collegeUsagePass: (() => {
+                      const ps = playerSeasonStats.get(normalName);
+                      if (!ps) return 0;
+                      const lastSeason = Math.max(...ps.keys());
+                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.pass || 0;
+                    })(),
+                    collegeUsageRush: (() => {
+                      const ps = playerSeasonStats.get(normalName);
+                      if (!ps) return 0;
+                      const lastSeason = Math.max(...ps.keys());
+                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.rush || 0;
+                    })(),
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                     collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
                       Math.max(0, Math.log(draft?.pick || 300) - 4.0),
