@@ -172,6 +172,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         }
 
         const draftByName = new Map<string, DraftPick>();
+        // Populate immediately — downstream loops (playerSeasonStats breakout
+        // detection, teammate score, college averages) need draft age and
+        // pick BEFORE their own maps are built. Previously this population
+        // happened much later, leaving draftByName empty for those loops
+        // and silently zeroing out collegeBreakoutAge + collegeTeammateScore.
+        for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
 
         // Contract lookup: player name → latest active contract
         const contractByName = new Map<string, Contract>();
@@ -244,12 +250,25 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         // Compute college per-game stats from the college stats data
         const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number; ydsPerRec: number }>();
         {
-          // Track games per season separately to get true career total games
-          const collegeTotals = new Map<string, { gamesBySeason: Map<number, number>; receptions: number; recYds: number; rushYds: number; rushAtt: number; tds: number; passYds: number }>();
+          // Track games per season separately to get true career total games.
+          // Also track (school, season) pairs so we can back-fill games from
+          // CFBD's team-level /games count when the tall stat feed doesn't
+          // include a per-player 'games played' row (CFBD's /stats/player/season
+          // doesn't expose one — only the legacy JackLich10 CSV does).
+          const collegeTotals = new Map<string, {
+            gamesBySeason: Map<number, number>;
+            seasonSchools: Map<number, string>;
+            receptions: number; recYds: number; rushYds: number;
+            rushAtt: number; tds: number; passYds: number;
+          }>();
           for (const cs of collegeStatsData) {
             const name = normalizeName(cs.player_name);
-            if (!collegeTotals.has(name)) collegeTotals.set(name, { gamesBySeason: new Map(), receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
+            if (!collegeTotals.has(name)) collegeTotals.set(name, { gamesBySeason: new Map(), seasonSchools: new Map(), receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
             const t = collegeTotals.get(name)!;
+            const school = (cs.school || cs.school_abbr || '').toLowerCase();
+            if (school && !t.seasonSchools.has(cs.season)) {
+              t.seasonSchools.set(cs.season, school);
+            }
             const stat = (cs.statistic || '').toLowerCase();
             if (stat.includes('game')) {
               // Track games per season so we sum across seasons correctly
@@ -264,9 +283,20 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             else if (stat.includes('passing yard')) t.passYds += cs.value || 0;
           }
           for (const [name, t] of collegeTotals) {
-            // Sum games across all seasons for true career total
+            // Sum games across all seasons for true career total, backfilling
+            // per-season games from CFBD team totals when needed.
             let totalGames = 0;
-            for (const g of t.gamesBySeason.values()) totalGames += g;
+            const allSeasons = new Set([
+              ...t.gamesBySeason.keys(),
+              ...t.seasonSchools.keys(),
+            ]);
+            for (const season of allSeasons) {
+              const direct = t.gamesBySeason.get(season) || 0;
+              if (direct > 0) { totalGames += direct; continue; }
+              const school = t.seasonSchools.get(season) || '';
+              const teamGames = (school && cfbdGames[`${school}:${season}`]) || 0;
+              totalGames += teamGames > 0 ? teamGames : 12;  // 12-game fallback
+            }
             const games = totalGames || 1;
             const totalYds = t.recYds + t.rushYds + t.passYds;
             collegePerGameByName.set(name, {
@@ -771,7 +801,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           WR: { peakStart: 25, peakEnd: 29, declineStart: 31 },
           TE: { peakStart: 25, peakEnd: 29, declineStart: 31 },
         };
-        for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
+        // draftByName already populated above (line ~175) so it's ready
+        // before the playerSeasonStats/teammateScore loops run.
 
         // Three draft-class context lookups from the FULL nflverse draft
         // picks dataset — NOT just rookies who made our training set, so
