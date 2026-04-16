@@ -1010,11 +1010,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               }
             } catch { /* ESPN also failed */ }
           }
-          // Validate ADP quality: at least 50 players with ADP > 0
+          // Validate ADP quality: at least 50 players with ADP > 0.
+          // If ADP is stale/missing (e.g. offseason — FFC rolls to next
+          // year's ADP mid-year, wiping the just-played season's 2025 data)
+          // we can STILL emit rookie rows via the draft-based path below,
+          // as long as NFL stats exist. Only hard-skip the season if
+          // currentStats is empty — otherwise keep going with adpData=[]
+          // (the ADP-based emission loop becomes a no-op and rookies still
+          // get caught by the draftByName loop).
           const validAdpCount = adpData.filter(p => p.adp > 0).length;
-          if (validAdpCount < 50 || currentStats.length === 0) {
-            onStatus?.(`⚠ Skipping season ${season}: validADP=${validAdpCount}/${adpData.length}, currentStats=${currentStats.length}`);
+          if (currentStats.length === 0) {
+            onStatus?.(`⚠ Skipping season ${season}: no currentStats`);
             continue;
+          }
+          if (validAdpCount < 50) {
+            onStatus?.(`⚠ ${season}: validADP=${validAdpCount}/${adpData.length} — emitting rookie rows via draft path only`);
+            adpData = [];  // ADP loop below becomes a no-op; draft path still runs
           }
 
           // Current season totals + ranks

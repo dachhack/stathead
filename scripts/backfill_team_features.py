@@ -44,7 +44,7 @@ import sys
 import time
 from pathlib import Path
 
-CACHE_PATH = Path('public/data/training-rows-cache-v46.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v47.json')
 FEATURE_STORE_COACHING = Path('public/data/feature-store/coaching.json')
 # Per-team feature aggregates derived from PBP/participation. Committed to
 # git so a re-backfill without network access still works.
@@ -354,7 +354,7 @@ def compute_aggregates(seasons):
 
 
 def apply_aggregates_to_training_cache(aggregates: dict):
-    """Update training-rows-cache-v46.json with per-team feature values."""
+    """Update training-rows-cache-v47.json with per-team feature values."""
     print(f'\nLoading training cache from {CACHE_PATH}...')
     with open(CACHE_PATH) as f:
         data = json.load(f)
