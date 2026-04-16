@@ -10,6 +10,49 @@ import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { InfoTip, PipelineDiagram, STAT_DEFS } from './ModelDocsHelpers';
 import projectionConfig from '../generated/projection-config.json';
 
+// Human-readable labels for the gap-feature vocabulary used by the rookie boom
+// model (see train_career_models.py::GAP_FEAT_NAMES). These keys don't exist
+// in FEATURES because they're derived talent-vs-draft deltas.
+const GAP_FEATURE_LABELS: Record<string, string> = {
+  ras: 'RAS',
+  speed: 'Speed Score',
+  height_speed: 'Height-Adj Speed Score',
+  forty: '40-Yard Dash',
+  weight: 'Weight',
+  cone: '3-Cone Drill',
+  shuttle: '20-Yard Shuttle',
+  best_rec: 'Best College Rec Yards',
+  dominator: 'College Dominator',
+  breakout: 'College Breakout Score',
+  market_share: 'College Market Share',
+  total_tds: 'College Total TDs',
+  prospect_grade: 'Prospect Grade',
+  age: 'Age',
+  early_declare: 'Early Declare',
+  experience: 'College Games / Age',
+  seasons: 'College Seasons',
+  ras_vs_pick: 'RAS vs Draft Pick',
+  speed_vs_pick: 'Speed vs Draft Pick',
+  production_vs_pick: 'Production vs Draft Pick',
+  best_season_vs_pick: 'Best Season vs Draft Pick',
+  grade_vs_pick: 'Prospect Grade vs Draft Pick',
+  low_games: 'Low Games/Season Flag',
+  early_declare_late: 'Early Declare × Late Pick',
+  games_per_season: 'Games / Season',
+  recent_breakout: 'Recent Breakout Flag',
+};
+
+// Human-readable labels for the bust-classifier feature vocabulary (see
+// train_career_models.py::BUST_FEAT_NAMES). Most keys match FEATURES; a few
+// derived deficit features are bust-model-only.
+const BUST_FEATURE_LABELS: Record<string, string> = {
+  predictedPPG: 'Predicted PPG',
+  speed_deficit: 'Speed Deficit vs Hits',
+  production_deficit: 'Production Deficit vs Hits',
+  age_for_draft: 'Age at Draft',
+  missing_data_count: 'Missing Data Count',
+};
+
 interface PositionModelData {
   position: string;
   featureNames: string[];
@@ -225,6 +268,7 @@ export function ModelDocumentation() {
       bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
       boomFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
       bustFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
+      companionFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
       backtestRows?: Array<{
         name: string; position: string; draftSeason: number;
         actualPPG: number; predictedPPG: number;
@@ -1452,6 +1496,35 @@ export function ModelDocumentation() {
                 );
               })()}
 
+              {/* Companion model feature importance (WR/RB pre-draft only) */}
+              {m.companionFeatureImportance && m.companionFeatureImportance.length > 0 && (() => {
+                const fiData = m.companionFeatureImportance.map(f => {
+                  const def = FEATURES.find(fd => fd.key === f.key);
+                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                  return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
+                });
+                return (
+                  <>
+                    <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>College-Only Companion Contributions ({selectedPos})</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                      Separate Ridge trained without any draft-capital features, blended 30% with the main model.
+                      Surfaces late-round breakouts the draft-capital-driven main model confidently mispredicts
+                      (Tyreek Hill, Puka Nacua profile).
+                    </p>
+                    <div style={{ marginBottom: 20 }}>
+                      <MobileBarList
+                        items={fiData.map((d, idx) => ({
+                          label: d.name,
+                          value: d.importance,
+                          color: idx === 0 ? '#22c55e' : idx < 3 ? '#4ade80' : '#86efac',
+                        }))}
+                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
+
               {/* Probability model explanation */}
               {m.residualStd != null && m.residualStd > 0 && (
                 <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, marginBottom: 16 }}>
@@ -1739,6 +1812,66 @@ export function ModelDocumentation() {
                 Top bust drivers: draft pick position (34-58%), missing athletic data (9%), RAS deficit (4-5%), age (2-3%).
                 All pre-draft features — available before the NFL draft.
               </p>
+
+              {/* Boom model feature importance */}
+              {m.boomFeatureImportance && m.boomFeatureImportance.length > 0 && (() => {
+                type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
+                const boomFi = m.boomFeatureImportance as FI[];
+                const fiData = boomFi.slice(0, 15).map((f) => {
+                  const label = GAP_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                  return { name: label + dirLabel, importance: f.importance };
+                });
+                return (
+                  <>
+                    <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Boom Model Feature Importance ({selectedPos})</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                      LightGBM gain importance from the talent-vs-draft outperformance model. Direction from
+                      Spearman correlation with outperformance — ↑ = higher feature → more likely to boom.
+                    </p>
+                    <div style={{ marginBottom: 20 }}>
+                      <MobileBarList
+                        items={fiData.map((d, idx) => ({
+                          label: d.name,
+                          value: d.importance,
+                          color: idx === 0 ? '#22c55e' : idx < 3 ? '#4ade80' : '#86efac',
+                        }))}
+                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Bust model feature importance */}
+              {m.bustFeatureImportance && m.bustFeatureImportance.length > 0 && (() => {
+                type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
+                const bustFi = m.bustFeatureImportance as FI[];
+                const fiData = bustFi.slice(0, 15).map((f) => {
+                  const label = BUST_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                  return { name: label + dirLabel, importance: f.importance };
+                });
+                return (
+                  <>
+                    <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Bust Model Feature Importance ({selectedPos})</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                      LightGBM gain importance from the binary bust classifier. Direction from Spearman
+                      correlation with bust label — ↑ = higher feature → more likely to bust.
+                    </p>
+                    <div style={{ marginBottom: 20 }}>
+                      <MobileBarList
+                        items={fiData.map((d, idx) => ({
+                          label: d.name,
+                          value: d.importance,
+                          color: idx === 0 ? '#ef4444' : idx < 3 ? '#f87171' : '#fca5a5',
+                        }))}
+                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Cross-position comparison */}
               <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Cross-Position Boom/Bust Rates</h3>
