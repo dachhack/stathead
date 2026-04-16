@@ -35,7 +35,7 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 # ── Configuration ─────────────────────────────────────────────────────
 
-CACHE_PATH = Path('public/data/training-rows-cache-v45.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v46.json')
 OUTPUT_DIR = Path('public/data')
 PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
@@ -167,12 +167,20 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         if f.get('draftPickPct') is None:
             f['draftPickPct'] = 1.0
 
-        # QB accuracy features from raw aggregates
-        raw_pa = float(f.get('_rawCareerPassAtt', 0) or 0)
-        raw_pc = float(f.get('_rawCareerPassCompletions', 0) or 0)
-        raw_py = float(f.get('_rawCareerPassYds', 0) or 0)
-        raw_tpa = float(f.get('_rawTeamPassAtt', 0) or 0)
-        raw_tpc = float(f.get('_rawTeamPassCompletions', 0) or 0)
+        # QB accuracy features from raw aggregates. Older cache versions
+        # leaked 'NA' strings from JackLich10's CSV into these fields;
+        # coerce defensively so a malformed cache doesn't nuke training.
+        def _num(x):
+            try:
+                n = float(x)
+                return n if math.isfinite(n) else 0.0
+            except (TypeError, ValueError):
+                return 0.0
+        raw_pa = _num(f.get('_rawCareerPassAtt', 0))
+        raw_pc = _num(f.get('_rawCareerPassCompletions', 0))
+        raw_py = _num(f.get('_rawCareerPassYds', 0))
+        raw_tpa = _num(f.get('_rawTeamPassAtt', 0))
+        raw_tpc = _num(f.get('_rawTeamPassCompletions', 0))
         f['collegeCompletionPct'] = round(raw_pc / raw_pa, 3) if raw_pa > 0 else 0
         team_comp = raw_tpc / raw_tpa if raw_tpa > 0 else 0
         f['collegeCompletionPctOverTeam'] = round(f['collegeCompletionPct'] - team_comp, 3) if f['collegeCompletionPct'] > 0 and team_comp > 0 else 0
