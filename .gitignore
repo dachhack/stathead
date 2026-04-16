@@ -25,6 +25,8 @@ public/data/*
 !public/data/cfbd-games.json
 !public/data/cfbd-team-talent.json
 !public/data/cfbd-player-usage.json
+!public/data/cfbd/
+!public/data/cfbd/*.json
 .claude/
 CLAUDE.local.md
 __pycache__/

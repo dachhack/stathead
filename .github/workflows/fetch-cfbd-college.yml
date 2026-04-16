@@ -43,21 +43,6 @@ jobs:
       - name: Install deps
         run: pip install cfbd python-dotenv
 
-      # Persist the raw per-year CFBD payloads between workflow runs so we
-      # don't burn call budget re-fetching years we already have. Keyed on
-      # the fetch script's SHA so the cache invalidates automatically when
-      # endpoint logic or year range changes. After the initial pull
-      # (~126 calls) subsequent runs only fetch years that are NEW or
-      # invalidated — typically 0 calls for scheduled refreshes after the
-      # final college season wraps.
-      - name: Cache raw CFBD per-year JSONs
-        uses: actions/cache@v4
-        with:
-          path: public/data/cfbd
-          key: cfbd-raw-${{ hashFiles('scripts/fetch_cfbd_college_stats.py') }}
-          restore-keys: |
-            cfbd-raw-
-
       - name: Fetch CFBD data
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
@@ -71,14 +56,18 @@ jobs:
           fi
           python3 scripts/fetch_cfbd_college_stats.py $ARGS
 
-      - name: Commit normalized data
+      - name: Commit CFBD data (raw + rollups)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Only the normalized rollups are committed — raw per-year files
-          # stay gitignored; they're persisted across runs via actions/cache
-          # above so we don't waste CFBD call budget re-fetching them.
-          git add public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json \
+          # Commit BOTH the raw per-year JSONs and the normalized rollups.
+          # The raw files serve as a permanent call-budget cache — next
+          # run sees them already present in the checkout and skips any
+          # year whose file already exists (via the script's idempotency
+          # check). Without this, a fresh runner re-burns ~126 CFBD calls
+          # on every trigger.
+          git add public/data/cfbd/*.json \
+                  public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json \
                   public/data/cfbd-recruiting.json public/data/cfbd-games.json \
                   public/data/cfbd-team-talent.json public/data/cfbd-player-usage.json
           if git diff --cached --quiet; then
