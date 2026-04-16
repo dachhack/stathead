@@ -25,7 +25,7 @@ from collections import defaultdict
 from pathlib import Path
 
 COLLEGE_STATS = Path('public/data/college_statistics.csv')
-CACHE_PATH = Path('public/data/training-rows-cache-v44.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v45.json')
 OUTPUT_PATH = Path('public/data/college-availability.json')
 DRAFT_PATH = Path('public/data/draft_picks.csv')
 
