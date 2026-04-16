@@ -34,7 +34,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 DATA_DIR = Path('public/data')
-CACHE_PATH = DATA_DIR / 'training-rows-cache-v45.json'
+CACHE_PATH = DATA_DIR / 'training-rows-cache-v46.json'
 MODEL_CACHE_PATH = DATA_DIR / 'model-cache-ppg-v56.json'
 OUTPUT_PATH = DATA_DIR / 'ppg-hyperparam-sweep.json'
 
