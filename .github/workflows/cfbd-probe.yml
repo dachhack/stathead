@@ -1,0 +1,88 @@
+name: CFBD Probe (diagnostic)
+
+# Minimal smoke test. Makes ONE CFBD call (1 call = ~0.1% of budget),
+# reports auth + schema to the run summary. Use this if the main fetch
+# workflow fails opaquely.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret presence
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          {
+            echo "## CFBD Probe"
+            echo ""
+            if [ -z "$CFBD_API_KEY" ]; then
+              echo "**Result:** FAIL — \`CFBD_API_KEY\` secret is NOT set"
+              echo ""
+              echo "Fix: Repo Settings → Secrets and variables → Actions → New repository secret → name \`CFBD_API_KEY\`"
+              exit 1
+            fi
+            echo "- Secret present: ✅ (\`\${#CFBD_API_KEY}\` = ${#CFBD_API_KEY} chars)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cfbd SDK
+        run: pip install cfbd
+
+      - name: Probe /ratings/sp?year=2024 (smallest endpoint, 1 call)
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          python3 - <<'PY' | tee /tmp/probe.out
+          import os, cfbd, traceback, json
+          cfg = cfbd.Configuration()
+          cfg.api_key['Authorization'] = os.environ['CFBD_API_KEY']
+          cfg.api_key_prefix['Authorization'] = 'Bearer'
+          api = cfbd.RatingsApi(cfbd.ApiClient(cfg))
+          try:
+              rows = api.get_sp_ratings(year=2024)
+          except Exception as e:
+              print("ERROR_TYPE:", type(e).__name__)
+              print("ERROR:", e)
+              traceback.print_exc()
+              raise
+          print(f"OK rows={len(rows)}")
+          if rows:
+              first = rows[0]
+              keys = [a for a in dir(first) if not a.startswith('_') and not callable(getattr(first, a))]
+              print("FIRST_ROW_KEYS:", keys[:20])
+              print("FIRST_ROW_SAMPLE:", {k: str(getattr(first, k))[:60] for k in keys[:10]})
+          PY
+          {
+            echo ""
+            echo "### Probe output"
+            echo '```'
+            cat /tmp/probe.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Also probe /stats/player/season method exists
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import cfbd
+          print("")
+          print("### SDK method availability")
+          print("")
+          print("| API | Methods containing 'season' or 'recruit' |")
+          print("|---|---|")
+          for api_name in ['StatsApi', 'RatingsApi', 'RecruitingApi']:
+              methods = [m for m in dir(getattr(cfbd, api_name)) if not m.startswith('_')
+                         and ('season' in m.lower() or 'recruit' in m.lower() or 'rating' in m.lower())
+                         and not m.endswith('_with_http_info')]
+              print(f"| `{api_name}` | `{', '.join(methods)}` |")
+          PY
