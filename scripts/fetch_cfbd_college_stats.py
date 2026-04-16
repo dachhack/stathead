@@ -53,9 +53,7 @@ NORMALIZED_PATH = Path('public/data/cfbd-college-stats.json')
 SP_PATH = Path('public/data/cfbd-sp-ratings.json')
 RECRUIT_PATH = Path('public/data/cfbd-recruiting.json')
 
-cfg = cfbd.Configuration()
-cfg.api_key['Authorization'] = API_KEY
-cfg.api_key_prefix['Authorization'] = 'Bearer'
+cfg = cfbd.Configuration(access_token=API_KEY)
 client = cfbd.ApiClient(cfg)
 stats_api = cfbd.StatsApi(client)
 ratings_api = cfbd.RatingsApi(client)
