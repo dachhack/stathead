@@ -41,7 +41,9 @@ PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
 
 PRE_DRAFT_FEATURES = {
-    'QB': ['logDraftPick', 'collegeQBR2yr',
+    # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
+    # class is not the same talent signal as a #1 pick in a loaded one.
+    'QB': ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
            'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
     'RB': ['logDraftPick', 'collegeDominatorXLateRound'],
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
@@ -187,15 +189,42 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
     return career_rows
 
 
-def recency_weight(season: int, max_season: int, use_weighting: bool) -> int:
-    if not use_weighting:
+def recency_weight(season: int, max_season: int, scheme) -> int:
+    """Per-row training weight as a function of how recent the draft class is.
+
+    `scheme` is either None (no weighting; every row gets weight 1) or a
+    (recent, mid, old) tuple applied to gaps of ≤3, 4–7, ≥8 years from
+    `max_season`. Centralising the policy in one dict (POS_RECENCY_SCHEMES)
+    makes per-position tuning a single-line change.
+    """
+    if scheme is None:
         return 1
+    r, m, o = scheme
     gap = max_season - season
     if gap <= 3:
-        return 3
+        return r
     if gap <= 7:
-        return 2
-    return 1
+        return m
+    return o
+
+
+# Per-position recency-weighting schemes for pre-draft training. Validated by
+# a LOSO sweep over (1,1,1)/(2,1,1)/(2,2,1)/(3,2,1)/(4,2,1)/(3,1,1)/(5,3,1):
+#   QB (n=133): no weighting wins (R² 0.336 → 0.344). The previous (3,2,1)
+#       was over-amplifying recent classes on a tiny sample, inflating
+#       modern #1 picks above their historical comps.
+#   RB (n=315): (3,1,1) wins (R² 0.340 → 0.347). Earlier policy excluded RB
+#       on the assumption recency hurts; that turned out to be stale once
+#       feature set + hyperparams were retuned.
+#   WR (n=456): flat within noise across all schemes; dropping for symmetry.
+#   TE (n=207): (3,1,1) wins (R² 0.324 → 0.340). Sharp recency helps the
+#       smaller sample without overfitting.
+POS_RECENCY_SCHEMES: dict = {
+    'QB': None,
+    'RB': (3, 1, 1),
+    'WR': None,
+    'TE': (3, 1, 1),
+}
 
 
 # ── Training ──────────────────────────────────────────────────────────
@@ -212,7 +241,8 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     thresholds = PPG_THRESHOLDS[pos]
     seasons = sorted(set(r['draft_season'] for r in pos_rows))
     max_season = max(seasons)
-    use_recency = pos != 'RB' and not is_post_draft
+    recency_scheme = None if is_post_draft else POS_RECENCY_SCHEMES.get(pos)
+    use_recency = recency_scheme is not None
 
     # College-only companion model for WR/RB pre-draft (catches late-round breakouts)
     DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick', 'draftPickXEarlyDeclare', 'collegeDominatorXLateRound'}
@@ -233,7 +263,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             return rows
         out = []
         for r in rows:
-            w = recency_weight(r['draft_season'], max_season, True)
+            w = recency_weight(r['draft_season'], max_season, recency_scheme)
             out.extend([r] * w)
         return out
 
@@ -603,7 +633,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
                 rho = 0.0
             entries.append({
                 'key': name,
-                'importance': round(imp, 3),
+                'importance': round(imp, 6),
                 'direction': 'positive' if rho >= 0 else 'negative',
             })
         entries.sort(key=lambda e: -e['importance'])
@@ -761,7 +791,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
                 companion_feature_importance = sorted([
                     {
                         'key': college_only_keys[i],
-                        'importance': round(abs(co_coeffs[i]) / co_total, 3),
+                        'importance': round(abs(co_coeffs[i]) / co_total, 6),
                         'direction': 'positive' if co_coeffs[i] >= 0 else 'negative',
                     }
                     for i in range(len(college_only_keys))
@@ -804,7 +834,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     feature_importance = sorted([
         {
             'key': feature_keys[i],
-            'importance': round(abs(coeffs[i]) / total_imp, 3) if total_imp > 0 else 0,
+            'importance': round(abs(coeffs[i]) / total_imp, 6) if total_imp > 0 else 0,
             'direction': 'positive' if coeffs[i] >= 0 else 'negative',
         }
         for i in range(len(feature_keys))

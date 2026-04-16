@@ -1,0 +1,72 @@
+name: Fetch CFBD College Stats
+
+# Pulls college football data from CollegeFootballData.com, normalizes into the
+# tall format buildFeatureMatrix expects, and commits the resulting JSON back
+# to the branch that triggered the run.
+#
+# Setup (one-time):
+#   1. Add repo secret CFBD_API_KEY (Settings → Secrets and variables → Actions)
+#   2. Trigger manually the first time: Actions → Fetch CFBD College Stats → Run workflow
+#
+# Call budget: ~45 calls for a full first pull (2011-2025 × 3 endpoints).
+# Subsequent runs skip years already cached unless --force is passed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Re-fetch all years (burns call budget — only use if stale)'
+        required: false
+        default: 'false'
+      years:
+        description: 'Comma-separated years to fetch (default: 2011-2025)'
+        required: false
+        default: ''
+
+  # Monthly incremental refresh — picks up the new season when it posts.
+  schedule:
+    - cron: '0 6 1 * *'  # 06:00 UTC on the 1st of each month
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install deps
+        run: pip install cfbd python-dotenv
+
+      - name: Fetch CFBD data
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          if [ -n "${{ github.event.inputs.years }}" ]; then
+            ARGS="$ARGS --years ${{ github.event.inputs.years }}"
+          fi
+          python3 scripts/fetch_cfbd_college_stats.py $ARGS
+
+      - name: Commit normalized data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Only the normalized rollups are committed — raw per-year files
+          # stay gitignored via public/data/*.
+          git add public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json public/data/cfbd-recruiting.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Refresh CFBD college stats $(date +%Y-%m-%d)"
+            git push
+          fi

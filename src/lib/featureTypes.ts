@@ -472,7 +472,11 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // QB: n=133. Ablation rounds 1+2 pruned 17→5. Round 1 (17→6) jumped R²
   // 0.240→0.323. Round 2 dropped earlyDeclare (flipped to +0.009 dead weight
   // once noise features removed — experience > raw tools in modern NFL).
-  QB: ['logDraftPick', 'collegeQBR2yr',
+  // Added draftClassDepth in Apr-2026: QBs are scarce, so a #1 pick in a
+  // shallow QB class (e.g. 2025) is meaningfully different from a #1 pick
+  // in a loaded one (e.g. 2021). Without this the model conflated draft
+  // capital with elite talent.
+  QB: ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
        'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
   // RB: n=315. Ablation rounds 1+2 pruned 11→2. logDraftPick dominates
   // (Δ=-0.224). Round 2 dropped speedScore (+0.041), totalTDs (+0.036),

@@ -19,6 +19,9 @@ public/data/*
 !public/data/ktc-hyperparam-sweep.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
+!public/data/cfbd-college-stats.json
+!public/data/cfbd-sp-ratings.json
+!public/data/cfbd-recruiting.json
 .claude/
 CLAUDE.local.md
 __pycache__/

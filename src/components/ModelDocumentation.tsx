@@ -69,6 +69,19 @@ interface PositionModelData {
   ridgeModel?: { coefficients: number[] };
 }
 
+// Adaptive percent formatter — picks enough decimal places to show a
+// non-zero value for very small contributions (<1%), so features with
+// tiny but real importance don't display as "0.0%" with a phantom bar.
+function fmtImportancePct(v: number): string {
+  const pct = v * 100;
+  if (pct === 0) return '0%';
+  if (pct >= 10) return pct.toFixed(0) + '%';
+  if (pct >= 1) return pct.toFixed(1) + '%';
+  if (pct >= 0.1) return pct.toFixed(2) + '%';
+  if (pct >= 0.01) return pct.toFixed(3) + '%';
+  return pct.toFixed(4) + '%';
+}
+
 function MobileBarList({
   items,
   format,
@@ -1489,7 +1502,7 @@ export function ModelDocumentation() {
                           value: d.importance,
                           color: idx === 0 ? '#a78bfa' : idx < 3 ? '#818cf8' : '#6366f1',
                         }))}
-                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                        format={fmtImportancePct}
                       />
                     </div>
                   </>
@@ -1518,7 +1531,7 @@ export function ModelDocumentation() {
                           value: d.importance,
                           color: idx === 0 ? '#22c55e' : idx < 3 ? '#4ade80' : '#86efac',
                         }))}
-                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                        format={fmtImportancePct}
                       />
                     </div>
                   </>
@@ -1817,11 +1830,13 @@ export function ModelDocumentation() {
               {m.boomFeatureImportance && m.boomFeatureImportance.length > 0 && (() => {
                 type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
                 const boomFi = m.boomFeatureImportance as FI[];
-                const fiData = boomFi.slice(0, 15).map((f) => {
-                  const label = GAP_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: label + dirLabel, importance: f.importance };
-                });
+                const fiData = boomFi
+                  .slice(0, 15)
+                  .map((f) => {
+                    const label = GAP_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: label + dirLabel, importance: f.importance };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Boom Model Feature Importance ({selectedPos})</h3>
@@ -1836,7 +1851,7 @@ export function ModelDocumentation() {
                           value: d.importance,
                           color: idx === 0 ? '#22c55e' : idx < 3 ? '#4ade80' : '#86efac',
                         }))}
-                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                        format={fmtImportancePct}
                       />
                     </div>
                   </>
@@ -1847,11 +1862,13 @@ export function ModelDocumentation() {
               {m.bustFeatureImportance && m.bustFeatureImportance.length > 0 && (() => {
                 type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
                 const bustFi = m.bustFeatureImportance as FI[];
-                const fiData = bustFi.slice(0, 15).map((f) => {
-                  const label = BUST_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: label + dirLabel, importance: f.importance };
-                });
+                const fiData = bustFi
+                  .slice(0, 15)
+                  .map((f) => {
+                    const label = BUST_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: label + dirLabel, importance: f.importance };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Bust Model Feature Importance ({selectedPos})</h3>
@@ -1866,7 +1883,7 @@ export function ModelDocumentation() {
                           value: d.importance,
                           color: idx === 0 ? '#ef4444' : idx < 3 ? '#f87171' : '#fca5a5',
                         }))}
-                        format={(v) => `${(v * 100).toFixed(1)}%`}
+                        format={fmtImportancePct}
                       />
                     </div>
                   </>
