@@ -41,7 +41,9 @@ PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
 
 PRE_DRAFT_FEATURES = {
-    'QB': ['logDraftPick', 'collegeQBR2yr',
+    # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
+    # class is not the same talent signal as a #1 pick in a loaded one.
+    'QB': ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
            'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
     'RB': ['logDraftPick', 'collegeDominatorXLateRound'],
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
@@ -631,7 +633,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
                 rho = 0.0
             entries.append({
                 'key': name,
-                'importance': round(imp, 3),
+                'importance': round(imp, 6),
                 'direction': 'positive' if rho >= 0 else 'negative',
             })
         entries.sort(key=lambda e: -e['importance'])
@@ -789,7 +791,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
                 companion_feature_importance = sorted([
                     {
                         'key': college_only_keys[i],
-                        'importance': round(abs(co_coeffs[i]) / co_total, 3),
+                        'importance': round(abs(co_coeffs[i]) / co_total, 6),
                         'direction': 'positive' if co_coeffs[i] >= 0 else 'negative',
                     }
                     for i in range(len(college_only_keys))
@@ -832,7 +834,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     feature_importance = sorted([
         {
             'key': feature_keys[i],
-            'importance': round(abs(coeffs[i]) / total_imp, 3) if total_imp > 0 else 0,
+            'importance': round(abs(coeffs[i]) / total_imp, 6) if total_imp > 0 else 0,
             'direction': 'positive' if coeffs[i] >= 0 else 'negative',
         }
         for i in range(len(feature_keys))

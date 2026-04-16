@@ -970,7 +970,7 @@ export function trainRookieCareerModels(
     const fiTotal = fi.reduce((s, f) => s + f.importance, 0);
     const featureImportance = fi.map(f => ({
       key: f.key,
-      importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1000) / 1000 : 0,
+      importance: fiTotal > 0 ? Math.round(f.importance / fiTotal * 1e6) / 1e6 : 0,
       direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
     }));
 
@@ -985,7 +985,7 @@ export function trainRookieCareerModels(
       const coTotal = coFi.reduce((s, f) => s + f.importance, 0);
       companionFeatureImportance = coFi.map(f => ({
         key: f.key,
-        importance: coTotal > 0 ? Math.round(f.importance / coTotal * 1000) / 1000 : 0,
+        importance: coTotal > 0 ? Math.round(f.importance / coTotal * 1e6) / 1e6 : 0,
         direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
       }));
     }
