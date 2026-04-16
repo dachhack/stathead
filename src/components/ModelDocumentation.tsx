@@ -1471,11 +1471,15 @@ export function ModelDocumentation() {
 
               {/* Feature importance */}
               {m.featureImportance && m.featureImportance.length > 0 && (() => {
-                const fiData = m.featureImportance.map(f => {
-                  const def = FEATURES.find(fd => fd.key === f.key);
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
-                });
+                // Hide features whose importance rounds to 0.0% — they add
+                // visual noise (min-2px bar) without conveying signal.
+                const fiData = m.featureImportance
+                  .filter(f => f.importance >= 0.001)
+                  .map(f => {
+                    const def = FEATURES.find(fd => fd.key === f.key);
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Feature Contributions ({selectedPos})</h3>
@@ -1498,11 +1502,13 @@ export function ModelDocumentation() {
 
               {/* Companion model feature importance (WR/RB pre-draft only) */}
               {m.companionFeatureImportance && m.companionFeatureImportance.length > 0 && (() => {
-                const fiData = m.companionFeatureImportance.map(f => {
-                  const def = FEATURES.find(fd => fd.key === f.key);
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
-                });
+                const fiData = m.companionFeatureImportance
+                  .filter(f => f.importance >= 0.001)
+                  .map(f => {
+                    const def = FEATURES.find(fd => fd.key === f.key);
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: (def?.label || f.key) + dirLabel, importance: f.importance, key: f.key };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>College-Only Companion Contributions ({selectedPos})</h3>
@@ -1817,11 +1823,14 @@ export function ModelDocumentation() {
               {m.boomFeatureImportance && m.boomFeatureImportance.length > 0 && (() => {
                 type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
                 const boomFi = m.boomFeatureImportance as FI[];
-                const fiData = boomFi.slice(0, 15).map((f) => {
-                  const label = GAP_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: label + dirLabel, importance: f.importance };
-                });
+                const fiData = boomFi
+                  .filter((f) => f.importance >= 0.001)
+                  .slice(0, 15)
+                  .map((f) => {
+                    const label = GAP_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: label + dirLabel, importance: f.importance };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Boom Model Feature Importance ({selectedPos})</h3>
@@ -1847,11 +1856,14 @@ export function ModelDocumentation() {
               {m.bustFeatureImportance && m.bustFeatureImportance.length > 0 && (() => {
                 type FI = { key: string; importance: number; direction?: 'positive' | 'negative' };
                 const bustFi = m.bustFeatureImportance as FI[];
-                const fiData = bustFi.slice(0, 15).map((f) => {
-                  const label = BUST_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
-                  const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
-                  return { name: label + dirLabel, importance: f.importance };
-                });
+                const fiData = bustFi
+                  .filter((f) => f.importance >= 0.001)
+                  .slice(0, 15)
+                  .map((f) => {
+                    const label = BUST_FEATURE_LABELS[f.key] || FEATURES.find(fd => fd.key === f.key)?.label || f.key;
+                    const dirLabel = f.direction === 'positive' ? ' ↑' : f.direction === 'negative' ? ' ↓' : '';
+                    return { name: label + dirLabel, importance: f.importance };
+                  });
                 return (
                   <>
                     <h3 style={{ fontSize: 15, margin: '20px 0 8px' }}>Bust Model Feature Importance ({selectedPos})</h3>
