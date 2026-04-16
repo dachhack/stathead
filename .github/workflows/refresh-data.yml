@@ -7,7 +7,7 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -50,6 +50,33 @@ jobs:
             exit 1
           fi
           echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
+
+      # Commit the rebuilt caches back so downstream jobs (model training,
+      # coverage audit, local analysis) work off the fresh data instead of
+      # whatever last got checked in. [skip ci] prevents this commit from
+      # triggering another refresh cascade.
+      - name: Commit refreshed caches
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/training-rows-cache-*.json \
+                  public/data/feature-matrix.json \
+                  public/data/feature-store/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No cache changes to commit"
+          else
+            git commit -m "Auto-commit caches: training rows + models + feature store [skip ci]"
+            # Retry push 3 times in case of transient conflicts with concurrent pushes
+            for i in 1 2 3; do
+              if git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd; then
+                break
+              fi
+              echo "Push attempt $i failed, pulling + retrying..."
+              git pull --rebase origin claude/nfl-fantasy-workbench-6D1yd || true
+              sleep $((i * 2))
+            done
+          fi
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
