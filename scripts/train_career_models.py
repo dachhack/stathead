@@ -35,7 +35,7 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 # ── Configuration ─────────────────────────────────────────────────────
 
-CACHE_PATH = Path('public/data/training-rows-cache-v47.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v48.json')
 OUTPUT_DIR = Path('public/data')
 PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
@@ -158,12 +158,14 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         if pick >= 300 and age == 0:
             continue
 
-        # Derived features
-        f['logDraftPick'] = math.log(pick)
+        # Derived features. log(pick+1) so the #1 overall pick is 0.693
+        # (distinct non-zero signal) instead of log(1) = 0 — previously
+        # indistinguishable from a missing-data value on player cards.
+        f['logDraftPick'] = math.log(pick + 1)
         f['invDraftPick'] = 1.0 / pick
         f['collegeEarlyDeclare'] = f.get('collegeEarlyDeclare', 0)
         f['draftPickXEarlyDeclare'] = f['collegeEarlyDeclare'] * f['invDraftPick']
-        f['collegeDominatorXLateRound'] = (f.get('collegeDominatorRating', 0) or 0) * max(0, math.log(pick) - 4.0)
+        f['collegeDominatorXLateRound'] = (f.get('collegeDominatorRating', 0) or 0) * max(0, math.log(pick + 1) - 4.0)
         if f.get('draftPickPct') is None:
             f['draftPickPct'] = 1.0
 

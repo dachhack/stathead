@@ -464,9 +464,53 @@ export const FEATURES: FeatureDef[] = [
 
 // ── Helpers ──
 
+// First-name aliases for name-based lookups across data sources. CFBD often
+// stores the legal first name ("Cameron", "Joshua", "Patrick") while
+// nflverse / FFC / prospect feeds use the commonly-known short form ("Cam",
+// "Josh", "Pat"). Without this, college features for Cam Ward (= Cameron
+// Ward in CFBD) come through as 0, which is how a #1 overall pick ended up
+// with NO college data in the training cache.
+//
+// Each entry maps the short form to the full legal form. normalizeName()
+// applies the forward mapping; matchesName() below tries both directions
+// so a lookup table built from either source can find the other.
+const FIRST_NAME_ALIASES: Record<string, string> = {
+  cam: 'cameron',
+  mitch: 'mitchell',
+  josh: 'joshua',
+  pat: 'patrick',
+  dan: 'daniel',
+  jeff: 'jeffrey',
+  chig: 'chigoziem',
+};
+
+/**
+ * Normalize a player name for cross-source lookup.
+ *
+ * Steps, in order:
+ *   1. Lowercase, strip apostrophes + periods
+ *   2. Strip generational suffix (Jr, Sr, II-V)
+ *   3. Collapse whitespace
+ *   4. Strip middle names: 3+ token names drop the middle token(s).
+ *      Handles CFBD entries like "skylar john thompson" vs nflverse
+ *      "Skylar Thompson" — without this, the lookup misses.
+ *   5. Apply FIRST_NAME_ALIASES forward (short → long) so both sources
+ *      canonicalize to the full legal first name.
+ */
 export function normalizeName(name: string | null | undefined): string {
   if (!name) return '';
-  return name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
+  let n = name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
+  // Collapse middle names to first + last
+  const parts = n.split(' ');
+  if (parts.length >= 3) {
+    n = `${parts[0]} ${parts[parts.length - 1]}`;
+  }
+  // Expand short-form first name to legal form
+  const [first, ...rest] = n.split(' ');
+  if (first && rest.length > 0 && FIRST_NAME_ALIASES[first]) {
+    n = `${FIRST_NAME_ALIASES[first]} ${rest.join(' ')}`;
+  }
+  return n;
 }
 
 export function parseHeight(ht: string | number): number {
