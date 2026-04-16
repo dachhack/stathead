@@ -249,6 +249,43 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Compute college per-game stats from the college stats data
         const collegePerGameByName = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number; ydsPerRec: number }>();
+
+        // School-name normalizer aligning JackLich10's college_statistics.csv
+        // names with CFBD's /games keys. JackLich10 has long forms ('appalachian
+        // state', 'southern mississippi', 'umass'); CFBD uses short forms
+        // ('app state', 'southern miss', 'massachusetts') and keeps diacritics
+        // ('san josé state'). Without this alignment, ~80% of cfbdGames lookups
+        // miss and players fall back to the 12-game default — wiping out the
+        // accuracy boost from the games endpoint.
+        const SCHOOL_ALIAS_FOR_CFBD: Record<string, string> = {
+          'appalachian state': 'app state',
+          'southern mississippi': 'southern miss',
+          'ut san antonio': 'utsa',
+          'umass': 'massachusetts',
+          'florida intl': 'florida international',
+          'middle tennessee': 'middle tennessee state',
+          'louisiana-monroe': 'louisiana monroe',
+          'louisiana-lafayette': 'louisiana',
+          'cal poly slo': 'cal poly',
+          'sam houston state': 'sam houston',
+        };
+        function normalizeSchoolForCfbd(s: string): string {
+          if (!s) return '';
+          let n = s.toLowerCase().trim()
+            .normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+          return SCHOOL_ALIAS_FOR_CFBD[n] || n;
+        }
+
+        // Re-key cfbdGames by normalized school so lookups from any source
+        // (JackLich10 long forms, CFBD short forms, diacritics-stripped) hit.
+        const cfbdGamesNorm: Record<string, number> = {};
+        for (const [k, v] of Object.entries(cfbdGames)) {
+          const idx = k.lastIndexOf(':');
+          if (idx < 0) continue;
+          const school = normalizeSchoolForCfbd(k.slice(0, idx));
+          cfbdGamesNorm[`${school}:${k.slice(idx + 1)}`] = v;
+        }
+
         {
           // Track games per season separately to get true career total games.
           // Also track (school, season) pairs so we can back-fill games from
@@ -265,7 +302,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const name = normalizeName(cs.player_name);
             if (!collegeTotals.has(name)) collegeTotals.set(name, { gamesBySeason: new Map(), seasonSchools: new Map(), receptions: 0, recYds: 0, rushYds: 0, rushAtt: 0, tds: 0, passYds: 0 });
             const t = collegeTotals.get(name)!;
-            const school = (cs.school || cs.school_abbr || '').toLowerCase();
+            const school = normalizeSchoolForCfbd(cs.school || cs.school_abbr || '');
             if (school && !t.seasonSchools.has(cs.season)) {
               t.seasonSchools.set(cs.season, school);
             }
@@ -294,7 +331,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const direct = t.gamesBySeason.get(season) || 0;
               if (direct > 0) { totalGames += direct; continue; }
               const school = t.seasonSchools.get(season) || '';
-              const teamGames = (school && cfbdGames[`${school}:${season}`]) || 0;
+              const teamGames = (school && cfbdGamesNorm[`${school}:${season}`]) || 0;
               totalGames += teamGames > 0 ? teamGames : 12;  // 12-game fallback
             }
             const games = totalGames || 1;
