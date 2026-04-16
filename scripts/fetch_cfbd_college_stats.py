@@ -63,13 +63,28 @@ recruiting_api = cfbd.RecruitingApi(client)
 
 
 def to_dict(obj) -> dict:
-    """Serialize a cfbd model to a plain dict of public attrs."""
+    """Serialize a cfbd pydantic v1 model to a plain dict of field values.
+
+    The previous dir()-walk silently dropped fields that pydantic stored in
+    private machinery. .dict() uses the declared schema directly.
+    """
+    if hasattr(obj, 'dict') and callable(getattr(obj, 'dict')):
+        try:
+            return obj.dict()
+        except Exception:
+            pass
+    if hasattr(obj, 'to_dict') and callable(getattr(obj, 'to_dict')):
+        try:
+            return obj.to_dict()
+        except Exception:
+            pass
+    # Fallback for plain objects
     out = {}
     for a in dir(obj):
-        if a.startswith('_') or callable(getattr(obj, a)):
+        if a.startswith('_') or callable(getattr(obj, a, None)):
             continue
-        v = getattr(obj, a)
-        if v is None or isinstance(v, (int, float, str, bool, list)):
+        v = getattr(obj, a, None)
+        if v is None or isinstance(v, (int, float, str, bool, list, dict)):
             out[a] = v
         else:
             out[a] = str(v)
@@ -77,7 +92,11 @@ def to_dict(obj) -> dict:
 
 
 def fetch_year(year: int, force: bool = False) -> dict:
-    """Fetch the three endpoints for one year. Returns raw-serialized payloads."""
+    """Fetch the three endpoints for one year. Returns raw-serialized payloads.
+
+    Exceptions propagate — an upstream outage should fail the workflow loudly
+    rather than silently committing empty rollups.
+    """
     year_data = {}
     endpoints = [
         ('player-season', lambda: stats_api.get_player_season_stats(year=year)),
@@ -91,17 +110,13 @@ def fetch_year(year: int, force: bool = False) -> dict:
             print(f'  {year} {name}: cached ({len(year_data[name])} rows)')
             continue
         t0 = time.time()
-        try:
-            rows = fn()
-        except Exception as e:
-            print(f'  {year} {name}: FAILED ({e})')
-            year_data[name] = []
-            continue
+        rows = fn()
         dicts = [to_dict(r) for r in rows]
-        path.write_text(json.dumps(dicts))
+        path.write_text(json.dumps(dicts, default=str))
         year_data[name] = dicts
         elapsed = round(time.time() - t0, 1)
-        print(f'  {year} {name}: {len(dicts)} rows ({elapsed}s)')
+        sample = json.dumps(dicts[0], default=str)[:240] if dicts else '(empty)'
+        print(f'  {year} {name}: {len(dicts)} rows ({elapsed}s)  sample={sample}')
     return year_data
 
 
