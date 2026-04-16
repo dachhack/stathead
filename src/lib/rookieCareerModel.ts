@@ -438,12 +438,12 @@ export function trainRookieCareerModels(
     if (pick >= 300 && age === 0) continue;
     // Compute derived features from existing ones (avoids cache rebuild)
     const f = { ...entry.features };
-    f.logDraftPick = Math.log(pick);
+    f.logDraftPick = Math.log(pick + 1);
     f.invDraftPick = 1 / pick;
     f.draftPickXEarlyDeclare = (f.collegeEarlyDeclare || 0) * (1 / pick);
     // Late-round breakout interaction: lifts high-producing late picks.
     // Zero inside ~pick 55 (ln 55 ≈ 4.0), positive outside scaled by dominator.
-    f.collegeDominatorXLateRound = (f.collegeDominatorRating || 0) * Math.max(0, Math.log(pick) - 4.0);
+    f.collegeDominatorXLateRound = (f.collegeDominatorRating || 0) * Math.max(0, Math.log(pick + 1) - 4.0);
     // draftPickPct is populated upstream in buildFeatureMatrix against the
     // FULL nflverse draft class (avoids survivor bias). Default to 1.0
     // (latest pick) for any row the upstream lookup missed.
