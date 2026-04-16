@@ -2054,7 +2054,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               yearsInLeague: draft ? season - draft.season : 0,
               nflDraftRound: draft?.round || 8,
               nflDraftPick: draft?.pick || 300,
-              logDraftPick: Math.log(draft?.pick || 300),
+              // log(pick+1) so pick #1 → 0.693 instead of 0 — avoids the
+              // #1 overall looking identical to "missing data" on player
+              // cards, and gives every pick a non-zero draft-capital signal.
+              logDraftPick: Math.log((draft?.pick || 300) + 1),
               invDraftPick: 1 / (draft?.pick || 300),
               draftPickPct: draftPickPctByName.get(normalName) ?? 1,
               draftPickPctOverall: draftPickPctOverallByName.get(normalName) ?? 1,
@@ -2490,7 +2493,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                       // round 1-2 (logDraftPick ≤ ln(55)≈4), positive for later
                       // picks scaled by college dominator rating.
                       collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
-                        Math.max(0, Math.log(draftPick || 300) - 4.0),
+                        Math.max(0, Math.log((draftPick || 300) + 1) - 4.0),
                       collegeExperiencePerAge: (best && draftAge > 0)
                         ? Math.round(((best.numSeasons || 0) * 13 / draftAge) * 100) / 100
                         : 0,
@@ -2726,7 +2729,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 adpTrend: 0,
                 nflDraftRound: draft.round || 8,
                 nflDraftPick: draft.pick || 300,
-                logDraftPick: Math.log(draft.pick || 300),
+                logDraftPick: Math.log((draft.pick || 300) + 1),
                 invDraftPick: 1 / (draft.pick || 300),
                 draftPickPct: draftPickPctByName.get(draftName) ?? 1,
                 draftPickPctOverall: draftPickPctOverallByName.get(draftName) ?? 1,
@@ -2864,7 +2867,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeEarlyDeclare: (best?.numSeasons || 99) <= 3 ? 1 : 0,
                     draftPickXEarlyDeclare: ((best?.numSeasons || 99) <= 3 ? 1 : 0) * (1 / (draft.pick || 300)),
                     collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
-                      Math.max(0, Math.log(draft.pick || 300) - 4.0),
+                      Math.max(0, Math.log((draft.pick || 300) + 1) - 4.0),
                     collegeExperiencePerAge: (best && draft.age && draft.age > 0)
                       ? Math.round(((best.numSeasons || 0) * 13 / draft.age) * 100) / 100
                       : 0,
@@ -4114,7 +4117,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     })(),
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                     collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
-                      Math.max(0, Math.log(draft?.pick || 300) - 4.0),
+                      Math.max(0, Math.log((draft?.pick || 300) + 1) - 4.0),
                     collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
                     collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
                       ? Math.round((draftAge - adv.breakoutAge) * 10) / 10 : 0,
