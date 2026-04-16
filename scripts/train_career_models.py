@@ -35,7 +35,7 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 # ── Configuration ─────────────────────────────────────────────────────
 
-CACHE_PATH = Path('public/data/training-rows-cache-v43.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v44.json')
 OUTPUT_DIR = Path('public/data')
 PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'

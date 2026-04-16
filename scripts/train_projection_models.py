@@ -26,7 +26,7 @@ from scipy.stats import spearmanr
 warnings.filterwarnings('ignore')
 
 DATA_DIR = Path('public/data')
-CACHE_PATH = DATA_DIR / 'training-rows-cache-v43.json'
+CACHE_PATH = DATA_DIR / 'training-rows-cache-v44.json'
 
 
 # ── LightGBM → JS tree conversion ──────────────────────────────────
