@@ -254,8 +254,8 @@ export interface RookieCareerModelResult {
   bustRate: number;
   boomMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
   bustMetrics?: { auc: number; accuracy: number; precision: number; recall: number };
-  boomFeatureImportance?: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
-  bustFeatureImportance?: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }>;
+  boomFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
+  bustFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
   // Keep regression model too for predicted PPG display
   ridgeModel?: unknown;
   gbmModel?: BaggedGBM | null;
@@ -264,6 +264,10 @@ export interface RookieCareerModelResult {
   gbmModelCompanion?: BaggedGBM | null;
   companionFeatureKeys?: string[];
   companionBlendWeight?: number;
+  // Ridge-coefficient feature importance for the companion model. Populated
+  // only when the companion exists (WR/RB pre-draft). Used in the model docs
+  // to show what drives the late-round breakout blend.
+  companionFeatureImportance?: Array<{ key: string; importance: number; direction?: 'positive' | 'negative' }>;
   // Conditional residual distributions for heteroscedastic boom/bust.
   // Players at different prediction levels have different variance:
   // e.g. low-predicted WRs/TEs are predictably bad (tight σ), while
@@ -962,6 +966,22 @@ export function trainRookieCareerModels(
       direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
     }));
 
+    // Companion feature importance (WR/RB pre-draft only, Ridge coeffs).
+    let companionFeatureImportance: Array<{ key: string; importance: number; direction: 'positive' | 'negative' }> | undefined;
+    if (finalRidgeCo) {
+      const coFi = collegeOnlyKeys.map((key, i) => ({
+        key,
+        rawCoeff: finalRidgeCo!.coefficients[i] || 0,
+        importance: Math.abs(finalRidgeCo!.coefficients[i] || 0),
+      })).sort((a, b) => b.importance - a.importance);
+      const coTotal = coFi.reduce((s, f) => s + f.importance, 0);
+      companionFeatureImportance = coFi.map(f => ({
+        key: f.key,
+        importance: coTotal > 0 ? Math.round(f.importance / coTotal * 1000) / 1000 : 0,
+        direction: (f.rawCoeff >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
+      }));
+    }
+
     results[pos] = {
       n: posRows.length,
       cvR2: r2,
@@ -993,6 +1013,7 @@ export function trainRookieCareerModels(
       gbmModelCompanion: finalGBMCo,
       companionFeatureKeys: useCollegeCompanion ? collegeOnlyKeys : undefined,
       companionBlendWeight: useCollegeCompanion ? 0.3 : 0,
+      companionFeatureImportance,
       topN: {},
     };
   }

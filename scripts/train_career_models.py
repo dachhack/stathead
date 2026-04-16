@@ -579,6 +579,78 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         bust_model = lgb.train(bust_params, dt_bust, num_boost_round=60)
         bust_scores[te_idx] = bust_model.predict(X_bust[te_idx])
 
+    # ── Final boom/bust models on ALL data (for feature importance) ────
+    # The LOSO models above are used for per-player scoring. Here we train
+    # one more model per objective on the full dataset purely to extract
+    # feature importance for the model docs. Direction is inferred from
+    # each feature's Spearman correlation with the target (gain importance
+    # has no natural sign).
+    def _normalize_importance(gains: np.ndarray, names: list[str],
+                               targets: np.ndarray, feats: np.ndarray) -> list[dict]:
+        total = float(gains.sum())
+        if total <= 0:
+            return []
+        entries = []
+        for i, name in enumerate(names):
+            imp = float(gains[i]) / total
+            if imp <= 0:
+                continue
+            try:
+                rho, _ = spearmanr(feats[:, i], targets)
+                if math.isnan(rho):
+                    rho = 0.0
+            except Exception:
+                rho = 0.0
+            entries.append({
+                'key': name,
+                'importance': round(imp, 3),
+                'direction': 'positive' if rho >= 0 else 'negative',
+            })
+        entries.sort(key=lambda e: -e['importance'])
+        return entries
+
+    boom_feature_importance: list[dict] = []
+    if len(loso_data) >= 20:
+        try:
+            gap_final = lgb.train(
+                {
+                    'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.03,
+                    'max_depth': 2, 'min_child_samples': max(5, n // 8),
+                    'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+                    'seed': 42, 'n_jobs': 1, 'extra_trees': True,
+                },
+                lgb.Dataset(X_gap, outperformance, feature_name=GAP_FEAT_NAMES,
+                            free_raw_data=False),
+                num_boost_round=60,
+            )
+            boom_feature_importance = _normalize_importance(
+                gap_final.feature_importance(importance_type='gain'),
+                GAP_FEAT_NAMES, outperformance, X_gap,
+            )
+        except Exception as e:
+            print(f"    {pos}: boom feature importance skipped ({e})")
+
+    bust_feature_importance: list[dict] = []
+    if len(loso_data) >= 20 and sum(y_bust_binary) >= 5:
+        try:
+            bust_final = lgb.train(
+                {
+                    'objective': 'binary', 'metric': 'auc', 'learning_rate': 0.03,
+                    'max_depth': 2, 'min_child_samples': max(3, n // 10),
+                    'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+                    'seed': 42, 'n_jobs': 1, 'is_unbalance': True, 'extra_trees': True,
+                },
+                lgb.Dataset(X_bust, y_bust_binary, feature_name=BUST_FEAT_NAMES,
+                            free_raw_data=False),
+                num_boost_round=60,
+            )
+            bust_feature_importance = _normalize_importance(
+                bust_final.feature_importance(importance_type='gain'),
+                BUST_FEAT_NAMES, y_bust_binary.astype(np.float64), X_bust,
+            )
+        except Exception as e:
+            print(f"    {pos}: bust feature importance skipped ({e})")
+
     # Assign boom (from outperformance model) and bust (from bust classifier)
     for i, d in enumerate(loso_data):
         # Boom: outperformance percentile scaled to probability
@@ -673,6 +745,29 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     y_all = make_y(all_rows_expanded)
     final_ridge = Ridge(alpha=hyper['ridge_alpha'])
     final_ridge.fit(X_all, y_all)
+
+    # Companion (college-only) feature importance — Ridge coefficients on
+    # the non-draft-capital feature set. Surfaces what's driving the
+    # late-round breakout blend (WR/RB pre-draft only).
+    companion_feature_importance: list[dict] = []
+    if use_companion:
+        try:
+            X_all_co = make_X(all_rows_expanded, college_only_keys)
+            ridge_co_final = Ridge(alpha=hyper['ridge_alpha'])
+            ridge_co_final.fit(X_all_co, y_all)
+            co_coeffs = ridge_co_final.coef_
+            co_total = sum(abs(c) for c in co_coeffs)
+            if co_total > 0:
+                companion_feature_importance = sorted([
+                    {
+                        'key': college_only_keys[i],
+                        'importance': round(abs(co_coeffs[i]) / co_total, 3),
+                        'direction': 'positive' if co_coeffs[i] >= 0 else 'negative',
+                    }
+                    for i in range(len(college_only_keys))
+                ], key=lambda f: -f['importance'])
+        except Exception as e:
+            print(f"    {pos}: companion feature importance skipped ({e})")
 
     # ── Final bagged LightGBM ensemble (shipped in cache as gbmModel) ──
     # Career models used to ship with gbmModel=None — LOSO CV used bagged
@@ -774,8 +869,9 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         'bustRate': round(n_busts / n * 100, 1),
         'boomMetrics': None,
         'bustMetrics': None,
-        'boomFeatureImportance': None,
-        'bustFeatureImportance': None,
+        'boomFeatureImportance': boom_feature_importance or None,
+        'bustFeatureImportance': bust_feature_importance or None,
+        'companionFeatureImportance': companion_feature_importance or None,
         'conditionalResiduals': {
             'bins': cond_bins,
             'boomThreshold': round(boom_thresh, 2),
