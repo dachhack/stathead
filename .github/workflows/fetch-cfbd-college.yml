@@ -62,7 +62,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Only the normalized rollups are committed — raw per-year files
           # stay gitignored via public/data/*.
-          git add public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json public/data/cfbd-recruiting.json
+          git add public/data/cfbd-college-stats.json public/data/cfbd-sp-ratings.json \
+                  public/data/cfbd-recruiting.json public/data/cfbd-games.json \
+                  public/data/cfbd-team-talent.json public/data/cfbd-player-usage.json
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
