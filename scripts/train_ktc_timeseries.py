@@ -16,7 +16,7 @@ and whose features are:
     posRankPct (percentile within position at time t),
     posRankPctDelta_7d
 
-  slow (from training-rows-cache-v42.json, joined by normalized name + pos):
+  slow (from training-rows-cache-v43.json, joined by normalized name + pos):
     age (current, from ktc_rankings), yearsInLeague, draft capital,
     physical / combine, prior production, role, team context, projection.
 
@@ -72,7 +72,7 @@ from train_projection_models import lgb_to_js_gbm, train_lgb_model, sf  # noqa: 
 DATA_DIR = Path('public/data')
 KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
 KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
-TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v42.json'
+TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v43.json'
 NFLVERSE_WEEKLY_PATH = DATA_DIR / 'nflverse_weekly_2025.json'
 OUTPUT_PATH = DATA_DIR / 'model-cache-ktc-v2.json'
 
@@ -276,7 +276,7 @@ def feature_names_for(pos):
 # per-(pos, horizon) feature lists to prune, which is scoped for a
 # later commit after hyperparam tuning settles the models.
 DROP_GLOBAL = {
-    # Always 0 — key doesn't exist in training-rows-cache-v42.json. The
+    # Always 0 — key doesn't exist in training-rows-cache-v43.json. The
     # TSX component computes priorFantasyPPR inline from nflverse season
     # totals but the cache we join to only carries priorPPG / priorPPG2yr.
     # This was a copy-paste holdover from the TSX feature list in Commit A.

@@ -1154,6 +1154,43 @@ export async function fetchCollegeQBR(): Promise<CollegeQBR[]> {
   return fetchCsv<CollegeQBR>(`${DRAFT_DATA}/college_qbr.csv`);
 }
 
+// --- CollegeFootballData.com supplement ---
+// Pulled by .github/workflows/fetch-cfbd-college.yml and committed to
+// public/data/. Backfills historical college stats the JackLich10 source
+// is missing (~80% of pre-2017 rookies).
+
+export interface CfbdSpRating {
+  rating: number;
+  offense_rating?: number | null;
+  defense_rating?: number | null;
+  sos?: number | null;
+  second_order_wins?: number | null;
+}
+
+export interface CfbdRecruit {
+  stars?: number | null;
+  rank?: number | null;
+  class_year: number;
+  position?: string | null;
+  committed_to?: string | null;
+  composite_rating?: number | null;
+  height?: number | null;
+  weight?: number | null;
+}
+
+export async function fetchCfbdCollegeStats(): Promise<CollegeStats[]> {
+  const data = await tryPreFetched<CollegeStats[]>('cfbd-college-stats.json');
+  return data || [];
+}
+
+export async function fetchCfbdSpRatings(): Promise<Record<string, CfbdSpRating>> {
+  return (await tryPreFetched<Record<string, CfbdSpRating>>('cfbd-sp-ratings.json')) || {};
+}
+
+export async function fetchCfbdRecruiting(): Promise<Record<string, CfbdRecruit>> {
+  return (await tryPreFetched<Record<string, CfbdRecruit>>('cfbd-recruiting.json')) || {};
+}
+
 // --- The Odds API (free tier: 500 credits/month) ---
 // Fetches NFL game lines and player props from https://the-odds-api.com
 

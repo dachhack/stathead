@@ -8,7 +8,9 @@ import {
   fetchNextGenStats, fetchPlayByPlay, fetchPbpParticipation,
   fetchRosters, fetchDepthCharts, fetchGames,
   fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
+  fetchCfbdCollegeStats, fetchCfbdSpRatings, fetchCfbdRecruiting,
 } from '../data';
+import type { CfbdSpRating, CfbdRecruit } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 // Volume projection module available for future ML team-level models
@@ -79,7 +81,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
         // Load combine + draft + games + contracts + college once (static)
         onStatus?.('Loading combine, draft, games, contracts & college data...');
-        const [combineData, draftData, gamesData, contractsData, collegeStatsData, collegeQBRData, draftProspectData] = await Promise.all([
+        const [combineData, draftData, gamesData, contractsData, collegeStatsBase, collegeQBRData, draftProspectData,
+               cfbdStats, cfbdSp, cfbdRecruiting] = await Promise.all([
           fetchCombine(),
           fetchDraftPicks(),
           fetchGames(),
@@ -87,7 +90,21 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           fetchCollegeStats().catch(() => [] as CollegeStats[]),
           fetchCollegeQBR().catch(() => [] as CollegeQBR[]),
           fetchDraftProspects().catch(() => [] as DraftProspect[]),
+          fetchCfbdCollegeStats().catch(() => [] as CollegeStats[]),
+          fetchCfbdSpRatings().catch(() => ({} as Record<string, CfbdSpRating>)),
+          fetchCfbdRecruiting().catch(() => ({} as Record<string, CfbdRecruit>)),
         ]);
+
+        // Merge CFBD player stats with the JackLich10 source. Both share the
+        // {player_name, pos_abbr, school, season, statistic, value} shape, so
+        // downstream consumers (playerSeasonStats, collegeByName, school totals)
+        // pick them up identically. CFBD's coverage is much wider for older
+        // classes — backfills the ~80% of historical rookies the legacy
+        // source is missing.
+        const collegeStatsData: CollegeStats[] = [...collegeStatsBase, ...cfbdStats];
+        if (cfbdStats.length > 0) {
+          onStatus?.(`CFBD merged: ${cfbdStats.length} stat rows, ${Object.keys(cfbdSp).length} SP+ ratings, ${Object.keys(cfbdRecruiting).length} recruits`);
+        }
 
         // Build lookup maps
         const combineByName = new Map<string, CombineResult>();
@@ -326,6 +343,29 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
         }
 
+        // CFBD SP+ supplement: fills gaps in collegePredictiveRank + collegeSOS
+        // for school:seasons the legacy NCAA source doesn't cover. SP+ rating
+        // is on a comparable scale (~-30 to +35) so it can plug straight in.
+        // SP+ SoS is normalized 0-1 (1 = average); convert to the same multiplier
+        // shape as the legacy SOS (1.0 ± rating/20 → use ratio centered on 1.0).
+        let spRatingFills = 0;
+        let spSosFills = 0;
+        for (const [key, sp] of Object.entries(cfbdSp)) {
+          if (sp.rating != null && !collegePredictiveRank.has(key)) {
+            collegePredictiveRank.set(key, sp.rating);
+            spRatingFills++;
+          }
+          if (sp.sos != null && !collegeSOS.has(key)) {
+            // SP+ SoS centers around 1.0 already; just use it directly,
+            // clamped into a sane 0.5-1.5 multiplier band.
+            collegeSOS.set(key, Math.max(0.5, Math.min(1.5, sp.sos)));
+            spSosFills++;
+          }
+        }
+        if (spRatingFills > 0 || spSosFills > 0) {
+          onStatus?.(`SP+ filled ${spRatingFills} team ratings, ${spSosFills} SoS values`);
+        }
+
         // Build team pass/rush attempts per season lookup
         const ncaaTeamPassAtt = new Map<string, number>(); // team:season → total season pass attempts
         const ncaaTeamRushAtt = new Map<string, number>();
@@ -381,6 +421,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           else if (stat.includes('rushing attempt') || stat.includes('carries')) { st.rushAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
           else if (stat.includes('passing attempt') || stat === 'pass attempts') { st.passAtt += cs.value || 0; st.totalPlays += cs.value || 0; }
           else if (stat.includes('completion') && !stat.includes('pct')) st.completions += cs.value || 0;
+        }
+
+        // Games-played proxy: the upstream sources don't include a 'games
+        // played' stat, so any per-season totals here would otherwise divide
+        // by zero. Backfill ps.games to 12 (typical FBS regular season) for
+        // every season the player has any recorded stat. Only fires when
+        // ps.games stayed 0 — preserves real values if a future source
+        // populates them.
+        for (const [, seasons] of playerSeasonStats) {
+          for (const [, ps] of seasons) {
+            if (ps.games === 0) ps.games = 12;
+          }
         }
 
         // Step 2: Compute dominator rating, breakout age, and market share per player
@@ -2244,6 +2296,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   prospectGrade: prospect?.grade || 0,
                   prospectPosRank: prospect?.pos_rk || 0,
                   prospectOvlRank: prospect?.ovr_rk || 0,
+                  // 247 composite recruiting rank/stars from CFBD. Coverage
+                  // is much higher than prospectGrade — fills in star ratings
+                  // for players the legacy prospect source missed.
+                  recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
+                  recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
                   collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                   collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
                   collegeBreakoutAgeDelta: adv?.breakoutAge && draftAge
@@ -3897,6 +3954,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectGrade: prospect?.grade || 0,
                     prospectPosRank: prospect?.pos_rk || 0,
                     prospectOvlRank: prospect?.ovr_rk || 0,
+                    recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
+                    recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                     collegeDominatorXLateRound: (adv?.dominatorRating || 0) *
                       Math.max(0, Math.log(draft?.pick || 300) - 4.0),

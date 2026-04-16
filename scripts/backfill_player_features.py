@@ -57,7 +57,7 @@ import sys
 import time
 from pathlib import Path
 
-CACHE_PATH = Path('public/data/training-rows-cache-v42.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v43.json')
 FEATURE_STORE_ADVANCED = Path('public/data/feature-store/advanced.json')
 FEATURE_STORE_INJURIES = Path('public/data/feature-store/injuries.json')
 AGGREGATES_PATH = Path('public/data/player-features-backfill.json')

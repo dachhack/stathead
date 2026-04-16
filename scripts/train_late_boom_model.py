@@ -35,7 +35,7 @@ import numpy as np
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score
 
-CACHE_PATH = Path('public/data/training-rows-cache-v42.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v43.json')
 OUTPUT_PATH = Path('public/data/model-cache-late-boom-v1.json')
 
 

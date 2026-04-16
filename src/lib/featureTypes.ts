@@ -371,6 +371,10 @@ export const FEATURES: FeatureDef[] = [
   { key: 'prospectGrade', label: 'Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'prospectPosRank', label: 'Prospect Position Rank', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'prospectOvlRank', label: 'Prospect Overall Rank', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // 247 composite recruiting profile from CFBD — much wider coverage
+  // than the prospect-grade source (covers ~99% of drafted players).
+  { key: 'recruitStars', label: 'Recruit Stars (247 composite, 1-5)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'recruitRating', label: 'Recruit Composite Rating', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   // Missing-data indicators (let models distinguish missing vs truly zero)
   { key: 'hasCollegeStats', label: 'Has College Stats', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'hasProspectGrade', label: 'Has Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
