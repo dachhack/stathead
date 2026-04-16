@@ -375,6 +375,14 @@ export const FEATURES: FeatureDef[] = [
   // than the prospect-grade source (covers ~99% of drafted players).
   { key: 'recruitStars', label: 'Recruit Stars (247 composite, 1-5)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'recruitRating', label: 'Recruit Composite Rating', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // CFBD team talent composite — aggregate 247 talent of the player's
+  // college team. Captures program quality (Alabama vs Sun Belt) directly.
+  { key: 'collegeTeamTalent', label: 'College Team Talent (247 composite)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // CFBD player usage rate — % of team plays the player was involved in.
+  // Direct measure of how featured the player was on offense.
+  { key: 'collegeUsageOverall', label: 'College Usage Rate (overall)', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'collegeUsagePass', label: 'College Usage Rate (pass plays)', category: 'College', positions: ['QB', 'WR', 'TE'] },
+  { key: 'collegeUsageRush', label: 'College Usage Rate (rush plays)', category: 'College', positions: ['RB'] },
   // Missing-data indicators (let models distinguish missing vs truly zero)
   { key: 'hasCollegeStats', label: 'Has College Stats', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'hasProspectGrade', label: 'Has Prospect Grade', category: 'College', positions: ['QB', 'RB', 'WR', 'TE'] },

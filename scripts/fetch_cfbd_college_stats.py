@@ -56,12 +56,18 @@ RAW_DIR.mkdir(parents=True, exist_ok=True)
 NORMALIZED_PATH = Path('public/data/cfbd-college-stats.json')
 SP_PATH = Path('public/data/cfbd-sp-ratings.json')
 RECRUIT_PATH = Path('public/data/cfbd-recruiting.json')
+GAMES_PATH = Path('public/data/cfbd-games.json')
+TALENT_PATH = Path('public/data/cfbd-team-talent.json')
+USAGE_PATH = Path('public/data/cfbd-player-usage.json')
 
 cfg = cfbd.Configuration(access_token=API_KEY)
 client = cfbd.ApiClient(cfg)
 stats_api = cfbd.StatsApi(client)
 ratings_api = cfbd.RatingsApi(client)
 recruiting_api = cfbd.RecruitingApi(client)
+games_api = cfbd.GamesApi(client)
+teams_api = cfbd.TeamsApi(client)
+players_api = cfbd.PlayersApi(client)
 
 
 def to_dict(obj) -> dict:
@@ -94,7 +100,7 @@ def to_dict(obj) -> dict:
 
 
 def fetch_year(year: int, force: bool = False) -> dict:
-    """Fetch the three endpoints for one year. Returns raw-serialized payloads.
+    """Fetch all six endpoints for one year. Returns raw-serialized payloads.
 
     Exceptions propagate — an upstream outage should fail the workflow loudly
     rather than silently committing empty rollups.
@@ -104,6 +110,9 @@ def fetch_year(year: int, force: bool = False) -> dict:
         ('player-season', lambda: stats_api.get_player_season_stats(year=year)),
         ('sp-ratings',    lambda: ratings_api.get_sp(year=year)),
         ('recruiting',    lambda: recruiting_api.get_recruits(year=year)),
+        ('games',         lambda: games_api.get_games(year=year)),
+        ('team-talent',   lambda: teams_api.get_talent(year=year)),
+        ('player-usage',  lambda: players_api.get_player_usage(year=year)),
     ]
     for name, fn in endpoints:
         path = RAW_DIR / f'{name}-{year}.json'
@@ -222,6 +231,72 @@ def normalize_recruiting(raw_by_year: dict) -> dict:
     return out
 
 
+def normalize_games(raw_by_year: dict) -> dict:
+    """Roll games into { 'school:season': games_count } counted across both
+    home and away appearances. Replaces the 12-game default proxy in
+    buildFeatureMatrix with exact per-team season totals.
+    """
+    counts: dict[str, int] = {}
+    for year, payload in raw_by_year.items():
+        for g in payload.get('games', []):
+            for side in ('home_team', 'away_team'):
+                team = (g.get(side) or '').lower()
+                if not team:
+                    continue
+                key = f'{team}:{year}'
+                counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def normalize_team_talent(raw_by_year: dict) -> dict:
+    """Roll team-talent into { 'school:season': talent_value }."""
+    out = {}
+    for year, payload in raw_by_year.items():
+        for r in payload.get('team-talent', []):
+            team = (r.get('team') or '').lower()
+            t = r.get('talent')
+            if not team or t is None:
+                continue
+            try:
+                out[f'{team}:{year}'] = float(t)
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def normalize_player_usage(raw_by_year: dict) -> dict:
+    """Roll player-usage into { 'normalized_name:season': { overall, rush,
+    pass, first_down, ... } }. Keyed by name+season because a player can
+    transfer schools and their usage varies year to year.
+    """
+    import re
+    def norm(n: str) -> str:
+        return re.sub(r'[^a-z0-9]+', '', (n or '').lower())
+    out = {}
+    for year, payload in raw_by_year.items():
+        for r in payload.get('player-usage', []):
+            name = r.get('name') or ''
+            k = norm(name)
+            if not k:
+                continue
+            usage = r.get('usage') or {}
+            if not isinstance(usage, dict):
+                continue
+            out[f'{k}:{year}'] = {
+                'overall': usage.get('overall'),
+                'pass': usage.get('var_pass'),  # field is var_pass to avoid Python keyword
+                'rush': usage.get('rush'),
+                'first_down': usage.get('first_down'),
+                'second_down': usage.get('second_down'),
+                'third_down': usage.get('third_down'),
+                'standard_downs': usage.get('standard_downs'),
+                'passing_downs': usage.get('passing_downs'),
+                'team': (r.get('team') or '').lower(),
+                'position': r.get('position'),
+            }
+    return out
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--force', action='store_true', help='Re-fetch even if cached')
@@ -239,17 +314,25 @@ def main():
     tall = normalize_player_stats(raw_by_year)
     sp = normalize_sp(raw_by_year)
     recruits = normalize_recruiting(raw_by_year)
+    games = normalize_games(raw_by_year)
+    talent = normalize_team_talent(raw_by_year)
+    usage = normalize_player_usage(raw_by_year)
     print(f'  Player stats (tall): {len(tall)} rows')
     print(f'  SP+ ratings: {len(sp)} team-seasons')
     print(f'  Recruits: {len(recruits)} players')
+    print(f'  Games: {len(games)} team-seasons')
+    print(f'  Team talent: {len(talent)} team-seasons')
+    print(f'  Player usage: {len(usage)} player-seasons')
 
     NORMALIZED_PATH.write_text(json.dumps(tall))
     SP_PATH.write_text(json.dumps(sp))
     RECRUIT_PATH.write_text(json.dumps(recruits))
+    GAMES_PATH.write_text(json.dumps(games))
+    TALENT_PATH.write_text(json.dumps(talent))
+    USAGE_PATH.write_text(json.dumps(usage))
     print(f'\nWrote:')
-    print(f'  {NORMALIZED_PATH} ({NORMALIZED_PATH.stat().st_size // 1024} KB)')
-    print(f'  {SP_PATH}          ({SP_PATH.stat().st_size // 1024} KB)')
-    print(f'  {RECRUIT_PATH}     ({RECRUIT_PATH.stat().st_size // 1024} KB)')
+    for path in (NORMALIZED_PATH, SP_PATH, RECRUIT_PATH, GAMES_PATH, TALENT_PATH, USAGE_PATH):
+        print(f'  {path} ({path.stat().st_size // 1024} KB)')
 
 
 if __name__ == '__main__':

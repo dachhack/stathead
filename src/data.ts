@@ -1191,6 +1191,31 @@ export async function fetchCfbdRecruiting(): Promise<Record<string, CfbdRecruit>
   return (await tryPreFetched<Record<string, CfbdRecruit>>('cfbd-recruiting.json')) || {};
 }
 
+export interface CfbdPlayerUsage {
+  overall?: number | null;
+  pass?: number | null;
+  rush?: number | null;
+  first_down?: number | null;
+  second_down?: number | null;
+  third_down?: number | null;
+  standard_downs?: number | null;
+  passing_downs?: number | null;
+  team?: string | null;
+  position?: string | null;
+}
+
+export async function fetchCfbdGames(): Promise<Record<string, number>> {
+  return (await tryPreFetched<Record<string, number>>('cfbd-games.json')) || {};
+}
+
+export async function fetchCfbdTeamTalent(): Promise<Record<string, number>> {
+  return (await tryPreFetched<Record<string, number>>('cfbd-team-talent.json')) || {};
+}
+
+export async function fetchCfbdPlayerUsage(): Promise<Record<string, CfbdPlayerUsage>> {
+  return (await tryPreFetched<Record<string, CfbdPlayerUsage>>('cfbd-player-usage.json')) || {};
+}
+
 // --- The Odds API (free tier: 500 credits/month) ---
 // Fetches NFL game lines and player props from https://the-odds-api.com
 
