@@ -46,7 +46,11 @@ if not API_KEY:
     print('ERROR: CFBD_API_KEY not set (check .env.local or GitHub secret)', file=sys.stderr)
     sys.exit(1)
 
-DEFAULT_YEARS = list(range(2011, 2026))  # 2011-2025 inclusive
+DEFAULT_YEARS = list(range(2005, 2026))  # 2005-2025 inclusive
+# Extended back to 2005 to capture multi-year college histories for older
+# rookies (2010+ NFL training set includes players whose college careers
+# stretched back to ~2005). Older years still well within CFBD's coverage
+# window and the call budget.
 RAW_DIR = Path('public/data/cfbd')
 RAW_DIR.mkdir(parents=True, exist_ok=True)
 NORMALIZED_PATH = Path('public/data/cfbd-college-stats.json')
