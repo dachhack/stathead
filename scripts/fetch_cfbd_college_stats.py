@@ -81,7 +81,7 @@ def fetch_year(year: int, force: bool = False) -> dict:
     year_data = {}
     endpoints = [
         ('player-season', lambda: stats_api.get_player_season_stats(year=year)),
-        ('sp-ratings',    lambda: ratings_api.get_sp_ratings(year=year)),
+        ('sp-ratings',    lambda: ratings_api.get_sp(year=year)),
         ('recruiting',    lambda: recruiting_api.get_recruits(year=year)),
     ]
     for name, fn in endpoints:
