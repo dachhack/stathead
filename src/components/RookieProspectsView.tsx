@@ -712,6 +712,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 ...(selectedPlayer.grade ? { prospectGrade: selectedPlayer.grade } : {}),
               },
               featurePercentiles: ss?.featurePercentiles,
+              boomZ: selectedPlayer.boomZ,
+              bustZ: selectedPlayer.bustZ,
             }}
             onClose={() => setSelectedPlayer(null)}
           />

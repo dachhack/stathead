@@ -495,6 +495,8 @@ export function ZapComparison() {
               thresholdProbs: is2026 ? pred?.thresholdProbs : bt?.thresholdProbs,
               features: ss?.features || (is2026 ? pred?.features : bt?.features),
               featurePercentiles: ss?.featurePercentiles,
+              boomZ: is2026 ? pred?.boomZ : bt?.boomZ,
+              bustZ: is2026 ? pred?.bustZ : bt?.bustZ,
             }}
             onClose={() => setSelectedPlayer(null)}
           />

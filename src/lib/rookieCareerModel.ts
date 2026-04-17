@@ -205,6 +205,8 @@ export interface RookieCareerBacktestRow {
   thresholdProbs: Record<number, number>;
   boomProb: number;  // P(actual > predicted + MAE) — outperform probability
   bustProb: number;  // P(actual < predicted - MAE) — underperform probability
+  boomZ?: number;    // outperformance-model output, z-standardized vs LOSO cohort
+  bustZ?: number;    // bust-classifier output, z-standardized vs LOSO cohort
   features?: Record<string, number>; // pre-draft features used by the model
 }
 
