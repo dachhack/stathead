@@ -8,7 +8,8 @@ import type { PlayerRow } from '../src/lib/featureTypes';
 import { predict } from '../src/lib/ridge';
 import { predictGBM, predictBaggedGBM } from '../src/lib/gbm';
 import { normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThresholdProb } from '../src/lib/rookieCareerModel';
-import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR } from '../src/data';
+import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR,
+  fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
 import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
@@ -729,6 +730,19 @@ async function main() {
     try {
       draftPicks = (await fetchDraftPicks().catch(() => [])) as any[];
     } catch {}
+
+    // Load CFBD lookups for prospect scoring. buildFeatureMatrix uses these
+    // for training rows already; this block mirrors the same data into the
+    // separate prospect-scoring path that populates careerPredictions2026
+    // so player-card feature bars in the Prospects / ZAP Compare UIs pick
+    // up recruitStars, recruitRating, collegeTeamTalent, and usage rates
+    // alongside the rest of the college features.
+    const [cfbdRecruits, cfbdTalent, cfbdUsage] = await Promise.all([
+      fetchCfbdRecruiting().catch(() => ({})),
+      fetchCfbdTeamTalent().catch(() => ({})),
+      fetchCfbdPlayerUsage().catch(() => ({})),
+    ]);
+    const cfbdKey = (name: string) => name.replace(/[^a-z0-9]+/g, '');
     // School → drafted players lookup
     const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
     for (const dp of draftPicks) {
@@ -991,6 +1005,35 @@ async function main() {
         collegePassTDs: cs?.get('Passing Touchdowns') || 0,
         collegeQBR: prospectQBRLatest.get(nName) || 0,
         collegeQBR2yr: prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0,
+        // CFBD-sourced features: ensure prospect cards surface the same
+        // recruit + team-talent + usage signals the model now trains on.
+        // Loaded above from the committed cfbd-* rollups so no extra API calls.
+        recruitStars: cfbdRecruits[cfbdKey(nName)]?.stars || 0,
+        recruitRating: cfbdRecruits[cfbdKey(nName)]?.composite_rating || 0,
+        collegeTeamTalent: (() => {
+          const seasons = prospectSeasonStats.get(nName) || [];
+          if (seasons.length === 0) return 0;
+          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
+          return cfbdTalent[`${(last.school || '').toLowerCase()}:${last.season}`] || 0;
+        })(),
+        collegeUsageOverall: (() => {
+          const seasons = prospectSeasonStats.get(nName) || [];
+          if (seasons.length === 0) return 0;
+          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
+          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.overall || 0;
+        })(),
+        collegeUsagePass: (() => {
+          const seasons = prospectSeasonStats.get(nName) || [];
+          if (seasons.length === 0) return 0;
+          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
+          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.pass || 0;
+        })(),
+        collegeUsageRush: (() => {
+          const seasons = prospectSeasonStats.get(nName) || [];
+          if (seasons.length === 0) return 0;
+          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
+          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.rush || 0;
+        })(),
         ...(() => {
           // Career aggregates used for QB context features AND the new
           // RB dual-threat / elusiveness / goal-line features. Cheap to
