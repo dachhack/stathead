@@ -29,10 +29,6 @@ function tierFromPercentile(pctl: number): typeof TIER_DEFS[0] {
   return TIER_DEFS[TIER_DEFS.length - 1];
 }
 
-function tierColor(tier: number): string {
-  return TIER_DEFS.find(t => t.tier === tier)?.color || '#ef4444';
-}
-
 function tierLabel(tier: number): string {
   return TIER_DEFS.find(t => t.tier === tier)?.label || 'Longshot';
 }
