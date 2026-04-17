@@ -32,3 +32,4 @@ CLAUDE.local.md
 __pycache__/
 .nflverse-cache/
 .cache/
+pdfs/
