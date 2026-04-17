@@ -1233,8 +1233,11 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
 
         # Z-scores: prospect's raw classifier output standardized against the
         # historical NFL rookie distribution. +1.5σ bust = unusually high risk
-        # for this position; −1.5σ = unusually safe. Replaces % which tops out
-        # at base-rate × 1.5 cap and reads like a coin flip.
+        # for this position; −1.5σ = unusually safe. A class-level shift in
+        # mean is signal, not noise — a genuinely strong class (top draft
+        # capital + high predicted PPG) SHOULD read safer than typical, and
+        # a weak class should read riskier. The backtest reference preserves
+        # that cross-year/cross-class information.
         boom_mean, boom_std = float(np.mean(bt_gap_scores)), float(np.std(bt_gap_scores)) or 1.0
         bust_mean, bust_std = float(np.mean(bt_bust_scores)), float(np.std(bt_bust_scores)) or 1.0
 
