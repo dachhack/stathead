@@ -905,7 +905,22 @@ async function main() {
           const projPick = storedProspect.projPick || 300;
           const cfbdK = cfbdKey(nName);
           const seasons = prospectSeasonStats.get(nName) || [];
-          const lastSeason = seasons.length ? seasons.reduce((a, b) => a.season > b.season ? a : b) : null;
+          let lastSeason: { season: number; school: string } | null =
+            seasons.length ? seasons.reduce((a, b) => a.season > b.season ? a : b) : null;
+          // Fallback: current college juniors (like Carnell Tate) aren't in
+          // the nflverse college-stats source, so prospectSeasonStats is empty
+          // for them. Use CFBD usage keys (`cfbdKey:season`) as a secondary
+          // source — the team name is in the entry's `team` field.
+          if (!lastSeason) {
+            const prefix = `${cfbdK}:`;
+            let maxYr = 0, maxSchool = '';
+            for (const [key, val] of Object.entries(cfbdUsage)) {
+              if (!key.startsWith(prefix)) continue;
+              const yr = parseInt(key.split(':')[1]);
+              if (yr > maxYr) { maxYr = yr; maxSchool = ((val as any).team || '').toLowerCase(); }
+            }
+            if (maxYr) lastSeason = { season: maxYr, school: maxSchool };
+          }
           if (!storedFeatures.collegeDominatorXLateRound) {
             storedFeatures.collegeDominatorXLateRound = (storedFeatures.collegeDominatorRating || 0) *
               Math.max(0, Math.log(projPick + 1) - 4.0);
