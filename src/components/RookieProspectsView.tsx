@@ -68,7 +68,13 @@ const DRAFT_YEAR = 2026;
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[.\-''`]/g, '')
+    // Unicode-normalize then strip combining marks (é → e, ñ → n, etc.)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Strip all punctuation/apostrophe variants that might differ across
+    // data sources (combine/FP/KTC): ASCII ', curly ' ' ‛, prime ′, backtick,
+    // acute accent mark ´, period, hyphen.
+    .replace(/[.\-'\u2018\u2019\u201A\u201B\u2032`\u00B4]/g, '')
     .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -189,9 +195,16 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           ktcMap.set(normalizeName(p.playerName), p);
         }
 
-        // Build merged rows from combine as base
+        // Build merged rows from combine as base. `seenNames` tracks every
+        // normalized name we've added so the later graded/FP loops can't
+        // re-emit a row when source name spellings drift (e.g. combine
+        // "De'Zhaun Stribling" vs graded "DeZhaun Stribling" vs FP
+        // "De'zhaun Stribling" — all map through `normalizeName` but
+        // upstream data sometimes has character variants our regex misses).
+        const seenNames = new Set<string>();
         const allRows: ProspectRow[] = prospects2026.map((c: CombineResult) => {
           const nName = normalizeName(c.player_name);
+          seenNames.add(nName);
           const pg = gradeMap.get(nName);
           const fp = fpMap.get(nName);
           const ktc = ktcMap.get(nName);
@@ -238,6 +251,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         // Add graded prospects not in combine
         for (const [, pg] of gradeMap) {
           const nName = normalizeName(pg.name);
+          if (seenNames.has(nName)) continue;
+          seenNames.add(nName);
           const fp = fpMap.get(nName);
           const ktc = ktcMap.get(nName);
           if (fp) fpMap.delete(nName);
@@ -275,6 +290,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         // Add FantasyPros rookies not yet matched
         for (const [, fp] of fpMap) {
           const nName = normalizeName(fp.player);
+          if (seenNames.has(nName)) continue;
+          seenNames.add(nName);
           const ktc = ktcMap.get(nName);
           if (ktc) ktcMap.delete(nName);
           const career = careerMap.get(nName);
