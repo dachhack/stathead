@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { PRE_DRAFT_ROOKIE_FEATURES, FEATURES, POS_COLORS, CATEGORY_COLORS } from '../lib/featureTypes';
+import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 
 interface PlayerCardProps {
   player: {
@@ -185,12 +186,24 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
 
         {/* Score summary */}
         <div style={{ padding: '8px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
-          {player.ourScore != null && player.ourScore > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Our Score</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>{player.ourScore.toFixed(1)}</div>
-            </div>
-          )}
+          {(() => {
+            // "Our Score" = predictedPPG → ZAP 2026 tier scale when PPG is
+            // available (primary path for prospect + backtest cards). Falls
+            // back to the passed-in ourScore for any caller that already
+            // computed a custom score. Displays the tier name as a sub-label.
+            const ts = player.predictedPPG != null && player.predictedPPG > 0
+              ? ppgToTierScore(player.predictedPPG, player.position)
+              : (player.ourScore ?? 0);
+            if (ts <= 0) return null;
+            return (
+              <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center', minWidth: 72 }}
+                title="Our Score: predicted PPG mapped to ZAP's 2026 tier scale (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver / Dart).">
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Our Score</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: tierScoreColor(ts) }}>{ts.toFixed(1)}</div>
+                <div style={{ fontSize: 8, color: tierScoreColor(ts), marginTop: -2 }}>{tierName(ts)}</div>
+              </div>
+            );
+          })()}
           {player.zapScore != null && player.zapScore > 0 && (
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>ZAP Score</div>

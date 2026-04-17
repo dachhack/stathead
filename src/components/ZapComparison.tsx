@@ -5,6 +5,7 @@ import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
+import { ppgToTierScore } from '../lib/tierScore';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2023 from '../data/zap-scores-2023.json';
 
@@ -56,41 +57,6 @@ function rescaleZap2023ToModern(
   return rescaled;
 }
 
-/**
- * Map predicted PPG to a 0-100 tier score aligned with ZAP's 2026 tier
- * semantics (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver /
- * Dart). Replaces cross-year percentile which maps predicted 5 PPG to
- * bottom-10% display — semantically "Dart Throw" — when the reality is
- * "Flex Play" for that PPG level. Makes ourScore apples-to-apples with
- * the 2026 ZAP methodology.
- *
- * Position-adjusted benchmarks: RBs score higher PPG than WRs naturally,
- * so the tier boundaries shift. Anchored to ZAP's tier descriptions:
- *   Legendary 90-100: generational talent (RB 16+ PPG, WR 14+)
- *   Elite 75-90: top producer (RB 13-16, WR 11-14)
- *   Weekly Starter 60-75: reliable starter (RB 10-13, WR 8-11)
- *   Flex Play 40-60: occasional starter (RB 6-10, WR 5-8)
- *   Benchwarmer 30-40: depth (RB 4-6, WR 3-5)
- *   Waiver Wire 20-30: situational (RB 2-4, WR 1.5-3)
- *   Dart Throw 0-20: unlikely to produce
- */
-const TIER_BENCHMARKS: Record<string, { leg: number; elite: number; start: number; flex: number; bench: number; waiver: number }> = {
-  RB: { leg: 16, elite: 13, start: 10, flex: 6, bench: 4, waiver: 2 },
-  WR: { leg: 14, elite: 11, start: 8, flex: 5, bench: 3, waiver: 1.5 },
-  TE: { leg: 11, elite: 8, start: 6, flex: 4, bench: 2.5, waiver: 1 },
-  QB: { leg: 22, elite: 18, start: 15, flex: 11, bench: 8, waiver: 5 },
-};
-
-function ppgToTierScore(ppg: number, pos: string): number {
-  const b = TIER_BENCHMARKS[pos] || TIER_BENCHMARKS.WR;
-  if (ppg >= b.leg) return Math.min(100, 90 + (ppg - b.leg) * 2);
-  if (ppg >= b.elite) return 75 + (ppg - b.elite) / (b.leg - b.elite) * 15;
-  if (ppg >= b.start) return 60 + (ppg - b.start) / (b.elite - b.start) * 15;
-  if (ppg >= b.flex) return 40 + (ppg - b.flex) / (b.start - b.flex) * 20;
-  if (ppg >= b.bench) return 30 + (ppg - b.bench) / (b.flex - b.bench) * 10;
-  if (ppg >= b.waiver) return 20 + (ppg - b.waiver) / (b.bench - b.waiver) * 10;
-  return Math.max(0, b.waiver > 0 ? (ppg / b.waiver) * 20 : 0);
-}
 
 interface CompRow {
   name: string;
