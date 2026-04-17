@@ -2373,6 +2373,68 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     ? (cs.get('Passing Touchdowns') || 0) + (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0)
                     : posAvg['collegeTotalTDs'] || 0,
                   collegeQBR: imp(collegeQBRByName.get(normalName), 'collegeQBR'),
+                  // QB-specific career features. Previously only computed in
+                  // the second-pass block (NFL-drafted players with no ADP),
+                  // which left every ADP-ranked rookie (Mariota, Burrow,
+                  // Lawrence, C. Williams, J. Daniels) with these fields
+                  // undefined — the rookie career modal displayed every QB
+                  // context feature as "missing". Share logic with the
+                  // second-pass block and the prediction block (line ~4000).
+                  ...(() => {
+                    let careerPassAtt = 0, careerPassCompletions = 0;
+                    let careerRushYds = 0, careerGames = 0;
+                    let lastSchool = '', lastSeason = 0;
+                    const ps = playerSeasonStats.get(normalName);
+                    if (ps) {
+                      for (const [sn, s] of ps) {
+                        careerPassAtt += s.passAtt || 0;
+                        careerPassCompletions += s.completions || 0;
+                        careerRushYds += s.rushYds || 0;
+                        careerGames += s.games || 0;
+                        if (sn > lastSeason) {
+                          lastSeason = sn;
+                          lastSchool = s.school || lastSchool;
+                        }
+                      }
+                    }
+                    const careerPassYds = cs?.get('Passing Yards') || 0;
+                    const teamKey1 = lastSchool ? `${normalizeSchool(lastSchool)}:${lastSeason}` : '';
+                    const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
+                    const teamRating = (teamKey1 && collegePredictiveRank.get(teamKey1))
+                      || (teamKey2 && collegePredictiveRank.get(teamKey2))
+                      || 0;
+                    const sosFinalYr = (teamKey1 && collegeSOS.get(teamKey1))
+                      || (teamKey2 && collegeSOS.get(teamKey2))
+                      || 1;
+                    const careerPassYpg = careerGames > 0 ? careerPassYds / careerGames : 0;
+                    const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
+                    const qbContextScore = Math.round(
+                      careerPassYpg * Math.max(0, teamRating + 40) * sosFinalYr
+                    );
+                    const qbr2yr = collegeQBR2yrByName.get(normalName) || collegeQBRByName.get(normalName);
+                    return {
+                      collegeQBR2yr: imp(qbr2yr, 'collegeQBR2yr'),
+                      collegeRushYpgPerAge: (careerRushYpg > 0 && draftAge > 0)
+                        ? Math.round((careerRushYpg / draftAge) * 100) / 100
+                        : 0,
+                      collegeYdsPerPassAtt: careerPassAtt > 0
+                        ? Math.round((careerPassYds / careerPassAtt) * 100) / 100
+                        : 0,
+                      collegeSosFinalYr: Math.round(sosFinalYr * 100) / 100,
+                      collegeSosXPassAtt: Math.round(teamRating * careerPassAtt),
+                      collegeQbContextScore: qbContextScore,
+                      collegePassAttPerRushYd: careerRushYds > 0
+                        ? Math.round((careerPassAtt / careerRushYds) * 100) / 100
+                        : 0,
+                      // Stash raw aggregates so train_career_models.py can
+                      // compute derived accuracy features (collegeCompletionPct
+                      // etc.) without a full feature-matrix rebuild — matches
+                      // the second-pass block at line ~2893.
+                      _rawCareerPassAtt: careerPassAtt,
+                      _rawCareerPassCompletions: careerPassCompletions,
+                      _rawCareerPassYds: careerPassYds,
+                    };
+                  })(),
                   collegeGames: pg?.games || 0,
                   collegeRecPerGame: imp(pg?.recPerGame, 'collegeRecPerGame'),
                   collegeYdsPerGame: imp(pg?.ydsPerGame, 'collegeYdsPerGame'),

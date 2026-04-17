@@ -59,7 +59,10 @@ const ZERO_MEANS_MISSING = new Set<string>([
   'recruitRating', 'recruitStars',
   'collegeUsageOverall', 'collegeUsagePass', 'collegeUsageRush',
   'collegeTeamTalent',
-  'collegeQBR', 'collegeQBR2yr', 'collegeQBYPA', 'collegeQbContextScore',
+  'collegeQBR', 'collegeQBR2yr', 'collegeYdsPerPassAtt', 'collegeQbContextScore',
+  // QB career derivations — 0 means the upstream aggregate (rush yards,
+  // passing attempts, or school-season SOS lookup) was unavailable.
+  'collegeRushYpgPerAge', 'collegeSosFinalYr',
   // Context
   'age', 'nflDraftPick', 'nflDraftRound',
 ]);
@@ -78,7 +81,7 @@ const BOOM_BUST_INPUTS: Record<string, string[]> = {
     'collegeDominatorRating', 'collegeBreakoutScore',
     'collegeSeasons', 'collegeEarlyDeclare',
     'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
-    'collegeQBR2yr', 'collegeQBYPA', 'collegeQbContextScore',
+    'collegeQBR2yr', 'collegeYdsPerPassAtt', 'collegeQbContextScore',
     'predictedPPG', 'nflDraftPick',
   ],
   RB: [
