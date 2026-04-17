@@ -69,19 +69,33 @@ PRE_DRAFT_FEATURES = {
            'age', 'recruitStars'],
 }
 
+# contractAPY removed (0% coverage — rookie contracts are slot-determined,
+# data not joined). Remaining post-draft additions selected via per-position
+# forward-selection ablation (2026-04): each candidate single-added on top
+# of the pre-draft baseline; only kept if ΔR² ≥ +0.001.
 POST_DRAFT_FEATURES = {
+    # QB: vegasImpliedTotal, teamPace, depthChartRank all hurt or flat.
+    # Only teamSamePosCount earned its keep (+0.003). QBs are first-on-the-field
+    # so most "team context" features barely matter for their projection.
     'QB': PRE_DRAFT_FEATURES['QB'] + [
-        'vegasImpliedTotal', 'contractAPY',
-        'teamPace', 'depthChartRank', 'teamSamePosCount'],
+        'teamSamePosCount'],
+    # RB: dropped depthChartRank (-0.002) and teamPace (-0.006). qbOwnPPG was
+    # the standout (+0.011) — RB scoring tracks how much the QB contributes
+    # to team rushing volume (mobile QB → fewer carries for the RB).
     'RB': PRE_DRAFT_FEATURES['RB'] + [
-        'depthChartRank', 'teamSamePosCount', 'contractAPY',
-        'vegasImpliedTotal', 'teamPassRate', 'teamPace', 'qbOwnPPG'],
+        'teamSamePosCount', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
+    # WR: every post-draft feature added value, projTeamPassAtt biggest at
+    # +0.027. WR career projection benefits most from team-context features
+    # because target volume is so team-driven.
     'WR': PRE_DRAFT_FEATURES['WR'] + [
-        'depthChartRank', 'teamSamePosCount', 'contractAPY',
+        'depthChartRank', 'teamSamePosCount',
         'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
+    # TE: kept depthChartRank (+0.008), vegasImpliedTotal (+0.008),
+    # teamPassRate (+0.006), qbOwnPPG (+0.004). projTeamPassAtt hurt
+    # (-0.002) — TE volume is more about red-zone usage than total
+    # pass attempts.
     'TE': PRE_DRAFT_FEATURES['TE'] + [
-        'depthChartRank', 'contractAPY',
-        'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
+        'depthChartRank', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
 }
 
 PPG_THRESHOLDS = {
@@ -265,7 +279,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     thresholds = PPG_THRESHOLDS[pos]
     seasons = sorted(set(r['draft_season'] for r in pos_rows))
     max_season = max(seasons)
-    recency_scheme = None if is_post_draft else POS_RECENCY_SCHEMES.get(pos)
+    recency_scheme = POS_RECENCY_SCHEMES.get(pos)
     use_recency = recency_scheme is not None
 
     # College-only companion model for WR/RB pre-draft (catches late-round breakouts)
