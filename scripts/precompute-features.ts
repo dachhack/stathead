@@ -926,6 +926,35 @@ async function main() {
           }
           if (!storedFeatures.collegeQBR) storedFeatures.collegeQBR = prospectQBRLatest.get(nName) || 0;
           if (!storedFeatures.collegeQBR2yr) storedFeatures.collegeQBR2yr = prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0;
+
+          // RAS + combine-data flags. buildProspectFeatureRecord doesn't
+          // compute these (only the nflverse path did), so graded prospects
+          // always showed "RAS 0" and missing combine flags. Compute RAS by
+          // feeding real combine fields (stored prospect wins, nflverse
+          // combine fills gaps) into the same z-score function the nflverse
+          // path uses. Flags track whether the underlying values are real
+          // (not positional-average imputations from buildProspectFeatureRecord).
+          const nvCombine = combineByProspect.get(nName);
+          const realWt = (storedProspect.weight || 0) > 0 ? storedProspect.weight! : (nvCombine?.wt || 0);
+          const realForty = (storedProspect.forty || 0) > 0 ? storedProspect.forty! : (nvCombine?.forty || 0);
+          const combineForRas = {
+            wt: realWt,
+            forty: realForty,
+            bench: (storedProspect.bench || 0) > 0 ? storedProspect.bench! : (nvCombine?.bench || 0),
+            vertical: (storedProspect.vertical || 0) > 0 ? storedProspect.vertical! : (nvCombine?.vertical || 0),
+            broad_jump: (storedProspect.broadJump || 0) > 0 ? storedProspect.broadJump! : (nvCombine?.broad_jump || 0),
+            cone: (storedProspect.cone || 0) > 0 ? storedProspect.cone! : (nvCombine?.cone || 0),
+            shuttle: (storedProspect.shuttle || 0) > 0 ? storedProspect.shuttle! : (nvCombine?.shuttle || 0),
+          };
+          if (!storedFeatures.relativeAthleticScore) {
+            storedFeatures.relativeAthleticScore = computeProspectRAS(combineForRas, pos);
+          }
+          if (storedFeatures.hasPhysicalData == null) {
+            storedFeatures.hasPhysicalData = realWt > 0 ? 1 : 0;
+          }
+          if (storedFeatures.hasCombineData == null) {
+            storedFeatures.hasCombineData = realWt > 0 && realForty > 0 ? 1 : 0;
+          }
         }
 
         // Use stored features for scoring
