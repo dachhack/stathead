@@ -24,11 +24,44 @@ function tierColor(score: number): string {
   return '#ef4444';                     // Longshot
 }
 
+/**
+ * Rescale 2023 ZAP scores to approximate 2026's talent-gap methodology.
+ *
+ * 2023 ZAP was percentile-based — top-20 WRs all clustered 65-96. In 2026,
+ * ZAP moved to talent-gap scaling (Legendary/Elite/Flex/Waiver/Dart tiers)
+ * so the top spreads 20-92 with meaningful separation. Without this rescale,
+ * cross-year deltas vs our (talent-scaled) model read as "misses" that are
+ * really just scaling artifacts — a 2023 ZAP 50 looks like Flex Play, but
+ * under the new methodology the same rank would likely be Waiver Wire.
+ *
+ * Approach: rank-match against the 2026 score distribution at the same
+ * position. Preserves the rank ordering ZAP gave the 2023 class while
+ * applying 2026-style talent-gap spread.
+ */
+function rescaleZap2023ToModern(
+  zap23: Record<string, Array<{ name: string; rank: number; zap: number }>>,
+  zap26: Record<string, Array<{ name: string; rank: number; zap: number }>>,
+): Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> {
+  const rescaled: Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> = {};
+  for (const pos of Object.keys(zap23)) {
+    const z26sorted = (zap26[pos] || []).map(z => z.zap).sort((a, b) => b - a);
+    const z23sorted = [...(zap23[pos] || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    rescaled[pos] = z23sorted.map((z, i) => ({
+      name: z.name,
+      rank: z.rank,
+      zap: i < z26sorted.length ? z26sorted[i] : (z26sorted[z26sorted.length - 1] ?? 0),
+      zapRaw: z.zap,
+    }));
+  }
+  return rescaled;
+}
+
 interface CompRow {
   name: string;
   pos: string;
   zapRank: number;
-  zapScore: number;
+  zapScore: number;  // 2023: rescaled to 2026 methodology; 2026: raw
+  zapRaw?: number;   // 2023 original percentile-methodology score (for transparency)
   ourScore: number;
   actualPPG: number;  // 0 for 2026 (unknown)
   predictedPPG: number; // our model's predicted PPG (0 for 2026)
@@ -161,6 +194,16 @@ export function ZapComparison() {
       }
 
       const r2023: CompRow[] = [];
+      // Rescale 2023 ZAP (percentile methodology) → 2026 talent-gap scale
+      // via rank-matching. Preserves ZAP's 2023 rank order but spreads the
+      // scores to match 2026's Legendary/Elite/Flex/Waiver/Dart tiers.
+      // Without this, mid-tier 2023 prospects at ZAP 40-55 read as Flex
+      // Play, but under the new methodology the same rank would be Waiver/
+      // Dart — closer to where our model scores them.
+      const rescaled2023 = rescaleZap2023ToModern(
+        zapScores2023 as any, zapScores2026 as any
+      );
+
       for (const pos of ['RB', 'WR'] as const) {
         // Compute actual PPG percentiles vs all historical backtest rookies at this position
         const posBacktestPPGs = backtestRows
@@ -168,7 +211,7 @@ export function ZapComparison() {
           .map(r => r.actualPPG)
           .sort((a, b) => a - b);
 
-        for (const z of (zapScores2023 as any)[pos] || []) {
+        for (const z of rescaled2023[pos] || []) {
           const nName = normalizeName(z.name);
           const bt = backtestByName.get(nName);
           const ourScore = bt?.combinedScore || 0;
@@ -183,6 +226,9 @@ export function ZapComparison() {
           }
 
           // Winner: whose score was closer to the actual percentile?
+          // Uses rescaled ZAP (`z.zap`) so the comparison is apples-to-apples
+          // against our talent-scaled predictions. Raw ZAP is preserved on
+          // the row for transparency (`zapRaw`).
           let winner: '' | 'ours' | 'zap' | 'tie' = '';
           if (ourScore > 0 && actualPPG > 0) {
             const ourError = Math.abs(ourScore - actualPctl);
@@ -192,7 +238,7 @@ export function ZapComparison() {
           }
           r2023.push({
             name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap, ourScore, actualPPG, predictedPPG,
+            zapScore: z.zap, zapRaw: z.zapRaw, ourScore, actualPPG, predictedPPG,
             delta: ourScore > 0 ? ourScore - z.zap : 0, winner,
           });
         }
@@ -362,6 +408,18 @@ export function ZapComparison() {
         </div>
       )}
 
+      {season === '2023' && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>Note: </span>
+            2023 ZAP scores are rescaled to match ZAP's 2026 talent-gap methodology
+            (rank-matched against the 2026 distribution). Raw 2023 percentile
+            score is shown in parentheses next to each rescaled value. This
+            puts the comparison on the same scale as our talent-gap predictions.
+          </div>
+        </div>
+      )}
+
       {stats && stats.hasActuals && season === '2023' && (
         <div style={{ padding: '0 16px 16px' }}>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
@@ -438,7 +496,11 @@ export function ZapComparison() {
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{r.zapRank}</td>
                 <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
                 <td><span style={{ color: POS_COLORS[r.pos], fontWeight: 600 }}>{r.pos}</span></td>
-                <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}>{r.zapScore.toFixed(1)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}
+                  title={r.zapRaw != null ? `Rescaled to 2026 methodology (raw 2023 score: ${r.zapRaw.toFixed(1)})` : undefined}>
+                  {r.zapScore.toFixed(1)}
+                  {r.zapRaw != null && <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 3 }}>({r.zapRaw.toFixed(0)})</span>}
+                </td>
                 <td style={{ textAlign: 'right', fontWeight: 700, color: r.ourScore > 0 ? tierColor(r.ourScore) : 'var(--text-muted)' }}>
                   {r.ourScore > 0 ? r.ourScore.toFixed(1) : '-'}
                 </td>
