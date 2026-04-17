@@ -45,6 +45,10 @@ function rescaleZap2023ToModern(
 ): Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> {
   const rescaled: Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> = {};
   for (const pos of Object.keys(zap23)) {
+    // The JSON files include non-array metadata keys ('season', 'source').
+    // Skip anything that isn't a position roster — guards against
+    // "not iterable" throws from `[...zap23.season]` and friends.
+    if (!Array.isArray(zap23[pos])) continue;
     const z26sorted = (zap26[pos] || []).map(z => z.zap).sort((a, b) => b - a);
     const z23sorted = [...(zap23[pos] || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999));
     rescaled[pos] = z23sorted.map((z, i) => ({
