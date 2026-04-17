@@ -88,11 +88,12 @@ export function ZapComparison() {
 
   useEffect(() => {
     async function load() {
-      // Try score store first for featurePercentiles
       try {
-        const scores = await loadCareerScores();
-        if (scores.length > 0) setScoreStore(scores);
-      } catch {}
+        // Try score store first for featurePercentiles
+        try {
+          const scores = await loadCareerScores();
+          if (scores.length > 0) setScoreStore(scores);
+        } catch {}
 
       // Load our 2026 scores
       let ourScores2026 = new Map<string, number>();
@@ -224,10 +225,16 @@ export function ZapComparison() {
           });
         }
       }
-      setRows2023(r2023);
-      setBacktestData(backtestByName);
-      setPredictions2026(pred2026Map);
-      setLoading(false);
+        setRows2023(r2023);
+        setBacktestData(backtestByName);
+        setPredictions2026(pred2026Map);
+      } catch (err) {
+        // Safety net — don't let a mid-flow throw leave the loader spinning.
+        // Logs to console so the underlying bug can be diagnosed from devtools.
+        console.error('[ZapComparison] load failed:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
