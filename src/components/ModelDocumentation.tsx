@@ -26,7 +26,6 @@ const GAP_FEATURE_LABELS: Record<string, string> = {
   breakout: 'College Breakout Score',
   market_share: 'College Market Share',
   total_tds: 'College Total TDs',
-  prospect_grade: 'Prospect Grade',
   age: 'Age',
   early_declare: 'Early Declare',
   experience: 'College Games / Age',
@@ -35,11 +34,22 @@ const GAP_FEATURE_LABELS: Record<string, string> = {
   speed_vs_pick: 'Speed vs Draft Pick',
   production_vs_pick: 'Production vs Draft Pick',
   best_season_vs_pick: 'Best Season vs Draft Pick',
-  grade_vs_pick: 'Prospect Grade vs Draft Pick',
   low_games: 'Low Games/Season Flag',
   early_declare_late: 'Early Declare × Late Pick',
   games_per_season: 'Games / Season',
   recent_breakout: 'Recent Breakout Flag',
+  // CFBD-sourced gap features (2026-04)
+  recruit_rating: '247 Composite Rating',
+  college_usage: 'College Usage Rate (PPA)',
+  team_talent: 'College Team Talent (247)',
+  recruit_vs_pick: '247 Rating vs Draft Pick',
+  // QB-specific gap features (2026-04)
+  qbr: 'College QBR (2-yr avg)',
+  ypa: 'College Yards / Pass Attempt',
+  qb_context: 'College QB Context Score',
+  qbr_vs_pick: 'QBR vs Draft Pick',
+  ypa_vs_pick: 'YPA vs Draft Pick',
+  qb_context_vs_pick: 'QB Context vs Draft Pick',
 };
 
 // Human-readable labels for the bust-classifier feature vocabulary (see
