@@ -537,21 +537,31 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // RB: n=315. Ablation rounds 1+2 pruned 11→2. logDraftPick dominates
   // (Δ=-0.224). Round 2 dropped speedScore (+0.041), totalTDs (+0.036),
   // teammateScore (+0.036), recYdsPerTeamPassAtt (+0.035) — all large
-  // dead weight once initial noise was cleared.
-  RB: ['logDraftPick', 'collegeDominatorXLateRound'],
+  // dead weight once initial noise was cleared. CFBD ablation (2026-04)
+  // added collegeUsageOverall (PPA-based share of team plays; +0.029 R²)
+  // and recruitRating (247 composite; another +0.008 on top) for a
+  // +0.037 gain to R²≈0.38. Usage is the largest non-draft-capital RB
+  // signal — cleanly splits featured backs from committee backs.
+  RB: ['logDraftPick', 'collegeDominatorXLateRound',
+       'collegeUsageOverall', 'recruitRating'],
   // WR: n=456. Ablation pruned 13→11. Healthiest model — 7 valuable features.
   // Dropped dominatorRating and dominatorXLateRound (+0.001 each, redundant
   // with bestRecYds and draftPickPct which capture the same signal better).
+  // Added recruitStars (247 composite, 1-5) in 2026-04 CFBD pass: +0.011
+  // R². Other CFBD features overlapped with existing production signals.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeBestRecYds',
        'weight', 'collegeTeammateScore',
-       'relativeAthleticScore'],
+       'relativeAthleticScore', 'recruitStars'],
   // TE: n=207. Ablation pruned 8→5. Draft position features dominate;
   // athleticism features (heightAdjSpeedScore +0.004, RAS +0.004) and
   // recYdsPerTeamPassAtt (+0.001) were noise. Age neutral, retained.
+  // Added recruitStars (+0.015 R²) in the 2026-04 CFBD pass — TE
+  // projection is notoriously fickle, and 247 composite stars catches
+  // high-upside athletes the lean 5-feature set was missing.
   TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-       'age'],
+       'age', 'recruitStars'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known.
