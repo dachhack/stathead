@@ -43,16 +43,30 @@ POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
 PRE_DRAFT_FEATURES = {
     # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
     # class is not the same talent signal as a #1 pick in a loaded one.
+    # CFBD-feature ablation (2026-04): recruitStars/Rating + team talent +
+    # usage all marginal-to-negative for QB; kept the lean 6-feature set.
     'QB': ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
            'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
-    'RB': ['logDraftPick', 'collegeDominatorXLateRound'],
+    # RB: CFBD ablation winners. collegeUsageOverall (PPA-based % of team
+    # plays) lifted R² +0.029 alone; recruitRating (247 composite) adds
+    # another +0.008 on top for a +0.037 gain over the v48 baseline. The
+    # usage signal is the biggest non-draft-capital feature for RB —
+    # directly captures "featured back" vs "committee back" out of college.
+    'RB': ['logDraftPick', 'collegeDominatorXLateRound',
+           'collegeUsageOverall', 'recruitRating'],
+    # WR: recruitStars (247 composite, 1-5) added +0.011 R². Other CFBD
+    # features were either redundant with existing college production
+    # features or hurt R² once recruitStars was in.
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
            'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
            'collegeBestRecYds',
            'weight', 'collegeTeammateScore',
-           'relativeAthleticScore'],
+           'relativeAthleticScore', 'recruitStars'],
+    # TE: recruitStars also wins for TE (+0.015 R²). TEs are notoriously
+    # hard to project — the 247 composite grabs high-upside athletes the
+    # lean draft-capital feature set was missing.
     'TE': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-           'age'],
+           'age', 'recruitStars'],
 }
 
 POST_DRAFT_FEATURES = {
