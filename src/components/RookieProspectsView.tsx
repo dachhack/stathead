@@ -53,6 +53,8 @@ interface ProspectRow {
   modelTier: number;
   boomProb: number;
   bustProb: number;
+  boomZ?: number;
+  bustZ?: number;
   zapScore: number;
   careerFeatures?: Record<string, number>;
 }
@@ -148,7 +150,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     ])
       .then(([combine, fpRankings, ktcPlayers, featureData]) => {
         // Career predictions from model
-        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number; features?: Record<string, number> }>();
+        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number; boomZ?: number; bustZ?: number; features?: Record<string, number> }>();
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
             careerMap.set(normalizeName(p.name), {
@@ -159,6 +161,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               modelTier: p.modelTier || 0,
               boomProb: p.boomProb || 0,
               bustProb: p.bustProb || 0,
+              boomZ: p.boomZ,
+              bustZ: p.bustZ,
               features: p.features,
             });
           }
@@ -240,6 +244,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            boomZ: career?.boomZ,
+            bustZ: career?.bustZ,
             zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           };
@@ -275,6 +281,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            boomZ: career?.boomZ,
+            bustZ: career?.bustZ,
             zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           });
@@ -306,6 +314,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             modelTier: career?.modelTier || 0,
             boomProb: career?.boomProb || 0,
             bustProb: career?.bustProb || 0,
+            boomZ: career?.boomZ,
+            bustZ: career?.bustZ,
             zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           });
@@ -491,8 +501,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('zapScore')} style={{ cursor: 'pointer', fontSize: 11 }}>
                 ZAP{sortArrow('zapScore')}
               </th>
-              <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }}>Boom</th>
-              <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }}>Bust</th>
+              <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }} title="Boom z-score: prospect's outperformance score standardized vs the historical NFL rookie distribution. +1σ = strong upside vs typical rookie at this draft slot.">Boom z</th>
+              <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }} title="Bust z-score: prospect's bust-event score standardized vs the historical NFL rookie distribution. +1σ = unusually high bust risk; -1σ = unusually safe.">Bust z</th>
               {activeThresholds.map(t => (
                 <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
                   &gt;{t}
@@ -640,11 +650,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 <td style={{ fontSize: 12, fontWeight: 600, color: r.zapScore >= 75 ? '#22c55e' : r.zapScore >= 60 ? '#4ade80' : r.zapScore >= 40 ? '#facc15' : r.zapScore > 0 ? '#fb923c' : 'var(--text-muted)' }}>
                   {r.zapScore > 0 ? r.zapScore.toFixed(1) : '-'}
                 </td>
-                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomProb > 30 ? '#22c55e' : r.boomProb > 15 ? '#a3e635' : 'var(--text-muted)' }}>
-                  {r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-'}
+                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomZ != null && r.boomZ >= 1 ? '#22c55e' : r.boomZ != null && r.boomZ >= 0.3 ? '#a3e635' : r.boomZ != null && r.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
+                  {r.boomZ != null ? (r.boomZ >= 0 ? `+${r.boomZ.toFixed(2)}` : r.boomZ.toFixed(2)) : (r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-')}
                 </td>
-                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustProb > 30 ? '#ef4444' : r.bustProb > 15 ? '#fb923c' : 'var(--text-muted)' }}>
-                  {r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-'}
+                <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustZ != null && r.bustZ >= 1 ? '#ef4444' : r.bustZ != null && r.bustZ >= 0.3 ? '#fb923c' : r.bustZ != null && r.bustZ <= -0.5 ? '#22c55e' : 'var(--text-muted)' }}>
+                  {r.bustZ != null ? (r.bustZ >= 0 ? `+${r.bustZ.toFixed(2)}` : r.bustZ.toFixed(2)) : (r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-')}
                 </td>
                 {activeThresholds.map(t => {
                   const prob = r.thresholdProbs?.[t];

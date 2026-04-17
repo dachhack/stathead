@@ -766,12 +766,18 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     # Assign boom (from outperformance model) and bust (from bust classifier).
     # Both use the same percentile-bridge pattern so a low-rank prospect gets
     # ~50% of base rate and a top-rank prospect gets ~150%, capped at 50%.
+    # Also emit z-scores (raw classifier output standardized against the LOSO
+    # cohort) — used by the prospects view in place of misleading %s.
     bust_pctile_arr = np.argsort(np.argsort(bust_scores)) / max(n, 1) * 100
+    boom_mean, boom_std = float(np.mean(outperf_preds)), float(np.std(outperf_preds)) or 1.0
+    bust_mean, bust_std = float(np.mean(bust_scores)), float(np.std(bust_scores)) or 1.0
     for i, d in enumerate(loso_data):
         pctile = outperf_pctile[i]
         d['boom_prob'] = round(min(50, boom_base_rate * 100 * (0.5 + pctile / 100)), 1)
         bp = float(bust_pctile_arr[i])
         d['bust_prob'] = round(min(50, bust_base_rate * 100 * (0.5 + bp / 100)), 1)
+        d['boom_z'] = round((float(outperf_preds[i]) - boom_mean) / boom_std, 2)
+        d['bust_z'] = round((float(bust_scores[i]) - bust_mean) / bust_std, 2)
 
     # ── Threshold metrics ─────────────────────────────────────────────
     threshold_metrics = []
@@ -832,6 +838,8 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             'thresholdProbs': {str(k): v for k, v in d['thresh_probs'].items()},
             'boomProb': d.get('boom_prob', 0),
             'bustProb': d.get('bust_prob', 0),
+            'boomZ': d.get('boom_z', 0),
+            'bustZ': d.get('bust_z', 0),
             'features': d.get('all_features', {}),
         })
 
@@ -1223,6 +1231,13 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         prospect_bust_scores = bust_model.predict(X_prosp_bust)
         bt_bust_scores = bust_model.predict(X_bust_train)
 
+        # Z-scores: prospect's raw classifier output standardized against the
+        # historical NFL rookie distribution. +1.5σ bust = unusually high risk
+        # for this position; −1.5σ = unusually safe. Replaces % which tops out
+        # at base-rate × 1.5 cap and reads like a coin flip.
+        boom_mean, boom_std = float(np.mean(bt_gap_scores)), float(np.std(bt_gap_scores)) or 1.0
+        bust_mean, bust_std = float(np.mean(bt_bust_scores)), float(np.std(bt_bust_scores)) or 1.0
+
         for i, p in enumerate(pos_prospects):
             pctile = float(np.mean(bt_gap_scores <= gap_scores[i]) * 100)
             boom_mult = 0.5 + (pctile / 100)
@@ -1233,6 +1248,8 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
                 'position': pos,
                 'boomProb': round(min(50, boom_base * 100 * boom_mult), 1),
                 'bustProb': round(min(50, bust_base * 100 * bust_mult), 1),
+                'boomZ': round((float(gap_scores[i]) - boom_mean) / boom_std, 2),
+                'bustZ': round((float(prospect_bust_scores[i]) - bust_mean) / bust_std, 2),
                 'outperfPctile': round(pctile, 1),
             })
 
