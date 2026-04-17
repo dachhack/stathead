@@ -37,6 +37,37 @@ function pctlColor(pctl: number): string {
 const FEATURE_LABELS: Record<string, string> = {};
 for (const f of FEATURES) { FEATURE_LABELS[f.key] = f.label; }
 
+// Features where a value of exactly 0 means "no data captured" rather than
+// a real zero. Combine / college-production / CFBD features all fall here
+// because the upstream pipeline writes 0 when a lookup whiffs. Binary flags
+// (earlyDeclare, hasX), interaction terms (dominatorXLateRound is legitimately
+// 0 for top-55 picks), and derived draft-pick features stay out of this set.
+const ZERO_MEANS_MISSING = new Set<string>([
+  // Athletic / combine
+  'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore',
+  'forty', 'weight', 'bmi', 'cone', 'shuttle', 'bench', 'vertical', 'broadJump',
+  // College production
+  'collegeDominatorRating', 'collegeBestRecYds', 'collegeBestRushYds',
+  'collegeBreakoutScore', 'collegeBreakoutAge', 'collegeMarketShare',
+  'collegeReceptionShare', 'collegeTotalTDs', 'collegeRushYPC',
+  'collegeYdsPerRec', 'collegeRecPerGame', 'collegeRecTDs',
+  'collegeRecYds', 'collegeRushYds', 'collegePassTDs',
+  'collegeSeasons', 'collegeGames', 'collegeExperiencePerAge',
+  'collegeTeammateScore', 'collegeRushProductionWR',
+  // CFBD-sourced
+  'recruitRating', 'recruitStars',
+  'collegeUsageOverall', 'collegeUsagePass', 'collegeUsageRush',
+  'collegeTeamTalent',
+  'collegeQBR', 'collegeQBR2yr', 'collegeQBYPA', 'collegeQbContextScore',
+  // Context
+  'age', 'nflDraftPick', 'nflDraftRound',
+]);
+
+function isMissing(key: string, val: number | undefined | null): boolean {
+  if (val == null) return true;
+  return ZERO_MEANS_MISSING.has(key) && val === 0;
+}
+
 // Raw inputs fed into the boom (outperformance) and bust (underperformance)
 // gap-feature models. Shown on the card so users can see what's driving the
 // z-scores up top. QB gets the additional QB-specific signals.
@@ -289,30 +320,32 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   }
                   return true;
                 }).map(key => {
-                  const val = features[key] ?? 0;
-                  const pctl = player.featurePercentiles?.[key];
+                  const rawVal = features[key];
+                  const missing = isMissing(key, rawVal);
+                  const val = rawVal ?? 0;
+                  const pctl = missing ? undefined : player.featurePercentiles?.[key];
                   const usePctl = pctl !== undefined;
-                  const barPct = usePctl ? pctl : (() => {
+                  const barPct = missing ? 0 : (usePctl ? pctl : (() => {
                     const maxVal = key.includes('log') ? 6 : key.includes('inv') ? 0.5 :
                       key === 'age' ? 24 : key === 'weight' ? 250 :
                       key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
                       key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
                     return Math.min(100, (Math.abs(val) / maxVal) * 100);
-                  })();
-                  const color = usePctl ? pctlColor(pctl) : '#8b5cf6';
+                  })());
+                  const color = missing ? 'var(--bg-tertiary)' : (usePctl ? pctlColor(pctl) : '#8b5cf6');
                   return (
                     <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {featureLabel(key)}
                       </span>
                       <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
+                        {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
                       </div>
-                      <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
-                        {usePctl ? `${pctl}` : fmtVal(val)}
+                      <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
+                        {missing ? 'missing' : (usePctl ? `${pctl}` : fmtVal(val))}
                       </span>
-                      <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
-                        {fmtVal(val)}
+                      <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
+                        {missing ? '—' : fmtVal(val)}
                       </span>
                     </div>
                   );
@@ -341,10 +374,13 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       Raw features fed into the outperformance + bust-event models
                     </div>
                     {visible.map(key => {
-                      const val = features[key] ?? (key === 'predictedPPG' ? (player.predictedPPG || 0) : 0);
-                      const pctl = player.featurePercentiles?.[key];
+                      const rawVal = features[key] ?? (key === 'predictedPPG' ? (player.predictedPPG ?? undefined) : undefined);
+                      // predictedPPG is always known from the model — never "missing"
+                      const missing = key === 'predictedPPG' ? false : isMissing(key, rawVal);
+                      const val = rawVal ?? 0;
+                      const pctl = missing ? undefined : player.featurePercentiles?.[key];
                       const usePctl = pctl !== undefined;
-                      const barPct = usePctl ? pctl : (() => {
+                      const barPct = missing ? 0 : (usePctl ? pctl : (() => {
                         const maxVal = key === 'age' ? 24 : key === 'weight' ? 250 :
                           key === 'nflDraftPick' ? 260 : key === 'predictedPPG' ? 20 :
                           key === 'collegeQBR2yr' ? 90 : key === 'collegeTeamTalent' ? 1000 :
@@ -353,21 +389,21 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                           key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
                           key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
                         return Math.min(100, (Math.abs(val) / maxVal) * 100);
-                      })();
-                      const color = usePctl ? pctlColor(pctl) : '#f59e0b';
+                      })());
+                      const color = missing ? 'var(--bg-tertiary)' : (usePctl ? pctlColor(pctl) : '#f59e0b');
                       return (
                         <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {featureLabel(key)}
                           </span>
                           <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                            <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
+                            {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
                           </div>
-                          <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
-                            {usePctl ? `${pctl}` : fmtVal(val)}
+                          <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
+                            {missing ? 'missing' : (usePctl ? `${pctl}` : fmtVal(val))}
                           </span>
-                          <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
-                            {fmtVal(val)}
+                          <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
+                            {missing ? '—' : fmtVal(val)}
                           </span>
                         </div>
                       );
