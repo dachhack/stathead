@@ -226,7 +226,6 @@ export function ZapComparison() {
       const rescaled2023 = rescaleZap2023ToModern(
         zapScores2023 as any, zapScores2026 as any
       );
-
       for (const pos of ['RB', 'WR'] as const) {
         for (const z of rescaled2023[pos] || []) {
           const nName = normalizeName(z.name);
