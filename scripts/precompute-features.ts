@@ -894,6 +894,40 @@ async function main() {
         if (storedFeatures.draftPickPctOverall == null) storedFeatures.draftPickPctOverall = prospectDraftPctOverallByName.get(nName) ?? 1;
         if (storedFeatures.draftClassDepth == null) storedFeatures.draftClassDepth = prospectDraftClassDepthByName.get(nName) ?? 0;
 
+        // Augment stored features with CFBD-sourced signals (recruit rating,
+        // college usage, team talent) + the RB interaction feature the pre-draft
+        // model actually trains on. Without this, graded prospects land on the
+        // stored path and the PlayerCard popover shows 0 for everything past
+        // logDraftPick because buildProspectFeatureRecord doesn't know about
+        // CFBD rollups or the late-round interaction term. Same signals as the
+        // nflverse path below.
+        {
+          const projPick = storedProspect.projPick || 300;
+          const cfbdK = cfbdKey(nName);
+          const seasons = prospectSeasonStats.get(nName) || [];
+          const lastSeason = seasons.length ? seasons.reduce((a, b) => a.season > b.season ? a : b) : null;
+          if (!storedFeatures.collegeDominatorXLateRound) {
+            storedFeatures.collegeDominatorXLateRound = (storedFeatures.collegeDominatorRating || 0) *
+              Math.max(0, Math.log(projPick + 1) - 4.0);
+          }
+          if (!storedFeatures.recruitStars) storedFeatures.recruitStars = cfbdRecruits[cfbdK]?.stars || 0;
+          if (!storedFeatures.recruitRating) storedFeatures.recruitRating = cfbdRecruits[cfbdK]?.composite_rating || 0;
+          if (!storedFeatures.collegeTeamTalent && lastSeason) {
+            storedFeatures.collegeTeamTalent = cfbdTalent[`${(lastSeason.school || '').toLowerCase()}:${lastSeason.season}`] || 0;
+          }
+          if (!storedFeatures.collegeUsageOverall && lastSeason) {
+            storedFeatures.collegeUsageOverall = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.overall || 0;
+          }
+          if (!storedFeatures.collegeUsagePass && lastSeason) {
+            storedFeatures.collegeUsagePass = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.pass || 0;
+          }
+          if (!storedFeatures.collegeUsageRush && lastSeason) {
+            storedFeatures.collegeUsageRush = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.rush || 0;
+          }
+          if (!storedFeatures.collegeQBR) storedFeatures.collegeQBR = prospectQBRLatest.get(nName) || 0;
+          if (!storedFeatures.collegeQBR2yr) storedFeatures.collegeQBR2yr = prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0;
+        }
+
         // Use stored features for scoring
         const features = storedFeatures;
         const pred = predictRookieCareerPPG(cm, features);
