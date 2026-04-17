@@ -37,6 +37,47 @@ function pctlColor(pctl: number): string {
 const FEATURE_LABELS: Record<string, string> = {};
 for (const f of FEATURES) { FEATURE_LABELS[f.key] = f.label; }
 
+// Raw inputs fed into the boom (outperformance) and bust (underperformance)
+// gap-feature models. Shown on the card so users can see what's driving the
+// z-scores up top. QB gets the additional QB-specific signals.
+const BOOM_BUST_INPUTS: Record<string, string[]> = {
+  QB: [
+    'relativeAthleticScore', 'speedScore', 'age',
+    'collegeDominatorRating', 'collegeBreakoutScore',
+    'collegeSeasons', 'collegeEarlyDeclare',
+    'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
+    'collegeQBR2yr', 'collegeQBYPA', 'collegeQbContextScore',
+    'predictedPPG', 'nflDraftPick',
+  ],
+  RB: [
+    'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore',
+    'forty', 'weight', 'age',
+    'collegeBestRushYds', 'collegeTotalTDs', 'collegeRushYPC',
+    'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+    'recruitRating', 'collegeUsageOverall', 'collegeUsageRush',
+    'collegeTeamTalent',
+    'predictedPPG', 'nflDraftPick',
+  ],
+  WR: [
+    'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore',
+    'forty', 'weight', 'age',
+    'collegeBestRecYds', 'collegeDominatorRating', 'collegeBreakoutScore',
+    'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
+    'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+    'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
+    'predictedPPG', 'nflDraftPick',
+  ],
+  TE: [
+    'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore',
+    'forty', 'weight', 'age',
+    'collegeBestRecYds', 'collegeDominatorRating', 'collegeBreakoutScore',
+    'collegeMarketShare', 'collegeTotalTDs',
+    'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+    'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
+    'predictedPPG', 'nflDraftPick',
+  ],
+};
+
 function featureLabel(key: string): string {
   return FEATURE_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
 }
@@ -277,6 +318,63 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   );
                 })}
               </div>
+
+              {/* Boom/Bust model inputs — what drives the z-scores at top */}
+              {(() => {
+                const boomBustKeys = BOOM_BUST_INPUTS[pos] || [];
+                const visible = boomBustKeys.filter(key => {
+                  if (features.hasCombineData === 0) {
+                    if (key === 'forty' || key === 'cone' || key === 'shuttle' ||
+                        key === 'speedScore' || key === 'heightAdjSpeedScore' ||
+                        key === 'relativeAthleticScore') return false;
+                    if (key === 'weight' && !features.hasPhysicalData) return false;
+                  }
+                  return true;
+                });
+                if (visible.length === 0) return null;
+                return (
+                  <div style={{ marginTop: 10, marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      Boom / Bust Inputs ({pos})
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      Raw features fed into the outperformance + bust-event models
+                    </div>
+                    {visible.map(key => {
+                      const val = features[key] ?? (key === 'predictedPPG' ? (player.predictedPPG || 0) : 0);
+                      const pctl = player.featurePercentiles?.[key];
+                      const usePctl = pctl !== undefined;
+                      const barPct = usePctl ? pctl : (() => {
+                        const maxVal = key === 'age' ? 24 : key === 'weight' ? 250 :
+                          key === 'nflDraftPick' ? 260 : key === 'predictedPPG' ? 20 :
+                          key === 'collegeQBR2yr' ? 90 : key === 'collegeTeamTalent' ? 1000 :
+                          key === 'collegeUsageOverall' || key === 'collegeUsageRush' ? 0.6 :
+                          key === 'recruitRating' ? 1 :
+                          key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
+                          key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
+                        return Math.min(100, (Math.abs(val) / maxVal) * 100);
+                      })();
+                      const color = usePctl ? pctlColor(pctl) : '#f59e0b';
+                      return (
+                        <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {featureLabel(key)}
+                          </span>
+                          <div style={{ height: 5, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
+                          </div>
+                          <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
+                            {usePctl ? `${pctl}` : fmtVal(val)}
+                          </span>
+                          <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
+                            {fmtVal(val)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* All features by category — collapsed by default */}
               <details style={{ marginTop: 8 }}>
