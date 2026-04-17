@@ -605,15 +605,14 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     # Convert outperformance predictions to boom percentile.
     outperf_pctile = np.argsort(np.argsort(outperf_preds)) / n * 100
 
-    # ── Bust classifier (binary, focused on top-pick bust avoidance) ──
-    # Trained on ALL players, predicts P(actual < position median).
-    # Uses athleticism, college production, age, and missing-data flags.
-    # Validated: WR AUC=0.672, TE AUC=0.701 on top-25% predicted.
-    all_actuals_sorted = sorted([d['actual'] for d in loso_data])
-    median_ppg = all_actuals_sorted[int(n * 0.5)]
-    y_bust_binary = np.array([1 if d['actual'] <= median_ppg else 0 for d in loso_data])
+    # ── Bust classifier (binary, residual < -boom_thresh = real bust event) ──
+    # Was: median-split target (50/50 by construction → model learned no signal,
+    # all prospects clipped to 50% by min(50,...) cap). Now mirrors boom: real
+    # underperformance event ~25-30% positive class, classifier has signal to find.
+    y_bust_binary = np.array([1 if (d['actual'] - d['pred']) < -boom_thresh else 0 for d in loso_data])
 
-    # Build bust-specific features
+    # Build bust-specific features (median_ppg used only for hits_in_top heuristic)
+    median_ppg = sorted([d['actual'] for d in loso_data])[int(n * 0.5)]
     hits_in_top = [d for d in loso_data if d['pred'] >= np.percentile([d['pred'] for d in loso_data], 75) and d['actual'] > median_ppg]
     avg_speed_hit = float(np.mean([_safe_float(d['all_features'].get('speedScore', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('speedScore', 0)) > 0])) if hits_in_top else 100
     avg_dom_hit = float(np.mean([_safe_float(d['all_features'].get('collegeDominatorRating', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('collegeDominatorRating', 0)) > 0])) if hits_in_top else 30
@@ -764,13 +763,15 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         except Exception as e:
             print(f"    {pos}: bust feature importance skipped ({e})")
 
-    # Assign boom (from outperformance model) and bust (from bust classifier)
+    # Assign boom (from outperformance model) and bust (from bust classifier).
+    # Both use the same percentile-bridge pattern so a low-rank prospect gets
+    # ~50% of base rate and a top-rank prospect gets ~150%, capped at 50%.
+    bust_pctile_arr = np.argsort(np.argsort(bust_scores)) / max(n, 1) * 100
     for i, d in enumerate(loso_data):
-        # Boom: outperformance percentile scaled to probability
         pctile = outperf_pctile[i]
         d['boom_prob'] = round(min(50, boom_base_rate * 100 * (0.5 + pctile / 100)), 1)
-        # Bust: direct probability from classifier (already calibrated)
-        d['bust_prob'] = round(min(50, float(bust_scores[i]) * 100), 1)
+        bp = float(bust_pctile_arr[i])
+        d['bust_prob'] = round(min(50, bust_base_rate * 100 * (0.5 + bp / 100)), 1)
 
     # ── Threshold metrics ─────────────────────────────────────────────
     threshold_metrics = []
@@ -1128,12 +1129,13 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         boom_base = sum(1 for r in residuals if r > boom_thresh) / n
         bust_base = sum(1 for r in residuals if r < -boom_thresh) / n
 
-        # ── Bust classifier (binary, trained on full backtest) ──────
-        all_actuals_sorted = sorted([r['actualPPG'] for r in bt])
-        median_ppg = all_actuals_sorted[int(n * 0.5)]
-        y_bust_binary = np.array([1 if r['actualPPG'] <= median_ppg else 0 for r in bt])
+        # ── Bust classifier (mirror boom: residual < -boom_thresh) ──────
+        # Was: median-split (degenerate 50/50 — model couldn't learn signal,
+        # all prospects clipped to 50%). Now matches boom's real-event framing.
+        y_bust_binary = np.array([1 if (r['actualPPG'] - r['predictedPPG']) < -boom_thresh else 0 for r in bt])
 
         # Compute avg stats for speed/production deficit
+        median_ppg = sorted([r['actualPPG'] for r in bt])[int(n * 0.5)]
         hits_top = [r for r in bt if r['predictedPPG'] >= np.percentile([r['predictedPPG'] for r in bt], 75) and r['actualPPG'] > median_ppg]
         sf = _safe_float_global
         avg_speed = float(np.mean([sf(r['features'].get('speedScore', 0)) for r in hits_top if sf(r['features'].get('speedScore', 0)) > 0])) if hits_top else 100
@@ -1214,20 +1216,23 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         gap_scores = gap_model.predict(X_prosp_gap)
         bt_gap_scores = gap_model.predict(X_train)
 
-        # Bust scores from bust classifier
+        # Bust scores from bust classifier (with percentile bridge, mirroring boom)
         X_prosp_bust = np.nan_to_num(np.array(
             [_build_bust_feats(p.get('features', {}), p.get('predictedCareerPPG', 0))
              for p in pos_prospects], dtype=np.float64))
         prospect_bust_scores = bust_model.predict(X_prosp_bust)
+        bt_bust_scores = bust_model.predict(X_bust_train)
 
         for i, p in enumerate(pos_prospects):
             pctile = float(np.mean(bt_gap_scores <= gap_scores[i]) * 100)
             boom_mult = 0.5 + (pctile / 100)
+            bust_pctile = float(np.mean(bt_bust_scores <= prospect_bust_scores[i]) * 100)
+            bust_mult = 0.5 + (bust_pctile / 100)
             results.append({
                 'name': p['name'],
                 'position': pos,
                 'boomProb': round(min(50, boom_base * 100 * boom_mult), 1),
-                'bustProb': round(min(50, float(prospect_bust_scores[i]) * 100), 1),
+                'bustProb': round(min(50, bust_base * 100 * bust_mult), 1),
                 'outperfPctile': round(pctile, 1),
             })
 
