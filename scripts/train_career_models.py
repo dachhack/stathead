@@ -505,6 +505,13 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         shuttle = _safe_float(f.get('shuttle', 0))
         college_games = _safe_float(f.get('collegeGames', 0))
         breakout_age = _safe_float(f.get('collegeBreakoutAge', 0))
+        # CFBD-sourced signals — ~95% training coverage vs prospect_grade's
+        # 6-29%. Added as NEW features alongside the existing ones so the
+        # LightGBM can decide which form of the "talent expectation" signal
+        # is better via feature importance, rather than us picking blind.
+        recruit_rating = _safe_float(f.get('recruitRating', 0))
+        college_usage = _safe_float(f.get('collegeUsageOverall', 0))
+        team_talent = _safe_float(f.get('collegeTeamTalent', 0))
 
         # Gap features: talent signal minus what draft position implies
         ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
@@ -512,6 +519,10 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
         best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
         grade_vs_pick = (prospect_grade - pick * 0.3) if prospect_grade > 0 else 0
+        # recruit_vs_pick: 247 composite (0.7-1.0) scaled by log_pick so a
+        # 5-star drafted late looks like underperformance-of-rating relative
+        # to draft slot. Shape mirrors production_vs_pick (talent / log_pick).
+        recruit_vs_pick = (recruit_rating / max(1, log_pick)) if recruit_rating > 0 else 0
 
         # Injury/adversity proxies
         games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
@@ -526,6 +537,7 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             ras_vs_pick, speed_vs_pick, production_vs_pick,
             best_season_vs_pick, grade_vs_pick,
             low_games, early_declare_late, games_per_season, recent_breakout,
+            recruit_rating, college_usage, team_talent, recruit_vs_pick,
         ]
 
     GAP_FEAT_NAMES = [
@@ -535,6 +547,10 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
         'best_season_vs_pick', 'grade_vs_pick',
         'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
+        # New CFBD-sourced gap candidates (2026-04). prospect_grade kept
+        # alongside recruit_rating so gain-importance tells us which the
+        # model prefers.
+        'recruit_rating', 'college_usage', 'team_talent', 'recruit_vs_pick',
     ]
 
     X_gap = np.nan_to_num(np.array([_build_gap_features(d) for d in loso_data], dtype=np.float64))
@@ -581,6 +597,10 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         'hasCombineData', 'hasCollegeStats',
         'predictedPPG', 'nflDraftPick',
         'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
+        # CFBD-sourced talent/usage signals (2026-04). Much wider coverage
+        # than prospect-grade so the bust classifier can lean on them for
+        # players the legacy grade source missed.
+        'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
     ]
 
     def _build_bust_features(d_item):
@@ -603,6 +623,9 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         has_combine = 1 if speed > 0 or forty > 0 else 0
         has_college = 1 if dom > 0 or best_rec > 0 else 0
         pick = _safe_float(f.get('nflDraftPick', 300))
+        recruit_rating = _safe_float(f.get('recruitRating', 0))
+        college_usage = _safe_float(f.get('collegeUsageOverall', 0))
+        team_talent = _safe_float(f.get('collegeTeamTalent', 0))
 
         speed_deficit = (speed - avg_speed_hit) if speed > 0 else -20
         prod_deficit = (dom - avg_dom_hit) if dom > 0 else -15
@@ -612,7 +635,8 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         return [speed, ras, hspeed, forty, wt, age, dom, best_rec, breakout,
                 mkt, tds, rec_share, exp, seasons, early,
                 has_combine, has_college, d_item['pred'], pick,
-                speed_deficit, prod_deficit, age_risk, missing]
+                speed_deficit, prod_deficit, age_risk, missing,
+                recruit_rating, college_usage, team_talent]
 
     X_bust = np.nan_to_num(np.array([_build_bust_features(d) for d in loso_data], dtype=np.float64))
     bust_scores = np.full(n, float(y_bust_binary.mean()))
@@ -973,12 +997,17 @@ def _build_gap_features_standalone(features: dict, predicted_ppg: float) -> list
     shuttle = sf(features.get('shuttle', 0))
     college_games = sf(features.get('collegeGames', 0))
     breakout_age = sf(features.get('collegeBreakoutAge', 0))
+    # CFBD talent/usage signals — match _build_gap_features above.
+    recruit_rating = sf(features.get('recruitRating', 0))
+    college_usage = sf(features.get('collegeUsageOverall', 0))
+    team_talent = sf(features.get('collegeTeamTalent', 0))
 
     ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
     speed_vs_pick = (speed - (120 - pick * 0.3)) if speed > 0 else 0
     production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
     best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
     grade_vs_pick = (prospect_grade - pick * 0.3) if prospect_grade > 0 else 0
+    recruit_vs_pick = (recruit_rating / max(1, log_pick)) if recruit_rating > 0 else 0
     games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
     low_games = 1 if 0 < games_per_season < 10 else 0
     early_declare_late = early_declare * log_pick
@@ -991,6 +1020,7 @@ def _build_gap_features_standalone(features: dict, predicted_ppg: float) -> list
         ras_vs_pick, speed_vs_pick, production_vs_pick,
         best_season_vs_pick, grade_vs_pick,
         low_games, early_declare_late, games_per_season, recent_breakout,
+        recruit_rating, college_usage, team_talent, recruit_vs_pick,
     ]
 
 
@@ -1001,6 +1031,7 @@ GAP_FEAT_NAMES_GLOBAL = [
     'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
     'best_season_vs_pick', 'grade_vs_pick',
     'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
+    'recruit_rating', 'college_usage', 'team_talent', 'recruit_vs_pick',
 ]
 
 
@@ -1071,6 +1102,7 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
             'hasCombineData', 'hasCollegeStats',
             'predictedPPG', 'nflDraftPick',
             'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
+            'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
         ]
 
         def _build_bust_feats(features, pred_ppg):
@@ -1097,10 +1129,14 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
             prod_def = (dom - avg_dom) if dom > 0 else -15
             age_risk = age - 21 if age > 0 else 0
             missing = (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0)
+            recruit_rating = sf2(features.get('recruitRating', 0))
+            college_usage = sf2(features.get('collegeUsageOverall', 0))
+            team_talent = sf2(features.get('collegeTeamTalent', 0))
             return [speed, ras, hspeed, forty, wt, age, dom, best_rec, brk,
                     mkt, tds, rec_share, exp, seasons, early,
                     has_combine, has_college, pred_ppg, pick,
-                    speed_def, prod_def, age_risk, missing]
+                    speed_def, prod_def, age_risk, missing,
+                    recruit_rating, college_usage, team_talent]
 
         X_bust_train = np.nan_to_num(np.array(
             [_build_bust_feats(r.get('features', {}), r['predictedPPG']) for r in bt],
