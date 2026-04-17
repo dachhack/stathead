@@ -56,6 +56,42 @@ function rescaleZap2023ToModern(
   return rescaled;
 }
 
+/**
+ * Map predicted PPG to a 0-100 tier score aligned with ZAP's 2026 tier
+ * semantics (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver /
+ * Dart). Replaces cross-year percentile which maps predicted 5 PPG to
+ * bottom-10% display — semantically "Dart Throw" — when the reality is
+ * "Flex Play" for that PPG level. Makes ourScore apples-to-apples with
+ * the 2026 ZAP methodology.
+ *
+ * Position-adjusted benchmarks: RBs score higher PPG than WRs naturally,
+ * so the tier boundaries shift. Anchored to ZAP's tier descriptions:
+ *   Legendary 90-100: generational talent (RB 16+ PPG, WR 14+)
+ *   Elite 75-90: top producer (RB 13-16, WR 11-14)
+ *   Weekly Starter 60-75: reliable starter (RB 10-13, WR 8-11)
+ *   Flex Play 40-60: occasional starter (RB 6-10, WR 5-8)
+ *   Benchwarmer 30-40: depth (RB 4-6, WR 3-5)
+ *   Waiver Wire 20-30: situational (RB 2-4, WR 1.5-3)
+ *   Dart Throw 0-20: unlikely to produce
+ */
+const TIER_BENCHMARKS: Record<string, { leg: number; elite: number; start: number; flex: number; bench: number; waiver: number }> = {
+  RB: { leg: 16, elite: 13, start: 10, flex: 6, bench: 4, waiver: 2 },
+  WR: { leg: 14, elite: 11, start: 8, flex: 5, bench: 3, waiver: 1.5 },
+  TE: { leg: 11, elite: 8, start: 6, flex: 4, bench: 2.5, waiver: 1 },
+  QB: { leg: 22, elite: 18, start: 15, flex: 11, bench: 8, waiver: 5 },
+};
+
+function ppgToTierScore(ppg: number, pos: string): number {
+  const b = TIER_BENCHMARKS[pos] || TIER_BENCHMARKS.WR;
+  if (ppg >= b.leg) return Math.min(100, 90 + (ppg - b.leg) * 2);
+  if (ppg >= b.elite) return 75 + (ppg - b.elite) / (b.leg - b.elite) * 15;
+  if (ppg >= b.start) return 60 + (ppg - b.start) / (b.elite - b.start) * 15;
+  if (ppg >= b.flex) return 40 + (ppg - b.flex) / (b.start - b.flex) * 20;
+  if (ppg >= b.bench) return 30 + (ppg - b.bench) / (b.flex - b.bench) * 10;
+  if (ppg >= b.waiver) return 20 + (ppg - b.waiver) / (b.bench - b.waiver) * 10;
+  return Math.max(0, b.waiver > 0 ? (ppg / b.waiver) * 20 : 0);
+}
+
 interface CompRow {
   name: string;
   pos: string;
@@ -144,25 +180,19 @@ export function ZapComparison() {
       // Build 2026 comparison — convert to cross-year percentile
       const r2026: CompRow[] = [];
       for (const pos of ['RB', 'WR', 'TE'] as const) {
-        // Reference: all backtest PPGs for this position across all years
-        const allPosPPGs = backtestRows
-          .filter(r => r.position === pos)
-          .map(r => r.predictedPPG)
-          .sort((a, b) => a - b);
-
         for (const z of (zapScores2026 as any)[pos] || []) {
           const nName = normalizeName(z.name);
           const predPPG = ourPredPPG2026.get(nName) || 0;
-          // Compute percentile vs historical backtest
-          let ourPctl = 0;
-          if (predPPG > 0 && allPosPPGs.length > 0) {
-            const rank = allPosPPGs.filter(ppg => ppg <= predPPG).length;
-            ourPctl = Math.round((rank / allPosPPGs.length) * 100);
-          }
+          // Our score = predicted PPG mapped to ZAP's 2026 tier scale
+          // (Legendary/Elite/Flex/Waiver/Dart), so deltas are on the same
+          // semantic axis as ZAP. Previously used cross-year percentile
+          // which put mid-tier prospects at ~10 display while ZAP put
+          // them at ~40 — same PPG prediction, very different readout.
+          const ourScore = predPPG > 0 ? Math.round(ppgToTierScore(predPPG, pos) * 10) / 10 : 0;
           r2026.push({
             name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap, ourScore: ourPctl, actualPPG: 0,
-            predictedPPG: predPPG, delta: ourPctl > 0 ? ourPctl - z.zap : 0,
+            zapScore: z.zap, ourScore, actualPPG: 0,
+            predictedPPG: predPPG, delta: ourScore > 0 ? ourScore - z.zap : 0,
             winner: '',
           });
         }
@@ -177,19 +207,12 @@ export function ZapComparison() {
 
       // Convert predictedPPG to cross-year percentile within position
       // This makes scores comparable across draft classes: 90th percentile
-      // means the same thing whether it's the 2018 or 2025 class
+      // Map each 2023 player's predicted PPG to the ZAP 2026 tier scale so
+      // ourScore is semantically aligned with ZAP's talent-gap framing.
       for (const pos of ['RB', 'WR', 'TE'] as const) {
-        // All backtest rows across ALL years for this position
-        const allPosRows = backtestRows.filter(r => r.position === pos);
-        if (allPosRows.length < 5) continue;
-        // Sort by predictedPPG ascending for percentile calculation
-        const sorted = [...allPosRows].map(r => r.predictedPPG).sort((a, b) => a - b);
-        // For each 2023 player, compute their percentile against all years
         const posRows = [...backtestByName.values()].filter(r => r.position === pos);
         for (const r of posRows) {
-          const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
-          const percentile = Math.round((rank / sorted.length) * 100);
-          r.combinedScore = percentile;
+          r.combinedScore = Math.round(ppgToTierScore(r.predictedPPG, pos) * 10) / 10;
         }
       }
 
@@ -203,14 +226,7 @@ export function ZapComparison() {
       const rescaled2023 = rescaleZap2023ToModern(
         zapScores2023 as any, zapScores2026 as any
       );
-
       for (const pos of ['RB', 'WR'] as const) {
-        // Compute actual PPG percentiles vs all historical backtest rookies at this position
-        const posBacktestPPGs = backtestRows
-          .filter(r => r.position === pos && r.actualPPG > 0)
-          .map(r => r.actualPPG)
-          .sort((a, b) => a - b);
-
         for (const z of rescaled2023[pos] || []) {
           const nName = normalizeName(z.name);
           const bt = backtestByName.get(nName);
@@ -218,16 +234,15 @@ export function ZapComparison() {
           const actualPPG = bt?.actualPPG || 0;
           const predictedPPG = bt?.predictedPPG || 0;
 
-          // Compute actual percentile: how player's real PPG ranks vs all historical rookies
-          let actualPctl = 0;
-          if (actualPPG > 0 && posBacktestPPGs.length > 0) {
-            const rank = posBacktestPPGs.filter(ppg => ppg <= actualPPG).length;
-            actualPctl = Math.round((rank / posBacktestPPGs.length) * 100);
-          }
+          // Actual tier score: what ZAP tier would their actual PPG put
+          // them in? This is the target everyone should be predicting — and
+          // since both ourScore and rescaledZAP are on the tier scale, the
+          // three are now directly comparable.
+          const actualPctl = actualPPG > 0 ? Math.round(ppgToTierScore(actualPPG, pos) * 10) / 10 : 0;
 
-          // Winner: whose score was closer to the actual percentile?
+          // Winner: whose score was closer to the actual tier?
           // Uses rescaled ZAP (`z.zap`) so the comparison is apples-to-apples
-          // against our talent-scaled predictions. Raw ZAP is preserved on
+          // against our tier-scaled predictions. Raw ZAP is preserved on
           // the row for transparency (`zapRaw`).
           let winner: '' | 'ours' | 'zap' | 'tie' = '';
           if (ourScore > 0 && actualPPG > 0) {
@@ -408,17 +423,15 @@ export function ZapComparison() {
         </div>
       )}
 
-      {season === '2023' && (
-        <div style={{ padding: '0 16px 12px' }}>
-          <div style={{ background: 'var(--bg-secondary)', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
-            <span style={{ color: '#f59e0b', fontWeight: 600 }}>Note: </span>
-            2023 ZAP scores are rescaled to match ZAP's 2026 talent-gap methodology
-            (rank-matched against the 2026 distribution). Raw 2023 percentile
-            score is shown in parentheses next to each rescaled value. This
-            puts the comparison on the same scale as our talent-gap predictions.
-          </div>
+      <div style={{ padding: '0 16px 12px' }}>
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>Methodology: </span>
+          Both scores are on ZAP's 2026 talent-gap scale (Legendary 90+, Elite
+          75-90, Weekly Starter 60-75, Flex 40-60, Benchwarmer 30-40, Waiver
+          20-30, Dart &lt;20). Our score maps predicted PPG to this tier scale
+          by position. {season === '2023' && 'For 2023, ZAP\'s original percentile scores are rank-matched to the 2026 distribution — raw 2023 score shown in parens.'}
         </div>
-      )}
+      </div>
 
       {stats && stats.hasActuals && season === '2023' && (
         <div style={{ padding: '0 16px 16px' }}>
