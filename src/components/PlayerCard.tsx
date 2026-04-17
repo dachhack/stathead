@@ -19,6 +19,8 @@ interface PlayerCardProps {
     thresholdProbs?: Record<number, number>;
     features?: Record<string, number>;
     featurePercentiles?: Record<string, number>;
+    boomZ?: number;
+    bustZ?: number;
   };
   onClose: () => void;
 }
@@ -133,6 +135,24 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Actual PPG</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>{player.actualPPG.toFixed(1)}</div>
+            </div>
+          )}
+          {player.boomZ != null && (
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}
+              title="Boom z-score: prospect's outperformance score standardized vs the historical NFL rookie distribution at this position. +1σ = unusually high upside vs typical rookie at this draft slot.">
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Boom z</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: player.boomZ >= 1 ? '#22c55e' : player.boomZ >= 0.3 ? '#a3e635' : player.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
+                {player.boomZ >= 0 ? `+${player.boomZ.toFixed(2)}` : player.boomZ.toFixed(2)}
+              </div>
+            </div>
+          )}
+          {player.bustZ != null && (
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}
+              title="Bust z-score: prospect's bust-event score standardized vs the historical NFL rookie distribution. +1σ = unusually high bust risk; -1σ = unusually safe.">
+              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Bust z</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: player.bustZ >= 1 ? '#ef4444' : player.bustZ >= 0.3 ? '#fb923c' : player.bustZ <= -0.5 ? '#22c55e' : 'var(--text-muted)' }}>
+                {player.bustZ >= 0 ? `+${player.bustZ.toFixed(2)}` : player.bustZ.toFixed(2)}
+              </div>
             </div>
           )}
           {/* Threshold probabilities */}

@@ -552,8 +552,8 @@ export function RookieCareerBacktest() {
               <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer' }}>Pred PPG{sortArrow('predictedPPG')}</th>
               <th onClick={() => handleSort('actualPPG')} style={{ cursor: 'pointer' }}>Actual PPG{sortArrow('actualPPG')}</th>
               <th onClick={() => handleSort('error')} style={{ cursor: 'pointer' }}>Error{sortArrow('error')}</th>
-              <th style={{ textAlign: 'center', fontSize: 11 }}>Boom%</th>
-              <th style={{ textAlign: 'center', fontSize: 11 }}>Bust%</th>
+              <th style={{ textAlign: 'center', fontSize: 11 }} title="Boom z-score: outperformance score standardized vs the LOSO cohort. +1σ = unusually high upside.">Boom z</th>
+              <th style={{ textAlign: 'center', fontSize: 11 }} title="Bust z-score: bust-classifier score standardized vs the LOSO cohort. +1σ = unusually high bust risk.">Bust z</th>
               {thresholds.map(t => (
                 <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
                   &gt;{t}
@@ -584,13 +584,13 @@ export function RookieCareerBacktest() {
                   }}>
                     {err >= 0 ? '+' : ''}{err.toFixed(1)}
                   </td>
-                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomProb > 30 ? '#22c55e' : r.boomProb > 15 ? '#a3e635' : 'var(--text-muted)' }}>
-                    {r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-'}
-                    {err > 0 && r.boomProb > 20 && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
+                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomZ != null && r.boomZ >= 1 ? '#22c55e' : r.boomZ != null && r.boomZ >= 0.3 ? '#a3e635' : r.boomZ != null && r.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
+                    {r.boomZ != null ? (r.boomZ >= 0 ? `+${r.boomZ.toFixed(2)}` : r.boomZ.toFixed(2)) : (r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-')}
+                    {err > 0 && ((r.boomZ != null && r.boomZ >= 0.5) || (r.boomZ == null && r.boomProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
                   </td>
-                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustProb > 30 ? '#ef4444' : r.bustProb > 15 ? '#fb923c' : 'var(--text-muted)' }}>
-                    {r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-'}
-                    {err < 0 && r.bustProb > 20 && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
+                  <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustZ != null && r.bustZ >= 1 ? '#ef4444' : r.bustZ != null && r.bustZ >= 0.3 ? '#fb923c' : r.bustZ != null && r.bustZ <= -0.5 ? '#22c55e' : 'var(--text-muted)' }}>
+                    {r.bustZ != null ? (r.bustZ >= 0 ? `+${r.bustZ.toFixed(2)}` : r.bustZ.toFixed(2)) : (r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-')}
+                    {err < 0 && ((r.bustZ != null && r.bustZ >= 0.5) || (r.bustZ == null && r.bustProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
                   </td>
                   {thresholds.map(t => {
                     const prob = r.thresholdProbs?.[t];
@@ -632,6 +632,8 @@ export function RookieCareerBacktest() {
               thresholdProbs: selectedPlayer.thresholdProbs,
               features: selectedPlayer.features,
               featurePercentiles: ss?.featurePercentiles,
+              boomZ: selectedPlayer.boomZ,
+              bustZ: selectedPlayer.bustZ,
             }}
             onClose={() => setSelectedPlayer(null)}
           />

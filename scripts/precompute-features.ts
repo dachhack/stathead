@@ -467,8 +467,10 @@ async function main() {
     combinedScore?: number;
     percentile?: number;
     modelTier?: number;
-    boomProb?: number;       // P(outperform by > MAE)
-    bustProb?: number;       // P(underperform by > MAE)
+    boomProb?: number;       // P(outperform by > MAE) — kept for back-compat
+    bustProb?: number;       // P(underperform by > MAE) — kept for back-compat
+    boomZ?: number;          // Z-score vs historical NFL rookie distribution
+    bustZ?: number;          // Z-score vs historical NFL rookie distribution
   }> = [];
 
   // Load prospect grades from static JSON
@@ -926,15 +928,19 @@ async function main() {
         // Boom/bust from Python talent-gap model (per-player), fallback to bins
         let prospBoom = 0;
         let prospBust = 0;
+        let prospBoomZ: number | undefined;
+        let prospBustZ: number | undefined;
         try {
           const bbPath = 'public/data/prospect-boom-bust.json';
           if (existsSync(bbPath)) {
-            const bbData = JSON.parse(readFileSync(bbPath, 'utf-8')) as Array<{ name: string; position: string; boomProb: number; bustProb: number }>;
+            const bbData = JSON.parse(readFileSync(bbPath, 'utf-8')) as Array<{ name: string; position: string; boomProb: number; bustProb: number; boomZ?: number; bustZ?: number }>;
             const nn = normalizeName(prospect.name);
             const match = bbData.find((b: any) => normalizeName(b.name) === nn && b.position === pos);
             if (match) {
               prospBoom = match.boomProb / 100;
               prospBust = match.bustProb / 100;
+              prospBoomZ = match.boomZ;
+              prospBustZ = match.bustZ;
             }
           }
         } catch {}
@@ -960,6 +966,8 @@ async function main() {
           thresholdProbs: probs, features,
           boomProb: Math.round(prospBoom * 1000) / 10,
           bustProb: Math.round(prospBust * 1000) / 10,
+          boomZ: prospBoomZ,
+          bustZ: prospBustZ,
         });
         continue; // skip the nflverse path below
       }
