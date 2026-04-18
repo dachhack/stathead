@@ -1096,6 +1096,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               const priorRushTotal2 = priorRushTotal;
               const priorTgtTotal2 = priorTgtTotal;
 
+              const rbStart = rbs.length;
+
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
                 const isPrimary = idx === 0;
@@ -1154,6 +1156,25 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD, pprPts: Math.round(pts),
                 });
               }
+
+              // Reconcile RB rushing to the projected pool. Per-player allocations
+              // are shrunk by gamesScale and ageFactor without redistribution, which
+              // consistently under-allocates team rushing. Scale so the sum matches
+              // the pool (attempts, yards, TDs) and refresh PPR points.
+              const rbSlice = rbs.slice(rbStart);
+              const rbAllocRushAtt = rbSlice.reduce((s, p) => s + p.rushAtt, 0);
+              if (rbAllocRushAtt > 0 && rbAllocRushAtt < rbRushPool) {
+                const rushScale = rbRushPool / rbAllocRushAtt;
+                for (const p of rbSlice) {
+                  p.rushAtt = Math.round(p.rushAtt * rushScale);
+                  p.rushYds = Math.round(p.rushYds * rushScale);
+                  p.rushTD = Math.max(0, Math.round(p.rushTD * rushScale));
+                  p.pprPts = Math.round(computePPR({
+                    rushYds: p.rushYds, rushTD: p.rushTD,
+                    rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+                  }));
+                }
+              }
             } else if (pos === 'WR') {
               const priorTgtTotal = players.reduce((s, p, i) => {
                 const tgt = p.prior?.targets || 0;
@@ -1170,6 +1191,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               const wrRushPool = projTeam.rushAtt * pools.wrRushAtt;
               const wrRecTDPool = projTeam.recTD * pools.wrRecTD;
               const wrRushTDPool = projTeam.rushTD * pools.wrRushTD;
+
+              const wrStart = wrs.length;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1221,6 +1244,22 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   name: player.name, team, adp: player.adp, games: Math.round(games),
                   tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD, pprPts: Math.round(pts),
                 });
+              }
+
+              // Reconcile WR rushing to the projected pool (same issue as RBs).
+              const wrSlice = wrs.slice(wrStart);
+              const wrAllocRushAtt = wrSlice.reduce((s, p) => s + p.rushAtt, 0);
+              if (wrAllocRushAtt > 0 && wrAllocRushAtt < wrRushPool) {
+                const rushScale = wrRushPool / wrAllocRushAtt;
+                for (const p of wrSlice) {
+                  p.rushAtt = Math.round(p.rushAtt * rushScale);
+                  p.rushYds = Math.round(p.rushYds * rushScale);
+                  p.rushTD = Math.max(0, Math.round(p.rushTD * rushScale));
+                  p.pprPts = Math.round(computePPR({
+                    rushYds: p.rushYds, rushTD: p.rushTD,
+                    rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+                  }));
+                }
               }
             } else if (pos === 'TE') {
               const priorTgtTotal = players.reduce((s, p, i) => {
