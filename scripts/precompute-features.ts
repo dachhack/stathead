@@ -1075,7 +1075,13 @@ async function main() {
         draftPickPct: prospectDraftPctByName.get(nName) ?? 1,
         draftPickPctOverall: prospectDraftPctOverallByName.get(nName) ?? 1,
         draftClassDepth: prospectDraftClassDepthByName.get(nName) ?? 0,
-        age: 0,
+        // Position-median draft age fallback. Prospects without a stored age
+        // (e.g. Lindenwood transfers, small-school UDFAs) would land at 0,
+        // which the WR model reads as "implausibly young" through its
+        // negative `age` coefficient and inflates the prediction. Keep in
+        // sync with prospectStore.buildProspectFeatureRecord and the 2026
+        // nflverse prediction path (buildFeatureMatrix.ts line ~3770).
+        age: prospect.age || 22,
         yearsInLeague: 0,
         weight: wt,
         forty: ft,

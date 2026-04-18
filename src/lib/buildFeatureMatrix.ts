@@ -3767,7 +3767,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
               const draftAge = draft?.age || 0;
               const draftYear = draft?.season || 0;
-              const age = draftAge > 0 && draftYear > 0 ? draftAge + (predSeason - draftYear) : 0;
+              // Position-median draft age fallback for players missing a
+              // birthdate on the nflverse draft row. 0 otherwise reads as
+              // "implausibly young" through the WR model's negative `age`
+              // coefficient and inflates UDFA / late-transfer predictions.
+              const age = draftAge > 0 && draftYear > 0 ? draftAge + (predSeason - draftYear) : 22;
 
               const adv = predAdvByName.get(normalName);
               const advWeeks = adv?.weeks || 1;

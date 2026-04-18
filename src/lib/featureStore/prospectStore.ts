@@ -181,7 +181,13 @@ export function buildProspectFeatureRecord(
     nflDraftPick: projPick,
     logDraftPick: Math.log(projPick),
     invDraftPick: 1 / projPick,
-    age: prospect.age || 0,
+    // Fall back to position-median draft age (≈22) when the prospect record
+    // doesn't carry one. UDFA small-school prospects (e.g. Lindenwood
+    // transfers) lack a legacy nflverse draft row with a birth date, so
+    // age would default to 0 — and the WR model's `age` coefficient is
+    // negative, so a 0 there reads as "unrealistically young" and inflates
+    // the prediction. Median is more conservative than leaving it blank.
+    age: prospect.age || posAvg?.age || 22,
     yearsInLeague: 0,
     weight: wt,
     forty: ft,
