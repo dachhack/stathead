@@ -16,6 +16,13 @@ Usage:
   python3 scripts/extract_pdf_features.py
   python3 scripts/extract_pdf_features.py --dry-run   # text extraction only
   python3 scripts/extract_pdf_features.py --force     # ignore cache
+
+Password-protected PDFs:
+  Put passwords (one per line) in ./pdfs/.passwords.txt. Each line can be a
+  plain password, or "<hint>:<password>" where <hint> is a substring of the
+  filename that signals which password applies (e.g. "2024:my-pw"). The file
+  lives inside pdfs/ and is therefore gitignored. You can also pass a
+  comma-separated list via the PDF_PASSWORDS env var.
 """
 
 from __future__ import annotations
@@ -80,15 +87,83 @@ class Source:
         return self.path.stem
 
 
-def extract_text(pdf_path: Path, force: bool) -> str:
-    import pdfplumber
+def load_passwords() -> list[tuple[str | None, str]]:
+    """Load password candidates as (hint, password) pairs.
 
+    Sources, tried in order:
+      1. ./pdfs/.passwords.txt -- one entry per line; either "<password>" or "<hint>:<password>"
+      2. PDF_PASSWORDS env var -- comma-separated list of plain passwords
+    The optional hint (substring) lets us prefer a password when it appears in the filename
+    (e.g. year). Entries with no hint are tried last for every PDF.
+    """
+    out: list[tuple[str | None, str]] = []
+    pw_file = PDF_DIR / ".passwords.txt"
+    if pw_file.exists():
+        for line in pw_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if ":" in line and not line.startswith(":"):
+                hint, pw = line.split(":", 1)
+                out.append((hint.strip() or None, pw))
+            else:
+                out.append((None, line))
+    env = os.environ.get("PDF_PASSWORDS", "")
+    for pw in (p.strip() for p in env.split(",") if p.strip()):
+        out.append((None, pw))
+    return out
+
+
+def open_pdf(pdf_path: Path, passwords: list[tuple[str | None, str]]):
+    """Open a PDF, trying each password candidate. Returns (pdf, password_used)."""
+    import pdfplumber
+    from pdfminer.pdfdocument import PDFPasswordIncorrect
+
+    cache_file = CACHE_DIR / f"{pdf_path.stem}.password"
+    known = cache_file.read_text(encoding="utf-8").strip() if cache_file.exists() else None
+
+    candidates: list[str] = []
+    if known is not None:
+        candidates.append(known)
+    name_lower = pdf_path.name.lower()
+    hinted = [pw for (hint, pw) in passwords if hint and hint.lower() in name_lower]
+    rest = [pw for (hint, pw) in passwords if not hint or hint.lower() not in name_lower]
+    for pw in hinted + rest:
+        if pw not in candidates:
+            candidates.append(pw)
+    candidates.append("")  # last resort: try no password
+
+    last_err: Exception | None = None
+    for pw in candidates:
+        try:
+            pdf = pdfplumber.open(pdf_path, password=pw)
+            # Force-parse at least one page to surface a password error early.
+            _ = len(pdf.pages)
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(pw, encoding="utf-8")
+            return pdf, pw
+        except PDFPasswordIncorrect as e:
+            last_err = e
+            continue
+        except Exception as e:
+            msg = str(e).lower()
+            if "password" in msg or "encrypt" in msg:
+                last_err = e
+                continue
+            raise
+    raise RuntimeError(f"could not unlock {pdf_path.name}; last error: {last_err}")
+
+
+def extract_text(pdf_path: Path, force: bool, passwords: list[tuple[str | None, str]]) -> str:
     cache_file = CACHE_DIR / f"{pdf_path.stem}.text.txt"
     if cache_file.exists() and not force:
         return cache_file.read_text(encoding="utf-8")
 
+    pdf, pw_used = open_pdf(pdf_path, passwords)
+    if pw_used:
+        print(f"  unlocked with password of length {len(pw_used)}")
     pages: list[str] = []
-    with pdfplumber.open(pdf_path) as pdf:
+    try:
         for i, page in enumerate(pdf.pages):
             try:
                 text = page.extract_text() or ""
@@ -96,6 +171,8 @@ def extract_text(pdf_path: Path, force: bool) -> str:
                 print(f"  page {i+1}: extract_text failed ({e})", file=sys.stderr)
                 text = ""
             pages.append(f"\n=== PAGE {i+1} ===\n{text}")
+    finally:
+        pdf.close()
 
     full = "\n".join(pages).strip()
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -247,10 +324,14 @@ def main() -> int:
 
     print(f"Found {len(pdfs)} PDF(s) in {PDF_DIR}")
 
+    passwords = load_passwords()
+    if passwords:
+        print(f"Loaded {len(passwords)} password candidate(s)")
+
     sources: list[Source] = []
     for pdf_path in pdfs:
         print(f"extracting text: {pdf_path.name}")
-        text = extract_text(pdf_path, args.force)
+        text = extract_text(pdf_path, args.force, passwords)
         if not text.strip():
             print(f"  warning: no text extracted (scanned PDF? OCR not wired up)")
             continue
