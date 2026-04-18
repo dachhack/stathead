@@ -75,54 +75,19 @@ function tierColor(score: number): string {
   return '#ef4444';                     // Longshot
 }
 
-/**
- * Rescale 2023 ZAP scores to approximate 2026's talent-gap methodology.
- *
- * 2023 ZAP was percentile-based — top-20 WRs all clustered 65-96. In 2026,
- * ZAP moved to talent-gap scaling (Legendary/Elite/Flex/Waiver/Dart tiers)
- * so the top spreads 20-92 with meaningful separation. Without this rescale,
- * cross-year deltas vs our (talent-scaled) model read as "misses" that are
- * really just scaling artifacts — a 2023 ZAP 50 looks like Flex Play, but
- * under the new methodology the same rank would likely be Waiver Wire.
- *
- * Approach: rank-match against the 2026 score distribution at the same
- * position. Preserves the rank ordering ZAP gave the 2023 class while
- * applying 2026-style talent-gap spread.
- */
-function rescaleLegacyZapToModern(
-  legacy: Record<string, Array<{ name: string; rank: number; zap: number }>>,
-  zap26: Record<string, Array<{ name: string; rank: number; zap: number }>>,
-): Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> {
-  const rescaled: Record<string, Array<{ name: string; rank: number; zap: number; zapRaw: number }>> = {};
-  for (const pos of Object.keys(legacy)) {
-    // The JSON files include non-array metadata keys ('season', 'source').
-    // Skip anything that isn't a position roster — guards against
-    // "not iterable" throws from `[...legacy.season]` and friends.
-    if (!Array.isArray(legacy[pos])) continue;
-    const z26sorted = (zap26[pos] || []).map(z => z.zap).sort((a, b) => b - a);
-    const legacySorted = [...(legacy[pos] || [])].sort((a, b) => (a.rank || 999) - (b.rank || 999));
-    rescaled[pos] = legacySorted.map((z, i) => ({
-      name: z.name,
-      rank: z.rank,
-      zap: i < z26sorted.length ? z26sorted[i] : (z26sorted[z26sorted.length - 1] ?? 0),
-      zapRaw: z.zap,
-    }));
-  }
-  return rescaled;
-}
-
 
 interface CompRow {
   name: string;
   pos: string;
   zapRank: number;
-  zapScore: number;  // 2023: rescaled to 2026 methodology; 2026: raw
-  zapRaw?: number;   // 2023 original percentile-methodology score (for transparency)
-  ourScore: number;
+  zapScore: number;  // Raw ZAP score as published for this class
+  ourScore: number;  // Our predicted PPG mapped to 2026 tier scale
+  ourRank: number;   // Our predicted rank within this class+position (0 if unscored)
+  actualRank: number; // Rank by actual PPG within this class+position (0 if no actuals)
   actualPPG: number;  // 0 for 2026 (unknown)
   predictedPPG: number; // our model's predicted PPG (0 for 2026)
-  delta: number;
-  winner: '' | 'ours' | 'zap' | 'tie'; // who was closer to actual?
+  delta: number;  // 2026: score delta; legacy: rank delta (ourRank - zapRank)
+  winner: '' | 'ours' | 'zap' | 'tie'; // who ranked closer to actual?
 }
 
 type SortField = 'zapRank' | 'name' | 'pos' | 'zapScore' | 'ourScore' | 'actualPPG' | 'predictedPPG' | 'delta' | 'absDelta' | 'winner';
@@ -202,22 +167,27 @@ export function ZapComparison() {
         } catch {}
       }
 
-      // Build 2026 comparison — convert to cross-year percentile
+      // Build 2026 comparison. 2026 is on modern talent-gap methodology so
+      // ZAP and our tier-scaled score are on the same axis — score delta
+      // is meaningful here.
       const r2026: CompRow[] = [];
       for (const pos of ['RB', 'WR', 'TE'] as const) {
-        for (const z of (zapScores2026 as any)[pos] || []) {
-          const nName = normalizeName(z.name);
-          const predPPG = ourPredPPG2026.get(nName) || 0;
-          // Our score = predicted PPG mapped to ZAP's 2026 tier scale
-          // (Legendary/Elite/Flex/Waiver/Dart), so deltas are on the same
-          // semantic axis as ZAP. Previously used cross-year percentile
-          // which put mid-tier prospects at ~10 display while ZAP put
-          // them at ~40 — same PPG prediction, very different readout.
+        const posList = (zapScores2026 as any)[pos] || [];
+        const predList = posList.map((z: any) => ({ z, predPPG: ourPredPPG2026.get(normalizeName(z.name)) || 0 }));
+        const ourRankMap = new Map<string, number>();
+        [...predList].filter((p: any) => p.predPPG > 0)
+          .sort((a: any, b: any) => b.predPPG - a.predPPG)
+          .forEach((p: any, i: number) => ourRankMap.set(normalizeName(p.z.name), i + 1));
+        for (const { z, predPPG } of predList) {
           const ourScore = predPPG > 0 ? Math.round(ppgToTierScore(predPPG, pos) * 10) / 10 : 0;
           r2026.push({
             name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap, ourScore, actualPPG: 0,
-            predictedPPG: predPPG, delta: ourScore > 0 ? ourScore - z.zap : 0,
+            zapScore: z.zap, ourScore,
+            ourRank: ourRankMap.get(normalizeName(z.name)) || 0,
+            actualRank: 0,
+            actualPPG: 0,
+            predictedPPG: predPPG,
+            delta: ourScore > 0 ? ourScore - z.zap : 0,
             winner: '',
           });
         }
@@ -243,36 +213,61 @@ export function ZapComparison() {
         }
       }
 
-      // Rescale legacy-methodology ZAP (2023/2024/2025 were percentile-based)
-      // to 2026's talent-gap scale via rank-matching. Preserves rank order
-      // but spreads scores into Legendary/Elite/Flex/Waiver/Dart tiers so
-      // cross-year comparisons don't read mid-tier prospects as Flex Play.
+      // Legacy classes (2023/2024/2025) used percentile-based ZAP, but
+      // we don't rescale anymore — rank-matching to 2026's distribution
+      // distorted scores whenever the 2026 class was weaker at a position
+      // (Omarion Hampton's raw 98 would display as 70 because 2026's #2
+      // RB happens to be a 70). Instead we compare on rank space: our
+      // predicted rank vs ZAP's rank, with "winner" = whoever ranked the
+      // player closer to their actual-PPG rank within this class+position.
       const buildClassRows = (legacy: any, draftSeason: number): CompRow[] => {
-        const rescaled = rescaleLegacyZapToModern(legacy, zapScores2026 as any);
         const out: CompRow[] = [];
         for (const pos of ['RB', 'WR', 'TE'] as const) {
-          for (const z of rescaled[pos] || []) {
-            const key = `${draftSeason}-${normalizeName(z.name)}`;
-            const bt = backtestByKey.get(key);
-            const ourScore = bt?.combinedScore || 0;
-            const actualPPG = bt?.actualPPG || 0;
-            const predictedPPG = bt?.predictedPPG || 0;
-            const actualPctl = actualPPG > 0 ? Math.round(ppgToTierScore(actualPPG, pos) * 10) / 10 : 0;
+          const posList = Array.isArray(legacy[pos]) ? legacy[pos] : [];
+          const augmented = posList.map((z: any) => {
+            const bt = backtestByKey.get(`${draftSeason}-${normalizeName(z.name)}`);
+            return {
+              z,
+              ourScore: bt?.combinedScore || 0,
+              predictedPPG: bt?.predictedPPG || 0,
+              actualPPG: bt?.actualPPG || 0,
+            };
+          });
 
-            // Winner: whose score was closer to the actual tier? Uses the
-            // rescaled ZAP (`z.zap`) for apples-to-apples comparison; raw
-            // legacy score is preserved as `zapRaw` for transparency.
+          // Our rank within the class, among players we scored
+          const ourRankMap = new Map<string, number>();
+          [...augmented].filter((a: any) => a.predictedPPG > 0)
+            .sort((a: any, b: any) => b.predictedPPG - a.predictedPPG)
+            .forEach((a: any, i: number) => ourRankMap.set(normalizeName(a.z.name), i + 1));
+
+          // Actual rank within the class, among players with an actual PPG
+          const actualRankMap = new Map<string, number>();
+          [...augmented].filter((a: any) => a.actualPPG > 0)
+            .sort((a: any, b: any) => b.actualPPG - a.actualPPG)
+            .forEach((a: any, i: number) => actualRankMap.set(normalizeName(a.z.name), i + 1));
+
+          for (const { z, ourScore, predictedPPG, actualPPG } of augmented) {
+            const nn = normalizeName(z.name);
+            const ourRank = ourRankMap.get(nn) || 0;
+            const actualRank = actualRankMap.get(nn) || 0;
+
             let winner: '' | 'ours' | 'zap' | 'tie' = '';
-            if (ourScore > 0 && actualPPG > 0) {
-              const ourError = Math.abs(ourScore - actualPctl);
-              const zapError = Math.abs(z.zap - actualPctl);
-              if (Math.abs(ourError - zapError) < 3) winner = 'tie';
-              else winner = ourError < zapError ? 'ours' : 'zap';
+            if (ourRank > 0 && actualRank > 0) {
+              const ourErr = Math.abs(ourRank - actualRank);
+              const zapErr = Math.abs(z.rank - actualRank);
+              if (ourErr === zapErr) winner = 'tie';
+              else winner = ourErr < zapErr ? 'ours' : 'zap';
             }
+
+            // Rank delta: negative = we ranked the player higher than ZAP
+            const rankDelta = ourRank > 0 ? ourRank - z.rank : 0;
+
             out.push({
               name: z.name, pos, zapRank: z.rank,
-              zapScore: z.zap, zapRaw: z.zapRaw, ourScore, actualPPG, predictedPPG,
-              delta: ourScore > 0 ? ourScore - z.zap : 0, winner,
+              zapScore: z.zap, ourScore,
+              ourRank, actualRank,
+              actualPPG, predictedPPG,
+              delta: rankDelta, winner,
             });
           }
         }
@@ -518,10 +513,12 @@ export function ZapComparison() {
       <div style={{ padding: '0 16px 12px' }}>
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
           <span style={{ color: '#f59e0b', fontWeight: 600 }}>Methodology: </span>
-          Both scores are on ZAP's 2026 talent-gap scale (Legendary 90+, Elite
-          75-90, Weekly Starter 60-75, Flex 40-60, Benchwarmer 30-40, Waiver
-          20-30, Dart &lt;20). Our score maps predicted PPG to this tier scale
-          by position. {season !== '2026' && `For ${season}, ZAP's original percentile scores are rank-matched to the 2026 distribution — raw ${season} score shown in parens.`}
+          Our score maps predicted PPG to the 2026 talent-gap tier scale by
+          position (Legendary 90+, Elite 75-90, Weekly Starter 60-75, Flex
+          40-60, Benchwarmer 30-40, Waiver 20-30, Dart &lt;20).
+          {season === '2026'
+            ? " ZAP's 2026 scores are on the same talent-gap scale, so the score delta is meaningful."
+            : ` ZAP's ${season} scores used percentile methodology (different scale), so the Delta column shows rank delta — our predicted rank minus ZAP's rank within ${season} ${posFilter === 'ALL' ? 'class' : posFilter}. Winner = whichever model ranked the player closer to their actual-PPG rank.`}
         </div>
       </div>
 
@@ -601,10 +598,8 @@ export function ZapComparison() {
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{r.zapRank}</td>
                 <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
                 <td><span style={{ color: POS_COLORS[r.pos], fontWeight: 600 }}>{r.pos}</span></td>
-                <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}
-                  title={r.zapRaw != null ? `Rescaled to 2026 methodology (raw ${season} score: ${r.zapRaw.toFixed(1)})` : undefined}>
+                <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}>
                   {r.zapScore.toFixed(1)}
-                  {r.zapRaw != null && <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 3 }}>({r.zapRaw.toFixed(0)})</span>}
                 </td>
                 <td style={{ textAlign: 'right', fontWeight: 700, color: r.ourScore > 0 ? tierColor(r.ourScore) : 'var(--text-muted)' }}>
                   {r.ourScore > 0 ? r.ourScore.toFixed(1) : '-'}
@@ -624,12 +619,25 @@ export function ZapComparison() {
                 )}
                 <td style={{
                   textAlign: 'right', fontWeight: 600, fontSize: 12,
-                  color: r.ourScore > 0 ? (Math.abs(r.delta) < 10 ? '#22c55e' : Math.abs(r.delta) < 20 ? '#facc15' : '#ef4444') : 'var(--text-muted)',
-                }}>
-                  {r.ourScore > 0 ? `${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(1)}` : '-'}
+                  color: r.ourScore > 0
+                    ? (season === '2026'
+                        ? (Math.abs(r.delta) < 10 ? '#22c55e' : Math.abs(r.delta) < 20 ? '#facc15' : '#ef4444')
+                        : (Math.abs(r.delta) < 3 ? '#22c55e' : Math.abs(r.delta) < 6 ? '#facc15' : '#ef4444'))
+                    : 'var(--text-muted)',
+                }}
+                  title={season === '2026'
+                    ? 'Score delta (our tier score − ZAP score)'
+                    : 'Rank delta (our predicted rank − ZAP rank within class+position; negative = we ranked higher)'}>
+                  {r.ourScore > 0
+                    ? (season === '2026'
+                        ? `${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(1)}`
+                        : `${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(0)}`)
+                    : '-'}
                 </td>
                 <td style={{ textAlign: 'right', fontSize: 12, color: 'var(--text-muted)' }}>
-                  {r.ourScore > 0 ? Math.abs(r.delta).toFixed(1) : '-'}
+                  {r.ourScore > 0
+                    ? (season === '2026' ? Math.abs(r.delta).toFixed(1) : Math.abs(r.delta).toFixed(0))
+                    : '-'}
                 </td>
               </tr>
             ))}
