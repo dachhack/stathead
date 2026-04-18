@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchKTCRankings, fetchRosters } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
-import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 import type {
   CombineResult,
   FantasyRanking,
   KTCPlayer,
+  Roster,
   ScenarioConfig,
   SDIOProjection,
 } from '../types';
@@ -23,6 +23,13 @@ interface ProspectGrade {
   projRound: number;
   projPick: number;
   tier: string;
+}
+
+interface RedraftPlayer {
+  name: string;
+  position: string;
+  ppg: number;
+  recPG: number;
 }
 
 interface CareerPrediction {
@@ -139,7 +146,8 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [fpRanks, setFpRanks] = useState<FantasyRanking[]>([]);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [careerMap, setCareerMap] = useState<Map<string, CareerPrediction>>(new Map());
-  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
+  const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
+  const [rosters, setRosters] = useState<Roster[]>([]);
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -164,13 +172,15 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetchFantasyRankings().catch(() => [] as FantasyRanking[]),
       fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
-      hasSDIOKey() ? fetchSDIOSeasonProjections(DRAFT_YEAR).catch(() => []) : Promise.resolve([] as SDIOProjection[]),
+      fetch(`${BASE}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
+      fetchRosters(DRAFT_YEAR).catch(() => [] as Roster[]),
     ])
-      .then(([combineData, fpData, ktcData, featureData, sdioData]) => {
+      .then(([combineData, fpData, ktcData, featureData, redraftData, rosterData]) => {
         setCombine(combineData);
         setFpRanks(fpData);
         setKtc(ktcData);
-        setSdio(sdioData);
+        setRedraft((redraftData?.players ?? []) as RedraftPlayer[]);
+        setRosters(rosterData);
 
         const cm = new Map<string, CareerPrediction>();
         if (featureData?.careerPredictions2026) {
@@ -210,20 +220,62 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     return scenario;
   }, [selectedScenarioId, savedScenarios, scenario]);
 
-  const scenarioSdio = useMemo(() => {
-    if (!sdio.length || isScenarioEmpty(activeScenario)) return sdio;
-    return applyScenario(sdio, activeScenario);
-  }, [sdio, activeScenario]);
-
-  const sdioByName = useMemo(() => {
-    const m = new Map<string, SDIOProjection>();
-    for (const p of scenarioSdio) m.set(normalizeName(p.Name), p);
+  // Roster lookup by normalized name → current NFL team
+  const teamByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of rosters) {
+      if (!r.full_name || !r.team) continue;
+      m.set(normalizeName(r.full_name), r.team);
+    }
     return m;
-  }, [scenarioSdio]);
+  }, [rosters]);
+
+  // Build an SDIO-shaped projection set from our internal redraft projections
+  // so the existing scenarioEngine can apply team/volume/movement deltas.
+  // FantasyPointsPPR is set to ppg * GAMES so recalc/scaling works by ratio.
+  const internalProjections = useMemo((): SDIOProjection[] => {
+    return redraft.map((p, idx) => {
+      const team = teamByName.get(normalizeName(p.name)) || '';
+      const rec = p.recPG > 0 ? p.recPG * GAMES : 0;
+      return {
+        PlayerID: 1_000_000 + idx,
+        Name: p.name,
+        Team: team,
+        Position: p.position,
+        FantasyPointsPPR: (p.ppg || 0) * GAMES,
+        FantasyPoints: (p.ppg || 0) * GAMES,
+        PassingAttempts: 0,
+        PassingCompletions: 0,
+        PassingYards: 0,
+        PassingTouchdowns: 0,
+        PassingInterceptions: 0,
+        RushingAttempts: p.position === 'RB' ? Math.max(0, (p.ppg || 0) * GAMES * 0.8) : 0,
+        RushingYards: 0,
+        RushingTouchdowns: 0,
+        Receptions: rec,
+        ReceivingYards: 0,
+        ReceivingTouchdowns: 0,
+        FumblesLost: 0,
+        FieldGoalsMade: 0,
+        ExtraPointsMade: 0,
+      };
+    });
+  }, [redraft, teamByName]);
+
+  const scenarioProjections = useMemo(() => {
+    if (!internalProjections.length || isScenarioEmpty(activeScenario)) return internalProjections;
+    return applyScenario(internalProjections, activeScenario);
+  }, [internalProjections, activeScenario]);
+
+  const projByName = useMemo(() => {
+    const m = new Map<string, SDIOProjection>();
+    for (const p of scenarioProjections) m.set(normalizeName(p.Name), p);
+    return m;
+  }, [scenarioProjections]);
 
   const teamTotals = useMemo(() => {
     const totals = new Map<string, { rushAtt: number; tgt: number }>();
-    for (const p of scenarioSdio) {
+    for (const p of scenarioProjections) {
       if (!p.Team) continue;
       const t = totals.get(p.Team) ?? { rushAtt: 0, tgt: 0 };
       if (p.Position === 'RB') t.rushAtt += p.RushingAttempts || 0;
@@ -231,7 +283,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       totals.set(p.Team, t);
     }
     return totals;
-  }, [scenarioSdio]);
+  }, [scenarioProjections]);
 
   // ── Build merged rows ──
   const allRows = useMemo((): ProspectRankRow[] => {
@@ -274,27 +326,28 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       seen.add(id);
 
       const career = careerMap.get(nn);
-      const sdioP = sdioByName.get(nn);
+      const proj = projByName.get(nn);
+      const rosterTeam = teamByName.get(nn) || '';
 
-      // Projected volume once the prospect is drafted & appears in SDIO
+      // Projected volume — uses our internal redraft projections, scenario-adjusted.
+      // Team comes from the NFL roster feed (populates once rookies are drafted).
       let projPPG = 0;
       let projTgtShare = 0;
       let projRushShare = 0;
       let projTargets = 0;
       let projRushAtt = 0;
-      let nflTeam = '';
-      const hasNflTeam = !!sdioP?.Team;
-      if (sdioP) {
-        nflTeam = sdioP.Team || '';
-        projPPG = (sdioP.FantasyPointsPPR || 0) > 0
-          ? Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10
+      const nflTeam = proj?.Team || rosterTeam;
+      const hasNflTeam = !!nflTeam;
+      if (proj) {
+        projPPG = (proj.FantasyPointsPPR || 0) > 0
+          ? Math.round((proj.FantasyPointsPPR / GAMES) * 10) / 10
           : 0;
-        projTargets = sdioP.Receptions || 0;
-        projRushAtt = sdioP.RushingAttempts || 0;
+        projTargets = proj.Receptions || 0;
+        projRushAtt = proj.RushingAttempts || 0;
         const tt = nflTeam ? teamTotals.get(nflTeam) : undefined;
         if (tt) {
-          if (pos !== 'QB' && tt.tgt > 0) projTgtShare = (sdioP.Receptions || 0) / tt.tgt;
-          if (pos === 'RB' && tt.rushAtt > 0) projRushShare = (sdioP.RushingAttempts || 0) / tt.rushAtt;
+          if (pos !== 'QB' && tt.tgt > 0) projTgtShare = (proj.Receptions || 0) / tt.tgt;
+          if (pos === 'RB' && tt.rushAtt > 0) projRushShare = (proj.RushingAttempts || 0) / tt.rushAtt;
         }
       }
 
@@ -377,7 +430,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     });
 
     return rows;
-  }, [combine, fpRanks, ktc, careerMap, sdioByName, teamTotals]);
+  }, [combine, fpRanks, ktc, careerMap, projByName, teamByName, teamTotals]);
 
   // Apply custom order + locks
   const rankedRows = useMemo(() => {
@@ -633,31 +686,8 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       <div style={{ fontSize: 11, color: customOrder ? '#6366f1' : 'var(--text-muted)', marginBottom: 8 }}>
         {customOrder
           ? 'Custom ranking active. Drag to adjust, or Reset to return to default.'
-          : `Drag rows to reorder. Default sort: prospect grade, model PPG, ECR. NFL volume projections flow in once rookies are drafted.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
+          : `Drag rows to reorder. Default sort: prospect grade, model PPG, ECR. NFL team and volume projections flow in from our internal projections once the rookie is rostered.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
       </div>
-
-      {/* Placeholder banner when no prospects are drafted yet */}
-      {draftedCount === 0 && !hasSDIOKey() && (
-        <div style={{
-          background: '#6366f111', border: '1px solid #6366f144', borderRadius: 6,
-          padding: '8px 12px', marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)',
-        }}>
-          <strong style={{ color: '#6366f1' }}>Volume projections pending.</strong>{' '}
-          Add a SportsDataIO API key in Settings. Once rookies are drafted and appear in
-          SDIO projections, projected team, PPG, and target/rush shares will flow into this
-          ranking (adjusted by any active scenario).
-        </div>
-      )}
-      {draftedCount === 0 && hasSDIOKey() && sdio.length > 0 && (
-        <div style={{
-          background: '#facc1511', border: '1px solid #facc1544', borderRadius: 6,
-          padding: '8px 12px', marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)',
-        }}>
-          <strong style={{ color: '#facc15' }}>Pre-draft.</strong>{' '}
-          No rookies matched to NFL projections yet. Volume columns populate once prospects
-          are drafted and appear in the {DRAFT_YEAR} SDIO season projections.
-        </div>
-      )}
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
@@ -682,9 +712,9 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{
                 ...th, textAlign: 'center', width: 44, borderLeft: '1px solid var(--border)',
                 color: '#6366f1',
-              }} title="NFL team once drafted (from SDIO projections)">NFL</th>
+              }} title="NFL team once drafted (from nflverse rosters)">NFL</th>
               <th style={{ ...th, textAlign: 'right', width: 52, color: '#6366f1' }}
-                  title="Projected PPG from SDIO season projections, scenario-adjusted">
+                  title="Projected PPG from our internal projections, scenario-adjusted">
                 Proj PPG
               </th>
               <th style={{ ...th, textAlign: 'right', width: 48, color: '#6366f1' }}
