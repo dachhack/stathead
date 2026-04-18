@@ -31,6 +31,7 @@ import { DocsRookie } from './components/DocsRookie';
 import { DocsDynasty } from './components/DocsDynasty';
 import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { MyRankings } from './components/MyRankings';
+import { MyProspectRankings } from './components/MyProspectRankings';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -64,6 +65,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
       { id: 'prospects', label: 'Prospects' },
+      { id: 'my-prospects', label: 'My Prospect Rankings' },
       { id: 'sleeper', label: 'Sleeper Sync' },
       { id: 'compare', label: 'Compare' },
       { id: 'docs-dynasty', label: 'Dynasty Model Docs' },
@@ -238,6 +240,7 @@ function App() {
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
+        {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
         {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
