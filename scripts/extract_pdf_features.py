@@ -53,7 +53,12 @@ OUT_PER_SOURCE = ROOT / "public" / "data" / "pdf-prospect-features.json"
 OUT_MERGED = ROOT / "public" / "data" / "pdf-prospect-features-merged.json"
 
 MODEL = os.environ.get("PDF_EXTRACT_MODEL", "claude-sonnet-4-6")
-MAX_CHUNK_CHARS = 180_000  # roughly ~45k tokens of input text per call
+# Keep chunks small enough that Claude's JSON output stays comfortably under
+# MAX_OUTPUT_TOKENS even for dense rookie guides (many profiled players per
+# page). 80k chars of input text typically yields output well under 32k
+# tokens. Tune if you see JSON parse errors from truncated output.
+MAX_CHUNK_CHARS = 80_000
+MAX_OUTPUT_TOKENS = 32_000
 
 SYSTEM_PROMPT = """You extract structured prospect evaluations from NFL draft and dynasty rookie guides.
 
@@ -81,6 +86,8 @@ Rules:
 - Do not invent data. If a field isn't in the text, it's null.
 - Normalize position to the codes above (e.g. "Running Back" -> "RB", "Edge" -> "DL").
 - Preserve proper spellings of names; don't Americanize diacritics.
+- Keep strengths/weaknesses/red_flags as short phrases (3-8 words each). One concept per list item.
+- Keep `summary` to 1-2 sentences. `athletic_notes` to 1-2 sentences at most.
 
 Return ONLY a JSON object of the form {"players": [...]}. No prose, no markdown fences."""
 
@@ -190,14 +197,14 @@ def extract_text(pdf_path: Path, force: bool, passwords: list[tuple[str | None, 
         return cache_file.read_text(encoding="utf-8")
     pdf, pw_used = open_pdf(pdf_path, passwords)
     if pw_used:
-        print(f"  unlocked with password of length {len(pw_used)}")
+        print(f"  unlocked with password of length {len(pw_used)}", flush=True)
     pages: list[str] = []
     try:
         for i, page in enumerate(pdf.pages):
             try:
                 text = page.extract_text() or ""
             except Exception as e:
-                print(f"  page {i+1}: extract_text failed ({e})", file=sys.stderr)
+                print(f"  page {i+1}: extract_text failed ({e})", file=sys.stderr, flush=True)
                 text = ""
             pages.append(f"\n=== PAGE {i+1} ===\n{text}")
     finally:
@@ -228,7 +235,7 @@ def chunk_text(text: str, max_chars: int) -> list[str]:
 def call_claude(client, chunk: str, source_name: str, system_text: str) -> list[dict[str, Any]]:
     msg = client.messages.create(
         model=MODEL,
-        max_tokens=16_000,
+        max_tokens=MAX_OUTPUT_TOKENS,
         system=[
             {
                 "type": "text",
@@ -247,15 +254,27 @@ def call_claude(client, chunk: str, source_name: str, system_text: str) -> list[
             }
         ],
     )
+    stop_reason = getattr(msg, "stop_reason", None)
     raw = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
     raw = raw.strip()
     # Strip accidental code fences.
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.S)
+    if stop_reason == "max_tokens":
+        print(
+            f"  warning: hit max_tokens ({MAX_OUTPUT_TOKENS}) "
+            f"for a chunk of {source_name} ({len(chunk):,} chars). "
+            "Consider lowering MAX_CHUNK_CHARS.",
+            file=sys.stderr, flush=True,
+        )
     try:
         obj = json.loads(raw)
     except json.JSONDecodeError as e:
-        print(f"  JSON parse error: {e}; first 300 chars: {raw[:300]!r}", file=sys.stderr)
+        print(
+            f"  JSON parse error: {e}; stop_reason={stop_reason}; "
+            f"first 300 chars: {raw[:300]!r}",
+            file=sys.stderr, flush=True,
+        )
         return []
     players = obj.get("players", []) if isinstance(obj, dict) else []
     return [p for p in players if isinstance(p, dict) and p.get("player_name")]
@@ -269,7 +288,7 @@ def normalize_pdf(client, src: Source, force: bool, system_text: str, ctx_hash: 
     all_players: list[dict[str, Any]] = []
     chunks = chunk_text(src.text, MAX_CHUNK_CHARS)
     for i, chunk in enumerate(chunks):
-        print(f"  chunk {i+1}/{len(chunks)} ({len(chunk):,} chars) -> {MODEL}")
+        print(f"  chunk {i+1}/{len(chunks)} ({len(chunk):,} chars) -> {MODEL}", flush=True)
         all_players.extend(call_claude(client, chunk, src.path.name, system_text))
     for p in all_players:
         p["source_file"] = src.path.name
@@ -344,29 +363,29 @@ def main() -> int:
     if not pdfs:
         print(f"error: no .pdf files in {PDF_DIR}", file=sys.stderr)
         return 1
-    print(f"Found {len(pdfs)} PDF(s) in {PDF_DIR}")
+    print(f"Found {len(pdfs)} PDF(s) in {PDF_DIR}", flush=True)
 
     passwords = load_passwords()
     if passwords:
-        print(f"Loaded {len(passwords)} password candidate(s)")
+        print(f"Loaded {len(passwords)} password candidate(s)", flush=True)
 
     ctx_text, ctx_hash = load_extraction_context()
     if ctx_text:
         print(f"Loaded extraction context from {CONTEXT_FILE.name} "
-              f"({len(ctx_text)} chars, hash {ctx_hash})")
+              f"({len(ctx_text)} chars, hash {ctx_hash})", flush=True)
     system_text = build_system_prompt(ctx_text)
 
     sources: list[Source] = []
     for pdf_path in pdfs:
-        print(f"extracting text: {pdf_path.name}")
+        print(f"extracting text: {pdf_path.name}", flush=True)
         text = extract_text(pdf_path, args.force, passwords)
         if not text.strip():
-            print(f"  warning: no text extracted (scanned PDF? OCR not wired up)")
+            print(f"  warning: no text extracted (scanned PDF? OCR not wired up)", flush=True)
             continue
         sources.append(Source(path=pdf_path, text=text))
 
     if args.dry_run:
-        print("dry-run: skipping LLM normalization")
+        print("dry-run: skipping LLM normalization", flush=True)
         return 0
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -377,18 +396,18 @@ def main() -> int:
 
     all_rows: list[dict[str, Any]] = []
     for src in sources:
-        print(f"normalizing: {src.path.name}")
+        print(f"normalizing: {src.path.name}", flush=True)
         rows = normalize_pdf(client, src, args.force, system_text, ctx_hash)
-        print(f"  -> {len(rows)} player rows")
+        print(f"  -> {len(rows)} player rows", flush=True)
         all_rows.extend(rows)
 
     OUT_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
     OUT_PER_SOURCE.write_text(json.dumps(all_rows, indent=2), encoding="utf-8")
-    print(f"wrote {len(all_rows)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}")
+    print(f"wrote {len(all_rows)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}", flush=True)
 
     merged = merge_rows(all_rows)
     OUT_MERGED.write_text(json.dumps(merged, indent=2), encoding="utf-8")
-    print(f"wrote {len(merged)} merged players -> {OUT_MERGED.relative_to(ROOT)}")
+    print(f"wrote {len(merged)} merged players -> {OUT_MERGED.relative_to(ROOT)}", flush=True)
     return 0
 
 
