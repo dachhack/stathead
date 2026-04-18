@@ -16,6 +16,54 @@ function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[.\-''`]/g, '').replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '').replace(/\s+/g, ' ').trim();
 }
 
+function spearman(a: number[], b: number[]): number {
+  const n = a.length;
+  if (n < 3) return 0;
+  const ma = a.reduce((s, v) => s + v, 0) / n;
+  const mb = b.reduce((s, v) => s + v, 0) / n;
+  let cov = 0, va = 0, vb = 0;
+  for (let i = 0; i < n; i++) {
+    cov += (a[i] - ma) * (b[i] - mb);
+    va += (a[i] - ma) ** 2;
+    vb += (b[i] - mb) ** 2;
+  }
+  return va > 0 && vb > 0 ? cov / Math.sqrt(va * vb) : 0;
+}
+
+// Average rank — ties share the mean of their rank range (standard Spearman tie handling).
+function averageRanks(values: number[]): number[] {
+  const indexed = values.map((v, i) => ({ v, i }));
+  indexed.sort((x, y) => y.v - x.v);
+  const ranks = new Array(values.length).fill(0);
+  let i = 0;
+  while (i < indexed.length) {
+    let j = i;
+    while (j + 1 < indexed.length && indexed[j + 1].v === indexed[i].v) j++;
+    const avg = (i + j) / 2 + 1;
+    for (let k = i; k <= j; k++) ranks[indexed[k].i] = avg;
+    i = j + 1;
+  }
+  return ranks;
+}
+
+function ndcgAtK<T>(rows: T[], score: (r: T) => number, rel: (r: T) => number, k: number): number {
+  if (rows.length === 0 || k <= 0) return 0;
+  const byScore = [...rows].sort((x, y) => score(y) - score(x)).slice(0, k);
+  const byRel = [...rows].sort((x, y) => rel(y) - rel(x)).slice(0, k);
+  const dcg = byScore.reduce((s, r, i) => s + rel(r) / Math.log2(i + 2), 0);
+  const idcg = byRel.reduce((s, r, i) => s + rel(r) / Math.log2(i + 2), 0);
+  return idcg > 0 ? dcg / idcg : 0;
+}
+
+function topNHitRate<T>(rows: T[], score: (r: T) => number, rel: (r: T) => number, n: number): number {
+  if (rows.length === 0 || n <= 0) return 0;
+  const byScore = new Set([...rows].sort((x, y) => score(y) - score(x)).slice(0, n));
+  const byRel = new Set([...rows].sort((x, y) => rel(y) - rel(x)).slice(0, n));
+  let hits = 0;
+  byScore.forEach(r => { if (byRel.has(r)) hits++; });
+  return hits / Math.min(n, rows.length);
+}
+
 function tierColor(score: number): string {
   if (score >= 95) return '#22c55e';   // Alpha
   if (score >= 85) return '#4ade80';   // Blue Chip
@@ -318,6 +366,29 @@ export function ZapComparison() {
       top24OurCorr = t24voo > 0 && t24vaa > 0 ? t24coA / Math.sqrt(t24voo * t24vaa) : 0;
     }
 
+    // Rank-based metrics — drafts are ordering decisions, so Spearman,
+    // NDCG, and hit rate answer "did you put the right guys at the top?"
+    // more directly than Pearson on tier-scaled scores.
+    let zapSpearman = 0, ourSpearman = 0;
+    let zapNdcg24 = 0, ourNdcg24 = 0;
+    let zapHit12 = 0, ourHit12 = 0;
+    let zapHit24 = 0, ourHit24 = 0;
+    if (withActuals.length >= 5) {
+      const zapRanks = averageRanks(withActuals.map(r => r.zapScore));
+      const ourRanks = averageRanks(withActuals.map(r => r.ourScore));
+      const actualRanks = averageRanks(withActuals.map(r => r.actualPPG));
+      // Spearman = Pearson on ranks; lower rank number = better, so we
+      // pass ranks directly (the sign convention cancels across both sides).
+      zapSpearman = spearman(zapRanks, actualRanks);
+      ourSpearman = spearman(ourRanks, actualRanks);
+      zapNdcg24 = ndcgAtK(withActuals, r => r.zapScore, r => r.actualPPG, 24);
+      ourNdcg24 = ndcgAtK(withActuals, r => r.ourScore, r => r.actualPPG, 24);
+      zapHit12 = topNHitRate(withActuals, r => r.zapScore, r => r.actualPPG, 12);
+      ourHit12 = topNHitRate(withActuals, r => r.ourScore, r => r.actualPPG, 12);
+      zapHit24 = topNHitRate(withActuals, r => r.zapScore, r => r.actualPPG, 24);
+      ourHit24 = topNHitRate(withActuals, r => r.ourScore, r => r.actualPPG, 24);
+    }
+
     return {
       n, corr: corr.toFixed(3), mae: mae.toFixed(1),
       zapVsActualCorr: zapVsActualCorr.toFixed(3), ourVsActualCorr: ourVsActualCorr.toFixed(3),
@@ -326,6 +397,10 @@ export function ZapComparison() {
       top24N: top24.length,
       top24OursWins, top24ZapWins, top24Ties,
       top24ZapCorr: top24ZapCorr.toFixed(3), top24OurCorr: top24OurCorr.toFixed(3),
+      zapSpearman: zapSpearman.toFixed(3), ourSpearman: ourSpearman.toFixed(3),
+      zapNdcg24: zapNdcg24.toFixed(3), ourNdcg24: ourNdcg24.toFixed(3),
+      zapHit12: Math.round(zapHit12 * 100), ourHit12: Math.round(ourHit12 * 100),
+      zapHit24: Math.round(zapHit24 * 100), ourHit24: Math.round(ourHit24 * 100),
     };
   }, [filtered]);
 
@@ -352,6 +427,37 @@ export function ZapComparison() {
 
       {stats && (
         <div style={{ padding: '0 16px 12px' }}>
+          {stats.hasActuals && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Rank quality (drafts are ordering decisions)
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Spearman (Us)', value: stats.ourSpearman,
+                    color: Number(stats.ourSpearman) > Number(stats.zapSpearman) ? '#22c55e' : '#ef4444' },
+                  { label: 'Spearman (ZAP)', value: stats.zapSpearman,
+                    color: Number(stats.zapSpearman) > Number(stats.ourSpearman) ? '#22c55e' : '#ef4444' },
+                  { label: 'NDCG@24 (Us)', value: stats.ourNdcg24,
+                    color: Number(stats.ourNdcg24) > Number(stats.zapNdcg24) ? '#22c55e' : '#ef4444' },
+                  { label: 'NDCG@24 (ZAP)', value: stats.zapNdcg24,
+                    color: Number(stats.zapNdcg24) > Number(stats.ourNdcg24) ? '#22c55e' : '#ef4444' },
+                  { label: 'Hit@12', value: `${stats.ourHit12}% / ${stats.zapHit12}%`,
+                    color: stats.ourHit12 > stats.zapHit12 ? '#22c55e' : stats.ourHit12 < stats.zapHit12 ? '#ef4444' : '#facc15' },
+                  { label: 'Hit@24', value: `${stats.ourHit24}% / ${stats.zapHit24}%`,
+                    color: stats.ourHit24 > stats.zapHit24 ? '#22c55e' : stats.ourHit24 < stats.zapHit24 ? '#ef4444' : '#facc15' },
+                ].map(c => (
+                  <div key={c.label} style={{
+                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '6px 12px', minWidth: 80,
+                  }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{c.label}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: c.color }}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {stats.hasActuals && stats.top24N > 0 && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
