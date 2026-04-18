@@ -2944,6 +2944,29 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     collegeRecYdsPerGame,
                     collegeRushYpcOverTeam,
                     collegeGoalLineShare,
+                    // CFBD-sourced features. Previously only computed in the
+                    // first-pass ADP block, leaving every NFL-drafted rookie
+                    // without fantasy ADP with 0 for recruit stars / rating,
+                    // team talent, and college usage. The RB model uses
+                    // collegeUsageOverall + recruitRating, WR + TE use
+                    // recruitStars — so 163 RBs / 313 WRs / 165 TEs were
+                    // effectively zeroed on their most important non-draft
+                    // signals. Share logic with the first-pass block at
+                    // line ~2394.
+                    recruitStars: cfbdRecruiting[draftName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
+                    recruitRating: cfbdRecruiting[draftName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
+                    collegeTeamTalent: lastSchool
+                      ? (cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0)
+                      : 0,
+                    collegeUsageOverall: lastSeason > 0
+                      ? (cfbdPlayerUsage[`${draftName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.overall || 0)
+                      : 0,
+                    collegeUsagePass: lastSeason > 0
+                      ? (cfbdPlayerUsage[`${draftName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.pass || 0)
+                      : 0,
+                    collegeUsageRush: lastSeason > 0
+                      ? (cfbdPlayerUsage[`${draftName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.rush || 0)
+                      : 0,
                     hasCollegeStats: cs ? 1 : 0,
                     // ── Raw career aggregates ────────────────────────
                     // Stashed so future derived features can be added in
