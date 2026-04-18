@@ -27,6 +27,8 @@ public/data/*
 !public/data/cfbd-player-usage.json
 !public/data/cfbd/
 !public/data/cfbd/*.json
+!public/data/pdf-prospect-features.json
+!public/data/pdf-prospect-features-merged.json
 .claude/
 CLAUDE.local.md
 __pycache__/
