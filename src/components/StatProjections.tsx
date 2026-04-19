@@ -1336,6 +1336,59 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           }
         }
 
+        // Team-level rushing reconciliation: normalize each team's total rushAtt
+        // and rushYds across all its rushers (QB + RB + WR) to the projected team
+        // totals. Per-position pool reconciliation handles most of the gap, but
+        // (a) pool shares can sum to slightly <1 due to blending, (b) QB yards are
+        // derived from per-player ypc and never tied to a pool, (c) rounding drift
+        // compounds. This final pass guarantees team totals match projections.
+        for (const team of allTeams) {
+          const projTeam = projectedTeamTotals.get(team);
+          if (!projTeam) continue;
+          const rushers = [
+            ...qbs.filter((p) => p.team === team),
+            ...rbs.filter((p) => p.team === team),
+            ...wrs.filter((p) => p.team === team),
+          ];
+          if (rushers.length === 0) continue;
+
+          const totalAtt = rushers.reduce((s, p) => s + p.rushAtt, 0);
+          if (totalAtt > 0 && Math.abs(totalAtt - projTeam.rushAtt) > 1) {
+            const scale = projTeam.rushAtt / totalAtt;
+            for (const p of rushers) p.rushAtt = Math.round(p.rushAtt * scale);
+          }
+
+          const totalYds = rushers.reduce((s, p) => s + p.rushYds, 0);
+          if (totalYds > 0 && Math.abs(totalYds - projTeam.rushYds) > 1) {
+            const scale = projTeam.rushYds / totalYds;
+            for (const p of rushers) p.rushYds = Math.round(p.rushYds * scale);
+          }
+
+          for (const p of rushers) {
+            if (rbs.includes(p)) {
+              p.pprPts = Math.round(computePPR({
+                rushYds: p.rushYds, rushTD: p.rushTD,
+                rec: (p as RBProjection).rec,
+                recYds: (p as RBProjection).recYds,
+                recTD: (p as RBProjection).recTD,
+              }));
+            } else if (wrs.includes(p)) {
+              p.pprPts = Math.round(computePPR({
+                rushYds: p.rushYds, rushTD: p.rushTD,
+                rec: (p as WRProjection).rec,
+                recYds: (p as WRProjection).recYds,
+                recTD: (p as WRProjection).recTD,
+              }));
+            } else {
+              const qp = p as QBProjection;
+              p.pprPts = Math.round(computePPR({
+                passYds: qp.passYds, passTD: qp.passTD, int: qp.int,
+                rushYds: p.rushYds, rushTD: p.rushTD,
+              }));
+            }
+          }
+        }
+
         // Sort by PPR points descending
         qbs.sort((a, b) => b.pprPts - a.pprPts);
         rbs.sort((a, b) => b.pprPts - a.pprPts);
