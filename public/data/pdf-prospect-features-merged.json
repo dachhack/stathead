@@ -1916,7 +1916,7 @@
     "player_key": "jahmyr gibbs",
     "player_name": "Jahmyr Gibbs",
     "position": "RB",
-    "college": "Georgia Tech/Alabama",
+    "college": "Alabama",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -2102,7 +2102,7 @@
     "player_key": "jordan addison",
     "player_name": "Jordan Addison",
     "position": "WR",
-    "college": "Pitt/USC",
+    "college": "USC",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -2232,7 +2232,7 @@
     "player_key": "luke musgrave",
     "player_name": "Luke Musgrave",
     "position": "TE",
-    "college": "Oregon State",
+    "college": "Oregon St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -2293,7 +2293,7 @@
     "player_key": "kenny pickett",
     "player_name": "Kenny Pickett",
     "position": "QB",
-    "college": "Pittsburgh",
+    "college": "Pitt",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -2667,7 +2667,7 @@
     "player_key": "adonai mitchell",
     "player_name": "Adonai Mitchell",
     "position": "WR",
-    "college": "Texas",
+    "college": "Texas/UGA",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -2847,7 +2847,7 @@
     "player_key": "keon coleman",
     "player_name": "Keon Coleman",
     "position": "WR",
-    "college": "FSU/Mich. St.",
+    "college": "Florida State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -3349,7 +3349,7 @@
     "player_key": "bo nix",
     "player_name": "Bo Nix",
     "position": "QB",
-    "college": "Oregon/Auburn",
+    "college": "Oregon",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -3846,7 +3846,7 @@
     "player_key": "tucker kraft",
     "player_name": "Tucker Kraft",
     "position": "TE",
-    "college": "South Dakota St.",
+    "college": "South Dakota State",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -5194,7 +5194,7 @@
     "player_key": "spencer rattler",
     "player_name": "Spencer Rattler",
     "position": "QB",
-    "college": "S. Carolina/Oklahoma",
+    "college": "South Carolina",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -5732,7 +5732,7 @@
     "player_key": "jayden reed",
     "player_name": "Jayden Reed",
     "position": "WR",
-    "college": "Michigan State",
+    "college": "Michigan St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -10420,7 +10420,7 @@
     "player_key": "dezmon jackson",
     "player_name": "Dezmon Jackson",
     "position": "RB",
-    "college": "Oklahoma State",
+    "college": "Oklahoma St.",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "2023_Rookie_Scouting_Portfolio.pdf"
@@ -10802,7 +10802,7 @@
   {
     "player_key": "calvin turner",
     "player_name": "Calvin Turner",
-    "position": "WR",
+    "position": "RB",
     "college": "Hawaii",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf"
@@ -13689,7 +13689,7 @@
     "player_key": "lucas krull",
     "player_name": "Lucas Krull",
     "position": "WR",
-    "college": "Pittsburgh",
+    "college": "Pitt",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -13764,7 +13764,7 @@
     "player_key": "jake haener",
     "player_name": "Jake Haener",
     "position": "QB",
-    "college": "Fresno State",
+    "college": "Fresno St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -14319,7 +14319,7 @@
     "player_key": "zach evans",
     "player_name": "Zach Evans",
     "position": "RB",
-    "college": "Ole Miss/TCU",
+    "college": "Ole Miss",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -14557,7 +14557,7 @@
     "player_key": "eric gray",
     "player_name": "Eric Gray",
     "position": "RB",
-    "college": "Oklahoma",
+    "college": "Oklahoma/Tennessee",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15183,7 +15183,7 @@
     "player_key": "keaton mitchell",
     "player_name": "Keaton Mitchell",
     "position": "RB",
-    "college": "East Carolina",
+    "college": "ECU",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15256,7 +15256,7 @@
     "player_key": "xazavian valladay",
     "player_name": "Xazavian Valladay",
     "position": "RB",
-    "college": "Wyoming/Arizona St.",
+    "college": "Arizona State",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15659,7 +15659,7 @@
     "player_key": "camerun peoples",
     "player_name": "Camerun Peoples",
     "position": "RB",
-    "college": "Appalachian State",
+    "college": "Appalachian St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -16580,7 +16580,7 @@
     "player_key": "jason brownlee",
     "player_name": "Jason Brownlee",
     "position": "WR",
-    "college": "S. Mississippi",
+    "college": "Southern Miss",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -16770,7 +16770,7 @@
     "player_key": "bryce ford wheaton",
     "player_name": "Bryce Ford-Wheaton",
     "position": "WR",
-    "college": "W. Virginia",
+    "college": "West Virginia",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -18796,7 +18796,7 @@
     "player_key": "kedon slovis",
     "player_name": "Kedon Slovis",
     "position": "QB",
-    "college": "USC/Pitt/BYU",
+    "college": "BYU",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -18890,7 +18890,7 @@
     "player_key": "carter bradley",
     "player_name": "Carter Bradley",
     "position": "QB",
-    "college": "South Alabama/Toledo",
+    "college": "South Alabama",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -18985,7 +18985,7 @@
     "player_key": "dillon johnson",
     "player_name": "Dillon Johnson",
     "position": "RB",
-    "college": "UW/Miss St.",
+    "college": "Washington",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -19264,7 +19264,7 @@
     "player_key": "ray davis",
     "player_name": "Ray Davis",
     "position": "RB",
-    "college": "Kentucky/Vanderbilt",
+    "college": "Kentucky",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -19943,7 +19943,7 @@
     "player_key": "isaiah davis",
     "player_name": "Isaiah Davis",
     "position": "RB",
-    "college": "S. Dakota St",
+    "college": "South Dakota State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -20033,7 +20033,7 @@
     "player_key": "frank gore",
     "player_name": "Frank Gore, Jr.",
     "position": "RB",
-    "college": "S. Mississippi",
+    "college": "Southern Miss",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -20756,7 +20756,7 @@
     "player_key": "johnny wilson",
     "player_name": "Johnny Wilson",
     "position": "WR",
-    "college": "FSU/Arizona State",
+    "college": "Florida State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -21379,7 +21379,7 @@
     "player_key": "jacob cowing",
     "player_name": "Jacob Cowing",
     "position": "WR",
-    "college": "Arizona/UTSA",
+    "college": "Arizona",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -21616,7 +21616,7 @@
     "player_key": "ryan flournoy",
     "player_name": "Ryan Flournoy",
     "position": "WR",
-    "college": "SE Missouri ST.",
+    "college": "SE Missouri State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22221,7 +22221,7 @@
     "player_key": "erick all",
     "player_name": "Erick All",
     "position": "TE",
-    "college": "Iowa",
+    "college": "Michigan",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22277,7 +22277,7 @@
     "player_key": "dallin holker",
     "player_name": "Dallin Holker",
     "position": "TE",
-    "college": "Colorado State",
+    "college": "CSU",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22727,7 +22727,7 @@
     "player_key": "jaheim bell",
     "player_name": "Jaheim Bell",
     "position": "TE",
-    "college": "FSU/S.Carolina",
+    "college": "Florida State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -23230,7 +23230,7 @@
     "player_key": "will howard",
     "player_name": "Will Howard",
     "position": "QB",
-    "college": "Ohio St./Kansas State",
+    "college": "Ohio State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -23539,7 +23539,7 @@
     "player_key": "dillon gabriel",
     "player_name": "Dillon Gabriel",
     "position": "QB",
-    "college": "Oregon/Oklahoma",
+    "college": "Oregon",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -23665,7 +23665,7 @@
     "player_key": "quinshon judkins",
     "player_name": "Quinshon Judkins",
     "position": "RB",
-    "college": "Cleveland Browns",
+    "college": "Ole Miss/Ohio State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -24604,7 +24604,7 @@
     "player_key": "bhayshul tuten",
     "player_name": "Bhayshul Tuten",
     "position": "RB",
-    "college": "Jacksonville Jaguars",
+    "college": "Virginia Tech",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -24957,7 +24957,7 @@
     "player_key": "jacory croskey merritt",
     "player_name": "Jacory Croskey-Merritt",
     "position": "RB",
-    "college": "Alabama St./New Mexico/Arizona",
+    "college": "Arizona",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -25169,7 +25169,7 @@
     "player_key": "tre stewart",
     "player_name": "Tre Stewart",
     "position": "RB",
-    "college": "Jacksonville State",
+    "college": "Jax St.",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -25717,7 +25717,7 @@
     "player_key": "antario brown",
     "player_name": "Antario Brown",
     "position": "RB",
-    "college": "Northern Illinois",
+    "college": "N. Illinois",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -26001,7 +26001,7 @@
     "player_key": "travis hunter",
     "player_name": "Travis Hunter",
     "position": "WR",
-    "college": "Jacksonville Jaguars",
+    "college": "Colorado",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf"
@@ -26244,7 +26244,7 @@
     "player_key": "jayden higgins",
     "player_name": "Jayden Higgins",
     "position": "WR",
-    "college": "Houston Texans",
+    "college": "Iowa St. / E. Kentucky",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -26306,7 +26306,7 @@
     "player_key": "jack bech",
     "player_name": "Jack Bech",
     "position": "WR",
-    "college": "TCU",
+    "college": "Las Vegas Raiders",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -26662,7 +26662,7 @@
     "player_key": "tre harris",
     "player_name": "Tre Harris",
     "position": "WR",
-    "college": "Ole Miss/La. Tech",
+    "college": "Ole Miss",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -26846,7 +26846,7 @@
     "player_key": "jacolby george",
     "player_name": "Jacolby George",
     "position": "WR",
-    "college": "Miami",
+    "college": "Miami (FL)",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -26965,7 +26965,7 @@
     "player_key": "xavier restrepo",
     "player_name": "Xavier Restrepo",
     "position": "WR",
-    "college": "Miami",
+    "college": "Miami (FL)",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -27486,7 +27486,7 @@
     "player_key": "nick nash",
     "player_name": "Nick Nash",
     "position": "WR",
-    "college": "San Jose St.",
+    "college": "San Jose State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28018,7 +28018,7 @@
     "player_key": "efton chism",
     "player_name": "Efton Chism III",
     "position": "WR",
-    "college": "E. Washington",
+    "college": "Eastern Washington",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28117,7 +28117,7 @@
     "player_key": "elijhah badger",
     "player_name": "Elijhah Badger",
     "position": "WR",
-    "college": "Florida",
+    "college": "UF/Arizona State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28636,7 +28636,7 @@
     "player_key": "nick degennaro",
     "player_name": "Nick DeGennaro",
     "position": "WR",
-    "college": "Richmond/Maryland",
+    "college": "Richmond",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "2026_Rookie_Scouting_Portfolio.pdf"
@@ -34605,7 +34605,7 @@
     "player_key": "anthony smith",
     "player_name": "Anthony Smith",
     "position": "WR",
-    "college": "East Carolina",
+    "college": "ECU",
     "sources": [
       "2026_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2026.pdf"
@@ -36497,7 +36497,7 @@
     "player_key": "bauer sharp",
     "player_name": "Bauer Sharp",
     "position": "TE",
-    "college": "Louisiana State",
+    "college": "LSU",
     "sources": [
       "LateRoundProspectGuide26_PreDraft.pdf",
       "the_beast_2026.pdf"
