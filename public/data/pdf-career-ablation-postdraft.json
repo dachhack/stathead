@@ -1,0 +1,1013 @@
+{
+  "is_post_draft": true,
+  "results": {
+    "QB": {
+      "baseline_all": {
+        "r2": 0.3357,
+        "mae": 4.372,
+        "rho": 0.5661,
+        "n": 134
+      },
+      "baseline_recent": {
+        "r2": 0.2943,
+        "mae": 3.855,
+        "rho": 0.4607,
+        "n": 36
+      },
+      "baseline_rtrain": {
+        "r2": 0.0269,
+        "mae": 4.761,
+        "rho": 0.2841,
+        "n": 36
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3358,
+            "mae": 4.351,
+            "rho": 0.5664,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2877,
+            "mae": 3.826,
+            "rho": 0.4749,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0857,
+            "mae": 4.616,
+            "rho": 0.321,
+            "n": 36
+          },
+          "delta_all_r2": 0.0001,
+          "delta_recent_r2": -0.0066,
+          "delta_rtrain_r2": 0.0588,
+          "delta_all_mae": -0.021,
+          "delta_rtrain_mae": -0.145
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3109,
+            "mae": 4.457,
+            "rho": 0.5413,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.1874,
+            "mae": 4.147,
+            "rho": 0.414,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.008,
+            "mae": 4.755,
+            "rho": 0.3606,
+            "n": 36
+          },
+          "delta_all_r2": -0.0248,
+          "delta_recent_r2": -0.1069,
+          "delta_rtrain_r2": -0.0189,
+          "delta_all_mae": 0.085,
+          "delta_rtrain_mae": -0.006
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.2982,
+            "mae": 4.491,
+            "rho": 0.5251,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.128,
+            "mae": 4.28,
+            "rho": 0.3732,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0992,
+            "mae": 4.515,
+            "rho": 0.3245,
+            "n": 36
+          },
+          "delta_all_r2": -0.0375,
+          "delta_recent_r2": -0.1663,
+          "delta_rtrain_r2": 0.0723,
+          "delta_all_mae": 0.119,
+          "delta_rtrain_mae": -0.246
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3311,
+            "mae": 4.39,
+            "rho": 0.5574,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2769,
+            "mae": 3.898,
+            "rho": 0.439,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0469,
+            "mae": 4.671,
+            "rho": 0.277,
+            "n": 36
+          },
+          "delta_all_r2": -0.0046,
+          "delta_recent_r2": -0.0174,
+          "delta_rtrain_r2": 0.02,
+          "delta_all_mae": 0.018,
+          "delta_rtrain_mae": -0.09
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3172,
+            "mae": 4.44,
+            "rho": 0.5396,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2108,
+            "mae": 4.109,
+            "rho": 0.4189,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0252,
+            "mae": 4.767,
+            "rho": 0.2833,
+            "n": 36
+          },
+          "delta_all_r2": -0.0185,
+          "delta_recent_r2": -0.0835,
+          "delta_rtrain_r2": -0.0017,
+          "delta_all_mae": 0.068,
+          "delta_rtrain_mae": 0.006
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3351,
+            "mae": 4.376,
+            "rho": 0.5657,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2922,
+            "mae": 3.863,
+            "rho": 0.4576,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.02,
+            "mae": 4.789,
+            "rho": 0.2874,
+            "n": 36
+          },
+          "delta_all_r2": -0.0006,
+          "delta_recent_r2": -0.0021,
+          "delta_rtrain_r2": -0.0069,
+          "delta_all_mae": 0.004,
+          "delta_rtrain_mae": 0.028
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.2971,
+            "mae": 4.484,
+            "rho": 0.5286,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.1308,
+            "mae": 4.236,
+            "rho": 0.3846,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.1567,
+            "mae": 4.238,
+            "rho": 0.4362,
+            "n": 36
+          },
+          "delta_all_r2": -0.0386,
+          "delta_recent_r2": -0.1635,
+          "delta_rtrain_r2": 0.1298,
+          "delta_all_mae": 0.112,
+          "delta_rtrain_mae": -0.523
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3357,
+          "mae": 4.372,
+          "rho": 0.5661,
+          "n": 134
+        },
+        "recent": {
+          "r2": 0.2943,
+          "mae": 3.855,
+          "rho": 0.4607,
+          "n": 36
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "RB": {
+      "baseline_all": {
+        "r2": 0.3731,
+        "mae": 3.316,
+        "rho": 0.5476,
+        "n": 314
+      },
+      "baseline_recent": {
+        "r2": 0.3174,
+        "mae": 3.698,
+        "rho": 0.4835,
+        "n": 79
+      },
+      "baseline_rtrain": {
+        "r2": 0.1445,
+        "mae": 4.001,
+        "rho": 0.4158,
+        "n": 79
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3829,
+            "mae": 3.3,
+            "rho": 0.5519,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3415,
+            "mae": 3.616,
+            "rho": 0.4765,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2342,
+            "mae": 3.822,
+            "rho": 0.4341,
+            "n": 79
+          },
+          "delta_all_r2": 0.0098,
+          "delta_recent_r2": 0.0241,
+          "delta_rtrain_r2": 0.0897,
+          "delta_all_mae": -0.016,
+          "delta_rtrain_mae": -0.179
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3673,
+            "mae": 3.355,
+            "rho": 0.5523,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2915,
+            "mae": 3.768,
+            "rho": 0.4787,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.1429,
+            "mae": 4.046,
+            "rho": 0.4093,
+            "n": 79
+          },
+          "delta_all_r2": -0.0058,
+          "delta_recent_r2": -0.0259,
+          "delta_rtrain_r2": -0.0016,
+          "delta_all_mae": 0.039,
+          "delta_rtrain_mae": 0.045
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.3428,
+            "mae": 3.424,
+            "rho": 0.525,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2033,
+            "mae": 4.047,
+            "rho": 0.4028,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.0277,
+            "mae": 4.374,
+            "rho": 0.3468,
+            "n": 79
+          },
+          "delta_all_r2": -0.0303,
+          "delta_recent_r2": -0.1141,
+          "delta_rtrain_r2": -0.1168,
+          "delta_all_mae": 0.108,
+          "delta_rtrain_mae": 0.373
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3616,
+            "mae": 3.349,
+            "rho": 0.5357,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2836,
+            "mae": 3.813,
+            "rho": 0.436,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.11,
+            "mae": 4.115,
+            "rho": 0.3626,
+            "n": 79
+          },
+          "delta_all_r2": -0.0115,
+          "delta_recent_r2": -0.0338,
+          "delta_rtrain_r2": -0.0345,
+          "delta_all_mae": 0.033,
+          "delta_rtrain_mae": 0.114
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.362,
+            "mae": 3.365,
+            "rho": 0.5475,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2762,
+            "mae": 3.781,
+            "rho": 0.4642,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.1448,
+            "mae": 4.0,
+            "rho": 0.4137,
+            "n": 79
+          },
+          "delta_all_r2": -0.0111,
+          "delta_recent_r2": -0.0412,
+          "delta_rtrain_r2": 0.0003,
+          "delta_all_mae": 0.049,
+          "delta_rtrain_mae": -0.001
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3727,
+            "mae": 3.316,
+            "rho": 0.5476,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3168,
+            "mae": 3.696,
+            "rho": 0.4841,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.1432,
+            "mae": 4.003,
+            "rho": 0.4153,
+            "n": 79
+          },
+          "delta_all_r2": -0.0004,
+          "delta_recent_r2": -0.0006,
+          "delta_rtrain_r2": -0.0013,
+          "delta_all_mae": 0.0,
+          "delta_rtrain_mae": 0.002
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3583,
+            "mae": 3.377,
+            "rho": 0.5391,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2646,
+            "mae": 3.845,
+            "rho": 0.4381,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.1193,
+            "mae": 4.124,
+            "rho": 0.3674,
+            "n": 79
+          },
+          "delta_all_r2": -0.0148,
+          "delta_recent_r2": -0.0528,
+          "delta_rtrain_r2": -0.0252,
+          "delta_all_mae": 0.061,
+          "delta_rtrain_mae": 0.123
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3731,
+          "mae": 3.316,
+          "rho": 0.5476,
+          "n": 314
+        },
+        "recent": {
+          "r2": 0.3174,
+          "mae": 3.698,
+          "rho": 0.4835,
+          "n": 79
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "WR": {
+      "baseline_all": {
+        "r2": 0.3522,
+        "mae": 2.953,
+        "rho": 0.5698,
+        "n": 455
+      },
+      "baseline_recent": {
+        "r2": 0.2609,
+        "mae": 2.921,
+        "rho": 0.5009,
+        "n": 116
+      },
+      "baseline_rtrain": {
+        "r2": 0.168,
+        "mae": 3.073,
+        "rho": 0.3773,
+        "n": 116
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3547,
+            "mae": 2.969,
+            "rho": 0.5671,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.25,
+            "mae": 2.977,
+            "rho": 0.4736,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.1541,
+            "mae": 3.092,
+            "rho": 0.3581,
+            "n": 116
+          },
+          "delta_all_r2": 0.0025,
+          "delta_recent_r2": -0.0109,
+          "delta_rtrain_r2": -0.0139,
+          "delta_all_mae": 0.016,
+          "delta_rtrain_mae": 0.019
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3419,
+            "mae": 2.988,
+            "rho": 0.5567,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2045,
+            "mae": 3.043,
+            "rho": 0.4324,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.1574,
+            "mae": 3.104,
+            "rho": 0.3515,
+            "n": 116
+          },
+          "delta_all_r2": -0.0103,
+          "delta_recent_r2": -0.0564,
+          "delta_rtrain_r2": -0.0106,
+          "delta_all_mae": 0.035,
+          "delta_rtrain_mae": 0.031
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.3519,
+            "mae": 2.96,
+            "rho": 0.5689,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2521,
+            "mae": 2.921,
+            "rho": 0.4846,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.2028,
+            "mae": 2.958,
+            "rho": 0.4249,
+            "n": 116
+          },
+          "delta_all_r2": -0.0003,
+          "delta_recent_r2": -0.0088,
+          "delta_rtrain_r2": 0.0348,
+          "delta_all_mae": 0.007,
+          "delta_rtrain_mae": -0.115
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.346,
+            "mae": 2.963,
+            "rho": 0.5659,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2366,
+            "mae": 2.962,
+            "rho": 0.4846,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.156,
+            "mae": 3.1,
+            "rho": 0.3689,
+            "n": 116
+          },
+          "delta_all_r2": -0.0062,
+          "delta_recent_r2": -0.0243,
+          "delta_rtrain_r2": -0.012,
+          "delta_all_mae": 0.01,
+          "delta_rtrain_mae": 0.027
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3429,
+            "mae": 2.985,
+            "rho": 0.5602,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2207,
+            "mae": 3.002,
+            "rho": 0.4538,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.1619,
+            "mae": 3.08,
+            "rho": 0.3727,
+            "n": 116
+          },
+          "delta_all_r2": -0.0093,
+          "delta_recent_r2": -0.0402,
+          "delta_rtrain_r2": -0.0061,
+          "delta_all_mae": 0.032,
+          "delta_rtrain_mae": 0.007
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3527,
+            "mae": 2.952,
+            "rho": 0.5708,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2585,
+            "mae": 2.922,
+            "rho": 0.5023,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.164,
+            "mae": 3.085,
+            "rho": 0.37,
+            "n": 116
+          },
+          "delta_all_r2": 0.0005,
+          "delta_recent_r2": -0.0024,
+          "delta_rtrain_r2": -0.004,
+          "delta_all_mae": -0.001,
+          "delta_rtrain_mae": 0.012
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3548,
+            "mae": 2.972,
+            "rho": 0.5636,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2385,
+            "mae": 2.998,
+            "rho": 0.4636,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.1853,
+            "mae": 3.008,
+            "rho": 0.4022,
+            "n": 116
+          },
+          "delta_all_r2": 0.0026,
+          "delta_recent_r2": -0.0224,
+          "delta_rtrain_r2": 0.0173,
+          "delta_all_mae": 0.019,
+          "delta_rtrain_mae": -0.065
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3522,
+          "mae": 2.953,
+          "rho": 0.5698,
+          "n": 455
+        },
+        "recent": {
+          "r2": 0.2609,
+          "mae": 2.921,
+          "rho": 0.5009,
+          "n": 116
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "TE": {
+      "baseline_all": {
+        "r2": 0.3466,
+        "mae": 2.1,
+        "rho": 0.5782,
+        "n": 209
+      },
+      "baseline_recent": {
+        "r2": 0.4608,
+        "mae": 1.943,
+        "rho": 0.6236,
+        "n": 55
+      },
+      "baseline_rtrain": {
+        "r2": 0.3372,
+        "mae": 2.31,
+        "rho": 0.5406,
+        "n": 55
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3424,
+            "mae": 2.094,
+            "rho": 0.5762,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4677,
+            "mae": 1.942,
+            "rho": 0.6265,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3673,
+            "mae": 2.228,
+            "rho": 0.5736,
+            "n": 55
+          },
+          "delta_all_r2": -0.0042,
+          "delta_recent_r2": 0.0069,
+          "delta_rtrain_r2": 0.0301,
+          "delta_all_mae": -0.006,
+          "delta_rtrain_mae": -0.082
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3412,
+            "mae": 2.094,
+            "rho": 0.5769,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4586,
+            "mae": 1.959,
+            "rho": 0.6184,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3386,
+            "mae": 2.303,
+            "rho": 0.5356,
+            "n": 55
+          },
+          "delta_all_r2": -0.0054,
+          "delta_recent_r2": -0.0022,
+          "delta_rtrain_r2": 0.0014,
+          "delta_all_mae": -0.006,
+          "delta_rtrain_mae": -0.007
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.3368,
+            "mae": 2.096,
+            "rho": 0.5643,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4353,
+            "mae": 1.939,
+            "rho": 0.5872,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3376,
+            "mae": 2.151,
+            "rho": 0.483,
+            "n": 55
+          },
+          "delta_all_r2": -0.0098,
+          "delta_recent_r2": -0.0255,
+          "delta_rtrain_r2": 0.0004,
+          "delta_all_mae": -0.004,
+          "delta_rtrain_mae": -0.159
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3441,
+            "mae": 2.101,
+            "rho": 0.5736,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4496,
+            "mae": 1.944,
+            "rho": 0.6035,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3274,
+            "mae": 2.293,
+            "rho": 0.5289,
+            "n": 55
+          },
+          "delta_all_r2": -0.0025,
+          "delta_recent_r2": -0.0112,
+          "delta_rtrain_r2": -0.0098,
+          "delta_all_mae": 0.001,
+          "delta_rtrain_mae": -0.017
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3427,
+            "mae": 2.096,
+            "rho": 0.5766,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.463,
+            "mae": 1.963,
+            "rho": 0.6203,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3488,
+            "mae": 2.288,
+            "rho": 0.5551,
+            "n": 55
+          },
+          "delta_all_r2": -0.0039,
+          "delta_recent_r2": 0.0022,
+          "delta_rtrain_r2": 0.0116,
+          "delta_all_mae": -0.004,
+          "delta_rtrain_mae": -0.022
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3484,
+            "mae": 2.096,
+            "rho": 0.5783,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4607,
+            "mae": 1.937,
+            "rho": 0.6222,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3388,
+            "mae": 2.303,
+            "rho": 0.54,
+            "n": 55
+          },
+          "delta_all_r2": 0.0018,
+          "delta_recent_r2": -0.0001,
+          "delta_rtrain_r2": 0.0016,
+          "delta_all_mae": -0.004,
+          "delta_rtrain_mae": -0.007
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3313,
+            "mae": 2.101,
+            "rho": 0.5583,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4377,
+            "mae": 1.925,
+            "rho": 0.5852,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3576,
+            "mae": 2.093,
+            "rho": 0.5057,
+            "n": 55
+          },
+          "delta_all_r2": -0.0153,
+          "delta_recent_r2": -0.0231,
+          "delta_rtrain_r2": 0.0204,
+          "delta_all_mae": 0.001,
+          "delta_rtrain_mae": -0.217
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3466,
+          "mae": 2.1,
+          "rho": 0.5782,
+          "n": 209
+        },
+        "recent": {
+          "r2": 0.4608,
+          "mae": 1.943,
+          "rho": 0.6236,
+          "n": 55
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    }
+  }
+}
