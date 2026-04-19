@@ -1,0 +1,2561 @@
+{
+  "is_post_draft": false,
+  "results": {
+    "QB": {
+      "baseline_all": {
+        "r2": 0.3335,
+        "mae": 4.371,
+        "rho": 0.557,
+        "n": 134
+      },
+      "baseline_recent": {
+        "r2": 0.2853,
+        "mae": 3.926,
+        "rho": 0.4428,
+        "n": 36
+      },
+      "baseline_rtrain": {
+        "r2": -0.0399,
+        "mae": 5.056,
+        "rho": 0.2125,
+        "n": 36
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3332,
+            "mae": 4.358,
+            "rho": 0.5601,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2854,
+            "mae": 3.891,
+            "rho": 0.4822,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0368,
+            "mae": 4.816,
+            "rho": 0.2464,
+            "n": 36
+          },
+          "delta_all_r2": -0.0003,
+          "delta_recent_r2": 0.0001,
+          "delta_rtrain_r2": 0.0767,
+          "delta_all_mae": -0.013,
+          "delta_rtrain_mae": -0.24
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3075,
+            "mae": 4.462,
+            "rho": 0.5328,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.1826,
+            "mae": 4.2,
+            "rho": 0.4169,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": -0.051,
+            "mae": 4.996,
+            "rho": 0.2909,
+            "n": 36
+          },
+          "delta_all_r2": -0.026,
+          "delta_recent_r2": -0.1027,
+          "delta_rtrain_r2": -0.0111,
+          "delta_all_mae": 0.091,
+          "delta_rtrain_mae": -0.06
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.2927,
+            "mae": 4.489,
+            "rho": 0.5153,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.1213,
+            "mae": 4.287,
+            "rho": 0.3736,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.0552,
+            "mae": 4.667,
+            "rho": 0.2953,
+            "n": 36
+          },
+          "delta_all_r2": -0.0408,
+          "delta_recent_r2": -0.164,
+          "delta_rtrain_r2": 0.0951,
+          "delta_all_mae": 0.118,
+          "delta_rtrain_mae": -0.389
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3292,
+            "mae": 4.383,
+            "rho": 0.5487,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.2688,
+            "mae": 3.948,
+            "rho": 0.4414,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": -0.0151,
+            "mae": 4.95,
+            "rho": 0.2421,
+            "n": 36
+          },
+          "delta_all_r2": -0.0043,
+          "delta_recent_r2": -0.0165,
+          "delta_rtrain_r2": 0.0248,
+          "delta_all_mae": 0.012,
+          "delta_rtrain_mae": -0.106
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3137,
+            "mae": 4.441,
+            "rho": 0.5323,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.211,
+            "mae": 4.132,
+            "rho": 0.4131,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": -0.0413,
+            "mae": 5.062,
+            "rho": 0.2125,
+            "n": 36
+          },
+          "delta_all_r2": -0.0198,
+          "delta_recent_r2": -0.0743,
+          "delta_rtrain_r2": -0.0014,
+          "delta_all_mae": 0.07,
+          "delta_rtrain_mae": 0.006
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3329,
+            "mae": 4.374,
+            "rho": 0.5575,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.283,
+            "mae": 3.933,
+            "rho": 0.4472,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": -0.0474,
+            "mae": 5.082,
+            "rho": 0.2208,
+            "n": 36
+          },
+          "delta_all_r2": -0.0006,
+          "delta_recent_r2": -0.0023,
+          "delta_rtrain_r2": -0.0075,
+          "delta_all_mae": 0.003,
+          "delta_rtrain_mae": 0.026
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.2923,
+            "mae": 4.48,
+            "rho": 0.5203,
+            "n": 134
+          },
+          "recent": {
+            "r2": 0.1191,
+            "mae": 4.262,
+            "rho": 0.3858,
+            "n": 36
+          },
+          "rtrain": {
+            "r2": 0.1174,
+            "mae": 4.43,
+            "rho": 0.4114,
+            "n": 36
+          },
+          "delta_all_r2": -0.0412,
+          "delta_recent_r2": -0.1662,
+          "delta_rtrain_r2": 0.1573,
+          "delta_all_mae": 0.109,
+          "delta_rtrain_mae": -0.626
+        }
+      },
+      "boom_bust_baseline": {
+        "all": {
+          "boom_rho": -0.0167,
+          "bust_auc": 0.5917,
+          "n": 134
+        },
+        "recent": {
+          "boom_rho": -0.3989,
+          "bust_auc": 0.4549,
+          "n": 36
+        }
+      },
+      "boom_bust_variants": {
+        "boom_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": -0.0486,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.4151,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0319,
+          "delta_recent_rho": -0.0162
+        },
+        "boom_sentiment": {
+          "keys": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": -0.0834,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.4705,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0667,
+          "delta_recent_rho": -0.0716
+        },
+        "boom_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags"
+          ],
+          "all": {
+            "boom_rho": -0.0423,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3932,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0256,
+          "delta_recent_rho": 0.0057
+        },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0378,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3596,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0211,
+          "delta_recent_rho": 0.0393
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0351,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3707,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0184,
+          "delta_recent_rho": 0.0282
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0118,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3678,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": 0.0049,
+          "delta_recent_rho": 0.0311
+        },
+        "boom_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfTierElite",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": -0.0528,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.4384,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0361,
+          "delta_recent_rho": -0.0395
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.068,
+            "bust_auc": 0.5917,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.4074,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_rho": -0.0513,
+          "delta_recent_rho": -0.0085
+        },
+        "bust_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.6025,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.441,
+            "n": 36
+          },
+          "delta_all_auc": 0.0108,
+          "delta_recent_auc": -0.0139
+        },
+        "bust_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.5961,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4479,
+            "n": 36
+          },
+          "delta_all_auc": 0.0044,
+          "delta_recent_auc": -0.007
+        },
+        "bust_weakness": {
+          "keys": [
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.5971,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.434,
+            "n": 36
+          },
+          "delta_all_auc": 0.0054,
+          "delta_recent_auc": -0.0209
+        },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.6013,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_auc": 0.0096,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.6055,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_auc": 0.0138,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.6013,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4549,
+            "n": 36
+          },
+          "delta_all_auc": 0.0096,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.6102,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4375,
+            "n": 36
+          },
+          "delta_all_auc": 0.0185,
+          "delta_recent_auc": -0.0174
+        },
+        "bust_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.5815,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4236,
+            "n": 36
+          },
+          "delta_all_auc": -0.0102,
+          "delta_recent_auc": -0.0313
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0167,
+            "bust_auc": 0.5899,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3989,
+            "bust_auc": 0.4201,
+            "n": 36
+          },
+          "delta_all_auc": -0.0018,
+          "delta_recent_auc": -0.0348
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3335,
+          "mae": 4.371,
+          "rho": 0.557,
+          "n": 134
+        },
+        "recent": {
+          "r2": 0.2853,
+          "mae": 3.926,
+          "rho": 0.4428,
+          "n": 36
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "RB": {
+      "baseline_all": {
+        "r2": 0.3851,
+        "mae": 3.308,
+        "rho": 0.5393,
+        "n": 314
+      },
+      "baseline_recent": {
+        "r2": 0.3389,
+        "mae": 3.652,
+        "rho": 0.4386,
+        "n": 79
+      },
+      "baseline_rtrain": {
+        "r2": 0.2964,
+        "mae": 3.769,
+        "rho": 0.407,
+        "n": 79
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3851,
+            "mae": 3.308,
+            "rho": 0.5393,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3389,
+            "mae": 3.652,
+            "rho": 0.4386,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2964,
+            "mae": 3.769,
+            "rho": 0.407,
+            "n": 79
+          },
+          "delta_all_r2": 0.0,
+          "delta_recent_r2": 0.0,
+          "delta_rtrain_r2": 0.0,
+          "delta_all_mae": 0.0,
+          "delta_rtrain_mae": 0.0
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3818,
+            "mae": 3.337,
+            "rho": 0.5421,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3312,
+            "mae": 3.689,
+            "rho": 0.4563,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2629,
+            "mae": 3.868,
+            "rho": 0.4171,
+            "n": 79
+          },
+          "delta_all_r2": -0.0033,
+          "delta_recent_r2": -0.0077,
+          "delta_rtrain_r2": -0.0335,
+          "delta_all_mae": 0.029,
+          "delta_rtrain_mae": 0.099
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.3701,
+            "mae": 3.362,
+            "rho": 0.5307,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.2968,
+            "mae": 3.8,
+            "rho": 0.434,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2271,
+            "mae": 3.988,
+            "rho": 0.3941,
+            "n": 79
+          },
+          "delta_all_r2": -0.015,
+          "delta_recent_r2": -0.0421,
+          "delta_rtrain_r2": -0.0693,
+          "delta_all_mae": 0.054,
+          "delta_rtrain_mae": 0.219
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3747,
+            "mae": 3.333,
+            "rho": 0.5222,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3033,
+            "mae": 3.767,
+            "rho": 0.3771,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2516,
+            "mae": 3.889,
+            "rho": 0.3617,
+            "n": 79
+          },
+          "delta_all_r2": -0.0104,
+          "delta_recent_r2": -0.0356,
+          "delta_rtrain_r2": -0.0448,
+          "delta_all_mae": 0.025,
+          "delta_rtrain_mae": 0.12
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3816,
+            "mae": 3.329,
+            "rho": 0.5447,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3301,
+            "mae": 3.657,
+            "rho": 0.454,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.3034,
+            "mae": 3.751,
+            "rho": 0.425,
+            "n": 79
+          },
+          "delta_all_r2": -0.0035,
+          "delta_recent_r2": -0.0088,
+          "delta_rtrain_r2": 0.007,
+          "delta_all_mae": 0.021,
+          "delta_rtrain_mae": -0.018
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3849,
+            "mae": 3.309,
+            "rho": 0.5395,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.3379,
+            "mae": 3.654,
+            "rho": 0.436,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.2961,
+            "mae": 3.767,
+            "rho": 0.408,
+            "n": 79
+          },
+          "delta_all_r2": -0.0002,
+          "delta_recent_r2": -0.001,
+          "delta_rtrain_r2": -0.0003,
+          "delta_all_mae": 0.001,
+          "delta_rtrain_mae": -0.002
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3641,
+            "mae": 3.383,
+            "rho": 0.527,
+            "n": 314
+          },
+          "recent": {
+            "r2": 0.275,
+            "mae": 3.846,
+            "rho": 0.4444,
+            "n": 79
+          },
+          "rtrain": {
+            "r2": 0.1736,
+            "mae": 4.098,
+            "rho": 0.3565,
+            "n": 79
+          },
+          "delta_all_r2": -0.021,
+          "delta_recent_r2": -0.0639,
+          "delta_rtrain_r2": -0.1228,
+          "delta_all_mae": 0.075,
+          "delta_rtrain_mae": 0.329
+        }
+      },
+      "boom_bust_baseline": {
+        "all": {
+          "boom_rho": 0.16,
+          "bust_auc": 0.4889,
+          "n": 314
+        },
+        "recent": {
+          "boom_rho": 0.0675,
+          "bust_auc": 0.4586,
+          "n": 79
+        }
+      },
+      "boom_bust_variants": {
+        "boom_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_sentiment": {
+          "keys": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.1517,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0488,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": -0.0083,
+          "delta_recent_rho": -0.0187
+        },
+        "boom_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.1609,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": 0.0009,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1605,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": -0.0034,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": 0.0005,
+          "delta_recent_rho": -0.0709
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1584,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0095,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": -0.0016,
+          "delta_recent_rho": -0.058
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1462,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": -0.0002,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": -0.0138,
+          "delta_recent_rho": -0.0677
+        },
+        "boom_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfTierElite",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.154,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0312,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": -0.006,
+          "delta_recent_rho": -0.0363
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1658,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0333,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_rho": 0.0058,
+          "delta_recent_rho": -0.0342
+        },
+        "bust_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.5025,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4876,
+            "n": 79
+          },
+          "delta_all_auc": 0.0136,
+          "delta_recent_auc": 0.029
+        },
+        "bust_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4889,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4586,
+            "n": 79
+          },
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
+        },
+        "bust_weakness": {
+          "keys": [
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.5012,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4786,
+            "n": 79
+          },
+          "delta_all_auc": 0.0123,
+          "delta_recent_auc": 0.02
+        },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.5039,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4697,
+            "n": 79
+          },
+          "delta_all_auc": 0.015,
+          "delta_recent_auc": 0.0111
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.5078,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4869,
+            "n": 79
+          },
+          "delta_all_auc": 0.0189,
+          "delta_recent_auc": 0.0283
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.5039,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4697,
+            "n": 79
+          },
+          "delta_all_auc": 0.015,
+          "delta_recent_auc": 0.0111
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4863,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4434,
+            "n": 79
+          },
+          "delta_all_auc": -0.0026,
+          "delta_recent_auc": -0.0152
+        },
+        "bust_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4897,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.4297,
+            "n": 79
+          },
+          "delta_all_auc": 0.0008,
+          "delta_recent_auc": -0.0289
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.16,
+            "bust_auc": 0.4882,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0675,
+            "bust_auc": 0.411,
+            "n": 79
+          },
+          "delta_all_auc": -0.0007,
+          "delta_recent_auc": -0.0476
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3851,
+          "mae": 3.308,
+          "rho": 0.5393,
+          "n": 314
+        },
+        "recent": {
+          "r2": 0.3389,
+          "mae": 3.652,
+          "rho": 0.4386,
+          "n": 79
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "WR": {
+      "baseline_all": {
+        "r2": 0.3364,
+        "mae": 3.013,
+        "rho": 0.5582,
+        "n": 455
+      },
+      "baseline_recent": {
+        "r2": 0.2759,
+        "mae": 2.876,
+        "rho": 0.4887,
+        "n": 116
+      },
+      "baseline_rtrain": {
+        "r2": 0.217,
+        "mae": 2.955,
+        "rho": 0.4281,
+        "n": 116
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3357,
+            "mae": 3.025,
+            "rho": 0.5518,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2685,
+            "mae": 2.92,
+            "rho": 0.4687,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.2107,
+            "mae": 2.971,
+            "rho": 0.4159,
+            "n": 116
+          },
+          "delta_all_r2": -0.0007,
+          "delta_recent_r2": -0.0074,
+          "delta_rtrain_r2": -0.0063,
+          "delta_all_mae": 0.012,
+          "delta_rtrain_mae": 0.016
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3311,
+            "mae": 3.033,
+            "rho": 0.5501,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2546,
+            "mae": 2.94,
+            "rho": 0.4618,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.2133,
+            "mae": 2.956,
+            "rho": 0.4137,
+            "n": 116
+          },
+          "delta_all_r2": -0.0053,
+          "delta_recent_r2": -0.0213,
+          "delta_rtrain_r2": -0.0037,
+          "delta_all_mae": 0.02,
+          "delta_rtrain_mae": 0.001
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.3364,
+            "mae": 3.013,
+            "rho": 0.5582,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2759,
+            "mae": 2.876,
+            "rho": 0.4887,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.217,
+            "mae": 2.955,
+            "rho": 0.4281,
+            "n": 116
+          },
+          "delta_all_r2": 0.0,
+          "delta_recent_r2": 0.0,
+          "delta_rtrain_r2": 0.0,
+          "delta_all_mae": 0.0,
+          "delta_rtrain_mae": 0.0
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3383,
+            "mae": 3.02,
+            "rho": 0.5565,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2819,
+            "mae": 2.893,
+            "rho": 0.4945,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.224,
+            "mae": 2.928,
+            "rho": 0.4372,
+            "n": 116
+          },
+          "delta_all_r2": 0.0019,
+          "delta_recent_r2": 0.006,
+          "delta_rtrain_r2": 0.007,
+          "delta_all_mae": 0.007,
+          "delta_rtrain_mae": -0.027
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3338,
+            "mae": 3.022,
+            "rho": 0.5536,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2737,
+            "mae": 2.882,
+            "rho": 0.4866,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.217,
+            "mae": 2.953,
+            "rho": 0.4296,
+            "n": 116
+          },
+          "delta_all_r2": -0.0026,
+          "delta_recent_r2": -0.0022,
+          "delta_rtrain_r2": 0.0,
+          "delta_all_mae": 0.009,
+          "delta_rtrain_mae": -0.002
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3341,
+            "mae": 3.018,
+            "rho": 0.5556,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2741,
+            "mae": 2.879,
+            "rho": 0.4845,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.2069,
+            "mae": 2.961,
+            "rho": 0.4246,
+            "n": 116
+          },
+          "delta_all_r2": -0.0023,
+          "delta_recent_r2": -0.0018,
+          "delta_rtrain_r2": -0.0101,
+          "delta_all_mae": 0.005,
+          "delta_rtrain_mae": 0.006
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3317,
+            "mae": 3.046,
+            "rho": 0.5489,
+            "n": 455
+          },
+          "recent": {
+            "r2": 0.2561,
+            "mae": 2.974,
+            "rho": 0.4617,
+            "n": 116
+          },
+          "rtrain": {
+            "r2": 0.2117,
+            "mae": 2.968,
+            "rho": 0.4144,
+            "n": 116
+          },
+          "delta_all_r2": -0.0047,
+          "delta_recent_r2": -0.0198,
+          "delta_rtrain_r2": -0.0053,
+          "delta_all_mae": 0.033,
+          "delta_rtrain_mae": 0.013
+        }
+      },
+      "boom_bust_baseline": {
+        "all": {
+          "boom_rho": 0.0723,
+          "bust_auc": 0.5387,
+          "n": 455
+        },
+        "recent": {
+          "boom_rho": -0.0019,
+          "bust_auc": 0.5238,
+          "n": 116
+        }
+      },
+      "boom_bust_variants": {
+        "boom_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.0681,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0042,
+          "delta_recent_rho": 0.0
+        },
+        "boom_sentiment": {
+          "keys": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.0597,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.051,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0126,
+          "delta_recent_rho": -0.0491
+        },
+        "boom_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0719,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.0372,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0004,
+          "delta_recent_rho": 0.0391
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0663,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.0128,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.006,
+          "delta_recent_rho": 0.0147
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0709,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.0131,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0014,
+          "delta_recent_rho": 0.015
+        },
+        "boom_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfTierElite",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.0374,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0942,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0349,
+          "delta_recent_rho": -0.0923
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.045,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0773,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_rho": -0.0273,
+          "delta_recent_rho": -0.0754
+        },
+        "bust_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5245,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_auc": -0.0142,
+          "delta_recent_auc": 0.0
+        },
+        "bust_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5339,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5335,
+            "n": 116
+          },
+          "delta_all_auc": -0.0048,
+          "delta_recent_auc": 0.0097
+        },
+        "bust_weakness": {
+          "keys": [
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5186,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.4962,
+            "n": 116
+          },
+          "delta_all_auc": -0.0201,
+          "delta_recent_auc": -0.0276
+        },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.523,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5418,
+            "n": 116
+          },
+          "delta_all_auc": -0.0157,
+          "delta_recent_auc": 0.018
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5387,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5238,
+            "n": 116
+          },
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5388,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5561,
+            "n": 116
+          },
+          "delta_all_auc": 0.0001,
+          "delta_recent_auc": 0.0323
+        },
+        "bust_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.511,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.4852,
+            "n": 116
+          },
+          "delta_all_auc": -0.0277,
+          "delta_recent_auc": -0.0386
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0723,
+            "bust_auc": 0.5309,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": -0.0019,
+            "bust_auc": 0.5168,
+            "n": 116
+          },
+          "delta_all_auc": -0.0078,
+          "delta_recent_auc": -0.007
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3364,
+          "mae": 3.013,
+          "rho": 0.5582,
+          "n": 455
+        },
+        "recent": {
+          "r2": 0.2759,
+          "mae": 2.876,
+          "rho": 0.4887,
+          "n": 116
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    },
+    "TE": {
+      "baseline_all": {
+        "r2": 0.3564,
+        "mae": 2.085,
+        "rho": 0.5735,
+        "n": 209
+      },
+      "baseline_recent": {
+        "r2": 0.4538,
+        "mae": 1.956,
+        "rho": 0.6192,
+        "n": 55
+      },
+      "baseline_rtrain": {
+        "r2": 0.3603,
+        "mae": 2.251,
+        "rho": 0.5589,
+        "n": 55
+      },
+      "variants": {
+        "rank_only": {
+          "features": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all_yrs": {
+            "r2": 0.3504,
+            "mae": 2.085,
+            "rho": 0.5713,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.453,
+            "mae": 1.964,
+            "rho": 0.6113,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3851,
+            "mae": 2.168,
+            "rho": 0.572,
+            "n": 55
+          },
+          "delta_all_r2": -0.006,
+          "delta_recent_r2": -0.0008,
+          "delta_rtrain_r2": 0.0248,
+          "delta_all_mae": 0.0,
+          "delta_rtrain_mae": -0.083
+        },
+        "round_only": {
+          "features": [
+            "pdfProjectedRound",
+            "pdfHasRound"
+          ],
+          "all_yrs": {
+            "r2": 0.3493,
+            "mae": 2.086,
+            "rho": 0.5719,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4427,
+            "mae": 1.988,
+            "rho": 0.6173,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3531,
+            "mae": 2.26,
+            "rho": 0.5443,
+            "n": 55
+          },
+          "delta_all_r2": -0.0071,
+          "delta_recent_r2": -0.0111,
+          "delta_rtrain_r2": -0.0072,
+          "delta_all_mae": 0.001,
+          "delta_rtrain_mae": 0.009
+        },
+        "sentiment": {
+          "features": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfSentimentNet"
+          ],
+          "all_yrs": {
+            "r2": 0.346,
+            "mae": 2.086,
+            "rho": 0.5623,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4308,
+            "mae": 1.969,
+            "rho": 0.5859,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3253,
+            "mae": 2.184,
+            "rho": 0.4727,
+            "n": 55
+          },
+          "delta_all_r2": -0.0104,
+          "delta_recent_r2": -0.023,
+          "delta_rtrain_r2": -0.035,
+          "delta_all_mae": 0.001,
+          "delta_rtrain_mae": -0.067
+        },
+        "injury": {
+          "features": [
+            "pdfInjuryRedFlags"
+          ],
+          "all_yrs": {
+            "r2": 0.3526,
+            "mae": 2.093,
+            "rho": 0.5688,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4408,
+            "mae": 1.964,
+            "rho": 0.6082,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3509,
+            "mae": 2.233,
+            "rho": 0.5425,
+            "n": 55
+          },
+          "delta_all_r2": -0.0038,
+          "delta_recent_r2": -0.013,
+          "delta_rtrain_r2": -0.0094,
+          "delta_all_mae": 0.008,
+          "delta_rtrain_mae": -0.018
+        },
+        "consensus": {
+          "features": [
+            "pdfNSources",
+            "pdfHasData"
+          ],
+          "all_yrs": {
+            "r2": 0.3511,
+            "mae": 2.087,
+            "rho": 0.5714,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4485,
+            "mae": 1.988,
+            "rho": 0.61,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3643,
+            "mae": 2.241,
+            "rho": 0.5585,
+            "n": 55
+          },
+          "delta_all_r2": -0.0053,
+          "delta_recent_r2": -0.0053,
+          "delta_rtrain_r2": 0.004,
+          "delta_all_mae": 0.002,
+          "delta_rtrain_mae": -0.01
+        },
+        "tier_elite": {
+          "features": [
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3563,
+            "mae": 2.087,
+            "rho": 0.574,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4539,
+            "mae": 1.955,
+            "rho": 0.6189,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3596,
+            "mae": 2.246,
+            "rho": 0.5569,
+            "n": 55
+          },
+          "delta_all_r2": -0.0001,
+          "delta_recent_r2": 0.0001,
+          "delta_rtrain_r2": -0.0007,
+          "delta_all_mae": 0.002,
+          "delta_rtrain_mae": -0.005
+        },
+        "all_numeric": {
+          "features": [
+            "pdfHasData",
+            "pdfNSources",
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfProjectedRound",
+            "pdfHasRound",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfSentimentNet",
+            "pdfTierElite"
+          ],
+          "all_yrs": {
+            "r2": 0.3386,
+            "mae": 2.093,
+            "rho": 0.5531,
+            "n": 209
+          },
+          "recent": {
+            "r2": 0.4305,
+            "mae": 1.945,
+            "rho": 0.5666,
+            "n": 55
+          },
+          "rtrain": {
+            "r2": 0.3475,
+            "mae": 2.117,
+            "rho": 0.4935,
+            "n": 55
+          },
+          "delta_all_r2": -0.0178,
+          "delta_recent_r2": -0.0233,
+          "delta_rtrain_r2": -0.0128,
+          "delta_all_mae": 0.008,
+          "delta_rtrain_mae": -0.134
+        }
+      },
+      "boom_bust_baseline": {
+        "all": {
+          "boom_rho": 0.0935,
+          "bust_auc": 0.5584,
+          "n": 209
+        },
+        "recent": {
+          "boom_rho": 0.3016,
+          "bust_auc": 0.624,
+          "n": 55
+        }
+      },
+      "boom_bust_variants": {
+        "boom_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_sentiment": {
+          "keys": [
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.0772,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2246,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.0163,
+          "delta_recent_rho": -0.077
+        },
+        "boom_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.0877,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.0058,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0805,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2791,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.013,
+          "delta_recent_rho": -0.0225
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1007,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2416,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": 0.0072,
+          "delta_recent_rho": -0.06
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0915,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2509,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.002,
+          "delta_recent_rho": -0.0507
+        },
+        "boom_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfTierElite",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.0884,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2421,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.0051,
+          "delta_recent_rho": -0.0595
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0692,
+            "bust_auc": 0.5584,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2529,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_rho": -0.0243,
+          "delta_recent_rho": -0.0487
+        },
+        "bust_redflags": {
+          "keys": [
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5324,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6066,
+            "n": 55
+          },
+          "delta_all_auc": -0.026,
+          "delta_recent_auc": -0.0174
+        },
+        "bust_rank": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5337,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6318,
+            "n": 55
+          },
+          "delta_all_auc": -0.0247,
+          "delta_recent_auc": 0.0078
+        },
+        "bust_weakness": {
+          "keys": [
+            "pdfNWeaknesses",
+            "pdfSentimentNet"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5315,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.5814,
+            "n": 55
+          },
+          "delta_all_auc": -0.0269,
+          "delta_recent_auc": -0.0426
+        },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5458,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_auc": -0.0126,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5509,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6027,
+            "n": 55
+          },
+          "delta_all_auc": -0.0075,
+          "delta_recent_auc": -0.0213
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5458,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.624,
+            "n": 55
+          },
+          "delta_all_auc": -0.0126,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5455,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6163,
+            "n": 55
+          },
+          "delta_all_auc": -0.0129,
+          "delta_recent_auc": -0.0077
+        },
+        "bust_all": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfHasData"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5522,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6027,
+            "n": 55
+          },
+          "delta_all_auc": -0.0062,
+          "delta_recent_auc": -0.0213
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0935,
+            "bust_auc": 0.5463,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.3016,
+            "bust_auc": 0.6066,
+            "n": 55
+          },
+          "delta_all_auc": -0.0121,
+          "delta_recent_auc": -0.0174
+        }
+      },
+      "gap_fill": {
+        "all_yrs": {
+          "r2": 0.3564,
+          "mae": 2.085,
+          "rho": 0.5735,
+          "n": 209
+        },
+        "recent": {
+          "r2": 0.4538,
+          "mae": 1.956,
+          "rho": 0.6192,
+          "n": 55
+        },
+        "delta_all_r2": 0.0,
+        "delta_recent_r2": 0.0,
+        "n_rows_filled_any_pos": 259
+      }
+    }
+  }
+}

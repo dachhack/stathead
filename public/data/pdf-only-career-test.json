@@ -1,0 +1,282 @@
+{
+  "results": {
+    "QB": {
+      "draft_pick": {
+        "r2": -0.0325,
+        "mae": 4.698,
+        "rho": 0.2824,
+        "n": 36,
+        "feature_count": 2
+      },
+      "pdf_only": {
+        "r2": 0.191,
+        "mae": 4.519,
+        "rho": 0.5415,
+        "n": 36,
+        "feature_count": 12
+      },
+      "pdf_plus_pick": {
+        "r2": 0.1738,
+        "mae": 4.328,
+        "rho": 0.4598,
+        "n": 36,
+        "feature_count": 13
+      },
+      "shipped_full": {
+        "r2": -0.0399,
+        "mae": 5.056,
+        "rho": 0.2125,
+        "n": 36,
+        "feature_count": 6
+      },
+      "pdf_only_importance": [
+        {
+          "key": "pdfNStrengths",
+          "importance": 0.3928,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfProjectedRound",
+          "importance": 0.3198,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfRankOverallMax",
+          "importance": 0.0886,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMin",
+          "importance": 0.083,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfSentimentNet",
+          "importance": 0.0623,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMean",
+          "importance": 0.0493,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNRedFlags",
+          "importance": 0.0042,
+          "direction": "negative"
+        }
+      ]
+    },
+    "RB": {
+      "draft_pick": {
+        "r2": 0.2276,
+        "mae": 3.855,
+        "rho": 0.4169,
+        "n": 79,
+        "feature_count": 2
+      },
+      "pdf_only": {
+        "r2": -0.0145,
+        "mae": 4.528,
+        "rho": 0.19,
+        "n": 79,
+        "feature_count": 10
+      },
+      "pdf_plus_pick": {
+        "r2": 0.2089,
+        "mae": 4.035,
+        "rho": 0.3787,
+        "n": 79,
+        "feature_count": 11
+      },
+      "shipped_full": {
+        "r2": 0.2223,
+        "mae": 3.984,
+        "rho": 0.4069,
+        "n": 79,
+        "feature_count": 6
+      },
+      "pdf_only_importance": [
+        {
+          "key": "pdfProjectedRound",
+          "importance": 0.4862,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfHasRank",
+          "importance": 0.1892,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNRedFlags",
+          "importance": 0.146,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMean",
+          "importance": 0.1244,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNStrengths",
+          "importance": 0.0371,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfNWeaknesses",
+          "importance": 0.0111,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfSentimentNet",
+          "importance": 0.006,
+          "direction": "negative"
+        }
+      ]
+    },
+    "WR": {
+      "draft_pick": {
+        "r2": 0.2406,
+        "mae": 2.958,
+        "rho": 0.416,
+        "n": 116,
+        "feature_count": 2
+      },
+      "pdf_only": {
+        "r2": 0.1653,
+        "mae": 3.128,
+        "rho": 0.3757,
+        "n": 116,
+        "feature_count": 12
+      },
+      "pdf_plus_pick": {
+        "r2": 0.2438,
+        "mae": 2.952,
+        "rho": 0.4355,
+        "n": 116,
+        "feature_count": 13
+      },
+      "shipped_full": {
+        "r2": 0.217,
+        "mae": 2.955,
+        "rho": 0.4281,
+        "n": 116,
+        "feature_count": 16
+      },
+      "pdf_only_importance": [
+        {
+          "key": "pdfHasRank",
+          "importance": 0.2498,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMean",
+          "importance": 0.1534,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMin",
+          "importance": 0.1209,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMax",
+          "importance": 0.1186,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNStrengths",
+          "importance": 0.0854,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNRedFlags",
+          "importance": 0.084,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfProjectedRound",
+          "importance": 0.0745,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfSentimentNet",
+          "importance": 0.0614,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNWeaknesses",
+          "importance": 0.052,
+          "direction": "positive"
+        }
+      ]
+    },
+    "TE": {
+      "draft_pick": {
+        "r2": 0.3181,
+        "mae": 2.181,
+        "rho": 0.5702,
+        "n": 55,
+        "feature_count": 2
+      },
+      "pdf_only": {
+        "r2": 0.1384,
+        "mae": 2.384,
+        "rho": 0.3095,
+        "n": 55,
+        "feature_count": 10
+      },
+      "pdf_plus_pick": {
+        "r2": 0.2327,
+        "mae": 2.239,
+        "rho": 0.4388,
+        "n": 55,
+        "feature_count": 11
+      },
+      "shipped_full": {
+        "r2": 0.1954,
+        "mae": 2.553,
+        "rho": 0.4403,
+        "n": 55,
+        "feature_count": 6
+      },
+      "pdf_only_importance": [
+        {
+          "key": "pdfHasRank",
+          "importance": 0.6497,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfRankOverallMean",
+          "importance": 0.131,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfSentimentNet",
+          "importance": 0.0854,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfProjectedRound",
+          "importance": 0.0727,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfNRedFlags",
+          "importance": 0.0409,
+          "direction": "positive"
+        },
+        {
+          "key": "pdfNWeaknesses",
+          "importance": 0.019,
+          "direction": "negative"
+        },
+        {
+          "key": "pdfNStrengths",
+          "importance": 0.0013,
+          "direction": "positive"
+        }
+      ]
+    }
+  }
+}
