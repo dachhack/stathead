@@ -33,6 +33,7 @@ public/data/*
 !public/data/cfbd/*.json
 !public/data/pdf-prospect-features.json
 !public/data/pdf-prospect-features-merged.json
+!public/data/rsp-historical-rankings.json
 .claude/*
 !.claude/commands/
 !.claude/commands/**
