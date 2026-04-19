@@ -17,6 +17,10 @@ public/data/*
 !public/data/residual-hyperparam-sweep.json
 !public/data/ktc-feature-ablation.json
 !public/data/ktc-hyperparam-sweep.json
+!public/data/pdf-career-ablation-predraft.json
+!public/data/pdf-career-ablation-postdraft.json
+!public/data/pdf-only-career-test.json
+!public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
 !public/data/cfbd-college-stats.json
@@ -29,9 +33,12 @@ public/data/*
 !public/data/cfbd/*.json
 !public/data/pdf-prospect-features.json
 !public/data/pdf-prospect-features-merged.json
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 CLAUDE.local.md
 __pycache__/
 .nflverse-cache/
 .cache/
+.venv/
 pdfs/

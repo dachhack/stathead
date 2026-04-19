@@ -266,8 +266,8 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v69.json`,
-    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v1.json`,
+    career: `${MODEL_DIR}/model-cache-career-v72.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v4.json`,
     lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
   };
 
@@ -745,6 +745,106 @@ async function main() {
       fetchCfbdPlayerUsage().catch(() => ({})),
     ]);
     const cfbdKey = (name: string) => name.replace(/[^a-z0-9]+/g, '');
+
+    // PDF scouting index (The Beast / RSP / Late-Round Guide) mirroring
+    // train_career_models.py::_load_pdf_index. Ships the same numeric
+    // features used in the RB/WR pre-draft feature lists so prospect
+    // scoring uses the same inputs as the LOSO backtest.
+    const pdfIndex: Record<string, {
+      rank_overall_mean?: number | null;
+      strengths?: string[];
+      weaknesses?: string[];
+      red_flags?: string[];
+      position?: string;
+    }> = {};
+    try {
+      const pdfRaw = JSON.parse(readFileSync('public/data/pdf-prospect-features-merged.json', 'utf-8'));
+      const normPdfName = (n: string) => n.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      for (const p of pdfRaw) {
+        const k = `${normPdfName(p.player_name)}::${p.position}`;
+        pdfIndex[k] = p;
+        // Position-agnostic fallback for scouting/fantasy TE/OL mismatches.
+        const nameOnly = normPdfName(p.player_name);
+        if (!pdfIndex[nameOnly]) pdfIndex[nameOnly] = p;
+      }
+    } catch {
+      // PDF file is optional — prospects just get zero-filled features.
+    }
+    const lookupPdf = (name: string, position: string) => {
+      const norm = name.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      return pdfIndex[`${norm}::${position}`] || pdfIndex[norm];
+    };
+    // Mirror train_career_models.py::_derive_pdf_features. Must stay in
+    // lock-step so the PlayerCard, feature-matrix JSON, and career model
+    // cache all agree on every pdf* key. Disagreement features that
+    // depend on per-position cohort moments (recruit_production_gap,
+    // athletic_production_gap) are computed on the Python side inside
+    // score_prospect_boom_bust and left zero here.
+    interface PdfEntry {
+      rank_overall_mean?: number | null;
+      rank_overall_min?: number | null;
+      rank_overall_max?: number | null;
+      projected_round_mean?: number | null;
+      strengths?: string[];
+      weaknesses?: string[];
+      red_flags?: string[];
+      position?: string;
+    }
+    const derivePdfFeatures = (name: string, position: string): Record<string, number> => {
+      const p = lookupPdf(name, position) as PdfEntry | undefined;
+      if (!p) {
+        return {
+          pdfHasData: 0,
+          pdfRankOverallMean: 0, pdfRankOverallMin: 0, pdfRankOverallMax: 0,
+          pdfRankSpread: 0, pdfProjectedRound: 0,
+          pdfHasRank: 0, pdfHasRound: 0,
+          pdfNStrengths: 0, pdfNWeaknesses: 0, pdfNRedFlags: 0,
+          pdfSentimentNet: 0,
+        };
+      }
+      const nStr = (p.strengths || []).length;
+      const nWk = (p.weaknesses || []).length;
+      const nRf = (p.red_flags || []).length;
+      const mean = p.rank_overall_mean ?? 0;
+      const min = p.rank_overall_min ?? 0;
+      const max = p.rank_overall_max ?? 0;
+      const round = p.projected_round_mean ?? 0;
+      return {
+        pdfHasData: 1,
+        pdfRankOverallMean: mean,
+        pdfRankOverallMin: min,
+        pdfRankOverallMax: max,
+        pdfRankSpread: (max != null && min != null) ? max - min : 0,
+        pdfProjectedRound: round,
+        pdfHasRank: p.rank_overall_mean != null ? 1 : 0,
+        pdfHasRound: p.projected_round_mean != null ? 1 : 0,
+        pdfNStrengths: nStr,
+        pdfNWeaknesses: nWk,
+        pdfNRedFlags: nRf,
+        pdfSentimentNet: nStr - nWk - 2 * nRf,
+      };
+    };
+    // Disagreement features derivable from PDF + draft inputs alone (no
+    // cohort moments needed). Attached to every prospect record so the
+    // PlayerCard can surface the same disagreement signal the boom/bust
+    // model uses. recruit_production_gap / athletic_production_gap are
+    // set by score_prospect_boom_bust during the Python scoring pass.
+    const computeDisagreementFromPdf = (
+      pdfF: Record<string, number>, pick: number, round: number,
+    ): Record<string, number> => {
+      const safePick = Math.max(1, pick || 300);
+      const safeRound = round || 7;
+      const pdfRank = pdfF.pdfRankOverallMean || 0;
+      const projRound = pdfF.pdfProjectedRound || 0;
+      return {
+        pdfRankXPick: pdfRank > 0 ? Math.log(pdfRank) - Math.log(safePick) : 0,
+        pdfRoundXActual: projRound > 0 ? projRound - safeRound : 0,
+      };
+    };
     // School → drafted players lookup
     const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
     for (const dp of draftPicks) {
@@ -942,6 +1042,27 @@ async function main() {
           if (!storedFeatures.collegeQBR) storedFeatures.collegeQBR = prospectQBRLatest.get(nName) || 0;
           if (!storedFeatures.collegeQBR2yr) storedFeatures.collegeQBR2yr = prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0;
 
+          // PDF scouting features — mirrors attach in train_career_models.py
+          // load_career_rows. Per-position feature lists decide which keys
+          // the model uses (see PRE_DRAFT_ROOKIE_FEATURES in featureTypes.ts
+          // / PRE_DRAFT_FEATURES in train_career_models.py); we populate
+          // every key so the PlayerCard popover surfaces them consistently.
+          const pdfF = derivePdfFeatures(prospect.name, pos);
+          for (const [k, v] of Object.entries(pdfF)) {
+            if (storedFeatures[k] === undefined) storedFeatures[k] = v as number;
+          }
+          // Disagreement features that are computable from PDF + draft inputs
+          // alone. recruit_production_gap / athletic_production_gap need
+          // cohort moments and are attached by the Python scorer.
+          const disag = computeDisagreementFromPdf(
+            pdfF,
+            (storedFeatures.nflDraftPick as number) || (storedProspect.projPick || 300),
+            (storedFeatures.nflDraftRound as number) || (storedProspect.projRound || 7),
+          );
+          for (const [k, v] of Object.entries(disag)) {
+            if (storedFeatures[k] === undefined) storedFeatures[k] = v as number;
+          }
+
           // RAS + combine-data flags. buildProspectFeatureRecord doesn't
           // compute these (only the nflverse path did), so graded prospects
           // always showed "RAS 0" and missing combine flags. Compute RAS by
@@ -1125,6 +1246,16 @@ async function main() {
           if (seasons.length === 0) return 0;
           const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
           return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.rush || 0;
+        })(),
+        // PDF scouting features — see PRE/POST_DRAFT_FEATURES in
+        // train_career_models.py. Zero-filled for unmatched prospects.
+        // Disagreement pair (pdfRankXPick, pdfRoundXActual) is computed
+        // inline because it only needs PDF + draft inputs; the
+        // production-gap disagreements are filled by the Python scorer.
+        ...(() => {
+          const pdfF = derivePdfFeatures(prospect.name, pos);
+          const disag = computeDisagreementFromPdf(pdfF, projPick, prospect.projRound || 8);
+          return { ...pdfF, ...disag };
         })(),
         ...(() => {
           // Career aggregates used for QB context features AND the new

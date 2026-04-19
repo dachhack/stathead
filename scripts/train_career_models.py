@@ -37,31 +37,59 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 CACHE_PATH = Path('public/data/training-rows-cache-v48.json')
 OUTPUT_DIR = Path('public/data')
-PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
-POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
+PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v72.json'
+POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v4.json'
+
+# PDF scouting features extracted from The Beast / RSP / Late-Round Guide
+# via scripts/extract_pdf_features.py + scripts/merge_pdf_features.py.
+# Covers only 2022-2026 draft classes — pre-2022 rookies get zero-filled
+# PDF features and rely on the has-indicator for the model to handle them.
+# Ablation: scripts/test_pdf_career_features.py (findings in
+# docs/pdf-career-feature-test.md) — ships the winners per-position.
+PDF_FEATURES_PATH = OUTPUT_DIR / 'pdf-prospect-features-merged.json'
 
 PRE_DRAFT_FEATURES = {
     # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
     # class is not the same talent signal as a #1 pick in a loaded one.
     # CFBD-feature ablation (2026-04): recruitStars/Rating + team talent +
     # usage all marginal-to-negative for QB; kept the lean 6-feature set.
+    # PDF adds (scripts/test_qb_beast_features.py, forward-select): scout
+    # consensus rank is the cleanest QB Beast signal — +0.001 R² all-yrs
+    # and +0.077 R² in the 2022-25 era. pdfHasRank is the missing-data
+    # indicator the GBM needs to distinguish "rank=0 means missing"
+    # (pre-2022 rookies) from "rank=0 means elite".
     'QB': ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
-           'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
+           'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore',
+           'pdfRankOverallMean', 'pdfHasRank'],
     # RB: CFBD ablation winners. collegeUsageOverall (PPA-based % of team
     # plays) lifted R² +0.029 alone; recruitRating (247 composite) adds
     # another +0.008 on top for a +0.037 gain over the v48 baseline. The
     # usage signal is the biggest non-draft-capital feature for RB —
     # directly captures "featured back" vs "committee back" out of college.
+    # RB: CFBD additions above, plus 2026-04 PDF scouting A/B:
+    # pdfRankOverallMean (consensus scout rank across The Beast, 2022-25)
+    # lifted R² +0.008 all-yrs / +0.028 inside the PDF era over the CFBD
+    # baseline — biggest non-draft-capital add since collegeUsageOverall.
+    # pdfHasRank is the "missing-data" indicator so pre-2022 zero-fills
+    # don't look like a #0-ranked (elite) prospect to the model.
     'RB': ['logDraftPick', 'collegeDominatorXLateRound',
-           'collegeUsageOverall', 'recruitRating'],
+           'collegeUsageOverall', 'recruitRating',
+           'pdfRankOverallMean', 'pdfHasRank'],
     # WR: recruitStars (247 composite, 1-5) added +0.011 R². Other CFBD
     # features were either redundant with existing college production
-    # features or hurt R² once recruitStars was in.
+    # features or hurt R² once recruitStars was in. 2026-04 PDF A/B:
+    # rank features are already captured by draft capital + college
+    # production (+0.000 ΔR²), but the qualitative sentiment family
+    # (#strengths / #weaknesses / #red_flags and a weighted net score)
+    # lifted R² +0.006 all-yrs / +0.021 PDF-era. Red flags are weighted
+    # 2× in pdfSentimentNet — a scout-flagged concern is harder signal
+    # than a plain "weakness" bullet.
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
            'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
            'collegeBestRecYds',
            'weight', 'collegeTeammateScore',
-           'relativeAthleticScore', 'recruitStars'],
+           'relativeAthleticScore', 'recruitStars',
+           'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'],
     # TE: recruitStars also wins for TE (+0.015 R²). TEs are notoriously
     # hard to project — the 247 composite grabs high-upside athletes the
     # lean draft-capital feature set was missing.
@@ -77,8 +105,11 @@ POST_DRAFT_FEATURES = {
     # QB: vegasImpliedTotal, teamPace, depthChartRank all hurt or flat.
     # Only teamSamePosCount earned its keep (+0.003). QBs are first-on-the-field
     # so most "team context" features barely matter for their projection.
+    # PDF-disagreement adds (2026-04 forward-select): pdfRankXPick + pdfRoundXActual
+    # capture scout-vs-NFL draft disagreement and lift R² +0.002 on
+    # all-yrs when paired with the pre-draft PDF rank pair.
     'QB': PRE_DRAFT_FEATURES['QB'] + [
-        'teamSamePosCount'],
+        'teamSamePosCount', 'pdfRankXPick', 'pdfRoundXActual'],
     # RB: dropped depthChartRank (-0.002) and teamPace (-0.006). qbOwnPPG was
     # the standout (+0.011) — RB scoring tracks how much the QB contributes
     # to team rushing volume (mobile QB → fewer carries for the RB).
@@ -86,8 +117,14 @@ POST_DRAFT_FEATURES = {
         'teamSamePosCount', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
     # WR: every post-draft feature added value, projTeamPassAtt biggest at
     # +0.027. WR career projection benefits most from team-context features
-    # because target volume is so team-driven.
-    'WR': PRE_DRAFT_FEATURES['WR'] + [
+    # because target volume is so team-driven. Note: PDF sentiment features
+    # are pre-draft-only for WR — post-draft A/B showed Δ-0.0003 all-yrs
+    # and -0.009 score≥22 once team-context features were present. The
+    # scouting sentiment was already being proxied by landing-spot context
+    # post-draft, so it stopped adding marginal value. Drop explicitly.
+    'WR': [f for f in PRE_DRAFT_FEATURES['WR']
+           if f not in ('pdfNStrengths', 'pdfNWeaknesses',
+                        'pdfNRedFlags', 'pdfSentimentNet')] + [
         'depthChartRank', 'teamSamePosCount',
         'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
     # TE: kept depthChartRank (+0.008), vegasImpliedTotal (+0.008),
@@ -112,6 +149,383 @@ POS_HYPERPARAMS = {
     'TE': {'ridge_alpha': 20, 'n_estimators': 80,  'lr': 0.04, 'max_depth': 2, 'min_child': 15},
 }
 
+# ── Per-position boom/bust feature lists ──────────────────────────────
+# Boom (gap regression) and bust (binary classifier) used to share one
+# global feature list across positions, which prevented shipping a
+# disagreement signal that helped one position but hurt another at small
+# sample. 2026-04 ablation (scripts/test_pdf_career_features.py) found:
+#   - WR boom benefits from talent-disagreement features
+#     (recruitProductionGap, athleticProductionGap), +0.007 ρ all-yrs.
+#   - QB bust benefits from scout-disagreement features
+#     (pdfRankSpread, pdfRankXPick, pdfRoundXActual), +0.021 AUC.
+#   - RB bust benefits from PDF weakness counts AND talent-disagreement
+#     (pdfNWeaknesses + pdfSentimentNet + recruitProductionGap +
+#     athleticProductionGap), +0.019/+0.028 in pre-draft.
+#   - TE: nothing consistent at n=55 PDF-era; left alone.
+# Each base list mirrors the pre-2026-04 GAP_FEAT_NAMES / BUST_FEAT_NAMES.
+_GAP_BASE = [
+    'ras', 'speed', 'height_speed', 'forty', 'weight', 'cone', 'shuttle',
+    'best_rec', 'dominator', 'breakout', 'market_share', 'total_tds',
+    'age', 'early_declare', 'experience', 'seasons',
+    'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
+    'best_season_vs_pick',
+    'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
+    'recruit_rating', 'college_usage', 'team_talent', 'recruit_vs_pick',
+    'qbr', 'ypa', 'qb_context',
+    'qbr_vs_pick', 'ypa_vs_pick', 'qb_context_vs_pick',
+]
+BOOM_GAP_FEATURES_BY_POS = {
+    # QB boom A/B (2026-04 round 3): pdfRankOverallMean + pdfHasRank +
+    # athletic_production_gap lifted ρ_boom +0.045 all-yrs and +0.081
+    # in the PDF era vs the bare base list.
+    'QB': _GAP_BASE + ['pdfRankOverallMean', 'pdfHasRank', 'athletic_production_gap'],
+    'RB': list(_GAP_BASE),
+    'WR': _GAP_BASE + ['recruit_production_gap', 'athletic_production_gap'],
+    'TE': list(_GAP_BASE),
+}
+_BUST_BASE = [
+    'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
+    'forty', 'weight', 'age',
+    'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
+    'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
+    'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+    'hasCombineData', 'hasCollegeStats',
+    'predictedPPG', 'nflDraftPick',
+    'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
+    'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
+    'collegeQBR2yr', 'collegeQbContextScore',
+]
+BUST_FEATURES_BY_POS = {
+    # QB bust: round 2 shipped the scout-disagreement trio (pdfRankSpread,
+    # pdfRankXPick, pdfRoundXActual). Round 3 re-test found pdfRankSpread
+    # contributed zero gain at n=134 (QBs are usually ranked by one source)
+    # and the pair pdfRankOverallMean + pdfHasRank added +0.0003 AUC all-yrs
+    # and +0.070 AUC in the 2022-25 era. Swapping in the simpler pair.
+    'QB': _BUST_BASE + ['pdfRankXPick', 'pdfRoundXActual',
+                        'pdfRankOverallMean', 'pdfHasRank'],
+    'RB': _BUST_BASE + ['pdfNWeaknesses', 'pdfSentimentNet',
+                        'recruit_production_gap', 'athletic_production_gap'],
+    'WR': _BUST_BASE + ['recruit_production_gap', 'athletic_production_gap'],
+    'TE': list(_BUST_BASE),
+}
+
+# ── PDF scouting features ─────────────────────────────────────────────
+
+# Name suffixes stripped before matching (Jr./III/etc. in roster names
+# don't appear consistently in scouting PDFs).
+_PDF_NAME_SUFFIXES = (' sr', ' jr', ' iii', ' ii', ' iv')
+
+
+def _norm_pdf_name(n: str) -> str:
+    s = n.lower().strip()
+    s = s.replace('.', '').replace("'", '').replace('-', ' ').replace('`', '')
+    for suffix in _PDF_NAME_SUFFIXES:
+        if s.endswith(suffix):
+            s = s[:-len(suffix)].strip()
+    return ' '.join(s.split())
+
+
+# Mirror derive_pdf_features() in scripts/test_pdf_career_features.py.
+# Values are zero when PDF record is missing; paired *Has* indicators let
+# tree models separate "no PDF data" from a legitimate zero-valued field.
+# pdfRankSpread (max - min across source PDFs) is the scout-internal
+# disagreement signal used by the QB bust model.
+_EMPTY_PDF_FEATURES = {
+    'pdfHasData': 0,
+    'pdfRankOverallMean': 0.0,
+    'pdfRankOverallMin': 0.0,
+    'pdfRankOverallMax': 0.0,
+    'pdfRankSpread': 0.0,
+    'pdfProjectedRound': 0.0,
+    'pdfHasRank': 0,
+    'pdfNStrengths': 0,
+    'pdfNWeaknesses': 0,
+    'pdfNRedFlags': 0,
+    'pdfSentimentNet': 0,
+}
+
+
+def _derive_pdf_features(p: dict | None) -> dict:
+    if p is None:
+        return dict(_EMPTY_PDF_FEATURES)
+    strengths = p.get('strengths') or []
+    weaknesses = p.get('weaknesses') or []
+    red_flags = p.get('red_flags') or []
+    rank_mean = p.get('rank_overall_mean')
+    rank_min = p.get('rank_overall_min')
+    rank_max = p.get('rank_overall_max')
+    proj_round = p.get('projected_round_mean')
+    rank_spread = (float(rank_max) - float(rank_min)) \
+        if rank_max is not None and rank_min is not None else 0.0
+    return {
+        'pdfHasData': 1,
+        'pdfRankOverallMean': float(rank_mean) if rank_mean is not None else 0.0,
+        'pdfRankOverallMin': float(rank_min) if rank_min is not None else 0.0,
+        'pdfRankOverallMax': float(rank_max) if rank_max is not None else 0.0,
+        'pdfRankSpread': rank_spread,
+        'pdfProjectedRound': float(proj_round) if proj_round is not None else 0.0,
+        'pdfHasRank': 1 if rank_mean is not None else 0,
+        'pdfNStrengths': len(strengths),
+        'pdfNWeaknesses': len(weaknesses),
+        'pdfNRedFlags': len(red_flags),
+        # Red flags weighted 2× — a scout-called concern is harder signal
+        # than a plain "weakness" bullet.
+        'pdfSentimentNet': len(strengths) - len(weaknesses) - 2 * len(red_flags),
+    }
+
+
+def _load_pdf_index(path: Path) -> dict:
+    """Return (name, position) → PDF record, with a name-only fallback list.
+
+    Missing file is non-fatal — callers still get zero-filled features.
+    """
+    if not path.exists():
+        print(f"  [pdf] {path} not found — PDF features will be zero-filled")
+        return {'by_key': {}, 'by_name': {}}
+    with open(path) as f:
+        entries = json.load(f)
+    by_key = {}
+    by_name: dict[str, list] = {}
+    for p in entries:
+        name = _norm_pdf_name(p['player_name'])
+        pos = p.get('position')
+        by_key[(name, pos)] = p
+        by_name.setdefault(name, []).append(p)
+    print(f"  [pdf] loaded {len(entries)} prospects from {path.name}")
+    return {'by_key': by_key, 'by_name': by_name}
+
+
+def _lookup_pdf(idx: dict, name: str, position: str):
+    nn = _norm_pdf_name(name)
+    entry = idx['by_key'].get((nn, position))
+    if entry is not None:
+        return entry
+    # Name-only fallback for scouting/fantasy position mismatches.
+    cands = idx['by_name'].get(nn, [])
+    return cands[0] if len(cands) == 1 else None
+
+
+# ── Disagreement features ─────────────────────────────────────────────
+# Two-feature disagreement signals — when two channels that should agree
+# don't, that gap is itself signal. Computed once at load_career_rows
+# time so per-position z-scoring uses the full-cohort statistics. Used
+# in BUST_FEATURES_BY_POS (RB, WR) and BOOM_GAP_FEATURES_BY_POS (WR).
+#
+# Coverage notes:
+#  - pdfRankXPick / pdfRoundXActual: nonzero only for 2022-2025 rookies
+#    (PDF era). Pre-2022 rows zero-fill; the GBM treats this as a
+#    distinct missing-data band.
+#  - recruit_production_gap: nonzero only when both recruitRating and
+#    collegeMarketShare are present (~40-50% of historical rows).
+#  - athletic_production_gap: nonzero when both speedScore and
+#    collegeDominatorRating exist (~60% of historical rows).
+def _safe_num(v) -> float:
+    if v is None or v == '' or v == 'NA' or v == 'NaN':
+        return 0.0
+    try:
+        n = float(v)
+        return n if math.isfinite(n) else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _safe_log(v: float) -> float:
+    return float(math.log(v)) if v and v > 0 else 0.0
+
+
+def _zscore_per_pos(rows: list, key: str) -> dict:
+    """Per-position (mean, std) using nonzero values only."""
+    by_pos: dict = {}
+    for r in rows:
+        v = _safe_num(r['features'].get(key, 0))
+        if v != 0:
+            by_pos.setdefault(r['position'], []).append(v)
+    moments = {}
+    for pos, vals in by_pos.items():
+        if len(vals) < 5:
+            moments[pos] = (0.0, 1.0)
+        else:
+            m = float(np.mean(vals))
+            s = float(np.std(vals)) or 1.0
+            moments[pos] = (m, s)
+    return moments
+
+
+def _attach_disagreement_features(career_rows: list) -> None:
+    """Compute and attach scout-vs-NFL and recruit-vs-production gaps.
+
+    Per-position z-scoring so a 0.92 recruit composite reads "elite TE"
+    vs "good WR" — the disagreement is against position-mates, not the
+    global pool.
+    """
+    recruit_m = _zscore_per_pos(career_rows, 'recruitRating')
+    market_m = _zscore_per_pos(career_rows, 'collegeMarketShare')
+    speed_m = _zscore_per_pos(career_rows, 'speedScore')
+    dom_m = _zscore_per_pos(career_rows, 'collegeDominatorRating')
+
+    def _z(val: float, pos: str, moments: dict) -> float:
+        if val == 0:
+            return 0.0
+        m, s = moments.get(pos, (0.0, 1.0))
+        return (val - m) / s
+
+    for r in career_rows:
+        f = r['features']
+        pos = r['position']
+        pick = max(1.0, _safe_num(f.get('nflDraftPick', 300)))
+        draft_round = _safe_num(f.get('nflDraftRound', 7)) or 7.0
+        pdf_rank = _safe_num(f.get('pdfRankOverallMean', 0))
+        proj_round = _safe_num(f.get('pdfProjectedRound', 0))
+
+        # Scout-vs-NFL disagreement. Big positive pdfRankXPick = scouts
+        # ranked the player worse than the NFL pick implies (overdraft).
+        f['pdfRankXPick'] = (_safe_log(pdf_rank) - _safe_log(pick)) if pdf_rank > 0 else 0.0
+        f['pdfRoundXActual'] = (proj_round - draft_round) if proj_round > 0 else 0.0
+
+        # Talent-vs-production disagreement.
+        recruit = _safe_num(f.get('recruitRating', 0))
+        market = _safe_num(f.get('collegeMarketShare', 0))
+        speed = _safe_num(f.get('speedScore', 0))
+        dom = _safe_num(f.get('collegeDominatorRating', 0))
+        f['recruit_production_gap'] = (
+            _z(recruit, pos, recruit_m) - _z(market, pos, market_m)
+            if recruit > 0 and market > 0 else 0.0
+        )
+        f['athletic_production_gap'] = (
+            _z(speed, pos, speed_m) - _z(dom, pos, dom_m)
+            if speed > 0 and dom > 0 else 0.0
+        )
+
+
+# ── Boom (gap) signal computation ─────────────────────────────────────
+# Returns a dict of all candidate gap signals; per-position lists in
+# BOOM_GAP_FEATURES_BY_POS pick from this dict. Same computation
+# regardless of position — selection happens at training-time only.
+def _compute_gap_signals(f: dict) -> dict:
+    sf = _safe_num
+    pick = max(1.0, sf(f.get('nflDraftPick', 300)))
+    log_pick = math.log(pick)
+
+    ras = sf(f.get('relativeAthleticScore', 0))
+    speed = sf(f.get('speedScore', 0))
+    height_speed = sf(f.get('heightAdjSpeedScore', 0))
+    best_rec = sf(f.get('collegeBestRecYds', 0))
+    dominator = sf(f.get('collegeDominatorRating', 0))
+    breakout = sf(f.get('collegeBreakoutScore', 0))
+    market_share = sf(f.get('collegeMarketShare', 0))
+    total_tds = sf(f.get('collegeTotalTDs', 0))
+    age = sf(f.get('age', 0))
+    early_declare = sf(f.get('collegeEarlyDeclare', 0))
+    experience = sf(f.get('collegeExperiencePerAge', 0))
+    seasons = sf(f.get('collegeSeasons', 0))
+    forty = sf(f.get('forty', 0))
+    wt = sf(f.get('weight', 0))
+    cone = sf(f.get('cone', 0))
+    shuttle = sf(f.get('shuttle', 0))
+    college_games = sf(f.get('collegeGames', 0))
+    breakout_age = sf(f.get('collegeBreakoutAge', 0))
+    recruit_rating = sf(f.get('recruitRating', 0))
+    college_usage = sf(f.get('collegeUsageOverall', 0))
+    team_talent = sf(f.get('collegeTeamTalent', 0))
+    qbr = sf(f.get('collegeQBR2yr', 0))
+    ypa = sf(f.get('collegeYdsPerPassAtt', 0))
+    qb_context = sf(f.get('collegeQbContextScore', 0))
+
+    games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
+    return {
+        'ras': ras, 'speed': speed, 'height_speed': height_speed,
+        'forty': forty, 'weight': wt, 'cone': cone, 'shuttle': shuttle,
+        'best_rec': best_rec, 'dominator': dominator, 'breakout': breakout,
+        'market_share': market_share, 'total_tds': total_tds,
+        'age': age, 'early_declare': early_declare,
+        'experience': experience, 'seasons': seasons,
+        'ras_vs_pick': (ras - (10 - log_pick)) if ras > 0 else 0,
+        'speed_vs_pick': (speed - (120 - pick * 0.3)) if speed > 0 else 0,
+        'production_vs_pick': (dominator / max(1, log_pick)) if dominator > 0 else 0,
+        'best_season_vs_pick': (best_rec / max(1, pick)) if best_rec > 0 else 0,
+        'low_games': 1 if 0 < games_per_season < 10 else 0,
+        'early_declare_late': early_declare * log_pick,
+        'games_per_season': games_per_season,
+        'recent_breakout': 1 if breakout_age > 0 and age > 0 and (age - breakout_age) <= 1 else 0,
+        'recruit_rating': recruit_rating, 'college_usage': college_usage,
+        'team_talent': team_talent,
+        'recruit_vs_pick': (recruit_rating / max(1, log_pick)) if recruit_rating > 0 else 0,
+        'qbr': qbr, 'ypa': ypa, 'qb_context': qb_context,
+        'qbr_vs_pick': (qbr / max(1, log_pick)) if qbr > 0 else 0,
+        'ypa_vs_pick': (ypa - (8 - log_pick * 0.5)) if ypa > 0 else 0,
+        'qb_context_vs_pick': (qb_context / max(1, log_pick * 1000)) if qb_context > 0 else 0,
+        # Disagreement features — populated in _attach_disagreement_features
+        # at load time. Read from the stored feature dict so backtest +
+        # standalone scoring share the same values.
+        'recruit_production_gap': sf(f.get('recruit_production_gap', 0)),
+        'athletic_production_gap': sf(f.get('athletic_production_gap', 0)),
+        # Raw PDF signals used by the QB boom/bust gap lists. Pass-through
+        # from the features dict (populated by _derive_pdf_features during
+        # load_career_rows); zero for pre-2022 rookies.
+        'pdfRankOverallMean': sf(f.get('pdfRankOverallMean', 0)),
+        'pdfHasRank': sf(f.get('pdfHasRank', 0)),
+    }
+
+
+# ── Bust signal computation ───────────────────────────────────────────
+# Same dict-of-signals shape. predicted_ppg and the per-fold avg_speed_hit
+# / avg_dom_hit are passed in because they're computed inside train_position
+# from the LOSO fold's hits (not stable across re-runs of standalone scoring).
+def _compute_bust_signals(f: dict, predicted_ppg: float,
+                           avg_speed_hit: float = 100.0,
+                           avg_dom_hit: float = 30.0) -> dict:
+    sf = _safe_num
+    speed = sf(f.get('speedScore', 0))
+    ras = sf(f.get('relativeAthleticScore', 0))
+    hspeed = sf(f.get('heightAdjSpeedScore', 0))
+    forty = sf(f.get('forty', 0))
+    wt = sf(f.get('weight', 0))
+    age = sf(f.get('age', 0))
+    dom = sf(f.get('collegeDominatorRating', 0))
+    best_rec = sf(f.get('collegeBestRecYds', 0))
+    breakout = sf(f.get('collegeBreakoutScore', 0))
+    mkt = sf(f.get('collegeMarketShare', 0))
+    tds = sf(f.get('collegeTotalTDs', 0))
+    rec_share = sf(f.get('collegeReceptionShare', 0))
+    exp = sf(f.get('collegeExperiencePerAge', 0))
+    seasons = sf(f.get('collegeSeasons', 0))
+    early = sf(f.get('collegeEarlyDeclare', 0))
+    pick = sf(f.get('nflDraftPick', 300))
+
+    return {
+        'speedScore': speed, 'relativeAthleticScore': ras,
+        'heightAdjSpeedScore': hspeed, 'forty': forty, 'weight': wt, 'age': age,
+        'collegeDominatorRating': dom, 'collegeBestRecYds': best_rec,
+        'collegeBreakoutScore': breakout, 'collegeMarketShare': mkt,
+        'collegeTotalTDs': tds, 'collegeReceptionShare': rec_share,
+        'collegeExperiencePerAge': exp, 'collegeSeasons': seasons,
+        'collegeEarlyDeclare': early,
+        'hasCombineData': 1 if speed > 0 or forty > 0 else 0,
+        'hasCollegeStats': 1 if dom > 0 or best_rec > 0 else 0,
+        'predictedPPG': predicted_ppg, 'nflDraftPick': pick,
+        'speed_deficit': (speed - avg_speed_hit) if speed > 0 else -20,
+        'production_deficit': (dom - avg_dom_hit) if dom > 0 else -15,
+        'age_for_draft': age - 21 if age > 0 else 0,
+        'missing_data_count': (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0),
+        'recruitRating': sf(f.get('recruitRating', 0)),
+        'collegeUsageOverall': sf(f.get('collegeUsageOverall', 0)),
+        'collegeTeamTalent': sf(f.get('collegeTeamTalent', 0)),
+        'collegeQBR2yr': sf(f.get('collegeQBR2yr', 0)),
+        'collegeQbContextScore': sf(f.get('collegeQbContextScore', 0)),
+        # PDF + disagreement signals (populated for 2022-25 rookies; zero
+        # otherwise). Picked up by per-position BUST_FEATURES_BY_POS.
+        'pdfNWeaknesses': sf(f.get('pdfNWeaknesses', 0)),
+        'pdfSentimentNet': sf(f.get('pdfSentimentNet', 0)),
+        'pdfRankSpread': sf(f.get('pdfRankSpread', 0)),
+        'pdfRankXPick': sf(f.get('pdfRankXPick', 0)),
+        'pdfRoundXActual': sf(f.get('pdfRoundXActual', 0)),
+        'pdfRankOverallMean': sf(f.get('pdfRankOverallMean', 0)),
+        'pdfHasRank': sf(f.get('pdfHasRank', 0)),
+        'recruit_production_gap': sf(f.get('recruit_production_gap', 0)),
+        'athletic_production_gap': sf(f.get('athletic_production_gap', 0)),
+    }
+
+
 # ── Data Loading ──────────────────────────────────────────────────────
 
 def load_career_rows(cache_path: Path) -> pd.DataFrame:
@@ -119,6 +533,7 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
     with open(cache_path) as f:
         data = json.load(f)
     rows = data['rows']
+    pdf_idx = _load_pdf_index(PDF_FEATURES_PATH)
 
     # Build games lookup from priorGames
     career_games = {}
@@ -216,6 +631,14 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         f['collegeCompletionPctOverTeam'] = round(f['collegeCompletionPct'] - team_comp, 3) if f['collegeCompletionPct'] > 0 and team_comp > 0 else 0
         f['collegeYdsPerCompletion'] = round(raw_py / raw_pc, 2) if raw_pc > 0 else 0
 
+        # PDF scouting features — The Beast / RSP / Late-Round Guide
+        # consensus. Zero-filled for pre-2022 classes; pdfHasData /
+        # pdfHasRank let the GBM distinguish "no data" from the zero
+        # endpoint of each continuous field.
+        f.update(_derive_pdf_features(
+            _lookup_pdf(pdf_idx, entry['name'], entry['position'])
+        ))
+
         career_rows.append({
             'name': entry['name'],
             'position': entry['position'],
@@ -223,6 +646,10 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
             'best2of3': best2of3,
             'features': f,
         })
+
+    # Disagreement features depend on per-position z-scoring across the
+    # full cohort, so they're a second pass after every row is built.
+    _attach_disagreement_features(career_rows)
 
     return career_rows
 
@@ -283,7 +710,15 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     use_recency = recency_scheme is not None
 
     # College-only companion model for WR/RB pre-draft (catches late-round breakouts)
-    DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick', 'draftPickXEarlyDeclare', 'collegeDominatorXLateRound'}
+    # pdfRankOverallMean / pdfHasRank are treated as draft-capital-adjacent
+    # so the late-round-breakout companion model ignores them. Scout
+    # consensus rank correlates strongly with pick and pulls the companion
+    # away from the pure college-production signal it's meant to capture.
+    # Also prevents RB companion from auto-activating (≥4 college-only
+    # keys threshold) when we add the scout-rank pair.
+    DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick',
+                          'draftPickXEarlyDeclare', 'collegeDominatorXLateRound',
+                          'pdfRankOverallMean', 'pdfHasRank'}
     college_only_keys = [k for k in feature_keys if k not in DRAFT_CAPITAL_KEYS]
     use_companion = not is_post_draft and len(college_only_keys) >= 4 and pos in ('WR', 'RB')
     N_BAGS = 5  # bagged LightGBM ensemble
@@ -493,95 +928,12 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     actual_ranks = np.argsort(np.argsort([d['actual'] for d in loso_data])) / n
     outperformance = actual_ranks - pred_ranks
 
+    GAP_FEAT_NAMES = BOOM_GAP_FEATURES_BY_POS.get(pos, _GAP_BASE)
+
     def _build_gap_features(d_item):
-        """Build talent-vs-draft gap features for outperformance model.
-
-        2026-04 update: dropped prospect_grade / grade_vs_pick — A/B test
-        confirmed recruit_rating (247 composite) dominates them in every
-        position's feature importance. Added QB-specific signals
-        (qbr, ypa, qb_context + vs_pick variants) so QB boom/bust isn't
-        limited to receiver-shaped college production features.
-        """
-        f = d_item.get('all_features', {})
-        pick = max(1, _safe_float(f.get('nflDraftPick', 300)))
-        log_pick = math.log(pick)
-
-        # Raw talent signals
-        ras = _safe_float(f.get('relativeAthleticScore', 0))
-        speed = _safe_float(f.get('speedScore', 0))
-        height_speed = _safe_float(f.get('heightAdjSpeedScore', 0))
-        best_rec = _safe_float(f.get('collegeBestRecYds', 0))
-        dominator = _safe_float(f.get('collegeDominatorRating', 0))
-        breakout = _safe_float(f.get('collegeBreakoutScore', 0))
-        market_share = _safe_float(f.get('collegeMarketShare', 0))
-        total_tds = _safe_float(f.get('collegeTotalTDs', 0))
-        age = _safe_float(f.get('age', 0))
-        early_declare = _safe_float(f.get('collegeEarlyDeclare', 0))
-        experience = _safe_float(f.get('collegeExperiencePerAge', 0))
-        seasons = _safe_float(f.get('collegeSeasons', 0))
-        forty = _safe_float(f.get('forty', 0))
-        wt = _safe_float(f.get('weight', 0))
-        cone = _safe_float(f.get('cone', 0))
-        shuttle = _safe_float(f.get('shuttle', 0))
-        college_games = _safe_float(f.get('collegeGames', 0))
-        breakout_age = _safe_float(f.get('collegeBreakoutAge', 0))
-        # CFBD-sourced signals — ~95% training coverage, replacing the old
-        # prospect_grade channel which was 6-29% covered and deadweight
-        # in every A/B.
-        recruit_rating = _safe_float(f.get('recruitRating', 0))
-        college_usage = _safe_float(f.get('collegeUsageOverall', 0))
-        team_talent = _safe_float(f.get('collegeTeamTalent', 0))
-        # QB-specific talent signals. Generic rec/rush "production" features
-        # are noisy for QBs (dual-threat rushing contaminated by scheme);
-        # these direct QB measures give the boom model QB-relevant inputs.
-        qbr = _safe_float(f.get('collegeQBR2yr', 0))
-        ypa = _safe_float(f.get('collegeYdsPerPassAtt', 0))
-        qb_context = _safe_float(f.get('collegeQbContextScore', 0))
-
-        # Gap features: talent signal minus what draft position implies
-        ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
-        speed_vs_pick = (speed - (120 - pick * 0.3)) if speed > 0 else 0
-        production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
-        best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
-        # recruit_vs_pick: 247 composite (0.7-1.0) scaled by log_pick so a
-        # 5-star drafted late looks like underperformance-of-rating relative
-        # to draft slot. Shape mirrors production_vs_pick (talent / log_pick).
-        recruit_vs_pick = (recruit_rating / max(1, log_pick)) if recruit_rating > 0 else 0
-        # QB-specific vs_pick: nonzero only for QBs (other positions have
-        # 0 qbr/ypa). Same 'talent / log_pick' shape.
-        qbr_vs_pick = (qbr / max(1, log_pick)) if qbr > 0 else 0
-        ypa_vs_pick = (ypa - (8 - log_pick * 0.5)) if ypa > 0 else 0
-        qb_context_vs_pick = (qb_context / max(1, log_pick * 1000)) if qb_context > 0 else 0
-
-        # Injury/adversity proxies
-        games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
-        low_games = 1 if games_per_season > 0 and games_per_season < 10 else 0
-        early_declare_late = early_declare * log_pick
-        recent_breakout = 1 if breakout_age > 0 and age > 0 and (age - breakout_age) <= 1 else 0
-
-        return [
-            ras, speed, height_speed, forty, wt, cone, shuttle,
-            best_rec, dominator, breakout, market_share, total_tds,
-            age, early_declare, experience, seasons,
-            ras_vs_pick, speed_vs_pick, production_vs_pick,
-            best_season_vs_pick,
-            low_games, early_declare_late, games_per_season, recent_breakout,
-            recruit_rating, college_usage, team_talent, recruit_vs_pick,
-            qbr, ypa, qb_context,
-            qbr_vs_pick, ypa_vs_pick, qb_context_vs_pick,
-        ]
-
-    GAP_FEAT_NAMES = [
-        'ras', 'speed', 'height_speed', 'forty', 'weight', 'cone', 'shuttle',
-        'best_rec', 'dominator', 'breakout', 'market_share', 'total_tds',
-        'age', 'early_declare', 'experience', 'seasons',
-        'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
-        'best_season_vs_pick',
-        'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
-        'recruit_rating', 'college_usage', 'team_talent', 'recruit_vs_pick',
-        'qbr', 'ypa', 'qb_context',
-        'qbr_vs_pick', 'ypa_vs_pick', 'qb_context_vs_pick',
-    ]
+        """Wrap _compute_gap_signals() and select per-position keys."""
+        sig = _compute_gap_signals(d_item.get('all_features', {}))
+        return [sig[k] for k in GAP_FEAT_NAMES]
 
     X_gap = np.nan_to_num(np.array([_build_gap_features(d) for d in loso_data], dtype=np.float64))
     outperf_preds = np.zeros(n)
@@ -617,60 +969,13 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     avg_speed_hit = float(np.mean([_safe_float(d['all_features'].get('speedScore', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('speedScore', 0)) > 0])) if hits_in_top else 100
     avg_dom_hit = float(np.mean([_safe_float(d['all_features'].get('collegeDominatorRating', 0)) for d in hits_in_top if _safe_float(d['all_features'].get('collegeDominatorRating', 0)) > 0])) if hits_in_top else 30
 
-    BUST_FEAT_NAMES = [
-        'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
-        'forty', 'weight', 'age',
-        'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
-        'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
-        'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
-        'hasCombineData', 'hasCollegeStats',
-        'predictedPPG', 'nflDraftPick',
-        'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
-        # CFBD-sourced talent/usage signals (replacing prospect-grade, which
-        # A/B'd worse than recruit_rating in the boom/bust comparison).
-        'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
-        # QB-specific bust signals (collegeQBR2yr at 71% coverage is much
-        # wider than generic dominatorRating for QBs, which sits at 51%).
-        'collegeQBR2yr', 'collegeQbContextScore',
-    ]
+    BUST_FEAT_NAMES = BUST_FEATURES_BY_POS.get(pos, _BUST_BASE)
 
     def _build_bust_features(d_item):
-        f = d_item.get('all_features', {})
-        speed = _safe_float(f.get('speedScore', 0))
-        ras = _safe_float(f.get('relativeAthleticScore', 0))
-        hspeed = _safe_float(f.get('heightAdjSpeedScore', 0))
-        forty = _safe_float(f.get('forty', 0))
-        wt = _safe_float(f.get('weight', 0))
-        age = _safe_float(f.get('age', 0))
-        dom = _safe_float(f.get('collegeDominatorRating', 0))
-        best_rec = _safe_float(f.get('collegeBestRecYds', 0))
-        breakout = _safe_float(f.get('collegeBreakoutScore', 0))
-        mkt = _safe_float(f.get('collegeMarketShare', 0))
-        tds = _safe_float(f.get('collegeTotalTDs', 0))
-        rec_share = _safe_float(f.get('collegeReceptionShare', 0))
-        exp = _safe_float(f.get('collegeExperiencePerAge', 0))
-        seasons = _safe_float(f.get('collegeSeasons', 0))
-        early = _safe_float(f.get('collegeEarlyDeclare', 0))
-        has_combine = 1 if speed > 0 or forty > 0 else 0
-        has_college = 1 if dom > 0 or best_rec > 0 else 0
-        pick = _safe_float(f.get('nflDraftPick', 300))
-        recruit_rating = _safe_float(f.get('recruitRating', 0))
-        college_usage = _safe_float(f.get('collegeUsageOverall', 0))
-        team_talent = _safe_float(f.get('collegeTeamTalent', 0))
-        qbr = _safe_float(f.get('collegeQBR2yr', 0))
-        qb_context = _safe_float(f.get('collegeQbContextScore', 0))
-
-        speed_deficit = (speed - avg_speed_hit) if speed > 0 else -20
-        prod_deficit = (dom - avg_dom_hit) if dom > 0 else -15
-        age_risk = age - 21 if age > 0 else 0
-        missing = (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0)
-
-        return [speed, ras, hspeed, forty, wt, age, dom, best_rec, breakout,
-                mkt, tds, rec_share, exp, seasons, early,
-                has_combine, has_college, d_item['pred'], pick,
-                speed_deficit, prod_deficit, age_risk, missing,
-                recruit_rating, college_usage, team_talent,
-                qbr, qb_context]
+        sig = _compute_bust_signals(d_item.get('all_features', {}),
+                                    d_item['pred'],
+                                    avg_speed_hit, avg_dom_hit)
+        return [sig[k] for k in BUST_FEAT_NAMES]
 
     X_bust = np.nan_to_num(np.array([_build_bust_features(d) for d in loso_data], dtype=np.float64))
     bust_scores = np.full(n, float(y_bust_binary.mean()))
@@ -1017,77 +1322,18 @@ def _safe_float_global(v):
         return 0.0
 
 
-def _build_gap_features_standalone(features: dict, predicted_ppg: float) -> list[float]:
-    """Build talent-vs-draft gap features for a player (standalone version).
+def _build_gap_features_standalone(features: dict, predicted_ppg: float,
+                                    pos: str) -> list[float]:
+    """Per-position gap features for prospect scoring.
 
-    Must stay in lock-step with _build_gap_features() above — same column
-    order drives scoring via the LGB model trained inside train_position.
+    Mirrors the in-train_position builder by deferring to
+    _compute_gap_signals() and selecting the position's keys from
+    BOOM_GAP_FEATURES_BY_POS. predicted_ppg is unused here (kept in the
+    signature for symmetry with the bust builder) — the gap regression
+    is on outperformance percentiles, not PPG levels.
     """
-    sf = _safe_float_global
-    pick = max(1, sf(features.get('nflDraftPick', 300)))
-    log_pick = math.log(pick)
-    ras = sf(features.get('relativeAthleticScore', 0))
-    speed = sf(features.get('speedScore', 0))
-    height_speed = sf(features.get('heightAdjSpeedScore', 0))
-    best_rec = sf(features.get('collegeBestRecYds', 0))
-    dominator = sf(features.get('collegeDominatorRating', 0))
-    breakout = sf(features.get('collegeBreakoutScore', 0))
-    market_share = sf(features.get('collegeMarketShare', 0))
-    total_tds = sf(features.get('collegeTotalTDs', 0))
-    age = sf(features.get('age', 0))
-    early_declare = sf(features.get('collegeEarlyDeclare', 0))
-    experience = sf(features.get('collegeExperiencePerAge', 0))
-    seasons = sf(features.get('collegeSeasons', 0))
-    forty = sf(features.get('forty', 0))
-    wt = sf(features.get('weight', 0))
-    cone = sf(features.get('cone', 0))
-    shuttle = sf(features.get('shuttle', 0))
-    college_games = sf(features.get('collegeGames', 0))
-    breakout_age = sf(features.get('collegeBreakoutAge', 0))
-    recruit_rating = sf(features.get('recruitRating', 0))
-    college_usage = sf(features.get('collegeUsageOverall', 0))
-    team_talent = sf(features.get('collegeTeamTalent', 0))
-    qbr = sf(features.get('collegeQBR2yr', 0))
-    ypa = sf(features.get('collegeYdsPerPassAtt', 0))
-    qb_context = sf(features.get('collegeQbContextScore', 0))
-
-    ras_vs_pick = (ras - (10 - log_pick)) if ras > 0 else 0
-    speed_vs_pick = (speed - (120 - pick * 0.3)) if speed > 0 else 0
-    production_vs_pick = (dominator / max(1, log_pick)) if dominator > 0 else 0
-    best_season_vs_pick = (best_rec / max(1, pick)) if best_rec > 0 else 0
-    recruit_vs_pick = (recruit_rating / max(1, log_pick)) if recruit_rating > 0 else 0
-    qbr_vs_pick = (qbr / max(1, log_pick)) if qbr > 0 else 0
-    ypa_vs_pick = (ypa - (8 - log_pick * 0.5)) if ypa > 0 else 0
-    qb_context_vs_pick = (qb_context / max(1, log_pick * 1000)) if qb_context > 0 else 0
-    games_per_season = (college_games / max(1, seasons)) if seasons > 0 else 0
-    low_games = 1 if 0 < games_per_season < 10 else 0
-    early_declare_late = early_declare * log_pick
-    recent_breakout = 1 if breakout_age > 0 and age > 0 and (age - breakout_age) <= 1 else 0
-
-    return [
-        ras, speed, height_speed, forty, wt, cone, shuttle,
-        best_rec, dominator, breakout, market_share, total_tds,
-        age, early_declare, experience, seasons,
-        ras_vs_pick, speed_vs_pick, production_vs_pick,
-        best_season_vs_pick,
-        low_games, early_declare_late, games_per_season, recent_breakout,
-        recruit_rating, college_usage, team_talent, recruit_vs_pick,
-        qbr, ypa, qb_context,
-        qbr_vs_pick, ypa_vs_pick, qb_context_vs_pick,
-    ]
-
-
-GAP_FEAT_NAMES_GLOBAL = [
-    'ras', 'speed', 'height_speed', 'forty', 'weight', 'cone', 'shuttle',
-    'best_rec', 'dominator', 'breakout', 'market_share', 'total_tds',
-    'age', 'early_declare', 'experience', 'seasons',
-    'ras_vs_pick', 'speed_vs_pick', 'production_vs_pick',
-    'best_season_vs_pick',
-    'low_games', 'early_declare_late', 'games_per_season', 'recent_breakout',
-    'recruit_rating', 'college_usage', 'team_talent', 'recruit_vs_pick',
-    'qbr', 'ypa', 'qb_context',
-    'qbr_vs_pick', 'ypa_vs_pick', 'qb_context_vs_pick',
-]
+    sig = _compute_gap_signals(features)
+    return [sig[k] for k in BOOM_GAP_FEATURES_BY_POS.get(pos, _GAP_BASE)]
 
 
 def score_prospect_boom_bust(model_results: dict, career_rows: list,
@@ -1097,6 +1343,46 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
     Trains on full backtest data (no LOSO needed for final scoring),
     then predicts outperformance for each prospect.
     """
+    # Pre-compute disagreement features on prospects so the standalone
+    # scorers see the same fields the per-position BUST/BOOM lists
+    # selected during training. Moments come from the historical career
+    # cohort so a prospect's recruit/production gap is measured against
+    # NFL rookie norms, not against the 2026 prospect class itself.
+    recruit_m = _zscore_per_pos(career_rows, 'recruitRating')
+    market_m = _zscore_per_pos(career_rows, 'collegeMarketShare')
+    speed_m = _zscore_per_pos(career_rows, 'speedScore')
+    dom_m = _zscore_per_pos(career_rows, 'collegeDominatorRating')
+
+    def _z(val, pos, mom):
+        if val == 0:
+            return 0.0
+        m, s = mom.get(pos, (0.0, 1.0))
+        return (val - m) / s
+
+    for p in prospects:
+        f = p.get('features', {})
+        if not isinstance(f, dict):
+            continue
+        pp = p.get('position')
+        pick = max(1.0, _safe_num(f.get('nflDraftPick', 300)))
+        draft_round = _safe_num(f.get('nflDraftRound', 7)) or 7.0
+        pdf_rank = _safe_num(f.get('pdfRankOverallMean', 0))
+        proj_round = _safe_num(f.get('pdfProjectedRound', 0))
+        f['pdfRankXPick'] = (_safe_log(pdf_rank) - _safe_log(pick)) if pdf_rank > 0 else 0.0
+        f['pdfRoundXActual'] = (proj_round - draft_round) if proj_round > 0 else 0.0
+        recruit = _safe_num(f.get('recruitRating', 0))
+        market = _safe_num(f.get('collegeMarketShare', 0))
+        speed = _safe_num(f.get('speedScore', 0))
+        dom = _safe_num(f.get('collegeDominatorRating', 0))
+        f['recruit_production_gap'] = (
+            _z(recruit, pp, recruit_m) - _z(market, pp, market_m)
+            if recruit > 0 and market > 0 else 0.0
+        )
+        f['athletic_production_gap'] = (
+            _z(speed, pp, speed_m) - _z(dom, pp, dom_m)
+            if speed > 0 and dom > 0 else 0.0
+        )
+
     results = []
     for pos in ['QB', 'RB', 'WR', 'TE']:
         mr = model_results.get(pos)
@@ -1112,11 +1398,15 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         actual_ranks = np.argsort(np.argsort([r['actualPPG'] for r in bt])) / n
         outperf = actual_ranks - pred_ranks
 
+        # Per-position feature names (BOOM/BUST_FEATURES_BY_POS)
+        gap_feat_names = BOOM_GAP_FEATURES_BY_POS.get(pos, _GAP_BASE)
+        bust_feat_names = BUST_FEATURES_BY_POS.get(pos, _BUST_BASE)
+
         # Build gap features for backtest
         X_train = []
         for r in bt:
             f = r.get('features', {})
-            X_train.append(_build_gap_features_standalone(f, r['predictedPPG']))
+            X_train.append(_build_gap_features_standalone(f, r['predictedPPG'], pos))
         X_train = np.nan_to_num(np.array(X_train, dtype=np.float64))
 
         # Train gap model on full data
@@ -1126,7 +1416,7 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
             'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
             'seed': 42, 'n_jobs': 1, 'extra_trees': True,
         }
-        dt = lgb.Dataset(X_train, outperf, feature_name=GAP_FEAT_NAMES_GLOBAL,
+        dt = lgb.Dataset(X_train, outperf, feature_name=gap_feat_names,
                          free_raw_data=False)
         gap_model = lgb.train(params, dt, num_boost_round=60)
 
@@ -1149,54 +1439,9 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
         avg_speed = float(np.mean([sf(r['features'].get('speedScore', 0)) for r in hits_top if sf(r['features'].get('speedScore', 0)) > 0])) if hits_top else 100
         avg_dom = float(np.mean([sf(r['features'].get('collegeDominatorRating', 0)) for r in hits_top if sf(r['features'].get('collegeDominatorRating', 0)) > 0])) if hits_top else 30
 
-        BUST_FEAT_NAMES_P = [
-            'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
-            'forty', 'weight', 'age',
-            'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
-            'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
-            'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
-            'hasCombineData', 'hasCollegeStats',
-            'predictedPPG', 'nflDraftPick',
-            'speed_deficit', 'production_deficit', 'age_for_draft', 'missing_data_count',
-            'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
-            'collegeQBR2yr', 'collegeQbContextScore',
-        ]
-
         def _build_bust_feats(features, pred_ppg):
-            sf2 = _safe_float_global
-            speed = sf2(features.get('speedScore', 0))
-            ras = sf2(features.get('relativeAthleticScore', 0))
-            hspeed = sf2(features.get('heightAdjSpeedScore', 0))
-            forty = sf2(features.get('forty', 0))
-            wt = sf2(features.get('weight', 0))
-            age = sf2(features.get('age', 0))
-            dom = sf2(features.get('collegeDominatorRating', 0))
-            best_rec = sf2(features.get('collegeBestRecYds', 0))
-            brk = sf2(features.get('collegeBreakoutScore', 0))
-            mkt = sf2(features.get('collegeMarketShare', 0))
-            tds = sf2(features.get('collegeTotalTDs', 0))
-            rec_share = sf2(features.get('collegeReceptionShare', 0))
-            exp = sf2(features.get('collegeExperiencePerAge', 0))
-            seasons = sf2(features.get('collegeSeasons', 0))
-            early = sf2(features.get('collegeEarlyDeclare', 0))
-            has_combine = 1 if speed > 0 or forty > 0 else 0
-            has_college = 1 if dom > 0 or best_rec > 0 else 0
-            pick = sf2(features.get('nflDraftPick', 300))
-            speed_def = (speed - avg_speed) if speed > 0 else -20
-            prod_def = (dom - avg_dom) if dom > 0 else -15
-            age_risk = age - 21 if age > 0 else 0
-            missing = (1 if speed == 0 else 0) + (1 if dom == 0 else 0) + (1 if ras == 0 else 0)
-            recruit_rating = sf2(features.get('recruitRating', 0))
-            college_usage = sf2(features.get('collegeUsageOverall', 0))
-            team_talent = sf2(features.get('collegeTeamTalent', 0))
-            qbr = sf2(features.get('collegeQBR2yr', 0))
-            qb_context = sf2(features.get('collegeQbContextScore', 0))
-            return [speed, ras, hspeed, forty, wt, age, dom, best_rec, brk,
-                    mkt, tds, rec_share, exp, seasons, early,
-                    has_combine, has_college, pred_ppg, pick,
-                    speed_def, prod_def, age_risk, missing,
-                    recruit_rating, college_usage, team_talent,
-                    qbr, qb_context]
+            sig = _compute_bust_signals(features, pred_ppg, avg_speed, avg_dom)
+            return [sig[k] for k in bust_feat_names]
 
         X_bust_train = np.nan_to_num(np.array(
             [_build_bust_feats(r.get('features', {}), r['predictedPPG']) for r in bt],
@@ -1209,7 +1454,7 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
             'seed': 42, 'n_jobs': 1, 'is_unbalance': True, 'extra_trees': True,
         }
         dt_bust = lgb.Dataset(X_bust_train, y_bust_binary,
-                              feature_name=BUST_FEAT_NAMES_P, free_raw_data=False)
+                              feature_name=bust_feat_names, free_raw_data=False)
         bust_model = lgb.train(bust_params, dt_bust, num_boost_round=60)
 
         # ── Score prospects ───────────────────────────────────────────
@@ -1219,7 +1464,8 @@ def score_prospect_boom_bust(model_results: dict, career_rows: list,
 
         # Boom scores from gap model
         X_prosp_gap = np.nan_to_num(np.array(
-            [_build_gap_features_standalone(p.get('features', {}), p.get('predictedCareerPPG', 0))
+            [_build_gap_features_standalone(p.get('features', {}),
+                                            p.get('predictedCareerPPG', 0), pos)
              for p in pos_prospects], dtype=np.float64))
         gap_scores = gap_model.predict(X_prosp_gap)
         bt_gap_scores = gap_model.predict(X_train)
