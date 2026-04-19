@@ -37,8 +37,16 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 CACHE_PATH = Path('public/data/training-rows-cache-v48.json')
 OUTPUT_DIR = Path('public/data')
-PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v69.json'
-POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v1.json'
+PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v70.json'
+POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v2.json'
+
+# PDF scouting features extracted from The Beast / RSP / Late-Round Guide
+# via scripts/extract_pdf_features.py + scripts/merge_pdf_features.py.
+# Covers only 2022-2026 draft classes — pre-2022 rookies get zero-filled
+# PDF features and rely on the has-indicator for the model to handle them.
+# Ablation: scripts/test_pdf_career_features.py (findings in
+# docs/pdf-career-feature-test.md) — ships the winners per-position.
+PDF_FEATURES_PATH = OUTPUT_DIR / 'pdf-prospect-features-merged.json'
 
 PRE_DRAFT_FEATURES = {
     # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
@@ -52,16 +60,30 @@ PRE_DRAFT_FEATURES = {
     # another +0.008 on top for a +0.037 gain over the v48 baseline. The
     # usage signal is the biggest non-draft-capital feature for RB —
     # directly captures "featured back" vs "committee back" out of college.
+    # RB: CFBD additions above, plus 2026-04 PDF scouting A/B:
+    # pdfRankOverallMean (consensus scout rank across The Beast, 2022-25)
+    # lifted R² +0.008 all-yrs / +0.028 inside the PDF era over the CFBD
+    # baseline — biggest non-draft-capital add since collegeUsageOverall.
+    # pdfHasRank is the "missing-data" indicator so pre-2022 zero-fills
+    # don't look like a #0-ranked (elite) prospect to the model.
     'RB': ['logDraftPick', 'collegeDominatorXLateRound',
-           'collegeUsageOverall', 'recruitRating'],
+           'collegeUsageOverall', 'recruitRating',
+           'pdfRankOverallMean', 'pdfHasRank'],
     # WR: recruitStars (247 composite, 1-5) added +0.011 R². Other CFBD
     # features were either redundant with existing college production
-    # features or hurt R² once recruitStars was in.
+    # features or hurt R² once recruitStars was in. 2026-04 PDF A/B:
+    # rank features are already captured by draft capital + college
+    # production (+0.000 ΔR²), but the qualitative sentiment family
+    # (#strengths / #weaknesses / #red_flags and a weighted net score)
+    # lifted R² +0.006 all-yrs / +0.021 PDF-era. Red flags are weighted
+    # 2× in pdfSentimentNet — a scout-flagged concern is harder signal
+    # than a plain "weakness" bullet.
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
            'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
            'collegeBestRecYds',
            'weight', 'collegeTeammateScore',
-           'relativeAthleticScore', 'recruitStars'],
+           'relativeAthleticScore', 'recruitStars',
+           'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'],
     # TE: recruitStars also wins for TE (+0.015 R²). TEs are notoriously
     # hard to project — the 247 composite grabs high-upside athletes the
     # lean draft-capital feature set was missing.
@@ -86,8 +108,14 @@ POST_DRAFT_FEATURES = {
         'teamSamePosCount', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
     # WR: every post-draft feature added value, projTeamPassAtt biggest at
     # +0.027. WR career projection benefits most from team-context features
-    # because target volume is so team-driven.
-    'WR': PRE_DRAFT_FEATURES['WR'] + [
+    # because target volume is so team-driven. Note: PDF sentiment features
+    # are pre-draft-only for WR — post-draft A/B showed Δ-0.0003 all-yrs
+    # and -0.009 score≥22 once team-context features were present. The
+    # scouting sentiment was already being proxied by landing-spot context
+    # post-draft, so it stopped adding marginal value. Drop explicitly.
+    'WR': [f for f in PRE_DRAFT_FEATURES['WR']
+           if f not in ('pdfNStrengths', 'pdfNWeaknesses',
+                        'pdfNRedFlags', 'pdfSentimentNet')] + [
         'depthChartRank', 'teamSamePosCount',
         'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
     # TE: kept depthChartRank (+0.008), vegasImpliedTotal (+0.008),
@@ -112,6 +140,87 @@ POS_HYPERPARAMS = {
     'TE': {'ridge_alpha': 20, 'n_estimators': 80,  'lr': 0.04, 'max_depth': 2, 'min_child': 15},
 }
 
+# ── PDF scouting features ─────────────────────────────────────────────
+
+# Name suffixes stripped before matching (Jr./III/etc. in roster names
+# don't appear consistently in scouting PDFs).
+_PDF_NAME_SUFFIXES = (' sr', ' jr', ' iii', ' ii', ' iv')
+
+
+def _norm_pdf_name(n: str) -> str:
+    s = n.lower().strip()
+    s = s.replace('.', '').replace("'", '').replace('-', ' ').replace('`', '')
+    for suffix in _PDF_NAME_SUFFIXES:
+        if s.endswith(suffix):
+            s = s[:-len(suffix)].strip()
+    return ' '.join(s.split())
+
+
+# Mirror derive_pdf_features() in scripts/test_pdf_career_features.py.
+# Values are zero when PDF record is missing; paired *Has* indicators let
+# tree models separate "no PDF data" from a legitimate zero-valued field.
+_EMPTY_PDF_FEATURES = {
+    'pdfHasData': 0,
+    'pdfRankOverallMean': 0.0,
+    'pdfHasRank': 0,
+    'pdfNStrengths': 0,
+    'pdfNWeaknesses': 0,
+    'pdfNRedFlags': 0,
+    'pdfSentimentNet': 0,
+}
+
+
+def _derive_pdf_features(p: dict | None) -> dict:
+    if p is None:
+        return dict(_EMPTY_PDF_FEATURES)
+    strengths = p.get('strengths') or []
+    weaknesses = p.get('weaknesses') or []
+    red_flags = p.get('red_flags') or []
+    rank_mean = p.get('rank_overall_mean')
+    return {
+        'pdfHasData': 1,
+        'pdfRankOverallMean': float(rank_mean) if rank_mean is not None else 0.0,
+        'pdfHasRank': 1 if rank_mean is not None else 0,
+        'pdfNStrengths': len(strengths),
+        'pdfNWeaknesses': len(weaknesses),
+        'pdfNRedFlags': len(red_flags),
+        # Red flags weighted 2× — a scout-called concern is harder signal
+        # than a plain "weakness" bullet.
+        'pdfSentimentNet': len(strengths) - len(weaknesses) - 2 * len(red_flags),
+    }
+
+
+def _load_pdf_index(path: Path) -> dict:
+    """Return (name, position) → PDF record, with a name-only fallback list.
+
+    Missing file is non-fatal — callers still get zero-filled features.
+    """
+    if not path.exists():
+        print(f"  [pdf] {path} not found — PDF features will be zero-filled")
+        return {'by_key': {}, 'by_name': {}}
+    with open(path) as f:
+        entries = json.load(f)
+    by_key = {}
+    by_name: dict[str, list] = {}
+    for p in entries:
+        name = _norm_pdf_name(p['player_name'])
+        pos = p.get('position')
+        by_key[(name, pos)] = p
+        by_name.setdefault(name, []).append(p)
+    print(f"  [pdf] loaded {len(entries)} prospects from {path.name}")
+    return {'by_key': by_key, 'by_name': by_name}
+
+
+def _lookup_pdf(idx: dict, name: str, position: str):
+    nn = _norm_pdf_name(name)
+    entry = idx['by_key'].get((nn, position))
+    if entry is not None:
+        return entry
+    # Name-only fallback for scouting/fantasy position mismatches.
+    cands = idx['by_name'].get(nn, [])
+    return cands[0] if len(cands) == 1 else None
+
+
 # ── Data Loading ──────────────────────────────────────────────────────
 
 def load_career_rows(cache_path: Path) -> pd.DataFrame:
@@ -119,6 +228,7 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
     with open(cache_path) as f:
         data = json.load(f)
     rows = data['rows']
+    pdf_idx = _load_pdf_index(PDF_FEATURES_PATH)
 
     # Build games lookup from priorGames
     career_games = {}
@@ -216,6 +326,14 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         f['collegeCompletionPctOverTeam'] = round(f['collegeCompletionPct'] - team_comp, 3) if f['collegeCompletionPct'] > 0 and team_comp > 0 else 0
         f['collegeYdsPerCompletion'] = round(raw_py / raw_pc, 2) if raw_pc > 0 else 0
 
+        # PDF scouting features — The Beast / RSP / Late-Round Guide
+        # consensus. Zero-filled for pre-2022 classes; pdfHasData /
+        # pdfHasRank let the GBM distinguish "no data" from the zero
+        # endpoint of each continuous field.
+        f.update(_derive_pdf_features(
+            _lookup_pdf(pdf_idx, entry['name'], entry['position'])
+        ))
+
         career_rows.append({
             'name': entry['name'],
             'position': entry['position'],
@@ -283,7 +401,15 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     use_recency = recency_scheme is not None
 
     # College-only companion model for WR/RB pre-draft (catches late-round breakouts)
-    DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick', 'draftPickXEarlyDeclare', 'collegeDominatorXLateRound'}
+    # pdfRankOverallMean / pdfHasRank are treated as draft-capital-adjacent
+    # so the late-round-breakout companion model ignores them. Scout
+    # consensus rank correlates strongly with pick and pulls the companion
+    # away from the pure college-production signal it's meant to capture.
+    # Also prevents RB companion from auto-activating (≥4 college-only
+    # keys threshold) when we add the scout-rank pair.
+    DRAFT_CAPITAL_KEYS = {'logDraftPick', 'invDraftPick',
+                          'draftPickXEarlyDeclare', 'collegeDominatorXLateRound',
+                          'pdfRankOverallMean', 'pdfHasRank'}
     college_only_keys = [k for k in feature_keys if k not in DRAFT_CAPITAL_KEYS]
     use_companion = not is_post_draft and len(college_only_keys) >= 4 and pos in ('WR', 'RB')
     N_BAGS = 5  # bagged LightGBM ensemble

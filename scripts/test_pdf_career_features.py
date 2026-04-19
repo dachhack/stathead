@@ -215,6 +215,29 @@ def derive_pdf_features(p: dict) -> dict:
     }
 
 
+# Candidate PDF extras for the boom/bust models. Boom responds to scout
+# sentiment (gap between what The Beast saw and what draft capital implies),
+# bust responds to injury / red-flag signals. Gap has a natural
+# "talent_vs_pick" shape (value / log(pick)) — mirror it for PDF rank and
+# sentiment in the builder below.
+BOOM_GAP_PDF_EXTRAS = {
+    'rank': ['pdfRankOverallMean', 'pdfHasRank'],
+    'sentiment': ['pdfNStrengths', 'pdfNWeaknesses', 'pdfSentimentNet'],
+    'redflags': ['pdfNRedFlags', 'pdfInjuryRedFlags'],
+    'all': ['pdfRankOverallMean', 'pdfHasRank', 'pdfNStrengths',
+            'pdfNWeaknesses', 'pdfSentimentNet', 'pdfNRedFlags',
+            'pdfInjuryRedFlags', 'pdfTierElite', 'pdfHasData'],
+}
+BUST_PDF_EXTRAS = {
+    'redflags': ['pdfNRedFlags', 'pdfInjuryRedFlags', 'pdfCharacterRedFlags'],
+    'rank': ['pdfRankOverallMean', 'pdfHasRank'],
+    'weakness': ['pdfNWeaknesses', 'pdfSentimentNet'],
+    'all': ['pdfRankOverallMean', 'pdfHasRank', 'pdfNRedFlags',
+            'pdfInjuryRedFlags', 'pdfCharacterRedFlags', 'pdfNWeaknesses',
+            'pdfSentimentNet', 'pdfHasData'],
+}
+
+
 # Candidate PDF feature groups — tested additively per-position.
 PDF_FEATURE_SETS = {
     'rank_only': ['pdfRankOverallMean', 'pdfHasRank'],
@@ -252,6 +275,220 @@ def make_X(rows: list, keys: list[str]) -> np.ndarray:
 
 def make_y(rows: list) -> np.ndarray:
     return np.array([r['best2of3'] for r in rows])
+
+
+# ── Boom/Bust ablation ─────────────────────────────────────────────────
+#
+# The career pipeline's boom model predicts outperformance (actual rank
+# - predicted rank) with LGB on gap-style features. The bust model is a
+# binary classifier on (actual - pred) < -mae * 0.75 with its own feature
+# set. We reuse the same LOSO-by-season protocol from train_position()
+# and report Spearman(outperf_pred, outperf_actual) for boom and AUC for
+# bust. Adding PDF features shifts the feature matrices only — the
+# targets come from an UNMODIFIED baseline career model so Δ isolates
+# the boom/bust model's lift, not a changed target distribution.
+
+def _base_career_preds(pos_rows: list, feature_keys: list[str],
+                       pos: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """LOSO predictions from the baseline career regression.
+
+    Returns (preds, actuals, held_seasons). Mirrors train_position minus
+    the threshold classifiers — we only need regression output here.
+    """
+    hyper = POS_HYPERPARAMS.get(pos, POS_HYPERPARAMS['WR'])
+    recency_scheme = POS_RECENCY_SCHEMES.get(pos)
+    seasons = sorted(set(r['draft_season'] for r in pos_rows))
+    max_season = max(seasons)
+
+    def expand(rows):
+        if recency_scheme is None:
+            return rows
+        out = []
+        for r in rows:
+            out.extend([r] * recency_weight(r['draft_season'], max_season, recency_scheme))
+        return out
+
+    preds, actuals, held = [], [], []
+    per_row = {}
+    for held_s in seasons:
+        train_raw = [r for r in pos_rows if r['draft_season'] != held_s]
+        test = [r for r in pos_rows if r['draft_season'] == held_s]
+        if len(train_raw) < 10 or not test:
+            continue
+        train = expand(train_raw)
+        X_tr = make_X(train, feature_keys)
+        y_tr = make_y(train)
+        X_te = make_X(test, feature_keys)
+        ridge = Ridge(alpha=hyper['ridge_alpha'])
+        ridge.fit(X_tr, y_tr)
+        ridge_p = ridge.predict(X_te)
+        if len(train) >= 40:
+            bag = []
+            for bi in range(5):
+                params = {
+                    'objective': 'regression', 'metric': 'mae',
+                    'learning_rate': hyper['lr'], 'max_depth': hyper['max_depth'],
+                    'min_child_samples': hyper['min_child'],
+                    'subsample': 0.8, 'colsample_bytree': 0.8,
+                    'bagging_fraction': 0.8, 'bagging_freq': 1,
+                    'extra_trees': True, 'verbose': -1,
+                    'seed': 42 + bi, 'n_jobs': 1,
+                }
+                dtr = lgb.Dataset(X_tr, y_tr, feature_name=feature_keys, free_raw_data=False)
+                m = lgb.train(params, dtr, num_boost_round=hyper['n_estimators'])
+                bag.append(m.predict(X_te))
+            lgb_p = np.mean(bag, axis=0)
+            final = np.clip((ridge_p + lgb_p) / 2, 0, None)
+        else:
+            final = np.clip(ridge_p, 0, None)
+        for p, r in zip(final, test):
+            per_row[(r['name'], r['draft_season'])] = float(p)
+            preds.append(float(p))
+            actuals.append(r['best2of3'])
+            held.append(held_s)
+    return np.array(preds), np.array(actuals), np.array(held), per_row
+
+
+def loso_boom_bust_eval(pos_rows: list, feature_keys: list[str], pos: str,
+                         gap_extra_keys: list[str], bust_extra_keys: list[str],
+                         recent_only: bool = False) -> dict:
+    """LOSO ablation for boom (gap model) and bust (binary classifier).
+
+    - Baseline career predictions come from `feature_keys` (untouched).
+    - Gap model features = static GAP_BASE (mirroring train_position's
+      _build_gap_features) + any extras in gap_extra_keys.
+    - Bust model features = BUST_BASE + bust_extra_keys.
+    """
+    preds, actuals, held, _ = _base_career_preds(pos_rows, feature_keys, pos)
+    n = len(preds)
+    if n < 20:
+        return {'boom_rho': None, 'bust_auc': None, 'n': n}
+
+    # Outperformance target (unchanged from train_position)
+    pred_ranks = np.argsort(np.argsort(preds)) / n
+    actual_ranks = np.argsort(np.argsort(actuals)) / n
+    outperf_true = actual_ranks - pred_ranks
+
+    mae = float(np.mean(np.abs(actuals - preds)))
+    boom_thresh = mae * 0.75
+    y_bust = np.array([1 if (a - p) < -boom_thresh else 0
+                       for a, p in zip(actuals, preds)])
+
+    # Build augmented gap/bust feature matrices. We reuse _build_gap_features
+    # semantics but re-attach the PDF feature values via direct lookup on
+    # the row's all_features dict (which is the pos_rows feature dict).
+    # Find each row's original feature dict keyed by (name, draft_season).
+    feat_map = {(r['name'], r['draft_season']): r['features'] for r in pos_rows}
+
+    # Match pos_rows order used for preds (which came from LOSO season order)
+    rows_aligned = []
+    for r in pos_rows:
+        rows_aligned.append(r)
+    # Align by (name, season)
+    pos_idx = {(r['name'], r['draft_season']): r for r in pos_rows}
+
+    # We need the same ordering as preds[], so re-walk seasons.
+    order = []
+    seasons = sorted(set(r['draft_season'] for r in pos_rows))
+    for s in seasons:
+        train_raw = [r for r in pos_rows if r['draft_season'] != s]
+        test = [r for r in pos_rows if r['draft_season'] == s]
+        if len(train_raw) < 10 or not test:
+            continue
+        for r in test:
+            order.append(r)
+    assert len(order) == n
+
+    # Static base gap features: reuse GAP_FEAT_NAMES ordering from train_career_models
+    # We rebuild via a lightweight inline function here to avoid importing the
+    # inner function — list of raw feature names from the career-features dict.
+    GAP_BASE_KEYS = [
+        'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore', 'forty',
+        'weight', 'cone', 'shuttle',
+        'collegeBestRecYds', 'collegeDominatorRating', 'collegeBreakoutScore',
+        'collegeMarketShare', 'collegeTotalTDs',
+        'age', 'collegeEarlyDeclare', 'collegeExperiencePerAge', 'collegeSeasons',
+        'recruitRating', 'collegeUsageOverall', 'collegeTeamTalent',
+        'collegeQBR2yr', 'collegeYdsPerPassAtt', 'collegeQbContextScore',
+    ]
+    BUST_BASE_KEYS = [
+        'speedScore', 'relativeAthleticScore', 'heightAdjSpeedScore',
+        'forty', 'weight', 'age',
+        'collegeDominatorRating', 'collegeBestRecYds', 'collegeBreakoutScore',
+        'collegeMarketShare', 'collegeTotalTDs', 'collegeReceptionShare',
+        'collegeExperiencePerAge', 'collegeSeasons', 'collegeEarlyDeclare',
+        'nflDraftPick', 'recruitRating', 'collegeUsageOverall',
+        'collegeTeamTalent', 'collegeQBR2yr', 'collegeQbContextScore',
+    ]
+
+    def build_gap_feats(r):
+        base = [_cell(r['features'].get(k, 0)) for k in GAP_BASE_KEYS]
+        extra = [_cell(r['features'].get(k, 0)) for k in gap_extra_keys]
+        return base + extra
+
+    def build_bust_feats(r, pred):
+        base = [_cell(r['features'].get(k, 0)) for k in BUST_BASE_KEYS]
+        base.append(pred)
+        extra = [_cell(r['features'].get(k, 0)) for k in bust_extra_keys]
+        return base + extra
+
+    X_gap = np.nan_to_num(np.array([build_gap_feats(r) for r in order], dtype=np.float64))
+    X_bust = np.nan_to_num(np.array([build_bust_feats(r, preds[i]) for i, r in enumerate(order)], dtype=np.float64))
+
+    outperf_pred = np.zeros(n)
+    bust_pred = np.full(n, float(y_bust.mean()))
+
+    # LOSO on the gap + bust models
+    for s in seasons:
+        tr_idx = [i for i, r in enumerate(order) if r['draft_season'] != s]
+        te_idx = [i for i, r in enumerate(order) if r['draft_season'] == s]
+        if len(tr_idx) < 20 or not te_idx:
+            continue
+        gap_params = {
+            'objective': 'regression', 'metric': 'mae', 'learning_rate': 0.03,
+            'max_depth': 2, 'min_child_samples': max(5, len(tr_idx) // 8),
+            'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1, 'seed': 42,
+            'n_jobs': 1, 'extra_trees': True,
+        }
+        dt = lgb.Dataset(X_gap[tr_idx], outperf_true[tr_idx],
+                         feature_name=GAP_BASE_KEYS + gap_extra_keys, free_raw_data=False)
+        gm = lgb.train(gap_params, dt, num_boost_round=60)
+        outperf_pred[te_idx] = gm.predict(X_gap[te_idx])
+
+        if sum(y_bust[tr_idx]) >= 3:
+            bust_params = {
+                'objective': 'binary', 'metric': 'auc', 'learning_rate': 0.03,
+                'max_depth': 2, 'min_child_samples': max(3, len(tr_idx) // 10),
+                'subsample': 0.7, 'colsample_bytree': 0.6, 'verbose': -1,
+                'seed': 42, 'n_jobs': 1, 'is_unbalance': True, 'extra_trees': True,
+            }
+            dtb = lgb.Dataset(X_bust[tr_idx], y_bust[tr_idx],
+                              feature_name=BUST_BASE_KEYS + ['predictedPPG'] + bust_extra_keys,
+                              free_raw_data=False)
+            bm = lgb.train(bust_params, dtb, num_boost_round=60)
+            bust_pred[te_idx] = bm.predict(X_bust[te_idx])
+
+    # Metrics
+    held_seasons = np.array([r['draft_season'] for r in order])
+    mask = held_seasons >= 2022 if recent_only else np.ones(n, dtype=bool)
+    if mask.sum() < 5:
+        return {'boom_rho': None, 'bust_auc': None, 'n': int(mask.sum())}
+
+    rho, _ = spearmanr(outperf_pred[mask], outperf_true[mask])
+    yb = y_bust[mask]
+    bp = bust_pred[mask]
+    # AUC from rank sums; fallback to mean if degenerate
+    if yb.sum() == 0 or yb.sum() == len(yb):
+        auc = None
+    else:
+        from sklearn.metrics import roc_auc_score
+        auc = float(roc_auc_score(yb, bp))
+
+    return {
+        'boom_rho': round(float(rho), 4),
+        'bust_auc': round(auc, 4) if auc is not None else None,
+        'n': int(mask.sum()),
+    }
 
 
 def loso_eval(pos_rows: list, feature_keys: list[str], pos: str,
@@ -522,6 +759,54 @@ def run_experiment(positions: list, is_post_draft: bool = False,
                 'delta_all_mae': d_all_mae,
                 'delta_rtrain_mae': d_rtrain_mae,
             }
+
+        # ── Boom/Bust ablation (gap model + bust classifier) ──────────
+        print(f"  -- boom/bust ablation --")
+        bb_base = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                      gap_extra_keys=[], bust_extra_keys=[])
+        bb_base_recent = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                             gap_extra_keys=[], bust_extra_keys=[],
+                                             recent_only=True)
+        print(f"  boom/bust base (all yrs)   : ρ_boom={bb_base['boom_rho']}, "
+              f"AUC_bust={bb_base['bust_auc']}, n={bb_base['n']}")
+        print(f"  boom/bust base (score≥22)  : ρ_boom={bb_base_recent['boom_rho']}, "
+              f"AUC_bust={bb_base_recent['bust_auc']}, n={bb_base_recent['n']}")
+
+        bb_variants = {}
+        for vname, vkeys in BOOM_GAP_PDF_EXTRAS.items():
+            bb = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                     gap_extra_keys=vkeys, bust_extra_keys=[])
+            bb_r = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                       gap_extra_keys=vkeys, bust_extra_keys=[],
+                                       recent_only=True)
+            d = round(bb['boom_rho'] - bb_base['boom_rho'], 4) if bb['boom_rho'] is not None else None
+            d_r = round(bb_r['boom_rho'] - bb_base_recent['boom_rho'], 4) \
+                  if bb_r['boom_rho'] is not None else None
+            print(f"  boom+{vname:<10} (all/recent): ρ={bb['boom_rho']} (Δ={d}), "
+                  f"ρ_recent={bb_r['boom_rho']} (Δ={d_r})")
+            bb_variants[f'boom_{vname}'] = {
+                'keys': vkeys, 'all': bb, 'recent': bb_r,
+                'delta_all_rho': d, 'delta_recent_rho': d_r,
+            }
+
+        for vname, vkeys in BUST_PDF_EXTRAS.items():
+            bb = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                     gap_extra_keys=[], bust_extra_keys=vkeys)
+            bb_r = loso_boom_bust_eval(pos_rows, baseline, pos,
+                                       gap_extra_keys=[], bust_extra_keys=vkeys,
+                                       recent_only=True)
+            d = round(bb['bust_auc'] - bb_base['bust_auc'], 4) \
+                if bb['bust_auc'] is not None and bb_base['bust_auc'] is not None else None
+            d_r = round(bb_r['bust_auc'] - bb_base_recent['bust_auc'], 4) \
+                  if bb_r['bust_auc'] is not None and bb_base_recent['bust_auc'] is not None else None
+            print(f"  bust+{vname:<10} (all/recent): AUC={bb['bust_auc']} (Δ={d}), "
+                  f"AUC_recent={bb_r['bust_auc']} (Δ={d_r})")
+            bb_variants[f'bust_{vname}'] = {
+                'keys': vkeys, 'all': bb, 'recent': bb_r,
+                'delta_all_auc': d, 'delta_recent_auc': d_r,
+            }
+        pos_results['boom_bust_baseline'] = {'all': bb_base, 'recent': bb_base_recent}
+        pos_results['boom_bust_variants'] = bb_variants
 
         # Gap-fill experiment: re-attach PDF, then fill prospectOvlRank / grade
         # with PDF-derived proxies and re-run the UNMODIFIED baseline.

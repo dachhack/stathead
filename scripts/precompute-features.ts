@@ -266,8 +266,8 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v69.json`,
-    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v1.json`,
+    career: `${MODEL_DIR}/model-cache-career-v70.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v2.json`,
     lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
   };
 
@@ -745,6 +745,60 @@ async function main() {
       fetchCfbdPlayerUsage().catch(() => ({})),
     ]);
     const cfbdKey = (name: string) => name.replace(/[^a-z0-9]+/g, '');
+
+    // PDF scouting index (The Beast / RSP / Late-Round Guide) mirroring
+    // train_career_models.py::_load_pdf_index. Ships the same numeric
+    // features used in the RB/WR pre-draft feature lists so prospect
+    // scoring uses the same inputs as the LOSO backtest.
+    const pdfIndex: Record<string, {
+      rank_overall_mean?: number | null;
+      strengths?: string[];
+      weaknesses?: string[];
+      red_flags?: string[];
+      position?: string;
+    }> = {};
+    try {
+      const pdfRaw = JSON.parse(readFileSync('public/data/pdf-prospect-features-merged.json', 'utf-8'));
+      const normPdfName = (n: string) => n.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      for (const p of pdfRaw) {
+        const k = `${normPdfName(p.player_name)}::${p.position}`;
+        pdfIndex[k] = p;
+        // Position-agnostic fallback for scouting/fantasy TE/OL mismatches.
+        const nameOnly = normPdfName(p.player_name);
+        if (!pdfIndex[nameOnly]) pdfIndex[nameOnly] = p;
+      }
+    } catch {
+      // PDF file is optional — prospects just get zero-filled features.
+    }
+    const lookupPdf = (name: string, position: string) => {
+      const norm = name.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      return pdfIndex[`${norm}::${position}`] || pdfIndex[norm];
+    };
+    const derivePdfFeatures = (name: string, position: string) => {
+      const p = lookupPdf(name, position);
+      if (!p) {
+        return {
+          pdfHasData: 0, pdfRankOverallMean: 0, pdfHasRank: 0,
+          pdfNStrengths: 0, pdfNWeaknesses: 0, pdfNRedFlags: 0, pdfSentimentNet: 0,
+        };
+      }
+      const nStr = (p.strengths || []).length;
+      const nWk = (p.weaknesses || []).length;
+      const nRf = (p.red_flags || []).length;
+      return {
+        pdfHasData: 1,
+        pdfRankOverallMean: p.rank_overall_mean ?? 0,
+        pdfHasRank: p.rank_overall_mean != null ? 1 : 0,
+        pdfNStrengths: nStr,
+        pdfNWeaknesses: nWk,
+        pdfNRedFlags: nRf,
+        pdfSentimentNet: nStr - nWk - 2 * nRf,
+      };
+    };
     // School → drafted players lookup
     const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
     for (const dp of draftPicks) {
@@ -942,6 +996,15 @@ async function main() {
           if (!storedFeatures.collegeQBR) storedFeatures.collegeQBR = prospectQBRLatest.get(nName) || 0;
           if (!storedFeatures.collegeQBR2yr) storedFeatures.collegeQBR2yr = prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0;
 
+          // PDF scouting features — mirrors attach in train_career_models.py
+          // load_career_rows. RB uses pdfRankOverallMean; WR uses the
+          // sentiment family; QB/TE ignore these but we set them so the
+          // PlayerCard popover can surface them consistently.
+          const pdfF = derivePdfFeatures(prospect.name, pos);
+          for (const [k, v] of Object.entries(pdfF)) {
+            if (storedFeatures[k] === undefined) storedFeatures[k] = v as number;
+          }
+
           // RAS + combine-data flags. buildProspectFeatureRecord doesn't
           // compute these (only the nflverse path did), so graded prospects
           // always showed "RAS 0" and missing combine flags. Compute RAS by
@@ -1126,6 +1189,9 @@ async function main() {
           const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
           return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.rush || 0;
         })(),
+        // PDF scouting features — see pos='RB'/'WR' feature lists in
+        // train_career_models.py. Zero-filled for unmatched prospects.
+        ...derivePdfFeatures(prospect.name, pos),
         ...(() => {
           // Career aggregates used for QB context features AND the new
           // RB dual-threat / elusiveness / goal-line features. Cheap to

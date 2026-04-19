@@ -113,7 +113,50 @@ nothing to propagate into. A useful follow-up would be to first re-ablate
 whether `prospectOvlRank` is worth including *with* the PDF gap-fill; the
 feature could jump from 40 % to ~60 % coverage, potentially tipping its A/B.
 
-## Recommendations
+## Shipped (2026-04)
+
+Promoted to `scripts/train_career_models.py` via cache bump v69→v70
+(pre-draft) and v1→v2 (post-draft). Attached in `load_career_rows` via
+`_derive_pdf_features()` from `pdf-prospect-features-merged.json`.
+
+| Position | Model | Added | Observed ΔR² (full training) |
+|---|---|---|---|
+| RB | pre-draft | `pdfRankOverallMean`, `pdfHasRank` | **+0.008** (0.377 → 0.385) |
+| RB | post-draft | same (inherited) | **+0.010** |
+| WR | pre-draft | `pdfNStrengths`, `pdfNWeaknesses`, `pdfNRedFlags`, `pdfSentimentNet` | **+0.005** (0.329 → 0.334) |
+| WR | post-draft | (explicitly excluded — Δ-0.0003 all-yrs once team-context features dilute the sentiment signal) |  |
+| QB / TE | both | none |  |
+
+`pdfRankOverallMean` and `pdfHasRank` are treated as draft-capital-adjacent
+inside the companion-model blend (WR/RB pre-draft) — the scout-rank pair
+correlates with draft pick and, when included in the college-only
+companion, pushed RB over the 4-feature activation threshold and
+*reversed* the rank gain to -0.004. Excluding them from
+`DRAFT_CAPITAL_KEYS` keeps the RB companion disabled (as intended) and
+lets WR's companion stay pure college-production.
+
+## Boom/Bust ablation (not shipped)
+
+Same LOSO protocol, extending the gap regression model (boom-side) and
+binary bust classifier. Metrics: Spearman(ρ) for boom, AUC for bust.
+Results are in `public/data/pdf-career-ablation-{pre,post}draft.json`
+under `boom_bust_variants`.
+
+Directionally strong candidates (RB post-draft `bust+weakness` showed
++0.051 AUC all-yrs / +0.052 recent) are per-position wins, but the
+boom/bust feature lists in `train_career_models.py` are **global**
+across positions. Adding PDF features that help RB hurts QB/TE at
+small samples:
+
+| Variant | QB | RB | WR | TE |
+|---|---:|---:|---:|---:|
+| `bust+weakness` (ΔAUC all) | +0.006 | **+0.051** | +0.001 | -0.008 |
+| `bust+weakness` (ΔAUC recent) | -0.052 | **+0.052** | -0.022 | -0.039 |
+
+Net: refactoring the boom/bust feature list to per-position is required
+before shipping these. Deferred until that refactor lands.
+
+## Original recommendations (preserved for context)
 
 1. **Ship for RB (pre + post-draft):** add
    `['pdfRankOverallMean', 'pdfHasRank']` to the per-position feature list.
