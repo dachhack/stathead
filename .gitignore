@@ -29,9 +29,12 @@ public/data/*
 !public/data/cfbd/*.json
 !public/data/pdf-prospect-features.json
 !public/data/pdf-prospect-features-merged.json
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 CLAUDE.local.md
 __pycache__/
 .nflverse-cache/
 .cache/
+.venv/
 pdfs/
