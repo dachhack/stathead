@@ -1,9 +1,21 @@
 ---
 description: Extract per-player prospect features from cached PDF text (uses your Claude subscription, not the API)
+argument-hint: "[optional filename substring filter, e.g. 'rookie_scouting' or '2025']"
 allowed-tools: Read, Write, Glob, Bash
 ---
 
 You are running the prospect-guide feature extraction pipeline. This command processes PDF text caches written by `scripts/extract_pdf_features.py` and turns each guide into structured per-player JSON.
+
+## Optional filename filter
+
+The invocation may include an argument string: `$ARGUMENTS`
+
+- If `$ARGUMENTS` is empty / whitespace, process every PDF as normal.
+- Otherwise treat it as a case-insensitive substring. Only process text caches whose stem (the filename without `.text.txt`) contains this substring. Skip everything else without touching their caches.
+
+Examples: `/extract-pdf-features rookie_scouting` → only RSP guides. `/extract-pdf-features 2025` → only 2025-dated PDFs. `/extract-pdf-features` → all of them.
+
+Report to the user up-front: "Filter: <substring> (N of M PDFs match)" or "Filter: none (processing all N PDFs)".
 
 ## Step 1: make sure text caches exist
 
