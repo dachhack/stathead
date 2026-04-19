@@ -117,6 +117,24 @@ Bust:       actual PPG < 80% of ADP-Expected PPG`}
               cat: 'Vegas / Projection', color: '#eab308',
               features: ['Team implied total', 'Projected volume change', 'Projected target share'],
             },
+            {
+              // Scouting features extracted from The Beast, RSP, and Late-Round Guide
+              // via scripts/extract_pdf_features.py + merge_pdf_features.py. RSP adds
+              // (2026-04) surface Matt Waldman's DOT numeric grade, tier class, cross-year
+              // trajectory, and comps count — shipped in the RB + WR pre-draft lists.
+              cat: 'Scouting (Beast / RSP / Late-Round)', color: '#f97316',
+              features: [
+                'Consensus scout rank (The Beast)',
+                'Projected round (PDF consensus)',
+                '# strengths / weaknesses / red flags (sentiment)',
+                'RSP DOT score (Matt Waldman, draft year)',
+                'RSP DOT trajectory (draft year → latest)',
+                'RSP breadth score',
+                'RSP tier class (Franchise → Street)',
+                'RSP # NFL comps',
+                'Scout-vs-pick disagreement (rank vs pick, round vs round)',
+              ],
+            },
           ].map((g) => (
             <div key={g.cat} style={{
               background: 'var(--bg-secondary)', border: '1px solid var(--border)',

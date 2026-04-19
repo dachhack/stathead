@@ -47,6 +47,11 @@ POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v4.json'
 # Ablation: scripts/test_pdf_career_features.py (findings in
 # docs/pdf-career-feature-test.md) — ships the winners per-position.
 PDF_FEATURES_PATH = OUTPUT_DIR / 'pdf-prospect-features-merged.json'
+# Rookie Scouting Portfolio cross-year rankings (Matt Waldman's DOT +
+# breadth per guide). 2026-04 ablation (scripts/test_rsp_career_features.py,
+# see docs/pdf-career-feature-test.md) ships the winners: rspNComps
+# for WR (+0.071 R²) and the draft_snapshot bundle for RB (+0.042 R²).
+RSP_HISTORICAL_PATH = OUTPUT_DIR / 'rsp-historical-rankings.json'
 
 PRE_DRAFT_FEATURES = {
     # QB adds draftClassDepth — QBs are scarce, so a #1 pick in a shallow
@@ -72,9 +77,20 @@ PRE_DRAFT_FEATURES = {
     # baseline — biggest non-draft-capital add since collegeUsageOverall.
     # pdfHasRank is the "missing-data" indicator so pre-2022 zero-fills
     # don't look like a #0-ranked (elite) prospect to the model.
+    # 2026-04 RSP ablation (scripts/test_rsp_career_features.py):
+    # draft_snapshot bundle (rspDotDraft + rspBreadthDraft + rspTierOrdinal
+    # + rspNComps + rspHasData) lifted R² +0.042 in the PDF era on top of
+    # the PDF-aware baseline. DOT is Matt Waldman's numeric grade parsed
+    # from "Starter (87.4)"-style tier strings; breadth is his companion
+    # "usefulness across roles" score; the tier ordinal collapses Franchise
+    # / Legendary / Starter / Contributor / Reserve / Benchwarmer / Street
+    # into a 1-10 class. rspNComps is the number of NFL-player comps the
+    # scouts offered — a proxy for "how many archetypes this prospect fits".
     'RB': ['logDraftPick', 'collegeDominatorXLateRound',
            'collegeUsageOverall', 'recruitRating',
-           'pdfRankOverallMean', 'pdfHasRank'],
+           'pdfRankOverallMean', 'pdfHasRank',
+           'rspDotDraft', 'rspBreadthDraft', 'rspTierOrdinal',
+           'rspNComps', 'rspHasData'],
     # WR: recruitStars (247 composite, 1-5) added +0.011 R². Other CFBD
     # features were either redundant with existing college production
     # features or hurt R² once recruitStars was in. 2026-04 PDF A/B:
@@ -84,12 +100,19 @@ PRE_DRAFT_FEATURES = {
     # lifted R² +0.006 all-yrs / +0.021 PDF-era. Red flags are weighted
     # 2× in pdfSentimentNet — a scout-flagged concern is harder signal
     # than a plain "weakness" bullet.
+    # 2026-04 RSP A/B on top of the existing PDF sentiment baseline: the
+    # single strongest new signal was rspNComps (number of scout-supplied
+    # NFL comps), which lifted R² +0.071 in the PDF era and +0.069 when
+    # training only on 2022+ rookies. More comps from the scout = more
+    # NFL archetypes the prospect resembles — mid-round hits often share
+    # multiple comps, true busts share few or none.
     'WR': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
            'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
            'collegeBestRecYds',
            'weight', 'collegeTeammateScore',
            'relativeAthleticScore', 'recruitStars',
-           'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'],
+           'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet',
+           'rspNComps', 'rspHasData'],
     # TE: recruitStars also wins for TE (+0.015 R²). TEs are notoriously
     # hard to project — the 247 composite grabs high-upside athletes the
     # lean draft-capital feature set was missing.
@@ -122,9 +145,12 @@ POST_DRAFT_FEATURES = {
     # and -0.009 score≥22 once team-context features were present. The
     # scouting sentiment was already being proxied by landing-spot context
     # post-draft, so it stopped adding marginal value. Drop explicitly.
+    # rspNComps / rspHasData are pre-draft-only too — landing spot subsumes
+    # the scout-archetype-count signal once draft capital is known.
     'WR': [f for f in PRE_DRAFT_FEATURES['WR']
            if f not in ('pdfNStrengths', 'pdfNWeaknesses',
-                        'pdfNRedFlags', 'pdfSentimentNet')] + [
+                        'pdfNRedFlags', 'pdfSentimentNet',
+                        'rspNComps', 'rspHasData')] + [
         'depthChartRank', 'teamSamePosCount',
         'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
     # TE: kept depthChartRank (+0.008), vegasImpliedTotal (+0.008),
@@ -243,6 +269,178 @@ _EMPTY_PDF_FEATURES = {
     'pdfNRedFlags': 0,
     'pdfSentimentNet': 0,
 }
+
+
+# RSP-derived features. rspDotDraft/rspBreadthDraft are the scores from
+# Waldman's guide in the player's draft year. rspDotLatest/rspBreadthLatest
+# track the most recent re-ranking (cross-year signal) — currently shipped
+# as pre-draft features for RB only because post-draft recalibration
+# didn't show a consistent lift. rspTierOrdinal is an ordinal encoding of
+# tier class ("Franchise"=10 … "Street"=1). rspNComps counts the number
+# of NFL-player comparisons the scout wrote up.
+_EMPTY_RSP_FEATURES = {
+    'rspHasData': 0,
+    'rspDotMax': 0.0,
+    'rspDotDraft': 0.0,
+    'rspDotLatest': 0.0,
+    'rspDotDelta': 0.0,
+    'rspBreadthDraft': 0.0,
+    'rspBreadthLatest': 0.0,
+    'rspTierOrdinal': 0,
+    'rspAppearances': 0,
+    'rspNComps': 0,
+}
+
+# Ordinal mapping of RSP tier classes. Scored so the gap between neighbours
+# roughly approximates the DOT class boundaries in Waldman's writeups.
+# Not calibrated to log-odds — just a monotonic ranking the GBM can split on.
+_RSP_TIER_ORDINAL = {
+    'Franchise': 10,
+    'Legendary Performer': 9,
+    'Elite Producer': 9,
+    'Weekly Starter': 8,
+    'Starter': 8,
+    'Rotational Starter': 7,
+    'Rotational Starter Tier': 7,
+    'Flex Play': 6,
+    'Contributor': 6,
+    'Reserve': 5,
+    'Cusp of Contributor and Reserve': 5,
+    'Developmental': 4,
+    'Developmental on Cusp of Reserve': 4,
+    'Benchwarmer': 3,
+    'Priority Free Agent': 3,
+    'Waiver Wire Add': 2,
+    'Dart Throw': 2,
+    'Street': 1,
+}
+
+# Regex pre-compiled once — runs for every prospect on every training pass.
+import re as _re  # local alias to avoid colliding with anything named `re`
+_RSP_DOT_RE = _re.compile(r'\(([0-9]+(?:\.[0-9]+)?)\)')
+_RSP_PAREN_RE = _re.compile(r'\s*\([^)]*\)\s*')
+_RSP_ROUND_RE = _re.compile(r'round', _re.I)
+
+
+def _parse_rsp_tier(tiers: list) -> tuple[float, int]:
+    """Extract (best DOT score, max tier ordinal) from merged tier strings.
+
+    Max is used rather than mean — best-case scout projection matches the
+    optimistic tail we want the GBM to key on for RB.
+    """
+    if not tiers:
+        return 0.0, 0
+    best_dot = 0.0
+    best_ord = 0
+    for t in tiers:
+        m = _RSP_DOT_RE.search(t)
+        if m:
+            try:
+                d = float(m.group(1))
+                if d > best_dot:
+                    best_dot = d
+            except ValueError:
+                pass
+        label = _RSP_PAREN_RE.sub('', t).strip()
+        if _RSP_ROUND_RE.search(label):
+            # "1st Round" tags are Beast-style — captured via pdfProjectedRound.
+            continue
+        best_ord = max(best_ord, _RSP_TIER_ORDINAL.get(label, 0))
+    return best_dot, best_ord
+
+
+def _derive_rsp_features(pdf_entry: dict | None,
+                          hr_entries: list | None,
+                          draft_season: int) -> dict:
+    """Build the rsp* feature dict from merged PDF + historical rankings.
+
+    pdf_entry holds tiers/comps (present for any prospect in any source PDF).
+    hr_entries is a list of cross-year appearances from
+    rsp-historical-rankings.json — used to compute trajectory/delta.
+    """
+    # Tier-embedded DOT + ordinal (merged across all PDFs that graded the
+    # player). Zero when the player isn't in any scouting PDF.
+    tier_dot, tier_ord = _parse_rsp_tier(
+        (pdf_entry or {}).get('tiers') or [])
+
+    # Cross-year DOT trajectory. "Draft" = the guide from the player's
+    # draft year when available; "latest" = the most recent guide.
+    first_dot = last_dot = dot_delta = 0.0
+    breadth_first = breadth_last = 0.0
+    n_ap = 0
+    if hr_entries:
+        ap = sorted(hr_entries, key=lambda e: e.get('guide_year', 0))
+        draft_ap = next(
+            (a for a in ap if a.get('guide_year') == draft_season),
+            ap[0])
+        latest = ap[-1]
+        first_dot = float(draft_ap.get('dot') or 0)
+        last_dot = float(latest.get('dot') or 0)
+        if first_dot and last_dot:
+            dot_delta = last_dot - first_dot
+        breadth_first = float(draft_ap.get('breadth') or 0)
+        breadth_last = float(latest.get('breadth') or 0)
+        n_ap = len(ap)
+
+    # Fallback: when the player is only in their draft-year RSP (most 2026
+    # rookies), rsp-historical-rankings.json — which indexes cross-year
+    # re-rankings — won't have them. Use the tier-embedded DOT from the
+    # merged PDFs so rspDotDraft is populated for every scouted prospect,
+    # not just ones Waldman re-ranked in a later guide. Without this the
+    # GBM learns "rspDotDraft==0 → 2026 class" as an era indicator.
+    if first_dot == 0 and tier_dot > 0:
+        first_dot = tier_dot
+    if last_dot == 0 and tier_dot > 0:
+        last_dot = tier_dot
+
+    best_dot = max(tier_dot, last_dot, first_dot)
+    has_data = 1 if (tier_dot or last_dot or tier_ord or n_ap) else 0
+    n_comps = len((pdf_entry or {}).get('comps') or [])
+
+    return {
+        'rspHasData': has_data,
+        'rspDotMax': best_dot,
+        'rspDotDraft': first_dot,
+        'rspDotLatest': last_dot,
+        'rspDotDelta': dot_delta,
+        'rspBreadthDraft': breadth_first,
+        'rspBreadthLatest': breadth_last,
+        'rspTierOrdinal': tier_ord,
+        'rspAppearances': n_ap,
+        'rspNComps': n_comps,
+    }
+
+
+def _load_rsp_historical_index(path: Path) -> dict:
+    """Return (normalized_name, position) → list of per-guide appearances.
+
+    Each appearance dict: {guide_year, rank, dot, breadth, tier}. Missing
+    file is non-fatal — prospects not in the historical rankings still
+    get tier-based features from the merged PDF index.
+    """
+    if not path.exists():
+        print(f"  [rsp] {path} not found — cross-year trajectory features will be zero-filled")
+        return {}
+    with open(path) as f:
+        hr = json.load(f)
+    idx: dict = {}
+    for g in hr.get('guides', []):
+        yr = g.get('guide_year')
+        for pos, entries in (g.get('rankings') or {}).items():
+            for r in entries:
+                if r.get('dot') is None and r.get('breadth') is None:
+                    continue
+                key = (_norm_pdf_name(r['player_name']), pos)
+                idx.setdefault(key, []).append({
+                    'guide_year': yr,
+                    'rank': r.get('rank'),
+                    'dot': r.get('dot'),
+                    'breadth': r.get('breadth'),
+                    'tier': r.get('tier'),
+                })
+    total_appearances = sum(len(v) for v in idx.values())
+    print(f"  [rsp] loaded {len(idx)} players / {total_appearances} cross-year entries from {path.name}")
+    return idx
 
 
 def _derive_pdf_features(p: dict | None) -> dict:
@@ -534,6 +732,7 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         data = json.load(f)
     rows = data['rows']
     pdf_idx = _load_pdf_index(PDF_FEATURES_PATH)
+    rsp_hr_idx = _load_rsp_historical_index(RSP_HISTORICAL_PATH)
 
     # Build games lookup from priorGames
     career_games = {}
@@ -635,8 +834,15 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         # consensus. Zero-filled for pre-2022 classes; pdfHasData /
         # pdfHasRank let the GBM distinguish "no data" from the zero
         # endpoint of each continuous field.
-        f.update(_derive_pdf_features(
-            _lookup_pdf(pdf_idx, entry['name'], entry['position'])
+        pdf_entry = _lookup_pdf(pdf_idx, entry['name'], entry['position'])
+        f.update(_derive_pdf_features(pdf_entry))
+
+        # RSP-specific features layered on top of the PDF baseline: tier-
+        # embedded DOT score, tier-class ordinal, cross-year DOT trajectory,
+        # and number of NFL comps. Zero-filled for prospects not in any RSP.
+        hr_key = (_norm_pdf_name(entry['name']), entry['position'])
+        f.update(_derive_rsp_features(
+            pdf_entry, rsp_hr_idx.get(hr_key), entry['draft_season']
         ))
 
         career_rows.append({

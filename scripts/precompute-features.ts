@@ -845,6 +845,138 @@ async function main() {
         pdfRoundXActual: projRound > 0 ? projRound - safeRound : 0,
       };
     };
+
+    // RSP (Rookie Scouting Portfolio) cross-year index — mirrors
+    // train_career_models.py::_load_rsp_historical_index. Keyed by
+    // (normalized name, position) so scoring and training agree on
+    // which guide-years a player appears in.
+    interface RspAppearance {
+      guide_year: number;
+      rank?: number | null;
+      dot?: number | null;
+      breadth?: number | null;
+      tier?: string | null;
+    }
+    const rspHistorical: Record<string, RspAppearance[]> = {};
+    try {
+      const hr = JSON.parse(readFileSync('public/data/rsp-historical-rankings.json', 'utf-8'));
+      const normRspName = (n: string) => n.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      for (const g of (hr.guides || []) as Array<{
+        guide_year: number; rankings?: Record<string, Array<Record<string, unknown>>>;
+      }>) {
+        const yr = g.guide_year;
+        for (const [pos, entries] of Object.entries(g.rankings || {})) {
+          for (const r of entries) {
+            if ((r.dot ?? null) == null && (r.breadth ?? null) == null) continue;
+            const playerName = r.player_name as string | undefined;
+            if (!playerName) continue;
+            const key = `${normRspName(playerName)}::${pos}`;
+            const ap: RspAppearance = {
+              guide_year: yr,
+              rank: (r.rank as number | null) ?? null,
+              dot: (r.dot as number | null) ?? null,
+              breadth: (r.breadth as number | null) ?? null,
+              tier: (r.tier as string | null) ?? null,
+            };
+            (rspHistorical[key] ||= []).push(ap);
+          }
+        }
+      }
+    } catch {
+      // File missing → rsp* features zero-fill.
+    }
+
+    // Parse DOT score + tier-class ordinal from merged 'tiers' strings
+    // like "Starter (87.4)" or "Contributor (76.2)". Keep in sync with
+    // train_career_models.py::_parse_rsp_tier.
+    const RSP_TIER_ORDINAL: Record<string, number> = {
+      'Franchise': 10,
+      'Legendary Performer': 9,
+      'Elite Producer': 9,
+      'Weekly Starter': 8,
+      'Starter': 8,
+      'Rotational Starter': 7,
+      'Rotational Starter Tier': 7,
+      'Flex Play': 6,
+      'Contributor': 6,
+      'Reserve': 5,
+      'Cusp of Contributor and Reserve': 5,
+      'Developmental': 4,
+      'Developmental on Cusp of Reserve': 4,
+      'Benchwarmer': 3,
+      'Priority Free Agent': 3,
+      'Waiver Wire Add': 2,
+      'Dart Throw': 2,
+      'Street': 1,
+    };
+    const RSP_DOT_RE = /\(([0-9]+(?:\.[0-9]+)?)\)/;
+    const parseRspTier = (tiers: string[] | undefined): { dot: number; ord: number } => {
+      let dot = 0, ord = 0;
+      if (!tiers) return { dot, ord };
+      for (const t of tiers) {
+        const m = RSP_DOT_RE.exec(t);
+        if (m) {
+          const d = parseFloat(m[1]);
+          if (!Number.isNaN(d) && d > dot) dot = d;
+        }
+        const label = t.replace(/\s*\([^)]*\)\s*/g, '').trim();
+        if (/round/i.test(label)) continue; // "1st Round" is Beast-style
+        ord = Math.max(ord, RSP_TIER_ORDINAL[label] ?? 0);
+      }
+      return { dot, ord };
+    };
+    const deriveRspFeatures = (
+      name: string, position: string, draftSeason: number,
+    ): Record<string, number> => {
+      const pdfEntry = lookupPdf(name, position) as { tiers?: string[]; comps?: string[] } | undefined;
+      const { dot: tierDot, ord: tierOrd } = parseRspTier(pdfEntry?.tiers);
+
+      const normRspName2 = (n: string) => n.toLowerCase().trim()
+        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
+        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
+      const hrKey = `${normRspName2(name)}::${position}`;
+      const apList = (rspHistorical[hrKey] || []).slice().sort(
+        (a, b) => (a.guide_year || 0) - (b.guide_year || 0));
+
+      let firstDot = 0, lastDot = 0, dotDelta = 0;
+      let breadthFirst = 0, breadthLast = 0;
+      const nAp = apList.length;
+      if (nAp > 0) {
+        const draftAp = apList.find((a) => a.guide_year === draftSeason) || apList[0];
+        const latest = apList[nAp - 1];
+        firstDot = Number(draftAp.dot || 0);
+        lastDot = Number(latest.dot || 0);
+        if (firstDot && lastDot) dotDelta = lastDot - firstDot;
+        breadthFirst = Number(draftAp.breadth || 0);
+        breadthLast = Number(latest.breadth || 0);
+      }
+
+      // Fallback: 2026 rookies aren't in rsp-historical-rankings.json (it
+      // indexes cross-year re-rankings only), so firstDot/lastDot would
+      // zero out even though the 2026 merged PDF has tierDot. Backfill so
+      // the GBM doesn't learn "rspDotDraft==0 → 2026 class".
+      if (firstDot === 0 && tierDot > 0) firstDot = tierDot;
+      if (lastDot === 0 && tierDot > 0) lastDot = tierDot;
+
+      const bestDot = Math.max(tierDot, firstDot, lastDot);
+      const hasData = (tierDot || lastDot || tierOrd || nAp) ? 1 : 0;
+      const nComps = (pdfEntry?.comps || []).length;
+
+      return {
+        rspHasData: hasData,
+        rspDotMax: bestDot,
+        rspDotDraft: firstDot,
+        rspDotLatest: lastDot,
+        rspDotDelta: dotDelta,
+        rspBreadthDraft: breadthFirst,
+        rspBreadthLatest: breadthLast,
+        rspTierOrdinal: tierOrd,
+        rspAppearances: nAp,
+        rspNComps: nComps,
+      };
+    };
     // School → drafted players lookup
     const schoolDraftees = new Map<string, Array<{ name: string; season: number; pick: number }>>();
     for (const dp of draftPicks) {
@@ -1062,6 +1194,14 @@ async function main() {
           for (const [k, v] of Object.entries(disag)) {
             if (storedFeatures[k] === undefined) storedFeatures[k] = v as number;
           }
+          // RSP-specific features — mirrors train_career_models.py
+          // _derive_rsp_features. Ships in RB + WR pre-draft rookie career
+          // models; populated for every prospect so player-card inputs stay
+          // consistent regardless of whether the position uses them.
+          const rspF = deriveRspFeatures(prospect.name, pos, 2026);
+          for (const [k, v] of Object.entries(rspF)) {
+            if (storedFeatures[k] === undefined) storedFeatures[k] = v as number;
+          }
 
           // RAS + combine-data flags. buildProspectFeatureRecord doesn't
           // compute these (only the nflverse path did), so graded prospects
@@ -1252,10 +1392,14 @@ async function main() {
         // Disagreement pair (pdfRankXPick, pdfRoundXActual) is computed
         // inline because it only needs PDF + draft inputs; the
         // production-gap disagreements are filled by the Python scorer.
+        // RSP features (tier-DOT, breadth, tier-ordinal, comps count,
+        // cross-year trajectory) shipped 2026-04 — power the WR + RB
+        // pre-draft rookie career models per the RSP ablation.
         ...(() => {
           const pdfF = derivePdfFeatures(prospect.name, pos);
           const disag = computeDisagreementFromPdf(pdfF, projPick, prospect.projRound || 8);
-          return { ...pdfF, ...disag };
+          const rspF = deriveRspFeatures(prospect.name, pos, 2026);
+          return { ...pdfF, ...disag, ...rspF };
         })(),
         ...(() => {
           // Career aggregates used for QB context features AND the new

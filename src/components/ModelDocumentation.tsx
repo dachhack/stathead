@@ -69,6 +69,19 @@ const GAP_FEATURE_LABELS: Record<string, string> = {
   pdfRoundXActual: 'Proj Round vs Actual Round',
   recruit_production_gap: 'Recruit-vs-Production Gap',
   athletic_production_gap: 'Athletic-vs-Production Gap',
+  // RSP (Rookie Scouting Portfolio) adds (2026-04) — DOT, tier class,
+  // breadth, comps count, cross-year trajectory. Shipped in RB/WR pre-draft
+  // rookie career lists; not currently in BOOM_GAP_FEATURES_BY_POS.
+  rspDotMax: 'RSP DOT (best)',
+  rspDotDraft: 'RSP DOT (draft year)',
+  rspDotLatest: 'RSP DOT (latest)',
+  rspDotDelta: 'RSP DOT Trajectory',
+  rspBreadthDraft: 'RSP Breadth (draft year)',
+  rspBreadthLatest: 'RSP Breadth (latest)',
+  rspTierOrdinal: 'RSP Tier Class',
+  rspAppearances: 'RSP Guide Appearances',
+  rspNComps: 'RSP # NFL Comps',
+  rspHasData: 'Has RSP Data',
 };
 
 // Human-readable labels for the bust-classifier feature vocabulary (see
