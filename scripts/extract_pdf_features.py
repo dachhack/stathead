@@ -1,101 +1,44 @@
 #!/usr/bin/env python3
-"""Extract structured prospect features from local PDF rookie/draft guides.
+"""Decrypt password-protected prospect PDFs and dump plain text to a cache dir.
 
-Reads every PDF in ./pdfs/ (gitignored), extracts text with pdfplumber,
-then asks Claude to normalize each guide into a list of per-player
-feature rows. Raw text and parsed features are cached per-PDF under
-./pdfs/.cache/ so reruns are cheap.
+This is the first stage of the PDF feature pipeline. It does NOT call any
+LLM API; the normalization/feature-extraction step runs via a Claude Code
+slash command (see .claude/commands/extract-pdf-features.md) which uses
+your Claude subscription instead of paid API tokens.
 
-Final outputs (committed):
-  public/data/pdf-prospect-features.json           -- per (player, source) rows
-  public/data/pdf-prospect-features-merged.json    -- one row per player, aggregated
+Walks every *.pdf in ./pdfs/ (gitignored), tries each password in
+./pdfs/.passwords.txt until one works, and writes:
+
+    pdfs/.cache/<stem>.text.txt     plain text, page-delimited
+    pdfs/.cache/<stem>.password     which password unlocked the file
+
+Reruns are cheap: files already cached are skipped unless --force.
 
 Usage:
-  pip install -r scripts/requirements-pdf.txt
-  export ANTHROPIC_API_KEY=sk-ant-...
+  pip3 install -r scripts/requirements-pdf.txt
   python3 scripts/extract_pdf_features.py
-  python3 scripts/extract_pdf_features.py --dry-run   # text extraction only
-  python3 scripts/extract_pdf_features.py --force     # ignore cache
+  python3 scripts/extract_pdf_features.py --force
 
-Password-protected PDFs:
-  Put passwords (one per line) in ./pdfs/.passwords.txt. Each line can be a
-  plain password, or "<hint>:<password>" where <hint> is a substring of the
-  filename that signals which password applies (e.g. "2024:my-pw"). The file
-  lives inside pdfs/ and is therefore gitignored. You can also pass a
-  comma-separated list via the PDF_PASSWORDS env var.
+Password file format (./pdfs/.passwords.txt):
+  Each line is either "<password>" or "<hint>:<password>" where <hint> is
+  a case-insensitive substring of the filename that signals which password
+  to try first (e.g. "2024:mypw"). You can also pass a comma-separated
+  list via the PDF_PASSWORDS env var.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import re
 import sys
-from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 PDF_DIR = ROOT / "pdfs"
 CACHE_DIR = PDF_DIR / ".cache"
-OUT_PER_SOURCE = ROOT / "public" / "data" / "pdf-prospect-features.json"
-OUT_MERGED = ROOT / "public" / "data" / "pdf-prospect-features-merged.json"
-
-MODEL = os.environ.get("PDF_EXTRACT_MODEL", "claude-sonnet-4-6")
-MAX_CHUNK_CHARS = 180_000  # roughly ~45k tokens of input text per call
-
-SYSTEM_PROMPT = """You extract structured prospect evaluations from NFL draft and dynasty rookie guides.
-
-For every distinct NFL draft prospect mentioned in the text, emit one JSON object with this schema:
-
-{
-  "player_name": str,              // as written
-  "position": str | null,          // QB|RB|WR|TE|OL|DL|LB|CB|S|K|P|ATH
-  "college": str | null,
-  "rank_overall": int | null,      // overall rank in this guide, if present
-  "rank_position": int | null,     // positional rank, if present
-  "tier": str | null,              // e.g. "Tier 1", "Elite", "Round 2 grade"
-  "projected_round": int | null,   // 1-7 if the guide gives a round projection
-  "comps": [str],                  // NFL player comparisons mentioned
-  "strengths": [str],              // short phrases, not sentences
-  "weaknesses": [str],
-  "red_flags": [str],              // injury, character, scheme fit concerns
-  "athletic_notes": str | null,    // prose about testing/athleticism
-  "summary": str | null,           // 1-2 sentence analyst take, verbatim or tight paraphrase
-  "confidence": "high" | "medium" | "low"  // how clearly this player is profiled
-}
-
-Rules:
-- Only include players who get at least a short dedicated write-up, tier, or ranking. Skip one-off name drops.
-- Use null, not empty strings, for missing fields. Use [] for missing lists.
-- Do not invent data. If a field isn't in the text, it's null.
-- Normalize position to the codes above (e.g. "Running Back" -> "RB", "Edge" -> "DL").
-- Preserve proper spellings of names; don't Americanize diacritics.
-
-Return ONLY a JSON object of the form {"players": [...]}. No prose, no markdown fences."""
-
-
-@dataclass
-class Source:
-    path: Path
-    text: str
-
-    @property
-    def stem(self) -> str:
-        return self.path.stem
 
 
 def load_passwords() -> list[tuple[str | None, str]]:
-    """Load password candidates as (hint, password) pairs.
-
-    Sources, tried in order:
-      1. ./pdfs/.passwords.txt -- one entry per line; either "<password>" or "<hint>:<password>"
-      2. PDF_PASSWORDS env var -- comma-separated list of plain passwords
-    The optional hint (substring) lets us prefer a password when it appears in the filename
-    (e.g. year). Entries with no hint are tried last for every PDF.
-    """
     out: list[tuple[str | None, str]] = []
     pw_file = PDF_DIR / ".passwords.txt"
     if pw_file.exists():
@@ -115,7 +58,6 @@ def load_passwords() -> list[tuple[str | None, str]]:
 
 
 def open_pdf(pdf_path: Path, passwords: list[tuple[str | None, str]]):
-    """Open a PDF, trying each password candidate. Returns (pdf, password_used)."""
     import pdfplumber
     from pdfminer.pdfdocument import PDFPasswordIncorrect
 
@@ -137,7 +79,6 @@ def open_pdf(pdf_path: Path, passwords: list[tuple[str | None, str]]):
     for pw in candidates:
         try:
             pdf = pdfplumber.open(pdf_path, password=pw)
-            # Force-parse at least one page to surface a password error early.
             _ = len(pdf.pages)
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
             cache_file.write_text(pw, encoding="utf-8")
@@ -154,10 +95,10 @@ def open_pdf(pdf_path: Path, passwords: list[tuple[str | None, str]]):
     raise RuntimeError(f"could not unlock {pdf_path.name}; last error: {last_err}")
 
 
-def extract_text(pdf_path: Path, force: bool, passwords: list[tuple[str | None, str]]) -> str:
+def extract_text(pdf_path: Path, force: bool, passwords: list[tuple[str | None, str]]) -> int:
     cache_file = CACHE_DIR / f"{pdf_path.stem}.text.txt"
     if cache_file.exists() and not force:
-        return cache_file.read_text(encoding="utf-8")
+        return len(cache_file.read_text(encoding="utf-8"))
 
     pdf, pw_used = open_pdf(pdf_path, passwords)
     if pw_used:
@@ -177,140 +118,12 @@ def extract_text(pdf_path: Path, force: bool, passwords: list[tuple[str | None, 
     full = "\n".join(pages).strip()
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_file.write_text(full, encoding="utf-8")
-    return full
-
-
-def chunk_text(text: str, max_chars: int) -> list[str]:
-    if len(text) <= max_chars:
-        return [text]
-    chunks: list[str] = []
-    pages = re.split(r"(?=\n=== PAGE \d+ ===)", text)
-    buf = ""
-    for p in pages:
-        if len(buf) + len(p) > max_chars and buf:
-            chunks.append(buf)
-            buf = p
-        else:
-            buf += p
-    if buf:
-        chunks.append(buf)
-    return chunks
-
-
-def call_claude(client, chunk: str, source_name: str) -> list[dict[str, Any]]:
-    msg = client.messages.create(
-        model=MODEL,
-        max_tokens=16_000,
-        system=[
-            {
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"Source guide: {source_name}\n\n"
-                    f"--- PDF TEXT ---\n{chunk}\n--- END PDF TEXT ---\n\n"
-                    "Extract all profiled prospects as JSON per the schema."
-                ),
-            }
-        ],
-    )
-    raw = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
-    raw = raw.strip()
-    # Strip accidental code fences.
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.S)
-    try:
-        obj = json.loads(raw)
-    except json.JSONDecodeError as e:
-        print(f"  JSON parse error: {e}; first 300 chars: {raw[:300]!r}", file=sys.stderr)
-        return []
-    players = obj.get("players", []) if isinstance(obj, dict) else []
-    return [p for p in players if isinstance(p, dict) and p.get("player_name")]
-
-
-def normalize_pdf(client, src: Source, force: bool) -> list[dict[str, Any]]:
-    cache_file = CACHE_DIR / f"{src.stem}.features.json"
-    if cache_file.exists() and not force:
-        return json.loads(cache_file.read_text(encoding="utf-8"))
-
-    all_players: list[dict[str, Any]] = []
-    chunks = chunk_text(src.text, MAX_CHUNK_CHARS)
-    for i, chunk in enumerate(chunks):
-        print(f"  chunk {i+1}/{len(chunks)} ({len(chunk):,} chars) -> {MODEL}")
-        all_players.extend(call_claude(client, chunk, src.path.name))
-
-    for p in all_players:
-        p["source_file"] = src.path.name
-
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file.write_text(json.dumps(all_players, indent=2), encoding="utf-8")
-    return all_players
-
-
-NAME_PUNCT = re.compile(r"[^\w\s]")
-
-
-def normalize_name(name: str) -> str:
-    n = NAME_PUNCT.sub(" ", name.lower())
-    n = re.sub(r"\b(jr|sr|ii|iii|iv)\b", "", n)
-    return re.sub(r"\s+", " ", n).strip()
-
-
-def merge_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for r in rows:
-        grouped[normalize_name(r["player_name"])].append(r)
-
-    merged: list[dict[str, Any]] = []
-    for key, items in grouped.items():
-        positions = [i.get("position") for i in items if i.get("position")]
-        colleges = [i.get("college") for i in items if i.get("college")]
-        ranks = [i["rank_overall"] for i in items if isinstance(i.get("rank_overall"), int)]
-        prounds = [i["projected_round"] for i in items if isinstance(i.get("projected_round"), int)]
-
-        def flat(key: str) -> list[str]:
-            seen: set[str] = set()
-            out: list[str] = []
-            for i in items:
-                for v in i.get(key) or []:
-                    v = str(v).strip()
-                    if v and v.lower() not in seen:
-                        seen.add(v.lower())
-                        out.append(v)
-            return out
-
-        merged.append({
-            "player_key": key,
-            "player_name": items[0]["player_name"],
-            "position": max(set(positions), key=positions.count) if positions else None,
-            "college": max(set(colleges), key=colleges.count) if colleges else None,
-            "sources": sorted({i["source_file"] for i in items}),
-            "n_sources": len({i["source_file"] for i in items}),
-            "rank_overall_min": min(ranks) if ranks else None,
-            "rank_overall_mean": round(sum(ranks) / len(ranks), 1) if ranks else None,
-            "rank_overall_max": max(ranks) if ranks else None,
-            "projected_round_mean": round(sum(prounds) / len(prounds), 2) if prounds else None,
-            "tiers": [i["tier"] for i in items if i.get("tier")],
-            "comps": flat("comps"),
-            "strengths": flat("strengths"),
-            "weaknesses": flat("weaknesses"),
-            "red_flags": flat("red_flags"),
-            "summaries": [i["summary"] for i in items if i.get("summary")],
-        })
-
-    merged.sort(key=lambda r: (r["rank_overall_mean"] is None, r["rank_overall_mean"] or 9999))
-    return merged
+    return len(full)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--dry-run", action="store_true", help="Extract text only, skip LLM normalization")
-    ap.add_argument("--force", action="store_true", help="Ignore caches and re-extract/re-normalize")
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--force", action="store_true", help="Ignore caches and re-extract text")
     args = ap.parse_args()
 
     if not PDF_DIR.exists():
@@ -323,46 +136,27 @@ def main() -> int:
         return 1
 
     print(f"Found {len(pdfs)} PDF(s) in {PDF_DIR}")
-
     passwords = load_passwords()
     if passwords:
         print(f"Loaded {len(passwords)} password candidate(s)")
 
-    sources: list[Source] = []
+    missing = 0
     for pdf_path in pdfs:
-        print(f"extracting text: {pdf_path.name}")
-        text = extract_text(pdf_path, args.force, passwords)
-        if not text.strip():
-            print(f"  warning: no text extracted (scanned PDF? OCR not wired up)")
+        print(f"extracting: {pdf_path.name}")
+        try:
+            n = extract_text(pdf_path, args.force, passwords)
+        except Exception as e:
+            print(f"  FAILED: {e}", file=sys.stderr)
+            missing += 1
             continue
-        sources.append(Source(path=pdf_path, text=text))
+        if n == 0:
+            print(f"  warning: 0 chars extracted (scanned PDF? OCR not wired up)")
 
-    if args.dry_run:
-        print("dry-run: skipping LLM normalization")
-        return 0
-
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("error: ANTHROPIC_API_KEY not set", file=sys.stderr)
-        return 1
-
-    import anthropic
-    client = anthropic.Anthropic()
-
-    all_rows: list[dict[str, Any]] = []
-    for src in sources:
-        print(f"normalizing: {src.path.name}")
-        rows = normalize_pdf(client, src, args.force)
-        print(f"  -> {len(rows)} player rows")
-        all_rows.extend(rows)
-
-    OUT_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PER_SOURCE.write_text(json.dumps(all_rows, indent=2), encoding="utf-8")
-    print(f"wrote {len(all_rows)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}")
-
-    merged = merge_rows(all_rows)
-    OUT_MERGED.write_text(json.dumps(merged, indent=2), encoding="utf-8")
-    print(f"wrote {len(merged)} merged players -> {OUT_MERGED.relative_to(ROOT)}")
-    return 0
+    print()
+    print(f"Text caches written to {CACHE_DIR.relative_to(ROOT)}/")
+    print("Next: in this repo, run `claude` and invoke /extract-pdf-features")
+    print("      (uses your Claude subscription, not the paid API).")
+    return 1 if missing else 0
 
 
 if __name__ == "__main__":
