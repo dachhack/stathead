@@ -281,3 +281,71 @@ python3 scripts/test_pdf_career_features.py --pos RB       # single position
 ```
 
 Outputs land in `public/data/pdf-career-ablation-{pre,post}draft.json`.
+
+## RSP round 4 — DOT, tier class, comps, cross-year trajectory (2026-04)
+
+After the 2023-2025 RSP guides were enriched with full scouting writeups
+(commit `4e715d3`), a new ablation round tested RSP-specific fields:
+
+- **DOT (Depth of Talent)** — Matt Waldman's numeric grade, parsed from
+  tier strings like `"Starter (87.4)"` and also stored raw in
+  `public/data/rsp-historical-rankings.json` for cross-year appearances.
+- **Breadth** — Waldman's "usefulness across roles" companion score.
+- **Tier class ordinal** — `Franchise=10 … Street=1`, a 10-level
+  monotonic ranking mapped from the tier label in the merged PDFs.
+- **Cross-year DOT trajectory** — for the 617 players who appear in 2+
+  guides, the delta between the draft-year grade and the latest grade
+  (late-boom signal if Waldman upgraded them after rookie year).
+- **rspNComps** — number of NFL-player comps the scout wrote up.
+
+Runner: `scripts/test_rsp_career_features.py`
+Raw results: `public/data/rsp-career-ablation-predraft.json`
+Coverage: 389/1112 career rows tagged (≈90% of 2021-25 rookies).
+
+### Pre-draft findings (score≥22 regime, the PDF-era honesty test)
+
+| Pos | Baseline R² | Best variant | Δ R² |
+|---|---:|---|---:|
+| WR | 0.218 | `+comps_only` (rspNComps, rspHasData) | **+0.0712** |
+| RB | 0.270 | `+draft_snapshot` (DOT, breadth, tier ord, comps, hasData) | **+0.0424** |
+| TE | 0.454 | everything negative | hurts |
+| QB | 0.268 | everything negative | hurts |
+
+### Boom/bust findings
+
+Mostly flat or negative. Marginal bust-AUC gains at RB (+0.014 dot_only,
++0.010 trajectory) and TE (+0.025 dot_only) — all within noise for the
+<100-sample PDF-era test sets. No boom-ρ lift materialized anywhere. The
+RSP cross-year DOT trajectory did not deliver the late-boom edge we
+hypothesized; Waldman's updated grades seem to already track actual NFL
+output, so there's no residual signal.
+
+### Shipped
+
+| Position | Model | Added features | Observed Δ |
+|---|---|---|---|
+| RB | pre-draft | `rspDotDraft`, `rspBreadthDraft`, `rspTierOrdinal`, `rspNComps`, `rspHasData` | R² +0.042 score≥22 |
+| RB | post-draft | same (inherited from pre-draft) | — |
+| WR | pre-draft | `rspNComps`, `rspHasData` | R² +0.071 score≥22 |
+| WR | post-draft | (explicitly excluded — landing-spot context subsumes the archetype-count signal once pick is known) | — |
+| QB / TE | both | none — noisy at n=36 / n=55 | — |
+
+Wiring:
+- `train_career_models.py` — `_load_rsp_historical_index()`,
+  `_derive_rsp_features()`, `_parse_rsp_tier()`; RB+WR pre-draft lists
+  updated; post-draft WR filter drops the RSP pair.
+- `scripts/precompute-features.ts` — `deriveRspFeatures()` mirrors the
+  Python derivation so runtime scoring and the LOSO backtest read
+  identical feature values.
+
+Cache bump: career `v72` kept (list changes non-breaking for prior
+consumers), postdraft `v4` kept.
+
+### Reproducing RSP ablation
+
+```bash
+python3 scripts/test_rsp_career_features.py            # all positions
+python3 scripts/test_rsp_career_features.py --pos WR   # single position
+```
+
+Outputs land in `public/data/rsp-career-ablation-predraft.json`.

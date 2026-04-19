@@ -19,6 +19,8 @@ public/data/*
 !public/data/ktc-hyperparam-sweep.json
 !public/data/pdf-career-ablation-predraft.json
 !public/data/pdf-career-ablation-postdraft.json
+!public/data/rsp-career-ablation-predraft.json
+!public/data/rsp-career-ablation-postdraft.json
 !public/data/pdf-only-career-test.json
 !public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json

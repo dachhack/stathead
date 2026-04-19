@@ -481,6 +481,22 @@ export const FEATURES: FeatureDef[] = [
   { key: 'pdfRoundXActual', label: 'Proj Round vs Actual Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'recruit_production_gap', label: 'Recruit-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'athletic_production_gap', label: 'Athletic-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // RSP-specific features (Matt Waldman's Rookie Scouting Portfolio). DOT =
+  // "Depth of Talent" numeric grade parsed from tier strings like
+  // "Starter (87.4)". Cross-year trajectory (draft-year DOT vs latest
+  // appearance) from rsp-historical-rankings.json. Shipped for RB/WR pre-draft
+  // rookie career models 2026-04 (see docs/pdf-career-feature-test.md).
+  { key: 'rspDotMax', label: 'RSP DOT (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotDraft', label: 'RSP DOT (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotLatest', label: 'RSP DOT (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotDelta', label: 'RSP DOT Trajectory', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspBreadthDraft', label: 'RSP Breadth (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspBreadthLatest', label: 'RSP Breadth (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspTierOrdinal', label: 'RSP Tier Class', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspAppearances', label: 'RSP Guide Appearances', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspNComps', label: 'RSP # NFL Comps', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspHasData', label: 'Has RSP Data', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──
@@ -557,20 +573,25 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
   // and recruitRating (247 composite, +0.008 R²) shipped in the 2026-04
   // CFBD pass. pdfRankOverallMean + pdfHasRank added later: +0.008 all-yrs,
   // +0.028 in the PDF era. Paired with DRAFT_CAPITAL_KEYS so the companion
-  // model ignores them.
+  // model ignores them. RSP bundle (draft_snapshot: DOT + breadth + tier
+  // ord + comps + has flag) shipped 2026-04 round 4: R² +0.042 in the PDF era.
   RB: ['logDraftPick', 'collegeDominatorXLateRound',
        'collegeUsageOverall', 'recruitRating',
-       'pdfRankOverallMean', 'pdfHasRank'],
+       'pdfRankOverallMean', 'pdfHasRank',
+       'rspDotDraft', 'rspBreadthDraft', 'rspTierOrdinal',
+       'rspNComps', 'rspHasData'],
   // WR: n=456. recruitStars (+0.011 R²) shipped in the CFBD pass. PDF
   // sentiment family (strengths/weaknesses/red_flags/net, red flags 2×)
   // added later: +0.006 all-yrs, +0.021 PDF-era. Rank features already
   // captured by existing draft capital + college production for WR.
+  // rspNComps + rspHasData shipped 2026-04 round 4: R² +0.071 in the PDF era.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeBestRecYds',
        'weight', 'collegeTeammateScore',
        'relativeAthleticScore', 'recruitStars',
-       'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'],
+       'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet',
+       'rspNComps', 'rspHasData'],
   // TE: n=207. recruitStars (+0.015 R²). PDF A/B at n=55 PDF-era showed
   // no stable positive signal — retest after 2026/2027 classes ship.
   TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
@@ -591,9 +612,12 @@ export const ROOKIE_FEATURES: Record<string, string[]> = {
        'teamSamePosCount', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
   // WR: PRE minus the PDF sentiment pair (once team-context features land,
   // sentiment loses its marginal value: Δ-0.0003 all-yrs, -0.009 score≥22).
+  // rspNComps/rspHasData also dropped post-draft — landing spot subsumes
+  // the scout-archetype-count signal once pick is known.
   // Keeping landing-spot features instead.
   WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR.filter(f =>
-        !['pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'].includes(f)),
+        !['pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet',
+          'rspNComps', 'rspHasData'].includes(f)),
        'depthChartRank', 'teamSamePosCount',
        'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
   // TE: PRE + team context.
