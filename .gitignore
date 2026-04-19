@@ -21,6 +21,8 @@ public/data/*
 !public/data/pdf-career-ablation-postdraft.json
 !public/data/rsp-career-ablation-predraft.json
 !public/data/rsp-career-ablation-postdraft.json
+!public/data/qb-rsp-ablation-predraft.json
+!public/data/qb-rsp-ablation-postdraft.json
 !public/data/pdf-only-career-test.json
 !public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json

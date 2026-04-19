@@ -349,3 +349,53 @@ python3 scripts/test_rsp_career_features.py --pos WR   # single position
 ```
 
 Outputs land in `public/data/rsp-career-ablation-predraft.json`.
+
+## RSP QB-specific features (2026-04 round 5)
+
+After PRs #183 / #185 extracted `rsp-qb-features.json` (109 QBs with
+per-year profiles + cross-year re-scores) and filled the QB cross-year
+gap in `rsp-historical-rankings.json`, we tested QB-specific signals
+not available for other positions:
+
+- **Non-adjusted DOT** — an alternate scoring metric stored alongside
+  the primary DOT in cross-year appearances (Waldman's view *before*
+  the talent-vs-context adjustment).
+- **Hand size** — parsed from `athletic_notes` strings like `"H: 9.75"`
+  / `"hand 9.75"`. QB-specific; never before in the model.
+- **rank_position** — positional rank within the draft-class guide.
+- Plus the generic RSP snapshot bundle (DOT, breadth, tier, comps).
+
+Runner: `scripts/test_rsp_qb_features.py`
+Raw: `public/data/qb-rsp-ablation-{pre,post}draft.json`
+Coverage: 48/134 QB career rows tagged (91% of 2021-25 rookies).
+
+### QB findings — every variant regressed
+
+Pre-draft baseline: R² 0.330 all-yrs / 0.268 score≥22 / -0.046 train≥22.
+
+| Variant | Δ R² all | Δ R² score≥22 | Δ R² train≥22 |
+|---|---:|---:|---:|
+| `+hand_only` | -0.025 | -0.077 | -0.146 |
+| `+nonadj_only` | -0.017 | -0.044 | -0.010 |
+| `+nonadj_trajectory` | -0.018 | -0.049 | -0.010 |
+| `+rank_pos` | -0.025 | -0.084 | -0.024 |
+| `+qb_plus_snapshot` (QB-specific + generic RSP) | -0.058 | -0.171 | -0.145 |
+| `+all_numeric` (kitchen sink) | -0.073 | -0.249 | -0.244 |
+
+Post-draft: same story, all negative.
+
+Boom-ρ and bust-AUC: mostly negative too; the occasional +0.001 bust lift
+is comfortably within noise at n=36 recent QBs.
+
+**Verdict**: don't ship. The new QB-specific signals don't beat the
+existing lean 8-feature QB baseline on any regime. `rsp-qb-features.json`
+is still valuable for display / scouting context (tier, DOT, comps visible
+on player cards via the FEATURES vocabulary); it just doesn't help the
+regression model at current sample size. Re-test after 2026 + 2027 classes
+ship, which would ~double the recent-era sample.
+
+Side effect: the refreshed `rsp-historical-rankings.json` (+corrected
+name/school boundaries in PR #185) lifted RB pre-draft R² from 0.346 →
+0.353 and post-draft 0.360 → 0.367 without any feature-list change,
+just from better data. Those improvements are reflected in the current
+cache.
