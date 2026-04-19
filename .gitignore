@@ -20,6 +20,7 @@ public/data/*
 !public/data/pdf-career-ablation-predraft.json
 !public/data/pdf-career-ablation-postdraft.json
 !public/data/pdf-only-career-test.json
+!public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
 !public/data/cfbd-college-stats.json

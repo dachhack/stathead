@@ -266,8 +266,8 @@ async function main() {
     ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
     residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
     share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v71.json`,
-    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v3.json`,
+    career: `${MODEL_DIR}/model-cache-career-v72.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v4.json`,
     lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
   };
 

@@ -113,6 +113,50 @@ nothing to propagate into. A useful follow-up would be to first re-ablate
 whether `prospectOvlRank` is worth including *with* the PDF gap-fill; the
 feature could jump from 40 % to ~60 % coverage, potentially tipping its A/B.
 
+## QB round 3 — PDF-only bake-off → granular ablation (2026-04)
+
+Triggered by the `docs/pdf-only-career-test.md` QB finding (PDF-only
+n=36 R²=0.191 vs shipped n=36 R²=-0.040). Earlier rounds tested PDF
+feature *groups* for QB and saw group-level hits on the full-history
+metric; this round does single-feature-at-a-time + forward-selection
+via `scripts/test_qb_beast_features.py` and ships per-model winners.
+
+Shipped adds (cache v71→v72 / v3→v4):
+
+| QB Model | New features | ΔR² (all-yrs) | Δ (2022-25 era) |
+|---|---|---:|---|
+| Pre-draft regression | `pdfRankOverallMean`, `pdfHasRank` | flat | **ρ +0.039 (score≥22), R² +0.077 (train≥22)** |
+| Post-draft regression | `pdfRankOverallMean`, `pdfHasRank`, `pdfRankXPick`, `pdfRoundXActual` | **+0.002** | ρ +0.042 (score≥22) |
+| Boom (gap) | `pdfRankOverallMean`, `pdfHasRank`, `athletic_production_gap` | ρ **+0.045** | ρ **+0.081 (recent)** |
+| Bust (binary) | `pdfRankOverallMean`, `pdfHasRank` | AUC +0.0003 | AUC **+0.070 (recent)** |
+
+Rejected candidates:
+- `pdfHasData` (1 for every 2022-25 QB, 0 for pre-2022): pure era
+  proxy, adds no signal at inference. Forward-select grabbed it as
+  first add because it's within tolerance, but the follow-up ablation
+  confirmed the real signal came from pdfRankOverallMean.
+- `pdfProjectedRound`: -0.020 ΔR² all-yrs on both pre- and post-draft.
+  Mostly redundant with `logDraftPick` but less stable.
+- `pdfNWeaknesses` / `pdfNRedFlags` / `pdfSentimentNet` (text counts):
+  all hurt the full-history R² by 0.01-0.02 for QB regression despite
+  positive recent-era gains. Ship cost > ship benefit at n=134.
+- `pdfRankSpread`: flat — most QBs have exactly one source-PDF rank,
+  so max − min is constant 0.
+
+Feature importance in the final model:
+- Pre-draft: `pdfHasRank` is the 4th most important feature (8.0%
+  gain), ahead of `draftClassDepth`. `pdfRankOverallMean` at 0.8%.
+- Post-draft: `pdfRankXPick` is the 4th most important feature (7.9%),
+  with the trio of scout-disagreement features (`pdfHasRank` 4.3%,
+  `pdfRoundXActual` 4.0%) carrying combined ~16% of the model.
+- Boom model: `athletic_production_gap` got zero gain in the final
+  data pass, same phenomenon as the earlier QB bust features — LOSO-CV
+  picks up the signal but the final-importance model can't split on
+  a feature that's zero for 75% of the training sample. Noted here
+  so maintainers don't drop it without re-checking CV.
+
+Other positions (RB/WR/TE) verified unchanged through the v72/v4 bump.
+
 ## Shipped (2026-04)
 
 Promoted to `scripts/train_career_models.py` via cache bump v69→v70

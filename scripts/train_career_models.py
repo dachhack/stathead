@@ -37,8 +37,8 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 CACHE_PATH = Path('public/data/training-rows-cache-v48.json')
 OUTPUT_DIR = Path('public/data')
-PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v71.json'
-POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v3.json'
+PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v72.json'
+POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v4.json'
 
 # PDF scouting features extracted from The Beast / RSP / Late-Round Guide
 # via scripts/extract_pdf_features.py + scripts/merge_pdf_features.py.
@@ -53,8 +53,14 @@ PRE_DRAFT_FEATURES = {
     # class is not the same talent signal as a #1 pick in a loaded one.
     # CFBD-feature ablation (2026-04): recruitStars/Rating + team talent +
     # usage all marginal-to-negative for QB; kept the lean 6-feature set.
+    # PDF adds (scripts/test_qb_beast_features.py, forward-select): scout
+    # consensus rank is the cleanest QB Beast signal — +0.001 R² all-yrs
+    # and +0.077 R² in the 2022-25 era. pdfHasRank is the missing-data
+    # indicator the GBM needs to distinguish "rank=0 means missing"
+    # (pre-2022 rookies) from "rank=0 means elite".
     'QB': ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
-           'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
+           'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore',
+           'pdfRankOverallMean', 'pdfHasRank'],
     # RB: CFBD ablation winners. collegeUsageOverall (PPA-based % of team
     # plays) lifted R² +0.029 alone; recruitRating (247 composite) adds
     # another +0.008 on top for a +0.037 gain over the v48 baseline. The
@@ -99,8 +105,11 @@ POST_DRAFT_FEATURES = {
     # QB: vegasImpliedTotal, teamPace, depthChartRank all hurt or flat.
     # Only teamSamePosCount earned its keep (+0.003). QBs are first-on-the-field
     # so most "team context" features barely matter for their projection.
+    # PDF-disagreement adds (2026-04 forward-select): pdfRankXPick + pdfRoundXActual
+    # capture scout-vs-NFL draft disagreement and lift R² +0.002 on
+    # all-yrs when paired with the pre-draft PDF rank pair.
     'QB': PRE_DRAFT_FEATURES['QB'] + [
-        'teamSamePosCount'],
+        'teamSamePosCount', 'pdfRankXPick', 'pdfRoundXActual'],
     # RB: dropped depthChartRank (-0.002) and teamPace (-0.006). qbOwnPPG was
     # the standout (+0.011) — RB scoring tracks how much the QB contributes
     # to team rushing volume (mobile QB → fewer carries for the RB).
@@ -166,7 +175,10 @@ _GAP_BASE = [
     'qbr_vs_pick', 'ypa_vs_pick', 'qb_context_vs_pick',
 ]
 BOOM_GAP_FEATURES_BY_POS = {
-    'QB': list(_GAP_BASE),
+    # QB boom A/B (2026-04 round 3): pdfRankOverallMean + pdfHasRank +
+    # athletic_production_gap lifted ρ_boom +0.045 all-yrs and +0.081
+    # in the PDF era vs the bare base list.
+    'QB': _GAP_BASE + ['pdfRankOverallMean', 'pdfHasRank', 'athletic_production_gap'],
     'RB': list(_GAP_BASE),
     'WR': _GAP_BASE + ['recruit_production_gap', 'athletic_production_gap'],
     'TE': list(_GAP_BASE),
@@ -184,7 +196,13 @@ _BUST_BASE = [
     'collegeQBR2yr', 'collegeQbContextScore',
 ]
 BUST_FEATURES_BY_POS = {
-    'QB': _BUST_BASE + ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
+    # QB bust: round 2 shipped the scout-disagreement trio (pdfRankSpread,
+    # pdfRankXPick, pdfRoundXActual). Round 3 re-test found pdfRankSpread
+    # contributed zero gain at n=134 (QBs are usually ranked by one source)
+    # and the pair pdfRankOverallMean + pdfHasRank added +0.0003 AUC all-yrs
+    # and +0.070 AUC in the 2022-25 era. Swapping in the simpler pair.
+    'QB': _BUST_BASE + ['pdfRankXPick', 'pdfRoundXActual',
+                        'pdfRankOverallMean', 'pdfHasRank'],
     'RB': _BUST_BASE + ['pdfNWeaknesses', 'pdfSentimentNet',
                         'recruit_production_gap', 'athletic_production_gap'],
     'WR': _BUST_BASE + ['recruit_production_gap', 'athletic_production_gap'],
@@ -441,6 +459,11 @@ def _compute_gap_signals(f: dict) -> dict:
         # standalone scoring share the same values.
         'recruit_production_gap': sf(f.get('recruit_production_gap', 0)),
         'athletic_production_gap': sf(f.get('athletic_production_gap', 0)),
+        # Raw PDF signals used by the QB boom/bust gap lists. Pass-through
+        # from the features dict (populated by _derive_pdf_features during
+        # load_career_rows); zero for pre-2022 rookies.
+        'pdfRankOverallMean': sf(f.get('pdfRankOverallMean', 0)),
+        'pdfHasRank': sf(f.get('pdfHasRank', 0)),
     }
 
 
@@ -496,6 +519,8 @@ def _compute_bust_signals(f: dict, predicted_ppg: float,
         'pdfRankSpread': sf(f.get('pdfRankSpread', 0)),
         'pdfRankXPick': sf(f.get('pdfRankXPick', 0)),
         'pdfRoundXActual': sf(f.get('pdfRoundXActual', 0)),
+        'pdfRankOverallMean': sf(f.get('pdfRankOverallMean', 0)),
+        'pdfHasRank': sf(f.get('pdfHasRank', 0)),
         'recruit_production_gap': sf(f.get('recruit_production_gap', 0)),
         'athletic_production_gap': sf(f.get('athletic_production_gap', 0)),
     }
