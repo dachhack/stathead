@@ -59,10 +59,14 @@ Field rules:
 - `tier`: free-form string ("Tier 1", "Round 2 grade", "Day 3 flier"); `null` if absent.
 - `projected_round`: integer 1-7 if a round projection is given.
 - `comps`: NFL player comparisons mentioned in the write-up.
-- `strengths`/`weaknesses`/`red_flags`: short phrases (2-6 words), not full sentences. `red_flags` is for injury, character, scheme-fit concerns.
+- `strengths`/`weaknesses`/`red_flags`: complete, self-contained phrases that capture one idea each — typically 4 to 15 words. **Never cut mid-thought.** If the source bullet runs long, paraphrase the key point in your own words rather than truncating. A phrase ending in a function word like "his", "the", "to", "with", "of", "and" is wrong — rewrite it. `red_flags` is for injury, character, scheme-fit concerns.
 - `athletic_notes`: short prose about testing/measurables.
 - `summary`: 1-2 sentence analyst take. May be a tight paraphrase but should preserve the verdict.
 - `confidence`: `"high"` if the player has a full profile, `"medium"` if just a tier+blurb, `"low"` if just a ranking with one sentence.
+
+Examples of good vs. bad strengths/weaknesses:
+- Good: `"explosive first step off the edge"`, `"struggles to disengage from blockers"`, `"history of soft-tissue injuries in college"`
+- Bad: `"explosive first step"` (too vague), `"rushes downhill to consistently convert his"` (truncated mid-sentence), `"had his 2020 season cut short because of"` (truncated)
 
 Hard rules:
 - Use `null` (not `""`) for missing scalars. Use `[]` for missing lists.
