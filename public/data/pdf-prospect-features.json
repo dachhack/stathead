@@ -14545,23 +14545,27 @@
       "Zach Wilson"
     ],
     "strengths": [
-      "pinpoint accuracy and layering inside 25-30 yards across the field",
-      "maneuvers well from pressure with hitch climbs and reduced shoulder",
-      "works through 2-3 progressions before the pocket breaks down",
+      "pinpoint accuracy and layering within 25 yards over the middle",
+      "maneuvers well from pressure with hitches, climbs, and shoulder reduction",
+      "works through 2-3 progressions sideline-to-sideline before pressure arrives",
       "chain-moving runner with curvilinear bend to weave through traffic",
-      "wise red-zone game management eating the ball when numbers unfavorable"
+      "wise red-zone game management, eats the ball when numbers unfavorable",
+      "protects receivers with placement away from the closest defender"
     ],
     "weaknesses": [
-      "scattershot accuracy beyond 25-30 yards when feet get disturbed",
-      "stance widens under pressure wrecking downfield placement",
-      "late decision-making leads to avoidable sacks and stale throws",
-      "black-zone decisions too aggressive for his own territory",
-      "default right-arm ball carry has produced lost fumbles while scrambling"
+      "vertical accuracy is scattershot beyond 25-30 yards",
+      "feet widen under pressure and sap velocity past 25 yards",
+      "late to diagnose Green Dog blitzes from the same side as edge pressure",
+      "black-zone and situational management decisions lack savvy",
+      "ball carries loose after breaking pocket, has fumbled in pivotal moments"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "meniscus surgery in 2021 at USC after a season-opener injury",
+      "pre-draft hype is more projection than present-game reality"
+    ],
     "athletic_notes": "6'2\"/223, hand 9.5, DOT 76.6, Breadth 92.225, Adj 63.6",
-    "summary": "Dart has a Jekyll-and-Hyde profile: solid short and intermediate accuracy paired with unsettled vertical placement no obvious mechanical fix will clean up. He fits a West Coast or play-action-heavy scheme and needs patient development behind a veteran to avoid a Jake Locker outcome.",
-    "confidence": "medium",
+    "summary": "Dart pairs solid short and intermediate accuracy with unsettled vertical placement that lacks a clear mechanical fix beyond cleaner climbs and a narrower base. He ideally lands in a West Coast or play-action scheme with moving pockets and a veteran in front of him, or he risks a Jake Locker career outcome. Waiting on NFL draft capital before spending meaningful fantasy resources is the prudent move.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14580,25 +14584,28 @@
       "Drew Stanton"
     ],
     "strengths": [
-      "big arm reaches 44-52 yards up the near sideline",
-      "holds Cover 1 safety during drops to manipulate space",
-      "wise front-to-backside reading in the red zone",
-      "takes hits willingly to throw the ball away or off-platform",
-      "pinpoint 28-yard back-shoulder fade against man coverage",
-      "sidesteps interior pressure and climbs for short-range accuracy"
+      "big arm with vertical range from pocket or on the move",
+      "pinpoint 28-yard corner fades and 44-yard boundary go routes on-platform",
+      "reads high safety pre-snap and places slants away from sliding defender",
+      "climbs edge pressure, flushes, and pump-spins away from interior rush",
+      "effective front-to-back red-zone reads under pressure",
+      "sidearm release layers the ball over and between defenders off-platform"
     ],
     "weaknesses": [
-      "vertical and deep accuracy far more catchable than pinpoint",
-      "lateness to trigger on reads leads to avoidable sacks",
-      "stares down Cover 3 safety, tipping off coverage",
-      "black-zone decision-making too aggressive for own territory",
-      "struggles to sense blindside edge pressure on deep drops",
-      "feet freeze against interior pressure and drive disappears"
+      "vertical and deep accuracy more catchable than pinpoint",
+      "1-2 steps late executing decisions he sees, leading to off-platform throws",
+      "stares down Cover 3 safety rather than manipulating with eyes",
+      "black-zone management too aggressive inside his own 20",
+      "blindside edge pressure on deep drops goes unsensed, costs avoidable sacks"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "broken left collarbone cost all but four starts in 2021",
+      "shoulder surgery ended 2022 after re-injuring collarbone",
+      "season-ending broken fibula after four appearances in 2023"
+    ],
     "athletic_notes": "6'4\"/219, hand 9.75, DOT 76.35, Breadth 85.6125, Adj 61.65",
-    "summary": "Shough offers a big arm, mobility, and Jay Cutler-like flashes behind a compact foundation. Late processing, missed blindside pressure, and shaky black-zone management cap his ceiling at backup unless a strong situation unlocks his traits.",
-    "confidence": "medium",
+    "summary": "Shough has Jay Cutler-flavored arm talent and mobility but the profile remains more projection than proof, with chronic pocket-clock lapses and predetermined decisions capping his ceiling. His extensive injury history across 2021-2023 compounds the risk. He projects as a compelling journeyman backup who could start if his draft capital and landing spot cooperate.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14618,25 +14625,24 @@
       "Bryce Petty"
     ],
     "strengths": [
-      "big arm reaches 54 yards with catchable accuracy",
-      "balance to bounce off glancing hits and pull through reaches",
-      "works through reads and climbs pocket on the run for yardage",
-      "pinpoint at 27 yards opposite boundary into tight man coverage",
-      "improved play-action nuance throughout the season",
-      "turns the corner on linebackers for 8-12 yard chain movers"
+      "big arm with vertical range to 54 yards in the catchable zone",
+      "good feel for tossing open verticals without over-fining placement",
+      "mobility to abandon the pocket and turn the corner on linebackers",
+      "balance to bounce off glancing shots and pull through defender reaches",
+      "sound foundation with drops, play fakes, pump fakes, and release",
+      "uses eyes to hold linebackers before late pivot to open deep route"
     ],
     "weaknesses": [
-      "arrogance attempting throws into tight or unfavorable leverage windows",
-      "misses underneath defenders squatting on screens and slants",
-      "linebacker drops undercut his intermediate throws for interceptions",
-      "late anticipation begins release as receiver exits the break",
-      "scramble-drill greed rather than pivoting to open check-downs",
-      "torso-first contact rather than sliding as a runner"
+      "over-confidence targeting tight windows and unfavorable defender leverage",
+      "loses track of defenders squatting on quick-screen throwing lanes",
+      "does not layer throws over intermediate linebackers dropping late",
+      "late anticipation, releases as receiver exits rather than enters break",
+      "forces throws with pressure in his face into tight triangles of defenders"
     ],
     "red_flags": [],
     "athletic_notes": "6'4\"/236, hand 9, DOT 76.225, Breadth 89.4125, Adj 65.3",
-    "summary": "Howard pairs a big arm, solid mechanics, and plus mobility with conceptual holes around coverage leverage and underneath defenders. If he quells arm arrogance, he projects as a competent reserve with spot-start upside in the right scheme.",
-    "confidence": "medium",
+    "summary": "Howard is the archetypal late-round flier with quality baseline mechanics, a plus arm, and functional mobility who reads coverage acceptably but squeezes balls into leverage he should respect. If he quells that arrogance and cleans up intermediate anticipation, he profiles as a capable backup with starter-caliber athletic upside. He is worth a stab in the back half of Superflex drafts before his NFL draft capital is set.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14654,24 +14660,27 @@
       "C.J. Beathard"
     ],
     "strengths": [
-      "efficient three- and five-step drops with quick setups",
-      "pinpoint accuracy in shallow and intermediate ranges of the field",
-      "holds Cover 3 safety with eyes before setting and firing",
-      "wise red-zone management when forced out of the pocket",
-      "preemptive climbs against edge pressure with hitch footwork",
-      "layers passes over linebackers with touch after embedded play-action"
+      "quick, precise three- and five-step drops with balanced setups",
+      "pinpoint short accuracy, competent intermediate and 28-42 yard vertical",
+      "holds Cover 3 safety during drops to open primary reads",
+      "flushes, rolls, and executes hitch climbs while staying accurate short",
+      "preemptively climbs from designed half-rolls when spotting edge pressure",
+      "finds appropriate second reads after avoiding multiple points of pressure"
     ],
     "weaknesses": [
       "deep accuracy beyond 42 yards is mostly inaccurate",
-      "places fades inside rather than near the boundary on Cover 3",
-      "black-zone wisdom lacking with aggressive extra-read tendencies",
-      "misses flat linebackers undercutting intermediate routes",
-      "loose ball security when breaking the pocket"
+      "black-zone wisdom lacking, pushes extra reads in his own end zone",
+      "slow to identify blindside corner blitzes pre-snap",
+      "lapses reading Cover 2 corners peeling off outside receiver",
+      "misses flat linebackers cutting off intermediate crossers under pressure"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "non-throwing shoulder and throwing shoulder injuries in 2022 and 2023",
+      "oblique strain cost two games in 2024, plus ankle and abdominal strain"
+    ],
     "athletic_notes": "6'2\"/214, hand 9.375, DOT 74.825, Breadth 92.9313, Adj 59.8",
-    "summary": "Ewers offers sound fundamentals, quality pocket management, and pinpoint short-to-intermediate accuracy but lacks the deep game or black-zone feel of a starter. He projects as a playable backup with Desmond Ridder-style upside if surrounded by an elite roster.",
-    "confidence": "medium",
+    "summary": "Ewers sits on the demarcation between potential starter and top-end backup, with polished mechanics, functional pocket feel, and good short-intermediate accuracy that does not carry deep. His brand name and solid drop/release foundation may earn him draft capital above his tape. Best case he is a Desmond Ridder-style early stopgap, more likely a playable journeyman backup.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14688,26 +14697,27 @@
       "Nathan Peterman"
     ],
     "strengths": [
-      "efficient one- through seven-step drops across alignments",
-      "pinpoint placement across the shallow range",
-      "executes layered seam throws with anticipation",
-      "maneuvers from pressure with sidesteps, hitches, and rolls",
-      "willing to take hits to get off accurate vertical shots",
-      "wise pass placement away from defensive leverage"
+      "efficient and sound drop and release mechanics with only minor lapses",
+      "pinpoint shallow accuracy, competent intermediate and vertical placement",
+      "layered throws over linebackers up the seam with pinpoint vertical touch",
+      "anticipates edge pressure with two-step slides to create throwing space",
+      "holds defenders to one side then pivots to backside routes",
+      "works sideline to sideline with timely reads off play-action"
     ],
     "weaknesses": [
-      "vertical and deep accuracy more catchable than pinpoint",
-      "loose default right-arm ball carry on scrambles",
-      "reactive to phantom pressure, vacating clean pockets",
-      "miscommunications over the middle have produced interceptions",
-      "not athletic enough to beat multiple points of pressure"
+      "accuracy wanes past 40 yards and under pressure",
+      "reactive to pressure that never arrives, bolts open pockets unnecessarily",
+      "must better integrate pre-snap blindside blitz ID into first read",
+      "miscommunications with receivers on middle-of-field routes cause picks",
+      "not quick enough to escape once two points of pressure converge"
     ],
     "red_flags": [
-      "torn ACL and meniscus in 2021 plus a torn LCL earlier in career"
+      "torn ACL and meniscus in 2021 fall camp",
+      "torn LCL in high school"
     ],
     "athletic_notes": "6'1\"/217, hand 9.25, DOT 74.5, Breadth 83.95, Adj 60.95",
-    "summary": "Brosmer is a low-mistake timing passer whose fundamentals and pinpoint short-range accuracy project to a quality backup role. He lacks the athletic traits and consistent downfield accuracy to transcend that ceiling.",
-    "confidence": "medium",
+    "summary": "Brosmer is the low-mistake, mechanically sound type who best fits the quality backup archetype, able to plug in during a short-term crisis without sinking the offense. Pinpoint short accuracy and quality pocket manipulation offset limited arm-strength ceiling and scramble mobility. Do not expect him to transcend the reserve role, but his floor is higher than several better-known options on the board.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14725,25 +14735,27 @@
       "Christian Hackenberg"
     ],
     "strengths": [
-      "well-paced three- and five-step drops with compact release",
-      "sticks ideal placement in short and intermediate against man",
-      "arm reaches 38-yard opposite-hash back-shoulder fades",
-      "stands and delivers with interior pressure barreling down",
-      "can reduce shoulder and sidestep B-gap pressure to reset",
-      "retreats and rolls to throwing-arm side for pinpoint vertical"
+      "compact release with slingshot velocity over the shoulder",
+      "near-pinpoint 38-yard opposite-hash fades to the far numbers",
+      "pinpoint short and intermediate accuracy when throwing in rhythm",
+      "can stand in and deliver 20 yards downfield with pressure bearing down",
+      "well-paced three-, five-, and seven-step drops with quick-game setups",
+      "back-shoulder placement against man coverage at 38 yards"
     ],
     "weaknesses": [
-      "slow to learn from leverage-read mistakes, repeats errors in-game",
-      "reckless red-zone decisions force slants into squatting defenders",
-      "front leg locks at knee causing throws to sail on shallow targets",
-      "loose ball carry when breaking the pocket",
-      "spin-and-roll pulled too early against blindside pressure",
-      "defaults to spin-rolls when climbing would preserve the field"
+      "repeatedly forces balls into favorable defensive leverage over receivers",
+      "reckless red-zone decision-making, repeats mistakes within the same game",
+      "defaults to spin-and-roll when climbing the pocket was available",
+      "front leg locks out and shallow throws sail on him",
+      "pass placement prone to trailing coverage cutting off the target"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "double-down habit on bad reads could force him from the league",
+      "played through a 2023 ankle injury"
+    ],
     "athletic_notes": "6'3\"/218, hand 9.5, DOT 74.475, Breadth 81.6375, Adj 59.1",
-    "summary": "McCord brings NFL-caliber arm talent, a compact release, and chain-moving mobility but his slingshot release and stubborn leverage reads create Jameis Winston-style turnover risk. He must prove he can learn from repeated mistakes before projecting as more than a developmental reserve.",
-    "confidence": "medium",
+    "summary": "McCord is a Drew Lock-styled flier with enough arm and mechanics to intrigue, but his Jameis Winston-esque belief in impossible throws produces pick-sixes and red-zone catastrophes he never seems to learn from. Without a fundamental shift in leverage recognition he profiles as a Christian Hackenberg outcome rather than a Ridder-level backup. Monitor from afar in fantasy formats.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14763,24 +14775,24 @@
       "Devin Leary"
     ],
     "strengths": [
-      "compact over-the-shoulder release with hip rotation for velocity",
-      "pinpoint 46-yard fade up the near-side boundary",
-      "holds Cover 1 safety to open up opposite-side man options",
-      "protects receivers with back-shoulder seam placement",
-      "timely spin-and-roll to either side to avoid pressure",
-      "pinpoint 46-yard opposite-boundary throws after climbing"
+      "pinpoint 46-yard near-boundary fades on-platform",
+      "compact over-the-shoulder release with three-quarter and sidearm variations",
+      "works sideline-to-sideline and can hit a legitimate third read",
+      "holds Cover 1 safety to set up backside man-to-man options",
+      "layers intermediate seam throws to the back shoulder over shallow LBs",
+      "sidesteps in succession to beat two points of pressure before resetting"
     ],
     "weaknesses": [
-      "intermediate throws arrive behind receivers with trail coverage",
-      "aggressive placement favors defender leverage on vertical shots",
-      "unusual ball handling when breaking left carries pitch-man style",
-      "occasional unnecessary throwaways when wide-open options exist",
-      "slow slide decisions when ending runs in traffic"
+      "vertical sideline accuracy lags, 62.5% inaccurate in the sample",
+      "places ball behind receivers with tight trail coverage in intermediate range",
+      "leads receivers into coverage where he cannot protect them",
+      "unnecessary throwaways when wide-open targets existed",
+      "rolling-right mobile accuracy lacks velocity and leads receivers poorly"
     ],
     "red_flags": [],
     "athletic_notes": "6'3\"/215, hand 9, DOT 73.7, Breadth 91.3188, Adj 60.3",
-    "summary": "Henigan is an aggressive, mechanically sound passer with sound pocket management and accuracy at every level, held back by downfield placement that too often favors defender leverage. He fits best as a long-term developmental project with sleeper upside.",
-    "confidence": "medium",
+    "summary": "Henigan has an aggressive mindset, sound mechanics, and a promising accuracy envelope across the field, but downfield placement vacillates between protecting receivers and handing defenders the catch point. He is a capable pocket manager and scrambler with long-term project upside if the leverage reads and vertical placement tighten. In fantasy terms, monitor only in the deepest Superflex formats.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"
@@ -14798,25 +14810,27 @@
       "Russell Wilson"
     ],
     "strengths": [
-      "quick and precise one- through seven-step drops across alignments",
-      "pinpoint 50-yard go route up the near boundary",
-      "holds middle-of-field safety to set up opposite go routes",
-      "layers the ball over Cover 3 shallow defenders",
-      "spins and pulls through edge defender reaches",
-      "pinpoint 46-yard throws after sidestepping interior pressure"
+      "pinpoint 48-50 yards to the opposite boundary on on-platform throws",
+      "layers throws over shallow and intermediate coverage on deep crossers",
+      "holds middle safety to set up opposite-boundary go routes",
+      "sidesteps interior pressure and delivers pinpoint 46-yard flats",
+      "can incrementally climb against bookend edge pressure to find dig routes",
+      "strong RPO, zone-read, and quick-game executor"
     ],
     "weaknesses": [
-      "stares down first read until pressure arrives in his face",
-      "reactive to hot edge pressure, disrupting timing",
-      "lacks confidence to pull trigger into favorable zone windows",
-      "bolts pocket outside rather than climbing vs. edge pressure",
-      "below-the-chest draw-back elongates release timing",
-      "black-zone sacks from retreating instead of climbing"
+      "slow to come off first read, will stare down until pressure arrives",
+      "reactive to hot edge pressure, bolts pocket rather than climbing",
+      "misjudges trailing coverage on mobile throws to the flat",
+      "hesitation and pump-and-stare tips off intentions in tight windows",
+      "ball drifts below waist when breaking pocket, has fumbled short-yardage hits"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "broken left clavicle (throwing shoulder) ended 2021 in mid-September",
+      "undersized 5-11/205 frame factors into anticipatory and scramble projections"
+    ],
     "athletic_notes": "5'11\"/205, hand 9.25, DOT 72.55, Breadth 85.325, Adj 61.4",
-    "summary": "Gabriel is a short-height short-game technician whose quick drops and placement on leverage-based reads create completions, but blitz-reactive pocket habits and a below-the-chest release cap his ceiling. Monitor-from-afar developmental project.",
-    "confidence": "medium",
+    "summary": "Gabriel has a strong short-range and RPO game with flashes of deep placement, but anticipatory throws against blitzes and black-zone management are persistent holes. Undersized with a three-quarter slot and a tendency to bail rather than climb, he profiles as a compelling backup if the leverage reads and pocket poise mature. Monitor from afar in fantasy until NFL draft capital clarifies the path.",
+    "confidence": "high",
     "college_stats": [],
     "route_profile": null,
     "source_file": "2025_Rookie_Scouting_Portfolio.pdf"

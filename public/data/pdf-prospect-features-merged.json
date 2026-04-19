@@ -2232,7 +2232,7 @@
     "player_key": "luke musgrave",
     "player_name": "Luke Musgrave",
     "position": "TE",
-    "college": "Oregon St.",
+    "college": "Oregon State",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -2293,7 +2293,7 @@
     "player_key": "kenny pickett",
     "player_name": "Kenny Pickett",
     "position": "QB",
-    "college": "Pitt",
+    "college": "Pittsburgh",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -2484,7 +2484,7 @@
     "player_key": "ladd mcconkey",
     "player_name": "Ladd McConkey",
     "position": "WR",
-    "college": "Georgia",
+    "college": "UGA",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -2847,7 +2847,7 @@
     "player_key": "keon coleman",
     "player_name": "Keon Coleman",
     "position": "WR",
-    "college": "Florida State",
+    "college": "FSU/Mich. St.",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -3846,7 +3846,7 @@
     "player_key": "tucker kraft",
     "player_name": "Tucker Kraft",
     "position": "TE",
-    "college": "South Dakota State",
+    "college": "South Dakota St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -4095,7 +4095,7 @@
     "player_key": "matt corral",
     "player_name": "Matt Corral",
     "position": "QB",
-    "college": "Mississippi",
+    "college": "Ole Miss",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -4692,7 +4692,7 @@
   {
     "player_key": "trey mcbride",
     "player_name": "Trey McBride",
-    "position": "TE",
+    "position": "WR",
     "college": "Colorado State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -5194,7 +5194,7 @@
     "player_key": "spencer rattler",
     "player_name": "Spencer Rattler",
     "position": "QB",
-    "college": "South Carolina",
+    "college": "S. Carolina/Oklahoma",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -5676,7 +5676,7 @@
   {
     "player_key": "greg dulcich",
     "player_name": "Greg Dulcich",
-    "position": "TE",
+    "position": "WR",
     "college": "UCLA",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -5851,7 +5851,7 @@
     "player_key": "trey benson",
     "player_name": "Trey Benson",
     "position": "RB",
-    "college": "FSU/Oregon",
+    "college": "Florida State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -6155,7 +6155,7 @@
   {
     "player_key": "jeremy ruckert",
     "player_name": "Jeremy Ruckert",
-    "position": "TE",
+    "position": "WR",
     "college": "Ohio State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -6899,7 +6899,7 @@
   {
     "player_key": "cade otton",
     "player_name": "Cade Otton",
-    "position": "TE",
+    "position": "WR",
     "college": "Washington",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -7362,7 +7362,7 @@
   {
     "player_key": "jelani woods",
     "player_name": "Jelani Woods",
-    "position": "TE",
+    "position": "WR",
     "college": "Virginia",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -10169,7 +10169,7 @@
     "player_key": "george holani",
     "player_name": "George Holani",
     "position": "RB",
-    "college": "Boise St.",
+    "college": "Boise State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "2023_Rookie_Scouting_Portfolio.pdf",
@@ -10420,7 +10420,7 @@
     "player_key": "dezmon jackson",
     "player_name": "Dezmon Jackson",
     "position": "RB",
-    "college": "Oklahoma St.",
+    "college": "Oklahoma State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "2023_Rookie_Scouting_Portfolio.pdf"
@@ -10512,7 +10512,7 @@
     "player_key": "greg bell",
     "player_name": "Greg Bell",
     "position": "RB",
-    "college": "SDSU",
+    "college": "San Diego State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -11908,7 +11908,7 @@
     "player_key": "jadan blue",
     "player_name": "Jadan Blue",
     "position": "WR",
-    "college": "Va Tech/Temple",
+    "college": "Temple",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "2023_Rookie_Scouting_Portfolio.pdf"
@@ -13057,7 +13057,7 @@
   {
     "player_key": "charlie kolar",
     "player_name": "Charlie Kolar",
-    "position": "TE",
+    "position": "WR",
     "college": "Iowa State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13113,7 +13113,7 @@
   {
     "player_key": "cole turner",
     "player_name": "Cole Turner",
-    "position": "TE",
+    "position": "WR",
     "college": "Nevada",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13171,7 +13171,7 @@
   {
     "player_key": "curtis hodges",
     "player_name": "Curtis Hodges",
-    "position": "TE",
+    "position": "WR",
     "college": "Arizona State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13213,7 +13213,7 @@
   {
     "player_key": "jake ferguson",
     "player_name": "Jake Ferguson",
-    "position": "TE",
+    "position": "WR",
     "college": "Wisconsin",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13306,7 +13306,7 @@
   {
     "player_key": "isaiah likely",
     "player_name": "Isaiah Likely",
-    "position": "TE",
+    "position": "WR",
     "college": "Coastal Carolina",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13362,7 +13362,7 @@
   {
     "player_key": "gerrit prince",
     "player_name": "Gerrit Prince",
-    "position": "TE",
+    "position": "WR",
     "college": "UAB",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13457,7 +13457,7 @@
   {
     "player_key": "james mitchell",
     "player_name": "James Mitchell",
-    "position": "TE",
+    "position": "WR",
     "college": "Virginia Tech",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13514,7 +13514,7 @@
   {
     "player_key": "daniel bellinger",
     "player_name": "Daniel Bellinger",
-    "position": "TE",
+    "position": "WR",
     "college": "San Diego State",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13574,7 +13574,7 @@
   {
     "player_key": "grant calcaterra",
     "player_name": "Grant Calcaterra",
-    "position": "TE",
+    "position": "WR",
     "college": "SMU",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13629,7 +13629,7 @@
   {
     "player_key": "nick muse",
     "player_name": "Nick Muse",
-    "position": "TE",
+    "position": "WR",
     "college": "South Carolina",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -13688,8 +13688,8 @@
   {
     "player_key": "lucas krull",
     "player_name": "Lucas Krull",
-    "position": "TE",
-    "college": "Pitt",
+    "position": "WR",
+    "college": "Pittsburgh",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2022.pdf"
@@ -13727,7 +13727,7 @@
   {
     "player_key": "trae barry",
     "player_name": "Trae Barry",
-    "position": "TE",
+    "position": "WR",
     "college": "Boston College",
     "sources": [
       "2022_Rookie_Scouting_Portfolio.pdf",
@@ -14319,7 +14319,7 @@
     "player_key": "zach evans",
     "player_name": "Zach Evans",
     "position": "RB",
-    "college": "Ole Miss",
+    "college": "Ole Miss/TCU",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -14450,7 +14450,7 @@
     "player_key": "tiyon evans",
     "player_name": "Tiyon Evans",
     "position": "RB",
-    "college": "Louisville/Tennessee",
+    "college": "Louisville",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -14557,7 +14557,7 @@
     "player_key": "eric gray",
     "player_name": "Eric Gray",
     "position": "RB",
-    "college": "Oklahoma/Tennessee",
+    "college": "Oklahoma",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15256,7 +15256,7 @@
     "player_key": "xazavian valladay",
     "player_name": "Xazavian Valladay",
     "position": "RB",
-    "college": "Arizona State",
+    "college": "Wyoming/Arizona St.",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15659,7 +15659,7 @@
     "player_key": "camerun peoples",
     "player_name": "Camerun Peoples",
     "position": "RB",
-    "college": "Appalachian St.",
+    "college": "Appalachian State",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -15824,7 +15824,7 @@
     "player_key": "travis dye",
     "player_name": "Travis Dye",
     "position": "RB",
-    "college": "USC",
+    "college": "Oregon/USC",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -16580,7 +16580,7 @@
     "player_key": "jason brownlee",
     "player_name": "Jason Brownlee",
     "position": "WR",
-    "college": "Southern Miss",
+    "college": "S. Mississippi",
     "sources": [
       "2023_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2023.pdf"
@@ -18419,7 +18419,7 @@
     "player_key": "sam hartman",
     "player_name": "Sam Hartman",
     "position": "QB",
-    "college": "Notre Dame/Wake Forest",
+    "college": "Notre Dame",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -18796,7 +18796,7 @@
     "player_key": "kedon slovis",
     "player_name": "Kedon Slovis",
     "position": "QB",
-    "college": "BYU",
+    "college": "USC/Pitt/BYU",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -18985,7 +18985,7 @@
     "player_key": "dillon johnson",
     "player_name": "Dillon Johnson",
     "position": "RB",
-    "college": "Washington",
+    "college": "UW/Miss St.",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -19264,7 +19264,7 @@
     "player_key": "ray davis",
     "player_name": "Ray Davis",
     "position": "RB",
-    "college": "Kentucky",
+    "college": "Kentucky/Vanderbilt",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -19943,7 +19943,7 @@
     "player_key": "isaiah davis",
     "player_name": "Isaiah Davis",
     "position": "RB",
-    "college": "South Dakota State",
+    "college": "S. Dakota St",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -20033,7 +20033,7 @@
     "player_key": "frank gore",
     "player_name": "Frank Gore, Jr.",
     "position": "RB",
-    "college": "Southern Miss",
+    "college": "S. Mississippi",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -21379,7 +21379,7 @@
     "player_key": "jacob cowing",
     "player_name": "Jacob Cowing",
     "position": "WR",
-    "college": "Arizona",
+    "college": "Arizona/UTSA",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22034,7 +22034,7 @@
     "player_key": "jadon janke",
     "player_name": "Jadon Janke",
     "position": "WR",
-    "college": "South Dakota State",
+    "college": "South Dakota",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22221,7 +22221,7 @@
     "player_key": "erick all",
     "player_name": "Erick All",
     "position": "TE",
-    "college": "Michigan",
+    "college": "Iowa",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22277,7 +22277,7 @@
     "player_key": "dallin holker",
     "player_name": "Dallin Holker",
     "position": "TE",
-    "college": "CSU",
+    "college": "Colorado State",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -22727,7 +22727,7 @@
     "player_key": "jaheim bell",
     "player_name": "Jaheim Bell",
     "position": "TE",
-    "college": "Florida State",
+    "college": "FSU/S.Carolina",
     "sources": [
       "2024_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2024.pdf"
@@ -23121,11 +23121,12 @@
       "Zach Wilson"
     ],
     "strengths": [
-      "pinpoint accuracy and layering inside 25-30 yards across the field",
-      "maneuvers well from pressure with hitch climbs and reduced shoulder",
-      "works through 2-3 progressions before the pocket breaks down",
+      "pinpoint accuracy and layering within 25 yards over the middle",
+      "maneuvers well from pressure with hitches, climbs, and shoulder reduction",
+      "works through 2-3 progressions sideline-to-sideline before pressure arrives",
       "chain-moving runner with curvilinear bend to weave through traffic",
-      "wise red-zone game management eating the ball when numbers unfavorable",
+      "wise red-zone game management, eats the ball when numbers unfavorable",
+      "protects receivers with placement away from the closest defender",
       "Throws catchable ball and can drive passes outside numbers",
       "Able to change arm angles without sacrificing rpm",
       "Accuracy improved as senior \u2014 looked more confident putting the ball where he wanted",
@@ -23138,11 +23139,11 @@
       "Most passing yards in a season and career , surpassing Eli Manning's school record"
     ],
     "weaknesses": [
-      "scattershot accuracy beyond 25-30 yards when feet get disturbed",
-      "stance widens under pressure wrecking downfield placement",
-      "late decision-making leads to avoidable sacks and stale throws",
-      "black-zone decisions too aggressive for his own territory",
-      "default right-arm ball carry has produced lost fumbles while scrambling",
+      "vertical accuracy is scattershot beyond 25-30 yards",
+      "feet widen under pressure and sap velocity past 25 yards",
+      "late to diagnose Green Dog blitzes from the same side as edge pressure",
+      "black-zone and situational management decisions lack savvy",
+      "ball carries loose after breaking pocket, has fumbled in pivotal moments",
       "Likes to see things before firing \u2014 needs to improve passing anticipation to get throws",
       "Bad habit of dropping eyes when he starts to feel heat",
       "Gives his guys a chance on deep balls but placement can be better",
@@ -23151,10 +23152,12 @@
       "Stayed healthy at Ole Miss but had prior injuries: torn meniscus and MCL sprain in"
     ],
     "red_flags": [
+      "meniscus surgery in 2021 at USC after a season-opener injury",
+      "pre-draft hype is more projection than present-game reality",
       "Stayed healthy at Ole Miss but had prior injuries: torn meniscus and MCL sprain in"
     ],
     "summaries": [
-      "Dart has a Jekyll-and-Hyde profile: solid short and intermediate accuracy paired with unsettled vertical placement no obvious mechanical fix will clean up. He fits a West Coast or play-action-heavy scheme and needs patient development behind a veteran to avoid a Jake Locker outcome.",
+      "Dart pairs solid short and intermediate accuracy with unsettled vertical placement that lacks a clear mechanical fix beyond cleaner climbs and a narrower base. He ideally lands in a West Coast or play-action scheme with moving pockets and a veteran in front of him, or he risks a Jake Locker career outcome. Waiting on NFL draft capital before spending meaningful fantasy resources is the prudent move.",
       "Overall, Dart needs time to develop his progression-based reads and anticipation (things he wasn't asked to regularly do in college), but he is a natural thrower of the football with promising mobility and high-level competitive intangibles. If allowed to develop at his own pace, he offers NFL starting upside in the right situation."
     ]
   },
@@ -23181,12 +23184,12 @@
       "Drew Stanton"
     ],
     "strengths": [
-      "big arm reaches 44-52 yards up the near sideline",
-      "holds Cover 1 safety during drops to manipulate space",
-      "wise front-to-backside reading in the red zone",
-      "takes hits willingly to throw the ball away or off-platform",
-      "pinpoint 28-yard back-shoulder fade against man coverage",
-      "sidesteps interior pressure and climbs for short-range accuracy",
+      "big arm with vertical range from pocket or on the move",
+      "pinpoint 28-yard corner fades and 44-yard boundary go routes on-platform",
+      "reads high safety pre-snap and places slants away from sliding defender",
+      "climbs edge pressure, flushes, and pump-spins away from interior rush",
+      "effective front-to-back red-zone reads under pressure",
+      "sidearm release layers the ball over and between defenders off-platform",
       "Efficient hitch-free release \u2014 ball shoots off hand for easy zip",
       "Arm strength gives him access to every inch of the field, including long field-side throws",
       "Has elasticity to deliver throws from different arm angles",
@@ -23201,12 +23204,11 @@
       "Engineered an offense that averaged 36.6 points per game in 2024"
     ],
     "weaknesses": [
-      "vertical and deep accuracy far more catchable than pinpoint",
-      "lateness to trigger on reads leads to avoidable sacks",
-      "stares down Cover 3 safety, tipping off coverage",
-      "black-zone decision-making too aggressive for own territory",
-      "struggles to sense blindside edge pressure on deep drops",
-      "feet freeze against interior pressure and drive disappears",
+      "vertical and deep accuracy more catchable than pinpoint",
+      "1-2 steps late executing decisions he sees, leading to off-platform throws",
+      "stares down Cover 3 safety rather than manipulating with eyes",
+      "black-zone management too aggressive inside his own 20",
+      "blindside edge pressure on deep drops goes unsensed, costs avoidable sacks",
       "Eventually finds right read but often lingers on other targets before getting there",
       "Too willing to throw tardy 50-50 prayers into coverage, especially under pressure",
       "Ball placement is workable but can be more consistent",
@@ -23214,10 +23216,13 @@
       "Suffered three major injuries in his three seasons in Lubbock: broken collarbone and missed final"
     ],
     "red_flags": [
+      "broken left collarbone cost all but four starts in 2021",
+      "shoulder surgery ended 2022 after re-injuring collarbone",
+      "season-ending broken fibula after four appearances in 2023",
       "Suffered three major injuries in his three seasons in Lubbock: broken collarbone and missed final"
     ],
     "summaries": [
-      "Shough offers a big arm, mobility, and Jay Cutler-like flashes behind a compact foundation. Late processing, missed blindside pressure, and shaky black-zone management cap his ceiling at backup unless a strong situation unlocks his traits.",
+      "Shough has Jay Cutler-flavored arm talent and mobility but the profile remains more projection than proof, with chronic pocket-clock lapses and predetermined decisions capping his ceiling. His extensive injury history across 2021-2023 compounds the risk. He projects as a compelling journeyman backup who could start if his draft capital and landing spot cooperate.",
       "Overall, Shough is overaged and needs to cut back on some of the high-risk passing decisions, but he is a gifted thrower with the functional mobility to work off schedule. He has the tools to work his way up a depth chart and make plays once on the field."
     ]
   },
@@ -23225,7 +23230,7 @@
     "player_key": "will howard",
     "player_name": "Will Howard",
     "position": "QB",
-    "college": "Ohio State",
+    "college": "Ohio St./Kansas State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -23245,12 +23250,12 @@
       "Bryce Petty"
     ],
     "strengths": [
-      "big arm reaches 54 yards with catchable accuracy",
-      "balance to bounce off glancing hits and pull through reaches",
-      "works through reads and climbs pocket on the run for yardage",
-      "pinpoint at 27 yards opposite boundary into tight man coverage",
-      "improved play-action nuance throughout the season",
-      "turns the corner on linebackers for 8-12 yard chain movers",
+      "big arm with vertical range to 54 yards in the catchable zone",
+      "good feel for tossing open verticals without over-fining placement",
+      "mobility to abandon the pocket and turn the corner on linebackers",
+      "balance to bounce off glancing shots and pull through defender reaches",
+      "sound foundation with drops, play fakes, pump fakes, and release",
+      "uses eyes to hold linebackers before late pivot to open deep route",
       "Plays large in pocket to handle muck around him",
       "Mechanics will affect touch at times but generally an accurate passer",
       "Noticeable improvement from start of 2024 when layering throws between levels of the defense",
@@ -23266,12 +23271,11 @@
       "Career 30-14 record"
     ],
     "weaknesses": [
-      "arrogance attempting throws into tight or unfavorable leverage windows",
-      "misses underneath defenders squatting on screens and slants",
-      "linebacker drops undercut his intermediate throws for interceptions",
-      "late anticipation begins release as receiver exits the break",
-      "scramble-drill greed rather than pivoting to open check-downs",
-      "torso-first contact rather than sliding as a runner",
+      "over-confidence targeting tight windows and unfavorable defender leverage",
+      "loses track of defenders squatting on quick-screen throwing lanes",
+      "does not layer throws over intermediate linebackers dropping late",
+      "late anticipation, releases as receiver exits rather than enters break",
+      "forces throws with pressure in his face into tight triangles of defenders",
       "Arm strength more adequate than above average",
       "Struggled with passing anticipation over middle of field",
       "Stubborn tendencies with preferred read, not seeing defensive traps set for him",
@@ -23284,7 +23288,7 @@
     ],
     "red_flags": [],
     "summaries": [
-      "Howard pairs a big arm, solid mechanics, and plus mobility with conceptual holes around coverage leverage and underneath defenders. If he quells arm arrogance, he projects as a competent reserve with spot-start upside in the right scheme.",
+      "Howard is the archetypal late-round flier with quality baseline mechanics, a plus arm, and functional mobility who reads coverage acceptably but squeezes balls into leverage he should respect. If he quells that arrogance and cleans up intermediate anticipation, he profiles as a capable backup with starter-caliber athletic upside. He is worth a stab in the back half of Superflex drafts before his NFL draft capital is set.",
       "Overall, Howard has a couple plays on each tape that make evaluators question if his decision-making and placement are consistent enough for him to be an NFL starter. But he has the physical requirements, intelligence and mental resiliency to stick as a backup and potential spot-starter."
     ]
   },
@@ -23310,12 +23314,12 @@
       "C.J. Beathard"
     ],
     "strengths": [
-      "efficient three- and five-step drops with quick setups",
-      "pinpoint accuracy in shallow and intermediate ranges of the field",
-      "holds Cover 3 safety with eyes before setting and firing",
-      "wise red-zone management when forced out of the pocket",
-      "preemptive climbs against edge pressure with hitch footwork",
-      "layers passes over linebackers with touch after embedded play-action",
+      "quick, precise three- and five-step drops with balanced setups",
+      "pinpoint short accuracy, competent intermediate and 28-42 yard vertical",
+      "holds Cover 3 safety during drops to open primary reads",
+      "flushes, rolls, and executes hitch climbs while staying accurate short",
+      "preemptively climbs from designed half-rolls when spotting edge pressure",
+      "finds appropriate second reads after avoiding multiple points of pressure",
       "Comfortable delivering dots when throwing off platform",
       "Able to access various arm angles and release points without sacrificing velocity",
       "Throws well to areas \u2014 very good curl/comeback passer",
@@ -23330,10 +23334,10 @@
     ],
     "weaknesses": [
       "deep accuracy beyond 42 yards is mostly inaccurate",
-      "places fades inside rather than near the boundary on Cover 3",
-      "black-zone wisdom lacking with aggressive extra-read tendencies",
-      "misses flat linebackers undercutting intermediate routes",
-      "loose ball security when breaking the pocket",
+      "black-zone wisdom lacking, pushes extra reads in his own end zone",
+      "slow to identify blindside corner blitzes pre-snap",
+      "lapses reading Cover 2 corners peeling off outside receiver",
+      "misses flat linebackers cutting off intermediate crossers under pressure",
       "Frequently drops eyes when moved from spot \u2014 shrinking pockets make him uncomfortable",
       "Too many frazzled decisions as passer and fooled at times by underneath zone defenders",
       "Most interceptions on 2024 tape came to the right and outside the numbers",
@@ -23343,10 +23347,12 @@
       "Average body type and missed time each season because of injury: missed two games as"
     ],
     "red_flags": [
+      "non-throwing shoulder and throwing shoulder injuries in 2022 and 2023",
+      "oblique strain cost two games in 2024, plus ankle and abdominal strain",
       "Average body type and missed time each season because of injury: missed two games as"
     ],
     "summaries": [
-      "Ewers offers sound fundamentals, quality pocket management, and pinpoint short-to-intermediate accuracy but lacks the deep game or black-zone feel of a starter. He projects as a playable backup with Desmond Ridder-style upside if surrounded by an elite roster.",
+      "Ewers sits on the demarcation between potential starter and top-end backup, with polished mechanics, functional pocket feel, and good short-intermediate accuracy that does not carry deep. His brand name and solid drop/release foundation may earn him draft capital above his tape. Best case he is a Desmond Ridder-style early stopgap, more likely a playable journeyman backup.",
       "Overall, Ewers has the arm, intelligence and poise that will translate to the next level, although his up-and-down decision-making, limitations as a play extender and durability concerns create question marks for his pro ceiling. If he stays healthy, the tools are there to compete for NFL starting reps."
     ]
   },
@@ -23371,12 +23377,12 @@
       "Nathan Peterman"
     ],
     "strengths": [
-      "efficient one- through seven-step drops across alignments",
-      "pinpoint placement across the shallow range",
-      "executes layered seam throws with anticipation",
-      "maneuvers from pressure with sidesteps, hitches, and rolls",
-      "willing to take hits to get off accurate vertical shots",
-      "wise pass placement away from defensive leverage",
+      "efficient and sound drop and release mechanics with only minor lapses",
+      "pinpoint shallow accuracy, competent intermediate and vertical placement",
+      "layered throws over linebackers up the seam with pinpoint vertical touch",
+      "anticipates edge pressure with two-step slides to create throwing space",
+      "holds defenders to one side then pivots to backside routes",
+      "works sideline to sideline with timely reads off play-action",
       "Highly efficient intermediate-level passer",
       "Snappy release \u2014 puts velocity on throws to stay ahead of closing coverage",
       "Consistently throws with anticipation and has vision to poke holes in zone",
@@ -23389,11 +23395,11 @@
       "Led Minnesota to an 8-5 record in 2024"
     ],
     "weaknesses": [
-      "vertical and deep accuracy more catchable than pinpoint",
-      "loose default right-arm ball carry on scrambles",
-      "reactive to phantom pressure, vacating clean pockets",
-      "miscommunications over the middle have produced interceptions",
-      "not athletic enough to beat multiple points of pressure",
+      "accuracy wanes past 40 yards and under pressure",
+      "reactive to pressure that never arrives, bolts open pockets unnecessarily",
+      "must better integrate pre-snap blindside blitz ID into first read",
+      "miscommunications with receivers on middle-of-field routes cause picks",
+      "not quick enough to escape once two points of pressure converge",
       "Won't force throws but needs to avoid getting too conservative when there are downfield plays",
       "There were 202 FBS players with at least one 50-yard completion in 2024 \u2014 Brosmer",
       "Internal clock goes off quickly \u2014 will bail from perfectly clean pockets",
@@ -23401,11 +23407,12 @@
       "Torn ACL and meniscus in right knee during preseason practice and underwent season-ending surgery; significant"
     ],
     "red_flags": [
-      "torn ACL and meniscus in 2021 plus a torn LCL earlier in career",
+      "torn ACL and meniscus in 2021 fall camp",
+      "torn LCL in high school",
       "Torn ACL and meniscus in right knee during preseason practice and underwent season-ending surgery; significant"
     ],
     "summaries": [
-      "Brosmer is a low-mistake timing passer whose fundamentals and pinpoint short-range accuracy project to a quality backup role. He lacks the athletic traits and consistent downfield accuracy to transcend that ceiling.",
+      "Brosmer is the low-mistake, mechanically sound type who best fits the quality backup archetype, able to plug in during a short-term crisis without sinking the offense. Pinpoint short accuracy and quality pocket manipulation offset limited arm-strength ceiling and scramble mobility. Do not expect him to transcend the reserve role, but his floor is higher than several better-known options on the board.",
       "Overall, Brosmer is inconsistent when asked to play outside of structure, but he has several redeeming qualities, most notably his intelligence and drive, the chief reasons he can carve out a backup role in the NFL."
     ]
   },
@@ -23431,12 +23438,12 @@
       "Christian Hackenberg"
     ],
     "strengths": [
-      "well-paced three- and five-step drops with compact release",
-      "sticks ideal placement in short and intermediate against man",
-      "arm reaches 38-yard opposite-hash back-shoulder fades",
-      "stands and delivers with interior pressure barreling down",
-      "can reduce shoulder and sidestep B-gap pressure to reset",
-      "retreats and rolls to throwing-arm side for pinpoint vertical",
+      "compact release with slingshot velocity over the shoulder",
+      "near-pinpoint 38-yard opposite-hash fades to the far numbers",
+      "pinpoint short and intermediate accuracy when throwing in rhythm",
+      "can stand in and deliver 20 yards downfield with pressure bearing down",
+      "well-paced three-, five-, and seven-step drops with quick-game setups",
+      "back-shoulder placement against man coverage at 38 yards",
       "Anticipates well \u2014 not afraid to put the ball where receiver will be",
       "Puts the ball in prime locations for his receivers, especially on slants",
       "Solid arm talent \u2014 throws with adequate velocity and adds some arc, when needed",
@@ -23450,21 +23457,23 @@
       "Ranks top seven in Syracuse history in career passing yards and passing touchdowns"
     ],
     "weaknesses": [
-      "slow to learn from leverage-read mistakes, repeats errors in-game",
-      "reckless red-zone decisions force slants into squatting defenders",
-      "front leg locks at knee causing throws to sail on shallow targets",
-      "loose ball carry when breaking the pocket",
-      "spin-and-roll pulled too early against blindside pressure",
-      "defaults to spin-rolls when climbing would preserve the field",
+      "repeatedly forces balls into favorable defensive leverage over receivers",
+      "reckless red-zone decision-making, repeats mistakes within the same game",
+      "defaults to spin-and-roll when climbing the pocket was available",
+      "front leg locks out and shallow throws sail on him",
+      "pass placement prone to trailing coverage cutting off the target",
       "Inconsistent improvisational skill",
       "Tight-window throws don't intimidate him but can lead to negative results",
       "Doesn't have rapid release",
       "Will lock on to reads, leading underneath/overhang defenders to the catch point",
       "Tends to sail throws on the move"
     ],
-    "red_flags": [],
+    "red_flags": [
+      "double-down habit on bad reads could force him from the league",
+      "played through a 2023 ankle injury"
+    ],
     "summaries": [
-      "McCord brings NFL-caliber arm talent, a compact release, and chain-moving mobility but his slingshot release and stubborn leverage reads create Jameis Winston-style turnover risk. He must prove he can learn from repeated mistakes before projecting as more than a developmental reserve.",
+      "McCord is a Drew Lock-styled flier with enough arm and mechanics to intrigue, but his Jameis Winston-esque belief in impossible throws produces pick-sixes and red-zone catastrophes he never seems to learn from. Without a fundamental shift in leverage recognition he profiles as a Christian Hackenberg outcome rather than a Ridder-level backup. Monitor from afar in fantasy formats.",
       "Overall, McCord is average from a physical standpoint, and his lack of escapability limits his options, but he is a cool customer with the anticipation and conviction as a pocket passer to make plays when he has protection and capable talent around him. He projects as a backup option in the NFL, although there is starting potential there in the rig..."
     ]
   },
@@ -23492,12 +23501,12 @@
       "Devin Leary"
     ],
     "strengths": [
-      "compact over-the-shoulder release with hip rotation for velocity",
-      "pinpoint 46-yard fade up the near-side boundary",
-      "holds Cover 1 safety to open up opposite-side man options",
-      "protects receivers with back-shoulder seam placement",
-      "timely spin-and-roll to either side to avoid pressure",
-      "pinpoint 46-yard opposite-boundary throws after climbing",
+      "pinpoint 46-yard near-boundary fades on-platform",
+      "compact over-the-shoulder release with three-quarter and sidearm variations",
+      "works sideline-to-sideline and can hit a legitimate third read",
+      "holds Cover 1 safety to set up backside man-to-man options",
+      "layers intermediate seam throws to the back shoulder over shallow LBs",
+      "sidesteps in succession to beat two points of pressure before resetting",
       "Does nice job staying aligned in drops, with the rhythm of the route concept",
       "Doesn't make receivers work for the ball when he throws from set base",
       "Enough touch to layer the ball over second-level defenders",
@@ -23509,11 +23518,11 @@
       "Started 43 straight games to finish career and posted a 34-16 career record as"
     ],
     "weaknesses": [
-      "intermediate throws arrive behind receivers with trail coverage",
-      "aggressive placement favors defender leverage on vertical shots",
-      "unusual ball handling when breaking left carries pitch-man style",
-      "occasional unnecessary throwaways when wide-open options exist",
-      "slow slide decisions when ending runs in traffic",
+      "vertical sideline accuracy lags, 62.5% inaccurate in the sample",
+      "places ball behind receivers with tight trail coverage in intermediate range",
+      "leads receivers into coverage where he cannot protect them",
+      "unnecessary throwaways when wide-open targets existed",
+      "rolling-right mobile accuracy lacks velocity and leads receivers poorly",
       "Deep ball tends to lose steam on backend THE BEAST |",
       "Mediocre velocity leaves out throws floating",
       "Didn't consistently push the ball downfield",
@@ -23522,7 +23531,7 @@
     ],
     "red_flags": [],
     "summaries": [
-      "Henigan is an aggressive, mechanically sound passer with sound pocket management and accuracy at every level, held back by downfield placement that too often favors defender leverage. He fits best as a long-term developmental project with sleeper upside.",
+      "Henigan has an aggressive mindset, sound mechanics, and a promising accuracy envelope across the field, but downfield placement vacillates between protecting receivers and handing defenders the catch point. He is a capable pocket manager and scrambler with long-term project upside if the leverage reads and vertical placement tighten. In fantasy terms, monitor only in the deepest Superflex formats.",
       "Overall, Henigan will have a chance at a pro career, because he can play on time and deliver with touch, but his movements and arm power won't stand out. He will have a chance at a career as a backup in the right situation."
     ]
   },
@@ -23548,12 +23557,12 @@
       "Russell Wilson"
     ],
     "strengths": [
-      "quick and precise one- through seven-step drops across alignments",
-      "pinpoint 50-yard go route up the near boundary",
-      "holds middle-of-field safety to set up opposite go routes",
-      "layers the ball over Cover 3 shallow defenders",
-      "spins and pulls through edge defender reaches",
-      "pinpoint 46-yard throws after sidestepping interior pressure",
+      "pinpoint 48-50 yards to the opposite boundary on on-platform throws",
+      "layers throws over shallow and intermediate coverage on deep crossers",
+      "holds middle safety to set up opposite-boundary go routes",
+      "sidesteps interior pressure and delivers pinpoint 46-yard flats",
+      "can incrementally climb against bookend edge pressure to find dig routes",
+      "strong RPO, zone-read, and quick-game executor",
       "Competes with veteran awareness, both in muddy pockets and in space",
       "Shows outstanding feel to patiently sort through the rush, elude pressure and buy time",
       "Foot quickness allows for sudden resets with his base and mechanics",
@@ -23566,12 +23575,11 @@
       "Incredible career production; started more games than any other quarterback in FBS history THE BEAST"
     ],
     "weaknesses": [
-      "stares down first read until pressure arrives in his face",
-      "reactive to hot edge pressure, disrupting timing",
-      "lacks confidence to pull trigger into favorable zone windows",
-      "bolts pocket outside rather than climbing vs. edge pressure",
-      "below-the-chest draw-back elongates release timing",
-      "black-zone sacks from retreating instead of climbing",
+      "slow to come off first read, will stare down until pressure arrives",
+      "reactive to hot edge pressure, bolts pocket rather than climbing",
+      "misjudges trailing coverage on mobile throws to the flat",
+      "hesitation and pump-and-stare tips off intentions in tight windows",
+      "ball drifts below waist when breaking pocket, has fumbled short-yardage hits",
       "Deep throws outside numbers often lose life, requiring receivers to slow their strides",
       "Struggles to add zip \u2014 lack of arm strength shows on the move or",
       "Average anticipation \u2014 more of a decision-maker",
@@ -23581,10 +23589,12 @@
       "Missed game against Texas first season at Oklahoma because of concussion ; missed final 10"
     ],
     "red_flags": [
+      "broken left clavicle (throwing shoulder) ended 2021 in mid-September",
+      "undersized 5-11/205 frame factors into anticipatory and scramble projections",
       "Missed game against Texas first season at Oklahoma because of concussion ; missed final 10"
     ],
     "summaries": [
-      "Gabriel is a short-height short-game technician whose quick drops and placement on leverage-based reads create completions, but blitz-reactive pocket habits and a below-the-chest release cap his ceiling. Monitor-from-afar developmental project.",
+      "Gabriel has a strong short-range and RPO game with flashes of deep placement, but anticipatory throws against blitzes and black-zone management are persistent holes. Undersized with a three-quarter slot and a tendency to bail rather than climb, he profiles as a compelling backup if the leverage reads and pocket poise mature. Monitor from afar in fantasy until NFL draft capital clarifies the path.",
       "Overall, Gabriel looks small in the pocket and has some limitations as a downfield thrower, but he is a rhythm passer with the football instincts and mature intangibles to overcome his physical shortcomings. A savvy lefty with a quick release, he has similarities to Tua Tagovailoa \u2014 and has a fighting chance to earn a backup role in the NFL."
     ]
   },
@@ -23655,7 +23665,7 @@
     "player_key": "quinshon judkins",
     "player_name": "Quinshon Judkins",
     "position": "RB",
-    "college": "Ole Miss/Ohio State",
+    "college": "Cleveland Browns",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -24325,7 +24335,7 @@
     "player_key": "trevor etienne",
     "player_name": "Trevor Etienne",
     "position": "RB",
-    "college": "Georgia",
+    "college": "Florida/UGA",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -24594,7 +24604,7 @@
     "player_key": "bhayshul tuten",
     "player_name": "Bhayshul Tuten",
     "position": "RB",
-    "college": "VaTech",
+    "college": "Jacksonville Jaguars",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -24947,7 +24957,7 @@
     "player_key": "jacory croskey merritt",
     "player_name": "Jacory Croskey-Merritt",
     "position": "RB",
-    "college": "Arizona",
+    "college": "Alabama St./New Mexico/Arizona",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -25300,7 +25310,7 @@
     "player_key": "raheim sanders",
     "player_name": "Raheim Sanders",
     "position": "RB",
-    "college": "South Carolina",
+    "college": "Arkansas/S. Carolina",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -25387,7 +25397,7 @@
     "player_key": "ky thomas",
     "player_name": "Ky Thomas",
     "position": "RB",
-    "college": "Kent State",
+    "college": "Kent St.",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "2026_Rookie_Scouting_Portfolio.pdf"
@@ -25668,7 +25678,7 @@
     "player_key": "chip trayanum",
     "player_name": "Chip Trayanum",
     "position": "RB",
-    "college": "Kentucky/OSU",
+    "college": "Toledo",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "2026_Rookie_Scouting_Portfolio.pdf",
@@ -26296,7 +26306,7 @@
     "player_key": "jack bech",
     "player_name": "Jack Bech",
     "position": "WR",
-    "college": "TCU / LSU",
+    "college": "TCU",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -26652,7 +26662,7 @@
     "player_key": "tre harris",
     "player_name": "Tre Harris",
     "position": "WR",
-    "college": "Los Angeles Chargers",
+    "college": "Ole Miss/La. Tech",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -27129,7 +27139,7 @@
     "player_key": "tez johnson",
     "player_name": "Tez Johnson",
     "position": "WR",
-    "college": "Tampa Bay Buccaneers",
+    "college": "Oregon",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -27429,7 +27439,7 @@
     "player_key": "kyle williams",
     "player_name": "Kyle Williams",
     "position": "WR",
-    "college": "Washington St.",
+    "college": "Washington State",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "LateRoundProspectGuide26_PreDraft.pdf",
@@ -27521,7 +27531,7 @@
     "player_key": "antwane wells",
     "player_name": "Antwane Wells, Jr.",
     "position": "WR",
-    "college": "South Carolina",
+    "college": "Ole Miss",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -27712,7 +27722,7 @@
     "player_key": "ricky white",
     "player_name": "Ricky White III",
     "position": "WR",
-    "college": "UNLV",
+    "college": "UNLV/Mich St.",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28037,7 +28047,7 @@
     "player_key": "dominic lovett",
     "player_name": "Dominic Lovett",
     "position": "WR",
-    "college": "Georgia",
+    "college": "UGA",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28107,7 +28117,7 @@
     "player_key": "elijhah badger",
     "player_name": "Elijhah Badger",
     "position": "WR",
-    "college": "UF/Arizona State",
+    "college": "Florida",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28222,7 +28232,7 @@
     "player_key": "jackson meeks",
     "player_name": "Jackson Meeks",
     "position": "WR",
-    "college": "Syracuse",
+    "college": "Syracuse / UGA",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -28406,7 +28416,7 @@
     "player_key": "jaylin lane",
     "player_name": "Jaylin Lane",
     "position": "WR",
-    "college": "VaTech",
+    "college": "Virginia Tech",
     "sources": [
       "2025_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2025.pdf"
@@ -30217,7 +30227,7 @@
     "player_key": "jack strand",
     "player_name": "Jack Strand",
     "position": "QB",
-    "college": "MSU Moorhead",
+    "college": "Moorhead State",
     "sources": [
       "2026_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2026.pdf"
@@ -30313,7 +30323,7 @@
     "player_key": "joe fagnano",
     "player_name": "Joe Fagnano",
     "position": "QB",
-    "college": "UConn",
+    "college": "Connecticut",
     "sources": [
       "2026_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2026.pdf"
@@ -31567,7 +31577,7 @@
     "player_key": "dean connors",
     "player_name": "Dean Connors",
     "position": "RB",
-    "college": "Rice",
+    "college": "Houston",
     "sources": [
       "2026_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2026.pdf"
@@ -34502,7 +34512,7 @@
     "player_key": "romello brinson",
     "player_name": "Romello Brinson",
     "position": "WR",
-    "college": "190",
+    "college": "SMU",
     "sources": [
       "2026_Rookie_Scouting_Portfolio.pdf",
       "the_beast_2026.pdf"
@@ -36487,7 +36497,7 @@
     "player_key": "bauer sharp",
     "player_name": "Bauer Sharp",
     "position": "TE",
-    "college": "LSU",
+    "college": "Louisiana State",
     "sources": [
       "LateRoundProspectGuide26_PreDraft.pdf",
       "the_beast_2026.pdf"
