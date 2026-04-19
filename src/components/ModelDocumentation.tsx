@@ -11,8 +11,10 @@ import { InfoTip, PipelineDiagram, STAT_DEFS } from './ModelDocsHelpers';
 import projectionConfig from '../generated/projection-config.json';
 
 // Human-readable labels for the gap-feature vocabulary used by the rookie boom
-// model (see train_career_models.py::GAP_FEAT_NAMES). These keys don't exist
-// in FEATURES because they're derived talent-vs-draft deltas.
+// model (see train_career_models.py::_GAP_BASE and BOOM_GAP_FEATURES_BY_POS).
+// These keys don't exist in FEATURES because they're derived talent-vs-draft
+// deltas or scout-vs-NFL disagreement signals that only live inside the
+// boom model's feature builder.
 const GAP_FEATURE_LABELS: Record<string, string> = {
   ras: 'RAS',
   speed: 'Speed Score',
@@ -50,17 +52,45 @@ const GAP_FEATURE_LABELS: Record<string, string> = {
   qbr_vs_pick: 'QBR vs Draft Pick',
   ypa_vs_pick: 'YPA vs Draft Pick',
   qb_context_vs_pick: 'QB Context vs Draft Pick',
+  // PDF scouting (The Beast / RSP / Late-Round Guide) — per-position
+  // BOOM_GAP_FEATURES_BY_POS includes pdfRankOverallMean + pdfHasRank for QB
+  // and athletic_production_gap / recruit_production_gap for WR.
+  pdfRankOverallMean: 'Scout Rank (Beast mean)',
+  pdfHasRank: 'Has Scout Rank',
+  pdfRankOverallMin: 'Scout Rank (best)',
+  pdfRankOverallMax: 'Scout Rank (worst)',
+  pdfRankSpread: 'Scout Rank Spread',
+  pdfProjectedRound: 'Scout Projected Round',
+  pdfNStrengths: 'Scout # Strengths',
+  pdfNWeaknesses: 'Scout # Weaknesses',
+  pdfNRedFlags: 'Scout # Red Flags',
+  pdfSentimentNet: 'Scout Sentiment Net',
+  pdfRankXPick: 'Scout Rank vs Draft Pick',
+  pdfRoundXActual: 'Proj Round vs Actual Round',
+  recruit_production_gap: 'Recruit-vs-Production Gap',
+  athletic_production_gap: 'Athletic-vs-Production Gap',
 };
 
 // Human-readable labels for the bust-classifier feature vocabulary (see
-// train_career_models.py::BUST_FEAT_NAMES). Most keys match FEATURES; a few
-// derived deficit features are bust-model-only.
+// train_career_models.py::_BUST_BASE and BUST_FEATURES_BY_POS). The bust
+// feature list is now per-position — QB adds scout-disagreement signals,
+// RB adds weakness counts + talent gaps, WR adds talent gaps, TE keeps base.
 const BUST_FEATURE_LABELS: Record<string, string> = {
   predictedPPG: 'Predicted PPG',
   speed_deficit: 'Speed Deficit vs Hits',
   production_deficit: 'Production Deficit vs Hits',
   age_for_draft: 'Age at Draft',
   missing_data_count: 'Missing Data Count',
+  // PDF + disagreement adds in BUST_FEATURES_BY_POS per-position lists
+  pdfRankOverallMean: 'Scout Rank (Beast mean)',
+  pdfHasRank: 'Has Scout Rank',
+  pdfRankSpread: 'Scout Rank Spread',
+  pdfRankXPick: 'Scout Rank vs Draft Pick',
+  pdfRoundXActual: 'Proj Round vs Actual Round',
+  pdfNWeaknesses: 'Scout # Weaknesses',
+  pdfSentimentNet: 'Scout Sentiment Net',
+  recruit_production_gap: 'Recruit-vs-Production Gap',
+  athletic_production_gap: 'Athletic-vs-Production Gap',
 };
 
 interface PositionModelData {

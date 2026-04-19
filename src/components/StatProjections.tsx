@@ -1365,14 +1365,17 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           }
 
           for (const p of rushers) {
-            if (rbs.includes(p)) {
+            // rbs/wrs are narrow-typed arrays; rushers is the union.
+            // includes() in strict TS rejects a wider value, so cast the
+            // haystack at the call site to match p's type.
+            if ((rbs as typeof rushers).includes(p)) {
               p.pprPts = Math.round(computePPR({
                 rushYds: p.rushYds, rushTD: p.rushTD,
                 rec: (p as RBProjection).rec,
                 recYds: (p as RBProjection).recYds,
                 recTD: (p as RBProjection).recTD,
               }));
-            } else if (wrs.includes(p)) {
+            } else if ((wrs as typeof rushers).includes(p)) {
               p.pprPts = Math.round(computePPR({
                 rushYds: p.rushYds, rushTD: p.rushTD,
                 rec: (p as WRProjection).rec,

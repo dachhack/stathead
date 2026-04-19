@@ -460,6 +460,27 @@ export const FEATURES: FeatureDef[] = [
 
   // Team offensive turnover rate
   { key: 'teamRosterTurnover', label: 'Team Roster Turnover Rate', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // PDF scouting features (The Beast / RSP / Late-Round Guide). Populated
+  // for 2022+ rookies by _derive_pdf_features in train_career_models.py
+  // and mirrored in scripts/precompute-features.ts for prospect cards.
+  { key: 'pdfRankOverallMean', label: 'Scout Rank (Beast mean)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfHasRank', label: 'Has Scout Rank', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankOverallMin', label: 'Scout Rank (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankOverallMax', label: 'Scout Rank (worst)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankSpread', label: 'Scout Rank Spread', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfProjectedRound', label: 'Scout Projected Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNStrengths', label: 'Scout # Strengths', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNWeaknesses', label: 'Scout # Weaknesses', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNRedFlags', label: 'Scout # Red Flags', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfSentimentNet', label: 'Scout Sentiment Net', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+
+  // Disagreement features — cross-signal gaps that only light up when two
+  // channels that should agree don't. Computed in _attach_disagreement_features.
+  { key: 'pdfRankXPick', label: 'Scout Rank vs Draft Pick', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRoundXActual', label: 'Proj Round vs Actual Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'recruit_production_gap', label: 'Recruit-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'athletic_production_gap', label: 'Athletic-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──
@@ -525,66 +546,59 @@ export function parseHeight(ht: string | number): number {
 // Missing-data indicators (hasCollegeStats, hasCombineData) added where useful
 // — binary flags are cheap and help models distinguish missing vs zero
 export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: n=133. Ablation rounds 1+2 pruned 17→5. Round 1 (17→6) jumped R²
-  // 0.240→0.323. Round 2 dropped earlyDeclare (flipped to +0.009 dead weight
-  // once noise features removed — experience > raw tools in modern NFL).
-  // Added draftClassDepth in Apr-2026: QBs are scarce, so a #1 pick in a
-  // shallow QB class (e.g. 2025) is meaningfully different from a #1 pick
-  // in a loaded one (e.g. 2021). Without this the model conflated draft
-  // capital with elite talent.
+  // QB: n=134. Base 6 features from the 2026-04 CFBD pass. 2026-04 round 3
+  // added pdfRankOverallMean + pdfHasRank (paired with the missing-data
+  // indicator): +0.077 R² in the 2022-25 era, flat all-yrs.
+  // Source of truth: scripts/train_career_models.py::PRE_DRAFT_FEATURES.
   QB: ['logDraftPick', 'draftClassDepth', 'collegeQBR2yr',
-       'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore'],
-  // RB: n=315. Ablation rounds 1+2 pruned 11→2. logDraftPick dominates
-  // (Δ=-0.224). Round 2 dropped speedScore (+0.041), totalTDs (+0.036),
-  // teammateScore (+0.036), recYdsPerTeamPassAtt (+0.035) — all large
-  // dead weight once initial noise was cleared. CFBD ablation (2026-04)
-  // added collegeUsageOverall (PPA-based share of team plays; +0.029 R²)
-  // and recruitRating (247 composite; another +0.008 on top) for a
-  // +0.037 gain to R²≈0.38. Usage is the largest non-draft-capital RB
-  // signal — cleanly splits featured backs from committee backs.
+       'collegeRushYpgPerAge', 'collegeSosFinalYr', 'collegeQbContextScore',
+       'pdfRankOverallMean', 'pdfHasRank'],
+  // RB: n=315. collegeUsageOverall (PPA-based share of team plays, +0.029 R²)
+  // and recruitRating (247 composite, +0.008 R²) shipped in the 2026-04
+  // CFBD pass. pdfRankOverallMean + pdfHasRank added later: +0.008 all-yrs,
+  // +0.028 in the PDF era. Paired with DRAFT_CAPITAL_KEYS so the companion
+  // model ignores them.
   RB: ['logDraftPick', 'collegeDominatorXLateRound',
-       'collegeUsageOverall', 'recruitRating'],
-  // WR: n=456. Ablation pruned 13→11. Healthiest model — 7 valuable features.
-  // Dropped dominatorRating and dominatorXLateRound (+0.001 each, redundant
-  // with bestRecYds and draftPickPct which capture the same signal better).
-  // Added recruitStars (247 composite, 1-5) in 2026-04 CFBD pass: +0.011
-  // R². Other CFBD features overlapped with existing production signals.
+       'collegeUsageOverall', 'recruitRating',
+       'pdfRankOverallMean', 'pdfHasRank'],
+  // WR: n=456. recruitStars (+0.011 R²) shipped in the CFBD pass. PDF
+  // sentiment family (strengths/weaknesses/red_flags/net, red flags 2×)
+  // added later: +0.006 all-yrs, +0.021 PDF-era. Rank features already
+  // captured by existing draft capital + college production for WR.
   WR: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth', 'age',
        'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt',
        'collegeBestRecYds',
        'weight', 'collegeTeammateScore',
-       'relativeAthleticScore', 'recruitStars'],
-  // TE: n=207. Ablation pruned 8→5. Draft position features dominate;
-  // athleticism features (heightAdjSpeedScore +0.004, RAS +0.004) and
-  // recYdsPerTeamPassAtt (+0.001) were noise. Age neutral, retained.
-  // Added recruitStars (+0.015 R²) in the 2026-04 CFBD pass — TE
-  // projection is notoriously fickle, and 247 composite stars catches
-  // high-upside athletes the lean 5-feature set was missing.
+       'relativeAthleticScore', 'recruitStars',
+       'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'],
+  // TE: n=207. recruitStars (+0.015 R²). PDF A/B at n=55 PDF-era showed
+  // no stable positive signal — retest after 2026/2027 classes ship.
   TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
        'age', 'recruitStars'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known.
-// Includes offensive environment, QB quality, positional competition, and
-// team scheme indicators. These are available once the rookie is drafted
-// and landing spot is known. Coverage ~35-40% (2018+ seasons have full data).
+// Matches scripts/train_career_models.py::POST_DRAFT_FEATURES. The 2026-04
+// forward-selection ablation pruned down from the broader post-draft list
+// (contractAPY was 0% coverage; teamPace hurt RB; depthChartRank hurt QB/RB).
 export const ROOKIE_FEATURES: Record<string, string[]> = {
-  // QB: 5 + 5 = 10 features
+  // QB: PRE + teamSamePosCount + PDF scout-vs-NFL disagreement pair.
+  // Disagreement features lifted R² +0.002 all-yrs, ρ +0.042 in the PDF era.
   QB: [...PRE_DRAFT_ROOKIE_FEATURES.QB,
-       'vegasImpliedTotal', 'contractAPY',
-       'teamPace', 'depthChartRank', 'teamSamePosCount'],
-  // RB: 2 + 7 = 9 features
+       'teamSamePosCount', 'pdfRankXPick', 'pdfRoundXActual'],
+  // RB: PRE + team context. PDF rank stays from pre-draft.
   RB: [...PRE_DRAFT_ROOKIE_FEATURES.RB,
-       'depthChartRank', 'teamSamePosCount', 'contractAPY',
-       'vegasImpliedTotal', 'teamPassRate', 'teamPace', 'qbOwnPPG'],
-  // WR: 11 + 7 = 18 features
-  WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR,
-       'depthChartRank', 'teamSamePosCount', 'contractAPY',
+       'teamSamePosCount', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
+  // WR: PRE minus the PDF sentiment pair (once team-context features land,
+  // sentiment loses its marginal value: Δ-0.0003 all-yrs, -0.009 score≥22).
+  // Keeping landing-spot features instead.
+  WR: [...PRE_DRAFT_ROOKIE_FEATURES.WR.filter(f =>
+        !['pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet'].includes(f)),
+       'depthChartRank', 'teamSamePosCount',
        'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
-  // TE: 5 + 6 = 11 features
+  // TE: PRE + team context.
   TE: [...PRE_DRAFT_ROOKIE_FEATURES.TE,
-       'depthChartRank', 'contractAPY',
-       'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG', 'projTeamPassAtt'],
+       'depthChartRank', 'vegasImpliedTotal', 'teamPassRate', 'qbOwnPPG'],
 };
 
 // Features that are ADP-derived (excluded from ADP-independent models)
