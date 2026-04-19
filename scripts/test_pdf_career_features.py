@@ -167,6 +167,8 @@ def derive_pdf_features(p: dict) -> dict:
             'pdfNSources': 0,
             'pdfRankOverallMean': 0,
             'pdfRankOverallMin': 0,
+            'pdfRankOverallMax': 0,
+            'pdfRankSpread': 0,
             'pdfProjectedRound': 0,
             'pdfNStrengths': 0,
             'pdfNWeaknesses': 0,
@@ -181,6 +183,7 @@ def derive_pdf_features(p: dict) -> dict:
         }
     rank_mean = p.get('rank_overall_mean')
     rank_min = p.get('rank_overall_min')
+    rank_max = p.get('rank_overall_max')
     proj_round = p.get('projected_round_mean')
     strengths = p.get('strengths') or []
     weaknesses = p.get('weaknesses') or []
@@ -192,15 +195,22 @@ def derive_pdf_features(p: dict) -> dict:
     n_weak = len(weaknesses)
     n_red = len(red_flags)
     n_comps = len(comps)
-    # Weight red flags more heavily than plain weaknesses in the net score —
-    # a redundant 'weaknesses' bullet is softer than a flagged concern.
     sentiment_net = n_strengths - n_weak - 2 * n_red
+
+    # Scout-internal disagreement spread. Mean is across multiple
+    # source PDFs (The Beast, RSP, Late-Round Guide); a wide min/max
+    # band indicates the analysts didn't agree on the player. Zero
+    # when only one source ranked them.
+    rank_spread = (float(rank_max) - float(rank_min)) \
+        if rank_max is not None and rank_min is not None else 0.0
 
     return {
         'pdfHasData': 1,
         'pdfNSources': int(p.get('n_sources', 0) or 0),
         'pdfRankOverallMean': float(rank_mean) if rank_mean is not None else 0.0,
         'pdfRankOverallMin': float(rank_min) if rank_min is not None else 0.0,
+        'pdfRankOverallMax': float(rank_max) if rank_max is not None else 0.0,
+        'pdfRankSpread': rank_spread,
         'pdfProjectedRound': float(proj_round) if proj_round is not None else 0.0,
         'pdfNStrengths': n_strengths,
         'pdfNWeaknesses': n_weak,
@@ -224,17 +234,45 @@ BOOM_GAP_PDF_EXTRAS = {
     'rank': ['pdfRankOverallMean', 'pdfHasRank'],
     'sentiment': ['pdfNStrengths', 'pdfNWeaknesses', 'pdfSentimentNet'],
     'redflags': ['pdfNRedFlags', 'pdfInjuryRedFlags'],
+    # Disagreement candidates: features where the boom signal is "two
+    # sources don't agree", which is itself a useful nonlinear feature
+    # (a heavy projection-uncertainty band shifts the prior toward
+    # variance/outlier outcomes).
+    'disagree_scout': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
+    'disagree_talent': ['recruitProductionGap', 'athleticProductionGap'],
+    'disagree_age': ['ageProductionGap'],
+    'disagree_all': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual',
+                     'recruitProductionGap', 'athleticProductionGap',
+                     'ageProductionGap', 'sentimentProductionGap'],
     'all': ['pdfRankOverallMean', 'pdfHasRank', 'pdfNStrengths',
             'pdfNWeaknesses', 'pdfSentimentNet', 'pdfNRedFlags',
             'pdfInjuryRedFlags', 'pdfTierElite', 'pdfHasData'],
+    'all_plus_disagree': [
+        'pdfRankOverallMean', 'pdfHasRank', 'pdfNStrengths', 'pdfNWeaknesses',
+        'pdfSentimentNet', 'pdfNRedFlags', 'pdfInjuryRedFlags',
+        'pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual',
+        'recruitProductionGap', 'athleticProductionGap',
+        'ageProductionGap', 'sentimentProductionGap'],
 }
 BUST_PDF_EXTRAS = {
     'redflags': ['pdfNRedFlags', 'pdfInjuryRedFlags', 'pdfCharacterRedFlags'],
     'rank': ['pdfRankOverallMean', 'pdfHasRank'],
     'weakness': ['pdfNWeaknesses', 'pdfSentimentNet'],
+    'disagree_scout': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
+    'disagree_talent': ['recruitProductionGap', 'athleticProductionGap'],
+    'disagree_overdraft': ['pdfRankXPick', 'pdfRoundXActual'],
+    'disagree_all': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual',
+                     'recruitProductionGap', 'athleticProductionGap',
+                     'ageProductionGap', 'sentimentProductionGap'],
     'all': ['pdfRankOverallMean', 'pdfHasRank', 'pdfNRedFlags',
             'pdfInjuryRedFlags', 'pdfCharacterRedFlags', 'pdfNWeaknesses',
             'pdfSentimentNet', 'pdfHasData'],
+    'all_plus_disagree': [
+        'pdfRankOverallMean', 'pdfHasRank', 'pdfNRedFlags',
+        'pdfInjuryRedFlags', 'pdfCharacterRedFlags', 'pdfNWeaknesses',
+        'pdfSentimentNet', 'pdfRankSpread', 'pdfRankXPick',
+        'pdfRoundXActual', 'recruitProductionGap', 'athleticProductionGap',
+        'ageProductionGap'],
 }
 
 
@@ -628,6 +666,117 @@ def attach_pdf_features(career_rows: list, pdf_idx: dict):
         r['features'].update(pdf_f)
 
 
+# ── Disagreement features ─────────────────────────────────────────────
+#
+# "Disagreement" = signal in two features that should agree but don't:
+#   pdfRankXPick      = log(scout-rank) - log(NFL-pick). Big positive
+#                       means scouts ranked the player worse than the
+#                       team that drafted them — overdraft / reach.
+#                       Big negative means the team picked early what
+#                       scouts agreed was a top prospect (consensus).
+#   pdfRoundXActual   = projected_round_mean - actual_draft_round.
+#                       Same shape, but in round-units (more rounded but
+#                       robust on tail picks).
+#   pdfRankSpread     = rank_overall_max - rank_overall_min from the
+#                       PDF index. Bigger = analysts disagreed; we
+#                       expect a fatter outcome distribution → variance
+#                       is signal for boom/bust even if the mean isn't.
+#   recruitProductionGap = z(recruitRating) - z(collegeMarketShare).
+#                       High = recruit hype that didn't produce (bust).
+#                       Low = late bloomer who out-produced their stars
+#                       (boom).
+#   athleticProductionGap = z(speedScore) - z(collegeDominatorRating).
+#                       High = combine warrior, low college film. Bust
+#                       risk especially when paired with high pick.
+#   ageProductionGap = collegeDominatorRating / max(1, age - 19).
+#                       Younger producers score higher; older players
+#                       with the same dominator look less impressive.
+#   sentimentProductionGap = pdfSentimentNet - z(collegeMarketShare).
+#                       Disagreement between qualitative scout sentiment
+#                       and quantitative production.
+
+def _zscore_per_pos(rows: list, key: str) -> dict:
+    """Per-position (mean, std) for z-scoring."""
+    by_pos: dict = defaultdict(list)
+    for r in rows:
+        v = r['features'].get(key, 0)
+        try:
+            v = float(v) if v not in (None, '', 'NA', 'NaN') else 0.0
+        except (TypeError, ValueError):
+            v = 0.0
+        if v != 0:  # skip missing values from the moments
+            by_pos[r['position']].append(v)
+    moments = {}
+    for pos, vals in by_pos.items():
+        if len(vals) < 5:
+            moments[pos] = (0.0, 1.0)
+        else:
+            m = float(np.mean(vals))
+            s = float(np.std(vals)) or 1.0
+            moments[pos] = (m, s)
+    return moments
+
+
+def _safe_log(v: float) -> float:
+    if v is None or v <= 0:
+        return 0.0
+    return float(math.log(v))
+
+
+def attach_disagreement_features(career_rows: list):
+    """Compute and attach disagreement-style features.
+
+    z-scoring is per-position so a CFBD recruitRating of 0.92 reads as
+    "elite for a TE" but only "good for a WR" — the disagreement gap is
+    against position-mates, not the global pool.
+    """
+    # Per-position moments for the inputs we z-score
+    recruit_m = _zscore_per_pos(career_rows, 'recruitRating')
+    market_m = _zscore_per_pos(career_rows, 'collegeMarketShare')
+    speed_m = _zscore_per_pos(career_rows, 'speedScore')
+    dom_m = _zscore_per_pos(career_rows, 'collegeDominatorRating')
+
+    def _z(val: float, pos: str, moments: dict) -> float:
+        if val == 0:
+            return 0.0  # treat missing as 0σ — matches the GBM's missing-as-zero handling elsewhere
+        m, s = moments.get(pos, (0.0, 1.0))
+        return (val - m) / s
+
+    for r in career_rows:
+        f = r['features']
+        pos = r['position']
+
+        try:
+            pick = float(f.get('nflDraftPick', 300) or 300)
+            draft_round = float(f.get('nflDraftRound', 7) or 7)
+        except (TypeError, ValueError):
+            pick, draft_round = 300.0, 7.0
+        pdf_rank = float(f.get('pdfRankOverallMean', 0) or 0)
+        proj_round = float(f.get('pdfProjectedRound', 0) or 0)
+
+        # Scout-vs-NFL disagreement. Only computed when both sides have
+        # signal — zero otherwise so the GBM pairs well with pdfHasRank
+        # and pdfHasRound for missing-data handling.
+        f['pdfRankXPick'] = (_safe_log(pdf_rank) - _safe_log(pick)) if pdf_rank > 0 else 0.0
+        f['pdfRoundXActual'] = (proj_round - draft_round) if proj_round > 0 else 0.0
+
+        recruit = float(f.get('recruitRating', 0) or 0)
+        market = float(f.get('collegeMarketShare', 0) or 0)
+        speed = float(f.get('speedScore', 0) or 0)
+        dom = float(f.get('collegeDominatorRating', 0) or 0)
+        age = float(f.get('age', 0) or 0)
+        sentiment = float(f.get('pdfSentimentNet', 0) or 0)
+        has_pdf = float(f.get('pdfHasData', 0) or 0)
+
+        f['recruitProductionGap'] = _z(recruit, pos, recruit_m) - _z(market, pos, market_m) \
+            if recruit > 0 and market > 0 else 0.0
+        f['athleticProductionGap'] = _z(speed, pos, speed_m) - _z(dom, pos, dom_m) \
+            if speed > 0 and dom > 0 else 0.0
+        f['ageProductionGap'] = (dom / max(1.0, age - 19.0)) if age > 19 and dom > 0 else 0.0
+        f['sentimentProductionGap'] = (sentiment - _z(market, pos, market_m)) \
+            if has_pdf and market > 0 else 0.0
+
+
 def _safe_num(v) -> float:
     if v is None or v == '' or v == 'NA' or v == 'NaN':
         return 0.0
@@ -685,8 +834,11 @@ def run_experiment(positions: list, is_post_draft: bool = False,
 
     audit_coverage(career_rows, pdf_idx)
 
-    # Attach PDF-derived features to every row (zero-filled when absent)
+    # Attach PDF-derived features to every row (zero-filled when absent),
+    # then disagreement features that depend on both PDF and existing
+    # baseline features (z-scored per-position).
     attach_pdf_features(career_rows, pdf_idx)
+    attach_disagreement_features(career_rows)
 
     feature_source = POST_DRAFT_FEATURES if is_post_draft else PRE_DRAFT_FEATURES
     label = 'POST-DRAFT' if is_post_draft else 'PRE-DRAFT'
@@ -727,9 +879,13 @@ def run_experiment(positions: list, is_post_draft: bool = False,
                 return None
             return round(a[key] - b[key], 4)
 
-        # Test each PDF feature set additively
+        # Test each PDF feature set additively. Dedupe: the shipped
+        # PRE_DRAFT_FEATURES already include pdfRankOverallMean for RB
+        # and the sentiment family for WR, so a naive concat would crash
+        # LightGBM with "Feature appears more than one time".
+        seen_baseline = set(baseline)
         for vname, vkeys in PDF_FEATURE_SETS.items():
-            combo = baseline + vkeys
+            combo = baseline + [k for k in vkeys if k not in seen_baseline]
             r_all = loso_eval(pos_rows, combo, pos, recent_only=False)
             r_recent = loso_eval(pos_rows, combo, pos, recent_only=True)
             r_rtrain = loso_eval(pos_rows, combo, pos,

@@ -303,6 +303,83 @@
           "delta_all_rho": -0.0138,
           "delta_recent_rho": 0.0024
         },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6041,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0475,
+            "bust_auc": 0.6041,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3526,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_rho": -0.0312,
+          "delta_recent_rho": -0.0267
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0279,
+            "bust_auc": 0.6041,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3099,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_rho": -0.0116,
+          "delta_recent_rho": 0.016
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0088,
+            "bust_auc": 0.6041,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.2648,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_rho": 0.0075,
+          "delta_recent_rho": 0.0611
+        },
         "boom_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -327,6 +404,36 @@
           },
           "delta_all_rho": -0.023,
           "delta_recent_rho": -0.06
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0587,
+            "bust_auc": 0.6041,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3658,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_rho": -0.0424,
+          "delta_recent_rho": -0.0399
         },
         "bust_redflags": {
           "keys": [
@@ -383,6 +490,84 @@
           "delta_all_auc": 0.0056,
           "delta_recent_auc": -0.0521
         },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6251,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_auc": 0.021,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6136,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.4618,
+            "n": 36
+          },
+          "delta_all_auc": 0.0095,
+          "delta_recent_auc": -0.0417
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6251,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.5035,
+            "n": 36
+          },
+          "delta_all_auc": 0.021,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6209,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.4931,
+            "n": 36
+          },
+          "delta_all_auc": 0.0168,
+          "delta_recent_auc": -0.0104
+        },
         "bust_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -406,6 +591,35 @@
           },
           "delta_all_auc": -0.0027,
           "delta_recent_auc": -0.0347
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": -0.0163,
+            "bust_auc": 0.6045,
+            "n": 134
+          },
+          "recent": {
+            "boom_rho": -0.3259,
+            "bust_auc": 0.4688,
+            "n": 36
+          },
+          "delta_all_auc": 0.0004,
+          "delta_recent_auc": -0.0347
         }
       },
       "gap_fill": {
@@ -428,21 +642,21 @@
     },
     "RB": {
       "baseline_all": {
-        "r2": 0.3731,
-        "mae": 3.316,
-        "rho": 0.5476,
+        "r2": 0.383,
+        "mae": 3.301,
+        "rho": 0.5534,
         "n": 314
       },
       "baseline_recent": {
-        "r2": 0.3174,
-        "mae": 3.698,
-        "rho": 0.4835,
+        "r2": 0.3415,
+        "mae": 3.619,
+        "rho": 0.4808,
         "n": 79
       },
       "baseline_rtrain": {
-        "r2": 0.1445,
-        "mae": 4.001,
-        "rho": 0.4158,
+        "r2": 0.2323,
+        "mae": 3.822,
+        "rho": 0.4378,
         "n": 79
       },
       "variants": {
@@ -452,28 +666,28 @@
             "pdfHasRank"
           ],
           "all_yrs": {
-            "r2": 0.3829,
-            "mae": 3.3,
-            "rho": 0.5519,
+            "r2": 0.383,
+            "mae": 3.301,
+            "rho": 0.5534,
             "n": 314
           },
           "recent": {
             "r2": 0.3415,
-            "mae": 3.616,
-            "rho": 0.4765,
+            "mae": 3.619,
+            "rho": 0.4808,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.2342,
+            "r2": 0.2323,
             "mae": 3.822,
-            "rho": 0.4341,
+            "rho": 0.4378,
             "n": 79
           },
-          "delta_all_r2": 0.0098,
-          "delta_recent_r2": 0.0241,
-          "delta_rtrain_r2": 0.0897,
-          "delta_all_mae": -0.016,
-          "delta_rtrain_mae": -0.179
+          "delta_all_r2": 0.0,
+          "delta_recent_r2": 0.0,
+          "delta_rtrain_r2": 0.0,
+          "delta_all_mae": 0.0,
+          "delta_rtrain_mae": 0.0
         },
         "round_only": {
           "features": [
@@ -481,28 +695,28 @@
             "pdfHasRound"
           ],
           "all_yrs": {
-            "r2": 0.3673,
-            "mae": 3.355,
-            "rho": 0.5523,
+            "r2": 0.3785,
+            "mae": 3.321,
+            "rho": 0.5525,
             "n": 314
           },
           "recent": {
-            "r2": 0.2915,
-            "mae": 3.768,
-            "rho": 0.4787,
+            "r2": 0.3387,
+            "mae": 3.631,
+            "rho": 0.4695,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.1429,
-            "mae": 4.046,
-            "rho": 0.4093,
+            "r2": 0.2184,
+            "mae": 3.888,
+            "rho": 0.4194,
             "n": 79
           },
-          "delta_all_r2": -0.0058,
-          "delta_recent_r2": -0.0259,
-          "delta_rtrain_r2": -0.0016,
-          "delta_all_mae": 0.039,
-          "delta_rtrain_mae": 0.045
+          "delta_all_r2": -0.0045,
+          "delta_recent_r2": -0.0028,
+          "delta_rtrain_r2": -0.0139,
+          "delta_all_mae": 0.02,
+          "delta_rtrain_mae": 0.066
         },
         "sentiment": {
           "features": [
@@ -512,56 +726,56 @@
             "pdfSentimentNet"
           ],
           "all_yrs": {
-            "r2": 0.3428,
-            "mae": 3.424,
-            "rho": 0.525,
+            "r2": 0.3668,
+            "mae": 3.347,
+            "rho": 0.5393,
             "n": 314
           },
           "recent": {
-            "r2": 0.2033,
-            "mae": 4.047,
-            "rho": 0.4028,
+            "r2": 0.2899,
+            "mae": 3.785,
+            "rho": 0.453,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.0277,
-            "mae": 4.374,
-            "rho": 0.3468,
+            "r2": 0.1503,
+            "mae": 4.077,
+            "rho": 0.382,
             "n": 79
           },
-          "delta_all_r2": -0.0303,
-          "delta_recent_r2": -0.1141,
-          "delta_rtrain_r2": -0.1168,
-          "delta_all_mae": 0.108,
-          "delta_rtrain_mae": 0.373
+          "delta_all_r2": -0.0162,
+          "delta_recent_r2": -0.0516,
+          "delta_rtrain_r2": -0.082,
+          "delta_all_mae": 0.046,
+          "delta_rtrain_mae": 0.255
         },
         "injury": {
           "features": [
             "pdfInjuryRedFlags"
           ],
           "all_yrs": {
-            "r2": 0.3616,
-            "mae": 3.349,
-            "rho": 0.5357,
+            "r2": 0.3701,
+            "mae": 3.329,
+            "rho": 0.5356,
             "n": 314
           },
           "recent": {
-            "r2": 0.2836,
-            "mae": 3.813,
-            "rho": 0.436,
+            "r2": 0.3042,
+            "mae": 3.729,
+            "rho": 0.4071,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.11,
-            "mae": 4.115,
-            "rho": 0.3626,
+            "r2": 0.1935,
+            "mae": 3.922,
+            "rho": 0.3723,
             "n": 79
           },
-          "delta_all_r2": -0.0115,
-          "delta_recent_r2": -0.0338,
-          "delta_rtrain_r2": -0.0345,
-          "delta_all_mae": 0.033,
-          "delta_rtrain_mae": 0.114
+          "delta_all_r2": -0.0129,
+          "delta_recent_r2": -0.0373,
+          "delta_rtrain_r2": -0.0388,
+          "delta_all_mae": 0.028,
+          "delta_rtrain_mae": 0.1
         },
         "consensus": {
           "features": [
@@ -569,56 +783,56 @@
             "pdfHasData"
           ],
           "all_yrs": {
-            "r2": 0.362,
-            "mae": 3.365,
-            "rho": 0.5475,
+            "r2": 0.3757,
+            "mae": 3.323,
+            "rho": 0.5537,
             "n": 314
           },
           "recent": {
-            "r2": 0.2762,
-            "mae": 3.781,
-            "rho": 0.4642,
+            "r2": 0.3292,
+            "mae": 3.633,
+            "rho": 0.4787,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.1448,
-            "mae": 4.0,
-            "rho": 0.4137,
+            "r2": 0.2307,
+            "mae": 3.822,
+            "rho": 0.4315,
             "n": 79
           },
-          "delta_all_r2": -0.0111,
-          "delta_recent_r2": -0.0412,
-          "delta_rtrain_r2": 0.0003,
-          "delta_all_mae": 0.049,
-          "delta_rtrain_mae": -0.001
+          "delta_all_r2": -0.0073,
+          "delta_recent_r2": -0.0123,
+          "delta_rtrain_r2": -0.0016,
+          "delta_all_mae": 0.022,
+          "delta_rtrain_mae": 0.0
         },
         "tier_elite": {
           "features": [
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.3727,
-            "mae": 3.316,
-            "rho": 0.5476,
+            "r2": 0.3829,
+            "mae": 3.301,
+            "rho": 0.5537,
             "n": 314
           },
           "recent": {
-            "r2": 0.3168,
-            "mae": 3.696,
-            "rho": 0.4841,
+            "r2": 0.3405,
+            "mae": 3.619,
+            "rho": 0.482,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.1432,
-            "mae": 4.003,
-            "rho": 0.4153,
+            "r2": 0.2322,
+            "mae": 3.821,
+            "rho": 0.4369,
             "n": 79
           },
-          "delta_all_r2": -0.0004,
-          "delta_recent_r2": -0.0006,
-          "delta_rtrain_r2": -0.0013,
+          "delta_all_r2": -0.0001,
+          "delta_recent_r2": -0.001,
+          "delta_rtrain_r2": -0.0001,
           "delta_all_mae": 0.0,
-          "delta_rtrain_mae": 0.002
+          "delta_rtrain_mae": -0.001
         },
         "all_numeric": {
           "features": [
@@ -636,39 +850,39 @@
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.3583,
-            "mae": 3.377,
-            "rho": 0.5391,
+            "r2": 0.3602,
+            "mae": 3.371,
+            "rho": 0.5389,
             "n": 314
           },
           "recent": {
-            "r2": 0.2646,
-            "mae": 3.845,
-            "rho": 0.4381,
+            "r2": 0.2649,
+            "mae": 3.843,
+            "rho": 0.4325,
             "n": 79
           },
           "rtrain": {
-            "r2": 0.1193,
-            "mae": 4.124,
-            "rho": 0.3674,
+            "r2": 0.1298,
+            "mae": 4.104,
+            "rho": 0.3799,
             "n": 79
           },
-          "delta_all_r2": -0.0148,
-          "delta_recent_r2": -0.0528,
-          "delta_rtrain_r2": -0.0252,
-          "delta_all_mae": 0.061,
-          "delta_rtrain_mae": 0.123
+          "delta_all_r2": -0.0228,
+          "delta_recent_r2": -0.0766,
+          "delta_rtrain_r2": -0.1025,
+          "delta_all_mae": 0.07,
+          "delta_rtrain_mae": 0.282
         }
       },
       "boom_bust_baseline": {
         "all": {
-          "boom_rho": 0.2109,
-          "bust_auc": 0.457,
+          "boom_rho": 0.2111,
+          "bust_auc": 0.5231,
           "n": 314
         },
         "recent": {
-          "boom_rho": 0.1482,
-          "bust_auc": 0.3908,
+          "boom_rho": 0.044,
+          "bust_auc": 0.4783,
           "n": 79
         }
       },
@@ -679,13 +893,13 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": 0.2109,
-            "bust_auc": 0.457,
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5231,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.044,
+            "bust_auc": 0.4783,
             "n": 79
           },
           "delta_all_rho": 0.0,
@@ -698,17 +912,17 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": 0.206,
-            "bust_auc": 0.457,
+            "boom_rho": 0.1937,
+            "bust_auc": 0.5231,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1178,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.0243,
+            "bust_auc": 0.4783,
             "n": 79
           },
-          "delta_all_rho": -0.0049,
-          "delta_recent_rho": -0.0304
+          "delta_all_rho": -0.0174,
+          "delta_recent_rho": -0.0197
         },
         "boom_redflags": {
           "keys": [
@@ -716,17 +930,94 @@
             "pdfInjuryRedFlags"
           ],
           "all": {
-            "boom_rho": 0.2084,
-            "bust_auc": 0.457,
+            "boom_rho": 0.2062,
+            "bust_auc": 0.5231,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.044,
+            "bust_auc": 0.4783,
             "n": 79
           },
-          "delta_all_rho": -0.0025,
+          "delta_all_rho": -0.0049,
           "delta_recent_rho": 0.0
+        },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5231,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4783,
+            "n": 79
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2072,
+            "bust_auc": 0.5231,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0123,
+            "bust_auc": 0.4783,
+            "n": 79
+          },
+          "delta_all_rho": -0.0039,
+          "delta_recent_rho": -0.0317
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.205,
+            "bust_auc": 0.5231,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0376,
+            "bust_auc": 0.4783,
+            "n": 79
+          },
+          "delta_all_rho": -0.0061,
+          "delta_recent_rho": -0.0064
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2031,
+            "bust_auc": 0.5231,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0221,
+            "bust_auc": 0.4783,
+            "n": 79
+          },
+          "delta_all_rho": -0.008,
+          "delta_recent_rho": -0.0219
         },
         "boom_all": {
           "keys": [
@@ -741,17 +1032,47 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": 0.2054,
-            "bust_auc": 0.457,
+            "boom_rho": 0.1964,
+            "bust_auc": 0.5231,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1225,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.0386,
+            "bust_auc": 0.4783,
             "n": 79
           },
-          "delta_all_rho": -0.0055,
-          "delta_recent_rho": -0.0257
+          "delta_all_rho": -0.0147,
+          "delta_recent_rho": -0.0054
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2034,
+            "bust_auc": 0.5231,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.0338,
+            "bust_auc": 0.4783,
+            "n": 79
+          },
+          "delta_all_rho": -0.0077,
+          "delta_recent_rho": -0.0102
         },
         "bust_redflags": {
           "keys": [
@@ -760,17 +1081,17 @@
             "pdfCharacterRedFlags"
           ],
           "all": {
-            "boom_rho": 0.2109,
-            "bust_auc": 0.4688,
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5369,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.044,
+            "bust_auc": 0.472,
             "n": 79
           },
-          "delta_all_auc": 0.0118,
-          "delta_recent_auc": 0.0
+          "delta_all_auc": 0.0138,
+          "delta_recent_auc": -0.0063
         },
         "bust_rank": {
           "keys": [
@@ -778,13 +1099,13 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": 0.2109,
-            "bust_auc": 0.457,
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5231,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.3908,
+            "boom_rho": 0.044,
+            "bust_auc": 0.4783,
             "n": 79
           },
           "delta_all_auc": 0.0,
@@ -796,17 +1117,95 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": 0.2109,
-            "bust_auc": 0.5084,
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5437,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.4426,
+            "boom_rho": 0.044,
+            "bust_auc": 0.4923,
             "n": 79
           },
-          "delta_all_auc": 0.0514,
-          "delta_recent_auc": 0.0518
+          "delta_all_auc": 0.0206,
+          "delta_recent_auc": 0.014
+        },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5252,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4769,
+            "n": 79
+          },
+          "delta_all_auc": 0.0021,
+          "delta_recent_auc": -0.0014
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5271,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4832,
+            "n": 79
+          },
+          "delta_all_auc": 0.004,
+          "delta_recent_auc": 0.0049
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5252,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4769,
+            "n": 79
+          },
+          "delta_all_auc": 0.0021,
+          "delta_recent_auc": -0.0014
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5276,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4685,
+            "n": 79
+          },
+          "delta_all_auc": 0.0045,
+          "delta_recent_auc": -0.0098
         },
         "bust_all": {
           "keys": [
@@ -820,30 +1219,59 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": 0.2109,
-            "bust_auc": 0.5131,
+            "boom_rho": 0.2111,
+            "bust_auc": 0.5152,
             "n": 314
           },
           "recent": {
-            "boom_rho": 0.1482,
-            "bust_auc": 0.395,
+            "boom_rho": 0.044,
+            "bust_auc": 0.4272,
             "n": 79
           },
-          "delta_all_auc": 0.0561,
-          "delta_recent_auc": 0.0042
+          "delta_all_auc": -0.0079,
+          "delta_recent_auc": -0.0511
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.2111,
+            "bust_auc": 0.536,
+            "n": 314
+          },
+          "recent": {
+            "boom_rho": 0.044,
+            "bust_auc": 0.4671,
+            "n": 79
+          },
+          "delta_all_auc": 0.0129,
+          "delta_recent_auc": -0.0112
         }
       },
       "gap_fill": {
         "all_yrs": {
-          "r2": 0.3731,
-          "mae": 3.316,
-          "rho": 0.5476,
+          "r2": 0.383,
+          "mae": 3.301,
+          "rho": 0.5534,
           "n": 314
         },
         "recent": {
-          "r2": 0.3174,
-          "mae": 3.698,
-          "rho": 0.4835,
+          "r2": 0.3415,
+          "mae": 3.619,
+          "rho": 0.4808,
           "n": 79
         },
         "delta_all_r2": 0.0,
@@ -1153,6 +1581,83 @@
           "delta_all_rho": 0.0,
           "delta_recent_rho": 0.0
         },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1484,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.1296,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_rho": 0.0069,
+          "delta_recent_rho": 0.0216
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1436,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.1129,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_rho": 0.0021,
+          "delta_recent_rho": 0.0049
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1233,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.0771,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_rho": -0.0182,
+          "delta_recent_rho": -0.0309
+        },
         "boom_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -1177,6 +1682,36 @@
           },
           "delta_all_rho": -0.0604,
           "delta_recent_rho": -0.1552
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1055,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.0135,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_rho": -0.036,
+          "delta_recent_rho": -0.0945
         },
         "bust_redflags": {
           "keys": [
@@ -1233,6 +1768,84 @@
           "delta_all_auc": 0.0013,
           "delta_recent_auc": -0.0217
         },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.5717,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.6308,
+            "n": 116
+          },
+          "delta_all_auc": 0.0061,
+          "delta_recent_auc": 0.0265
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.5656,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.6043,
+            "n": 116
+          },
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.582,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.6074,
+            "n": 116
+          },
+          "delta_all_auc": 0.0164,
+          "delta_recent_auc": 0.0031
+        },
         "bust_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -1256,6 +1869,35 @@
           },
           "delta_all_auc": -0.0189,
           "delta_recent_auc": -0.0573
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.1415,
+            "bust_auc": 0.5642,
+            "n": 455
+          },
+          "recent": {
+            "boom_rho": 0.108,
+            "bust_auc": 0.5992,
+            "n": 116
+          },
+          "delta_all_auc": -0.0014,
+          "delta_recent_auc": -0.0051
         }
       },
       "gap_fill": {
@@ -1578,6 +2220,83 @@
           "delta_all_rho": 0.007,
           "delta_recent_rho": 0.0
         },
+        "boom_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5581,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
+        },
+        "boom_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0401,
+            "bust_auc": 0.5581,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2454,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_rho": -0.0036,
+          "delta_recent_rho": -0.0138
+        },
+        "boom_disagree_age": {
+          "keys": [
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0578,
+            "bust_auc": 0.5581,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2216,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_rho": 0.0141,
+          "delta_recent_rho": -0.0376
+        },
+        "boom_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.043,
+            "bust_auc": 0.5581,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2474,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_rho": -0.0007,
+          "delta_recent_rho": -0.0118
+        },
         "boom_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -1602,6 +2321,36 @@
           },
           "delta_all_rho": 0.0162,
           "delta_recent_rho": -0.0004
+        },
+        "boom_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNStrengths",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0377,
+            "bust_auc": 0.5581,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2456,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_rho": -0.006,
+          "delta_recent_rho": -0.0136
         },
         "bust_redflags": {
           "keys": [
@@ -1658,6 +2407,84 @@
           "delta_all_auc": -0.008,
           "delta_recent_auc": -0.0385
         },
+        "bust_disagree_scout": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5583,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_auc": 0.0002,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_talent": {
+          "keys": [
+            "recruitProductionGap",
+            "athleticProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5609,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_auc": 0.0028,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_overdraft": {
+          "keys": [
+            "pdfRankXPick",
+            "pdfRoundXActual"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5583,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6575,
+            "n": 55
+          },
+          "delta_all_auc": 0.0002,
+          "delta_recent_auc": 0.0
+        },
+        "bust_disagree_all": {
+          "keys": [
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap",
+            "sentimentProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5663,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6538,
+            "n": 55
+          },
+          "delta_all_auc": 0.0082,
+          "delta_recent_auc": -0.0037
+        },
         "bust_all": {
           "keys": [
             "pdfRankOverallMean",
@@ -1681,6 +2508,35 @@
           },
           "delta_all_auc": 0.0048,
           "delta_recent_auc": 0.0073
+        },
+        "bust_all_plus_disagree": {
+          "keys": [
+            "pdfRankOverallMean",
+            "pdfHasRank",
+            "pdfNRedFlags",
+            "pdfInjuryRedFlags",
+            "pdfCharacterRedFlags",
+            "pdfNWeaknesses",
+            "pdfSentimentNet",
+            "pdfRankSpread",
+            "pdfRankXPick",
+            "pdfRoundXActual",
+            "recruitProductionGap",
+            "athleticProductionGap",
+            "ageProductionGap"
+          ],
+          "all": {
+            "boom_rho": 0.0437,
+            "bust_auc": 0.5425,
+            "n": 209
+          },
+          "recent": {
+            "boom_rho": 0.2592,
+            "bust_auc": 0.6355,
+            "n": 55
+          },
+          "delta_all_auc": -0.0156,
+          "delta_recent_auc": -0.022
         }
       },
       "gap_fill": {

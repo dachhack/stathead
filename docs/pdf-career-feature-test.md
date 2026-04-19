@@ -135,26 +135,80 @@ companion, pushed RB over the 4-feature activation threshold and
 `DRAFT_CAPITAL_KEYS` keeps the RB companion disabled (as intended) and
 lets WR's companion stay pure college-production.
 
-## Boom/Bust ablation (not shipped)
+## Boom/Bust per-position refactor + disagreement features (2026-04 round 2)
 
-Same LOSO protocol, extending the gap regression model (boom-side) and
-binary bust classifier. Metrics: Spearman(ρ) for boom, AUC for bust.
-Results are in `public/data/pdf-career-ablation-{pre,post}draft.json`
-under `boom_bust_variants`.
+Boom/bust feature lists used to be global across positions. The first
+ablation round found per-position winners — RB post-draft `bust+weakness`
++0.051 AUC, but the same features hurt QB/TE at smaller samples. Round
+2 splits the lists per-position (`BOOM_GAP_FEATURES_BY_POS` and
+`BUST_FEATURES_BY_POS` in `train_career_models.py`) so each position
+can ship the features that actually help it.
 
-Directionally strong candidates (RB post-draft `bust+weakness` showed
-+0.051 AUC all-yrs / +0.052 recent) are per-position wins, but the
-boom/bust feature lists in `train_career_models.py` are **global**
-across positions. Adding PDF features that help RB hurts QB/TE at
-small samples:
+### Disagreement features
 
-| Variant | QB | RB | WR | TE |
-|---|---:|---:|---:|---:|
-| `bust+weakness` (ΔAUC all) | +0.006 | **+0.051** | +0.001 | -0.008 |
-| `bust+weakness` (ΔAUC recent) | -0.052 | **+0.052** | -0.022 | -0.039 |
+A new family of "two channels that should agree but don't" features.
+Computed inside `_attach_disagreement_features()` after PDF features
+land, with per-position z-scoring so a recruitRating reads relative to
+position-mates, not the global pool:
 
-Net: refactoring the boom/bust feature list to per-position is required
-before shipping these. Deferred until that refactor lands.
+| Feature | Definition | Story |
+|---|---|---|
+| `pdfRankXPick` | log(scout_rank) − log(NFL_pick) | NFL/scout disagreement; positive = scouts ranked worse than NFL pick (overdraft risk) |
+| `pdfRoundXActual` | projected_round − actual_round | Same shape, round-units |
+| `pdfRankSpread` | rank_max − rank_min across PDFs | Scout-internal disagreement (variance signal) |
+| `recruit_production_gap` | z(recruitRating) − z(market_share) | High = recruit hype that didn't produce; low = late bloomer |
+| `athletic_production_gap` | z(speedScore) − z(dominator_rating) | High = combine warrior with thin film (bust) |
+
+Coverage: PDF-derived features (top three) are nonzero only for 2022-25
+rookies. Production-vs-talent gaps are nonzero whenever both inputs
+exist (~50-60% of historical rows).
+
+### Per-position boom/bust ablation results
+
+LOSO Spearman(ρ) for boom, AUC for bust. Δ vs the previous global
+feature list:
+
+| Position | Boom winner | ΔρBoom (all/recent) | Bust winner | ΔAUC (all/recent) |
+|---|---|---|---|---|
+| QB | none stable | — | `disagree_scout` (rank spread + rank-vs-pick + round-vs-actual) | **+0.021 / 0.000** |
+| RB | none stable | — | `weakness + disagree_talent` (PDF weakness counts + recruit/athletic gaps) | **+0.019 / +0.028** |
+| WR | `disagree_talent` (recruit/athletic gaps) | +0.007 / +0.022 (post) | `disagree_talent` (same pair) | **+0.006 / +0.027** (post) |
+| TE | none stable (n=55 in PDF era) | — | none stable | — |
+
+Importance signals after retraining (post-draft cache):
+- WR bust: `athletic_production_gap` jumped to **#2 feature at 17.1%
+  importance** (positive direction = bust signal). This is the largest
+  per-position lift in the round-2 refactor.
+- RB bust: `athletic_production_gap` 2.7%, `recruit_production_gap`
+  1.8% (negative = consistent with "low recruit + high production = safer
+  than the model thought"), `pdfNWeaknesses` 1.5%.
+- QB bust: PDF disagreement features have nonzero LOSO lift (+0.021 AUC)
+  but show zero gain in the final-data importance model — small QB
+  sample (n=134) with PDF coverage of ~30% of rows means LightGBM with
+  `extra_trees=True` can't reliably pick those features in the
+  gain-importance pass. The LOSO models that drive per-player scoring
+  do learn from them; documented here so future maintainers don't drop
+  the features as "zero importance" without re-checking CV.
+
+### Shipped per-position feature lists
+
+```python
+BOOM_GAP_FEATURES_BY_POS = {
+    'QB': _GAP_BASE,
+    'RB': _GAP_BASE,
+    'WR': _GAP_BASE + ['recruit_production_gap', 'athletic_production_gap'],
+    'TE': _GAP_BASE,
+}
+BUST_FEATURES_BY_POS = {
+    'QB': _BUST_BASE + ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
+    'RB': _BUST_BASE + ['pdfNWeaknesses', 'pdfSentimentNet',
+                        'recruit_production_gap', 'athletic_production_gap'],
+    'WR': _BUST_BASE + ['recruit_production_gap', 'athletic_production_gap'],
+    'TE': _BUST_BASE,
+}
+```
+
+Cache bumped: career v70 → v71, postdraft v2 → v3.
 
 ## Original recommendations (preserved for context)
 
