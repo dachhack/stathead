@@ -9,16 +9,29 @@ You are running the prospect-guide feature extraction pipeline. This command pro
 
 Run `python3 scripts/extract_pdf_features.py` via Bash. It decrypts every PDF in `pdfs/` and writes `pdfs/.cache/*.text.txt`. If it errors (missing deps, no PDFs, bad password), surface the error to the user and stop.
 
+## Step 1.5: load optional extraction context
+
+If `pdfs/.extraction-context.md` exists and is non-empty, read it. Compute its short SHA-256 hash via Bash:
+```bash
+shasum -a 256 pdfs/.extraction-context.md | cut -c1-8
+```
+
+Hold onto two values for the rest of this run:
+- `CONTEXT_TEXT`: the file's contents (may be empty if the file doesn't exist)
+- `CONTEXT_HASH`: the 8-char hash, or the literal string `nocontext` if the file is missing/empty
+
+The context lets the user inject domain-specific guidance (e.g. "Beast tiers go 1-5, not 1-3"; "treat 'Edge' positions as DL even if listed as LB") without editing this slash command. Including the hash in cache filenames (next step) ensures editing the file invalidates stale features.
+
 ## Step 2: process each text cache
 
 Use Glob to list `pdfs/.cache/*.text.txt`. For each text file:
 
-- Compute the corresponding features path: `pdfs/.cache/<stem>.features.json` where `<stem>` is the filename without `.text.txt`.
-- If that features file already exists, skip this PDF (it's already been processed). Tell the user "skip <stem>: cached".
+- Compute the corresponding features path: `pdfs/.cache/<stem>.<CONTEXT_HASH>.features.json` where `<stem>` is the filename without `.text.txt` and `<CONTEXT_HASH>` is from step 1.5.
+- If that features file already exists, skip this PDF (it's already been processed with the current context). Tell the user "skip <stem>: cached".
 - Otherwise:
   1. Read the text file in full (it may be large; chunk via the Read tool's offset/limit if needed).
-  2. Extract every distinct NFL draft prospect that gets a real write-up, ranking, or tier — see schema below.
-  3. Write the result as a JSON array (NOT wrapped in `{"players": ...}`) to `pdfs/.cache/<stem>.features.json` using the Write tool.
+  2. Extract every distinct NFL draft prospect that gets a real write-up, ranking, or tier — see schema below. If `CONTEXT_TEXT` is non-empty, treat its contents as additional rules that override or refine the schema rules below.
+  3. Write the result as a JSON array (NOT wrapped in `{"players": ...}`) to `pdfs/.cache/<stem>.<CONTEXT_HASH>.features.json` using the Write tool.
 
 ## Step 3: merge into public outputs
 

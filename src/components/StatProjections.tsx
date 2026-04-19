@@ -766,9 +766,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Step 3b: Compute per-team position pool shares from prior season ──
         // Instead of hardcoded "RBs get 88% of rush att", compute actual shares
         interface PosPoolShares {
-          qbPassAtt: number; qbRushAtt: number; qbRushTD: number;
-          rbRushAtt: number; rbRushTD: number; rbTgt: number; rbRecTD: number;
-          wrTgt: number; wrRecTD: number; wrRushAtt: number; wrRushTD: number;
+          qbPassAtt: number; qbRushAtt: number; qbRushYds: number; qbRushTD: number;
+          rbRushAtt: number; rbRushYds: number; rbRushTD: number; rbTgt: number; rbRecTD: number;
+          wrTgt: number; wrRecTD: number; wrRushAtt: number; wrRushYds: number; wrRushTD: number;
           teTgt: number; teRecTD: number;
         }
 
@@ -778,6 +778,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             (p) => p.recent_team === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)
           );
           const teamRushAtt = teamPlayers.reduce((s, p) => s + (p.carries || 0), 0) || 1;
+          const teamRushYds = teamPlayers.reduce((s, p) => s + (p.rushing_yards || 0), 0) || 1;
           const teamRushTD = teamPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) || 1;
           const teamTgt = teamPlayers.reduce((s, p) => s + (p.targets || 0), 0) || 1;
           const teamRecTD = teamPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) || 1;
@@ -793,14 +794,17 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           return {
             qbPassAtt: qbs.reduce((s, p) => s + (p.attempts || 0), 0) / teamPassAtt,
             qbRushAtt: qbs.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            qbRushYds: qbs.reduce((s, p) => s + (p.rushing_yards || 0), 0) / teamRushYds,
             qbRushTD: qbs.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
             rbRushAtt: rbPlayers.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            rbRushYds: rbPlayers.reduce((s, p) => s + (p.rushing_yards || 0), 0) / teamRushYds,
             rbRushTD: rbPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
             rbTgt: rbPlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
             rbRecTD: rbPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
             wrTgt: wrPlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
             wrRecTD: wrPlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
             wrRushAtt: wrPlayers.reduce((s, p) => s + (p.carries || 0), 0) / teamRushAtt,
+            wrRushYds: wrPlayers.reduce((s, p) => s + (p.rushing_yards || 0), 0) / teamRushYds,
             wrRushTD: wrPlayers.reduce((s, p) => s + (p.rushing_tds || 0), 0) / teamRushTD,
             teTgt: tePlayers.reduce((s, p) => s + (p.targets || 0), 0) / teamTgt,
             teRecTD: tePlayers.reduce((s, p) => s + (p.receiving_tds || 0), 0) / teamRecTD,
@@ -809,9 +813,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
 
         // League-average position pool shares (fallback / regression target)
         const leaguePoolShares: PosPoolShares = {
-          qbPassAtt: 0, qbRushAtt: 0, qbRushTD: 0,
-          rbRushAtt: 0, rbRushTD: 0, rbTgt: 0, rbRecTD: 0,
-          wrTgt: 0, wrRecTD: 0, wrRushAtt: 0, wrRushTD: 0,
+          qbPassAtt: 0, qbRushAtt: 0, qbRushYds: 0, qbRushTD: 0,
+          rbRushAtt: 0, rbRushYds: 0, rbRushTD: 0, rbTgt: 0, rbRecTD: 0,
+          wrTgt: 0, wrRecTD: 0, wrRushAtt: 0, wrRushYds: 0, wrRushTD: 0,
           teTgt: 0, teRecTD: 0,
         };
         const teamsWithShares: PosPoolShares[] = [];
@@ -1096,6 +1100,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               const priorRushTotal2 = priorRushTotal;
               const priorTgtTotal2 = priorTgtTotal;
 
+              const rbStart = rbs.length;
+
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
                 const isPrimary = idx === 0;
@@ -1154,6 +1160,34 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD, pprPts: Math.round(pts),
                 });
               }
+
+              // Reconcile RB rushing to the projected pool. Per-player allocations
+              // are shrunk by gamesScale and ageFactor without redistribution, which
+              // consistently under-allocates team rushing. Also, per-player yards use
+              // prior-year ypc which can fall below the team's projected ypc, so yards
+              // must be scaled against the team's projected rushYds (not the attempts
+              // ratio) to keep team totals in sync.
+              const rbSlice = rbs.slice(rbStart);
+              const rbAllocRushAtt = rbSlice.reduce((s, p) => s + p.rushAtt, 0);
+              if (rbAllocRushAtt > 0 && rbAllocRushAtt < rbRushPool) {
+                const attScale = rbRushPool / rbAllocRushAtt;
+                for (const p of rbSlice) {
+                  p.rushAtt = Math.round(p.rushAtt * attScale);
+                  p.rushTD = Math.max(0, Math.round(p.rushTD * attScale));
+                }
+              }
+              const rbRushYdsPool = projTeam.rushYds * pools.rbRushYds;
+              const rbAllocRushYds = rbSlice.reduce((s, p) => s + p.rushYds, 0);
+              if (rbAllocRushYds > 0 && rbAllocRushYds < rbRushYdsPool) {
+                const ydsScale = rbRushYdsPool / rbAllocRushYds;
+                for (const p of rbSlice) p.rushYds = Math.round(p.rushYds * ydsScale);
+              }
+              for (const p of rbSlice) {
+                p.pprPts = Math.round(computePPR({
+                  rushYds: p.rushYds, rushTD: p.rushTD,
+                  rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+                }));
+              }
             } else if (pos === 'WR') {
               const priorTgtTotal = players.reduce((s, p, i) => {
                 const tgt = p.prior?.targets || 0;
@@ -1170,6 +1204,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               const wrRushPool = projTeam.rushAtt * pools.wrRushAtt;
               const wrRecTDPool = projTeam.recTD * pools.wrRecTD;
               const wrRushTDPool = projTeam.rushTD * pools.wrRushTD;
+
+              const wrStart = wrs.length;
 
               for (let idx = 0; idx < players.length; idx++) {
                 const player = players[idx];
@@ -1221,6 +1257,29 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   name: player.name, team, adp: player.adp, games: Math.round(games),
                   tgt, rec, recYds, recTD, rushAtt, rushYds, rushTD, pprPts: Math.round(pts),
                 });
+              }
+
+              // Reconcile WR rushing to the projected pool (same issue as RBs).
+              const wrSlice = wrs.slice(wrStart);
+              const wrAllocRushAtt = wrSlice.reduce((s, p) => s + p.rushAtt, 0);
+              if (wrAllocRushAtt > 0 && wrAllocRushAtt < wrRushPool) {
+                const attScale = wrRushPool / wrAllocRushAtt;
+                for (const p of wrSlice) {
+                  p.rushAtt = Math.round(p.rushAtt * attScale);
+                  p.rushTD = Math.max(0, Math.round(p.rushTD * attScale));
+                }
+              }
+              const wrRushYdsPool = projTeam.rushYds * pools.wrRushYds;
+              const wrAllocRushYds = wrSlice.reduce((s, p) => s + p.rushYds, 0);
+              if (wrAllocRushYds > 0 && wrAllocRushYds < wrRushYdsPool) {
+                const ydsScale = wrRushYdsPool / wrAllocRushYds;
+                for (const p of wrSlice) p.rushYds = Math.round(p.rushYds * ydsScale);
+              }
+              for (const p of wrSlice) {
+                p.pprPts = Math.round(computePPR({
+                  rushYds: p.rushYds, rushTD: p.rushTD,
+                  rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+                }));
               }
             } else if (pos === 'TE') {
               const priorTgtTotal = players.reduce((s, p, i) => {

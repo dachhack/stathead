@@ -36,6 +36,22 @@ Create `~/stathead/pdfs/.passwords.txt` (also gitignored — never committed):
 Each line is `<hint>:<password>` where `<hint>` is a substring of the
 filename. Lines without a colon are tried against every PDF.
 
+### Optional: extra extraction guidance
+
+If you want to inject domain-specific rules without editing the slash
+command itself (e.g. "Beast tier numbers go 1-5, not 1-3"; "treat
+'Edge' positions as DL even when the table lists them as LB"), create
+`pdfs/.extraction-context.md` with your guidance in plain Markdown.
+
+The slash command will:
+- append the file's contents to the LLM prompt as additional rules,
+- include the file's content-hash in the per-PDF cache filename
+  (`<stem>.<hash>.features.json`), so editing the context file
+  automatically invalidates stale features on the next run.
+
+The file is inside `pdfs/` and therefore gitignored — it never leaves
+your machine.
+
 ## Running the pipeline
 
 ```bash

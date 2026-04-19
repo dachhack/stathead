@@ -33,9 +33,40 @@ def normalize_name(name: str) -> str:
     return re.sub(r"\s+", " ", n).strip()
 
 
+CONTEXT_HASH_OR_NONE = re.compile(r"\.(?:[0-9a-f]{8}|nocontext)$")
+
+
+def base_stem(features_filename: str) -> str:
+    """Recover the original PDF stem from a features cache filename.
+
+    Examples:
+      the_beast_2024.features.json            -> the_beast_2024
+      the_beast_2024.a3f1b2c0.features.json   -> the_beast_2024
+      the_beast_2024.nocontext.features.json  -> the_beast_2024
+    """
+    stem = features_filename[: -len(".features.json")]
+    return CONTEXT_HASH_OR_NONE.sub("", stem)
+
+
+def latest_per_pdf() -> list[Path]:
+    """For each PDF stem, return the newest features.json file (by mtime).
+
+    A stem may have multiple features files when the extraction context has
+    been edited across runs (each context hash produces a distinct file).
+    The most recent one wins; older ones are silently ignored.
+    """
+    by_stem: dict[str, Path] = {}
+    for fp in CACHE_DIR.glob("*.features.json"):
+        stem = base_stem(fp.name)
+        prev = by_stem.get(stem)
+        if prev is None or fp.stat().st_mtime > prev.stat().st_mtime:
+            by_stem[stem] = fp
+    return [by_stem[k] for k in sorted(by_stem)]
+
+
 def load_per_source() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for fp in sorted(CACHE_DIR.glob("*.features.json")):
+    for fp in latest_per_pdf():
         try:
             data = json.loads(fp.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
@@ -44,7 +75,7 @@ def load_per_source() -> list[dict[str, Any]]:
         if not isinstance(data, list):
             print(f"  skip {fp.name}: expected a JSON array", file=sys.stderr)
             continue
-        source_file = fp.name.replace(".features.json", ".pdf")
+        source_file = base_stem(fp.name) + ".pdf"
         for r in data:
             if not isinstance(r, dict) or not r.get("player_name"):
                 continue
