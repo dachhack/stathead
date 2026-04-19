@@ -1336,59 +1336,68 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           }
         }
 
-        // Team-level rushing reconciliation: normalize each team's total rushAtt
-        // and rushYds across all its rushers (QB + RB + WR) to the projected team
-        // totals. Per-position pool reconciliation handles most of the gap, but
-        // (a) pool shares can sum to slightly <1 due to blending, (b) QB yards are
-        // derived from per-player ypc and never tied to a pool, (c) rounding drift
-        // compounds. This final pass guarantees team totals match projections.
+        // Team-level reconciliation: normalize each team's rushing and receiving
+        // totals across all its players to match the projected team totals.
+        // Per-position pool reconciliation handles most of the gap, but
+        // (a) pool shares can sum to slightly <1 due to blending, (b) some stats
+        // are derived from per-player rates (ypc / ypr / catchRate) and never
+        // tied to a team pool, (c) rounding drift compounds. This final pass
+        // guarantees team totals match projections within rounding.
         for (const team of allTeams) {
           const projTeam = projectedTeamTotals.get(team);
           if (!projTeam) continue;
-          const rushers = [
-            ...qbs.filter((p) => p.team === team),
-            ...rbs.filter((p) => p.team === team),
-            ...wrs.filter((p) => p.team === team),
-          ];
-          if (rushers.length === 0) continue;
 
-          const totalAtt = rushers.reduce((s, p) => s + p.rushAtt, 0);
-          if (totalAtt > 0 && Math.abs(totalAtt - projTeam.rushAtt) > 1) {
-            const scale = projTeam.rushAtt / totalAtt;
-            for (const p of rushers) p.rushAtt = Math.round(p.rushAtt * scale);
-          }
+          const teamQbs = qbs.filter((p) => p.team === team);
+          const teamRbs = rbs.filter((p) => p.team === team);
+          const teamWrs = wrs.filter((p) => p.team === team);
+          const teamTes = tes.filter((p) => p.team === team);
+          const rushers = [...teamQbs, ...teamRbs, ...teamWrs];
+          const receivers = [...teamRbs, ...teamWrs, ...teamTes];
 
-          const totalYds = rushers.reduce((s, p) => s + p.rushYds, 0);
-          if (totalYds > 0 && Math.abs(totalYds - projTeam.rushYds) > 1) {
-            const scale = projTeam.rushYds / totalYds;
-            for (const p of rushers) p.rushYds = Math.round(p.rushYds * scale);
-          }
-
-          for (const p of rushers) {
-            // rbs/wrs are narrow-typed arrays; rushers is the union.
-            // includes() in strict TS rejects a wider value, so cast the
-            // haystack at the call site to match p's type.
-            if ((rbs as typeof rushers).includes(p)) {
-              p.pprPts = Math.round(computePPR({
-                rushYds: p.rushYds, rushTD: p.rushTD,
-                rec: (p as RBProjection).rec,
-                recYds: (p as RBProjection).recYds,
-                recTD: (p as RBProjection).recTD,
-              }));
-            } else if ((wrs as typeof rushers).includes(p)) {
-              p.pprPts = Math.round(computePPR({
-                rushYds: p.rushYds, rushTD: p.rushTD,
-                rec: (p as WRProjection).rec,
-                recYds: (p as WRProjection).recYds,
-                recTD: (p as WRProjection).recTD,
-              }));
-            } else {
-              const qp = p as QBProjection;
-              p.pprPts = Math.round(computePPR({
-                passYds: qp.passYds, passTD: qp.passTD, int: qp.int,
-                rushYds: p.rushYds, rushTD: p.rushTD,
-              }));
+          const scaleUpToMatch = <T extends object>(
+            items: T[], key: keyof T, target: number,
+          ) => {
+            const total = items.reduce((s, p) => s + ((p[key] as unknown as number) || 0), 0);
+            if (total <= 0 || Math.abs(total - target) <= 1) return;
+            const scale = target / total;
+            for (const p of items) {
+              (p[key] as unknown as number) = Math.round(((p[key] as unknown as number) || 0) * scale);
             }
+          };
+
+          if (rushers.length > 0) {
+            scaleUpToMatch(rushers, 'rushAtt', projTeam.rushAtt);
+            scaleUpToMatch(rushers, 'rushYds', projTeam.rushYds);
+          }
+          if (receivers.length > 0) {
+            scaleUpToMatch(receivers, 'tgt', projTeam.targets);
+            scaleUpToMatch(receivers, 'rec', projTeam.receptions);
+            scaleUpToMatch(receivers, 'recYds', projTeam.recYds);
+          }
+
+          // Refresh PPR points for everyone touched.
+          for (const p of teamRbs) {
+            p.pprPts = Math.round(computePPR({
+              rushYds: p.rushYds, rushTD: p.rushTD,
+              rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+            }));
+          }
+          for (const p of teamWrs) {
+            p.pprPts = Math.round(computePPR({
+              rushYds: p.rushYds, rushTD: p.rushTD,
+              rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+            }));
+          }
+          for (const p of teamTes) {
+            p.pprPts = Math.round(computePPR({
+              rec: p.rec, recYds: p.recYds, recTD: p.recTD,
+            }));
+          }
+          for (const p of teamQbs) {
+            p.pprPts = Math.round(computePPR({
+              passYds: p.passYds, passTD: p.passTD, int: p.int,
+              rushYds: p.rushYds, rushTD: p.rushTD,
+            }));
           }
         }
 
