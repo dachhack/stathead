@@ -7,497 +7,497 @@
         "QB": [
           {
             "rank": 1,
-            "tier": null,
             "player_name": "Skylar Thompson",
             "height": "6'2\"",
             "weight": 217,
             "school": "KSU",
             "dot": 87.425,
             "breadth": 87.35625,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 2,
-            "tier": null,
             "player_name": "Tua Tagovailoa",
             "height": "6'0\"",
             "weight": 217,
             "school": "Alabama",
             "dot": 85.4,
             "breadth": 95.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 3,
-            "tier": null,
             "player_name": "Trevor Lawrence",
             "height": "6'6\"",
             "weight": 213,
             "school": "Clemson",
             "dot": 84.9,
             "breadth": 79.8,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 4,
-            "tier": null,
             "player_name": "Joe Burrow",
             "height": "6'3\"",
             "weight": 221,
             "school": "LSU",
             "dot": 84.7,
             "breadth": 97.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 5,
-            "tier": null,
             "player_name": "Trey Lance",
             "height": "6'3\"",
             "weight": 224,
             "school": "North Dakota St.",
             "dot": 83.675,
             "breadth": 75.8,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 6,
-            "tier": null,
             "player_name": "Mac Jones",
             "height": "6'3\"",
             "weight": 217,
             "school": "Alabama",
             "dot": 81.225,
             "breadth": 80.9,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 7,
-            "tier": null,
             "player_name": "Justin Fields",
             "height": "6'3\"",
             "weight": 223,
             "school": "Ohio State",
             "dot": 80.275,
             "breadth": 79.4,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 8,
-            "tier": null,
             "player_name": "Carson Strong",
             "height": "6'3\"",
             "weight": 226,
             "school": "Nevada",
             "dot": 79.925,
             "breadth": 82.7625,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 9,
-            "tier": null,
             "player_name": "Jake Fromm",
             "height": "6'1\"",
             "weight": 219,
             "school": "Georgia",
             "dot": 79.8,
             "breadth": 96.5,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 10,
-            "tier": null,
             "player_name": "Jacob Eason",
             "height": "6'5\"",
             "weight": 231,
             "school": "Washington",
             "dot": 79.7,
             "breadth": 95.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 11,
-            "tier": null,
             "player_name": "Matt Corral",
             "height": "6'2\"",
             "weight": 212,
             "school": "Ole Miss",
             "dot": 79.525,
             "breadth": 84.98125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 12,
-            "tier": null,
             "player_name": "Kenny Pickett",
             "height": "6'3\"",
             "weight": 217,
             "school": "Pitt",
             "dot": 78.875,
             "breadth": 80.93125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 13,
-            "tier": null,
             "player_name": "Justin Herbert",
             "height": "6'6\"",
             "weight": 236,
             "school": "Oregon",
             "dot": 78.6,
             "breadth": 93.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 14,
-            "tier": null,
             "player_name": "Bailey Zappe",
             "height": "6'0\"",
             "weight": 215,
             "school": "WKU",
             "dot": 76.65,
             "breadth": 81.9,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 15,
-            "tier": null,
             "player_name": "Brock Purdy",
             "height": "6'1\"",
             "weight": 212,
             "school": "Iowa State",
             "dot": 76.125,
             "breadth": 79.975,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 16,
-            "tier": null,
             "player_name": "Davis Mills",
             "height": "6'3\"",
             "weight": 217,
             "school": "Stanford",
             "dot": 75.675,
             "breadth": 75.1,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 17,
-            "tier": null,
             "player_name": "Anthony Gordon",
             "height": "6'2\"",
             "weight": 205,
             "school": "Washington St.",
             "dot": 75.5,
             "breadth": 90.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 18,
-            "tier": null,
             "player_name": "Zach Wilson",
             "height": "6'2\"",
             "weight": 214,
             "school": "BYU",
             "dot": 75.2,
             "breadth": 71.4,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 19,
-            "tier": null,
             "player_name": "Cole Kelley",
             "height": "6'7\"",
             "weight": 249,
             "school": "SE Louisiana",
             "dot": 74.975,
             "breadth": 81.4125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 20,
-            "tier": null,
             "player_name": "Sam Howell",
             "height": "6'1\"",
             "weight": 218,
             "school": "UNC",
             "dot": 74.9,
             "breadth": 73.725,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 21,
-            "tier": null,
             "player_name": "Sam Ehlinger",
             "height": "6'3\"",
             "weight": 230,
             "school": "Texas",
             "dot": 74.2,
             "breadth": 81.6,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 22,
-            "tier": null,
             "player_name": "Malik Willis",
             "height": "6'0\"",
             "weight": 219,
             "school": "Liberty",
             "dot": 73.825,
             "breadth": 70.1125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 23,
-            "tier": null,
             "player_name": "Liam Welch",
             "height": "6'2\"",
             "weight": 208,
             "school": "Samford",
             "dot": 73.225,
             "breadth": 79.66875,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 24,
-            "tier": null,
             "player_name": "Jamie Newman",
             "height": "6'3\"",
             "weight": 229,
             "school": "Wake Forest",
             "dot": 72.7,
             "breadth": 76.7,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 25,
-            "tier": null,
             "player_name": "Kyle Trask",
             "height": "6'5\"",
             "weight": 240,
             "school": "Florida",
             "dot": 72.475,
             "breadth": 74.5,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 26,
-            "tier": null,
             "player_name": "Shane Buechele",
             "height": "6'1\"",
             "weight": 207,
             "school": "SMU",
             "dot": 72.1,
             "breadth": 74.7,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 27,
-            "tier": null,
             "player_name": "Jordan Love",
             "height": "6'3\"",
             "weight": 224,
             "school": "Utah State",
             "dot": 71.95,
             "breadth": 92.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 28,
-            "tier": null,
             "player_name": "D'Eriq King",
             "height": "5'9\"",
             "weight": 196,
             "school": "Miami/Houston",
             "dot": 71.55,
             "breadth": 58.325,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 29,
-            "tier": null,
             "player_name": "Jalen Hurts",
             "height": "6'1\"",
             "weight": 222,
             "school": "Oklahoma",
             "dot": 70.9,
             "breadth": 83.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 30,
-            "tier": null,
             "player_name": "Desmond Ridder",
             "height": "6'3\"",
             "weight": 211,
             "school": "Cincinnati",
             "dot": 69.675,
             "breadth": 64.9125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 31,
-            "tier": null,
             "player_name": "Chase Garbers",
             "height": "6'2\"",
             "weight": 225,
             "school": "Cal",
             "dot": 69.525,
             "breadth": 65.45,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 32,
-            "tier": null,
             "player_name": "Cole McDonald",
             "height": "6'3\"",
             "weight": 215,
             "school": "Hawaii",
             "dot": 69.4,
             "breadth": 87.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 33,
-            "tier": null,
             "player_name": "Nate Stanley",
             "height": "6'3\"",
             "weight": 235,
             "school": "Iowa",
             "dot": 68.8,
             "breadth": 92.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 34,
-            "tier": null,
             "player_name": "Kelly Bryant",
             "height": "6'3\"",
             "weight": 229,
             "school": "Clemson/Missouri",
             "dot": 68.45,
             "breadth": 84.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 35,
-            "tier": null,
             "player_name": "Tyler Huntley",
             "height": "6'1\"",
             "weight": 205,
             "school": "Utah",
             "dot": 67.95,
             "breadth": 88.5,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 36,
-            "tier": null,
             "player_name": "Riley Neal",
             "height": "6'6\"",
             "weight": 225,
             "school": "Ball State/Wake Forest",
             "dot": 67.75,
             "breadth": 91.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 37,
-            "tier": null,
             "player_name": "Ian Book",
             "height": "6'0\"",
             "weight": 212,
             "school": "Notre Dame",
             "dot": 66.675,
             "breadth": 70.9,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 38,
-            "tier": null,
             "player_name": "James Morgan",
             "height": "6'4\"",
             "weight": 229,
             "school": "FIU",
             "dot": 66.6,
             "breadth": 85.5,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 39,
-            "tier": null,
             "player_name": "Shea Patterson",
             "height": "6'0\"",
             "weight": 212,
             "school": "Michigan",
             "dot": 65.5,
             "breadth": 82.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 40,
-            "tier": null,
             "player_name": "Dustin Crum",
             "height": "6'1\"",
             "weight": 210,
             "school": "Kent State",
             "dot": 64.075,
             "breadth": 76.48125,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 41,
-            "tier": null,
             "player_name": "K.J. Costello",
             "height": "6'5\"",
             "weight": 222,
             "school": "Stanford/Miss St.",
             "dot": 63.9,
             "breadth": 65.5,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 42,
-            "tier": null,
             "player_name": "Kaleb Eleby",
             "height": "6'1\"",
             "weight": 208,
             "school": "Western Michigan",
             "dot": 61.25,
             "breadth": 72.4375,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 43,
-            "tier": null,
             "player_name": "Steven Montez",
             "height": "6'4\"",
             "weight": 231,
             "school": "Colorado",
             "dot": 60.5,
             "breadth": 84.0,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 44,
-            "tier": null,
             "player_name": "Kellen Mond",
             "height": "6'3\"",
             "weight": 217,
             "school": "Texas A&M",
             "dot": 60.225,
             "breadth": 65.6,
+            "non_adjusted": null,
             "position": "QB"
           },
           {
             "rank": 45,
-            "tier": null,
             "player_name": "Anthony Brown",
             "height": "6'3\"",
             "weight": 226,
             "school": "Oregon",
             "dot": 59.35,
             "breadth": 43.9125,
+            "non_adjusted": null,
             "position": "QB"
           }
         ],
@@ -4825,7 +4825,393 @@
       "guide_year": 2023,
       "window": "2021-2023",
       "rankings": {
-        "QB": [],
+        "QB": [
+          {
+            "rank": 1,
+            "player_name": "Skylar Thompson",
+            "height": "6'2\"",
+            "weight": 217,
+            "school": "KSU",
+            "dot": 87.43,
+            "breadth": 91.4,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 2,
+            "player_name": "Anthony Richardson",
+            "height": "6'4\"",
+            "weight": 244,
+            "school": "Florida",
+            "dot": 85.6,
+            "breadth": 86.9,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 3,
+            "player_name": "Trevor Lawrence",
+            "height": "6'6\"",
+            "weight": 213,
+            "school": "Clemson",
+            "dot": 84.9,
+            "breadth": 79.8,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 4,
+            "player_name": "C.J. Stroud",
+            "height": "6'3\"",
+            "weight": 214,
+            "school": "Ohio",
+            "dot": 83.75,
+            "breadth": 91.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 5,
+            "player_name": "Trey Lance",
+            "height": "6'3\"",
+            "weight": 224,
+            "school": "Dakota",
+            "dot": 83.68,
+            "breadth": 75.8,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 7,
+            "player_name": "Mac Jones",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Fresno",
+            "dot": 81.23,
+            "breadth": 80.9,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 8,
+            "player_name": "Jake Haener",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "Fresno",
+            "dot": 80.93,
+            "breadth": 95.1,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 9,
+            "player_name": "Justin Fields",
+            "height": "6'3\"",
+            "weight": 223,
+            "school": "Ohio",
+            "dot": 80.28,
+            "breadth": 79.4,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 10,
+            "player_name": "Carson Strong",
+            "height": "6'3\"",
+            "weight": 226,
+            "school": "Stetson 5'11",
+            "dot": 79.93,
+            "breadth": 89.4,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 12,
+            "player_name": "Matt Corral",
+            "height": "6'2\"",
+            "weight": 212,
+            "school": "Ole",
+            "dot": 79.53,
+            "breadth": 91.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 13,
+            "player_name": "Kenny Pickett",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Pitt",
+            "dot": 78.88,
+            "breadth": 87.9,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 14,
+            "player_name": "Tyson Bagent",
+            "height": "6'2\"",
+            "weight": 213,
+            "school": "TCU",
+            "dot": 78.73,
+            "breadth": 89.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 15,
+            "player_name": "Max Duggan",
+            "height": "6'1\"",
+            "weight": 207,
+            "school": "TCU",
+            "dot": 77.88,
+            "breadth": 92.4,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 16,
+            "player_name": "Jaren Hall",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "WKU",
+            "dot": 77.3,
+            "breadth": 89.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 17,
+            "player_name": "Bailey Zappe",
+            "height": "6'0\"",
+            "weight": 215,
+            "school": "WKU",
+            "dot": 76.65,
+            "breadth": 88.2,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 18,
+            "player_name": "Brock Purdy",
+            "height": "6'1\"",
+            "weight": 212,
+            "school": "Iowa",
+            "dot": 76.13,
+            "breadth": 88.0,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 19,
+            "player_name": "Clayton Tune",
+            "height": "6'2\"",
+            "weight": 220,
+            "school": "Stanford",
+            "dot": 75.7,
+            "breadth": 85.0,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 20,
+            "player_name": "Davis Mills",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Stanford",
+            "dot": 75.68,
+            "breadth": 75.1,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 21,
+            "player_name": "Hendon Hooker",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "BYU",
+            "dot": 75.33,
+            "breadth": 77.0,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 28,
+            "player_name": "Jamie Newman",
+            "height": "6'3\"",
+            "weight": 229,
+            "school": "Florida",
+            "dot": 72.7,
+            "breadth": 76.7,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 29,
+            "player_name": "Kyle Trask",
+            "height": "6'5\"",
+            "weight": 240,
+            "school": "Florida",
+            "dot": 72.48,
+            "breadth": 74.5,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 30,
+            "player_name": "Thompson-",
+            "height": "6'2\"",
+            "weight": 203,
+            "school": "Robinson",
+            "dot": 72.33,
+            "breadth": 83.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 31,
+            "player_name": "Shane Buechele",
+            "height": "6'1\"",
+            "weight": 207,
+            "school": "Miami/Hou",
+            "dot": 72.1,
+            "breadth": 74.7,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 32,
+            "player_name": "D'Eriq King",
+            "height": "5'9\"",
+            "weight": 196,
+            "school": "Miami/Hou",
+            "dot": 71.55,
+            "breadth": 79.2,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 33,
+            "player_name": "Desmond Ridder",
+            "height": "6'3\"",
+            "weight": 211,
+            "school": "Cincinnati",
+            "dot": 69.68,
+            "breadth": 74.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 34,
+            "player_name": "Aidan O'Connell",
+            "height": "6'3\"",
+            "weight": 213,
+            "school": "Cal",
+            "dot": 69.6,
+            "breadth": 85.1,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 35,
+            "player_name": "Chase Garbers",
+            "height": "6'2\"",
+            "weight": 225,
+            "school": "Cal",
+            "dot": 69.53,
+            "breadth": 72.8,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 36,
+            "player_name": "Will Levis",
+            "height": "6'4\"",
+            "weight": 229,
+            "school": "Kentucky",
+            "dot": 67.55,
+            "breadth": 77.3,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 37,
+            "player_name": "Ian Book",
+            "height": "6'0\"",
+            "weight": 212,
+            "school": "Dame Notre",
+            "dot": 66.68,
+            "breadth": 70.9,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 38,
+            "player_name": "Tanner McKee",
+            "height": "6'6\"",
+            "weight": 231,
+            "school": "Kent",
+            "dot": 66.45,
+            "breadth": 85.1,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 39,
+            "player_name": "Dustin Crum",
+            "height": "6'1\"",
+            "weight": 210,
+            "school": "Kent",
+            "dot": 64.08,
+            "breadth": 78.7,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 40,
+            "player_name": "K.J. Costello",
+            "height": "6'5\"",
+            "weight": 222,
+            "school": "Stanford/M",
+            "dot": 63.9,
+            "breadth": 65.5,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 41,
+            "player_name": "Kaleb Eleby",
+            "height": "6'1\"",
+            "weight": 208,
+            "school": "Michigan Western",
+            "dot": 61.25,
+            "breadth": 78.9,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 42,
+            "player_name": "Kellen Mond",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Texas",
+            "dot": 60.23,
+            "breadth": 65.6,
+            "non_adjusted": null,
+            "position": "QB"
+          },
+          {
+            "rank": 43,
+            "player_name": "Anthony Brown",
+            "height": "6'3\"",
+            "weight": 226,
+            "school": "Running Backs",
+            "dot": 59.35,
+            "breadth": 65.2,
+            "non_adjusted": null,
+            "position": "QB"
+          }
+        ],
         "RB": [
           {
             "rank": 1,
@@ -8897,7 +9283,762 @@
       "guide_year": 2024,
       "window": "2022-2024",
       "rankings": {
-        "QB": [],
+        "QB": [
+          {
+            "draft_year": 2023,
+            "rank": 1,
+            "player_name": "Anthony Richardson",
+            "height": "6'4\"",
+            "weight": 244,
+            "school": "Florida",
+            "tier": "I",
+            "dot": 85.6,
+            "breadth": 86.9,
+            "non_adjusted": 73.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 2,
+            "player_name": "Caleb Williams",
+            "height": "6'1\"",
+            "weight": 214,
+            "school": "USC",
+            "tier": "I",
+            "dot": 85.25,
+            "breadth": 95.725,
+            "non_adjusted": 73.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 3,
+            "player_name": "Trevor Lawrence",
+            "height": "6'6\"",
+            "weight": 213,
+            "school": "Clemson",
+            "tier": "I",
+            "dot": 84.9,
+            "breadth": 79.8,
+            "non_adjusted": 72.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 4,
+            "player_name": "C.J. Stroud",
+            "height": "6'3\"",
+            "weight": 214,
+            "school": "Ohio",
+            "tier": "I",
+            "dot": 83.75,
+            "breadth": 91.6,
+            "non_adjusted": 74.85,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 5,
+            "player_name": "Trey Lance",
+            "height": "6'3\"",
+            "weight": 224,
+            "school": "North",
+            "tier": "I",
+            "dot": 83.68,
+            "breadth": 75.8,
+            "non_adjusted": 70.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 6,
+            "player_name": "Bryce Young",
+            "height": "5'10\"",
+            "weight": 204,
+            "school": "Alabama",
+            "tier": "I",
+            "dot": 82.58,
+            "breadth": 90.3,
+            "non_adjusted": 72.2,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 7,
+            "player_name": "Mac Jones",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Alabama",
+            "tier": "I",
+            "dot": 32.0,
+            "breadth": 81.23,
+            "non_adjusted": 80.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 8,
+            "player_name": "Jake Haener",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "Fresno",
+            "tier": "II",
+            "dot": 80.93,
+            "breadth": 95.1,
+            "non_adjusted": 68.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 9,
+            "player_name": "Justin Fields",
+            "height": "6'3\"",
+            "weight": 223,
+            "school": "Ohio",
+            "tier": "I",
+            "dot": 80.28,
+            "breadth": 79.4,
+            "non_adjusted": 64.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 11,
+            "player_name": "Carson Strong",
+            "height": "6'3\"",
+            "weight": 226,
+            "school": "Nevada",
+            "tier": "I",
+            "dot": 79.93,
+            "breadth": 89.4,
+            "non_adjusted": 64.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 12,
+            "player_name": "Stetson Bennett",
+            "height": "5'11\"",
+            "weight": 192,
+            "school": "Georgia",
+            "tier": "II",
+            "dot": 79.7,
+            "breadth": 91.3,
+            "non_adjusted": 64.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 13,
+            "player_name": "Matt Corral",
+            "height": "6'2\"",
+            "weight": 212,
+            "school": "Ole",
+            "tier": "I",
+            "dot": 79.53,
+            "breadth": 91.6,
+            "non_adjusted": 63.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 14,
+            "player_name": "Bo Nix",
+            "height": "6'2\"",
+            "weight": 214,
+            "school": "Oregon/Auburn",
+            "tier": "II",
+            "dot": 79.0,
+            "breadth": 90.8188,
+            "non_adjusted": 66.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 15,
+            "player_name": "Kenny Pickett",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Pitt",
+            "tier": "I",
+            "dot": 78.88,
+            "breadth": 87.9,
+            "non_adjusted": 66.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 16,
+            "player_name": "Tyson Bagent",
+            "height": "6'2\"",
+            "weight": 213,
+            "school": "Shepherd",
+            "tier": "III",
+            "dot": 78.73,
+            "breadth": 89.6,
+            "non_adjusted": 62.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 17,
+            "player_name": "Max Duggan",
+            "height": "6'1\"",
+            "weight": 207,
+            "school": "TCU",
+            "tier": "III",
+            "dot": 77.88,
+            "breadth": 92.4,
+            "non_adjusted": 62.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 18,
+            "player_name": "Jayden Daniels",
+            "height": "6'4\"",
+            "weight": 210,
+            "school": "LSU",
+            "tier": "III",
+            "dot": 77.88,
+            "breadth": 88.3813,
+            "non_adjusted": 63.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 19,
+            "player_name": "Jaren Hall",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "BYU",
+            "tier": "III",
+            "dot": 77.3,
+            "breadth": 89.6,
+            "non_adjusted": 64.0,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 20,
+            "player_name": "J.J. McCarthy",
+            "height": "6'2\"",
+            "weight": 219,
+            "school": "Michigan",
+            "tier": "III",
+            "dot": 76.95,
+            "breadth": 86.6313,
+            "non_adjusted": 60.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 21,
+            "player_name": "Bailey Zappe",
+            "height": "6'0\"",
+            "weight": 215,
+            "school": "WKU",
+            "tier": "II",
+            "dot": 76.65,
+            "breadth": 88.2,
+            "non_adjusted": 65.85,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 22,
+            "player_name": "Drake Maye",
+            "height": "6'4\"",
+            "weight": 223,
+            "school": "North",
+            "tier": "III",
+            "dot": 76.63,
+            "breadth": 90.7,
+            "non_adjusted": 59.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 23,
+            "player_name": "Spencer Rattler",
+            "height": "6'0\"",
+            "weight": 211,
+            "school": "Carolina/Oklahoma",
+            "tier": "III",
+            "dot": 76.18,
+            "breadth": 92.4438,
+            "non_adjusted": 57.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 24,
+            "player_name": "Brock Purdy",
+            "height": "6'1\"",
+            "weight": 212,
+            "school": "Iowa",
+            "tier": "II",
+            "dot": 76.13,
+            "breadth": 88.0,
+            "non_adjusted": 59.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 25,
+            "player_name": "Clayton Tune",
+            "height": "6'2\"",
+            "weight": 220,
+            "school": "Houston",
+            "tier": "IV",
+            "dot": 75.7,
+            "breadth": 85.0,
+            "non_adjusted": 61.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 26,
+            "player_name": "Davis Mills",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Stanford",
+            "tier": "II",
+            "dot": 75.68,
+            "breadth": 75.1,
+            "non_adjusted": 57.25,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 28,
+            "player_name": "Hendon Hooker",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Tennessee",
+            "tier": "IV",
+            "dot": 75.33,
+            "breadth": 77.0,
+            "non_adjusted": 59.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 29,
+            "player_name": "Zach Wilson",
+            "height": "6'2\"",
+            "weight": 214,
+            "school": "BYU",
+            "tier": "II",
+            "dot": 75.2,
+            "breadth": 71.4,
+            "non_adjusted": 57.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 30,
+            "player_name": "Cole Kelley",
+            "height": "6'7\"",
+            "weight": 249,
+            "school": "SE",
+            "tier": "II",
+            "dot": 74.98,
+            "breadth": 90.2,
+            "non_adjusted": 64.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 31,
+            "player_name": "Sam Howell",
+            "height": "6'1\"",
+            "weight": 218,
+            "school": "UNC",
+            "tier": "II",
+            "dot": 74.9,
+            "breadth": 82.8,
+            "non_adjusted": 63.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 32,
+            "player_name": "Jordan Travis",
+            "height": "6'1\"",
+            "weight": 200,
+            "school": "FSU",
+            "tier": "IV",
+            "dot": 74.73,
+            "breadth": 90.7875,
+            "non_adjusted": 58.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 33,
+            "player_name": "Tanner Mordecai",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Wisconsin/SMU",
+            "tier": "IV",
+            "dot": 74.35,
+            "breadth": 87.95,
+            "non_adjusted": 62.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 34,
+            "player_name": "Sam Ehlinger",
+            "height": "6'3\"",
+            "weight": 230,
+            "school": "Texas",
+            "tier": "III",
+            "dot": 37.0,
+            "breadth": 74.2,
+            "non_adjusted": 81.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 35,
+            "player_name": "Malik Willis",
+            "height": "6'0\"",
+            "weight": 219,
+            "school": "Liberty",
+            "tier": "III",
+            "dot": 73.83,
+            "breadth": 79.4,
+            "non_adjusted": 61.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 36,
+            "player_name": "Sam Hartman",
+            "height": "6'1\"",
+            "weight": 211,
+            "school": "Notre",
+            "tier": "IV",
+            "dot": 73.68,
+            "breadth": 83.95,
+            "non_adjusted": 61.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 37,
+            "player_name": "Liam Welch",
+            "height": "6'2\"",
+            "weight": 208,
+            "school": "Samford",
+            "tier": "III",
+            "dot": 73.23,
+            "breadth": 83.7,
+            "non_adjusted": 63.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 38,
+            "player_name": "Michael Pratt",
+            "height": "6'2\"",
+            "weight": 217,
+            "school": "Tulane",
+            "tier": "V",
+            "dot": 72.78,
+            "breadth": 86.35,
+            "non_adjusted": 55.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 39,
+            "player_name": "Jamie Newman",
+            "height": "6'3\"",
+            "weight": 229,
+            "school": "Wake",
+            "tier": "III",
+            "dot": 72.7,
+            "breadth": 76.7,
+            "non_adjusted": 56.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 40,
+            "player_name": "Jack Plummer",
+            "height": "6'5\"",
+            "weight": 215,
+            "school": "Louisville",
+            "tier": "V",
+            "dot": 72.58,
+            "breadth": 85.6813,
+            "non_adjusted": 58.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 41,
+            "player_name": "Kyle Trask",
+            "height": "6'5\"",
+            "weight": 240,
+            "school": "Florida",
+            "tier": "III",
+            "dot": 72.48,
+            "breadth": 74.5,
+            "non_adjusted": 61.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 43,
+            "player_name": "Shane Buechele",
+            "height": "6'1\"",
+            "weight": 207,
+            "school": "SMU",
+            "tier": "III",
+            "dot": 72.1,
+            "breadth": 74.7,
+            "non_adjusted": 60.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 44,
+            "player_name": "D'Eriq King",
+            "height": "5'9\"",
+            "weight": 196,
+            "school": "Miami/Houston",
+            "tier": "III",
+            "dot": 71.55,
+            "breadth": 79.2,
+            "non_adjusted": 57.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 45,
+            "player_name": "Brennan Armstrong",
+            "height": "6'2\"",
+            "weight": 215,
+            "school": "Virginia",
+            "tier": "VI",
+            "dot": 69.83,
+            "breadth": 77.2875,
+            "non_adjusted": 53.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 46,
+            "player_name": "Desmond Ridder",
+            "height": "6'3\"",
+            "weight": 211,
+            "school": "Cincinnati",
+            "tier": "III",
+            "dot": 69.68,
+            "breadth": 74.6,
+            "non_adjusted": 59.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 47,
+            "player_name": "Aidan O'Connell",
+            "height": "6'3\"",
+            "weight": 213,
+            "school": "Purdue",
+            "tier": "V",
+            "dot": 69.6,
+            "breadth": 85.1,
+            "non_adjusted": 56.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 48,
+            "player_name": "Emory Jones",
+            "height": "6'3\"",
+            "weight": 210,
+            "school": "Cincinnati",
+            "tier": "VI",
+            "dot": 35.0,
+            "breadth": 69.58,
+            "non_adjusted": 87.3813,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 49,
+            "player_name": "Chase Garbers",
+            "height": "6'2\"",
+            "weight": 225,
+            "school": "Cal",
+            "tier": "III",
+            "dot": 69.53,
+            "breadth": 72.8,
+            "non_adjusted": 56.2,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 50,
+            "player_name": "Joe Milton III",
+            "height": "6'5\"",
+            "weight": 235,
+            "school": "Tennessee",
+            "tier": "VI",
+            "dot": 68.3,
+            "breadth": 77.6625,
+            "non_adjusted": 56.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 51,
+            "player_name": "Devin Leary",
+            "height": "6'1\"",
+            "weight": 215,
+            "school": "Kentucky A developmental",
+            "tier": "VI",
+            "dot": 67.8,
+            "breadth": 78.675,
+            "non_adjusted": 53.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 52,
+            "player_name": "Will Levis",
+            "height": "6'4\"",
+            "weight": 229,
+            "school": "Kentucky",
+            "tier": "V",
+            "dot": 67.55,
+            "breadth": 77.3,
+            "non_adjusted": 53.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 53,
+            "player_name": "Ian Book",
+            "height": "6'0\"",
+            "weight": 212,
+            "school": "Notre",
+            "tier": "IV",
+            "dot": 66.68,
+            "breadth": 70.9,
+            "non_adjusted": 53.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 54,
+            "player_name": "Tanner McKee",
+            "height": "6'6\"",
+            "weight": 231,
+            "school": "Stanford",
+            "tier": "V",
+            "dot": 66.45,
+            "breadth": 85.1,
+            "non_adjusted": 52.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 55,
+            "player_name": "Dustin Crum",
+            "height": "6'1\"",
+            "weight": 210,
+            "school": "Kent",
+            "tier": "IV",
+            "dot": 64.08,
+            "breadth": 78.7,
+            "non_adjusted": 52.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 56,
+            "player_name": "K.J. Costello",
+            "height": "6'5\"",
+            "weight": 222,
+            "school": "Stanford/Miss",
+            "tier": "V",
+            "dot": 63.9,
+            "breadth": 65.5,
+            "non_adjusted": 50.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 57,
+            "player_name": "Kedon Slovis",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "USC/Pitt/BYU",
+            "tier": "VII",
+            "dot": 63.23,
+            "breadth": 81.0625,
+            "non_adjusted": 50.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 58,
+            "player_name": "Kaleb Eleby",
+            "height": "6'1\"",
+            "weight": 208,
+            "school": "Western",
+            "tier": "V",
+            "dot": 61.25,
+            "breadth": 78.9,
+            "non_adjusted": 47.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 59,
+            "player_name": "Gunnar Watson",
+            "height": "6'3\"",
+            "weight": 207,
+            "school": "Troy",
+            "tier": "VII",
+            "dot": 60.7,
+            "breadth": 78.4813,
+            "non_adjusted": 46.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2021,
+            "rank": 60,
+            "player_name": "Kellen Mond",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Texas",
+            "tier": "V",
+            "dot": 60.23,
+            "breadth": 65.6,
+            "non_adjusted": 46.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2022,
+            "rank": 62,
+            "player_name": "Anthony Brown",
+            "height": "6'3\"",
+            "weight": 226,
+            "school": "Oregon",
+            "tier": "V",
+            "dot": 59.35,
+            "breadth": 65.2,
+            "non_adjusted": 48.95,
+            "position": "QB"
+          }
+        ],
         "RB": [
           {
             "rank": 1,
@@ -12507,7 +13648,548 @@
       "guide_year": 2025,
       "window": "2023-2025",
       "rankings": {
-        "QB": [],
+        "QB": [
+          {
+            "draft_year": 2023,
+            "rank": 1,
+            "player_name": "Anthony Richardson",
+            "height": "6'4\"",
+            "weight": 244,
+            "school": "Inexperienced and raw",
+            "dot": 85.6,
+            "breadth": 86.9,
+            "non_adjusted": 73.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 2,
+            "player_name": "Caleb Williams",
+            "height": "6'1\"",
+            "weight": 214,
+            "school": "Williams has the creativity,",
+            "dot": 85.25,
+            "breadth": 95.725,
+            "non_adjusted": 73.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 3,
+            "player_name": "C.J. Ohio",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 83.75,
+            "breadth": 91.6,
+            "non_adjusted": 74.85,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 4,
+            "player_name": "Bryce Young",
+            "height": "5'10\"",
+            "weight": 204,
+            "school": "Alabama",
+            "dot": 82.575,
+            "breadth": 90.3,
+            "non_adjusted": 72.2,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 5,
+            "player_name": "Jake Haener",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "Fresno",
+            "dot": 80.925,
+            "breadth": 95.1,
+            "non_adjusted": 68.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 6,
+            "player_name": "Michael Jr.",
+            "height": "6'2\"",
+            "weight": 216,
+            "school": "Washington",
+            "dot": 80.25,
+            "breadth": 89.38125,
+            "non_adjusted": 63.85,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 7,
+            "player_name": "Stetson Bennett",
+            "height": "6'1\"",
+            "weight": 219,
+            "school": "Miami",
+            "dot": 79.7,
+            "breadth": 91.3,
+            "non_adjusted": 64.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 8,
+            "player_name": "Cam Ward",
+            "height": "6'1\"",
+            "weight": 219,
+            "school": "Miami",
+            "dot": 79.325,
+            "breadth": 88.73125,
+            "non_adjusted": 68.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 10,
+            "player_name": "Jalen Milroe",
+            "height": "6'1\"",
+            "weight": 217,
+            "school": "Alabama",
+            "dot": 78.975,
+            "breadth": 93.2625,
+            "non_adjusted": 70.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 11,
+            "player_name": "Tyson Bagent",
+            "height": "6'2\"",
+            "weight": 213,
+            "school": "Shepherd",
+            "dot": 78.725,
+            "breadth": 89.6,
+            "non_adjusted": 62.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 12,
+            "player_name": "Max Duggan",
+            "height": "6'1\"",
+            "weight": 207,
+            "school": null,
+            "dot": 77.875,
+            "breadth": 92.4,
+            "non_adjusted": 62.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 13,
+            "player_name": "Jayden Daniels",
+            "height": "6'4\"",
+            "weight": 210,
+            "school": "Daniels has the mobility",
+            "dot": 77.875,
+            "breadth": 88.38125,
+            "non_adjusted": 63.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 14,
+            "player_name": "Jaren Hall",
+            "height": "6'0\"",
+            "weight": 207,
+            "school": "A capable play-action",
+            "dot": 77.3,
+            "breadth": 89.6,
+            "non_adjusted": 64.0,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 15,
+            "player_name": "Shedeur Sanders",
+            "height": "6'1\"",
+            "weight": 212,
+            "school": "Colorado",
+            "dot": 77.025,
+            "breadth": 88.9,
+            "non_adjusted": 63.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 16,
+            "player_name": "Kurtis Rourke",
+            "height": "6'4\"",
+            "weight": 220,
+            "school": "Indiana",
+            "dot": 76.85,
+            "breadth": 88.73125,
+            "non_adjusted": 65.2,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 17,
+            "player_name": "J.J. McCarthy",
+            "height": "6'2\"",
+            "weight": 219,
+            "school": "Michigan",
+            "dot": 76.95,
+            "breadth": 86.63125,
+            "non_adjusted": 60.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 18,
+            "player_name": "Drake North",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "Ole",
+            "dot": 76.625,
+            "breadth": 90.7,
+            "non_adjusted": 59.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 19,
+            "player_name": "Jaxson Dart",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "Ole",
+            "dot": 76.6,
+            "breadth": 92.225,
+            "non_adjusted": 63.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 20,
+            "player_name": "Tyler Shough",
+            "height": "6'4\"",
+            "weight": 219,
+            "school": "Louisville",
+            "dot": 76.35,
+            "breadth": 85.6125,
+            "non_adjusted": 61.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 21,
+            "player_name": "Will Howard",
+            "height": "6'4\"",
+            "weight": 236,
+            "school": "Ohio",
+            "dot": 76.225,
+            "breadth": 89.4125,
+            "non_adjusted": 65.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 22,
+            "player_name": "Spencer Rattler",
+            "height": "6'0\"",
+            "weight": 211,
+            "school": "Carolina/Oklahoma",
+            "dot": 76.175,
+            "breadth": 92.44375,
+            "non_adjusted": 57.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 23,
+            "player_name": "Clayton Tune",
+            "height": "6'2\"",
+            "weight": 220,
+            "school": "Houston",
+            "dot": 75.7,
+            "breadth": 85.0,
+            "non_adjusted": 61.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 24,
+            "player_name": "Austin Reed",
+            "height": "6'1\"",
+            "weight": 220,
+            "school": "With time devoted to",
+            "dot": 75.45,
+            "breadth": 91.14375,
+            "non_adjusted": 60.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 25,
+            "player_name": "Hendon Hooker",
+            "height": "6'3\"",
+            "weight": 217,
+            "school": "Tennessee",
+            "dot": 75.325,
+            "breadth": 77.0,
+            "non_adjusted": 59.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 26,
+            "player_name": "Quinn Ewers",
+            "height": "6'1\"",
+            "weight": 200,
+            "school": "Travis has a promising",
+            "dot": 74.825,
+            "breadth": 92.93125,
+            "non_adjusted": 59.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 27,
+            "player_name": "Jordan Travis",
+            "height": "6'1\"",
+            "weight": 200,
+            "school": "Travis has a promising",
+            "dot": 74.725,
+            "breadth": 90.7875,
+            "non_adjusted": 58.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 28,
+            "player_name": "Max Brosmer",
+            "height": "6'1\"",
+            "weight": 217,
+            "school": "Minnesota",
+            "dot": 74.5,
+            "breadth": 83.95,
+            "non_adjusted": 60.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 29,
+            "player_name": "Kyle McCord",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Syracuse",
+            "dot": 74.475,
+            "breadth": 81.6375,
+            "non_adjusted": 59.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 30,
+            "player_name": "Tanner Blaine",
+            "height": "6'3\"",
+            "weight": 215,
+            "school": "Memphis",
+            "dot": 74.35,
+            "breadth": 87.95,
+            "non_adjusted": 62.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 31,
+            "player_name": "Seth Henigan",
+            "height": "6'3\"",
+            "weight": 215,
+            "school": "Memphis",
+            "dot": 73.7,
+            "breadth": 91.31875,
+            "non_adjusted": 60.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 32,
+            "player_name": "Sam Hartman",
+            "height": "6'1\"",
+            "weight": 211,
+            "school": "Notre",
+            "dot": 73.675,
+            "breadth": 83.95,
+            "non_adjusted": 61.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 33,
+            "player_name": "Michael Pratt",
+            "height": "6'5\"",
+            "weight": 215,
+            "school": "Louisville",
+            "dot": 72.775,
+            "breadth": 86.35,
+            "non_adjusted": 55.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 34,
+            "player_name": "Jack Plummer",
+            "height": "6'5\"",
+            "weight": 215,
+            "school": "Louisville",
+            "dot": 72.575,
+            "breadth": 85.68125,
+            "non_adjusted": 58.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 35,
+            "player_name": "Dillon Gabriel",
+            "height": "5'11\"",
+            "weight": 205,
+            "school": "Oregon/Oklahoma",
+            "dot": 72.55,
+            "breadth": 85.325,
+            "non_adjusted": 61.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 36,
+            "player_name": "Dorian Thompson-Robinson",
+            "height": "6'2\"",
+            "weight": 203,
+            "school": null,
+            "dot": 72.325,
+            "breadth": 83.6,
+            "non_adjusted": 58.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 37,
+            "player_name": "Brennan Armstrong",
+            "height": "6'2\"",
+            "weight": 215,
+            "school": "Virginia",
+            "dot": 69.825,
+            "breadth": 77.2875,
+            "non_adjusted": 53.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 38,
+            "player_name": "Aidan O'Connell",
+            "height": "6'3\"",
+            "weight": 213,
+            "school": "O'Connell is an aggressive",
+            "dot": 69.6,
+            "breadth": 85.1,
+            "non_adjusted": 56.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 39,
+            "player_name": "Emory Jones",
+            "height": "6'3\"",
+            "weight": 210,
+            "school": "Cincinnati",
+            "dot": 69.575,
+            "breadth": 87.38125,
+            "non_adjusted": 57.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 40,
+            "player_name": "Joe Milton",
+            "height": "6'5\"",
+            "weight": 235,
+            "school": "Tennessee",
+            "dot": 68.3,
+            "breadth": 77.6625,
+            "non_adjusted": 56.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 41,
+            "player_name": "Devin Leary",
+            "height": "6'1\"",
+            "weight": 215,
+            "school": "Kentucky",
+            "dot": 67.8,
+            "breadth": 78.675,
+            "non_adjusted": 53.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 42,
+            "player_name": "Will Kentucky",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 67.55,
+            "breadth": 77.3,
+            "non_adjusted": 53.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2023,
+            "rank": 43,
+            "player_name": "Tanner McKee",
+            "height": "6'6\"",
+            "weight": 231,
+            "school": "Stanford",
+            "dot": 66.45,
+            "breadth": 85.1,
+            "non_adjusted": 52.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 44,
+            "player_name": "Kedon Slovis",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "USC/Pitt/BYU",
+            "dot": 63.225,
+            "breadth": 81.0625,
+            "non_adjusted": 50.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 45,
+            "player_name": "Gunnar Watson",
+            "height": "6'3\"",
+            "weight": 207,
+            "school": "Year Rank Name",
+            "dot": 60.7,
+            "breadth": 78.48125,
+            "non_adjusted": 46.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 46,
+            "player_name": "Carter Bradley",
+            "height": "6'3\"",
+            "weight": 216,
+            "school": "South",
+            "dot": 59.4,
+            "breadth": 78.58125,
+            "non_adjusted": 45.0,
+            "position": "QB"
+          }
+        ],
         "RB": [
           {
             "rank": 1,
@@ -16832,7 +18514,548 @@
       "guide_year": 2026,
       "window": "2024-2026",
       "rankings": {
-        "QB": [],
+        "QB": [
+          {
+            "draft_year": 2026,
+            "rank": 1,
+            "player_name": "Fernando Mendoza",
+            "height": "6'5\"",
+            "weight": 236,
+            "school": "Indiana",
+            "dot": 85.575,
+            "breadth": 95.53125,
+            "non_adjusted": 73.85,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 4,
+            "player_name": "Cam Ward",
+            "height": "6'1\"",
+            "weight": 211,
+            "school": "Alabama",
+            "dot": 79.425,
+            "breadth": 88.73125,
+            "non_adjusted": 68.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 5,
+            "player_name": "Ty Simpson",
+            "height": "6'1\"",
+            "weight": 211,
+            "school": "Alabama",
+            "dot": 79.05,
+            "breadth": 90.41875,
+            "non_adjusted": 66.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 7,
+            "player_name": "Jalen Milroe",
+            "height": "6'1\"",
+            "weight": 217,
+            "school": "Alabama",
+            "dot": 78.975,
+            "breadth": 93.2625,
+            "non_adjusted": 70.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 8,
+            "player_name": "Jayden Garrett",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 77.875,
+            "breadth": 88.38125,
+            "non_adjusted": 63.75,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 9,
+            "player_name": "Garrett Nussmeier",
+            "height": "6'2\"",
+            "weight": 207,
+            "school": "Clemson",
+            "dot": 77.225,
+            "breadth": 88.98125,
+            "non_adjusted": 63.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 10,
+            "player_name": "Cade Klubnik",
+            "height": "6'2\"",
+            "weight": 207,
+            "school": "Clemson",
+            "dot": 77.1,
+            "breadth": 99.125,
+            "non_adjusted": 62.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 11,
+            "player_name": "Shedeur Sanders",
+            "height": "6'1\"",
+            "weight": 212,
+            "school": "Colorado",
+            "dot": 77.025,
+            "breadth": 88.9,
+            "non_adjusted": 63.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 12,
+            "player_name": "Kurtis Rourke",
+            "height": "6'4\"",
+            "weight": 220,
+            "school": "Indiana",
+            "dot": 76.95,
+            "breadth": 88.73125,
+            "non_adjusted": 65.2,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 13,
+            "player_name": "J.J. McCarthy",
+            "height": "6'2\"",
+            "weight": 219,
+            "school": "Michigan",
+            "dot": 76.95,
+            "breadth": 86.63125,
+            "non_adjusted": 60.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 14,
+            "player_name": "Drake Maye",
+            "height": "6'4\"",
+            "weight": 223,
+            "school": "North",
+            "dot": 76.625,
+            "breadth": 90.7,
+            "non_adjusted": 59.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 15,
+            "player_name": "Jaxson Dart",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "Ole",
+            "dot": 76.6,
+            "breadth": 92.225,
+            "non_adjusted": 63.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 16,
+            "player_name": "Tyler Shough",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 76.35,
+            "breadth": 85.6125,
+            "non_adjusted": 61.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 17,
+            "player_name": "Diego Vanderbilt",
+            "height": "6'4\"",
+            "weight": 236,
+            "school": "Ohio",
+            "dot": 76.275,
+            "breadth": 91.59375,
+            "non_adjusted": 64.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 18,
+            "player_name": "Will Howard",
+            "height": "6'4\"",
+            "weight": 236,
+            "school": "Ohio",
+            "dot": 76.225,
+            "breadth": 89.4125,
+            "non_adjusted": 65.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 19,
+            "player_name": "Spencer Rattler",
+            "height": "6'0\"",
+            "weight": 211,
+            "school": "Carolina/Oklahoma",
+            "dot": 76.175,
+            "breadth": 92.44375,
+            "non_adjusted": 57.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 20,
+            "player_name": "Taylen Green",
+            "height": "6'6\"",
+            "weight": 227,
+            "school": "Arkansas",
+            "dot": 75.8,
+            "breadth": 94.225,
+            "non_adjusted": 65.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 21,
+            "player_name": "Austin Reed",
+            "height": "6'1\"",
+            "weight": 220,
+            "school": null,
+            "dot": 75.45,
+            "breadth": 91.14375,
+            "non_adjusted": 60.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 22,
+            "player_name": "Carson Beck",
+            "height": "6'5\"",
+            "weight": 235,
+            "school": "Miami",
+            "dot": 75.175,
+            "breadth": 85.51875,
+            "non_adjusted": 62.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 23,
+            "player_name": "Quinn Ewers",
+            "height": "6'2\"",
+            "weight": 214,
+            "school": null,
+            "dot": 74.925,
+            "breadth": 92.93125,
+            "non_adjusted": 59.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 24,
+            "player_name": "Jordan Travis",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Syracuse",
+            "dot": 74.725,
+            "breadth": 90.7875,
+            "non_adjusted": 58.5,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 25,
+            "player_name": "Kyle McCord",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Syracuse",
+            "dot": 74.575,
+            "breadth": 81.6375,
+            "non_adjusted": 59.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 26,
+            "player_name": "Max Brosmer",
+            "height": "6'1\"",
+            "weight": 217,
+            "school": "Minnesota",
+            "dot": 74.5,
+            "breadth": 83.95,
+            "non_adjusted": 60.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 27,
+            "player_name": "Cole Payton",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Wisconsin/SMU",
+            "dot": 74.375,
+            "breadth": 88.65625,
+            "non_adjusted": 64.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 28,
+            "player_name": "Tanner Mordecai",
+            "height": "6'3\"",
+            "weight": 218,
+            "school": "Wisconsin/SMU",
+            "dot": 74.35,
+            "breadth": 87.95,
+            "non_adjusted": 62.8,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 29,
+            "player_name": "Jalon Daniels",
+            "height": "6'3\"",
+            "weight": 215,
+            "school": "Memphis",
+            "dot": 74.225,
+            "breadth": 87.63125,
+            "non_adjusted": 58.65,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 30,
+            "player_name": "Luke Altmyer",
+            "height": "6'3\"",
+            "weight": 215,
+            "school": "Memphis",
+            "dot": 73.975,
+            "breadth": 86.04375,
+            "non_adjusted": 62.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 31,
+            "player_name": "Seth Henigan",
+            "height": "6'3\"",
+            "weight": 215,
+            "school": "Memphis",
+            "dot": 73.7,
+            "breadth": 91.31875,
+            "non_adjusted": 60.3,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 32,
+            "player_name": "Sam Hartman",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 73.675,
+            "breadth": 83.95,
+            "non_adjusted": 61.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 33,
+            "player_name": "Michael Pratt",
+            "height": "6'5\"",
+            "weight": 215,
+            "school": "Louisville",
+            "dot": 72.775,
+            "breadth": 86.35,
+            "non_adjusted": 55.55,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 34,
+            "player_name": "Jack Plummer",
+            "height": "6'5\"",
+            "weight": 215,
+            "school": "Louisville",
+            "dot": 72.575,
+            "breadth": 85.68125,
+            "non_adjusted": 58.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2025,
+            "rank": 35,
+            "player_name": "Dillon Gabriel",
+            "height": "5'11\"",
+            "weight": 205,
+            "school": "Oregon/Oklahoma",
+            "dot": 72.55,
+            "breadth": 85.325,
+            "non_adjusted": 61.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 36,
+            "player_name": "Jack Strand",
+            "height": "6'4\"",
+            "weight": 240,
+            "school": "Minnesota",
+            "dot": 72.3,
+            "breadth": 90.51875,
+            "non_adjusted": 59.15,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 37,
+            "player_name": "Robertson Sawyer",
+            "height": null,
+            "weight": null,
+            "school": null,
+            "dot": 40.0,
+            "breadth": 72.15,
+            "non_adjusted": 85.75625,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 38,
+            "player_name": "Joe Brennan",
+            "height": "6'2\"",
+            "weight": 215,
+            "school": "Virginia",
+            "dot": 71.05,
+            "breadth": 85.1,
+            "non_adjusted": 60.7,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 39,
+            "player_name": "Brennan Armstrong",
+            "height": "6'2\"",
+            "weight": 215,
+            "school": "Virginia",
+            "dot": 69.825,
+            "breadth": 77.2875,
+            "non_adjusted": 53.6,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 40,
+            "player_name": "Emory Jones",
+            "height": "6'3\"",
+            "weight": 210,
+            "school": "Cincinnati",
+            "dot": 69.575,
+            "breadth": 87.38125,
+            "non_adjusted": 57.4,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 41,
+            "player_name": "Haynes King",
+            "height": "6'2\"",
+            "weight": 212,
+            "school": "Tech",
+            "dot": 69.475,
+            "breadth": 83.125,
+            "non_adjusted": 53.9,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 42,
+            "player_name": "Joe Milton",
+            "height": "6'5\"",
+            "weight": 235,
+            "school": "Tennessee",
+            "dot": 68.3,
+            "breadth": 77.6625,
+            "non_adjusted": 56.1,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 43,
+            "player_name": "Devin Leary",
+            "height": "6'1\"",
+            "weight": 215,
+            "school": "Kentucky",
+            "dot": 67.8,
+            "breadth": 78.675,
+            "non_adjusted": 53.95,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 44,
+            "player_name": "Kedon Slovis",
+            "height": "6'2\"",
+            "weight": 223,
+            "school": "USC/Pitt/BYU",
+            "dot": 63.225,
+            "breadth": 81.0625,
+            "non_adjusted": 50.45,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 45,
+            "player_name": "Gunnar Watson",
+            "height": "6'3\"",
+            "weight": 207,
+            "school": "Drew",
+            "dot": 60.7,
+            "breadth": 78.48125,
+            "non_adjusted": 46.05,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 46,
+            "player_name": "Drew Allar",
+            "height": "6'5\"",
+            "weight": 228,
+            "school": "Penn",
+            "dot": 60.5,
+            "breadth": 86.125,
+            "non_adjusted": 48.35,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2024,
+            "rank": 47,
+            "player_name": "Carter Bradley",
+            "height": "6'3\"",
+            "weight": 216,
+            "school": "Alabama/Toledo",
+            "dot": 59.4,
+            "breadth": 78.58125,
+            "non_adjusted": 45.0,
+            "position": "QB"
+          },
+          {
+            "draft_year": 2026,
+            "rank": 48,
+            "player_name": "Behren Morton",
+            "height": "6'2\"",
+            "weight": 221,
+            "school": "Texas",
+            "dot": 58.45,
+            "breadth": 90.1625,
+            "non_adjusted": 44.75,
+            "position": "QB"
+          }
+        ],
         "RB": [
           {
             "rank": 1,
@@ -21501,6 +23724,1644 @@
           "school": "Ole Miss",
           "height": "6'1\"",
           "weight": 185
+        }
+      ]
+    },
+    {
+      "player_name": "Aidan O'Connell",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 34,
+          "dot": 69.6,
+          "breadth": 85.1,
+          "tier": null,
+          "school": "Cal",
+          "height": "6'3\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 47,
+          "dot": 69.6,
+          "breadth": 85.1,
+          "tier": "V",
+          "school": "Purdue",
+          "height": "6'3\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 38,
+          "dot": 69.6,
+          "breadth": 85.1,
+          "tier": null,
+          "school": "O'Connell is an aggressive",
+          "height": "6'3\"",
+          "weight": 213
+        }
+      ]
+    },
+    {
+      "player_name": "Anthony Brown",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 45,
+          "dot": 59.35,
+          "breadth": 43.9125,
+          "tier": null,
+          "school": "Oregon",
+          "height": "6'3\"",
+          "weight": 226
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 43,
+          "dot": 59.35,
+          "breadth": 65.2,
+          "tier": null,
+          "school": "Running Backs",
+          "height": "6'3\"",
+          "weight": 226
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 62,
+          "dot": 59.35,
+          "breadth": 65.2,
+          "tier": "V",
+          "school": "Oregon",
+          "height": "6'3\"",
+          "weight": 226
+        }
+      ]
+    },
+    {
+      "player_name": "Anthony Richardson",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 2,
+          "dot": 85.6,
+          "breadth": 86.9,
+          "tier": null,
+          "school": "Florida",
+          "height": "6'4\"",
+          "weight": 244
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 1,
+          "dot": 85.6,
+          "breadth": 86.9,
+          "tier": "I",
+          "school": "Florida",
+          "height": "6'4\"",
+          "weight": 244
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 1,
+          "dot": 85.6,
+          "breadth": 86.9,
+          "tier": null,
+          "school": "Inexperienced and raw",
+          "height": "6'4\"",
+          "weight": 244
+        }
+      ]
+    },
+    {
+      "player_name": "Bailey Zappe",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 14,
+          "dot": 76.65,
+          "breadth": 81.9,
+          "tier": null,
+          "school": "WKU",
+          "height": "6'0\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 17,
+          "dot": 76.65,
+          "breadth": 88.2,
+          "tier": null,
+          "school": "WKU",
+          "height": "6'0\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 21,
+          "dot": 76.65,
+          "breadth": 88.2,
+          "tier": "II",
+          "school": "WKU",
+          "height": "6'0\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Brennan Armstrong",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 45,
+          "dot": 69.83,
+          "breadth": 77.2875,
+          "tier": "VI",
+          "school": "Virginia",
+          "height": "6'2\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 37,
+          "dot": 69.825,
+          "breadth": 77.2875,
+          "tier": null,
+          "school": "Virginia",
+          "height": "6'2\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 39,
+          "dot": 69.825,
+          "breadth": 77.2875,
+          "tier": null,
+          "school": "Virginia",
+          "height": "6'2\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Brock Purdy",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 15,
+          "dot": 76.125,
+          "breadth": 79.975,
+          "tier": null,
+          "school": "Iowa State",
+          "height": "6'1\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 18,
+          "dot": 76.13,
+          "breadth": 88.0,
+          "tier": null,
+          "school": "Iowa",
+          "height": "6'1\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 24,
+          "dot": 76.13,
+          "breadth": 88.0,
+          "tier": "II",
+          "school": "Iowa",
+          "height": "6'1\"",
+          "weight": 212
+        }
+      ]
+    },
+    {
+      "player_name": "Carson Strong",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 8,
+          "dot": 79.925,
+          "breadth": 82.7625,
+          "tier": null,
+          "school": "Nevada",
+          "height": "6'3\"",
+          "weight": 226
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 10,
+          "dot": 79.93,
+          "breadth": 89.4,
+          "tier": null,
+          "school": "Stetson 5'11",
+          "height": "6'3\"",
+          "weight": 226
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 11,
+          "dot": 79.93,
+          "breadth": 89.4,
+          "tier": "I",
+          "school": "Nevada",
+          "height": "6'3\"",
+          "weight": 226
+        }
+      ]
+    },
+    {
+      "player_name": "Chase Garbers",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 31,
+          "dot": 69.525,
+          "breadth": 65.45,
+          "tier": null,
+          "school": "Cal",
+          "height": "6'2\"",
+          "weight": 225
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 35,
+          "dot": 69.53,
+          "breadth": 72.8,
+          "tier": null,
+          "school": "Cal",
+          "height": "6'2\"",
+          "weight": 225
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 49,
+          "dot": 69.53,
+          "breadth": 72.8,
+          "tier": "III",
+          "school": "Cal",
+          "height": "6'2\"",
+          "weight": 225
+        }
+      ]
+    },
+    {
+      "player_name": "Clayton Tune",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 19,
+          "dot": 75.7,
+          "breadth": 85.0,
+          "tier": null,
+          "school": "Stanford",
+          "height": "6'2\"",
+          "weight": 220
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 25,
+          "dot": 75.7,
+          "breadth": 85.0,
+          "tier": "IV",
+          "school": "Houston",
+          "height": "6'2\"",
+          "weight": 220
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 23,
+          "dot": 75.7,
+          "breadth": 85.0,
+          "tier": null,
+          "school": "Houston",
+          "height": "6'2\"",
+          "weight": 220
+        }
+      ]
+    },
+    {
+      "player_name": "D'Eriq King",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 28,
+          "dot": 71.55,
+          "breadth": 58.325,
+          "tier": null,
+          "school": "Miami/Houston",
+          "height": "5'9\"",
+          "weight": 196
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 32,
+          "dot": 71.55,
+          "breadth": 79.2,
+          "tier": null,
+          "school": "Miami/Hou",
+          "height": "5'9\"",
+          "weight": 196
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 44,
+          "dot": 71.55,
+          "breadth": 79.2,
+          "tier": "III",
+          "school": "Miami/Houston",
+          "height": "5'9\"",
+          "weight": 196
+        }
+      ]
+    },
+    {
+      "player_name": "Davis Mills",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 16,
+          "dot": 75.675,
+          "breadth": 75.1,
+          "tier": null,
+          "school": "Stanford",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 20,
+          "dot": 75.68,
+          "breadth": 75.1,
+          "tier": null,
+          "school": "Stanford",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 26,
+          "dot": 75.68,
+          "breadth": 75.1,
+          "tier": "II",
+          "school": "Stanford",
+          "height": "6'3\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Desmond Ridder",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 30,
+          "dot": 69.675,
+          "breadth": 64.9125,
+          "tier": null,
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 33,
+          "dot": 69.68,
+          "breadth": 74.6,
+          "tier": null,
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 46,
+          "dot": 69.68,
+          "breadth": 74.6,
+          "tier": "III",
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 211
+        }
+      ]
+    },
+    {
+      "player_name": "Devin Leary",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 51,
+          "dot": 67.8,
+          "breadth": 78.675,
+          "tier": "VI",
+          "school": "Kentucky A developmental",
+          "height": "6'1\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 41,
+          "dot": 67.8,
+          "breadth": 78.675,
+          "tier": null,
+          "school": "Kentucky",
+          "height": "6'1\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 43,
+          "dot": 67.8,
+          "breadth": 78.675,
+          "tier": null,
+          "school": "Kentucky",
+          "height": "6'1\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Dustin Crum",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 40,
+          "dot": 64.075,
+          "breadth": 76.48125,
+          "tier": null,
+          "school": "Kent State",
+          "height": "6'1\"",
+          "weight": 210
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 39,
+          "dot": 64.08,
+          "breadth": 78.7,
+          "tier": null,
+          "school": "Kent",
+          "height": "6'1\"",
+          "weight": 210
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 55,
+          "dot": 64.08,
+          "breadth": 78.7,
+          "tier": "IV",
+          "school": "Kent",
+          "height": "6'1\"",
+          "weight": 210
+        }
+      ]
+    },
+    {
+      "player_name": "Emory Jones",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 48,
+          "dot": 35.0,
+          "breadth": 69.58,
+          "tier": "VI",
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 210
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 39,
+          "dot": 69.575,
+          "breadth": 87.38125,
+          "tier": null,
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 210
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 40,
+          "dot": 69.575,
+          "breadth": 87.38125,
+          "tier": null,
+          "school": "Cincinnati",
+          "height": "6'3\"",
+          "weight": 210
+        }
+      ]
+    },
+    {
+      "player_name": "Gunnar Watson",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 59,
+          "dot": 60.7,
+          "breadth": 78.4813,
+          "tier": "VII",
+          "school": "Troy",
+          "height": "6'3\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 45,
+          "dot": 60.7,
+          "breadth": 78.48125,
+          "tier": null,
+          "school": "Year Rank Name",
+          "height": "6'3\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 45,
+          "dot": 60.7,
+          "breadth": 78.48125,
+          "tier": null,
+          "school": "Drew",
+          "height": "6'3\"",
+          "weight": 207
+        }
+      ]
+    },
+    {
+      "player_name": "Hendon Hooker",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 21,
+          "dot": 75.33,
+          "breadth": 77.0,
+          "tier": null,
+          "school": "BYU",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 28,
+          "dot": 75.33,
+          "breadth": 77.0,
+          "tier": "IV",
+          "school": "Tennessee",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 25,
+          "dot": 75.325,
+          "breadth": 77.0,
+          "tier": null,
+          "school": "Tennessee",
+          "height": "6'3\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Ian Book",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 37,
+          "dot": 66.675,
+          "breadth": 70.9,
+          "tier": null,
+          "school": "Notre Dame",
+          "height": "6'0\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 37,
+          "dot": 66.68,
+          "breadth": 70.9,
+          "tier": null,
+          "school": "Dame Notre",
+          "height": "6'0\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 53,
+          "dot": 66.68,
+          "breadth": 70.9,
+          "tier": "IV",
+          "school": "Notre",
+          "height": "6'0\"",
+          "weight": 212
+        }
+      ]
+    },
+    {
+      "player_name": "J.J. Mccarthy",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 20,
+          "dot": 76.95,
+          "breadth": 86.6313,
+          "tier": "III",
+          "school": "Michigan",
+          "height": "6'2\"",
+          "weight": 219
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 17,
+          "dot": 76.95,
+          "breadth": 86.63125,
+          "tier": null,
+          "school": "Michigan",
+          "height": "6'2\"",
+          "weight": 219
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 13,
+          "dot": 76.95,
+          "breadth": 86.63125,
+          "tier": null,
+          "school": "Michigan",
+          "height": "6'2\"",
+          "weight": 219
+        }
+      ]
+    },
+    {
+      "player_name": "Jack Plummer",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 40,
+          "dot": 72.58,
+          "breadth": 85.6813,
+          "tier": "V",
+          "school": "Louisville",
+          "height": "6'5\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 34,
+          "dot": 72.575,
+          "breadth": 85.68125,
+          "tier": null,
+          "school": "Louisville",
+          "height": "6'5\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 34,
+          "dot": 72.575,
+          "breadth": 85.68125,
+          "tier": null,
+          "school": "Louisville",
+          "height": "6'5\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Jake Haener",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 8,
+          "dot": 80.93,
+          "breadth": 95.1,
+          "tier": null,
+          "school": "Fresno",
+          "height": "6'0\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 8,
+          "dot": 80.93,
+          "breadth": 95.1,
+          "tier": "II",
+          "school": "Fresno",
+          "height": "6'0\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 5,
+          "dot": 80.925,
+          "breadth": 95.1,
+          "tier": null,
+          "school": "Fresno",
+          "height": "6'0\"",
+          "weight": 207
+        }
+      ]
+    },
+    {
+      "player_name": "Jamie Newman",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 24,
+          "dot": 72.7,
+          "breadth": 76.7,
+          "tier": null,
+          "school": "Wake Forest",
+          "height": "6'3\"",
+          "weight": 229
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 28,
+          "dot": 72.7,
+          "breadth": 76.7,
+          "tier": null,
+          "school": "Florida",
+          "height": "6'3\"",
+          "weight": 229
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 39,
+          "dot": 72.7,
+          "breadth": 76.7,
+          "tier": "III",
+          "school": "Wake",
+          "height": "6'3\"",
+          "weight": 229
+        }
+      ]
+    },
+    {
+      "player_name": "Jaren Hall",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 16,
+          "dot": 77.3,
+          "breadth": 89.6,
+          "tier": null,
+          "school": "WKU",
+          "height": "6'0\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 19,
+          "dot": 77.3,
+          "breadth": 89.6,
+          "tier": "III",
+          "school": "BYU",
+          "height": "6'0\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 14,
+          "dot": 77.3,
+          "breadth": 89.6,
+          "tier": null,
+          "school": "A capable play-action",
+          "height": "6'0\"",
+          "weight": 207
+        }
+      ]
+    },
+    {
+      "player_name": "Jordan Travis",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 32,
+          "dot": 74.73,
+          "breadth": 90.7875,
+          "tier": "IV",
+          "school": "FSU",
+          "height": "6'1\"",
+          "weight": 200
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 27,
+          "dot": 74.725,
+          "breadth": 90.7875,
+          "tier": null,
+          "school": "Travis has a promising",
+          "height": "6'1\"",
+          "weight": 200
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 24,
+          "dot": 74.725,
+          "breadth": 90.7875,
+          "tier": null,
+          "school": "Syracuse",
+          "height": "6'3\"",
+          "weight": 218
+        }
+      ]
+    },
+    {
+      "player_name": "Justin Fields",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 7,
+          "dot": 80.275,
+          "breadth": 79.4,
+          "tier": null,
+          "school": "Ohio State",
+          "height": "6'3\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 9,
+          "dot": 80.28,
+          "breadth": 79.4,
+          "tier": null,
+          "school": "Ohio",
+          "height": "6'3\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 9,
+          "dot": 80.28,
+          "breadth": 79.4,
+          "tier": "I",
+          "school": "Ohio",
+          "height": "6'3\"",
+          "weight": 223
+        }
+      ]
+    },
+    {
+      "player_name": "K.J. Costello",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 41,
+          "dot": 63.9,
+          "breadth": 65.5,
+          "tier": null,
+          "school": "Stanford/Miss St.",
+          "height": "6'5\"",
+          "weight": 222
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 40,
+          "dot": 63.9,
+          "breadth": 65.5,
+          "tier": null,
+          "school": "Stanford/M",
+          "height": "6'5\"",
+          "weight": 222
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 56,
+          "dot": 63.9,
+          "breadth": 65.5,
+          "tier": "V",
+          "school": "Stanford/Miss",
+          "height": "6'5\"",
+          "weight": 222
+        }
+      ]
+    },
+    {
+      "player_name": "Kaleb Eleby",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 42,
+          "dot": 61.25,
+          "breadth": 72.4375,
+          "tier": null,
+          "school": "Western Michigan",
+          "height": "6'1\"",
+          "weight": 208
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 41,
+          "dot": 61.25,
+          "breadth": 78.9,
+          "tier": null,
+          "school": "Michigan Western",
+          "height": "6'1\"",
+          "weight": 208
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 58,
+          "dot": 61.25,
+          "breadth": 78.9,
+          "tier": "V",
+          "school": "Western",
+          "height": "6'1\"",
+          "weight": 208
+        }
+      ]
+    },
+    {
+      "player_name": "Kedon Slovis",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 57,
+          "dot": 63.23,
+          "breadth": 81.0625,
+          "tier": "VII",
+          "school": "USC/Pitt/BYU",
+          "height": "6'2\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 44,
+          "dot": 63.225,
+          "breadth": 81.0625,
+          "tier": null,
+          "school": "USC/Pitt/BYU",
+          "height": "6'2\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 44,
+          "dot": 63.225,
+          "breadth": 81.0625,
+          "tier": null,
+          "school": "USC/Pitt/BYU",
+          "height": "6'2\"",
+          "weight": 223
+        }
+      ]
+    },
+    {
+      "player_name": "Kellen Mond",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 44,
+          "dot": 60.225,
+          "breadth": 65.6,
+          "tier": null,
+          "school": "Texas A&M",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 42,
+          "dot": 60.23,
+          "breadth": 65.6,
+          "tier": null,
+          "school": "Texas",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 60,
+          "dot": 60.23,
+          "breadth": 65.6,
+          "tier": "V",
+          "school": "Texas",
+          "height": "6'3\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Kenny Pickett",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 12,
+          "dot": 78.875,
+          "breadth": 80.93125,
+          "tier": null,
+          "school": "Pitt",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 13,
+          "dot": 78.88,
+          "breadth": 87.9,
+          "tier": null,
+          "school": "Pitt",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 15,
+          "dot": 78.88,
+          "breadth": 87.9,
+          "tier": "I",
+          "school": "Pitt",
+          "height": "6'3\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Kyle Trask",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 25,
+          "dot": 72.475,
+          "breadth": 74.5,
+          "tier": null,
+          "school": "Florida",
+          "height": "6'5\"",
+          "weight": 240
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 29,
+          "dot": 72.48,
+          "breadth": 74.5,
+          "tier": null,
+          "school": "Florida",
+          "height": "6'5\"",
+          "weight": 240
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 41,
+          "dot": 72.48,
+          "breadth": 74.5,
+          "tier": "III",
+          "school": "Florida",
+          "height": "6'5\"",
+          "weight": 240
+        }
+      ]
+    },
+    {
+      "player_name": "Mac Jones",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 6,
+          "dot": 81.225,
+          "breadth": 80.9,
+          "tier": null,
+          "school": "Alabama",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 7,
+          "dot": 81.23,
+          "breadth": 80.9,
+          "tier": null,
+          "school": "Fresno",
+          "height": "6'3\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 7,
+          "dot": 32.0,
+          "breadth": 81.23,
+          "tier": "I",
+          "school": "Alabama",
+          "height": "6'3\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Matt Corral",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 11,
+          "dot": 79.525,
+          "breadth": 84.98125,
+          "tier": null,
+          "school": "Ole Miss",
+          "height": "6'2\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 12,
+          "dot": 79.53,
+          "breadth": 91.6,
+          "tier": null,
+          "school": "Ole",
+          "height": "6'2\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 13,
+          "dot": 79.53,
+          "breadth": 91.6,
+          "tier": "I",
+          "school": "Ole",
+          "height": "6'2\"",
+          "weight": 212
+        }
+      ]
+    },
+    {
+      "player_name": "Max Duggan",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 15,
+          "dot": 77.88,
+          "breadth": 92.4,
+          "tier": null,
+          "school": "TCU",
+          "height": "6'1\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 17,
+          "dot": 77.88,
+          "breadth": 92.4,
+          "tier": "III",
+          "school": "TCU",
+          "height": "6'1\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 12,
+          "dot": 77.875,
+          "breadth": 92.4,
+          "tier": null,
+          "school": null,
+          "height": "6'1\"",
+          "weight": 207
+        }
+      ]
+    },
+    {
+      "player_name": "Michael Pratt",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 38,
+          "dot": 72.78,
+          "breadth": 86.35,
+          "tier": "V",
+          "school": "Tulane",
+          "height": "6'2\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 33,
+          "dot": 72.775,
+          "breadth": 86.35,
+          "tier": null,
+          "school": "Louisville",
+          "height": "6'5\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 33,
+          "dot": 72.775,
+          "breadth": 86.35,
+          "tier": null,
+          "school": "Louisville",
+          "height": "6'5\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Sam Hartman",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 36,
+          "dot": 73.68,
+          "breadth": 83.95,
+          "tier": "IV",
+          "school": "Notre",
+          "height": "6'1\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 32,
+          "dot": 73.675,
+          "breadth": 83.95,
+          "tier": null,
+          "school": "Notre",
+          "height": "6'1\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 32,
+          "dot": 73.675,
+          "breadth": 83.95,
+          "tier": null,
+          "school": null,
+          "height": null,
+          "weight": null
+        }
+      ]
+    },
+    {
+      "player_name": "Shane Buechele",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 26,
+          "dot": 72.1,
+          "breadth": 74.7,
+          "tier": null,
+          "school": "SMU",
+          "height": "6'1\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 31,
+          "dot": 72.1,
+          "breadth": 74.7,
+          "tier": null,
+          "school": "Miami/Hou",
+          "height": "6'1\"",
+          "weight": 207
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 43,
+          "dot": 72.1,
+          "breadth": 74.7,
+          "tier": "III",
+          "school": "SMU",
+          "height": "6'1\"",
+          "weight": 207
+        }
+      ]
+    },
+    {
+      "player_name": "Spencer Rattler",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 23,
+          "dot": 76.18,
+          "breadth": 92.4438,
+          "tier": "III",
+          "school": "Carolina/Oklahoma",
+          "height": "6'0\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 22,
+          "dot": 76.175,
+          "breadth": 92.44375,
+          "tier": null,
+          "school": "Carolina/Oklahoma",
+          "height": "6'0\"",
+          "weight": 211
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 19,
+          "dot": 76.175,
+          "breadth": 92.44375,
+          "tier": null,
+          "school": "Carolina/Oklahoma",
+          "height": "6'0\"",
+          "weight": 211
+        }
+      ]
+    },
+    {
+      "player_name": "Tanner Mckee",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 38,
+          "dot": 66.45,
+          "breadth": 85.1,
+          "tier": null,
+          "school": "Kent",
+          "height": "6'6\"",
+          "weight": 231
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 54,
+          "dot": 66.45,
+          "breadth": 85.1,
+          "tier": "V",
+          "school": "Stanford",
+          "height": "6'6\"",
+          "weight": 231
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 43,
+          "dot": 66.45,
+          "breadth": 85.1,
+          "tier": null,
+          "school": "Stanford",
+          "height": "6'6\"",
+          "weight": 231
+        }
+      ]
+    },
+    {
+      "player_name": "Trevor Lawrence",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 3,
+          "dot": 84.9,
+          "breadth": 79.8,
+          "tier": null,
+          "school": "Clemson",
+          "height": "6'6\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 3,
+          "dot": 84.9,
+          "breadth": 79.8,
+          "tier": null,
+          "school": "Clemson",
+          "height": "6'6\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 3,
+          "dot": 84.9,
+          "breadth": 79.8,
+          "tier": "I",
+          "school": "Clemson",
+          "height": "6'6\"",
+          "weight": 213
+        }
+      ]
+    },
+    {
+      "player_name": "Trey Lance",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 5,
+          "dot": 83.675,
+          "breadth": 75.8,
+          "tier": null,
+          "school": "North Dakota St.",
+          "height": "6'3\"",
+          "weight": 224
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 5,
+          "dot": 83.68,
+          "breadth": 75.8,
+          "tier": null,
+          "school": "Dakota",
+          "height": "6'3\"",
+          "weight": 224
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 5,
+          "dot": 83.68,
+          "breadth": 75.8,
+          "tier": "I",
+          "school": "North",
+          "height": "6'3\"",
+          "weight": 224
+        }
+      ]
+    },
+    {
+      "player_name": "Tyson Bagent",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 14,
+          "dot": 78.73,
+          "breadth": 89.6,
+          "tier": null,
+          "school": "TCU",
+          "height": "6'2\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 16,
+          "dot": 78.73,
+          "breadth": 89.6,
+          "tier": "III",
+          "school": "Shepherd",
+          "height": "6'2\"",
+          "weight": 213
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 11,
+          "dot": 78.725,
+          "breadth": 89.6,
+          "tier": null,
+          "school": "Shepherd",
+          "height": "6'2\"",
+          "weight": 213
         }
       ]
     },
@@ -30003,6 +33864,846 @@
           "school": "Boston College",
           "height": "5'9\"",
           "weight": 182
+        }
+      ]
+    },
+    {
+      "player_name": "Austin Reed",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 24,
+          "dot": 75.45,
+          "breadth": 91.14375,
+          "tier": null,
+          "school": "With time devoted to",
+          "height": "6'1\"",
+          "weight": 220
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 21,
+          "dot": 75.45,
+          "breadth": 91.14375,
+          "tier": null,
+          "school": null,
+          "height": "6'1\"",
+          "weight": 220
+        }
+      ]
+    },
+    {
+      "player_name": "Bryce Young",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 6,
+          "dot": 82.58,
+          "breadth": 90.3,
+          "tier": "I",
+          "school": "Alabama",
+          "height": "5'10\"",
+          "weight": 204
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 4,
+          "dot": 82.575,
+          "breadth": 90.3,
+          "tier": null,
+          "school": "Alabama",
+          "height": "5'10\"",
+          "weight": 204
+        }
+      ]
+    },
+    {
+      "player_name": "C.J. Stroud",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 4,
+          "dot": 83.75,
+          "breadth": 91.6,
+          "tier": null,
+          "school": "Ohio",
+          "height": "6'3\"",
+          "weight": 214
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 4,
+          "dot": 83.75,
+          "breadth": 91.6,
+          "tier": "I",
+          "school": "Ohio",
+          "height": "6'3\"",
+          "weight": 214
+        }
+      ]
+    },
+    {
+      "player_name": "Caleb Williams",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 2,
+          "dot": 85.25,
+          "breadth": 95.725,
+          "tier": "I",
+          "school": "USC",
+          "height": "6'1\"",
+          "weight": 214
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 2,
+          "dot": 85.25,
+          "breadth": 95.725,
+          "tier": null,
+          "school": "Williams has the creativity,",
+          "height": "6'1\"",
+          "weight": 214
+        }
+      ]
+    },
+    {
+      "player_name": "Cam Ward",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 8,
+          "dot": 79.325,
+          "breadth": 88.73125,
+          "tier": null,
+          "school": "Miami",
+          "height": "6'1\"",
+          "weight": 219
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 4,
+          "dot": 79.425,
+          "breadth": 88.73125,
+          "tier": null,
+          "school": "Alabama",
+          "height": "6'1\"",
+          "weight": 211
+        }
+      ]
+    },
+    {
+      "player_name": "Carter Bradley",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 46,
+          "dot": 59.4,
+          "breadth": 78.58125,
+          "tier": null,
+          "school": "South",
+          "height": "6'3\"",
+          "weight": 216
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 47,
+          "dot": 59.4,
+          "breadth": 78.58125,
+          "tier": null,
+          "school": "Alabama/Toledo",
+          "height": "6'3\"",
+          "weight": 216
+        }
+      ]
+    },
+    {
+      "player_name": "Cole Kelley",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 19,
+          "dot": 74.975,
+          "breadth": 81.4125,
+          "tier": null,
+          "school": "SE Louisiana",
+          "height": "6'7\"",
+          "weight": 249
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 30,
+          "dot": 74.98,
+          "breadth": 90.2,
+          "tier": "II",
+          "school": "SE",
+          "height": "6'7\"",
+          "weight": 249
+        }
+      ]
+    },
+    {
+      "player_name": "Dillon Gabriel",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 35,
+          "dot": 72.55,
+          "breadth": 85.325,
+          "tier": null,
+          "school": "Oregon/Oklahoma",
+          "height": "5'11\"",
+          "weight": 205
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 35,
+          "dot": 72.55,
+          "breadth": 85.325,
+          "tier": null,
+          "school": "Oregon/Oklahoma",
+          "height": "5'11\"",
+          "weight": 205
+        }
+      ]
+    },
+    {
+      "player_name": "Drake Maye",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 22,
+          "dot": 76.63,
+          "breadth": 90.7,
+          "tier": "III",
+          "school": "North",
+          "height": "6'4\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 14,
+          "dot": 76.625,
+          "breadth": 90.7,
+          "tier": null,
+          "school": "North",
+          "height": "6'4\"",
+          "weight": 223
+        }
+      ]
+    },
+    {
+      "player_name": "Jalen Milroe",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 10,
+          "dot": 78.975,
+          "breadth": 93.2625,
+          "tier": null,
+          "school": "Alabama",
+          "height": "6'1\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 7,
+          "dot": 78.975,
+          "breadth": 93.2625,
+          "tier": null,
+          "school": "Alabama",
+          "height": "6'1\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Jaxson Dart",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 19,
+          "dot": 76.6,
+          "breadth": 92.225,
+          "tier": null,
+          "school": "Ole",
+          "height": "6'2\"",
+          "weight": 223
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 15,
+          "dot": 76.6,
+          "breadth": 92.225,
+          "tier": null,
+          "school": "Ole",
+          "height": "6'2\"",
+          "weight": 223
+        }
+      ]
+    },
+    {
+      "player_name": "Jayden Daniels",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 18,
+          "dot": 77.88,
+          "breadth": 88.3813,
+          "tier": "III",
+          "school": "LSU",
+          "height": "6'4\"",
+          "weight": 210
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 13,
+          "dot": 77.875,
+          "breadth": 88.38125,
+          "tier": null,
+          "school": "Daniels has the mobility",
+          "height": "6'4\"",
+          "weight": 210
+        }
+      ]
+    },
+    {
+      "player_name": "Joe Milton",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 40,
+          "dot": 68.3,
+          "breadth": 77.6625,
+          "tier": null,
+          "school": "Tennessee",
+          "height": "6'5\"",
+          "weight": 235
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 42,
+          "dot": 68.3,
+          "breadth": 77.6625,
+          "tier": null,
+          "school": "Tennessee",
+          "height": "6'5\"",
+          "weight": 235
+        }
+      ]
+    },
+    {
+      "player_name": "Kurtis Rourke",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 16,
+          "dot": 76.85,
+          "breadth": 88.73125,
+          "tier": null,
+          "school": "Indiana",
+          "height": "6'4\"",
+          "weight": 220
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 12,
+          "dot": 76.95,
+          "breadth": 88.73125,
+          "tier": null,
+          "school": "Indiana",
+          "height": "6'4\"",
+          "weight": 220
+        }
+      ]
+    },
+    {
+      "player_name": "Kyle Mccord",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 29,
+          "dot": 74.475,
+          "breadth": 81.6375,
+          "tier": null,
+          "school": "Syracuse",
+          "height": "6'3\"",
+          "weight": 218
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 25,
+          "dot": 74.575,
+          "breadth": 81.6375,
+          "tier": null,
+          "school": "Syracuse",
+          "height": "6'3\"",
+          "weight": 218
+        }
+      ]
+    },
+    {
+      "player_name": "Liam Welch",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 23,
+          "dot": 73.225,
+          "breadth": 79.66875,
+          "tier": null,
+          "school": "Samford",
+          "height": "6'2\"",
+          "weight": 208
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 37,
+          "dot": 73.23,
+          "breadth": 83.7,
+          "tier": "III",
+          "school": "Samford",
+          "height": "6'2\"",
+          "weight": 208
+        }
+      ]
+    },
+    {
+      "player_name": "Malik Willis",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 22,
+          "dot": 73.825,
+          "breadth": 70.1125,
+          "tier": null,
+          "school": "Liberty",
+          "height": "6'0\"",
+          "weight": 219
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 35,
+          "dot": 73.83,
+          "breadth": 79.4,
+          "tier": "III",
+          "school": "Liberty",
+          "height": "6'0\"",
+          "weight": 219
+        }
+      ]
+    },
+    {
+      "player_name": "Max Brosmer",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 28,
+          "dot": 74.5,
+          "breadth": 83.95,
+          "tier": null,
+          "school": "Minnesota",
+          "height": "6'1\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 26,
+          "dot": 74.5,
+          "breadth": 83.95,
+          "tier": null,
+          "school": "Minnesota",
+          "height": "6'1\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Quinn Ewers",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 26,
+          "dot": 74.825,
+          "breadth": 92.93125,
+          "tier": null,
+          "school": "Travis has a promising",
+          "height": "6'1\"",
+          "weight": 200
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 23,
+          "dot": 74.925,
+          "breadth": 92.93125,
+          "tier": null,
+          "school": null,
+          "height": "6'2\"",
+          "weight": 214
+        }
+      ]
+    },
+    {
+      "player_name": "Sam Ehlinger",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 21,
+          "dot": 74.2,
+          "breadth": 81.6,
+          "tier": null,
+          "school": "Texas",
+          "height": "6'3\"",
+          "weight": 230
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 34,
+          "dot": 37.0,
+          "breadth": 74.2,
+          "tier": "III",
+          "school": "Texas",
+          "height": "6'3\"",
+          "weight": 230
+        }
+      ]
+    },
+    {
+      "player_name": "Sam Howell",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 20,
+          "dot": 74.9,
+          "breadth": 73.725,
+          "tier": null,
+          "school": "UNC",
+          "height": "6'1\"",
+          "weight": 218
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 31,
+          "dot": 74.9,
+          "breadth": 82.8,
+          "tier": "II",
+          "school": "UNC",
+          "height": "6'1\"",
+          "weight": 218
+        }
+      ]
+    },
+    {
+      "player_name": "Seth Henigan",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 31,
+          "dot": 73.7,
+          "breadth": 91.31875,
+          "tier": null,
+          "school": "Memphis",
+          "height": "6'3\"",
+          "weight": 215
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 31,
+          "dot": 73.7,
+          "breadth": 91.31875,
+          "tier": null,
+          "school": "Memphis",
+          "height": "6'3\"",
+          "weight": 215
+        }
+      ]
+    },
+    {
+      "player_name": "Shedeur Sanders",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 15,
+          "dot": 77.025,
+          "breadth": 88.9,
+          "tier": null,
+          "school": "Colorado",
+          "height": "6'1\"",
+          "weight": 212
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 11,
+          "dot": 77.025,
+          "breadth": 88.9,
+          "tier": null,
+          "school": "Colorado",
+          "height": "6'1\"",
+          "weight": 212
+        }
+      ]
+    },
+    {
+      "player_name": "Skylar Thompson",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 1,
+          "dot": 87.425,
+          "breadth": 87.35625,
+          "tier": null,
+          "school": "KSU",
+          "height": "6'2\"",
+          "weight": 217
+        },
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 1,
+          "dot": 87.43,
+          "breadth": 91.4,
+          "tier": null,
+          "school": "KSU",
+          "height": "6'2\"",
+          "weight": 217
+        }
+      ]
+    },
+    {
+      "player_name": "Stetson Bennett",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 12,
+          "dot": 79.7,
+          "breadth": 91.3,
+          "tier": "II",
+          "school": "Georgia",
+          "height": "5'11\"",
+          "weight": 192
+        },
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 7,
+          "dot": 79.7,
+          "breadth": 91.3,
+          "tier": null,
+          "school": "Miami",
+          "height": "6'1\"",
+          "weight": 219
+        }
+      ]
+    },
+    {
+      "player_name": "Tanner Mordecai",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 33,
+          "dot": 74.35,
+          "breadth": 87.95,
+          "tier": "IV",
+          "school": "Wisconsin/SMU",
+          "height": "6'3\"",
+          "weight": 218
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 28,
+          "dot": 74.35,
+          "breadth": 87.95,
+          "tier": null,
+          "school": "Wisconsin/SMU",
+          "height": "6'3\"",
+          "weight": 218
+        }
+      ]
+    },
+    {
+      "player_name": "Tyler Shough",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 20,
+          "dot": 76.35,
+          "breadth": 85.6125,
+          "tier": null,
+          "school": "Louisville",
+          "height": "6'4\"",
+          "weight": 219
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 16,
+          "dot": 76.35,
+          "breadth": 85.6125,
+          "tier": null,
+          "school": null,
+          "height": null,
+          "weight": null
+        }
+      ]
+    },
+    {
+      "player_name": "Will Howard",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2025,
+          "window": "2023-2025",
+          "rank": 21,
+          "dot": 76.225,
+          "breadth": 89.4125,
+          "tier": null,
+          "school": "Ohio",
+          "height": "6'4\"",
+          "weight": 236
+        },
+        {
+          "guide_year": 2026,
+          "window": "2024-2026",
+          "rank": 18,
+          "dot": 76.225,
+          "breadth": 89.4125,
+          "tier": null,
+          "school": "Ohio",
+          "height": "6'4\"",
+          "weight": 236
+        }
+      ]
+    },
+    {
+      "player_name": "Will Levis",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2023,
+          "window": "2021-2023",
+          "rank": 36,
+          "dot": 67.55,
+          "breadth": 77.3,
+          "tier": null,
+          "school": "Kentucky",
+          "height": "6'4\"",
+          "weight": 229
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 52,
+          "dot": 67.55,
+          "breadth": 77.3,
+          "tier": "V",
+          "school": "Kentucky",
+          "height": "6'4\"",
+          "weight": 229
+        }
+      ]
+    },
+    {
+      "player_name": "Zach Wilson",
+      "position": "QB",
+      "appearances": [
+        {
+          "guide_year": 2022,
+          "window": "2020-2022",
+          "rank": 18,
+          "dot": 75.2,
+          "breadth": 71.4,
+          "tier": null,
+          "school": "BYU",
+          "height": "6'2\"",
+          "weight": 214
+        },
+        {
+          "guide_year": 2024,
+          "window": "2022-2024",
+          "rank": 29,
+          "dot": 75.2,
+          "breadth": 71.4,
+          "tier": "II",
+          "school": "BYU",
+          "height": "6'2\"",
+          "weight": 214
         }
       ]
     },

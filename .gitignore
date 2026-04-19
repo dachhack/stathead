@@ -34,6 +34,7 @@ public/data/*
 !public/data/pdf-prospect-features.json
 !public/data/pdf-prospect-features-merged.json
 !public/data/rsp-historical-rankings.json
+!public/data/rsp-qb-features.json
 .claude/*
 !.claude/commands/
 !.claude/commands/**
