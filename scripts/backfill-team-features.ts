@@ -21,7 +21,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import Papa from 'papaparse';
 
-const CACHE_PATH = 'public/data/training-rows-cache-v48.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v49.json';
 const STATS_DIR = 'public/data';
 
 interface PlayerStat {

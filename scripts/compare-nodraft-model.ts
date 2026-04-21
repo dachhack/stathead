@@ -16,7 +16,7 @@ import { readFileSync } from 'fs';
 import { PRE_DRAFT_ROOKIE_FEATURES } from '../src/lib/featureTypes';
 import { trainRookieCareerModels, type RookieCareerBacktestRow, type RookieCareerModelResult } from '../src/lib/rookieCareerModel';
 
-const CACHE_PATH = 'public/data/training-rows-cache-v48.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v49.json';
 const POSITIONS = ['RB', 'WR', 'TE'] as const;
 
 const DRAFT_KEYS_TO_STRIP = new Set([

@@ -13,7 +13,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-CACHE = Path('public/data/training-rows-cache-v48.json')
+CACHE = Path('public/data/training-rows-cache-v49.json')
 
 # ADP buckets we care about (top-N style)
 # Last bucket is "rest" (49+).
