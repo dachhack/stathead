@@ -754,10 +754,19 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         if pg > 0:
             career_games[key] = pg
 
-    # Group rows by player → career
+    # Group rows by player → career. Name normalization strips generational
+    # suffixes (III/II/IV/Jr/Sr) so nflverse-source inconsistencies don't
+    # split one career into two entries — e.g. Kenneth Walker's 2022 rookie
+    # row arrived without "III" but the 2023 row has it, which previously
+    # produced two backtest entries with partial season_ppgs each.
+    def _career_key(name: str, pos: str) -> str:
+        nk = name.lower().strip()
+        nk = _re.sub(r'\s+(sr|jr|iii|ii|iv|v)\.?$', '', nk)
+        nk = _re.sub(r'[^a-z0-9 ]+', '', nk).strip()
+        return f'{nk}::{pos}'
     career_map: dict[str, dict] = {}
     for r in rows:
-        key = f"{r['name']}::{r['position']}"
+        key = _career_key(r['name'], r['position'])
         if key not in career_map:
             career_map[key] = {
                 'name': r['name'], 'position': r['position'],
@@ -774,6 +783,10 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
             if entry['draft_season'] == 0 or derived < entry['draft_season']:
                 entry['draft_season'] = derived
                 entry['features'] = dict(r['features'])
+                # Prefer the rookie-year name variant for display — it's
+                # what the Beast/RSP scouting PDFs match against, and
+                # feature-matrix lookups use the same format.
+                entry['name'] = r['name']
 
     # Fix false rookies
     for entry in career_map.values():
@@ -1424,17 +1437,23 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             scout_z = (sc - s_m) / s_s
             prod_z  = (pr - p_m) / p_s
             gap_z   = scout_z - prod_z
-            # Scout tier implied by scout_z alone. Thresholds tightened
-            # after the preview run showed first-round WRs were too
-            # easily hitting Alpha (Burks/Legette/Dotson along with the
-            # legit Nabers/JSN/Olave class). Alpha now requires truly
-            # elite scout consensus; the legit elites still clear 2σ.
-            if   scout_z >= 2.0:  scout_tier = 1
-            elif scout_z >= 1.3:  scout_tier = 2
-            elif scout_z >= 0.5:  scout_tier = 3
-            elif scout_z >= -0.3: scout_tier = 4
-            elif scout_z >= -1.0: scout_tier = 5
-            else:                 scout_tier = 6
+            # Scout tier implied by scout_z alone. Thresholds tuned
+            # per-position against the 2022-2025 validation sweep (see
+            # scripts/sweep_scout_thresholds.py):
+            #   QB  2.2σ — drops tbd cases, keeps Caleb/Maye/Stroud/Daniels
+            #   RB  2.0σ — RB override never fires (percentile handles it)
+            #   WR  2.4σ — drops Worthy/Pearsall/Legette without losing
+            #              the Olave/London/G.Wilson/JSN/Nabers class
+            #   TE  1.6σ — low bar so Kincaid stays upgraded; higher
+            #              thresholds turn TE override into a no-op
+            ALPHA_Z = {'QB': 2.2, 'RB': 2.0, 'WR': 2.4, 'TE': 1.6}.get(pos, 2.0)
+            BLUE_Z  = {'QB': 1.3, 'RB': 1.3, 'WR': 1.4, 'TE': 1.0}.get(pos, 1.3)
+            if   scout_z >= ALPHA_Z:  scout_tier = 1
+            elif scout_z >= BLUE_Z:   scout_tier = 2
+            elif scout_z >= 0.5:      scout_tier = 3
+            elif scout_z >= -0.3:     scout_tier = 4
+            elif scout_z >= -1.0:     scout_tier = 5
+            else:                     scout_tier = 6
             # Upgrade only. Require scout consensus to be ≥1σ above
             # production, and production not catastrophically low.
             if (scout_tier < r['modelTier']

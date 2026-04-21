@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-21T22:39:16.094Z",
+  "updatedAt": "2026-04-21T22:57:34.974Z",
   "models": {
     "career": {
       "version": "v51",
       "count": 77,
-      "backtestCount": 1094
+      "backtestCount": 1087
     },
     "adp": {
       "version": "v50",
