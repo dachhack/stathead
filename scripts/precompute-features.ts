@@ -891,24 +891,35 @@ async function main() {
     // Parse DOT score + tier-class ordinal from merged 'tiers' strings
     // like "Starter (87.4)" or "Contributor (76.2)". Keep in sync with
     // train_career_models.py::_parse_rsp_tier.
+    // Recent RSP guides label the top-of-class with Roman numerals
+    // ("Tier I" – "Tier VII") alongside the older named tiers. Without
+    // the numeric entries ~45% of RSP-graded prospects had
+    // rspTierOrdinal zero'd out (Bijan + Jeanty were both Tier I → 0).
     const RSP_TIER_ORDINAL: Record<string, number> = {
       'Franchise': 10,
       'Legendary Performer': 9,
       'Elite Producer': 9,
+      'Tier I': 9,
+      'Tier II': 8,
       'Weekly Starter': 8,
       'Starter': 8,
       'Rotational Starter': 7,
       'Rotational Starter Tier': 7,
+      'Tier III': 7,
       'Flex Play': 6,
       'Contributor': 6,
+      'Tier IV': 5,
       'Reserve': 5,
       'Cusp of Contributor and Reserve': 5,
+      'Tier V': 4,
       'Developmental': 4,
       'Developmental on Cusp of Reserve': 4,
       'Benchwarmer': 3,
       'Priority Free Agent': 3,
+      'Tier VI': 2,
       'Waiver Wire Add': 2,
       'Dart Throw': 2,
+      'Tier VII': 1,
       'Street': 1,
     };
     const RSP_DOT_RE = /\(([0-9]+(?:\.[0-9]+)?)\)/;

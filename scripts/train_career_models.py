@@ -298,20 +298,31 @@ _RSP_TIER_ORDINAL = {
     'Franchise': 10,
     'Legendary Performer': 9,
     'Elite Producer': 9,
+    # Recent RSP guides label the top-of-class with Roman numerals ("Tier I"
+    # through "Tier VII") instead of the older named tiers. 2022-2025 guides
+    # mix both — without these entries ~45% of RSP-graded prospects had
+    # rspTierOrdinal zero'd out (Bijan, Jeanty were both Tier I → 0).
+    'Tier I': 9,
+    'Tier II': 8,
     'Weekly Starter': 8,
     'Starter': 8,
     'Rotational Starter': 7,
     'Rotational Starter Tier': 7,
+    'Tier III': 7,
     'Flex Play': 6,
     'Contributor': 6,
+    'Tier IV': 5,
     'Reserve': 5,
     'Cusp of Contributor and Reserve': 5,
+    'Tier V': 4,
     'Developmental': 4,
     'Developmental on Cusp of Reserve': 4,
     'Benchwarmer': 3,
     'Priority Free Agent': 3,
+    'Tier VI': 2,
     'Waiver Wire Add': 2,
     'Dart Throw': 2,
+    'Tier VII': 1,
     'Street': 1,
 }
 
