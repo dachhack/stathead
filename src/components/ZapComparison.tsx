@@ -164,9 +164,10 @@ export function ZapComparison() {
         } catch {}
       }
 
-      // Build 2026 comparison. 2026 is on modern talent-gap methodology so
-      // ZAP and our tier-scaled score are on the same axis — score delta
-      // is meaningful here.
+      // Build 2026 comparison. "Pctl" here is the career-model percentile
+      // stored on careerPredictions2026 (rank vs historical backtest), so it
+      // matches the Dynasty Prospects view. Keep it the single source of
+      // truth — diverging formulas across tabs have caused inconsistencies.
       const r2026: CompRow[] = [];
       for (const pos of ['RB', 'WR', 'TE'] as const) {
         const posList = (zapScores2026 as any)[pos] || [];
@@ -176,11 +177,13 @@ export function ZapComparison() {
           .sort((a: any, b: any) => b.predPPG - a.predPPG)
           .forEach((p: any, i: number) => ourRankMap.set(normalizeName(p.z.name), i + 1));
         for (const { z, predPPG } of predList) {
-          const ourScore = predPPG > 0 ? Math.round(ppgToTierScore(predPPG, pos) * 10) / 10 : 0;
+          const nn = normalizeName(z.name);
+          const pred = pred2026Map.get(nn);
+          const ourScore = pred?.percentile || 0;
           r2026.push({
             name: z.name, pos, zapRank: z.rank,
             zapScore: z.zap, ourScore,
-            ourRank: ourRankMap.get(normalizeName(z.name)) || 0,
+            ourRank: ourRankMap.get(nn) || 0,
             actualRank: 0,
             actualPPG: 0,
             predictedPPG: predPPG,
