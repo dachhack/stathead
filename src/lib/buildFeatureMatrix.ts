@@ -2397,6 +2397,22 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         }
                       }
                     }
+                    // Fallback for recent QBs not yet in nflverse college
+                    // stats (Caleb Williams, Jayden Daniels, and 2025/2026
+                    // classes generally). Scan CFBD usage keys for this
+                    // player's max season + team.
+                    if (lastSeason === 0) {
+                      const cfbdK = normalName.replace(/[^a-z0-9]+/g, '');
+                      const prefix = `${cfbdK}:`;
+                      for (const key in cfbdPlayerUsage) {
+                        if (!key.startsWith(prefix)) continue;
+                        const yr = parseInt(key.split(':')[1]);
+                        if (yr > lastSeason) {
+                          lastSeason = yr;
+                          lastSchool = (cfbdPlayerUsage[key]?.team || '').toLowerCase() || lastSchool;
+                        }
+                      }
+                    }
                     const careerPassYds = cs?.get('Passing Yards') || 0;
                     const teamKey1 = lastSchool ? `${normalizeSchool(lastSchool)}:${lastSeason}` : '';
                     const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
@@ -2456,37 +2472,40 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
                   recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
                   // Aggregate 247 talent of the player's most recent college team.
-                  // Looked up by school:lastSeason from playerSeasonStats.
-                  collegeTeamTalent: (() => {
+                  // Look up by school:lastSeason from playerSeasonStats; when
+                  // nflverse college stats haven't caught up (recent classes —
+                  // 2025 RBs were entirely missing these), fall back to the
+                  // max season present in cfbdPlayerUsage under this key.
+                  // Mirrors the fallback in precompute-features.ts:1146.
+                  ...(() => {
+                    const cfbdK = normalName.replace(/[^a-z0-9]+/g, '');
+                    let lastSeason = 0, lastSchool = '';
                     const ps = playerSeasonStats.get(normalName);
-                    if (!ps) return 0;
-                    const lastSeason = Math.max(...ps.keys());
-                    const lastSchool = ps.get(lastSeason)?.school || '';
-                    return cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0;
-                  })(),
-                  // CFBD player usage rate from their final college season —
-                  // direct measure of how featured the player was on offense
-                  // (replaces dominator/market-share approximations).
-                  collegeUsageOverall: (() => {
-                    const ps = playerSeasonStats.get(normalName);
-                    if (!ps) return 0;
-                    const lastSeason = Math.max(...ps.keys());
-                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
-                    return cfbdPlayerUsage[k]?.overall || 0;
-                  })(),
-                  collegeUsagePass: (() => {
-                    const ps = playerSeasonStats.get(normalName);
-                    if (!ps) return 0;
-                    const lastSeason = Math.max(...ps.keys());
-                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
-                    return cfbdPlayerUsage[k]?.pass || 0;
-                  })(),
-                  collegeUsageRush: (() => {
-                    const ps = playerSeasonStats.get(normalName);
-                    if (!ps) return 0;
-                    const lastSeason = Math.max(...ps.keys());
-                    const k = `${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`;
-                    return cfbdPlayerUsage[k]?.rush || 0;
+                    if (ps) {
+                      lastSeason = Math.max(...ps.keys());
+                      lastSchool = ps.get(lastSeason)?.school || '';
+                    }
+                    if (lastSeason === 0) {
+                      const prefix = `${cfbdK}:`;
+                      for (const key in cfbdPlayerUsage) {
+                        if (!key.startsWith(prefix)) continue;
+                        const yr = parseInt(key.split(':')[1]);
+                        if (yr > lastSeason) {
+                          lastSeason = yr;
+                          lastSchool = (cfbdPlayerUsage[key]?.team || '').toLowerCase() || lastSchool;
+                        }
+                      }
+                    }
+                    const usageKey = lastSeason > 0 ? `${cfbdK}:${lastSeason}` : '';
+                    const usage = usageKey ? cfbdPlayerUsage[usageKey] : undefined;
+                    return {
+                      collegeTeamTalent: (lastSchool && lastSeason)
+                        ? (cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0)
+                        : 0,
+                      collegeUsageOverall: usage?.overall || 0,
+                      collegeUsagePass: usage?.pass || 0,
+                      collegeUsageRush: usage?.rush || 0,
+                    };
                   })(),
                   collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                   collegeBreakoutAge: imp(adv?.breakoutAge, 'collegeBreakoutAge'),
@@ -2853,6 +2872,23 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                         teamPassAtt += team.passAtt || 0;
                         teamPassCompletions += team.completions || 0;
                         teamTotalPlays += team.totalPlays || 0;
+                      }
+                    }
+                  }
+                  // CFBD fallback: recent rookies (2025 class was 100%
+                  // missing) aren't in nflverse college stats yet, so
+                  // lastSeason/lastSchool stay 0 and the CFBD lookups below
+                  // yield 0 for recruit rating, usage, and team talent.
+                  // Match the fallback precompute-features.ts:1146 uses.
+                  if (lastSeason === 0) {
+                    const cfbdK = draftName.replace(/[^a-z0-9]+/g, '');
+                    const prefix = `${cfbdK}:`;
+                    for (const key in cfbdPlayerUsage) {
+                      if (!key.startsWith(prefix)) continue;
+                      const yr = parseInt(key.split(':')[1]);
+                      if (yr > lastSeason) {
+                        lastSeason = yr;
+                        lastSchool = (cfbdPlayerUsage[key]?.team || '').toLowerCase() || lastSchool;
                       }
                     }
                   }
@@ -4119,6 +4155,19 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                           }
                         }
                       }
+                      // CFBD fallback for recent classes not yet in nflverse.
+                      if (lastSeason === 0) {
+                        const cfbdK = normalName.replace(/[^a-z0-9]+/g, '');
+                        const prefix = `${cfbdK}:`;
+                        for (const key in cfbdPlayerUsage) {
+                          if (!key.startsWith(prefix)) continue;
+                          const yr = parseInt(key.split(':')[1]);
+                          if (yr > lastSeason) {
+                            lastSeason = yr;
+                            lastSchool = (cfbdPlayerUsage[key]?.team || '').toLowerCase() || lastSchool;
+                          }
+                        }
+                      }
                       const careerRushYpg = careerGames > 0 ? careerRushYds / careerGames : 0;
                       const teamKey1 = lastSchool ? `${normalizeSchool(lastSchool)}:${lastSeason}` : '';
                       const teamKey2 = lastSchool ? `${lastSchool.toLowerCase().trim()}:${lastSeason}` : '';
@@ -4179,30 +4228,39 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                     prospectOvlRank: prospect?.ovr_rk || 0,
                     recruitStars: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.stars || 0,
                     recruitRating: cfbdRecruiting[normalName.replace(/[^a-z0-9]+/g, '')]?.composite_rating || 0,
-                    collegeTeamTalent: (() => {
+                    // CFBD lookups fall back to the latest season present in
+                    // cfbdPlayerUsage when nflverse playerSeasonStats doesn't
+                    // have the player — same fix as the ADP-rookie block
+                    // above, shared so 2025 + future classes populate.
+                    ...(() => {
+                      const cfbdK = normalName.replace(/[^a-z0-9]+/g, '');
+                      let lastSeason = 0, lastSchool = '';
                       const ps = playerSeasonStats.get(normalName);
-                      if (!ps) return 0;
-                      const lastSeason = Math.max(...ps.keys());
-                      const lastSchool = ps.get(lastSeason)?.school || '';
-                      return cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0;
-                    })(),
-                    collegeUsageOverall: (() => {
-                      const ps = playerSeasonStats.get(normalName);
-                      if (!ps) return 0;
-                      const lastSeason = Math.max(...ps.keys());
-                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.overall || 0;
-                    })(),
-                    collegeUsagePass: (() => {
-                      const ps = playerSeasonStats.get(normalName);
-                      if (!ps) return 0;
-                      const lastSeason = Math.max(...ps.keys());
-                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.pass || 0;
-                    })(),
-                    collegeUsageRush: (() => {
-                      const ps = playerSeasonStats.get(normalName);
-                      if (!ps) return 0;
-                      const lastSeason = Math.max(...ps.keys());
-                      return cfbdPlayerUsage[`${normalName.replace(/[^a-z0-9]+/g, '')}:${lastSeason}`]?.rush || 0;
+                      if (ps) {
+                        lastSeason = Math.max(...ps.keys());
+                        lastSchool = ps.get(lastSeason)?.school || '';
+                      }
+                      if (lastSeason === 0) {
+                        const prefix = `${cfbdK}:`;
+                        for (const key in cfbdPlayerUsage) {
+                          if (!key.startsWith(prefix)) continue;
+                          const yr = parseInt(key.split(':')[1]);
+                          if (yr > lastSeason) {
+                            lastSeason = yr;
+                            lastSchool = (cfbdPlayerUsage[key]?.team || '').toLowerCase() || lastSchool;
+                          }
+                        }
+                      }
+                      const usageKey = lastSeason > 0 ? `${cfbdK}:${lastSeason}` : '';
+                      const usage = usageKey ? cfbdPlayerUsage[usageKey] : undefined;
+                      return {
+                        collegeTeamTalent: (lastSchool && lastSeason)
+                          ? (cfbdTeamTalent[`${lastSchool}:${lastSeason}`] || 0)
+                          : 0,
+                        collegeUsageOverall: usage?.overall || 0,
+                        collegeUsagePass: usage?.pass || 0,
+                        collegeUsageRush: usage?.rush || 0,
+                      };
                     })(),
                     collegeDominatorRating: imp(adv?.dominatorRating, 'collegeDominatorRating'),
                     collegeDominatorXLateRound: (adv?.dominatorRating || 0) *

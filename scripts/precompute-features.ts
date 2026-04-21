@@ -47,7 +47,7 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v48.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v49.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
 const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v59.json';
@@ -891,24 +891,35 @@ async function main() {
     // Parse DOT score + tier-class ordinal from merged 'tiers' strings
     // like "Starter (87.4)" or "Contributor (76.2)". Keep in sync with
     // train_career_models.py::_parse_rsp_tier.
+    // Recent RSP guides label the top-of-class with Roman numerals
+    // ("Tier I" – "Tier VII") alongside the older named tiers. Without
+    // the numeric entries ~45% of RSP-graded prospects had
+    // rspTierOrdinal zero'd out (Bijan + Jeanty were both Tier I → 0).
     const RSP_TIER_ORDINAL: Record<string, number> = {
       'Franchise': 10,
       'Legendary Performer': 9,
       'Elite Producer': 9,
+      'Tier I': 9,
+      'Tier II': 8,
       'Weekly Starter': 8,
       'Starter': 8,
       'Rotational Starter': 7,
       'Rotational Starter Tier': 7,
+      'Tier III': 7,
       'Flex Play': 6,
       'Contributor': 6,
+      'Tier IV': 5,
       'Reserve': 5,
       'Cusp of Contributor and Reserve': 5,
+      'Tier V': 4,
       'Developmental': 4,
       'Developmental on Cusp of Reserve': 4,
       'Benchwarmer': 3,
       'Priority Free Agent': 3,
+      'Tier VI': 2,
       'Waiver Wire Add': 2,
       'Dart Throw': 2,
+      'Tier VII': 1,
       'Street': 1,
     };
     const RSP_DOT_RE = /\(([0-9]+(?:\.[0-9]+)?)\)/;
@@ -1621,6 +1632,70 @@ async function main() {
       else if (s >= 50) r.modelTier = 4;  // Contributor
       else if (s >= 30) r.modelTier = 5;  // Depth
       else r.modelTier = 6;               // Longshot
+    }
+
+    // Scout-disagreement override (first-round projected-pick only).
+    // Mirrors the logic in train_career_models.py for backtest rows so
+    // 2026 prospects and historical rookies agree on when to upgrade.
+    // Rationale: model under-rates scout-darling prospects whose college
+    // production was mid (Bijan, Gibbs, JSN). Where NFL draft capital
+    // and scout consensus agree, we trust the combined signal over the
+    // production-heavy PPG prediction. Late-round scout-favorites are
+    // excluded because they bust too often (Jalin Hyatt, Keon Coleman).
+    {
+      type PR = typeof posRookies[number];
+      const scoutComp = (f: Record<string, number> | undefined): number => {
+        const ff = f || {};
+        const pdfRank = Number(ff['pdfRankOverallMean']) || 0;
+        const hasPdf = Number(ff['pdfHasRank']) || 0;
+        const pdfScore = hasPdf ? Math.max(0, 1 - pdfRank / 100) : 0;
+        return 0.35 * pdfScore
+             + 0.20 * (Number(ff['recruitRating']) || 0)
+             + 0.20 * ((Number(ff['rspDotDraft']) || 0) / 100)
+             + 0.15 * ((Number(ff['rspTierOrdinal']) || 0) / 10)
+             + 0.10 * ((Number(ff['rspBreadthDraft']) || 0) / 100);
+      };
+      const prodComp = (f: Record<string, number> | undefined): number => {
+        const ff = f || {};
+        return 0.6 * (Number(ff['collegeUsageOverall']) || 0)
+             + 0.4 * ((Number(ff['collegeDominatorRating']) || 0) / 100);
+      };
+      const sVals = posRookies.map((r: PR) => scoutComp(r.features as Record<string, number> | undefined));
+      const pVals = posRookies.map((r: PR) => prodComp(r.features as Record<string, number> | undefined));
+      if (sVals.length >= 3) {
+        const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+        const std  = (a: number[], m: number) =>
+          Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)) || 1;
+        const sM = mean(sVals); const sS = std(sVals, sM);
+        const pM = mean(pVals); const pS = std(pVals, pM);
+        for (const r of posRookies) {
+          const feats = (r.features || {}) as Record<string, number>;
+          const projPick = Number(feats['projPick']) || Number(feats['nflDraftPick']) || 0;
+          const projRound = Number(feats['projRound']) || Number(feats['nflDraftRound']) || 0;
+          // First-round only (projected or actual).
+          const isR1 = (projRound > 0 && projRound <= 1) || (projPick > 0 && projPick <= 32);
+          if (!isR1) continue;
+          const scoutZ = (scoutComp(feats) - sM) / sS;
+          const prodZ  = (prodComp(feats)  - pM) / pS;
+          const gapZ   = scoutZ - prodZ;
+          // Per-position thresholds tuned via
+          // scripts/sweep_scout_thresholds.py against 2022-2025
+          // validation (kept in lock-step with train_career_models.py):
+          //   QB 2.2σ · RB 2.0σ · WR 2.4σ · TE 1.6σ
+          const ALPHA_Z = ({QB:2.2,RB:2.0,WR:2.4,TE:1.6} as Record<string,number>)[pos] ?? 2.0;
+          const BLUE_Z  = ({QB:1.3,RB:1.3,WR:1.4,TE:1.0} as Record<string,number>)[pos] ?? 1.3;
+          let scoutTier: number;
+          if      (scoutZ >= ALPHA_Z) scoutTier = 1;
+          else if (scoutZ >= BLUE_Z)  scoutTier = 2;
+          else if (scoutZ >= 0.5)     scoutTier = 3;
+          else if (scoutZ >= -0.3)    scoutTier = 4;
+          else if (scoutZ >= -1.0)    scoutTier = 5;
+          else                        scoutTier = 6;
+          if (scoutTier < (r.modelTier || 6) && gapZ >= 1.0 && prodZ >= -1.5) {
+            r.modelTier = scoutTier;
+          }
+        }
+      }
     }
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));

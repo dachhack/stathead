@@ -35,7 +35,7 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 # ── Configuration ─────────────────────────────────────────────────────
 
-CACHE_PATH = Path('public/data/training-rows-cache-v48.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v49.json')
 OUTPUT_DIR = Path('public/data')
 PRE_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-v72.json'
 POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v4.json'
@@ -298,20 +298,31 @@ _RSP_TIER_ORDINAL = {
     'Franchise': 10,
     'Legendary Performer': 9,
     'Elite Producer': 9,
+    # Recent RSP guides label the top-of-class with Roman numerals ("Tier I"
+    # through "Tier VII") instead of the older named tiers. 2022-2025 guides
+    # mix both — without these entries ~45% of RSP-graded prospects had
+    # rspTierOrdinal zero'd out (Bijan, Jeanty were both Tier I → 0).
+    'Tier I': 9,
+    'Tier II': 8,
     'Weekly Starter': 8,
     'Starter': 8,
     'Rotational Starter': 7,
     'Rotational Starter Tier': 7,
+    'Tier III': 7,
     'Flex Play': 6,
     'Contributor': 6,
+    'Tier IV': 5,
     'Reserve': 5,
     'Cusp of Contributor and Reserve': 5,
+    'Tier V': 4,
     'Developmental': 4,
     'Developmental on Cusp of Reserve': 4,
     'Benchwarmer': 3,
     'Priority Free Agent': 3,
+    'Tier VI': 2,
     'Waiver Wire Add': 2,
     'Dart Throw': 2,
+    'Tier VII': 1,
     'Street': 1,
 }
 
@@ -743,10 +754,19 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         if pg > 0:
             career_games[key] = pg
 
-    # Group rows by player → career
+    # Group rows by player → career. Name normalization strips generational
+    # suffixes (III/II/IV/Jr/Sr) so nflverse-source inconsistencies don't
+    # split one career into two entries — e.g. Kenneth Walker's 2022 rookie
+    # row arrived without "III" but the 2023 row has it, which previously
+    # produced two backtest entries with partial season_ppgs each.
+    def _career_key(name: str, pos: str) -> str:
+        nk = name.lower().strip()
+        nk = _re.sub(r'\s+(sr|jr|iii|ii|iv|v)\.?$', '', nk)
+        nk = _re.sub(r'[^a-z0-9 ]+', '', nk).strip()
+        return f'{nk}::{pos}'
     career_map: dict[str, dict] = {}
     for r in rows:
-        key = f"{r['name']}::{r['position']}"
+        key = _career_key(r['name'], r['position'])
         if key not in career_map:
             career_map[key] = {
                 'name': r['name'], 'position': r['position'],
@@ -763,6 +783,10 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
             if entry['draft_season'] == 0 or derived < entry['draft_season']:
                 entry['draft_season'] = derived
                 entry['features'] = dict(r['features'])
+                # Prefer the rookie-year name variant for display — it's
+                # what the Beast/RSP scouting PDFs match against, and
+                # feature-matrix lookups use the same format.
+                entry['name'] = r['name']
 
     # Fix false rookies
     for entry in career_map.values():
@@ -1371,6 +1395,70 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         elif pctl >= 50: r['modelTier'] = 4
         elif pctl >= 25: r['modelTier'] = 5
         else: r['modelTier'] = 6
+
+    # ── Scout-disagreement override (first-round prospects only) ──────
+    # Model predicted PPG is conservative on scout-darlings with mid
+    # college production (Bijan, Gibbs, JSN, Olave). Where scout
+    # consensus and NFL draft capital agree — first-round pick + strong
+    # PDF/RSP signal — upgrade the tier to scout consensus. First-round
+    # gate filters out late-round scout-favorites that bust (Jalin Hyatt,
+    # Keon Coleman, MarShawn Lloyd). Diagnostic: see
+    # scripts/diagnose_scout_disagreement.py.
+    def _scout_composite(feats):
+        pdf_rank = float(feats.get('pdfRankOverallMean') or 0)
+        has_pdf  = float(feats.get('pdfHasRank') or 0)
+        pdf_score = max(0.0, 1 - pdf_rank/100.0) if has_pdf else 0.0
+        return (0.35 * pdf_score
+              + 0.20 * float(feats.get('recruitRating') or 0)
+              + 0.20 * (float(feats.get('rspDotDraft') or 0) / 100.0)
+              + 0.15 * (float(feats.get('rspTierOrdinal') or 0) / 10.0)
+              + 0.10 * (float(feats.get('rspBreadthDraft') or 0) / 100.0))
+    def _prod_composite(feats):
+        return (0.6 * float(feats.get('collegeUsageOverall') or 0)
+              + 0.4 * (float(feats.get('collegeDominatorRating') or 0) / 100.0))
+
+    scout_vals = [_scout_composite(r.get('features') or {}) for r in backtest_raw]
+    prod_vals  = [_prod_composite(r.get('features') or {})  for r in backtest_raw]
+    if len(scout_vals) >= 3:
+        s_m = sum(scout_vals) / len(scout_vals)
+        s_s = (sum((v - s_m) ** 2 for v in scout_vals) / (len(scout_vals) - 1)) ** 0.5 or 1.0
+        p_m = sum(prod_vals) / len(prod_vals)
+        p_s = (sum((v - p_m) ** 2 for v in prod_vals) / (len(prod_vals) - 1)) ** 0.5 or 1.0
+        for r in backtest_raw:
+            feats = r.get('features') or {}
+            pick = int(feats.get('nflDraftPick') or 0)
+            round_ = int(feats.get('nflDraftRound') or 0)
+            # First-round only — either by round=1 or pick <=32 (some
+            # historical rows have round=0 but the pick populated).
+            if not ((0 < round_ <= 1) or (0 < pick <= 32)):
+                continue
+            sc = _scout_composite(feats)
+            pr = _prod_composite(feats)
+            scout_z = (sc - s_m) / s_s
+            prod_z  = (pr - p_m) / p_s
+            gap_z   = scout_z - prod_z
+            # Scout tier implied by scout_z alone. Thresholds tuned
+            # per-position against the 2022-2025 validation sweep (see
+            # scripts/sweep_scout_thresholds.py):
+            #   QB  2.2σ — drops tbd cases, keeps Caleb/Maye/Stroud/Daniels
+            #   RB  2.0σ — RB override never fires (percentile handles it)
+            #   WR  2.4σ — drops Worthy/Pearsall/Legette without losing
+            #              the Olave/London/G.Wilson/JSN/Nabers class
+            #   TE  1.6σ — low bar so Kincaid stays upgraded; higher
+            #              thresholds turn TE override into a no-op
+            ALPHA_Z = {'QB': 2.2, 'RB': 2.0, 'WR': 2.4, 'TE': 1.6}.get(pos, 2.0)
+            BLUE_Z  = {'QB': 1.3, 'RB': 1.3, 'WR': 1.4, 'TE': 1.0}.get(pos, 1.3)
+            if   scout_z >= ALPHA_Z:  scout_tier = 1
+            elif scout_z >= BLUE_Z:   scout_tier = 2
+            elif scout_z >= 0.5:      scout_tier = 3
+            elif scout_z >= -0.3:     scout_tier = 4
+            elif scout_z >= -1.0:     scout_tier = 5
+            else:                     scout_tier = 6
+            # Upgrade only. Require scout consensus to be ≥1σ above
+            # production, and production not catastrophically low.
+            if (scout_tier < r['modelTier']
+                    and gap_z >= 1.0 and prod_z >= -1.5):
+                r['modelTier'] = scout_tier
 
     # ── Feature importance (from final Ridge on all data) ─────────────
     all_rows_expanded = expand(pos_rows)
