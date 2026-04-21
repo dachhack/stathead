@@ -1424,10 +1424,14 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             scout_z = (sc - s_m) / s_s
             prod_z  = (pr - p_m) / p_s
             gap_z   = scout_z - prod_z
-            # Scout tier implied by scout_z alone.
-            if   scout_z >= 1.4:  scout_tier = 1
-            elif scout_z >= 0.9:  scout_tier = 2
-            elif scout_z >= 0.3:  scout_tier = 3
+            # Scout tier implied by scout_z alone. Thresholds tightened
+            # after the preview run showed first-round WRs were too
+            # easily hitting Alpha (Burks/Legette/Dotson along with the
+            # legit Nabers/JSN/Olave class). Alpha now requires truly
+            # elite scout consensus; the legit elites still clear 2σ.
+            if   scout_z >= 2.0:  scout_tier = 1
+            elif scout_z >= 1.3:  scout_tier = 2
+            elif scout_z >= 0.5:  scout_tier = 3
             elif scout_z >= -0.3: scout_tier = 4
             elif scout_z >= -1.0: scout_tier = 5
             else:                 scout_tier = 6

@@ -153,10 +153,10 @@ for pos in POSITIONS:
         r['prod_z']  = (pr - p_m) / p_s
         r['gap_z']   = r['scout_z'] - r['prod_z']
         r['base_tier']  = ppg_tier(pos, r['pred'])
-        # Scout implied tier: map scout_z to a tier (z >= 1.5 = Alpha, etc.)
-        if   r['scout_z'] >= 1.4: r['scout_tier'] = 1
-        elif r['scout_z'] >= 0.9: r['scout_tier'] = 2
-        elif r['scout_z'] >= 0.3: r['scout_tier'] = 3
+        # Scout implied tier — tightened post-preview (see trainer).
+        if   r['scout_z'] >= 2.0: r['scout_tier'] = 1
+        elif r['scout_z'] >= 1.3: r['scout_tier'] = 2
+        elif r['scout_z'] >= 0.5: r['scout_tier'] = 3
         elif r['scout_z'] >= -0.3: r['scout_tier'] = 4
         elif r['scout_z'] >= -1.0: r['scout_tier'] = 5
         else: r['scout_tier'] = 6

@@ -1678,10 +1678,14 @@ async function main() {
           const scoutZ = (scoutComp(feats) - sM) / sS;
           const prodZ  = (prodComp(feats)  - pM) / pS;
           const gapZ   = scoutZ - prodZ;
+          // Thresholds tightened post-preview — Alpha requires truly
+          // elite scout consensus (≥2σ), BlueChip requires strong
+          // signal (≥1.3σ). Keep in lock-step with
+          // train_career_models.py.
           let scoutTier: number;
-          if      (scoutZ >= 1.4)  scoutTier = 1;
-          else if (scoutZ >= 0.9)  scoutTier = 2;
-          else if (scoutZ >= 0.3)  scoutTier = 3;
+          if      (scoutZ >= 2.0)  scoutTier = 1;
+          else if (scoutZ >= 1.3)  scoutTier = 2;
+          else if (scoutZ >= 0.5)  scoutTier = 3;
           else if (scoutZ >= -0.3) scoutTier = 4;
           else if (scoutZ >= -1.0) scoutTier = 5;
           else                     scoutTier = 6;
