@@ -140,6 +140,28 @@ export function RookieCareerBacktest() {
       if (m.backtestRows) rows.push(...m.backtestRows);
     }
 
+    // Inject 2026 prospects as synthetic backtest rows so they appear in the
+    // table with their career-model percentile. actualPPG is 0 (unknown) —
+    // the renderer shows "-" for actual/error/thresholds on 2026.
+    for (const p of predictions2026) {
+      rows.push({
+        name: p.name,
+        position: p.position,
+        draftSeason: 2026,
+        actualPPG: 0,
+        predictedPPG: p.predictedCareerPPG || 0,
+        combinedScore: p.combinedScore || 0,
+        percentile: p.percentile || 0,
+        modelTier: p.modelTier || 0,
+        thresholdProbs: p.thresholdProbs || {},
+        boomProb: p.boomProb || 0,
+        bustProb: p.bustProb || 0,
+        boomZ: p.boomZ,
+        bustZ: p.bustZ,
+        features: p.features,
+      });
+    }
+
     // Enrich features from training rows + prospect store
     {
       // Build training row lookup
@@ -220,12 +242,18 @@ export function RookieCareerBacktest() {
       }
     }
 
-    // Recompute combinedScore as cross-year percentile within position
-    // so scores are consistent with ZAP Compare and Prospects views
+    // Recompute combinedScore as cross-year percentile within position so
+    // scores are consistent with ZAP Compare and Prospects views. The
+    // reference pool is historical rows only (no 2026) — matches how
+    // precompute-features.ts ranks 2026 prospects against the backtest.
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
       const posRows = rows.filter(r => r.position === pos);
       if (posRows.length < 3) continue;
-      const sorted = [...posRows].map(r => r.predictedPPG).sort((a, b) => a - b);
+      const sorted = posRows
+        .filter(r => r.draftSeason !== 2026)
+        .map(r => r.predictedPPG)
+        .sort((a, b) => a - b);
+      if (sorted.length === 0) continue;
       for (const r of posRows) {
         const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
         const pctl = Math.round((rank / sorted.length) * 100);
@@ -235,7 +263,7 @@ export function RookieCareerBacktest() {
       }
     }
     return rows;
-  }, [models, modelsPostDraft, modelMode, trainingRows, prospectFeatures, scoreStoreData]);
+  }, [models, modelsPostDraft, modelMode, trainingRows, prospectFeatures, scoreStoreData, predictions2026]);
 
   const seasons = useMemo(() => {
     const s = [...new Set(allRows.map(r => r.draftSeason))].sort();
@@ -276,28 +304,30 @@ export function RookieCareerBacktest() {
   };
   const sortArrow = (field: SortField) => field === sortField ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
 
-  // Aggregate stats
+  // Aggregate stats — only over rows with actual outcomes (excludes 2026).
   const stats = useMemo(() => {
-    if (filtered.length === 0) return null;
-    const errors = filtered.map(r => r.actualPPG - r.predictedPPG);
+    const scored = filtered.filter(r => r.actualPPG > 0);
+    if (scored.length === 0) return null;
+    const errors = scored.map(r => r.actualPPG - r.predictedPPG);
     const absErrors = errors.map(e => Math.abs(e));
     const mae = absErrors.reduce((s, e) => s + e, 0) / absErrors.length;
-    const meanActual = filtered.reduce((s, r) => s + r.actualPPG, 0) / filtered.length;
-    const ssTot = filtered.reduce((s, r) => s + (r.actualPPG - meanActual) ** 2, 0);
-    const ssRes = filtered.reduce((s, r) => s + (r.actualPPG - r.predictedPPG) ** 2, 0);
+    const meanActual = scored.reduce((s, r) => s + r.actualPPG, 0) / scored.length;
+    const ssTot = scored.reduce((s, r) => s + (r.actualPPG - meanActual) ** 2, 0);
+    const ssRes = scored.reduce((s, r) => s + (r.actualPPG - r.predictedPPG) ** 2, 0);
     const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
     // Tier accuracy: what % of tier 1-3 finished with above-median actual PPG?
-    const median = [...filtered].sort((a, b) => a.actualPPG - b.actualPPG)[Math.floor(filtered.length / 2)]?.actualPPG || 0;
-    const topTiers = filtered.filter(r => r.modelTier <= 3);
+    const median = [...scored].sort((a, b) => a.actualPPG - b.actualPPG)[Math.floor(scored.length / 2)]?.actualPPG || 0;
+    const topTiers = scored.filter(r => r.modelTier <= 3);
     const topTierHit = topTiers.filter(r => r.actualPPG >= median).length;
-    return { n: filtered.length, mae: mae.toFixed(1), r2: r2.toFixed(3), topTierPct: topTiers.length > 0 ? Math.round(topTierHit / topTiers.length * 100) : 0 };
+    return { n: scored.length, mae: mae.toFixed(1), r2: r2.toFixed(3), topTierPct: topTiers.length > 0 ? Math.round(topTierHit / topTiers.length * 100) : 0 };
   }, [filtered]);
 
-  // Tier summary: avg/median actual PPG per tier
+  // Tier summary: avg/median actual PPG per tier (scored rows only).
   const tierSummary = useMemo(() => {
-    if (filtered.length === 0) return [];
+    const scored = filtered.filter(r => r.actualPPG > 0);
+    if (scored.length === 0) return [];
     return TIER_DEFS.map(td => {
-      const tierRows = filtered.filter(r => r.modelTier === td.tier);
+      const tierRows = scored.filter(r => r.modelTier === td.tier);
       if (tierRows.length === 0) return null;
       const ppgs = tierRows.map(r => r.actualPPG).sort((a, b) => a - b);
       const avg = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
@@ -546,6 +576,7 @@ export function RookieCareerBacktest() {
               <th>Pos</th>
               <th onClick={() => handleSort('draftSeason')} style={{ cursor: 'pointer' }}>Class{sortArrow('draftSeason')}</th>
               <th onClick={() => handleSort('modelTier')} style={{ cursor: 'pointer' }}>Tier{sortArrow('modelTier')}</th>
+              <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }} title="Career-model percentile: rank of predicted PPG against the historical backtest pool for this position (matches ZAP Compare & Dynasty Prospects).">Pctl{sortArrow('percentile')}</th>
               <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer' }}>Pred PPG{sortArrow('predictedPPG')}</th>
               <th onClick={() => handleSort('actualPPG')} style={{ cursor: 'pointer' }}>Actual PPG{sortArrow('actualPPG')}</th>
               <th onClick={() => handleSort('error')} style={{ cursor: 'pointer' }}>Error{sortArrow('error')}</th>
@@ -560,6 +591,7 @@ export function RookieCareerBacktest() {
           </thead>
           <tbody>
             {filtered.map((r, i) => {
+              const hasActual = r.actualPPG > 0;
               const err = r.actualPPG - r.predictedPPG;
               return (
                 <tr key={`${r.name}-${r.draftSeason}-${i}`}>
@@ -579,27 +611,30 @@ export function RookieCareerBacktest() {
                       );
                     })()}
                   </td>
-                  <td style={{ fontWeight: 600 }}>{r.predictedPPG.toFixed(1)}</td>
-                  <td style={{ fontWeight: 700, color: r.actualPPG >= 14 ? '#22c55e' : r.actualPPG >= 10 ? '#a3e635' : r.actualPPG >= 6 ? '#facc15' : '#fb923c' }}>
-                    {r.actualPPG.toFixed(1)}
+                  <td style={{ fontSize: 12, color: r.percentile > 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                    {r.percentile > 0 ? r.percentile : '-'}
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{r.predictedPPG > 0 ? r.predictedPPG.toFixed(1) : '-'}</td>
+                  <td style={{ fontWeight: 700, color: !hasActual ? 'var(--text-muted)' : r.actualPPG >= 14 ? '#22c55e' : r.actualPPG >= 10 ? '#a3e635' : r.actualPPG >= 6 ? '#facc15' : '#fb923c' }}>
+                    {hasActual ? r.actualPPG.toFixed(1) : '-'}
                   </td>
                   <td style={{
                     fontWeight: 600, fontSize: 12,
-                    color: Math.abs(err) <= 2 ? '#22c55e' : Math.abs(err) <= 4 ? '#facc15' : '#ef4444',
+                    color: !hasActual ? 'var(--text-muted)' : Math.abs(err) <= 2 ? '#22c55e' : Math.abs(err) <= 4 ? '#facc15' : '#ef4444',
                   }}>
-                    {err >= 0 ? '+' : ''}{err.toFixed(1)}
+                    {hasActual ? `${err >= 0 ? '+' : ''}${err.toFixed(1)}` : '-'}
                   </td>
                   <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomZ != null && r.boomZ >= 1 ? '#22c55e' : r.boomZ != null && r.boomZ >= 0.3 ? '#a3e635' : r.boomZ != null && r.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
                     {r.boomZ != null ? (r.boomZ >= 0 ? `+${r.boomZ.toFixed(2)}` : r.boomZ.toFixed(2)) : (r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-')}
-                    {err > 0 && ((r.boomZ != null && r.boomZ >= 0.5) || (r.boomZ == null && r.boomProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
+                    {hasActual && err > 0 && ((r.boomZ != null && r.boomZ >= 0.5) || (r.boomZ == null && r.boomProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
                   </td>
                   <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustZ != null && r.bustZ >= 1 ? '#ef4444' : r.bustZ != null && r.bustZ >= 0.3 ? '#fb923c' : r.bustZ != null && r.bustZ <= -0.5 ? '#22c55e' : 'var(--text-muted)' }}>
                     {r.bustZ != null ? (r.bustZ >= 0 ? `+${r.bustZ.toFixed(2)}` : r.bustZ.toFixed(2)) : (r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-')}
-                    {err < 0 && ((r.bustZ != null && r.bustZ >= 0.5) || (r.bustZ == null && r.bustProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
+                    {hasActual && err < 0 && ((r.bustZ != null && r.bustZ >= 0.5) || (r.bustZ == null && r.bustProb > 20)) && <span style={{ marginLeft: 2, fontSize: 9 }}>&#x2713;</span>}
                   </td>
                   {thresholds.map(t => {
                     const prob = r.thresholdProbs?.[t];
-                    const hit = r.actualPPG >= t;
+                    const hit = hasActual && r.actualPPG >= t;
                     const hasProb = prob != null && prob > 0;
                     return (
                       <td key={t} style={{
