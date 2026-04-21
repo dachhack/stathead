@@ -5,7 +5,6 @@ import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
-import { ppgToTierScore } from '../lib/tierScore';
 import { normalizeName } from '../lib/featureTypes';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2025 from '../data/zap-scores-2025.json';
@@ -204,12 +203,25 @@ export function ZapComparison() {
         }
       }
 
-      // Map each backtested player's predictedPPG onto ZAP's 2026 talent-gap
-      // tier scale so ourScore is semantically aligned with rescaled ZAP.
+      // Overwrite each 2023-2025 row's combinedScore with the cross-year
+      // career-model percentile (rank of predictedPPG against the full
+      // backtest pool for the position). Uses the same formula as 2026 in
+      // precompute-features.ts so "Pctl" is the single source of truth
+      // across seasons and tabs (ZAP Compare and Dynasty Prospects agree).
       for (const pos of ['RB', 'WR', 'TE'] as const) {
+        const refPPGs = backtestRows
+          .filter(r => r.position === pos && r.predictedPPG > 0)
+          .map(r => r.predictedPPG)
+          .sort((a, b) => a - b);
+        if (refPPGs.length === 0) continue;
         const posRows = [...backtestByKey.values()].filter(r => r.position === pos);
         for (const r of posRows) {
-          r.combinedScore = Math.round(ppgToTierScore(r.predictedPPG, pos) * 10) / 10;
+          if (r.predictedPPG > 0) {
+            const rank = refPPGs.filter(p => p <= r.predictedPPG).length;
+            r.combinedScore = Math.round((rank / refPPGs.length) * 100);
+          } else {
+            r.combinedScore = 0;
+          }
         }
       }
 
