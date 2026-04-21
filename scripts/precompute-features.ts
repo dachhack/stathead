@@ -1633,6 +1633,64 @@ async function main() {
       else if (s >= 30) r.modelTier = 5;  // Depth
       else r.modelTier = 6;               // Longshot
     }
+
+    // Scout-disagreement override (first-round projected-pick only).
+    // Mirrors the logic in train_career_models.py for backtest rows so
+    // 2026 prospects and historical rookies agree on when to upgrade.
+    // Rationale: model under-rates scout-darling prospects whose college
+    // production was mid (Bijan, Gibbs, JSN). Where NFL draft capital
+    // and scout consensus agree, we trust the combined signal over the
+    // production-heavy PPG prediction. Late-round scout-favorites are
+    // excluded because they bust too often (Jalin Hyatt, Keon Coleman).
+    {
+      type PR = typeof posRookies[number];
+      const scoutComp = (f: Record<string, number> | undefined): number => {
+        const ff = f || {};
+        const pdfRank = Number(ff['pdfRankOverallMean']) || 0;
+        const hasPdf = Number(ff['pdfHasRank']) || 0;
+        const pdfScore = hasPdf ? Math.max(0, 1 - pdfRank / 100) : 0;
+        return 0.35 * pdfScore
+             + 0.20 * (Number(ff['recruitRating']) || 0)
+             + 0.20 * ((Number(ff['rspDotDraft']) || 0) / 100)
+             + 0.15 * ((Number(ff['rspTierOrdinal']) || 0) / 10)
+             + 0.10 * ((Number(ff['rspBreadthDraft']) || 0) / 100);
+      };
+      const prodComp = (f: Record<string, number> | undefined): number => {
+        const ff = f || {};
+        return 0.6 * (Number(ff['collegeUsageOverall']) || 0)
+             + 0.4 * ((Number(ff['collegeDominatorRating']) || 0) / 100);
+      };
+      const sVals = posRookies.map((r: PR) => scoutComp(r.features as Record<string, number> | undefined));
+      const pVals = posRookies.map((r: PR) => prodComp(r.features as Record<string, number> | undefined));
+      if (sVals.length >= 3) {
+        const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+        const std  = (a: number[], m: number) =>
+          Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)) || 1;
+        const sM = mean(sVals); const sS = std(sVals, sM);
+        const pM = mean(pVals); const pS = std(pVals, pM);
+        for (const r of posRookies) {
+          const feats = (r.features || {}) as Record<string, number>;
+          const projPick = Number(feats['projPick']) || Number(feats['nflDraftPick']) || 0;
+          const projRound = Number(feats['projRound']) || Number(feats['nflDraftRound']) || 0;
+          // First-round only (projected or actual).
+          const isR1 = (projRound > 0 && projRound <= 1) || (projPick > 0 && projPick <= 32);
+          if (!isR1) continue;
+          const scoutZ = (scoutComp(feats) - sM) / sS;
+          const prodZ  = (prodComp(feats)  - pM) / pS;
+          const gapZ   = scoutZ - prodZ;
+          let scoutTier: number;
+          if      (scoutZ >= 1.4)  scoutTier = 1;
+          else if (scoutZ >= 0.9)  scoutTier = 2;
+          else if (scoutZ >= 0.3)  scoutTier = 3;
+          else if (scoutZ >= -0.3) scoutTier = 4;
+          else if (scoutZ >= -1.0) scoutTier = 5;
+          else                     scoutTier = 6;
+          if (scoutTier < (r.modelTier || 6) && gapZ >= 1.0 && prodZ >= -1.5) {
+            r.modelTier = scoutTier;
+          }
+        }
+      }
+    }
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
   console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);

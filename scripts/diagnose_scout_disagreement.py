@@ -160,10 +160,23 @@ for pos in POSITIONS:
         elif r['scout_z'] >= -0.3: r['scout_tier'] = 4
         elif r['scout_z'] >= -1.0: r['scout_tier'] = 5
         else: r['scout_tier'] = 6
-        # Override: bump up only when scout strongly agrees scout_tier < base_tier
-        # AND the player isn't catastrophically under-productive (prod_z > -1.5)
+        # Override only applies to first-round prospects — scout consensus
+        # is most actionable when the NFL team also put premium capital on
+        # the player. Late-round scout-darlings miss too often (Jalin Hyatt,
+        # Keon Coleman) for the override to be trustworthy on them.
+        pick  = r['features'].get('nflDraftPick') or 0
+        round_ = r['features'].get('nflDraftRound') or 0
+        is_r1 = (0 < round_ <= 1) or (pick and pick <= 32)
+        if r['is_2026']:
+            # 2026 prospects don't have nflDraftPick yet — fall back to
+            # projected pick / projected round from the prospect grade.
+            proj_pick = r['features'].get('projPick') or 999
+            proj_round = r['features'].get('projRound') or 7
+            is_r1 = (0 < proj_round <= 1) or (proj_pick and proj_pick <= 32)
+        r['is_r1'] = is_r1
         r['override'] = r['base_tier']
-        if r['scout_tier'] < r['base_tier'] and r['gap_z'] >= 1.0 and r['prod_z'] >= -1.5:
+        if (is_r1 and r['scout_tier'] < r['base_tier']
+                and r['gap_z'] >= 1.0 and r['prod_z'] >= -1.5):
             r['override'] = r['scout_tier']
 
     print(f'\n================ {pos} — scout disagreement (top 25 gap_z) ================')

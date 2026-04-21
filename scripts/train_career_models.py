@@ -1383,6 +1383,60 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         elif pctl >= 25: r['modelTier'] = 5
         else: r['modelTier'] = 6
 
+    # ── Scout-disagreement override (first-round prospects only) ──────
+    # Model predicted PPG is conservative on scout-darlings with mid
+    # college production (Bijan, Gibbs, JSN, Olave). Where scout
+    # consensus and NFL draft capital agree — first-round pick + strong
+    # PDF/RSP signal — upgrade the tier to scout consensus. First-round
+    # gate filters out late-round scout-favorites that bust (Jalin Hyatt,
+    # Keon Coleman, MarShawn Lloyd). Diagnostic: see
+    # scripts/diagnose_scout_disagreement.py.
+    def _scout_composite(feats):
+        pdf_rank = float(feats.get('pdfRankOverallMean') or 0)
+        has_pdf  = float(feats.get('pdfHasRank') or 0)
+        pdf_score = max(0.0, 1 - pdf_rank/100.0) if has_pdf else 0.0
+        return (0.35 * pdf_score
+              + 0.20 * float(feats.get('recruitRating') or 0)
+              + 0.20 * (float(feats.get('rspDotDraft') or 0) / 100.0)
+              + 0.15 * (float(feats.get('rspTierOrdinal') or 0) / 10.0)
+              + 0.10 * (float(feats.get('rspBreadthDraft') or 0) / 100.0))
+    def _prod_composite(feats):
+        return (0.6 * float(feats.get('collegeUsageOverall') or 0)
+              + 0.4 * (float(feats.get('collegeDominatorRating') or 0) / 100.0))
+
+    scout_vals = [_scout_composite(r.get('features') or {}) for r in backtest_raw]
+    prod_vals  = [_prod_composite(r.get('features') or {})  for r in backtest_raw]
+    if len(scout_vals) >= 3:
+        s_m = sum(scout_vals) / len(scout_vals)
+        s_s = (sum((v - s_m) ** 2 for v in scout_vals) / (len(scout_vals) - 1)) ** 0.5 or 1.0
+        p_m = sum(prod_vals) / len(prod_vals)
+        p_s = (sum((v - p_m) ** 2 for v in prod_vals) / (len(prod_vals) - 1)) ** 0.5 or 1.0
+        for r in backtest_raw:
+            feats = r.get('features') or {}
+            pick = int(feats.get('nflDraftPick') or 0)
+            round_ = int(feats.get('nflDraftRound') or 0)
+            # First-round only — either by round=1 or pick <=32 (some
+            # historical rows have round=0 but the pick populated).
+            if not ((0 < round_ <= 1) or (0 < pick <= 32)):
+                continue
+            sc = _scout_composite(feats)
+            pr = _prod_composite(feats)
+            scout_z = (sc - s_m) / s_s
+            prod_z  = (pr - p_m) / p_s
+            gap_z   = scout_z - prod_z
+            # Scout tier implied by scout_z alone.
+            if   scout_z >= 1.4:  scout_tier = 1
+            elif scout_z >= 0.9:  scout_tier = 2
+            elif scout_z >= 0.3:  scout_tier = 3
+            elif scout_z >= -0.3: scout_tier = 4
+            elif scout_z >= -1.0: scout_tier = 5
+            else:                 scout_tier = 6
+            # Upgrade only. Require scout consensus to be ≥1σ above
+            # production, and production not catastrophically low.
+            if (scout_tier < r['modelTier']
+                    and gap_z >= 1.0 and prod_z >= -1.5):
+                r['modelTier'] = scout_tier
+
     # ── Feature importance (from final Ridge on all data) ─────────────
     all_rows_expanded = expand(pos_rows)
     X_all = make_X(all_rows_expanded)
