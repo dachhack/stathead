@@ -3,7 +3,7 @@
 // Outputs: public/data/feature-matrix.json (includes trained models)
 
 import { buildFeatureMatrix } from '../src/lib/buildFeatureMatrix';
-import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae, normalizeName, parseHeight } from '../src/lib/featureTypes';
+import { SEASONS, PREDICT_SEASON, POSITIONS, REPLACEMENT_RANKS, FEATURES, ADP_FEATURES, ROOKIE_FEATURES, PRE_DRAFT_ROOKIE_FEATURES, cvR2, cvMae, normalizeName, nameVariants, parseHeight } from '../src/lib/featureTypes';
 import type { PlayerRow } from '../src/lib/featureTypes';
 import { predict } from '../src/lib/ridge';
 import { predictGBM, predictBaggedGBM } from '../src/lib/gbm';
@@ -746,6 +746,22 @@ async function main() {
     ]);
     const cfbdKey = (name: string) => name.replace(/[^a-z0-9]+/g, '');
 
+    // Try every alias variant of `name` when looking up `table` with the
+    // given per-key suffix builder. Handles the nick/nicholas + middle-name
+    // + suffix-stripping mismatches across CFBD / RSP / Beast — see
+    // featureTypes::nameVariants. Returns the first entry whose key exists.
+    const cfbdLookupVariant = <T>(
+      table: Record<string, T>,
+      rawName: string,
+      makeKey: (normalized: string) => string,
+    ): T | undefined => {
+      for (const v of nameVariants(rawName)) {
+        const entry = table[makeKey(cfbdKey(v))];
+        if (entry !== undefined) return entry;
+      }
+      return undefined;
+    };
+
     // PDF scouting index (The Beast / RSP / Late-Round Guide) mirroring
     // train_career_models.py::_load_pdf_index. Ships the same numeric
     // features used in the RB/WR pre-draft feature lists so prospect
@@ -759,24 +775,26 @@ async function main() {
     }> = {};
     try {
       const pdfRaw = JSON.parse(readFileSync('public/data/pdf-prospect-features-merged.json', 'utf-8'));
-      const normPdfName = (n: string) => n.toLowerCase().trim()
-        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
-        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
       for (const p of pdfRaw) {
-        const k = `${normPdfName(p.player_name)}::${p.position}`;
-        pdfIndex[k] = p;
-        // Position-agnostic fallback for scouting/fantasy TE/OL mismatches.
-        const nameOnly = normPdfName(p.player_name);
-        if (!pdfIndex[nameOnly]) pdfIndex[nameOnly] = p;
+        // Index under every alias variant so lookups by any spelling
+        // succeed (Nicholas↔Nick, Joshua↔Josh, "John Michael" vs "John").
+        for (const v of nameVariants(p.player_name)) {
+          const k = `${v}::${p.position}`;
+          if (!pdfIndex[k]) pdfIndex[k] = p;
+          if (!pdfIndex[v]) pdfIndex[v] = p; // position-agnostic fallback
+        }
       }
     } catch {
       // PDF file is optional — prospects just get zero-filled features.
     }
     const lookupPdf = (name: string, position: string) => {
-      const norm = name.toLowerCase().trim()
-        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
-        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
-      return pdfIndex[`${norm}::${position}`] || pdfIndex[norm];
+      // Try every alias variant so "Josh Cuevas" / "Joshua Cuevas" both
+      // resolve, and middle-name-inclusive CFBD/Beast keys still match.
+      for (const v of nameVariants(name)) {
+        const hit = pdfIndex[`${v}::${position}`] || pdfIndex[v];
+        if (hit) return hit;
+      }
+      return undefined;
     };
     // Mirror train_career_models.py::_derive_pdf_features. Must stay in
     // lock-step so the PlayerCard, feature-matrix JSON, and career model
@@ -860,9 +878,6 @@ async function main() {
     const rspHistorical: Record<string, RspAppearance[]> = {};
     try {
       const hr = JSON.parse(readFileSync('public/data/rsp-historical-rankings.json', 'utf-8'));
-      const normRspName = (n: string) => n.toLowerCase().trim()
-        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
-        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
       for (const g of (hr.guides || []) as Array<{
         guide_year: number; rankings?: Record<string, Array<Record<string, unknown>>>;
       }>) {
@@ -872,7 +887,6 @@ async function main() {
             if ((r.dot ?? null) == null && (r.breadth ?? null) == null) continue;
             const playerName = r.player_name as string | undefined;
             if (!playerName) continue;
-            const key = `${normRspName(playerName)}::${pos}`;
             const ap: RspAppearance = {
               guide_year: yr,
               rank: (r.rank as number | null) ?? null,
@@ -880,7 +894,12 @@ async function main() {
               breadth: (r.breadth as number | null) ?? null,
               tier: (r.tier as string | null) ?? null,
             };
-            (rspHistorical[key] ||= []).push(ap);
+            // Index under every alias variant so "Nicholas Singleton" from
+            // the RSP source and "Nick Singleton" from the prospect feed
+            // collide on the same key set.
+            for (const v of nameVariants(playerName)) {
+              (rspHistorical[`${v}::${pos}`] ||= []).push(ap);
+            }
           }
         }
       }
@@ -944,12 +963,16 @@ async function main() {
       const pdfEntry = lookupPdf(name, position) as { tiers?: string[]; comps?: string[] } | undefined;
       const { dot: tierDot, ord: tierOrd } = parseRspTier(pdfEntry?.tiers);
 
-      const normRspName2 = (n: string) => n.toLowerCase().trim()
-        .replace(/\./g, '').replace(/'/g, '').replace(/-/g, ' ').replace(/`/g, '')
-        .replace(/\s+(sr|jr|iii|ii|iv)$/i, '').replace(/\s+/g, ' ');
-      const hrKey = `${normRspName2(name)}::${position}`;
-      const apList = (rspHistorical[hrKey] || []).slice().sort(
-        (a, b) => (a.guide_year || 0) - (b.guide_year || 0));
+      // Try every alias variant. RSP guides use "Nicholas Singleton",
+      // "Joshua Cuevas", etc. where prospect lists use short forms.
+      let apList: RspAppearance[] = [];
+      for (const v of nameVariants(name)) {
+        const hit = rspHistorical[`${v}::${position}`];
+        if (hit && hit.length) {
+          apList = hit.slice().sort((a, b) => (a.guide_year || 0) - (b.guide_year || 0));
+          break;
+        }
+      }
 
       let firstDot = 0, lastDot = 0, dotDelta = 0;
       let breadthFirst = 0, breadthLast = 0;
@@ -1118,8 +1141,16 @@ async function main() {
 
       const nName = normalizeName(prospect.name);
 
-      // Check prospect store first — if we have manual/persistent features, use those
-      const storedProspect = prospectStore.get(nName);
+      // Check prospect store first — if we have manual/persistent features, use those.
+      // Try every alias variant so stored entries keyed under either short or
+      // long form resolve for a prospect passed in with either spelling.
+      let storedProspect = prospectStore.get(nName);
+      if (!storedProspect) {
+        for (const v of nameVariants(prospect.name)) {
+          const hit = prospectStore.get(v);
+          if (hit) { storedProspect = hit; break; }
+        }
+      }
       if (storedProspect) {
         const posAvgForStore = combineAvg.get(pos) || {};
         const storedFeatures = buildProspectFeatureRecord(storedProspect, posAvgForStore);
@@ -1146,21 +1177,24 @@ async function main() {
         // nflverse path below.
         {
           const projPick = storedProspect.projPick || 300;
-          const cfbdK = cfbdKey(nName);
           const seasons = prospectSeasonStats.get(nName) || [];
           let lastSeason: { season: number; school: string } | null =
             seasons.length ? seasons.reduce((a, b) => a.season > b.season ? a : b) : null;
           // Fallback: current college juniors (like Carnell Tate) aren't in
           // the nflverse college-stats source, so prospectSeasonStats is empty
           // for them. Use CFBD usage keys (`cfbdKey:season`) as a secondary
-          // source — the team name is in the entry's `team` field.
+          // source — the team name is in the entry's `team` field. Tries
+          // every alias variant so Nick↔Nicholas, Mike↔Michael, etc. match.
           if (!lastSeason) {
-            const prefix = `${cfbdK}:`;
             let maxYr = 0, maxSchool = '';
-            for (const [key, val] of Object.entries(cfbdUsage)) {
-              if (!key.startsWith(prefix)) continue;
-              const yr = parseInt(key.split(':')[1]);
-              if (yr > maxYr) { maxYr = yr; maxSchool = ((val as any).team || '').toLowerCase(); }
+            for (const variant of nameVariants(prospect.name)) {
+              const prefix = `${cfbdKey(variant)}:`;
+              for (const [key, val] of Object.entries(cfbdUsage)) {
+                if (!key.startsWith(prefix)) continue;
+                const yr = parseInt(key.split(':')[1]);
+                if (yr > maxYr) { maxYr = yr; maxSchool = ((val as any).team || '').toLowerCase(); }
+              }
+              if (maxYr) break;
             }
             if (maxYr) lastSeason = { season: maxYr, school: maxSchool };
           }
@@ -1168,19 +1202,28 @@ async function main() {
             storedFeatures.collegeDominatorXLateRound = (storedFeatures.collegeDominatorRating || 0) *
               Math.max(0, Math.log(projPick + 1) - 4.0);
           }
-          if (!storedFeatures.recruitStars) storedFeatures.recruitStars = cfbdRecruits[cfbdK]?.stars || 0;
-          if (!storedFeatures.recruitRating) storedFeatures.recruitRating = cfbdRecruits[cfbdK]?.composite_rating || 0;
+          if (!storedFeatures.recruitStars) {
+            const rc = cfbdLookupVariant(cfbdRecruits, prospect.name, (k) => k);
+            storedFeatures.recruitStars = (rc as { stars?: number } | undefined)?.stars || 0;
+          }
+          if (!storedFeatures.recruitRating) {
+            const rc = cfbdLookupVariant(cfbdRecruits, prospect.name, (k) => k);
+            storedFeatures.recruitRating = (rc as { composite_rating?: number } | undefined)?.composite_rating || 0;
+          }
           if (!storedFeatures.collegeTeamTalent && lastSeason) {
             storedFeatures.collegeTeamTalent = cfbdTalent[`${(lastSeason.school || '').toLowerCase()}:${lastSeason.season}`] || 0;
           }
           if (!storedFeatures.collegeUsageOverall && lastSeason) {
-            storedFeatures.collegeUsageOverall = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.overall || 0;
+            const u = cfbdLookupVariant(cfbdUsage, prospect.name, (k) => `${k}:${lastSeason!.season}`);
+            storedFeatures.collegeUsageOverall = (u as { overall?: number } | undefined)?.overall || 0;
           }
           if (!storedFeatures.collegeUsagePass && lastSeason) {
-            storedFeatures.collegeUsagePass = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.pass || 0;
+            const u = cfbdLookupVariant(cfbdUsage, prospect.name, (k) => `${k}:${lastSeason!.season}`);
+            storedFeatures.collegeUsagePass = (u as { pass?: number } | undefined)?.pass || 0;
           }
           if (!storedFeatures.collegeUsageRush && lastSeason) {
-            storedFeatures.collegeUsageRush = cfbdUsage[`${cfbdK}:${lastSeason.season}`]?.rush || 0;
+            const u = cfbdLookupVariant(cfbdUsage, prospect.name, (k) => `${k}:${lastSeason!.season}`);
+            storedFeatures.collegeUsageRush = (u as { rush?: number } | undefined)?.rush || 0;
           }
           if (!storedFeatures.collegeQBR) storedFeatures.collegeQBR = prospectQBRLatest.get(nName) || 0;
           if (!storedFeatures.collegeQBR2yr) storedFeatures.collegeQBR2yr = prospectQBR2yr.get(nName) || prospectQBRLatest.get(nName) || 0;
@@ -1372,31 +1415,45 @@ async function main() {
         // CFBD-sourced features: ensure prospect cards surface the same
         // recruit + team-talent + usage signals the model now trains on.
         // Loaded above from the committed cfbd-* rollups so no extra API calls.
-        recruitStars: cfbdRecruits[cfbdKey(nName)]?.stars || 0,
-        recruitRating: cfbdRecruits[cfbdKey(nName)]?.composite_rating || 0,
-        collegeTeamTalent: (() => {
+        recruitStars: (cfbdLookupVariant(cfbdRecruits, prospect.name, (k) => k) as { stars?: number } | undefined)?.stars || 0,
+        recruitRating: (cfbdLookupVariant(cfbdRecruits, prospect.name, (k) => k) as { composite_rating?: number } | undefined)?.composite_rating || 0,
+        ...(() => {
+          // Resolve the prospect's most-recent college season — prefer
+          // nflverse stats, fall back to CFBD usage keys so current juniors
+          // (no nflverse row yet) still surface team talent + usage.
+          let last: { season: number; school: string } | null = null;
           const seasons = prospectSeasonStats.get(nName) || [];
-          if (seasons.length === 0) return 0;
-          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
-          return cfbdTalent[`${(last.school || '').toLowerCase()}:${last.season}`] || 0;
-        })(),
-        collegeUsageOverall: (() => {
-          const seasons = prospectSeasonStats.get(nName) || [];
-          if (seasons.length === 0) return 0;
-          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
-          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.overall || 0;
-        })(),
-        collegeUsagePass: (() => {
-          const seasons = prospectSeasonStats.get(nName) || [];
-          if (seasons.length === 0) return 0;
-          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
-          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.pass || 0;
-        })(),
-        collegeUsageRush: (() => {
-          const seasons = prospectSeasonStats.get(nName) || [];
-          if (seasons.length === 0) return 0;
-          const last = seasons.reduce((a, b) => a.season > b.season ? a : b);
-          return cfbdUsage[`${cfbdKey(nName)}:${last.season}`]?.rush || 0;
+          if (seasons.length) {
+            last = seasons.reduce((a, b) => a.season > b.season ? a : b);
+          } else {
+            let maxYr = 0, maxSchool = '';
+            for (const v of nameVariants(prospect.name)) {
+              const prefix = `${cfbdKey(v)}:`;
+              for (const [key, val] of Object.entries(cfbdUsage)) {
+                if (!key.startsWith(prefix)) continue;
+                const yr = parseInt(key.split(':')[1]);
+                if (yr > maxYr) { maxYr = yr; maxSchool = ((val as { team?: string }).team || '').toLowerCase(); }
+              }
+              if (maxYr) break;
+            }
+            if (maxYr) last = { season: maxYr, school: maxSchool };
+          }
+          if (!last) {
+            return {
+              collegeTeamTalent: 0,
+              collegeUsageOverall: 0,
+              collegeUsagePass: 0,
+              collegeUsageRush: 0,
+            };
+          }
+          const usage = cfbdLookupVariant(cfbdUsage, prospect.name, (k) => `${k}:${last!.season}`) as
+            { overall?: number; pass?: number; rush?: number } | undefined;
+          return {
+            collegeTeamTalent: cfbdTalent[`${(last.school || '').toLowerCase()}:${last.season}`] || 0,
+            collegeUsageOverall: usage?.overall || 0,
+            collegeUsagePass: usage?.pass || 0,
+            collegeUsageRush: usage?.rush || 0,
+          };
         })(),
         // PDF scouting features — see PRE/POST_DRAFT_FEATURES in
         // train_career_models.py. Zero-filled for unmatched prospects.
