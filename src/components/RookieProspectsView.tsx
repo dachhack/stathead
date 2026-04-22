@@ -4,7 +4,6 @@ import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
-import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import zapScores from '../data/zap-scores-2026.json';
 
@@ -625,17 +624,22 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 </td>
                 <td>
                   {(() => {
-                    const ts = ppgToTierScore(r.predictedCareerPPG, r.pos);
-                    if (ts <= 0) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
+                    const tierMap: Record<number, { label: string; color: string }> = {
+                      1: { label: 'Alpha',       color: '#22c55e' },
+                      2: { label: 'Blue Chip',   color: '#4ade80' },
+                      3: { label: 'Starter',     color: '#a3e635' },
+                      4: { label: 'Contributor', color: '#facc15' },
+                      5: { label: 'Depth',       color: '#fb923c' },
+                      6: { label: 'Longshot',    color: '#ef4444' },
+                    };
+                    const def = tierMap[r.modelTier];
+                    if (!def || !r.modelTier) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                        title="Our Score: predicted PPG mapped to ZAP's 2026 tier scale (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver / Dart).">
-                        <strong style={{ color: tierScoreColor(ts), fontSize: 12, whiteSpace: 'nowrap' }}>
-                          {tierName(ts)}
+                        title="Rookie career model tier — percentile vs all historical rookies, with first-round scout-consensus override.">
+                        <strong style={{ color: def.color, fontSize: 12, whiteSpace: 'nowrap' }}>
+                          {def.label}
                         </strong>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                          {ts.toFixed(0)}
-                        </span>
                       </span>
                     );
                   })()}
