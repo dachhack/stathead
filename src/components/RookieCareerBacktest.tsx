@@ -6,7 +6,6 @@ import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { normalizeName } from '../lib/featureTypes';
 import { PlayerCard } from './PlayerCard';
-import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 import zapScores2023 from '../data/zap-scores-2023.json';
 import zapScores2026 from '../data/zap-scores-2026.json';
 
@@ -601,12 +600,14 @@ export function RookieCareerBacktest() {
                   <td>{r.draftSeason}</td>
                   <td>
                     {(() => {
-                      const ts = ppgToTierScore(r.predictedPPG, r.position);
-                      if (ts <= 0) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
+                      const def = TIER_DEFS.find(t => t.tier === r.modelTier);
+                      if (!def || !r.modelTier) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
                       return (
-                        <span title="Our Score: predicted PPG mapped to ZAP's 2026 tier scale (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver / Dart).">
-                          <strong style={{ color: tierScoreColor(ts), fontSize: 12 }}>{tierName(ts)}</strong>
-                          <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>({ts.toFixed(0)})</span>
+                        <span title={`Rookie career model tier (${def.desc}). Threshold: percentile ≥ ${def.pctlMin}, with first-round scout-consensus override.`}>
+                          <strong style={{ color: def.color, fontSize: 12 }}>{def.label}</strong>
+                          {r.percentile > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>({r.percentile})</span>
+                          )}
                         </span>
                       );
                     })()}
