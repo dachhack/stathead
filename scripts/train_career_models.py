@@ -1588,6 +1588,84 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     ridge_z = Ridge(alpha=hyper['ridge_alpha'])
     ridge_z.fit(X_z, y_z)
 
+    # ── Scoring-time donor imputation for historical rows ───────────
+    # Training coefficients stay untouched (so modern-era predictions
+    # don't shift), but at inference time we substitute zero-filled
+    # scout features with logDraftPick-regressed values for pre-2022
+    # rookies. The ridge_z coefficients then treat historical players
+    # like modern peers at the same draft slot — fixing McCluster et al.
+    # without breaking anything else.
+    IMPUTE_FEATS = [f for f in
+                    ['pdfRankOverallMean', 'rspDotDraft', 'rspTierOrdinal',
+                     'rspNComps', 'rspBreadthDraft']
+                    if f in feature_keys]
+    if IMPUTE_FEATS:
+        DONOR = 'logDraftPick'
+        # Fit donor regressions on backtest_raw MODERN subset (2022+
+        # with both donor + target present).
+        donor_params = {}
+        for tgt in IMPUTE_FEATS:
+            pairs = [
+                (float(r['features'].get(DONOR, 0) or 0),
+                 float(r['features'].get(tgt, 0) or 0))
+                for r in backtest_raw
+                if r['draftSeason'] >= 2022
+                and r['features'].get(tgt, 0) not in (0, None)
+                and r['features'].get(DONOR, 0) not in (0, None)
+            ]
+            if len(pairs) < 8: continue
+            n = len(pairs)
+            mx = sum(p[0] for p in pairs) / n
+            my = sum(p[1] for p in pairs) / n
+            sxx = sum((p[0] - mx) ** 2 for p in pairs)
+            sxy = sum((p[0] - mx) * (p[1] - my) for p in pairs)
+            if sxx == 0: continue
+            b_coef = sxy / sxx
+            donor_params[tgt] = (my - b_coef * mx, b_coef)
+
+        means_arr = np.array(means)
+        stds_arr = np.array(stds)
+        overrode = 0
+        for r in backtest_raw:
+            # Only override historical (pre-2022) rows. Modern rows
+            # might legitimately have zero scout values (e.g. scouts
+            # offered no NFL comps), and overwriting those would
+            # corrupt real information.
+            if r['draftSeason'] >= 2022:
+                continue
+            feats = r['features'] or {}
+            donor_val = float(feats.get(DONOR, 0) or 0)
+            if donor_val == 0:
+                continue
+            imputed_any = False
+            feats_for_x = dict(feats)
+            for tgt in IMPUTE_FEATS:
+                if feats.get(tgt, 0) in (0, None) and tgt in donor_params:
+                    a_c, b_c = donor_params[tgt]
+                    v = a_c + b_c * donor_val
+                    if tgt == 'pdfRankOverallMean':
+                        v = max(0.0, v)
+                    elif tgt in ('rspNComps', 'rspTierOrdinal'):
+                        v = max(0.0, v)
+                    elif tgt in ('rspDotDraft', 'rspBreadthDraft'):
+                        v = max(0.0, min(100.0, v))
+                    feats_for_x[tgt] = v
+                    imputed_any = True
+            if not imputed_any:
+                continue
+            # Build z-scored feature vector for ridge_z
+            x_raw = np.array([
+                _safe_float_global(feats_for_x.get(k, 0) or 0)
+                for k in feature_keys
+            ])
+            x_z = (x_raw - means_arr) / stds_arr
+            pred_z = float(ridge_z.predict(x_z.reshape(1, -1))[0])
+            pred_raw = pred_z * y_std + y_mean
+            r['predictedPPG'] = round(max(0.0, pred_raw), 1)
+            overrode += 1
+        if overrode:
+            print(f'    {pos}: donor-imputed predictedPPG for {overrode} historical rows')
+
     ridge_model = {
         'coefficients': [round(float(c), 8) for c in ridge_z.coef_],
         'intercept': round(float(ridge_z.intercept_), 8),
