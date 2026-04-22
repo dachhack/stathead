@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Pre-commit check — catches the two failure modes that have bitten us:
+#
+#   1. Unresolved merge-conflict markers (`<<<<<<< HEAD`, `=======`,
+#      `>>>>>>>`) — PR #193 shipped because six data files retained
+#      conflict markers from a stale auto-merge.
+#
+#   2. Malformed JSON in committed data/cache files — feature-matrix
+#      etc. are shipped to GitHub Pages and parsed by the site; one
+#      bad byte takes the app down.
+#
+# Enable once with:   npm run setup-hooks   (sets core.hooksPath)
+# or:                 git config core.hooksPath .githooks
+
+set -u
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+fail=0
+
+# 1. Conflict markers
+marker_hits=$(
+  echo "$staged" \
+    | while read -r f; do
+        [ -f "$f" ] || continue
+        # Only match anchored at start-of-line. Some markdown notes
+        # contain these strings inline legitimately.
+        if grep -nE '^(<<<<<<<|=======|>>>>>>>) ' "$f" 2>/dev/null | head -3 \
+           | sed "s|^|$f:|"; then
+          :
+        fi
+      done
+)
+if [ -n "$marker_hits" ]; then
+  echo "✗ Merge-conflict markers in staged files:"
+  echo "$marker_hits"
+  fail=1
+fi
+
+# 2. JSON validation for files under public/data/** (the files shipped
+#    to the site). Skip others — model caches include >1 MB JSONs that
+#    take seconds each but are low-change.
+json_files=$(echo "$staged" | grep -E '^public/data/.*\.json$' || true)
+if [ -n "$json_files" ]; then
+  bad=""
+  while read -r f; do
+    [ -z "$f" ] && continue
+    [ -f "$f" ] || continue
+    if ! python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$f" 2>/dev/null; then
+      bad+="$f"$'\n'
+    fi
+  done <<< "$json_files"
+  if [ -n "$bad" ]; then
+    echo "✗ Malformed JSON in staged public/data files:"
+    echo "$bad"
+    fail=1
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo
+  echo "Fix the above issues, re-stage, and commit again."
+  echo "To bypass in an emergency:  git commit --no-verify"
+  exit 1
+fi
