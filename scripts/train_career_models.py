@@ -878,6 +878,7 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
         ))
 
 
+
         career_rows.append({
             'name': entry['name'],
             'position': entry['position'],
