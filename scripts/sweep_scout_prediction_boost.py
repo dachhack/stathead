@@ -123,24 +123,32 @@ for cfg in sorted(results_all, key=lambda r: r[3])[:10]:
     t, c, cp, m, b, r2 = cfg
     print(f'  th={t:<4} coeff={c:<4} cap={cp:<4}  MAE={m:.3f} (Δ{m-base_mae:+.3f})  bias={b:+.2f}  R²={r2:+.3f}')
 
-# Per-position best
-print('\n=== Per-position best (by MAE improvement) ===')
+# Per-position best — fixed threshold=0.5, coeff=1.0, sweep cap
+print('\n=== Per-position cap sweep (threshold=0.5, coeff=1.0) ===')
 for pos in POSITIONS:
     coh = cohorts[pos]
     if len(coh) < 2: continue
-    base_m, base_b, base_r2 = metrics(coh)
-    pos_results = []
-    for thresh in [0.5, 0.8, 1.0, 1.2, 1.5, 1.8, 2.0]:
-        for coeff in [0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0]:
-            for cap in [0.5, 1.0, 1.5, 2.0, 3.0]:
-                adjusted = []
-                for r in coh:
-                    boost = min(max(0, r['gapZ'] - thresh) * coeff, cap)
-                    adjusted.append({**r, 'pred': r['pred'] + boost})
-                m, b, r2 = metrics(adjusted)
-                pos_results.append((thresh, coeff, cap, m, b, r2))
-    pos_results.sort(key=lambda r: r[3])
+    base_m, base_b, _ = metrics(coh)
     print(f'\n  {pos} (n={len(coh)}, baseline MAE={base_m:.2f}, bias={base_b:+.2f})')
-    for cfg in pos_results[:3]:
-        t, c, cp, m, b, r2 = cfg
-        print(f'    th={t:<4} coeff={c:<4} cap={cp:<4}  MAE={m:.3f} (Δ{m-base_m:+.3f})  bias={b:+.2f}')
+    print(f'    {"cap":>5}  {"MAE":>6} {"ΔMAE":>6}  {"bias":>6}')
+    for cap in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0]:
+        adj = [{**r, 'pred': r['pred'] + min(max(0, r['gapZ'] - 0.5) * 1.0, cap)} for r in coh]
+        m, b, _ = metrics(adj)
+        mark = '  ← best' if cap == min([c for c in [0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,5.0]],
+                                         key=lambda ccc: metrics([{**r,'pred':r['pred'] + min(max(0,r['gapZ']-0.5)*1.0, ccc)} for r in coh])[0]) else ''
+        print(f'    {cap:>5}  {m:>6.2f} {m-base_m:>+6.2f}  {b:>+6.2f}{mark}')
+
+# Leave-one-out stability check for the full cohort's best config
+print('\n=== Leave-one-out robustness check (all positions) ===')
+print('  For each dropped player, find the new best (cap) with threshold=0.5, coeff=1.0')
+full = all_rows
+print(f'  Full set best MAE @ cap=2.0 = {metrics([{**r,"pred":r["pred"]+min(max(0,r["gapZ"]-0.5)*1.0,2.0)} for r in full])[0]:.3f}')
+for i in range(len(full)):
+    subset = [r for j, r in enumerate(full) if j != i]
+    best_cap, best_m = None, float('inf')
+    for cap in [1.0, 1.5, 2.0, 2.5, 3.0]:
+        adj = [{**r, 'pred': r['pred'] + min(max(0, r['gapZ'] - 0.5) * 1.0, cap)} for r in subset]
+        m, _, _ = metrics(adj)
+        if m < best_m: best_m, best_cap = m, cap
+    dropped = full[i]['name']
+    print(f'    drop {dropped:<22}  best cap={best_cap}  MAE={best_m:.3f}')
