@@ -190,10 +190,32 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
         {/* Score summary */}
         <div style={{ padding: '8px 14px', display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
           {(() => {
-            // "Our Score" = predictedPPG → ZAP 2026 tier scale when PPG is
-            // available (primary path for prospect + backtest cards). Falls
-            // back to the passed-in ourScore for any caller that already
-            // computed a custom score. Displays the tier name as a sub-label.
+            // Prefer the rookie career model tier when we have it — keeps
+            // the label in lock-step with Dynasty Prospects + Career
+            // Backtest. Falls back to the ZAP tier-scale remap if the
+            // caller didn't pass modelTier / percentile (e.g. veteran cards).
+            const tierMap: Record<number, { label: string; color: string }> = {
+              1: { label: 'Alpha',       color: '#22c55e' },
+              2: { label: 'Blue Chip',   color: '#4ade80' },
+              3: { label: 'Starter',     color: '#a3e635' },
+              4: { label: 'Contributor', color: '#facc15' },
+              5: { label: 'Depth',       color: '#fb923c' },
+              6: { label: 'Longshot',    color: '#ef4444' },
+            };
+            const def = (player as any).modelTier ? tierMap[(player as any).modelTier as number] : null;
+            const pctl = (player as any).percentile as number | undefined;
+            if (def) {
+              return (
+                <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center', minWidth: 72 }}
+                  title="Rookie career model tier — percentile vs all historical rookies, with first-round scout-consensus override.">
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Tier</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: def.color }}>{def.label}</div>
+                  {pctl != null && pctl > 0 && (
+                    <div style={{ fontSize: 8, color: 'var(--text-muted)', marginTop: -2 }}>pctl {pctl}</div>
+                  )}
+                </div>
+              );
+            }
             const ts = player.predictedPPG != null && player.predictedPPG > 0
               ? ppgToTierScore(player.predictedPPG, player.position)
               : (player.ourScore ?? 0);
