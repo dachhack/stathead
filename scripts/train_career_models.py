@@ -117,7 +117,15 @@ PRE_DRAFT_FEATURES = {
     # hard to project — the 247 composite grabs high-upside athletes the
     # lean draft-capital feature set was missing.
     'TE': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-           'age', 'recruitStars'],
+           'age', 'recruitStars',
+           # 2026-04 production ablation (scripts/ablate_te_features.py):
+           # college production signals not tested in the original PDF A/B
+           # (n=55) now lift R² at n=207. Top 2 wins stacked:
+           #   +collegeBreakoutScore         +0.026 R²
+           #   +collegeRecYdsPerTeamPassAtt  +0.024 R²
+           # Combined ΔR² +0.029, ρ neutral. PDF/RSP scout signals remain a
+           # wash for TE (see same ablation).
+           'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt'],
 }
 
 # contractAPY removed (0% coverage — rookie contracts are slot-determined,
