@@ -1468,6 +1468,20 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
                     and gap_z >= 1.0 and prod_z >= -1.5):
                 r['modelTier'] = scout_tier
 
+            # Scout-consensus prediction boost. The 2022-2024 LOSO
+            # backtest showed first-round scout-override rookies under-
+            # predict by a mean +2.0 PPG bias. Unified config
+            # (threshold 0.5, coeff 1.0, cap 2.0) drops cohort MAE 31%
+            # and pulls bias to +0.3. Tuned in
+            # scripts/sweep_scout_prediction_boost.py.
+            # Fires under the SAME Alpha-tier override conditions so
+            # prediction + tier stay aligned for Bowers/Bijan/JSN-class
+            # prospects whose scout premium the production-heavy model
+            # under-weights.
+            if (scout_z >= ALPHA_Z and gap_z >= 1.0 and prod_z >= -1.5):
+                boost = min(max(0.0, gap_z - 0.5) * 1.0, 2.0)
+                r['predictedPPG'] = round(r['predictedPPG'] + boost, 1)
+
     # ── Feature importance (from final Ridge on all data) ─────────────
     all_rows_expanded = expand(pos_rows)
     X_all = make_X(all_rows_expanded)
