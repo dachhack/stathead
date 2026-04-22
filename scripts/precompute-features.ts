@@ -1694,14 +1694,14 @@ async function main() {
           if (scoutTier < (r.modelTier || 6) && gapZ >= 1.0 && prodZ >= -1.5) {
             r.modelTier = scoutTier;
           }
-          // Scout-consensus prediction boost — kept in lock-step with
-          // train_career_models.py. Fires under Alpha-tier override
-          // conditions; lifts predictedCareerPPG toward the cohort's
-          // typical out-performance (LOSO bias +2 PPG, corrected via
-          // boost = min(max(0, gapZ - 0.5) * 1.0, 2.0). See
-          // scripts/sweep_scout_prediction_boost.py.
+          // Scout-consensus prediction boost — formula E (min of gap
+          // and scout), kept in lock-step with train_career_models.py.
+          // Requires BOTH scoutZ and gapZ elevated — best of 5 formula
+          // candidates (scripts/sweep_scout_boost_formulas.py).
           if (scoutZ >= ALPHA_Z && gapZ >= 1.0 && prodZ >= -1.5) {
-            const boost = Math.min(Math.max(0, gapZ - 0.5) * 1.0, 2.0);
+            const scoutContrib = Math.max(0, scoutZ - 1.3);
+            const gapContrib   = Math.max(0, gapZ   - 0.3);
+            const boost = Math.min(Math.min(scoutContrib, gapContrib) * 1.2, 3.0);
             r.predictedCareerPPG = Math.round(((r.predictedCareerPPG || 0) + boost) * 10) / 10;
           }
         }
