@@ -1404,6 +1404,23 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
         elif pctl >= 25: r['modelTier'] = 5
         else: r['modelTier'] = 6
 
+    # WR Alpha requires first-round draft capital. Non-R1 WRs who hit
+    # Alpha purely via the predicted-PPG percentile tend to be noise:
+    # Tee Higgins (pk 33, hit) and James Washington (pk 60, miss) are
+    # the only two, and the base rate on 2nd+ round WR Alpha hitters
+    # is low enough that capping at BlueChip is honest. First-round
+    # pedigree for WR is the strongest single signal for Alpha-level
+    # outcomes — see backtest breakdowns. Applies only to WR; RB can
+    # still hit Alpha from a late pick (Breece Hall pk 36).
+    if pos == 'WR':
+        for r in backtest_raw:
+            feats = r.get('features') or {}
+            pk = feats.get('nflDraftPick') or 0
+            rd = feats.get('nflDraftRound') or 0
+            is_r1 = (0 < rd <= 1) or (0 < pk <= 32)
+            if not is_r1 and r['modelTier'] == 1:
+                r['modelTier'] = 2  # cap at BlueChip
+
     # ── Scout-disagreement override (first-round prospects only) ──────
     # Model predicted PPG is conservative on scout-darlings with mid
     # college production (Bijan, Gibbs, JSN, Olave). Where scout
