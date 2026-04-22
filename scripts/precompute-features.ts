@@ -1634,6 +1634,23 @@ async function main() {
       else r.modelTier = 6;               // Longshot
     }
 
+    // WR Alpha requires first-round draft capital (actual or projected).
+    // Kept in lock-step with train_career_models.py — non-R1 WRs can
+    // still hit Alpha-level PPG (Tee Higgins) but they bust often enough
+    // that capping at BlueChip is more honest than letting percentile
+    // alone promote them.
+    if (pos === 'WR') {
+      for (const r of posRookies) {
+        const feats = (r.features || {}) as Record<string, number>;
+        const pk = Number(feats['nflDraftPick']) || Number(feats['projPick']) || 0;
+        const rd = Number(feats['nflDraftRound']) || Number(feats['projRound']) || 0;
+        const isR1 = (rd > 0 && rd <= 1) || (pk > 0 && pk <= 32);
+        if (!isR1 && r.modelTier === 1) {
+          r.modelTier = 2;
+        }
+      }
+    }
+
     // Scout-disagreement override (first-round projected-pick only).
     // Mirrors the logic in train_career_models.py for backtest rows so
     // 2026 prospects and historical rookies agree on when to upgrade.
