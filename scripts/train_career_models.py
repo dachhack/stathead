@@ -877,6 +877,7 @@ def load_career_rows(cache_path: Path) -> pd.DataFrame:
             pdf_entry, rsp_hr_idx.get(hr_key), entry['draft_season']
         ))
 
+
         career_rows.append({
             'name': entry['name'],
             'position': entry['position'],
