@@ -59,7 +59,7 @@ export function RookieCareerBacktest() {
   const [loading, setLoading] = useState(true);
   const [posFilter, setPosFilter] = useState('ALL');
   const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
-  const [sortField, setSortField] = useState<SortField>('combinedScore');
+  const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [trainingRows, setTrainingRows] = useState<any[]>([]);
   const [predictions2026, setPredictions2026] = useState<any[]>([]);
@@ -245,20 +245,32 @@ export function RookieCareerBacktest() {
     // scores are consistent with ZAP Compare and Prospects views. The
     // reference pool is historical rows only (no 2026) — matches how
     // precompute-features.ts ranks 2026 prospects against the backtest.
+    // Also rank actualPPG against the same pool so we can report an
+    // "actual tier" for the confusion-matrix accuracy view.
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
       const posRows = rows.filter(r => r.position === pos);
       if (posRows.length < 3) continue;
-      const sorted = posRows
+      const predRef = posRows
         .filter(r => r.draftSeason !== 2026)
         .map(r => r.predictedPPG)
         .sort((a, b) => a - b);
-      if (sorted.length === 0) continue;
+      const actualRef = posRows
+        .filter(r => r.draftSeason !== 2026 && r.actualPPG > 0)
+        .map(r => r.actualPPG)
+        .sort((a, b) => a - b);
+      if (predRef.length === 0) continue;
       for (const r of posRows) {
-        const rank = sorted.filter(ppg => ppg <= r.predictedPPG).length;
-        const pctl = Math.round((rank / sorted.length) * 100);
+        const rank = predRef.filter(ppg => ppg <= r.predictedPPG).length;
+        const pctl = Math.round((rank / predRef.length) * 100);
         r.combinedScore = pctl;
         r.percentile = pctl;
         r.modelTier = tierFromPercentile(pctl).tier;
+        if (r.actualPPG > 0 && actualRef.length > 0) {
+          const aRank = actualRef.filter(ppg => ppg <= r.actualPPG).length;
+          const aPctl = Math.round((aRank / actualRef.length) * 100);
+          (r as any).actualPercentile = aPctl;
+          (r as any).actualTier = tierFromPercentile(aPctl).tier;
+        }
       }
     }
     return rows;
@@ -288,7 +300,11 @@ export function RookieCareerBacktest() {
         bVal = b[sortField];
       }
       if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
-      return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      const primary = sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      // Stable tiebreaker on predictedPPG descending — keeps the default
+      // percentile sort ordered cleanly within each integer percentile.
+      if (primary !== 0) return primary;
+      return b.predictedPPG - a.predictedPPG;
     });
     return d;
   }, [allRows, posFilter, selectedSeasons, sortField, sortDir]);
@@ -342,6 +358,41 @@ export function RookieCareerBacktest() {
         hitRate, // % who averaged 10+ PPG
       };
     }).filter(Boolean) as Array<typeof TIER_DEFS[0] & { n: number; avgPPG: number; medPPG: number; minPPG: number; maxPPG: number; hitRate: number }>;
+  }, [filtered]);
+
+  // Confusion matrix: predicted tier (row) vs actual tier (col), computed
+  // over the filtered scored cohort. Both tiers come from the same
+  // percentile-rank-in-position system, so exact match = tier-accurate.
+  // Adjacent (±1 tier) is tracked as a softer accuracy signal.
+  const confusion = useMemo(() => {
+    const scored = filtered.filter(r =>
+      r.actualPPG > 0 && r.modelTier && (r as any).actualTier
+    );
+    const matrix: number[][] = Array.from({ length: 6 }, () => Array(6).fill(0));
+    for (const r of scored) {
+      const pRow = r.modelTier - 1;
+      const aCol = ((r as any).actualTier as number) - 1;
+      if (pRow >= 0 && pRow < 6 && aCol >= 0 && aCol < 6) matrix[pRow][aCol]++;
+    }
+    const total = scored.length;
+    const exact = matrix.reduce((s, row, i) => s + (row[i] || 0), 0);
+    const within1 = matrix.reduce((s, row, i) =>
+      s + (row[i] || 0)
+        + (i > 0 ? (row[i - 1] || 0) : 0)
+        + (i < 5 ? (row[i + 1] || 0) : 0), 0);
+    // Per-row accuracy (how often a predicted-tier prediction lands exactly right)
+    const rowStats = matrix.map((row, i) => {
+      const n = row.reduce((s, v) => s + v, 0);
+      return {
+        tier: i + 1,
+        n,
+        exact: row[i] || 0,
+        within1: (row[i] || 0)
+          + (i > 0 ? (row[i - 1] || 0) : 0)
+          + (i < 5 ? (row[i + 1] || 0) : 0),
+      };
+    });
+    return { matrix, total, exact, within1, rowStats };
   }, [filtered]);
 
   // Build ZAP lookup for CSV export
@@ -557,6 +608,75 @@ export function RookieCareerBacktest() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tier accuracy — predicted vs actual confusion matrix. Recomputes
+          when position/season filters change. */}
+      {confusion.total > 0 && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 6, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Tier Accuracy</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              exact: <strong style={{ color: confusion.exact / confusion.total >= 0.4 ? '#22c55e' : confusion.exact / confusion.total >= 0.25 ? '#facc15' : '#ef4444' }}>
+                {Math.round(confusion.exact / confusion.total * 100)}%
+              </strong>
+              {' '}({confusion.exact}/{confusion.total})
+              &middot; within 1: <strong style={{ color: confusion.within1 / confusion.total >= 0.7 ? '#22c55e' : confusion.within1 / confusion.total >= 0.5 ? '#facc15' : '#ef4444' }}>
+                {Math.round(confusion.within1 / confusion.total * 100)}%
+              </strong>
+            </div>
+          </div>
+          <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 500 }}>Pred ↓ / Actual →</th>
+                {TIER_DEFS.map(t => (
+                  <th key={t.tier} style={{ textAlign: 'center', padding: '4px 6px', fontWeight: 600, color: t.color, fontSize: 10 }}>
+                    {t.label}
+                  </th>
+                ))}
+                <th style={{ textAlign: 'right', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 500 }}>N</th>
+                <th style={{ textAlign: 'right', padding: '4px 6px', color: 'var(--text-muted)', fontWeight: 500 }}>Exact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TIER_DEFS.map((t, i) => {
+                const row = confusion.matrix[i];
+                const rs = confusion.rowStats[i];
+                return (
+                  <tr key={t.tier} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '4px 6px', fontWeight: 600, color: t.color }}>{t.label}</td>
+                    {row.map((cell, j) => {
+                      const isDiag = i === j;
+                      const isAdj = Math.abs(i - j) === 1;
+                      return (
+                        <td key={j} style={{
+                          textAlign: 'center', padding: '4px 6px',
+                          background: isDiag && cell > 0 ? 'rgba(34,197,94,0.15)'
+                                      : isAdj && cell > 0 ? 'rgba(250,204,21,0.08)'
+                                      : undefined,
+                          color: cell === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
+                          fontWeight: isDiag ? 700 : 400,
+                        }}>
+                          {cell || '·'}
+                        </td>
+                      );
+                    })}
+                    <td style={{ textAlign: 'right', padding: '4px 6px', fontWeight: 600 }}>{rs.n || '·'}</td>
+                    <td style={{
+                      textAlign: 'right', padding: '4px 6px', fontWeight: 600,
+                      color: rs.n === 0 ? 'var(--text-muted)'
+                             : rs.exact / rs.n >= 0.4 ? '#22c55e'
+                             : rs.exact / rs.n >= 0.25 ? '#facc15' : '#ef4444',
+                    }}>
+                      {rs.n > 0 ? `${Math.round(rs.exact / rs.n * 100)}%` : '·'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
