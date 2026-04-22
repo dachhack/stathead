@@ -117,7 +117,15 @@ PRE_DRAFT_FEATURES = {
     # hard to project — the 247 composite grabs high-upside athletes the
     # lean draft-capital feature set was missing.
     'TE': ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-           'age', 'recruitStars'],
+           'age', 'recruitStars',
+           # 2026-04 production ablation (scripts/ablate_te_features.py):
+           # college production signals not tested in the original PDF A/B
+           # (n=55) now lift R² at n=207. Top 2 wins stacked:
+           #   +collegeBreakoutScore         +0.026 R²
+           #   +collegeRecYdsPerTeamPassAtt  +0.024 R²
+           # Combined ΔR² +0.029, ρ neutral. PDF/RSP scout signals remain a
+           # wash for TE (see same ablation).
+           'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt'],
 }
 
 # contractAPY removed (0% coverage — rookie contracts are slot-determined,
@@ -1459,6 +1467,20 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             if (scout_tier < r['modelTier']
                     and gap_z >= 1.0 and prod_z >= -1.5):
                 r['modelTier'] = scout_tier
+
+            # Scout-consensus prediction boost. The 2022-2024 LOSO
+            # backtest showed first-round scout-override rookies under-
+            # predict by a mean +2.0 PPG bias. Unified config
+            # (threshold 0.5, coeff 1.0, cap 2.0) drops cohort MAE 31%
+            # and pulls bias to +0.3. Tuned in
+            # scripts/sweep_scout_prediction_boost.py.
+            # Fires under the SAME Alpha-tier override conditions so
+            # prediction + tier stay aligned for Bowers/Bijan/JSN-class
+            # prospects whose scout premium the production-heavy model
+            # under-weights.
+            if (scout_z >= ALPHA_Z and gap_z >= 1.0 and prod_z >= -1.5):
+                boost = min(max(0.0, gap_z - 0.5) * 1.0, 2.0)
+                r['predictedPPG'] = round(r['predictedPPG'] + boost, 1)
 
     # ── Feature importance (from final Ridge on all data) ─────────────
     all_rows_expanded = expand(pos_rows)

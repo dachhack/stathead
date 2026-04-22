@@ -592,10 +592,13 @@ export const PRE_DRAFT_ROOKIE_FEATURES: Record<string, string[]> = {
        'relativeAthleticScore', 'recruitStars',
        'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags', 'pdfSentimentNet',
        'rspNComps', 'rspHasData'],
-  // TE: n=207. recruitStars (+0.015 R²). PDF A/B at n=55 PDF-era showed
-  // no stable positive signal — retest after 2026/2027 classes ship.
+  // TE: n=207. recruitStars (+0.015 R²). 2026-04 production ablation
+  // (scripts/ablate_te_features.py) added collegeBreakoutScore +0.026 R²
+  // and collegeRecYdsPerTeamPassAtt +0.024 R² — combined ΔR² +0.029.
+  // PDF/RSP scout signals remain a wash for TE at n=207.
   TE: ['logDraftPick', 'draftPickPct', 'draftPickPctOverall', 'draftClassDepth',
-       'age', 'recruitStars'],
+       'age', 'recruitStars',
+       'collegeBreakoutScore', 'collegeRecYdsPerTeamPassAtt'],
 };
 
 // Post-draft rookie features: adds team context once landing spot is known.
