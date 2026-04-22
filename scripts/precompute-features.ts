@@ -1638,8 +1638,13 @@ async function main() {
     // Kept in lock-step with train_career_models.py — non-R1 WRs can
     // still hit Alpha-level PPG (Tee Higgins) but they bust often enough
     // that capping at BlueChip is more honest than letting percentile
-    // alone promote them.
+    // alone promote them. Caps modelTier, percentile, AND predictedPPG
+    // so every downstream reader (UI tabs, ZAP compare) shows consistent
+    // BlueChip values for the same prospect.
     if (pos === 'WR') {
+      const bcCeilingPPG = refPPGs.length
+        ? refPPGs[Math.min(refPPGs.length - 1, Math.floor(refPPGs.length * 0.94))]
+        : 0;
       for (const r of posRookies) {
         const feats = (r.features || {}) as Record<string, number>;
         const pk = Number(feats['nflDraftPick']) || Number(feats['projPick']) || 0;
@@ -1647,6 +1652,11 @@ async function main() {
         const isR1 = (rd > 0 && rd <= 1) || (pk > 0 && pk <= 32);
         if (!isR1 && r.modelTier === 1) {
           r.modelTier = 2;
+          r.percentile = Math.min(r.percentile || 0, 94);
+          r.combinedScore = r.percentile;
+          if (bcCeilingPPG > 0 && (r.predictedCareerPPG || 0) > bcCeilingPPG) {
+            r.predictedCareerPPG = Math.round(bcCeilingPPG * 10) / 10;
+          }
         }
       }
     }

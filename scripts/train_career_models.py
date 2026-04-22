@@ -1413,7 +1413,13 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
     # pedigree for WR is the strongest single signal for Alpha-level
     # outcomes — see backtest breakdowns. Applies only to WR; RB can
     # still hit Alpha from a late pick (Breece Hall pk 36).
+    # Caps modelTier, percentile, AND predictedPPG so every downstream
+    # reader (UI tabs, ZAP compare) shows consistent BlueChip values.
     if pos == 'WR':
+        pred_sorted = sorted(r['predictedPPG'] for r in backtest_raw)
+        bc_ceiling_ppg = (pred_sorted[min(len(pred_sorted) - 1,
+                                          int(len(pred_sorted) * 0.94))]
+                          if pred_sorted else 0.0)
         for r in backtest_raw:
             feats = r.get('features') or {}
             pk = feats.get('nflDraftPick') or 0
@@ -1421,6 +1427,9 @@ def train_position(career_rows: list, pos: str, feature_keys: list[str],
             is_r1 = (0 < rd <= 1) or (0 < pk <= 32)
             if not is_r1 and r['modelTier'] == 1:
                 r['modelTier'] = 2  # cap at BlueChip
+                r['percentile'] = min(r['percentile'], 94)
+                if bc_ceiling_ppg > 0 and r['predictedPPG'] > bc_ceiling_ppg:
+                    r['predictedPPG'] = round(bc_ceiling_ppg, 1)
 
     # ── Scout-disagreement override (first-round prospects only) ──────
     # Model predicted PPG is conservative on scout-darlings with mid
