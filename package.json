@@ -16,7 +16,8 @@
     "build": "npm run build:semantic && npm run build:features && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "mcp": "tsx src/mcp-server.ts"
+    "mcp": "tsx src/mcp-server.ts",
+    "setup-hooks": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
