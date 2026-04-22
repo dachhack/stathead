@@ -259,6 +259,12 @@ export function RookieCareerBacktest() {
         .map(r => r.actualPPG)
         .sort((a, b) => a - b);
       if (predRef.length === 0) continue;
+      // BlueChip ceiling on the predictedPPG axis — the PPG at the
+      // 94th pctl of this position's predRef. Used to clamp non-R1 WR
+      // Alpha-range predictions so Pctl + Pred PPG + Tier all agree.
+      const bcCeilingPPG = predRef.length
+        ? predRef[Math.min(predRef.length - 1, Math.floor(predRef.length * 0.94))]
+        : 0;
       for (const r of posRows) {
         const rank = predRef.filter(ppg => ppg <= r.predictedPPG).length;
         const pctl = Math.round((rank / predRef.length) * 100);
@@ -274,7 +280,17 @@ export function RookieCareerBacktest() {
           const pk = (r.features as Record<string, number> | undefined)?.nflDraftPick || 0;
           const rd = (r.features as Record<string, number> | undefined)?.nflDraftRound || 0;
           const isR1 = (rd > 0 && rd <= 1) || (pk > 0 && pk <= 32);
-          if (!isR1) r.modelTier = 2;
+          if (!isR1) {
+            r.modelTier = 2;
+            // Also cap displayed Pctl + PredPPG so the whole row
+            // reads BlueChip consistently. The raw model prediction
+            // is still visible as "pred PPG capped" via the tier
+            // (BlueChip ≤ 94th pctl ≤ bcCeilingPPG).
+            r.percentile = Math.min(r.percentile, 94);
+            if (bcCeilingPPG > 0 && r.predictedPPG > bcCeilingPPG) {
+              r.predictedPPG = Math.round(bcCeilingPPG * 10) / 10;
+            }
+          }
         }
         if (r.actualPPG > 0 && actualRef.length > 0) {
           const aRank = actualRef.filter(ppg => ppg <= r.actualPPG).length;
