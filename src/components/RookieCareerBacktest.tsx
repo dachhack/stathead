@@ -265,6 +265,17 @@ export function RookieCareerBacktest() {
         r.combinedScore = pctl;
         r.percentile = pctl;
         r.modelTier = tierFromPercentile(pctl).tier;
+        // WR Alpha requires first-round draft capital — same cap as
+        // train_career_models.py and precompute-features.ts. Without
+        // this the UI tier recomputation bypasses the Python-side
+        // guard and late-round WRs with high predictedPPG show as
+        // Alpha (e.g. McCluster 2010 pick 36).
+        if (pos === 'WR' && r.modelTier === 1) {
+          const pk = (r.features as Record<string, number> | undefined)?.nflDraftPick || 0;
+          const rd = (r.features as Record<string, number> | undefined)?.nflDraftRound || 0;
+          const isR1 = (rd > 0 && rd <= 1) || (pk > 0 && pk <= 32);
+          if (!isR1) r.modelTier = 2;
+        }
         if (r.actualPPG > 0 && actualRef.length > 0) {
           const aRank = actualRef.filter(ppg => ppg <= r.actualPPG).length;
           const aPctl = Math.round((aRank / actualRef.length) * 100);
