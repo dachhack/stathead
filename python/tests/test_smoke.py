@@ -72,6 +72,43 @@ def test_prospect_grades_2026():
     assert {"name", "pos", "grade"}.issubset(df.columns)
 
 
+def test_resolve_player_and_get_player(monkeypatch):
+    # Pick a player guaranteed to be in the NFL spine + easy to disambiguate
+    key = stathead.resolve_player("Ja'Marr Chase", position="WR")
+    assert key.startswith("sh_"), key
+    rec = stathead.get_player(key)
+    assert rec["display_name"] == "Ja'Marr Chase"
+    assert rec["position"] == "WR"
+    assert "gsis_id" in rec
+
+
+def test_resolve_player_suffix_disambiguation():
+    # "Frank Gore" without suffix → veteran (1983). "Frank Gore Jr." →
+    # the 2022 rookie (2002-born). Exact display-name match wins even
+    # though both players are RB.
+    sr_key = stathead.resolve_player("Frank Gore", position="RB")
+    jr_key = stathead.resolve_player("Frank Gore Jr.", position="RB")
+    assert sr_key != jr_key
+    assert stathead.get_player(sr_key)["birth_date"].startswith("1983-")
+    assert stathead.get_player(jr_key)["birth_date"].startswith("2002-")
+
+
+def test_resolve_player_raises_on_no_match():
+    import pytest
+    with pytest.raises(ValueError):
+        stathead.resolve_player("Definitely Not A Real Player XYZ")
+
+
+def test_load_player_profile_merges_tables():
+    key = stathead.resolve_player("Ja'Marr Chase", position="WR")
+    prof = stathead.load_player_profile(key)
+    assert set(prof.keys()) >= {"crosswalk", "backtest", "adp_historical",
+                                "ktc", "ktc_history", "prospect_grades"}
+    assert prof["crosswalk"]["display_name"] == "Ja'Marr Chase"
+    # Chase should have KTC history
+    assert len(prof["ktc_history"]) > 0
+
+
 def test_player_crosswalk_is_populated():
     df = stathead.load_player_crosswalk()
     assert len(df) > 10000

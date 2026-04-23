@@ -117,9 +117,18 @@ async function registerPlayerStats(
     loaded.push(`SELECT * FROM read_csv_auto('${name}', header=true, ignore_errors=true)`);
   }));
   if (loaded.length === 0) return;
-  await conn.query(
-    `CREATE OR REPLACE TABLE player_stats AS ${loaded.join(' UNION ALL BY NAME ')}`,
-  );
+  // LEFT JOIN against player_crosswalk on gsis_id stamps the canonical
+  // player_key onto every weekly row, so Ask mode / SQL tab queries can
+  // JOIN USING (player_key) without a two-hop through crosswalk.
+  await conn.query(`
+    CREATE OR REPLACE TABLE player_stats AS
+    WITH raw AS (
+      ${loaded.join(' UNION ALL BY NAME ')}
+    )
+    SELECT raw.*, cw.player_key
+    FROM raw
+    LEFT JOIN player_crosswalk cw ON raw.player_id = cw.gsis_id
+  `);
 }
 
 interface KtcRow {
@@ -436,10 +445,10 @@ export const TABLE_DOCS: Array<{
   {
     name: 'player_stats',
     description:
-      'Per-player per-week NFL stats from nflverse (2010-2026). Includes fantasy_points + fantasy_points_ppr. Schema drifted in 2025 — use COALESCE(recent_team, team), COALESCE(interceptions, passing_interceptions), COALESCE(sacks, sacks_suffered) to normalize across years.',
+      'Per-player per-week NFL stats from nflverse (2010-2026). Includes fantasy_points + fantasy_points_ppr, and a canonical player_key stamped via LEFT JOIN on crosswalk.gsis_id — use player_key for clean joins. Schema drifted in 2025: use COALESCE(recent_team, team), COALESCE(interceptions, passing_interceptions), COALESCE(sacks, sacks_suffered) to normalize across years.',
     exampleColumns: [
-      'player_id', 'player_name', 'position', 'recent_team', 'team', 'season', 'week',
-      'season_type', 'opponent_team',
+      'player_key', 'player_id', 'player_name', 'position',
+      'recent_team', 'team', 'season', 'week', 'season_type', 'opponent_team',
       'passing_yards', 'passing_tds', 'passing_epa',
       'rushing_yards', 'rushing_tds', 'carries',
       'receptions', 'targets', 'receiving_yards', 'receiving_tds',
