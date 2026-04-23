@@ -19,6 +19,7 @@ CACHE_PATH = ROOT / 'public/data/training-rows-cache-v49.json'
 CFBD_USAGE = ROOT / 'public/data/cfbd-player-usage.json'
 CFBD_TALENT = ROOT / 'public/data/cfbd-team-talent.json'
 CFBD_RECRUITS = ROOT / 'public/data/cfbd-recruiting.json'
+CFBD_STATS = ROOT / 'public/data/cfbd-college-stats.json'
 
 # Must stay in lock-step with src/lib/featureTypes.ts::EXTENDED_FIRST_NAME_ALIASES
 FIRST_NAME_ALIASES = {
@@ -97,6 +98,42 @@ def main() -> None:
     cfbd_talent = json.loads(CFBD_TALENT.read_text())
     cfbd_recruits = json.loads(CFBD_RECRUITS.read_text())
 
+    # Build (normalized-name → [school, max_season]) from college stats so we
+    # can recover school+season for players missing from CFBD's player-usage
+    # file (Odell Beckham at LSU 2013 isn't in usage but is in stats).
+    stats_rows = json.loads(CFBD_STATS.read_text())
+    stats_school_by_name: dict[str, tuple[str, int]] = {}
+    for s in stats_rows:
+        nm = (s.get('player_name') or '').strip()
+        if not nm:
+            continue
+        school = (s.get('school') or '').lower()
+        season = s.get('season')
+        if not school or not season:
+            continue
+        for v in name_variants(nm):
+            existing = stats_school_by_name.get(v)
+            if existing is None or int(season) > existing[1]:
+                stats_school_by_name[v] = (school, int(season))
+
+    # Build per-team earliest-year talent for back-fill. 247 team-talent data
+    # starts in 2015; pre-2015 rows (Odell Beckham at LSU 2013, etc.) all lose
+    # the signal. For long-stable programs, using the earliest available year
+    # is a much better proxy than zero. Only applied when no exact-year match.
+    team_earliest_talent: dict[str, float] = {}
+    for k, v in cfbd_talent.items():
+        if ':' not in k or not isinstance(v, (int, float)):
+            continue
+        team, yr = k.rsplit(':', 1)
+        try:
+            yi = int(yr)
+        except ValueError:
+            continue
+        existing = team_earliest_talent.get(team)
+        if existing is None or yi < existing[0]:  # type: ignore[misc]
+            team_earliest_talent[team] = (yi, float(v))  # type: ignore[assignment]
+    team_earliest: dict[str, float] = {t: v for t, (_, v) in team_earliest_talent.items()}  # type: ignore[misc]
+
     filled = {'usage': 0, 'pass': 0, 'rush': 0, 'talent': 0, 'stars': 0, 'rating': 0}
 
     for r in rows:
@@ -142,16 +179,35 @@ def main() -> None:
                     f['collegeUsageRush'] = u['rush']
                     filled['rush'] += 1
                 break
+        # If CFBD usage didn't have them, fall back to college-stats so we
+        # still get a school+season anchor for team-talent look-up (Odell
+        # Beckham at LSU 2013 path).
+        if best_season is None:
+            for v in name_variants(name):
+                hit = stats_school_by_name.get(v)
+                if hit:
+                    best_team, best_season = hit[0], hit[1]
+                    break
         if best_season and best_team and not f.get('collegeTeamTalent'):
             talent = cfbd_talent.get(f'{best_team}:{best_season}')
             if talent:
                 f['collegeTeamTalent'] = talent
                 filled['talent'] += 1
+            else:
+                # Fall back to earliest-year value for the team — 247 talent
+                # data starts in 2015, so Odell Beckham at LSU 2013 would
+                # otherwise stay zero. Long-stable blueblood programs are
+                # reasonably approximated by the earliest available year.
+                proxy = team_earliest.get(best_team)
+                if proxy:
+                    f['collegeTeamTalent'] = proxy
+                    filled['talent_proxy'] = filled.get('talent_proxy', 0) + 1
 
     CACHE_PATH.write_text(json.dumps(cache, separators=(',', ':')))
     print(f'Backfilled training-rows-cache-v49.json:')
     print(f'  usage={filled["usage"]}  pass={filled["pass"]}  rush={filled["rush"]}')
-    print(f'  teamTalent={filled["talent"]}  recruitStars={filled["stars"]}  recruitRating={filled["rating"]}')
+    print(f'  teamTalent={filled["talent"]}  teamTalent_proxy={filled.get("talent_proxy", 0)}')
+    print(f'  recruitStars={filled["stars"]}  recruitRating={filled["rating"]}')
 
 
 if __name__ == '__main__':
