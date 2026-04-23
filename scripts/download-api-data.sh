@@ -57,13 +57,21 @@ for season in 2026; do
 done
 
 # ── Reddit Sentiment ──
-# Only scrape if no cached data OR force refresh of current window
-if [ -f "$OUT/reddit_sentiment.json" ]; then
-  echo "  [cached] Reddit sentiment data exists — skipping full scrape"
-  echo "  (Delete public/data/reddit_sentiment.json to force re-scrape)"
+# Reddit's public search endpoint now returns 403 for unauthenticated
+# clients, and the redditMention* / redditSentiment* / redditHype* /
+# redditMentionVelocity features were never used by the current PPG model
+# (zero coefficients in v56). The scrape is off by default — set
+# ENABLE_REDDIT_SCRAPE=1 to re-enable once proper OAuth is wired up.
+if [ "${ENABLE_REDDIT_SCRAPE:-0}" = "1" ]; then
+  if [ -f "$OUT/reddit_sentiment.json" ]; then
+    echo "  [cached] Reddit sentiment data exists — skipping full scrape"
+    echo "  (Delete public/data/reddit_sentiment.json to force re-scrape)"
+  else
+    echo "  Fetching Reddit sentiment data..."
+    NODE_OPTIONS='--max-old-space-size=4096' npx tsx scripts/fetch-reddit-sentiment.ts || echo "Reddit sentiment fetch skipped"
+  fi
 else
-  echo "  Fetching Reddit sentiment data (first time — will be cached)..."
-  NODE_OPTIONS='--max-old-space-size=4096' npx tsx scripts/fetch-reddit-sentiment.ts || echo "Reddit sentiment fetch skipped"
+  echo "  [skipped] Reddit sentiment — needs OAuth; features zero-fill safely. Set ENABLE_REDDIT_SCRAPE=1 to opt in."
 fi
 
 echo "Done! API data saved to $OUT/"
