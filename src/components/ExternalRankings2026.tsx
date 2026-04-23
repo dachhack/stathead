@@ -1,12 +1,52 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchFfcADP, fetchKTCRankings } from '../data';
-import type { FfcADPPlayer, KTCPlayer } from '../types';
+import { fetchFfcADP } from '../data';
+import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
+import type { FfcADPPlayer, ScenarioConfig, SDIOProjection } from '../types';
 import { PlayerLink } from './PlayerLink';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
+const GAMES = 17;
+const BASE = import.meta.env.BASE_URL;
 
 function normName(s: string): string {
   return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function boomColor(v: number): string {
+  if (v >= 40) return '#22c55e';
+  if (v >= 25) return '#86efac';
+  if (v >= 15) return '#a3e635';
+  return 'var(--text-muted)';
+}
+
+function bustColor(v: number): string {
+  if (v >= 40) return '#ef4444';
+  if (v >= 25) return '#fca5a5';
+  if (v >= 15) return '#fb923c';
+  return 'var(--text-muted)';
+}
+
+interface ADPScoreEntry {
+  name: string;
+  position: string;
+  team: string;
+  adp: number;
+  predictedVor: number;
+  ciLower: number;
+  ciUpper: number;
+}
+
+interface PPGScoreEntry {
+  name: string;
+  position: string;
+  predictedPPG: number;
+}
+
+interface RedraftPlayer {
+  name: string;
+  position: string;
+  ppg: number;
 }
 
 interface Row {
@@ -14,26 +54,27 @@ interface Row {
   position: string;
   team: string;
   adp: number;
-  adpFormatted: string;
   high: number;
   low: number;
   stdev: number;
-  timesDrafted: number;
-  ktcValue: number;
-  sfValue: number;
-  isRookie: boolean;
+  projPPG: number;   // ML-predicted PPG (score-store/ppg.json)
+  scenPPG: number;   // scenario-adjustable PPG (redraft + SDIO)
+  boomPct: number;
+  bustPct: number;
 }
 
-type SortKey = 'adp' | 'name' | 'position' | 'team' | 'ktcValue' | 'sfValue';
+type SortKey = 'adp' | 'name' | 'position' | 'team' | 'projPPG' | 'scenPPG' | 'boomPct' | 'bustPct';
 
-export function ExternalRankings2026() {
+export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }) {
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
+  const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
+  const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
+  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
-  const [rookiesOnly, setRookiesOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('adp');
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -42,10 +83,39 @@ export function ExternalRankings2026() {
     setError(null);
     Promise.all([
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
-      fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
-    ]).then(([ffcData, ktcData]) => {
+      fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => [] as ADPScoreEntry[]),
+      fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => [] as PPGScoreEntry[]),
+      fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
+      hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
+      // Fallback when score-store shards are stale/empty.
+      fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
+    ]).then(([ffcData, adpData, ppgData, rdData, sdioData, featureMatrix]) => {
       setFfc(ffcData);
-      setKtc(ktcData);
+
+      const fmAdp: ADPScoreEntry[] = (!adpData?.length && featureMatrix?.predictions2026)
+        ? featureMatrix.predictions2026.map((p: Record<string, unknown>) => ({
+            name: String(p.name ?? ''),
+            position: String(p.position ?? ''),
+            team: String(p.team ?? ''),
+            adp: Number(p.adp) || 0,
+            predictedVor: Number(p.predictedVor) || 0,
+            ciLower: Number(p.ciLower) || 0,
+            ciUpper: Number(p.ciUpper) || 0,
+          }))
+        : adpData;
+
+      const fmPpg: PPGScoreEntry[] = (!ppgData?.length && featureMatrix?.ppgPredictions2026)
+        ? featureMatrix.ppgPredictions2026.map((p: Record<string, unknown>) => ({
+            name: String(p.name ?? ''),
+            position: String(p.position ?? ''),
+            predictedPPG: Number(p.predictedPPG) || 0,
+          }))
+        : ppgData;
+
+      setAdpScores(fmAdp);
+      setPpgScores(fmPpg);
+      setRedraft(rdData.players ?? []);
+      setSdio(sdioData);
       setLoading(false);
     }).catch((e) => {
       setError(e.message);
@@ -53,37 +123,74 @@ export function ExternalRankings2026() {
     });
   }, []);
 
-  // Build a name→KTC map for fast lookup
-  const ktcByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
-    for (const p of ktc) m.set(normName(p.playerName), p);
+  const adpByName = useMemo(() => {
+    const m = new Map<string, ADPScoreEntry>();
+    for (const p of adpScores) m.set(normName(p.name), p);
     return m;
-  }, [ktc]);
+  }, [adpScores]);
+
+  const ppgByName = useMemo(() => {
+    const m = new Map<string, PPGScoreEntry>();
+    for (const p of ppgScores) m.set(normName(p.name), p);
+    return m;
+  }, [ppgScores]);
+
+  const redraftByName = useMemo(() => {
+    const m = new Map<string, RedraftPlayer>();
+    for (const p of redraft) m.set(normName(p.name), p);
+    return m;
+  }, [redraft]);
+
+  const activeScenario = scenario;
+  const scenarioSdio = useMemo(() => {
+    if (!sdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return sdio;
+    return applyScenario(sdio, activeScenario);
+  }, [sdio, activeScenario]);
+
+  const sdioByName = useMemo(() => {
+    const m = new Map<string, SDIOProjection>();
+    for (const p of scenarioSdio) m.set(normName(p.Name), p);
+    return m;
+  }, [scenarioSdio]);
 
   const rows = useMemo((): Row[] => {
     return ffc.map((p) => {
-      const ktcPlayer = ktcByName.get(normName(p.name));
+      const nn = normName(p.name);
+      const adpS = adpByName.get(nn);
+      const ppgS = ppgByName.get(nn);
+      const rd = redraftByName.get(nn);
+      const sdioP = sdioByName.get(nn);
+
+      const vor = adpS?.predictedVor ?? 0;
+      const ciLow = adpS?.ciLower ?? 0;
+      const ciHigh = adpS?.ciUpper ?? 0;
+      const boomPct = vor > 0 ? Math.round(((ciHigh - vor) / vor) * 100) : 0;
+      const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
+
+      let scenPPG = rd?.ppg ?? 0;
+      if (sdioP && activeScenario && !isScenarioEmpty(activeScenario) && (sdioP.FantasyPointsPPR ?? 0) > 0) {
+        scenPPG = Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10;
+      }
+
       return {
         name: p.name,
         position: p.position,
         team: p.team,
         adp: p.adp,
-        adpFormatted: String(p.adp.toFixed(1)),
         high: p.high,
         low: p.low,
         stdev: p.stdev,
-        timesDrafted: p.timesDrafted,
-        ktcValue: ktcPlayer?.value ?? 0,
-        sfValue: ktcPlayer?.superflexValue ?? 0,
-        isRookie: ktcPlayer?.isRookie ?? false,
+        projPPG: ppgS?.predictedPPG ?? 0,
+        scenPPG,
+        boomPct,
+        bustPct,
       };
     });
-  }, [ffc, ktcByName]);
+  }, [ffc, adpByName, ppgByName, redraftByName, sdioByName, activeScenario]);
 
   const filtered = useMemo(() => {
     let data = [...rows];
     if (posFilter !== 'ALL') data = data.filter((r) => r.position === posFilter);
-    if (rookiesOnly) data = data.filter((r) => r.isRookie);
     if (search) {
       const q = search.toLowerCase();
       data = data.filter((r) =>
@@ -92,20 +199,17 @@ export function ExternalRankings2026() {
       );
     }
     data.sort((a, b) => {
-      let av: string | number;
-      let bv: string | number;
       if (sortKey === 'name' || sortKey === 'position' || sortKey === 'team') {
-        av = a[sortKey]; bv = b[sortKey];
-        return sortAsc ? (av as string).localeCompare(bv as string) : (bv as string).localeCompare(av as string);
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
       }
-      av = a[sortKey] as number;
-      bv = b[sortKey] as number;
+      const av = a[sortKey] as number;
+      const bv = b[sortKey] as number;
       return sortAsc ? av - bv : bv - av;
     });
     return data;
-  }, [rows, posFilter, rookiesOnly, search, sortKey, sortAsc]);
-
-  const rookieCount = useMemo(() => rows.filter((r) => r.isRookie).length, [rows]);
+  }, [rows, posFilter, search, sortKey, sortAsc]);
 
   function handleSort(key: SortKey) {
     if (key === sortKey) setSortAsc((a) => !a);
@@ -121,7 +225,7 @@ export function ExternalRankings2026() {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading 2026 pre-season ADP + KTC values…</div>
+        <div className="loading-text">Loading 2026 pre-season ADP + projections…</div>
       </div>
     );
   }
@@ -134,6 +238,8 @@ export function ExternalRankings2026() {
       </div>
     );
   }
+
+  const hasScenario = !!activeScenario && !isScenarioEmpty(activeScenario);
 
   return (
     <>
@@ -157,28 +263,22 @@ export function ExternalRankings2026() {
             </button>
           ))}
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <input
-            type="checkbox"
-            checked={rookiesOnly}
-            onChange={(e) => setRookiesOnly(e.target.checked)}
-          />
-          Rookies only
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {rookieCount} identified via KTC
+        {hasScenario && (
+          <span style={{
+            fontSize: 11, background: '#6366f122', color: '#6366f1',
+            border: '1px solid #6366f144', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
+          }}>
+            Scenario Active
           </span>
-        </label>
+        )}
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
         2026 pre-season rankings — ADP from{' '}
         <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
           Fantasy Football Calculator
-        </a>{' '}
-        · dynasty values from{' '}
-        <a href="https://keeptradecut.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-          KeepTradeCut
-        </a>.
+        </a>
+        . Proj PPG from model, Scen PPG from redraft projections {hasScenario ? '(scenario-adjusted)' : ''}, Boom/Bust from ADP CI.
         {' '}{filtered.length} of {rows.length} players shown.
       </p>
 
@@ -199,15 +299,21 @@ export function ExternalRankings2026() {
               <th onClick={() => handleSort('adp')} className={sortKey === 'adp' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
                 ADP{sortArrow('adp')}
               </th>
+              <th onClick={() => handleSort('projPPG')} className={sortKey === 'projPPG' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                <span title="Model-predicted PPG">Proj PPG</span>{sortArrow('projPPG')}
+              </th>
+              <th onClick={() => handleSort('scenPPG')} className={sortKey === 'scenPPG' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                <span title="Redraft PPG, scenario-adjustable">Scen PPG</span>{sortArrow('scenPPG')}
+              </th>
+              <th onClick={() => handleSort('boomPct')} className={sortKey === 'boomPct' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                <span title="Upside % — CI upper vs predicted VOR">Boom%</span>{sortArrow('boomPct')}
+              </th>
+              <th onClick={() => handleSort('bustPct')} className={sortKey === 'bustPct' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                <span title="Downside % — predicted VOR vs CI lower">Bust%</span>{sortArrow('bustPct')}
+              </th>
               <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>High</th>
               <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>Low</th>
               <th style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>StDev</th>
-              <th onClick={() => handleSort('ktcValue')} className={sortKey === 'ktcValue' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right' }}>
-                KTC Value{sortArrow('ktcValue')}
-              </th>
-              <th onClick={() => handleSort('sfValue')} className={sortKey === 'sfValue' ? 'sorted' : ''} style={{ cursor: 'pointer', textAlign: 'right', color: 'var(--text-muted)' }}>
-                SF Value{sortArrow('sfValue')}
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -217,27 +323,27 @@ export function ExternalRankings2026() {
                 <td>
                   <strong>{r.name}</strong>
                   <PlayerLink name={r.name} position={r.position} />
-                  {r.isRookie && (
-                    <span style={{
-                      marginLeft: 6, fontSize: 10, background: 'var(--accent)',
-                      color: '#fff', padding: '1px 5px', borderRadius: 3,
-                    }}>R</span>
-                  )}
                 </td>
                 <td>
                   <span className={`pos-badge pos-${r.position}`}>{r.position}</span>
                 </td>
                 <td>{r.team}</td>
                 <td style={{ textAlign: 'right', fontWeight: 700 }}>{r.adp.toFixed(1)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                  {r.projPPG > 0 ? r.projPPG.toFixed(1) : '—'}
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                  {r.scenPPG > 0 ? r.scenPPG.toFixed(1) : '—'}
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 600, color: boomColor(r.boomPct) }}>
+                  {r.boomPct > 0 ? `${r.boomPct}%` : '—'}
+                </td>
+                <td style={{ textAlign: 'right', fontWeight: 600, color: bustColor(r.bustPct) }}>
+                  {r.bustPct > 0 ? `${r.bustPct}%` : '—'}
+                </td>
                 <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.high}</td>
                 <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.low}</td>
                 <td style={{ textAlign: 'right', color: 'var(--text-muted)', fontSize: 11 }}>{r.stdev.toFixed(1)}</td>
-                <td style={{ textAlign: 'right', fontWeight: 600, color: r.ktcValue > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                  {r.ktcValue > 0 ? r.ktcValue.toLocaleString() : '—'}
-                </td>
-                <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>
-                  {r.sfValue > 0 ? r.sfValue.toLocaleString() : '—'}
-                </td>
               </tr>
             ))}
           </tbody>
