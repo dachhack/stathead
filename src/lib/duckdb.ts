@@ -221,7 +221,38 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     }),
   );
 
-  return { career_2026, backtest, prospects, ktc, ktc_history, adp_ffc };
+  // Historical ADP — from the feature store's profile shard (4507 rows,
+  // 2010-2025, every season fully populated). This is the ADP we actually
+  // use in training, already resolved + normalized across sources. Join
+  // with players.json for position + display name.
+  const adp_historical: Record<string, unknown>[] = [];
+  const [profile, players] = await Promise.all([
+    fetchJson<Record<string, {
+      adp?: number; adpRound?: number;
+      nflDraftPick?: number; nflDraftRound?: number;
+      age?: number; yearsInLeague?: number;
+    }>>('feature-store/profile.json'),
+    fetchJson<Record<string, { position?: string; displayName?: string }>>('feature-store/players.json'),
+  ]);
+  for (const [key, rec] of Object.entries(profile || {})) {
+    const [nameNorm, seasonStr] = key.split('::');
+    if (!nameNorm || !seasonStr) continue;
+    const info = players?.[key];
+    adp_historical.push({
+      season: Number(seasonStr),
+      name: info?.displayName ?? nameNorm,
+      name_norm: nameNorm,
+      position: info?.position ?? null,
+      adp: rec.adp ?? null,
+      adpRound: rec.adpRound ?? null,
+      nflDraftPick: rec.nflDraftPick ?? null,
+      nflDraftRound: rec.nflDraftRound ?? null,
+      age: rec.age ?? null,
+      yearsInLeague: rec.yearsInLeague ?? null,
+    });
+  }
+
+  return { career_2026, backtest, prospects, ktc, ktc_history, adp_ffc, adp_historical };
 }
 
 /** CREATE TABLE statements + INSERT via read_json. Loaded as JS arrays, so
@@ -343,8 +374,14 @@ export const TABLE_DOCS: Array<{
   {
     name: 'adp_ffc',
     description:
-      'FFC PPR preseason ADP by season. One row per (season, player). Coverage depends on what has been fetched — run scripts/pull-all-data-sources.sh to refresh.',
+      'FFC PPR preseason ADP — raw FFC API response by season. Coverage depends on what has been fetched; run scripts/pull-all-data-sources.sh to refresh.',
     exampleColumns: ['season', 'name', 'position', 'team', 'adp', 'high', 'low', 'stdev', 'timesDrafted', 'bye'],
+  },
+  {
+    name: 'adp_historical',
+    description:
+      'Historical ADP used in model training, 2010-2025, every season fully populated (~280 players/year, 4500 rows total). Normalized across sources and joined to position + display name. Use this for any cross-year ADP analysis.',
+    exampleColumns: ['season', 'name', 'position', 'adp', 'adpRound', 'nflDraftPick', 'nflDraftRound', 'age', 'yearsInLeague'],
   },
   {
     name: 'ktc',
@@ -405,19 +442,36 @@ ORDER BY season DESC, week DESC
 LIMIT 40;`,
   },
   {
-    label: 'ADP vs actual fantasy — is ADP sharp?',
-    sql: `SELECT a.name, a.season, a.position, a.adp,
-       SUM(s.fantasy_points_ppr) AS total_ppr,
-       COUNT(*) FILTER (WHERE s.week IS NOT NULL) AS games
-FROM adp_ffc a
+    label: 'ADP vs actual fantasy (2010-2025, adp_historical)',
+    sql: `SELECT a.name, a.season, a.position, a.adp, a.adpRound,
+       ROUND(SUM(s.fantasy_points_ppr), 1) AS total_ppr,
+       COUNT(*) FILTER (WHERE s.week IS NOT NULL) AS games,
+       ROUND(SUM(s.fantasy_points_ppr) / NULLIF(COUNT(*), 0), 2) AS ppg
+FROM adp_historical a
 LEFT JOIN player_stats s
   ON lower(s.player_display_name) = lower(a.name)
   AND s.season = a.season
   AND s.season_type = 'REG'
-WHERE a.adp <= 60 AND a.season >= 2020
-GROUP BY a.name, a.season, a.position, a.adp
+WHERE a.adp <= 60 AND a.season >= 2015
+GROUP BY a.name, a.season, a.position, a.adp, a.adpRound
 ORDER BY a.season DESC, a.adp ASC
 LIMIT 50;`,
+  },
+  {
+    label: 'Biggest ADP busts by position (2015+)',
+    sql: `SELECT a.position, a.name, a.season, a.adp,
+       SUM(s.fantasy_points_ppr) AS total_ppr,
+       COUNT(*) FILTER (WHERE s.week IS NOT NULL) AS games
+FROM adp_historical a
+JOIN player_stats s
+  ON lower(s.player_display_name) = lower(a.name)
+  AND s.season = a.season
+  AND s.season_type = 'REG'
+WHERE a.adp <= 36 AND a.season BETWEEN 2015 AND 2024
+GROUP BY a.position, a.name, a.season, a.adp
+HAVING SUM(s.fantasy_points_ppr) < 100
+ORDER BY a.adp ASC
+LIMIT 25;`,
   },
   {
     label: 'Top 25 dynasty values (1QB)',
