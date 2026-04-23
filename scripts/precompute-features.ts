@@ -12,8 +12,8 @@ import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR,
   fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
-import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
-import type { ShareScore } from '../src/lib/modelScoreStore';
+import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeVolumeScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
+import type { ShareScore, VolumeScore } from '../src/lib/modelScoreStore';
 import type { CareerScore, ADPScore, PPGScore } from '../src/lib/modelScoreStore';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import ncaaTeamData from '../src/data/ncaa-team-data.json';
@@ -2072,6 +2072,34 @@ async function main() {
     writeShareScores(shareScores);
     console.log(`    shares: ${shareScores.length} predictions`);
 
+    // Volume scores — mirror the mlProj* features computed in
+    // buildFeatureMatrix into a standalone shard so the hardcoded
+    // efficiency assumptions (7.0 yds/att, 4.5% TD rate, 0.65 catch rate)
+    // can be inspected + validated without loading feature-matrix.json.
+    const volumeScores: VolumeScore[] = [];
+    for (const r of (result.predRows as Array<{ name: string; position: string; team: string; adp: number; features: Record<string, number> }>)) {
+      if (r.adp > MAX_ADP) continue;
+      const f = r.features;
+      const passAtt = Number(f.mlProjTeamPassAtt) || 0;
+      const rushAtt = Number(f.mlProjTeamRushAtt) || 0;
+      const tgt = Number(f.mlProjTeamTargets) || 0;
+      const playerPPG = Number(f.mlProjPlayerPPG) || 0;
+      // Players with no volume features at all — likely an exception in the
+      // volume pass — get skipped rather than publishing zeros.
+      if (!passAtt && !rushAtt && !tgt && !playerPPG) continue;
+      volumeScores.push({
+        name: r.name,
+        position: r.position,
+        team: r.team || '',
+        teamPassAtt: passAtt,
+        teamRushAtt: rushAtt,
+        teamTargets: tgt,
+        projPlayerPPG: playerPPG,
+      });
+    }
+    writeVolumeScores(volumeScores);
+    console.log(`    volumes: ${volumeScores.length} predictions`);
+
     // Manifest
     writeScoreManifest({
       version: 1,
@@ -2080,6 +2108,7 @@ async function main() {
         career: { version: 'v51', count: careerScores.filter(s => s.draftSeason === 2026).length, backtestCount: careerScores.filter(s => s.draftSeason < 2026).length },
         adp: { version: 'v50', count: adpScores.length },
         ppg: { version: 'v50', count: ppgScores.length },
+        volumes: { version: 'v1', count: volumeScores.length },
       },
     });
     console.log('    manifest written');
