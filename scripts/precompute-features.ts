@@ -2051,20 +2051,23 @@ async function main() {
     writePPGScores(ppgScores);
     console.log(`    ppg: ${ppgScores.length} predictions`);
 
-    // Share scores — predicted target and rush shares from share models
+    // Share scores — predicted target and rush shares from share models.
+    // Shares don't apply to QBs; for RB/WR/TE we always emit a row so that
+    // "not predicted" and "predicted 0" are not silently collapsed (consumers
+    // can detect absence by the player missing from the shard, presence by a
+    // row with explicit 0.0 values).
     const shareScores: ShareScore[] = [];
     for (const r of (result.predRows as Array<{ name: string; position: string; team: string; adp: number; features: Record<string, number> }>)) {
       if (r.adp > MAX_ADP) continue;
+      if (r.position === 'QB') continue;
       const f = r.features;
-      if ((f.predTargetShare ?? 0) > 0 || (f.predRushShare ?? 0) > 0) {
-        shareScores.push({
-          name: r.name,
-          position: r.position,
-          team: r.team || '',
-          predTargetShare: Math.round((f.predTargetShare || 0) * 1000) / 1000,
-          predRushShare: Math.round((f.predRushShare || 0) * 1000) / 1000,
-        });
-      }
+      shareScores.push({
+        name: r.name,
+        position: r.position,
+        team: r.team || '',
+        predTargetShare: Math.round((f.predTargetShare || 0) * 1000) / 1000,
+        predRushShare: Math.round((f.predRushShare || 0) * 1000) / 1000,
+      });
     }
     writeShareScores(shareScores);
     console.log(`    shares: ${shareScores.length} predictions`);

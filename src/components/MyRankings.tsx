@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
+import { normName, boomPct, bustPct } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 
 // ── Types ──
@@ -89,10 +90,6 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
 const BASE = import.meta.env.BASE_URL;
-
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
-}
 
 function makeId(name: string, pos: string): string {
   return `${normName(name)}:${pos}`;
@@ -346,14 +343,13 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       const resolvedTeam = ffcP?.team ?? adpS?.team ?? sdioP?.Team ?? team;
 
-      // Boom/bust from ADP model's VOR confidence interval
+      // Boom/bust from ADP model's VOR confidence interval. Helpers floor the
+      // denominator and clamp to [0, 99] so deep-bench VORs don't read as ±100%.
       const vor = adpS?.predictedVor ?? 0;
       const ciLow = adpS?.ciLower ?? 0;
       const ciHigh = adpS?.ciUpper ?? 0;
-      // Boom%: how much upside above predicted (CI upper - predicted) / predicted
-      const boomPct = vor > 0 ? Math.round(((ciHigh - vor) / vor) * 100) : 0;
-      // Bust%: how much downside below predicted (predicted - CI lower) / predicted
-      const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
+      const rowBoomPct = boomPct(vor, ciHigh);
+      const rowBustPct = bustPct(vor, ciLow);
 
       // Projected shares: SDIO (scenario) > share model predictions > prior year
       let projTgtShare = 0;
@@ -393,8 +389,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         ppg,
         adp: ffcP?.adp ?? adpS?.adp ?? 999,
         predictedVor: vor,
-        boomPct,
-        bustPct,
+        boomPct: rowBoomPct,
+        bustPct: rowBustPct,
         projTgtShare,
         projRushShare,
         priorPPG: prior?.priorPPG ?? 0,

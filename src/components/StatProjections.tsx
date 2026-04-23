@@ -944,10 +944,12 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
 
         const addedNames = new Set<string>();
 
-        // First pass: ADP players (have draft capital / expected starters)
+        // First pass: ADP players (have draft capital / expected starters).
+        // Cap matches MAX_ADP=400 from precompute-features so every player we
+        // publish predictions for also appears in the projection tables.
         for (const adp of adpData) {
           if (!POSITIONS.includes(adp.position as Position)) continue;
-          if (adp.adp > 250) continue;
+          if (adp.adp > 400) continue;
           const nn = normalizeName(adp.name);
           const team = rosterTeam.get(nn) || adp.team || '';
           if (!team) continue;
