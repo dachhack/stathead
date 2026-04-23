@@ -230,7 +230,7 @@ function App() {
         {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
         {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
-          ? <ExternalRankings2026 />
+          ? <ExternalRankings2026 scenario={scenario} />
           : tab === 'stats' && (
             <PlayerStatsTable
               players={seasonTotals}
