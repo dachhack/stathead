@@ -1,8 +1,10 @@
 declare const __APP_VERSION__: string;
 declare const __BUILD_HASH__: string;
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
+import { PlayerDetail } from './components/PlayerDetail';
+import { parsePlayerHash, setPlayerHash } from './lib/hashRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
 import { FantasyScoring } from './components/FantasyScoring';
@@ -111,6 +113,18 @@ function App() {
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
+  // Hash-based player detail route: `#/player/sh_<key>` renders the
+  // PlayerDetail page in place of the normal tab layout. Subscribes to
+  // `hashchange` so back/forward + in-app navigation both work.
+  const [playerDetailKey, setPlayerDetailKey] = useState<string | null>(
+    () => (typeof window !== 'undefined' ? parsePlayerHash(window.location.hash) : null),
+  );
+  useEffect(() => {
+    const handler = () => setPlayerDetailKey(parsePlayerHash(window.location.hash));
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
+
   const onDataLoaded = useCallback((data: unknown[]) => {
     setExtraData(data);
   }, []);
@@ -209,6 +223,10 @@ function App() {
         </div>
       </header>
       <main className="main">
+        {playerDetailKey ? (
+          <PlayerDetail playerKey={playerDetailKey} onBack={() => setPlayerHash(null)} />
+        ) : (
+          <>
         {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
         {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
@@ -273,6 +291,8 @@ function App() {
             onDataLoaded={onDataLoaded}
             onOpenSettings={() => setSettingsOpen(true)}
           />
+        )}
+          </>
         )}
       </main>
 
