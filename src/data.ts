@@ -477,43 +477,15 @@ function normalizeFfcTeam(team: string): string {
 
 const ffcAdpCache = new Map<string, FfcADPPlayer[]>();
 
-export async function fetchFfcADP(
-  season: number,
-  scoring: 'standard' | 'ppr' | 'half-ppr' | '2qb' = 'ppr',
-  teams: number = 12
-): Promise<FfcADPPlayer[]> {
-  const cacheKey = `${season}-${scoring}-${teams}`;
-  const cached = ffcAdpCache.get(cacheKey);
-  if (cached) return cached;
+// FFC's `year=N` endpoint frequently returns a thin slice (≤ ~150 rows) for the
+// upcoming draft season until the league fills out. The prior year's endpoint
+// holds the same drafts populated with current rosters (e.g. Jaxson Dart on
+// NYG appears under year=2025). Anything under this threshold triggers a
+// fallback to season-1 to avoid silently truncating the rankings UI.
+const FFC_THIN_THRESHOLD = 200;
 
-  // Try pre-fetched data
-  const preFetched = await tryPreFetched<{ players?: Array<Record<string, unknown>> }>(`ffc_adp_${scoring}_${season}.json`);
-  if (preFetched?.players && preFetched.players.length > 0) {
-    const players: FfcADPPlayer[] = preFetched.players.map((p) => ({
-      name: String(p.name || ''),
-      position: String(p.position || ''),
-      team: normalizeFfcTeam(String(p.team || '')),
-      adp: Number(p.adp) || 0,
-      high: Number(p.high) || 0,
-      low: Number(p.low) || 0,
-      stdev: Number(p.stdev) || 0,
-      timesDrafted: Number(p.times_drafted) || 0,
-      bye: Number(p.bye) || 0,
-    }));
-    ffcAdpCache.set(cacheKey, players);
-    return players;
-  }
-
-  const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
-  const response = await fetchWithTimeout(url);
-  if (!response.ok) {
-    throw new Error(`FFC API returned ${response.status}`);
-  }
-
-  const json = await response.json();
-  const rawPlayers: Array<Record<string, unknown>> = json.players || [];
-
-  const players: FfcADPPlayer[] = rawPlayers.map((p) => ({
+function mapFfcPlayers(raw: Array<Record<string, unknown>>): FfcADPPlayer[] {
+  return raw.map((p) => ({
     name: String(p.name || ''),
     position: String(p.position || ''),
     team: normalizeFfcTeam(String(p.team || '')),
@@ -524,9 +496,49 @@ export async function fetchFfcADP(
     timesDrafted: Number(p.times_drafted) || 0,
     bye: Number(p.bye) || 0,
   }));
+}
 
+async function fetchFfcADPRaw(
+  season: number,
+  scoring: 'standard' | 'ppr' | 'half-ppr' | '2qb',
+  teams: number,
+): Promise<FfcADPPlayer[]> {
+  const cacheKey = `${season}-${scoring}-${teams}`;
+  const cached = ffcAdpCache.get(cacheKey);
+  if (cached) return cached;
+
+  const preFetched = await tryPreFetched<{ players?: Array<Record<string, unknown>> }>(`ffc_adp_${scoring}_${season}.json`);
+  if (preFetched?.players && preFetched.players.length > 0) {
+    const players = mapFfcPlayers(preFetched.players);
+    ffcAdpCache.set(cacheKey, players);
+    return players;
+  }
+
+  const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) {
+    throw new Error(`FFC API returned ${response.status}`);
+  }
+  const json = await response.json();
+  const players = mapFfcPlayers(json.players || []);
   ffcAdpCache.set(cacheKey, players);
   return players;
+}
+
+export async function fetchFfcADP(
+  season: number,
+  scoring: 'standard' | 'ppr' | 'half-ppr' | '2qb' = 'ppr',
+  teams: number = 12,
+): Promise<FfcADPPlayer[]> {
+  const primary = await fetchFfcADPRaw(season, scoring, teams);
+  if (primary.length >= FFC_THIN_THRESHOLD) return primary;
+
+  // Fall back to the prior year's endpoint, which often serves the same
+  // upcoming-draft data with deeper coverage. Prefer it when it is
+  // meaningfully larger than the primary response. Swallow fallback errors
+  // so a sparse-but-valid primary still wins over a failed fallback.
+  const fallback = await fetchFfcADPRaw(season - 1, scoring, teams).catch(() => [] as FfcADPPlayer[]);
+  return fallback.length > primary.length ? fallback : primary;
 }
 
 // --- ESPN Fantasy ADP (undocumented v3 API) ---

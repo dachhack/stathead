@@ -150,10 +150,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     setLoading(true);
     Promise.all([
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
-      // FFC ADP: try 2026, fall back to 2025 (the scrape sometimes lands under the prior year)
-      fetchFfcADP(2026, 'ppr')
-        .then(p => (p && p.length > 0) ? p : fetchFfcADP(2025, 'ppr').catch(() => [] as FfcADPPlayer[]))
-        .catch(() => [] as FfcADPPlayer[]),
+      fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
