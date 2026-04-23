@@ -1639,12 +1639,38 @@ async function main() {
         }
       }
 
+      // Prefer Python-computed per-player boom/bust + z-scores when
+      // available. Mirrors the stored-prospect path above so prospects
+      // going through the nflverse fallback (e.g. 2026 QBs that aren't in
+      // the prospect store) still surface boomZ/bustZ in the feature matrix.
+      let nvBoomZ: number | undefined;
+      let nvBustZ: number | undefined;
+      try {
+        const bbPath = 'public/data/prospect-boom-bust.json';
+        if (existsSync(bbPath)) {
+          const bbData = JSON.parse(readFileSync(bbPath, 'utf-8')) as Array<{
+            name: string; position: string; boomProb: number; bustProb: number;
+            boomZ?: number; bustZ?: number;
+          }>;
+          const nn = normalizeName(prospect.name);
+          const match = bbData.find((b) => normalizeName(b.name) === nn && b.position === pos);
+          if (match) {
+            boomProb = match.boomProb / 100;
+            bustProb = match.bustProb / 100;
+            nvBoomZ = match.boomZ;
+            nvBustZ = match.bustZ;
+          }
+        }
+      } catch {}
+
       careerPredictions2026.push({
         name: prospect.name, position: pos, team: '', adp: prospect.projPick,
         predictedCareerPPG: predictedPPG,
         thresholdProbs,
         boomProb: Math.round(boomProb * 1000) / 10,
         bustProb: Math.round(bustProb * 1000) / 10,
+        boomZ: nvBoomZ,
+        bustZ: nvBustZ,
         features,
       });
     }
