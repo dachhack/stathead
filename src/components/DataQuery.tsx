@@ -7,6 +7,15 @@ type State =
   | { kind: 'results'; columns: string[]; rows: Record<string, unknown>[]; rowCount: number; elapsedMs: number }
   | { kind: 'error'; message: string };
 
+// Detailed-table card shown when a table name is clicked in the sidebar.
+interface TableDetail {
+  name: string;
+  description: string;
+  rowCount: number;
+  columns: Array<{ name: string; type: string; nullable: boolean }>;
+  sampleRows: Record<string, unknown>[];
+}
+
 const STORAGE_KEY = 'stathead-data-query-sql';
 
 const DEFAULT_SQL = `-- Query the underlying model data with SQL.
@@ -23,6 +32,12 @@ export function DataQuery() {
   });
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [dbReady, setDbReady] = useState(false);
+  const [detail, setDetail] = useState<
+    | { kind: 'loading'; name: string }
+    | { kind: 'ready'; data: TableDetail }
+    | { kind: 'error'; name: string; message: string }
+    | null
+  >(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   // Warm the duckdb singleton on first mount (lazy-loads the ~10 MB wasm).
@@ -33,6 +48,44 @@ export function DataQuery() {
       .then(() => { if (!cancelled) { setDbReady(true); setState({ kind: 'idle' }); } })
       .catch((e) => { if (!cancelled) setState({ kind: 'error', message: String(e) }); });
     return () => { cancelled = true; };
+  }, []);
+
+  // Close detail modal on Escape
+  useEffect(() => {
+    if (!detail) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDetail(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [detail]);
+
+  const openTableDetail = useCallback(async (name: string, description: string) => {
+    setDetail({ kind: 'loading', name });
+    try {
+      // DESCRIBE gives column_name + column_type + null. COUNT + SELECT *
+      // LIMIT 10 give row count + preview. Cheap queries — even on the
+      // largest table (player_stats ~ 100k rows) these return in ~50 ms.
+      const [describe, count, sample] = await Promise.all([
+        runQuery(`DESCRIBE ${name}`),
+        runQuery(`SELECT COUNT(*) AS n FROM ${name}`),
+        runQuery(`SELECT * FROM ${name} LIMIT 10`),
+      ]);
+      const columns = describe.rows.map((r) => ({
+        name: String(r.column_name ?? ''),
+        type: String(r.column_type ?? ''),
+        nullable: String(r.null ?? 'YES').toUpperCase() !== 'NO',
+      }));
+      const rowCount = Number(count.rows[0]?.n ?? 0);
+      setDetail({
+        kind: 'ready',
+        data: {
+          name, description, rowCount,
+          columns,
+          sampleRows: sample.rows,
+        },
+      });
+    } catch (e) {
+      setDetail({ kind: 'error', name, message: (e as Error).message || String(e) });
+    }
   }, []);
 
   const run = useCallback(async () => {
@@ -111,7 +164,23 @@ export function DataQuery() {
           {TABLE_DOCS.map((t) => (
             <div key={t.name} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <strong style={{ color: '#6366f1', fontFamily: 'ui-monospace, monospace' }}>{t.name}</strong>
+                <button
+                  onClick={() => dbReady && openTableDetail(t.name, t.description)}
+                  disabled={!dbReady}
+                  title="Click for full schema + sample rows"
+                  style={{
+                    padding: 0, margin: 0, background: 'transparent', border: 'none',
+                    color: '#6366f1', fontFamily: 'ui-monospace, monospace',
+                    fontWeight: 700, fontSize: 11,
+                    cursor: dbReady ? 'pointer' : 'not-allowed',
+                    textDecoration: 'underline', textDecorationColor: 'transparent',
+                    textUnderlineOffset: 2, transition: 'text-decoration-color 0.1s',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.textDecorationColor = '#6366f1'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.textDecorationColor = 'transparent'; }}
+                >
+                  {t.name}
+                </button>
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 2, lineHeight: 1.4 }}>
                 {t.description}
@@ -162,6 +231,204 @@ export function DataQuery() {
       )}
 
       {state.kind === 'results' && <ResultTable columns={state.columns} rows={state.rows} />}
+
+      {detail && (
+        <TableDetailModal
+          detail={detail}
+          onClose={() => setDetail(null)}
+          onUseInQuery={(name) => {
+            setSql(`SELECT *\nFROM ${name}\nLIMIT 100;`);
+            setDetail(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TableDetailModal({
+  detail,
+  onClose,
+  onUseInQuery,
+}: {
+  detail:
+    | { kind: 'loading'; name: string }
+    | { kind: 'ready'; data: TableDetail }
+    | { kind: 'error'; name: string; message: string };
+  onClose: () => void;
+  onUseInQuery: (name: string) => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-primary)', border: '1px solid var(--border)',
+          borderRadius: 10, width: '100%', maxWidth: 960,
+          maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.3)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '14px 18px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap',
+        }}>
+          <code style={{
+            fontSize: 16, fontWeight: 700, color: '#6366f1',
+            fontFamily: 'ui-monospace, monospace',
+          }}>{detail.kind === 'ready' ? detail.data.name : detail.name}</code>
+          {detail.kind === 'ready' && (
+            <>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {detail.data.rowCount.toLocaleString()} rows · {detail.data.columns.length} columns
+              </span>
+              <button
+                onClick={() => onUseInQuery(detail.data.name)}
+                style={{
+                  marginLeft: 'auto', padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                  background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
+                  border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+                }}
+              >
+                Use in query
+              </button>
+            </>
+          )}
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            style={{
+              marginLeft: detail.kind === 'ready' ? 4 : 'auto',
+              padding: '4px 10px', fontSize: 14, fontWeight: 700,
+              background: 'transparent', color: 'var(--text-muted)',
+              border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 18, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {detail.kind === 'loading' && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
+              Loading schema + sample rows...
+            </div>
+          )}
+          {detail.kind === 'error' && (
+            <div style={{
+              color: '#ef4444', fontSize: 12, fontFamily: 'ui-monospace, monospace',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {detail.message}
+            </div>
+          )}
+          {detail.kind === 'ready' && (
+            <>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5 }}>
+                {detail.data.description}
+              </div>
+
+              {/* Column schema */}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', marginBottom: 6 }}>
+                  Columns ({detail.data.columns.length})
+                </div>
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 6,
+                  overflow: 'auto', maxHeight: 280, background: 'var(--bg-secondary)',
+                }}>
+                  <table style={{
+                    width: '100%', borderCollapse: 'collapse', fontSize: 11,
+                    fontFamily: 'ui-monospace, monospace',
+                  }}>
+                    <thead style={{
+                      position: 'sticky', top: 0, background: 'var(--bg-tertiary)', zIndex: 1,
+                    }}>
+                      <tr>
+                        <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>column</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>type</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>null?</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.data.columns.map((c) => (
+                        <tr key={c.name} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '4px 10px', color: 'var(--text-primary)' }}>{c.name}</td>
+                          <td style={{ padding: '4px 10px', color: '#a3e635' }}>{c.type}</td>
+                          <td style={{ padding: '4px 10px', color: c.nullable ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                            {c.nullable ? 'yes' : 'no'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Sample rows */}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', marginBottom: 6 }}>
+                  Sample rows ({detail.data.sampleRows.length} of {detail.data.rowCount.toLocaleString()})
+                </div>
+                {detail.data.sampleRows.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
+                    Table is empty.
+                  </div>
+                ) : (
+                  <div style={{
+                    border: '1px solid var(--border)', borderRadius: 6,
+                    overflow: 'auto', maxHeight: 260, background: 'var(--bg-secondary)',
+                  }}>
+                    <table style={{
+                      borderCollapse: 'collapse', fontSize: 11,
+                      fontFamily: 'ui-monospace, monospace',
+                    }}>
+                      <thead style={{
+                        position: 'sticky', top: 0, background: 'var(--bg-tertiary)', zIndex: 1,
+                      }}>
+                        <tr>
+                          {Object.keys(detail.data.sampleRows[0]).map((c) => (
+                            <th key={c} style={{
+                              padding: '6px 10px', textAlign: 'left', fontWeight: 700,
+                              color: 'var(--text-primary)', borderBottom: '1px solid var(--border)',
+                              whiteSpace: 'nowrap',
+                            }}>{c}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detail.data.sampleRows.map((r, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                            {Object.keys(detail.data.sampleRows[0]).map((c) => (
+                              <td key={c} style={{
+                                padding: '4px 10px', color: 'var(--text-secondary)',
+                                whiteSpace: 'nowrap', maxWidth: 200,
+                                overflow: 'hidden', textOverflow: 'ellipsis',
+                              }} title={formatVal(r[c])}>
+                                {formatVal(r[c])}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
