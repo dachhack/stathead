@@ -1,0 +1,134 @@
+{
+  "_about":"Manual player-key overrides. The auto-matcher in build-player-crosswalk.py couldn't cleanly resolve the rows listed under `unresolved` below \u2014 edit them (fill in `gsis_id`) and move them into `overrides`. Rerun the script to pick them up.",
+  "version":1,
+  "overrides":[
+    {
+      "source":"stathead_backtest",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2009,
+      "gsis_id":"00-0027007",
+      "note":"Legal name Chris Wells"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2010,
+      "gsis_id":"00-0027007"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2011,
+      "gsis_id":"00-0027007"
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2009,
+      "gsis_id":"00-0025425"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2010,
+      "gsis_id":"00-0025425"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2011,
+      "gsis_id":"00-0025425"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2010,
+      "gsis_id":"00-0023452"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2011,
+      "gsis_id":"00-0023452"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2010,
+      "gsis_id":"00-0020337"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2011,
+      "gsis_id":"00-0020337"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2012,
+      "gsis_id":"00-0020337"
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2016,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2016,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2017,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2018,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2019,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2020,
+      "gsis_id":"00-0032765"
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2022,
+      "gsis_id":"00-0032765"
+    }
+  ],
+  "unresolved":[]
+}

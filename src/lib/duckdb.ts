@@ -18,6 +18,7 @@
  */
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import prospectGrades from '../data/prospect-grades-2026.json';
+import { normalizeName } from './featureTypes';
 
 let dbPromise: Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBConnection }> | null = null;
 
@@ -148,22 +149,74 @@ interface FfcPlayer {
 /** Build every row-shaped table as plain JS — loaded via registerFileBuffer
  *  + read_json_auto. player_stats is loaded separately (CSV path) inside
  *  registerPlayerStats. */
+interface CrosswalkRec {
+  player_key: string;
+  display_name: string;
+  position: string;
+  birth_date?: string;
+  college?: string;
+  gsis_id?: string;
+  pfr_id?: string;
+  sleeper_id?: string;
+  espn_id?: string;
+  pff_id?: string;
+  yahoo_id?: string;
+  sportradar_id?: string;
+  rotowire_id?: string;
+  fantasy_data_id?: string;
+  ktc_id?: number;
+  is_college_only?: boolean;
+  draft_class?: number;
+  earliest_season?: number;
+  latest_season?: number;
+  aliases?: Array<{ source: string; name: string; position?: string; year?: number; via?: string }>;
+}
+
 async function buildTables(): Promise<Record<string, Record<string, unknown>[]>> {
-  const [fm, cache, ktc1qb, ktcHistory] = await Promise.all([
+  const [fm, cache, ktc1qb, ktcHistory, crosswalk] = await Promise.all([
     fetchJson<{ careerPredictions2026?: CareerPrediction2026[] }>('feature-matrix.json'),
     fetchJson<{ rookieCareerModels?: Record<string, { backtestRows?: CareerBacktestRow[] }> }>('model-cache-career-v72.json'),
     fetchJson<KtcRow[]>('ktc_rankings_1qb.json'),
     fetchJson<KtcHistoryRow[]>('ktc_history.json'),
+    fetchJson<{ players?: CrosswalkRec[] }>('player-crosswalk.json'),
   ]);
 
+  // Build (norm_name|position) → player_key index. Used to stamp the
+  // canonical ID onto backtest + adp_historical rows at load time so
+  // every DuckDB table can be joined on `player_key`.
+  const keyByNamePos = new Map<string, string>();
+  for (const rec of crosswalk?.players || []) {
+    const primary = `${normalizeName(rec.display_name)}|${rec.position}`;
+    if (!keyByNamePos.has(primary)) keyByNamePos.set(primary, rec.player_key);
+    for (const a of rec.aliases || []) {
+      const pos = a.position || rec.position;
+      const k = `${normalizeName(a.name)}|${pos}`;
+      if (!keyByNamePos.has(k)) keyByNamePos.set(k, rec.player_key);
+    }
+  }
+  const stampKey = (name: string, position: string): string | undefined =>
+    keyByNamePos.get(`${normalizeName(name)}|${position}`);
+
   const career_2026: Record<string, unknown>[] =
-    (fm?.careerPredictions2026 || []).map(flattenFeatures);
+    (fm?.careerPredictions2026 || []).map((p) => {
+      const flat = flattenFeatures(p) as Record<string, unknown>;
+      // feature-matrix.json already stamps player_key via precompute, but
+      // safety-net if the file was built pre-crosswalk.
+      if (!flat.player_key && p.name && p.position) {
+        const k = stampKey(p.name, p.position);
+        if (k) flat.player_key = k;
+      }
+      return flat;
+    });
 
   const backtest: Record<string, unknown>[] = [];
   const rookieModels = cache?.rookieCareerModels || {};
   for (const [pos, model] of Object.entries(rookieModels)) {
     for (const r of model.backtestRows || []) {
-      backtest.push(flattenFeatures({ ...r, position: r.position || pos }));
+      const flat = flattenFeatures({ ...r, position: r.position || pos }) as Record<string, unknown>;
+      const pk = stampKey(r.name, r.position || pos);
+      if (pk) flat.player_key = pk;
+      backtest.push(flat);
     }
   }
 
@@ -238,11 +291,14 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     const [nameNorm, seasonStr] = key.split('::');
     if (!nameNorm || !seasonStr) continue;
     const info = players?.[key];
+    const name = info?.displayName ?? nameNorm;
+    const position = info?.position ?? null;
     adp_historical.push({
       season: Number(seasonStr),
-      name: info?.displayName ?? nameNorm,
+      name,
       name_norm: nameNorm,
-      position: info?.position ?? null,
+      position,
+      player_key: position ? stampKey(name, position) ?? null : null,
       adp: rec.adp ?? null,
       adpRound: rec.adpRound ?? null,
       nflDraftPick: rec.nflDraftPick ?? null,
@@ -252,7 +308,15 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     });
   }
 
-  return { career_2026, backtest, prospects, ktc, ktc_history, adp_ffc, adp_historical };
+  // Flatten the crosswalk into rows for querying. The `aliases` array is
+  // dropped — it's useful for the builder, noisy in SQL output.
+  const player_crosswalk: Record<string, unknown>[] = (crosswalk?.players || []).map((r) => {
+    const { aliases: _aliases, ...rest } = r;
+    void _aliases;
+    return rest as Record<string, unknown>;
+  });
+
+  return { career_2026, backtest, prospects, ktc, ktc_history, adp_ffc, adp_historical, player_crosswalk };
 }
 
 /** CREATE TABLE statements + INSERT via read_json. Loaded as JS arrays, so
@@ -330,11 +394,22 @@ export const TABLE_DOCS: Array<{
   exampleColumns: string[];
 }> = [
   {
+    name: 'player_crosswalk',
+    description:
+      'Canonical player identity — one row per player with every known ID (gsis, pfr, sleeper, espn, yahoo, pff, sportradar, fantasy_data, ktc, etc.). Every other table carries a `player_key` column that joins here. College-only rows (`is_college_only = true`) are pre-draft prospects; they get upgraded to the NFL GSIS key once drafted.',
+    exampleColumns: [
+      'player_key', 'display_name', 'position', 'birth_date', 'college',
+      'gsis_id', 'pfr_id', 'sleeper_id', 'espn_id', 'pff_id', 'yahoo_id',
+      'sportradar_id', 'fantasy_data_id', 'ktc_id',
+      'draft_class', 'earliest_season', 'latest_season', 'is_college_only',
+    ],
+  },
+  {
     name: 'career_2026',
     description:
-      '2026 draft-class career predictions (flattened features). One row per scored prospect.',
+      '2026 draft-class career predictions (flattened features). One row per scored prospect. Joins to player_crosswalk via player_key.',
     exampleColumns: [
-      'name', 'position', 'adp', 'predictedCareerPPG', 'percentile', 'modelTier',
+      'player_key', 'name', 'position', 'adp', 'predictedCareerPPG', 'percentile', 'modelTier',
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
       'nflDraftPick', 'projRound', 'recruitRating', 'collegeUsageOverall',
       'collegeDominatorRating', 'collegeBreakoutScore', 'rspDotDraft', 'pdfRankOverallMean',
@@ -344,9 +419,9 @@ export const TABLE_DOCS: Array<{
   {
     name: 'backtest',
     description:
-      'Historical rookie backtest rows (2010-2025) with predicted PPG and actual outcomes. Use for model evaluation / sweep analysis.',
+      'Historical rookie backtest rows (2010-2025) with predicted PPG and actual outcomes. Use for model evaluation / sweep analysis. Joins to player_crosswalk via player_key.',
     exampleColumns: [
-      'name', 'position', 'draftSeason', 'predictedPPG', 'actualPPG',
+      'player_key', 'name', 'position', 'draftSeason', 'predictedPPG', 'actualPPG',
       'percentile', 'modelTier', 'combinedScore',
       'nflDraftPick', 'nflDraftRound', 'recruitRating',
       'collegeUsageOverall', 'collegeTeamTalent', 'collegeDominatorRating',
@@ -380,8 +455,8 @@ export const TABLE_DOCS: Array<{
   {
     name: 'adp_historical',
     description:
-      'Historical ADP used in model training, 2010-2025, every season fully populated (~280 players/year, 4500 rows total). Normalized across sources and joined to position + display name. Use this for any cross-year ADP analysis.',
-    exampleColumns: ['season', 'name', 'position', 'adp', 'adpRound', 'nflDraftPick', 'nflDraftRound', 'age', 'yearsInLeague'],
+      'Historical ADP used in model training, 2010-2025, every season fully populated (~280 players/year, 4500 rows total). Normalized across sources and joined to position + display name. Use this for any cross-year ADP analysis. Joins to player_crosswalk via player_key.',
+    exampleColumns: ['player_key', 'season', 'name', 'position', 'adp', 'adpRound', 'nflDraftPick', 'nflDraftRound', 'age', 'yearsInLeague'],
   },
   {
     name: 'ktc',
