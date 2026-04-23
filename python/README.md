@@ -1,0 +1,93 @@
+# stathead
+
+Python client for the [StatHead](https://github.com/dachhack/stathead) fantasy football model. Returns pandas DataFrames of rookie career predictions, historical ADP, KeepTradeCut dynasty values, and the flattened feature matrix used to train the models.
+
+## Install
+
+```bash
+pip install stathead
+```
+
+Optional extras:
+
+```bash
+pip install "stathead[polars]"   # for .to_polars() helpers
+pip install "stathead[duckdb]"   # for local SQL querying
+```
+
+## Quick start
+
+```python
+import stathead as sh
+
+# 2026 rookie class predictions (77 players × ~80 columns)
+rookies = sh.load_career_predictions_2026()
+rookies.nlargest(10, "percentile")[["name", "position", "predictedCareerPPG", "modelTier"]]
+
+# Historical backtest — predicted vs actual for every drafted rookie 2010-2025
+backtest = sh.load_career_backtest()
+wr = backtest[backtest.position == "WR"]
+wr.groupby("modelTier")[["actualPPG", "predictedPPG"]].mean()
+
+# Historical ADP, every season fully populated
+adp = sh.load_adp_historical()
+adp[(adp.season == 2023) & (adp.adp <= 24)]
+
+# Dynasty values
+ktc = sh.load_ktc()
+ktc.nlargest(25, "value_1qb")
+
+# Daily KTC history (for momentum / trend analysis)
+hist = sh.load_ktc_history()
+hist.pivot_table(index="date", columns="name", values="value_1qb")
+```
+
+## Pinning to a specific version
+
+Loaders resolve against the upstream GitHub repo. Pin to a commit SHA, tag,
+or branch for reproducibility:
+
+```python
+sh.pin_version("a6720e5")   # or a tagged release
+```
+
+Clear the local cache if you want to re-fetch:
+
+```python
+sh.clear_cache()
+```
+
+## Data freshness
+
+Data files are cached under `~/.cache/stathead/<ref>/` after the first
+download. Subsequent runs read from disk — no network roundtrip. Delete the
+cache directory or call `clear_cache()` to force a refresh.
+
+## Available loaders
+
+| Function | Returns | Shape |
+|---|---|---|
+| `load_career_predictions_2026()` | 2026 rookie predictions | ~77 × ~80 cols |
+| `load_career_backtest()` | Historical rookies with pred + actual PPG | ~1087 × ~100 cols |
+| `load_adp_historical()` | Model-training ADP 2010-2025 | 4507 × 10 |
+| `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) | variable |
+| `load_ktc()` | Current KTC dynasty values | ~500 × 9 |
+| `load_ktc_history()` | Daily KTC history | ~100k × 7 |
+| `load_prospect_grades(year=2026)` | Draft scouting grades | ~200 × 7 |
+| `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
+| `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
+
+## Licensing & attribution
+
+Package code is MIT-licensed. The data this package retrieves is derived
+from the StatHead project's own modeling pipeline; upstream sources
+(nflverse, FFC, KeepTradeCut, CFBD, etc.) retain their own terms — see
+each source's license before redistributing. If you're building on these
+predictions, a link back to the StatHead repo is appreciated but not
+required.
+
+## Contributing
+
+The package is small and focused — see
+[`python/src/stathead/`](./src/stathead/) for the loader modules. Issues
+and PRs welcome at the [main repo](https://github.com/dachhack/stathead).
