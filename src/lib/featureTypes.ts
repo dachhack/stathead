@@ -501,16 +501,12 @@ export const FEATURES: FeatureDef[] = [
 
 // ── Helpers ──
 
-// First-name aliases for name-based lookups across data sources. CFBD often
-// stores the legal first name ("Cameron", "Joshua", "Patrick") while
-// nflverse / FFC / prospect feeds use the commonly-known short form ("Cam",
-// "Josh", "Pat"). Without this, college features for Cam Ward (= Cameron
-// Ward in CFBD) come through as 0, which is how a #1 overall pick ended up
-// with NO college data in the training cache.
-//
-// Each entry maps the short form to the full legal form. normalizeName()
-// applies the forward mapping; matchesName() below tries both directions
-// so a lookup table built from either source can find the other.
+// First-name aliases that normalizeName() applies (short → long). This
+// is intentionally narrow and backward-stable — the prospect feature store
+// on disk (public/data/feature-store/prospects.json) is keyed by
+// normalizeName output, so expanding this list silently breaks stored
+// lookups. New aliases belong in EXTENDED_FIRST_NAME_ALIASES below, which
+// only nameVariants() reads.
 const FIRST_NAME_ALIASES: Record<string, string> = {
   cam: 'cameron',
   mitch: 'mitchell',
@@ -520,6 +516,37 @@ const FIRST_NAME_ALIASES: Record<string, string> = {
   jeff: 'jeffrey',
   chig: 'chigoziem',
 };
+
+// Additional first-name aliases for merge-time variant lookups ONLY. CFBD
+// is inconsistent — some entries use the legal long form (Nicholas
+// Singleton, Michael Washington), others use the short form (Josh Cuevas,
+// Jeff Caldwell). nameVariants() below tries both directions so the same
+// prospect resolves regardless of which spelling either source uses.
+const EXTENDED_FIRST_NAME_ALIASES: Record<string, string> = {
+  ...FIRST_NAME_ALIASES,
+  nick: 'nicholas',
+  mike: 'michael',
+  reggie: 'reginald',
+  jam: 'jamarion',
+  chris: 'christopher',
+  tony: 'anthony',
+  tom: 'thomas',
+  matt: 'matthew',
+  alex: 'alexander',
+  jon: 'jonathan',
+  kc: 'kevin',
+  dj: 'donovan',
+  tank: 'nathaniel',
+};
+
+// Reverse lookup: a single long form can map back to multiple short forms.
+const EXTENDED_ALIAS_REVERSE: Record<string, string[]> = (() => {
+  const r: Record<string, string[]> = {};
+  for (const [short, long] of Object.entries(EXTENDED_FIRST_NAME_ALIASES)) {
+    (r[long] ||= []).push(short);
+  }
+  return r;
+})();
 
 /**
  * Normalize a player name for cross-source lookup.
@@ -533,21 +560,87 @@ const FIRST_NAME_ALIASES: Record<string, string> = {
  *      "Skylar Thompson" — without this, the lookup misses.
  *   5. Apply FIRST_NAME_ALIASES forward (short → long) so both sources
  *      canonicalize to the full legal first name.
+ *
+ * This function is backward-stable — the on-disk feature store is keyed
+ * by its output. Add new aliases in EXTENDED_FIRST_NAME_ALIASES and use
+ * nameVariants() at merge sites.
  */
 export function normalizeName(name: string | null | undefined): string {
   if (!name) return '';
   let n = name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
-  // Collapse middle names to first + last
   const parts = n.split(' ');
   if (parts.length >= 3) {
     n = `${parts[0]} ${parts[parts.length - 1]}`;
   }
-  // Expand short-form first name to legal form
   const [first, ...rest] = n.split(' ');
   if (first && rest.length > 0 && FIRST_NAME_ALIASES[first]) {
     n = `${FIRST_NAME_ALIASES[first]} ${rest.join(' ')}`;
   }
   return n;
+}
+
+/**
+ * Return every plausible canonical form of a player name for merge-time
+ * lookup. Use this when matching a prospect name against an index that was
+ * built by a source that may or may not share our alias direction / middle-
+ * name conventions (CFBD, RSP, Beast). Always try normalizeName() first for
+ * backward-compatible key building, then fall back to the other variants.
+ *
+ * Forms generated:
+ *   - Base normalized form (punctuation + suffix stripped)
+ *   - Suffix-preserved form (CFBD keeps "II" in chrisbrazzellii)
+ *   - With and without middle-name collapse (for "John Michael Gyllenborg")
+ *   - With and without alias expansion (both directions: short↔long)
+ */
+export function nameVariants(name: string | null | undefined): string[] {
+  if (!name) return [];
+  const out = new Set<string>();
+  const cleaned = name.toLowerCase()
+    .replace(/[.',`]/g, '')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return [];
+  const stripped = cleaned.replace(/\s+(jr|sr|ii|iii|iv|v)\.?$/i, '').trim();
+  // Two "base" forms: with suffix preserved (for CFBD-style "chrisbrazzellii")
+  // and with suffix stripped (for nflverse-style "chris brazzell"). Only add
+  // the preserved form if the suffix strip actually changed something.
+  // CFBD sometimes keeps the suffix in the key (michaelpenixjr, tyronetracyjr,
+  // chrisbrazzellii). If the source name didn't include one, still try the
+  // common suffixed forms so the merge covers sources that store them.
+  const baseSet = new Set<string>([stripped]);
+  if (stripped !== cleaned) baseSet.add(cleaned);
+  if (!/\s+(jr|sr|ii|iii|iv|v)\.?$/i.test(cleaned)) {
+    baseSet.add(`${stripped} jr`);
+    baseSet.add(`${stripped} ii`);
+    baseSet.add(`${stripped} iii`);
+  }
+  const bases = Array.from(baseSet);
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
+  const addForms = (base: string) => {
+    const parts = base.split(' ');
+    const forms: string[] = [base];
+    // Middle-name collapse only when there's a real middle (not a trailing
+    // suffix). "Chris Brazzell II" has a generational last token — collapsing
+    // to "chris ii" would be wrong.
+    if (parts.length >= 3 && !SUFFIXES.has(parts[parts.length - 1])) {
+      forms.push(`${parts[0]} ${parts[parts.length - 1]}`);
+    }
+    for (const form of forms) {
+      out.add(form);
+      const [first, ...rest] = form.split(' ');
+      if (!first || rest.length === 0) continue;
+      if (EXTENDED_FIRST_NAME_ALIASES[first]) {
+        out.add(`${EXTENDED_FIRST_NAME_ALIASES[first]} ${rest.join(' ')}`);
+      }
+      const shorts = EXTENDED_ALIAS_REVERSE[first];
+      if (shorts) {
+        for (const s of shorts) out.add(`${s} ${rest.join(' ')}`);
+      }
+    }
+  };
+  for (const b of bases) addForms(b);
+  return Array.from(out);
 }
 
 export function parseHeight(ht: string | number): number {

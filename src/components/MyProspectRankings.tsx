@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings, fetchRosters } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
-import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
 import type {
   CombineResult,
   FantasyRanking,
@@ -88,6 +87,19 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const DRAFT_YEAR = 2026;
 const GAMES = 17;
 const BASE = import.meta.env.BASE_URL;
+
+// Rookie career model tier system — kept in lock-step with
+// RookieProspectsView and RookieCareerBacktest. See
+// train_career_models.py for how modelTier is assigned from percentile
+// and scout-consensus override.
+const MODEL_TIER_MAP: Record<number, { label: string; color: string }> = {
+  1: { label: 'Alpha',       color: '#22c55e' },
+  2: { label: 'Blue Chip',   color: '#4ade80' },
+  3: { label: 'Starter',     color: '#a3e635' },
+  4: { label: 'Contributor', color: '#facc15' },
+  5: { label: 'Depth',       color: '#fb923c' },
+  6: { label: 'Longshot',    color: '#ef4444' },
+};
 
 function normalizeName(name: string): string {
   return name
@@ -705,7 +717,12 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'right', width: 56 }}>
                 <span title="Model-predicted career PPG">Mdl PPG</span>
               </th>
-              <th style={{ ...th, textAlign: 'left', width: 92 }}>Tier</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }}
+                  title="Career percentile vs all historical rookies at this position">Pctl</th>
+              <th style={{ ...th, textAlign: 'left', width: 92 }}
+                  title="Rookie career model tier — Alpha, Blue Chip, Starter, Contributor, Depth, Longshot (percentile-bucketed with first-round scout-consensus override)">
+                Tier
+              </th>
               <th style={{ ...th, textAlign: 'right', width: 40 }}>ZAP</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title="Boom z-score">Boom z</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title="Bust z-score">Bust z</th>
@@ -726,7 +743,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
           </thead>
           <tbody>
             {displayRows.map((r, i) => {
-              const ts = ppgToTierScore(r.predictedCareerPPG, r.pos);
+              const modelTierDef = MODEL_TIER_MAP[r.modelTier];
               return (
                 <tr
                   key={r.id}
@@ -766,14 +783,22 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                   <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
                     {r.predictedCareerPPG > 0 ? r.predictedCareerPPG.toFixed(1) : '—'}
                   </td>
+                  <td style={{
+                    ...td, textAlign: 'right', fontWeight: 600,
+                    color: r.percentile >= 95 ? '#22c55e'
+                         : r.percentile >= 85 ? '#4ade80'
+                         : r.percentile >= 70 ? '#a3e635'
+                         : r.percentile >= 50 ? '#facc15'
+                         : r.percentile >= 25 ? '#fb923c'
+                         : r.percentile > 0 ? '#ef4444' : 'var(--text-muted)',
+                  }}>
+                    {r.percentile > 0 ? r.percentile : '—'}
+                  </td>
                   <td style={{ ...td }}>
-                    {ts > 0 ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <strong style={{ color: tierScoreColor(ts), fontSize: 11, whiteSpace: 'nowrap' }}>
-                          {tierName(ts)}
-                        </strong>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ts.toFixed(0)}</span>
-                      </span>
+                    {modelTierDef ? (
+                      <strong style={{ color: modelTierDef.color, fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {modelTierDef.label}
+                      </strong>
                     ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                   </td>
                   <td style={{

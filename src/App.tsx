@@ -32,6 +32,7 @@ import { DocsDynasty } from './components/DocsDynasty';
 import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { MyRankings } from './components/MyRankings';
 import { MyProspectRankings } from './components/MyProspectRankings';
+import { DataQuery } from './components/DataQuery';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -91,6 +92,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'charts', label: 'Chart Builder' },
       { id: 'career-backtest', label: 'Career Backtest' },
       { id: 'zap-compare', label: 'ZAP Compare' },
+      { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'docs-rookie', label: 'Rookie Model Docs' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
@@ -241,6 +243,7 @@ function App() {
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
+        {tab === 'data-query' && <DataQuery />}
         {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}

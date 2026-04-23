@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
 import { loadCareerScores } from '../lib/modelScoreClient';
@@ -397,6 +397,52 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     return posThresholds['RB'] || posThresholds['WR'] || [];
   }, [posFilter, posThresholds]);
 
+  // CSV export — flattens the currently-filtered rows (respects search, view,
+  // position filter, sort) into a downloadable file. Includes the same
+  // per-position PPG-threshold columns shown in the table so what users see
+  // is what they get.
+  const downloadCsv = useCallback(() => {
+    const headers = [
+      '#', 'name', 'pos', 'school',
+      'grade', 'tier', 'projRound', 'projPick',
+      'rookieEcr', 'rookieBest', 'rookieWorst',
+      'dynastyValue', 'superflexValue',
+      'predictedCareerPPG', 'modelTier', 'percentile', 'combinedScore',
+      'boomProb', 'bustProb', 'boomZ', 'bustZ', 'zapScore',
+      ...activeThresholds.map((t: number) => `p_ge_${t}ppg`),
+      'ht', 'wt', 'forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle',
+      'owned',
+    ];
+    const escape = (v: unknown): string => {
+      if (v == null || v === '') return '';
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [headers.join(',')];
+    filtered.forEach((r, i) => {
+      const row = [
+        i + 1, r.name, r.pos, r.school,
+        r.grade || '', r.tier || '', r.projRound || '', r.projPick || '',
+        r.rookieEcr || '', r.rookieBest || '', r.rookieWorst || '',
+        r.dynastyValue || '', r.superflexValue || '',
+        r.predictedCareerPPG || '', r.modelTier || '', r.percentile || '', r.combinedScore || '',
+        r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '', r.zapScore || '',
+        ...activeThresholds.map((t: number) => r.thresholdProbs?.[t] ?? ''),
+        r.ht || '', r.wt || '', r.forty || '', r.bench || '', r.vertical || '', r.broadJump || '', r.cone || '', r.shuttle || '',
+        r.owned || '',
+      ];
+      lines.push(row.map(escape).join(','));
+    });
+    const suffix = posFilter === 'ALL' ? '' : `-${posFilter.toLowerCase()}`;
+    const viewLabel = view === 'graded' ? 'big-board' : 'all';
+    const filename = `rookie-prospects-${DRAFT_YEAR}-${viewLabel}${suffix}.csv`;
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }, [filtered, activeThresholds, posFilter, view]);
+
   if (loading)
     return (
       <div className="loading">
@@ -459,6 +505,20 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             </button>
           ))}
         </div>
+        <button
+          onClick={downloadCsv}
+          title={`Download current view (${filtered.length} rows) as CSV`}
+          style={{
+            marginLeft: 'auto', padding: '6px 12px', fontSize: 12, fontWeight: 600,
+            background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+            border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-tertiary)'; }}
+          onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'var(--bg-secondary)'; }}
+        >
+          Download CSV
+        </button>
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>

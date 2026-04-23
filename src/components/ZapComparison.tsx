@@ -499,9 +499,10 @@ export function ZapComparison() {
       <div style={{ padding: '0 16px 12px' }}>
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
           <span style={{ color: '#f59e0b', fontWeight: 600 }}>Methodology: </span>
-          Our score maps predicted PPG to the 2026 talent-gap tier scale by
-          position (Legendary 90+, Elite 75-90, Weekly Starter 60-75, Flex
-          40-60, Benchwarmer 30-40, Waiver 20-30, Dart &lt;20).
+          Our score is the predicted-PPG percentile versus all historical
+          rookies at the same position, mapped to tiers: Alpha 95+, Blue
+          Chip 85-94, Starter 70-84, Contributor 50-69, Depth 25-49,
+          Longshot &lt;25. WR Alpha requires first-round draft capital.
           {season === '2026'
             ? " ZAP's 2026 scores are on the same talent-gap scale, so the score delta is meaningful."
             : ` ZAP's ${season} scores used percentile methodology (different scale), so the Delta column shows rank delta — our predicted rank minus ZAP's rank within ${season} ${posFilter === 'ALL' ? 'class' : posFilter}. Winner = whichever model ranked the player closer to their actual-PPG rank.`}

@@ -1,0 +1,46 @@
+name: Python package tests
+
+# Run pytest against the stathead Python package on PRs + pushes that touch
+# the package or the data files it loads.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'python/**'
+      - 'public/data/feature-matrix.json'
+      - 'public/data/model-cache-career-v72.json'
+      - 'public/data/ktc_rankings_1qb.json'
+      - 'public/data/ktc_history.json'
+      - 'public/data/feature-store/profile.json'
+      - 'public/data/feature-store/players.json'
+      - 'public/data/manual-cfbd-overrides.json'
+      - 'src/data/prospect-grades-2026.json'
+      - '.github/workflows/python-test.yml'
+  pull_request:
+    paths:
+      - 'python/**'
+      - '.github/workflows/python-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package + test deps
+        working-directory: python
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Run pytest
+        working-directory: python
+        run: pytest -q
