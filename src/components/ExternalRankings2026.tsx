@@ -2,16 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
+import { normName, boomPct, bustPct } from '../lib/nameUtils';
 import type { FfcADPPlayer, ScenarioConfig, SDIOProjection } from '../types';
 import { PlayerLink } from './PlayerLink';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
 const GAMES = 17;
 const BASE = import.meta.env.BASE_URL;
-
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-}
 
 function boomColor(v: number): string {
   if (v >= 40) return '#22c55e';
@@ -164,8 +161,6 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       const vor = adpS?.predictedVor ?? 0;
       const ciLow = adpS?.ciLower ?? 0;
       const ciHigh = adpS?.ciUpper ?? 0;
-      const boomPct = vor > 0 ? Math.round(((ciHigh - vor) / vor) * 100) : 0;
-      const bustPct = vor > 0 ? Math.round(((vor - ciLow) / vor) * 100) : 0;
 
       let scenPPG = rd?.ppg ?? 0;
       if (sdioP && activeScenario && !isScenarioEmpty(activeScenario) && (sdioP.FantasyPointsPPR ?? 0) > 0) {
@@ -182,8 +177,8 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
         stdev: p.stdev,
         projPPG: ppgS?.predictedPPG ?? 0,
         scenPPG,
-        boomPct,
-        bustPct,
+        boomPct: boomPct(vor, ciHigh),
+        bustPct: bustPct(vor, ciLow),
       };
     });
   }, [ffc, adpByName, ppgByName, redraftByName, sdioByName, activeScenario]);
