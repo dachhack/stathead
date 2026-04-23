@@ -72,6 +72,28 @@ export interface ResidualScore {
   alpha: number;
 }
 
+/**
+ * Team-volume projection emitted per predRow by the volume pass in
+ * buildFeatureMatrix.ts. Mirrors the `mlProj*` features so they can be
+ * inspected without loading feature-matrix.json.
+ *
+ * - `team{Pass,Rush}Att` and `teamTargets` are season-total projected volumes
+ *   for the player's team, already adjusted by Vegas implied total.
+ * - `projPlayerPPG` is the volume-derived PPG estimate (volume × share ×
+ *   efficiency, blended with prior at 60/40 when `priorSnapPct > 30`). Not
+ *   the primary PPG surfaced to users (that's `score-store/ppg.json`), but
+ *   useful as a cross-check.
+ */
+export interface VolumeScore {
+  name: string;
+  position: string;
+  team: string;
+  teamPassAtt: number;
+  teamRushAtt: number;
+  teamTargets: number;
+  projPlayerPPG: number;
+}
+
 export interface ScoreManifest {
   version: number;
   updatedAt: string;
@@ -80,6 +102,7 @@ export interface ScoreManifest {
     adp?: { version: string; count: number };
     ppg?: { version: string; count: number };
     residual?: { version: string; count: number };
+    volumes?: { version: string; count: number };
   };
 }
 
@@ -112,6 +135,11 @@ export function writeShareScores(scores: ShareScore[]): void {
 export function writeResidualScores(scores: ResidualScore[]): void {
   ensureDir();
   writeFileSync(join(STORE_DIR, 'residual.json'), JSON.stringify(scores));
+}
+
+export function writeVolumeScores(scores: VolumeScore[]): void {
+  ensureDir();
+  writeFileSync(join(STORE_DIR, 'volumes.json'), JSON.stringify(scores));
 }
 
 export function writeScoreManifest(manifest: ScoreManifest): void {

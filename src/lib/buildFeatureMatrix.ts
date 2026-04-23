@@ -4517,72 +4517,98 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         }
 
   // ── Post-processing: populate ML volume projection features for prediction rows ──
-  // Train team volume model on historical data, then project 2026 team volumes
-  // and compute per-player PPG from team volumes × player share × efficiency
-  if (predRows.length > 0 && rows.length > 0) {
+  // Computes per-team volumes (pass/rush/target) × per-player share × efficiency
+  // → volume-based PPG estimate. Output features are also mirrored into
+  // `score-store/volumes.json` by precompute-features.ts for auditability.
+  //
+  // Efficiency constants live here (not yet learned from backtest data).
+  // Tune in one place rather than scattered through the math below.
+  const VOLUME_EFFICIENCY = {
+    // QB passing: yards per attempt, TD rate per pass play
+    qbPassYdsPerAtt: 7.0,
+    qbPassTDRate: 0.045,
+    qbFallbackRushYPC: 4.5,
+    // Non-QB receiving: catch rate when no prior receiving data, yards per
+    // reception fallback (TE is lower than WR/RB)
+    fallbackCatchRate: 0.65,
+    fallbackYPR_TE: 10,
+    fallbackYPR_WRRB: 12,
+    // Non-QB rushing
+    fallbackYPC: 4.0,
+    // TD share fallback — % of targets/rush that turn into TDs when
+    // `predPassTDShare`/`predRushTDShare` aren't available.
+    fallbackTDShareMultiplier: 0.3,
+    // Prior-PPG blend when player has legitimate snap history
+    priorBlendModel: 0.6,
+    priorBlendPrior: 0.4,
+    priorBlendSnapPctThreshold: 30,
+    // Vegas normalization — league-average implied total
+    vegasBaselineTotal: 23,
+    // Pace fallback when teamPace is missing
+    fallbackPlaysPerGame: 64,
+    fallbackTeamPassRate: 0.55,
+    // Share of pass plays that have a target (near all, some draw DPI / sacks)
+    targetRate: 0.95,
+  };
+
+  // Note: no `rows.length > 0` gate — the volume pass only reads features
+  // already attached to predRows, so it must run even when precompute-features
+  // invokes buildFeatureMatrix with `seasons: []` (legacy-cache path).
+  if (predRows.length > 0) {
     try {
       onStatus?.('Computing ML volume projections...');
-      // Use prediction rows' features directly to compute volume-based PPG
-      // Each prediction row already has team-level features (schemePassHeavy, teamPassRate, etc.)
-      // We can compute mlProjPlayerPPG from these
+      const E = VOLUME_EFFICIENCY;
       for (const pr of predRows) {
         const f = pr.features;
-        // Volume-based PPG estimate from team features
         // Use ML-predicted shares when available, fall back to prior shares
-        const teamPassRate = f.teamPassRate || 0.55;
-        const teamPace = f.teamPace || 64;
+        const teamPassRate = f.teamPassRate || E.fallbackTeamPassRate;
+        const teamPace = f.teamPace || E.fallbackPlaysPerGame;
         const priorPPG = f.priorPPG || 0;
         const priorSnapPct = f.priorSnapPct || 0;
         const targetShare = f.predTargetShare || f.priorTeamTargetShare || 0;
         const rushShare = f.predRushShare || f.priorTeamTouchShare || 0;
-        const vegasTotal = f.vegasImpliedTotal || 23;
+        const vegasTotal = f.vegasImpliedTotal || E.vegasBaselineTotal;
 
-        // Estimate team plays per game and pass/rush split
-        const playsPerGame = teamPace > 0 ? teamPace : 64;
+        // Team plays per game, split by pass/rush
+        const playsPerGame = teamPace > 0 ? teamPace : E.fallbackPlaysPerGame;
         const passPlays = playsPerGame * teamPassRate;
         const rushPlays = playsPerGame * (1 - teamPassRate);
 
         // Scale by Vegas implied total (market-adjusted scoring)
-        const vegasMultiplier = vegasTotal > 0 ? vegasTotal / 23 : 1;
+        const vegasMultiplier = vegasTotal > 0 ? vegasTotal / E.vegasBaselineTotal : 1;
 
         let estimatedPPG = 0;
         if (pr.position === 'QB') {
-          // QB gets all passing + some rushing
-          const passYdsPerAtt = 7.0;
-          const passTDRate = 0.045; // ~4.5% of pass plays score
-          const ppgPass = (passPlays * passYdsPerAtt * 0.04 + passPlays * passTDRate * 4) * vegasMultiplier;
-          const ppgRush = (f.qbOwnRushAtt || 0) / 17 * (f.priorYPC || 4.5) * 0.1;
+          const ppgPass = (passPlays * E.qbPassYdsPerAtt * 0.04 + passPlays * E.qbPassTDRate * 4) * vegasMultiplier;
+          const ppgRush = (f.qbOwnRushAtt || 0) / 17 * (f.priorYPC || E.qbFallbackRushYPC) * 0.1;
           estimatedPPG = ppgPass + ppgRush;
         } else {
-          // Receiving PPG
           const projTargets = passPlays * targetShare * 17 * vegasMultiplier;
-          const catchRate = f.priorReceptions && f.priorTargets ? f.priorReceptions / f.priorTargets : 0.65;
+          const catchRate = f.priorReceptions && f.priorTargets ? f.priorReceptions / f.priorTargets : E.fallbackCatchRate;
           const projRec = projTargets * catchRate / 17;
-          const ypr = f.priorYPR || (pr.position === 'TE' ? 10 : 12);
+          const ypr = f.priorYPR || (pr.position === 'TE' ? E.fallbackYPR_TE : E.fallbackYPR_WRRB);
           const recPPG = projRec + projRec * ypr * 0.1;
 
-          // Rushing PPG: use predicted rush yards share if available
           const projRushAtt = rushPlays * rushShare * vegasMultiplier;
-          const ypc = f.priorYPC || 4.0;
+          const ypc = f.priorYPC || E.fallbackYPC;
           const rushPPG = projRushAtt * ypc * 0.1;
 
-          // TD contribution: use predicted TD shares if available, else rough estimate
-          const passTDShare = f.predPassTDShare || targetShare * 0.3;
-          const rushTDShare = f.predRushTDShare || rushShare * 0.3;
+          const passTDShare = f.predPassTDShare || targetShare * E.fallbackTDShareMultiplier;
+          const rushTDShare = f.predRushTDShare || rushShare * E.fallbackTDShareMultiplier;
           const tdPPG = (passTDShare + rushTDShare) * vegasMultiplier * 6 / 17;
 
           estimatedPPG = recPPG + rushPPG + tdPPG;
         }
 
-        // Blend with prior PPG (if available) — 60% model, 40% prior
-        if (priorPPG > 0 && priorSnapPct > 30) {
-          estimatedPPG = estimatedPPG * 0.6 + priorPPG * 0.4;
+        // Blend with prior PPG when player has meaningful snap history
+        if (priorPPG > 0 && priorSnapPct > E.priorBlendSnapPctThreshold) {
+          estimatedPPG = estimatedPPG * E.priorBlendModel + priorPPG * E.priorBlendPrior;
         }
 
         f.mlProjPlayerPPG = Math.round(estimatedPPG * 10) / 10;
         f.mlProjTeamPassAtt = Math.round(passPlays * 17 * vegasMultiplier);
         f.mlProjTeamRushAtt = Math.round(rushPlays * 17 * vegasMultiplier);
-        f.mlProjTeamTargets = Math.round(passPlays * 17 * vegasMultiplier * 0.95); // ~95% of pass plays have a target
+        f.mlProjTeamTargets = Math.round(passPlays * 17 * vegasMultiplier * E.targetRate);
       }
     } catch (e) {
       onStatus?.(`Volume projection failed: ${(e as Error).message}`);
