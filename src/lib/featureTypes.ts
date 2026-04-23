@@ -536,6 +536,7 @@ const EXTENDED_FIRST_NAME_ALIASES: Record<string, string> = {
   jon: 'jonathan',
   kc: 'kevin',
   dj: 'donovan',
+  tank: 'nathaniel',
 };
 
 // Reverse lookup: a single long form can map back to multiple short forms.
@@ -604,7 +605,17 @@ export function nameVariants(name: string | null | undefined): string[] {
   // Two "base" forms: with suffix preserved (for CFBD-style "chrisbrazzellii")
   // and with suffix stripped (for nflverse-style "chris brazzell"). Only add
   // the preserved form if the suffix strip actually changed something.
-  const bases = stripped === cleaned ? [stripped] : [stripped, cleaned];
+  // CFBD sometimes keeps the suffix in the key (michaelpenixjr, tyronetracyjr,
+  // chrisbrazzellii). If the source name didn't include one, still try the
+  // common suffixed forms so the merge covers sources that store them.
+  const baseSet = new Set<string>([stripped]);
+  if (stripped !== cleaned) baseSet.add(cleaned);
+  if (!/\s+(jr|sr|ii|iii|iv|v)\.?$/i.test(cleaned)) {
+    baseSet.add(`${stripped} jr`);
+    baseSet.add(`${stripped} ii`);
+    baseSet.add(`${stripped} iii`);
+  }
+  const bases = Array.from(baseSet);
   const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v']);
   const addForms = (base: string) => {
     const parts = base.split(' ');
