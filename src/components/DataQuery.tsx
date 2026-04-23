@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDuckDB, runQuery, TABLE_DOCS, EXAMPLE_QUERIES } from '../lib/duckdb';
+import { AskData } from './AskData';
 
 type State =
   | { kind: 'idle' }
@@ -50,6 +51,16 @@ WHERE percentile >= 85
 ORDER BY percentile DESC, predictedCareerPPG DESC;`;
 
 export function DataQuery() {
+  const [mode, setMode] = useState<'sql' | 'ask'>(() => {
+    try {
+      const saved = localStorage.getItem('stathead-data-query-mode');
+      return saved === 'ask' ? 'ask' : 'sql';
+    } catch { return 'sql'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('stathead-data-query-mode', mode); } catch {}
+  }, [mode]);
+
   const [sql, setSql] = useState<string>(() => {
     try { return localStorage.getItem(STORAGE_KEY) || DEFAULT_SQL; } catch { return DEFAULT_SQL; }
   });
@@ -145,12 +156,42 @@ export function DataQuery() {
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
-      <div>
-        <h2 style={{ fontSize: 18, margin: '0 0 4px', color: 'var(--text-primary)' }}>Data Query</h2>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 18, margin: 0, color: 'var(--text-primary)' }}>Data Query</h2>
+        <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+          {(['sql', 'ask'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              style={{
+                padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                background: mode === m ? '#6366f1' : 'transparent',
+                color: mode === m ? '#fff' : 'var(--text-secondary)',
+                border: 'none', cursor: 'pointer',
+              }}
+            >
+              {m === 'sql' ? 'SQL' : 'Ask'}
+            </button>
+          ))}
+        </div>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-          Full SQL over the model data — joins, aggregates, window functions, CTEs. Runs entirely in your browser via DuckDB-WASM.
+          {mode === 'sql'
+            ? 'Full SQL over the model data — joins, aggregates, window functions, CTEs. Runs entirely in your browser via DuckDB-WASM.'
+            : 'Ask a question in plain English. Claude queries the same tables as the SQL tab and shows you the SQL it ran.'}
         </p>
       </div>
+
+      {mode === 'ask' && (
+        <AskData
+          active={mode === 'ask'}
+          onUseSql={(s) => {
+            setSql(s);
+            setMode('sql');
+          }}
+        />
+      )}
+
+      {mode === 'sql' && <>
 
       {/* Editor + sidebar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 12, minHeight: 220 }}>
@@ -300,6 +341,8 @@ export function DataQuery() {
           }}
         />
       )}
+
+      </>}
     </div>
   );
 }
