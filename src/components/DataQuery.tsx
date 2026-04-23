@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDuckDB, runQuery, TABLE_DOCS, EXAMPLE_QUERIES } from '../lib/duckdb';
 
 type State =
@@ -17,6 +17,29 @@ interface TableDetail {
 }
 
 const STORAGE_KEY = 'stathead-data-query-sql';
+const DEDUPE_STORAGE_KEY = 'stathead-data-query-dedupe';
+
+/** Drop exact duplicates — compares every column in every row via a JSON
+ *  fingerprint. Applied to the result set BEFORE rendering, so the on-screen
+ *  count reflects distinct rows. */
+function dedupeRows(
+  columns: string[],
+  rows: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  const out: Record<string, unknown>[] = [];
+  for (const r of rows) {
+    const key = columns.map((c) => {
+      const v = r[c];
+      return v === null || v === undefined ? '\0' : String(v);
+    }).join('');
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(r);
+    }
+  }
+  return out;
+}
 
 const DEFAULT_SQL = `-- Query the underlying model data with SQL.
 -- Tables: career_2026, backtest, prospects.
@@ -32,6 +55,12 @@ export function DataQuery() {
   });
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [dbReady, setDbReady] = useState(false);
+  const [dedupe, setDedupe] = useState<boolean>(() => {
+    try { return localStorage.getItem(DEDUPE_STORAGE_KEY) === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(DEDUPE_STORAGE_KEY, dedupe ? '1' : '0'); } catch {}
+  }, [dedupe]);
   const [detail, setDetail] = useState<
     | { kind: 'loading'; name: string }
     | { kind: 'ready'; data: TableDetail }
@@ -107,6 +136,13 @@ export function DataQuery() {
     }
   };
 
+  // Memoize the deduped row set so the status line + the result table use
+  // the same array (and the dedupe cost runs exactly once per (result, toggle)).
+  const displayRows = useMemo(() => {
+    if (state.kind !== 'results') return null;
+    return dedupe ? dedupeRows(state.columns, state.rows) : state.rows;
+  }, [state, dedupe]);
+
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
       <div>
@@ -146,8 +182,28 @@ export function DataQuery() {
             >
               {state.kind === 'loading' ? 'Running…' : dbReady ? 'Run (⌘↵)' : 'Loading engine…'}
             </button>
+            <label
+              title="Drop exact duplicate rows (compares every selected column). Applied to the display; the underlying query is unchanged."
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={dedupe}
+                onChange={(e) => setDedupe(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Dedupe rows
+            </label>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {state.kind === 'results' && `${state.rowCount.toLocaleString()} rows in ${state.elapsedMs.toFixed(0)} ms`}
+              {state.kind === 'results' && displayRows && (
+                dedupe && displayRows.length !== state.rowCount
+                  ? `${displayRows.length.toLocaleString()} unique of ${state.rowCount.toLocaleString()} rows in ${state.elapsedMs.toFixed(0)} ms`
+                  : `${state.rowCount.toLocaleString()} rows in ${state.elapsedMs.toFixed(0)} ms`
+              )}
               {state.kind === 'loading' && state.msg}
             </span>
           </div>
@@ -230,7 +286,9 @@ export function DataQuery() {
         </div>
       )}
 
-      {state.kind === 'results' && <ResultTable columns={state.columns} rows={state.rows} />}
+      {state.kind === 'results' && displayRows && (
+        <ResultTable columns={state.columns} rows={displayRows} />
+      )}
 
       {detail && (
         <TableDetailModal
