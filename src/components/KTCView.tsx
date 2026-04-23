@@ -6,6 +6,7 @@ import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
 import { fetchKTCRankings, fetchKTCHistory, fetchFantasyCalcRankings } from '../data';
 import { KTCFactorAnalysis } from './KTCFactorAnalysis';
 import { KTCPredictiveModel } from './KTCPredictiveModel';
+import { PlayerLink } from './PlayerLink';
 
 type FormatMode = '1qb' | 'superflex';
 type ViewMode = 'rankings' | 'history' | 'factors' | 'model';
@@ -562,6 +563,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
                       >
                         {p.playerName}
                       </strong>
+                      <PlayerLink name={p.playerName} position={p.position} />
                       {p.isRookie && (
                         <span
                           style={{

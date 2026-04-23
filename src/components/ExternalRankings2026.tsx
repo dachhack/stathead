@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchFfcADP, fetchKTCRankings } from '../data';
 import type { FfcADPPlayer, KTCPlayer } from '../types';
+import { PlayerLink } from './PlayerLink';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
 
@@ -215,6 +216,7 @@ export function ExternalRankings2026() {
                 <td className="rank-cell">{i + 1}</td>
                 <td>
                   <strong>{r.name}</strong>
+                  <PlayerLink name={r.name} position={r.position} />
                   {r.isRookie && (
                     <span style={{
                       marginLeft: 6, fontSize: 10, background: 'var(--accent)',
