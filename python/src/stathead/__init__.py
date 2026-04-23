@@ -19,6 +19,7 @@ Pin to a specific commit for reproducibility:
 """
 from ._fetch import clear_cache, pin_version, set_ref
 from .adp import load_adp_ffc, load_adp_historical
+from .crosswalk import load_player_crosswalk
 from .features import load_feature_matrix, load_manual_overrides
 from .ktc import load_ktc, load_ktc_history
 from .predictions import load_career_backtest, load_career_predictions_2026
@@ -39,5 +40,6 @@ __all__ = [
     "load_ktc",
     "load_ktc_history",
     "load_manual_overrides",
+    "load_player_crosswalk",
     "load_prospect_grades",
 ]

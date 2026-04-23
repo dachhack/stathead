@@ -1,0 +1,2156 @@
+{
+  "_about":"Manual player-key overrides. The auto-matcher in build-player-crosswalk.py couldn't cleanly resolve the rows listed under `unresolved` below \u2014 edit them (fill in `gsis_id`) and move them into `overrides`. Rerun the script to pick them up.",
+  "version":1,
+  "overrides":[],
+  "unresolved":[
+    {
+      "source":"ktc",
+      "name":"Jeremiyah Love",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1934
+    },
+    {
+      "source":"ktc",
+      "name":"Carnell Tate",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1959
+    },
+    {
+      "source":"ktc",
+      "name":"Makai Lemon",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1961
+    },
+    {
+      "source":"ktc",
+      "name":"Jordyn Tyson",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1960
+    },
+    {
+      "source":"ktc",
+      "name":"KC Concepcion",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1963
+    },
+    {
+      "source":"ktc",
+      "name":"Kenyon Sadiq",
+      "position":"TE",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":2005
+    },
+    {
+      "source":"ktc",
+      "name":"Fernando Mendoza",
+      "position":"QB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1924
+    },
+    {
+      "source":"ktc",
+      "name":"Omar Cooper Jr.",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1964
+    },
+    {
+      "source":"ktc",
+      "name":"Denzel Boston",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1962
+    },
+    {
+      "source":"ktc",
+      "name":"Jadarian Price",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1935
+    },
+    {
+      "source":"ktc",
+      "name":"Travis Hunter",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1774
+    },
+    {
+      "source":"ktc",
+      "name":"Jonah Coleman",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1939
+    },
+    {
+      "source":"ktc",
+      "name":"Eli Stowers",
+      "position":"TE",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":2006
+    },
+    {
+      "source":"ktc",
+      "name":"Kyle Williams",
+      "position":"WR",
+      "year":null,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0027608",
+          "display_name":"Kyle Williams",
+          "birth_date":"1988-07-19",
+          "college":"",
+          "latest_season":2016
+        },
+        {
+          "gsis_id":"00-0040131",
+          "display_name":"Kyle Williams",
+          "birth_date":"2002-11-13",
+          "college":"Washington State",
+          "latest_season":2026
+        }
+      ],
+      "ktc_id":1812
+    },
+    {
+      "source":"ktc",
+      "name":"Nicholas Singleton",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1938
+    },
+    {
+      "source":"ktc",
+      "name":"Mike Washington Jr.",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1944
+    },
+    {
+      "source":"ktc",
+      "name":"Ty Simpson",
+      "position":"QB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1925
+    },
+    {
+      "source":"ktc",
+      "name":"Elijah Sarratt",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1967
+    },
+    {
+      "source":"ktc",
+      "name":"Chris Brazzell II",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1971
+    },
+    {
+      "source":"ktc",
+      "name":"Emmett Johnson",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1936
+    },
+    {
+      "source":"ktc",
+      "name":"Zachariah Branch",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1969
+    },
+    {
+      "source":"ktc",
+      "name":"Chris Bell",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1968
+    },
+    {
+      "source":"ktc",
+      "name":"Kaytron Allen",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1940
+    },
+    {
+      "source":"ktc",
+      "name":"Malachi Fields",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1973
+    },
+    {
+      "source":"ktc",
+      "name":"Germie Bernard",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1965
+    },
+    {
+      "source":"ktc",
+      "name":"Ja'Kobi Lane",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1979
+    },
+    {
+      "source":"ktc",
+      "name":"Skyler Bell",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1970
+    },
+    {
+      "source":"ktc",
+      "name":"Max Klare",
+      "position":"TE",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":2009
+    },
+    {
+      "source":"ktc",
+      "name":"Garrett Nussmeier",
+      "position":"QB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1927
+    },
+    {
+      "source":"ktc",
+      "name":"Antonio Williams",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1974
+    },
+    {
+      "source":"ktc",
+      "name":"Michael Trigg",
+      "position":"TE",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":2008
+    },
+    {
+      "source":"ktc",
+      "name":"Kevin Coleman",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1990
+    },
+    {
+      "source":"ktc",
+      "name":"Ted Hurst",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1982
+    },
+    {
+      "source":"ktc",
+      "name":"Demond Claiborne",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1943
+    },
+    {
+      "source":"ktc",
+      "name":"Gabriel Davis",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":533
+    },
+    {
+      "source":"ktc",
+      "name":"Le'Veon Moss",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1941
+    },
+    {
+      "source":"ktc",
+      "name":"Frank Gore Jr.",
+      "position":"RB",
+      "year":null,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ],
+      "ktc_id":1570
+    },
+    {
+      "source":"ktc",
+      "name":"J'Mari Taylor",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1949
+    },
+    {
+      "source":"ktc",
+      "name":"Cade Klubnik",
+      "position":"QB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1929
+    },
+    {
+      "source":"ktc",
+      "name":"Jam Miller",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1948
+    },
+    {
+      "source":"ktc",
+      "name":"Deion Burks",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1972
+    },
+    {
+      "source":"ktc",
+      "name":"Seth McGowan",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1937
+    },
+    {
+      "source":"ktc",
+      "name":"Zavier Scott",
+      "position":"RB",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1898
+    },
+    {
+      "source":"ktc",
+      "name":"CJ Daniels",
+      "position":"WR",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":1966
+    },
+    {
+      "source":"ktc",
+      "name":"Taysom Hill",
+      "position":"TE",
+      "year":null,
+      "outcome":"none",
+      "candidates":[],
+      "ktc_id":150
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2009,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Owen Marecic",
+      "position":"RB",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"John Conner",
+      "position":"RB",
+      "year":2010,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2016,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Travis Hunter",
+      "position":"WR",
+      "year":2025,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Dexter McCluster",
+      "position":"WR",
+      "year":2010,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"D'Wayne Eskridge",
+      "position":"WR",
+      "year":2021,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Clyde Gates",
+      "position":"WR",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Mike Thomas",
+      "position":"WR",
+      "year":2016,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Evan Rodriguez",
+      "position":"TE",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2009,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025425",
+          "display_name":"Zach Miller",
+          "birth_date":"1985-12-11",
+          "college":"",
+          "latest_season":2014
+        },
+        {
+          "gsis_id":"00-0027125",
+          "display_name":"Zach Miller",
+          "birth_date":"1984-10-04",
+          "college":"Nebraska-Omaha",
+          "latest_season":2018
+        }
+      ]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Jordan Thomas",
+      "position":"TE",
+      "year":2018,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_backtest",
+      "name":"Brad Smelley",
+      "position":"TE",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025438",
+          "display_name":"Steve Smith",
+          "birth_date":"1985-05-06",
+          "college":"",
+          "latest_season":2012
+        },
+        {
+          "gsis_id":"00-0020337",
+          "display_name":"Steve Smith",
+          "birth_date":"1979-05-12",
+          "college":"Utah",
+          "latest_season":2016
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2010,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Ronnie Brown",
+      "position":"RB",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023437",
+          "display_name":"Ronnie Brown",
+          "birth_date":"1981-12-12",
+          "college":"",
+          "latest_season":2014
+        },
+        {
+          "gsis_id":"00-0038816",
+          "display_name":"Ronnie Brown",
+          "birth_date":"",
+          "college":"Shepherd",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Sims-Walker",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025466",
+          "display_name":"Mike Sims-Walker",
+          "birth_date":"1984-11-21",
+          "college":"",
+          "latest_season":2011
+        },
+        {
+          "gsis_id":"00-0035374",
+          "display_name":"Michael Walker",
+          "birth_date":"1996-10-29",
+          "college":"Boston College",
+          "latest_season":2021
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025425",
+          "display_name":"Zach Miller",
+          "birth_date":"1985-12-11",
+          "college":"",
+          "latest_season":2014
+        },
+        {
+          "gsis_id":"00-0027125",
+          "display_name":"Zach Miller",
+          "birth_date":"1984-10-04",
+          "college":"Nebraska-Omaha",
+          "latest_season":2018
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023452",
+          "display_name":"Mike Williams",
+          "birth_date":"1984-01-04",
+          "college":"",
+          "latest_season":2011
+        },
+        {
+          "gsis_id":"00-0027702",
+          "display_name":"Mike Williams",
+          "birth_date":"1987-05-18",
+          "college":"",
+          "latest_season":2016
+        },
+        {
+          "gsis_id":"00-0033536",
+          "display_name":"Mike Williams",
+          "birth_date":"1994-10-04",
+          "college":"Clemson",
+          "latest_season":2025
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Jacoby Jones",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025460",
+          "display_name":"Jacoby Jones",
+          "birth_date":"1984-07-11",
+          "college":"Lane",
+          "latest_season":2015
+        },
+        {
+          "gsis_id":"00-0040317",
+          "display_name":"Jacoby Jones",
+          "birth_date":"2001-07-18",
+          "college":"UCF; Ohio",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Dexter McCluster",
+      "position":"WR",
+      "year":2010,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Thomas",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0027076",
+          "display_name":"Mike Thomas",
+          "birth_date":"1987-06-04",
+          "college":"",
+          "latest_season":2012
+        },
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"John Conner",
+      "position":"RB",
+      "year":2010,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023452",
+          "display_name":"Mike Williams",
+          "birth_date":"1984-01-04",
+          "college":"",
+          "latest_season":2011
+        },
+        {
+          "gsis_id":"00-0027702",
+          "display_name":"Mike Williams",
+          "birth_date":"1987-05-18",
+          "college":"",
+          "latest_season":2016
+        },
+        {
+          "gsis_id":"00-0033536",
+          "display_name":"Mike Williams",
+          "birth_date":"1994-10-04",
+          "college":"Clemson",
+          "latest_season":2025
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Beanie Wells",
+      "position":"RB",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Thomas",
+      "position":"WR",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0027076",
+          "display_name":"Mike Thomas",
+          "birth_date":"1987-06-04",
+          "college":"",
+          "latest_season":2012
+        },
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Sims-Walker",
+      "position":"WR",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025466",
+          "display_name":"Mike Sims-Walker",
+          "birth_date":"1984-11-21",
+          "college":"",
+          "latest_season":2011
+        },
+        {
+          "gsis_id":"00-0035374",
+          "display_name":"Michael Walker",
+          "birth_date":"1996-10-29",
+          "college":"Boston College",
+          "latest_season":2021
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025438",
+          "display_name":"Steve Smith",
+          "birth_date":"1985-05-06",
+          "college":"",
+          "latest_season":2012
+        },
+        {
+          "gsis_id":"00-0020337",
+          "display_name":"Steve Smith",
+          "birth_date":"1979-05-12",
+          "college":"Utah",
+          "latest_season":2016
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Ronnie Brown",
+      "position":"RB",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023437",
+          "display_name":"Ronnie Brown",
+          "birth_date":"1981-12-12",
+          "college":"",
+          "latest_season":2014
+        },
+        {
+          "gsis_id":"00-0038816",
+          "display_name":"Ronnie Brown",
+          "birth_date":"",
+          "college":"Shepherd",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Zach Miller",
+      "position":"TE",
+      "year":2011,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025425",
+          "display_name":"Zach Miller",
+          "birth_date":"1985-12-11",
+          "college":"",
+          "latest_season":2014
+        },
+        {
+          "gsis_id":"00-0027125",
+          "display_name":"Zach Miller",
+          "birth_date":"1984-10-04",
+          "college":"Nebraska-Omaha",
+          "latest_season":2018
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Dexter McCluster",
+      "position":"WR",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Clyde Gates",
+      "position":"WR",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Owen Marecic",
+      "position":"RB",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Steve Smith",
+      "position":"WR",
+      "year":2012,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0025438",
+          "display_name":"Steve Smith",
+          "birth_date":"1985-05-06",
+          "college":"",
+          "latest_season":2012
+        },
+        {
+          "gsis_id":"00-0020337",
+          "display_name":"Steve Smith",
+          "birth_date":"1979-05-12",
+          "college":"Utah",
+          "latest_season":2016
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Evan Rodriguez",
+      "position":"TE",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Brad Smelley",
+      "position":"TE",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2013,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2013,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0027702",
+          "display_name":"Mike Williams",
+          "birth_date":"1987-05-18",
+          "college":"",
+          "latest_season":2016
+        },
+        {
+          "gsis_id":"00-0033536",
+          "display_name":"Mike Williams",
+          "birth_date":"1994-10-04",
+          "college":"Clemson",
+          "latest_season":2025
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2014,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2015,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2016,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2016,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Thomas",
+      "position":"WR",
+      "year":2016,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2017,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2017,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2018,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Jordan Thomas",
+      "position":"TE",
+      "year":2018,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2019,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Frank Gore",
+      "position":"RB",
+      "year":2019,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023500",
+          "display_name":"Frank Gore",
+          "birth_date":"1983-05-14",
+          "college":"Miami",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0039471",
+          "display_name":"Frank Gore Jr.",
+          "birth_date":"2002-03-13",
+          "college":"Southern Mississippi",
+          "latest_season":2026
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2020,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"D'Wayne Eskridge",
+      "position":"WR",
+      "year":2021,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Michael Thomas",
+      "position":"WR",
+      "year":2022,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Taysom Hill",
+      "position":"TE",
+      "year":2024,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Travis Hunter",
+      "position":"WR",
+      "year":2025,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Taysom Hill",
+      "position":"TE",
+      "year":2025,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"John Conner",
+      "position":"RB",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Chris Ogbonnaya",
+      "position":"RB",
+      "year":2011,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"John Conner",
+      "position":"RB",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Dexter McCluster",
+      "position":"WR",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Clyde Gates",
+      "position":"WR",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Owen Marecic",
+      "position":"RB",
+      "year":2012,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Clyde Gates",
+      "position":"WR",
+      "year":2013,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Evan Rodriguez",
+      "position":"TE",
+      "year":2013,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Mike Thomas",
+      "position":"WR",
+      "year":2017,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0033114",
+          "display_name":"Mike Thomas",
+          "birth_date":"1994-08-16",
+          "college":"Southern Mississippi",
+          "latest_season":2022
+        },
+        {
+          "gsis_id":"00-0032765",
+          "display_name":"Michael Thomas",
+          "birth_date":"1993-03-03",
+          "college":"Ohio State",
+          "latest_season":2023
+        }
+      ]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Jordan Thomas",
+      "position":"TE",
+      "year":2019,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"Jordan Thomas",
+      "position":"TE",
+      "year":2020,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"N'Keal Harry",
+      "position":"WR",
+      "year":2021,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_adp",
+      "name":"D'Wayne Eskridge",
+      "position":"WR",
+      "year":2022,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jeremiyah Love",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Kenyon Sadiq",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Carnell Tate",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Makai Lemon",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jordyn Tyson",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jadarian Price",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Eli Stowers",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jonah Coleman",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Fernando Mendoza",
+      "position":"QB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Max Klare",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Emmett Johnson",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Seth McGowan",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Mike Washington Jr.",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Omar Cooper Jr.",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Kaytron Allen",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Denzel Boston",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Sam Roush",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Antonio Williams",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"KC Concepcion",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Michael Trigg",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Chris Brazzell II",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Le'Veon Moss",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Ja'Kobi Lane",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Nick Singleton",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Justin Joly",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Demond Claiborne",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Ty Simpson",
+      "position":"QB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Germie Bernard",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"De'Zhaun Stribling",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jack Endries",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Adam Randall",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Marlin Klein",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Dallen Bentley",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Eli Heidenreich",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Noah Whittington",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Roman Hemby",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"J'Mari Taylor",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Chris Bell",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Desmond Reid",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Bryce Lance",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Robert Henry",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Rahsul Faison",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Malachi Fields",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jam Miller",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"CJ Donaldson",
+      "position":"RB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Brenen Thompson",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Garrett Nussmeier",
+      "position":"QB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Ted Hurst",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Elijah Sarratt",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Oscar Delp",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"CJ Daniels",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Joe Royer",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Eric McAlister",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Skyler Bell",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Zachariah Branch",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Drew Allar",
+      "position":"QB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Eli Raridon",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Deion Burks",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Carson Beck",
+      "position":"QB",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Tanner Koziol",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Dae'Quan Wright",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"John Michael Gyllenborg",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Josh Cuevas",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Nate Boerkircher",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Riley Nowakowski",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Kevin Coleman",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jeff Caldwell",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Reggie Virgil",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Barion Brown",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Kendrick Law",
+      "position":"WR",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Bauer Sharp",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Jaren Kanak",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Will Kacmarek",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Matthew Hibner",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"RJ Maryland",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"Miles Kitselman",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    },
+    {
+      "source":"stathead_career_2026",
+      "name":"DJ Rogers",
+      "position":"TE",
+      "year":2026,
+      "outcome":"none",
+      "candidates":[]
+    }
+  ]
+}

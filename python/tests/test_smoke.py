@@ -72,6 +72,14 @@ def test_prospect_grades_2026():
     assert {"name", "pos", "grade"}.issubset(df.columns)
 
 
+def test_player_crosswalk_is_populated():
+    df = stathead.load_player_crosswalk()
+    assert len(df) > 10000
+    assert {"player_key", "display_name", "position", "gsis_id"}.issubset(df.columns)
+    # Every canonical key should be formatted as sh_<hex>
+    assert df.player_key.str.match(r"^sh_[0-9a-f]+$").all()
+
+
 def test_feature_matrix_is_dict():
     m = stathead.load_feature_matrix()
     assert isinstance(m, dict)

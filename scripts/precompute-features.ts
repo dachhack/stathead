@@ -471,6 +471,7 @@ async function main() {
     bustProb?: number;       // P(underperform by > MAE) — kept for back-compat
     boomZ?: number;          // Z-score vs historical NFL rookie distribution
     bustZ?: number;          // Z-score vs historical NFL rookie distribution
+    player_key?: string;     // Canonical cross-source ID, see player-crosswalk.json
   }> = [];
 
   // Load prospect grades from static JSON
@@ -1820,6 +1821,40 @@ async function main() {
   }
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
   console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);
+
+  // Stamp player_key onto each prediction row via the crosswalk — the
+  // canonical cross-source ID users will join on. Canonical file is built
+  // by scripts/build-player-crosswalk.py and committed to the repo; we
+  // just look up (name, position) here. 2026 rookies hit the college-only
+  // synthetic keys emitted by the builder.
+  try {
+    const cwPath = 'public/data/player-crosswalk.json';
+    if (existsSync(cwPath)) {
+      interface CWRec {
+        player_key: string; display_name: string; position: string;
+        aliases?: Array<{ source: string; name: string; position?: string }>;
+      }
+      const cw = JSON.parse(readFileSync(cwPath, 'utf-8')) as { players: CWRec[] };
+      const byKey = new Map<string, string>();  // `${norm}|${pos}` → player_key
+      for (const rec of cw.players) {
+        const k = `${normalizeName(rec.display_name)}|${rec.position}`;
+        if (!byKey.has(k)) byKey.set(k, rec.player_key);
+        for (const a of rec.aliases || []) {
+          const pos = a.position || rec.position;
+          const aliasKey = `${normalizeName(a.name)}|${pos}`;
+          if (!byKey.has(aliasKey)) byKey.set(aliasKey, rec.player_key);
+        }
+      }
+      let stamped = 0;
+      for (const row of careerPredictions2026) {
+        const pk = byKey.get(`${normalizeName(row.name)}|${row.position}`);
+        if (pk) { row.player_key = pk; stamped++; }
+      }
+      console.log(`    player_key stamped on ${stamped}/${careerPredictions2026.length} rookies`);
+    }
+  } catch (e) {
+    console.log(`    player_key stamping skipped: ${(e as Error).message}`);
+  }
 
   // Generate 2026 predictions with ensemble + confidence intervals
   console.log('  Generating 2026 predictions (ensemble + CI)...');
