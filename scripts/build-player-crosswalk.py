@@ -32,9 +32,11 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).parent.parent
-ROSTER_GLOB = str(ROOT / 'public/data/roster_*.csv.gz')
+ROSTER_GLOB_GZ = str(ROOT / 'public/data/roster_*.csv.gz')
+ROSTER_GLOB_CSV = str(ROOT / 'public/data/roster_*.csv')
 CROSSWALK_OUT = ROOT / 'public/data/player-crosswalk.json'
 ALIASES_OUT = ROOT / 'public/data/player-aliases.json'
+PROMOTIONS_OUT = ROOT / 'public/data/player-promotions.json'
 
 # ── Name normalization (mirrors src/lib/featureTypes.ts::nameVariants) ──
 
@@ -115,16 +117,38 @@ SPINE_ID_COLUMNS = [
 ]
 
 
+def roster_paths() -> list[str]:
+    """Return one roster file per season, preferring the uncompressed
+    `.csv` over `.csv.gz` if both exist for the same season.
+
+    Rationale: the nflverse CSVs committed to git are gzipped (smaller
+    diffs). In CI, `download-data.sh` refreshes the current season by
+    writing the uncompressed `.csv` directly and never regzips, so the
+    freshest 2026 data lives in `roster_2026.csv` while the stale
+    committed snapshot is still at `roster_2026.csv.gz`. Preferring the
+    uncompressed copy ensures a CI crosswalk rebuild sees post-draft
+    rookies as soon as nflverse publishes them."""
+    by_season: dict[str, str] = {}
+    for path in glob.glob(ROSTER_GLOB_GZ):
+        season = Path(path).name.replace('roster_', '').replace('.csv.gz', '')
+        by_season[season] = path
+    for path in glob.glob(ROSTER_GLOB_CSV):
+        season = Path(path).name.replace('roster_', '').replace('.csv', '')
+        by_season[season] = path  # .csv wins over .csv.gz
+    return [by_season[s] for s in sorted(by_season)]
+
+
 def build_spine() -> list[dict[str, Any]]:
-    """Scan every roster_*.csv.gz and aggregate into one record per gsis_id.
+    """Scan every roster_*.csv(.gz) and aggregate into one record per gsis_id.
 
     Keeps latest-season values for mutable fields, earliest birth_date +
     college, AND the union of every position + display_name the player has
     held across their career — many players switch (RB↔WR like McCluster,
     DB↔WR like Travis Hunter) or get renamed (Dee ↔ D'Wayne Eskridge)."""
     by_gid: dict[str, dict[str, Any]] = {}
-    for path in sorted(glob.glob(ROSTER_GLOB)):
-        with gzip.open(path, 'rt') as f:
+    for path in roster_paths():
+        opener = gzip.open if path.endswith('.gz') else open
+        with opener(path, 'rt') as f:
             for r in csv.DictReader(f):
                 gid = (r.get('gsis_id') or '').strip()
                 if not gid:
@@ -300,6 +324,23 @@ def main():
     print(f'Spine: {len(spine)} players from nflverse rosters')
 
     by_normpos, by_norm = build_indexes(spine)
+
+    # Load the PREVIOUS crosswalk (if any) so we can detect rookie
+    # key-promotions: players who were minted as synthetic COL records
+    # in a prior build (no NFL gsis_id yet) and now resolve to a spine
+    # gsis_id this run. Downstream consumers that cached the old COL
+    # hash need a back-reference so their lookups don't go cold.
+    prev_col_records: list[dict[str, Any]] = []
+    if CROSSWALK_OUT.exists():
+        try:
+            prev_doc = json.loads(CROSSWALK_OUT.read_text())
+            prev_col_records = [
+                p for p in (prev_doc.get('players') or [])
+                if p.get('is_college_only')
+            ]
+            print(f'Loaded {len(prev_col_records)} COL records from previous crosswalk')
+        except Exception as e:
+            print(f'  warning: could not load previous crosswalk: {e}')
 
     # Every spine player gets a canonical key. We keep the multi-value
     # `all_positions` and `all_names` on the record for downstream
@@ -523,6 +564,96 @@ def main():
         # Clyde Gates / Owen Marecic if we missed them upstream).
         mint_col(name, pos, 'ktc', None, ktc_id=p.get('playerID'))
 
+    # ── Rookie key-promotion ──
+    # For every COL record that existed in the PREVIOUS build but does
+    # NOT exist in this build (i.e., the rookie got promoted to the NFL
+    # spine), find the new canonical record that absorbed them and
+    # stamp the old COL player_key as an `alias_keys` back-reference.
+    # Fail-closed on ambiguity: if 0 or 2+ new-canonical candidates
+    # match (norm_name, position), skip + log to unresolved_promotions.
+    promotions_log: list[dict[str, Any]] = []
+    unresolved_promotions: list[dict[str, Any]] = []
+
+    if prev_col_records:
+        # Build lookup for the current build's COL identities.
+        new_col_ids: set[str] = {
+            f'COL:{norm(p["display_name"])}:{p["position"]}'
+            for p in canonical.values() if p.get('is_college_only')
+        }
+        # Build lookup of NFL-spine records by (norm_name, position), covering
+        # EVERY name + position the player has held (same coverage as
+        # build_indexes above), so renames / position switches still resolve.
+        new_nfl_by_normpos: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for rec in canonical.values():
+            if rec.get('is_college_only'):
+                continue
+            names = set(rec.get('all_names') or [])
+            names.add(rec.get('display_name', ''))
+            positions = set(rec.get('all_positions') or [])
+            positions.add(rec.get('position', ''))
+            for nm in names:
+                n = norm(nm)
+                if not n:
+                    continue
+                for p in positions:
+                    bucket = new_nfl_by_normpos[(n, p)]
+                    if rec not in bucket:
+                        bucket.append(rec)
+
+        for old in prev_col_records:
+            old_name = old.get('display_name', '')
+            old_pos = old.get('position', '')
+            old_key = old.get('player_key')
+            col_id = f'COL:{norm(old_name)}:{old_pos}'
+            # Still a COL in the new build → nothing to promote.
+            if col_id in new_col_ids:
+                continue
+            # COL identity is gone. Try to find the new NFL canonical.
+            cands = new_nfl_by_normpos.get((norm(old_name), old_pos), [])
+            if len(cands) == 1:
+                new_rec = cands[0]
+                new_rec.setdefault('alias_keys', [])
+                if old_key and old_key not in new_rec['alias_keys']:
+                    new_rec['alias_keys'].append(old_key)
+                promotions_log.append({
+                    'old_player_key': old_key,
+                    'new_player_key': new_rec.get('player_key'),
+                    'name': old_name,
+                    'position': old_pos,
+                    'gsis_id': new_rec.get('gsis_id'),
+                    'college': new_rec.get('college', ''),
+                    'earliest_season': new_rec.get('earliest_season'),
+                })
+            elif len(cands) == 0:
+                # COL gone, no NFL match — the source (career_2026 / KTC)
+                # likely dropped or renamed this player between builds.
+                # No promotion to write, but worth surfacing.
+                unresolved_promotions.append({
+                    'old_player_key': old_key,
+                    'name': old_name,
+                    'position': old_pos,
+                    'reason': 'col_gone_no_spine_match',
+                    'candidates': [],
+                })
+            else:
+                # 2+ NFL candidates share (name, position). Fail-closed —
+                # user must hand-resolve which to promote to.
+                unresolved_promotions.append({
+                    'old_player_key': old_key,
+                    'name': old_name,
+                    'position': old_pos,
+                    'reason': 'ambiguous_spine_match',
+                    'candidates': [
+                        {'player_key': c.get('player_key'),
+                         'gsis_id': c.get('gsis_id'),
+                         'display_name': c.get('display_name'),
+                         'college': c.get('college', ''),
+                         'earliest_season': c.get('earliest_season'),
+                         'latest_season': c.get('latest_season')}
+                        for c in cands[:5]
+                    ],
+                })
+
     # ── Emit crosswalk ──
     records = list(canonical.values())
     out = {'version': 1, 'generated_at': None, 'total': len(records),
@@ -530,6 +661,28 @@ def main():
     CROSSWALK_OUT.write_text(json.dumps(out, separators=(',', ':')))
     print(f'Wrote {CROSSWALK_OUT} — {len(records)} players '
           f'({sum(1 for r in records if r.get("is_college_only")) } college-only)')
+
+    # ── Emit promotions log ──
+    promotions_doc = {
+        '_about': (
+            'Rookie key-promotion log. When a player who was previously '
+            'minted as a synthetic COL record (no NFL gsis_id) gets placed '
+            'on an nflverse roster, build-player-crosswalk.py rebinds them '
+            'to an NFL-spine canonical record and back-references the old '
+            'COL player_key via the `alias_keys` field on the new record. '
+            'Entries under `unresolved` are fail-closed: either the COL '
+            'vanished with no spine match (reason=col_gone_no_spine_match) '
+            'or multiple spine candidates collide on (name, position) — '
+            'hand-resolve these by adding a matching entry to '
+            'player-aliases.json overrides and rerunning.'
+        ),
+        'version': 1,
+        'promotions': promotions_log,
+        'unresolved': unresolved_promotions,
+    }
+    PROMOTIONS_OUT.write_text(json.dumps(promotions_doc, separators=(',', ':'), indent=2))
+    print(f'Wrote {PROMOTIONS_OUT} — {len(promotions_log)} promotions, '
+          f'{len(unresolved_promotions)} unresolved')
 
     # ── Emit unresolved seed for the manual aliases file ──
     # Only write if the file doesn't already exist OR is empty; don't

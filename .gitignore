@@ -40,6 +40,7 @@ public/data/*
 !public/data/manual-cfbd-overrides.json
 !public/data/player-crosswalk.json
 !public/data/player-aliases.json
+!public/data/player-promotions.json
 # Raw upstream sources committed as .csv.gz (~35 MB vs ~200 MB raw).
 # TS readLocalFile auto-decompresses; Python runs `bash scripts/extract-data.sh`
 # once to materialize the .csv. See scripts/pull-all-data-sources.sh.

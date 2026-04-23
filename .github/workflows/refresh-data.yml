@@ -51,6 +51,20 @@ jobs:
           fi
           echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
 
+      # Rebuild the player crosswalk against the freshly-downloaded rosters
+      # + feature-matrix. This is what promotes post-draft rookies from
+      # their synthetic COL keys to canonical NFL gsis-based keys as soon
+      # as nflverse publishes the updated roster. The builder reads the
+      # uncompressed roster_*.csv written by download-data.sh in preference
+      # to the committed roster_*.csv.gz snapshot, so CI always sees the
+      # freshest data. Writes:
+      #   - public/data/player-crosswalk.json
+      #   - public/data/player-aliases.json (refreshed unresolved list)
+      #   - public/data/player-promotions.json (COL→NFL promotions + any
+      #                                         fail-closed unresolved cases)
+      - name: Rebuild player crosswalk
+        run: python3 scripts/build-player-crosswalk.py
+
       # Commit the rebuilt caches back so downstream jobs (model training,
       # coverage audit, local analysis) work off the fresh data instead of
       # whatever last got checked in. [skip ci] prevents this commit from
@@ -61,7 +75,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
-                  public/data/feature-store/ 2>/dev/null || true
+                  public/data/feature-store/ \
+                  public/data/player-crosswalk.json \
+                  public/data/player-aliases.json \
+                  public/data/player-promotions.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else
