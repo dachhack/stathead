@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-23T18:37:54.758Z",
+  "updatedAt": "2026-04-23T22:43:20.600Z",
   "models": {
     "career": {
       "version": "v51",
@@ -9,11 +9,11 @@
     },
     "adp": {
       "version": "v50",
-      "count": 0
+      "count": 277
     },
     "ppg": {
       "version": "v50",
-      "count": 0
+      "count": 277
     }
   }
 }

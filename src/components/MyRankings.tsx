@@ -150,20 +150,68 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     setLoading(true);
     Promise.all([
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
-      fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
+      // FFC ADP: try 2026, fall back to 2025 (the scrape sometimes lands under the prior year)
+      fetchFfcADP(2026, 'ppr')
+        .then(p => (p && p.length > 0) ? p : fetchFfcADP(2025, 'ppr').catch(() => [] as FfcADPPlayer[]))
+        .catch(() => [] as FfcADPPlayer[]),
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/shares.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/feature-store/priorStats.json`).then(r => r.json()).catch(() => ({})),
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
-    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, shareData, priorData, compData]) => {
+      // Fallback source — if score-store shards are empty, hydrate from the monolithic matrix.
+      fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
+    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
       setSdio(sdioData);
-      setAdpScores(adpData);
-      setPpgScores(ppgData);
-      setShareScores(shareData);
+
+      // If score-store is empty, derive equivalent shards from feature-matrix.json so
+      // UI does not silently lose VOR/Boom/Bust/shares when the auto-commit lag leaves
+      // the shards stale. Shape matches `src/lib/modelScoreStore.ts`.
+      const fmAdp: ADPScoreEntry[] = (!adpData?.length && featureMatrix?.predictions2026)
+        ? featureMatrix.predictions2026.map((p: Record<string, unknown>) => ({
+            name: String(p.name ?? ''),
+            position: String(p.position ?? ''),
+            team: String(p.team ?? ''),
+            adp: Number(p.adp) || 0,
+            predictedVor: Number(p.predictedVor) || 0,
+            ciLower: Number(p.ciLower) || 0,
+            ciUpper: Number(p.ciUpper) || 0,
+            isRookie: Boolean(p.isRookie),
+          }))
+        : adpData;
+
+      const fmPpg: PPGScoreEntry[] = (!ppgData?.length && featureMatrix?.ppgPredictions2026)
+        ? featureMatrix.ppgPredictions2026.map((p: Record<string, unknown>) => ({
+            name: String(p.name ?? ''),
+            position: String(p.position ?? ''),
+            predictedPPG: Number(p.predictedPPG) || 0,
+          }))
+        : ppgData;
+
+      const fmShares: ShareScoreEntry[] = (!shareData?.length && Array.isArray(featureMatrix?.predRows))
+        ? featureMatrix.predRows
+            .map((r: Record<string, unknown>) => {
+              const feats = (r.features ?? {}) as Record<string, number>;
+              const t = feats.predTargetShare || 0;
+              const rs = feats.predRushShare || 0;
+              if (!t && !rs) return null;
+              return {
+                name: String(r.name ?? ''),
+                position: String(r.position ?? ''),
+                team: String(r.team ?? ''),
+                predTargetShare: t,
+                predRushShare: rs,
+              };
+            })
+            .filter((x: ShareScoreEntry | null): x is ShareScoreEntry => x !== null)
+        : shareData;
+
+      setAdpScores(fmAdp);
+      setPpgScores(fmPpg);
+      setShareScores(fmShares);
       setPriorStats(priorData);
       setCompetition(compData);
       setLoading(false);
