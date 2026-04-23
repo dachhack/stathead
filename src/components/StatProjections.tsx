@@ -447,6 +447,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
+  // Model-predicted PPG lookup (score-store/ppg.json). Keyed by normalized name.
+  const [projPPGMap, setProjPPGMap] = useState<Map<string, number>>(new Map());
 
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
@@ -549,7 +551,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -557,6 +559,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           fetchGames().catch(() => [] as Game[]),
           fetchOddsGameLines().catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/score-store/shares.json`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${import.meta.env.BASE_URL}data/score-store/ppg.json`).then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
 
         // ML share predictions lookup: name → { predTargetShare, predRushShare }
@@ -564,6 +567,25 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         for (const s of shareScoresData as Array<{ name: string; predTargetShare: number; predRushShare: number }>) {
           mlShares.set(normalizeName(s.name), { predTargetShare: s.predTargetShare || 0, predRushShare: s.predRushShare || 0 });
         }
+        // ML PPG predictions lookup: name → predictedPPG. Fall back to
+        // feature-matrix.json if the shard is empty (same pattern as MyRankings).
+        let mlPPGEntries = ppgScoresData as Array<{ name: string; predictedPPG: number }>;
+        if (!mlPPGEntries.length) {
+          try {
+            const fm = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`).then(r => r.ok ? r.json() : null);
+            if (fm?.ppgPredictions2026) {
+              mlPPGEntries = fm.ppgPredictions2026.map((p: Record<string, unknown>) => ({
+                name: String(p.name ?? ''),
+                predictedPPG: Number(p.predictedPPG) || 0,
+              }));
+            }
+          } catch { /* ignore */ }
+        }
+        const mlPPG = new Map<string, number>();
+        for (const s of mlPPGEntries) {
+          if (s.predictedPPG > 0) mlPPG.set(normalizeName(s.name), s.predictedPPG);
+        }
+        setProjPPGMap(mlPPG);
         if (cancelled) return;
 
         if (adpData.length === 0) {
@@ -1945,7 +1967,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               {selectedPos === 'TE' && (
                 <th colSpan={4} style={{ textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.TE}` }}>RECEIVING</th>
               )}
-              <th style={{ borderBottom: '2px solid #f59e0b' }}>PPR</th>
+              <th colSpan={3} style={{ textAlign: 'center', borderBottom: '2px solid #f59e0b' }}>PPR</th>
             </tr>
             <tr>
               <th></th>
@@ -1976,76 +1998,102 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <th>Tgt</th><th>Rec</th><th>Yds</th><th>TD</th>
                 </>
               )}
-              <th>Pts</th>
+              <th title="Total PPR points over projected games">Pts</th>
+              <th title="Scenario-adjusted PPG (projected points ÷ games)">PPG</th>
+              <th title="Model-predicted PPG (ADP-free model)">Proj PPG</th>
             </tr>
           </thead>
           <tbody>
-            {selectedPos === 'QB' && dispQbs.map((p, i) => (
-              <tr key={p.name}>
-                <td className="rank-cell">{i + 1}</td>
-                <td><strong>{p.name}</strong></td>
-                <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
-                <td>{p.games}</td>
-                <td>{p.passAtt}</td>
-                <td>{p.passComp}</td>
-                <td>{p.passYds.toLocaleString()}</td>
-                <td style={{ fontWeight: 700 }}>{p.passTD}</td>
-                <td style={{ color: '#ef4444' }}>{p.int}</td>
-                <td>{p.rushAtt}</td>
-                <td>{p.rushYds}</td>
-                <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
-                <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
-              </tr>
-            ))}
-            {selectedPos === 'RB' && dispRbs.map((p, i) => (
-              <tr key={p.name}>
-                <td className="rank-cell">{i + 1}</td>
-                <td><strong>{p.name}</strong></td>
-                <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
-                <td>{p.games}</td>
-                <td>{p.rushAtt}</td>
-                <td>{p.rushYds.toLocaleString()}</td>
-                <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
-                <td>{p.tgt}</td>
-                <td>{p.rec}</td>
-                <td>{p.recYds}</td>
-                <td style={{ fontWeight: 700 }}>{p.recTD}</td>
-                <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
-              </tr>
-            ))}
-            {selectedPos === 'WR' && dispWrs.map((p, i) => (
-              <tr key={p.name}>
-                <td className="rank-cell">{i + 1}</td>
-                <td><strong>{p.name}</strong></td>
-                <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
-                <td>{p.games}</td>
-                <td>{p.tgt}</td>
-                <td>{p.rec}</td>
-                <td>{p.recYds.toLocaleString()}</td>
-                <td style={{ fontWeight: 700 }}>{p.recTD}</td>
-                <td>{p.rushAtt}</td>
-                <td>{p.rushYds}</td>
-                <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
-                <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
-              </tr>
-            ))}
-            {selectedPos === 'TE' && dispTes.map((p, i) => (
-              <tr key={p.name}>
-                <td className="rank-cell">{i + 1}</td>
-                <td><strong>{p.name}</strong></td>
-                <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                <td>{fmtADP(p.adp)}</td>
-                <td>{p.games}</td>
-                <td>{p.tgt}</td>
-                <td>{p.rec}</td>
-                <td>{p.recYds.toLocaleString()}</td>
-                <td style={{ fontWeight: 700 }}>{p.recTD}</td>
-                <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
-              </tr>
-            ))}
+            {selectedPos === 'QB' && dispQbs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+              const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              return (
+                <tr key={p.name}>
+                  <td className="rank-cell">{i + 1}</td>
+                  <td><strong>{p.name}</strong></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
+                  <td>{fmtADP(p.adp)}</td>
+                  <td>{p.games}</td>
+                  <td>{p.passAtt}</td>
+                  <td>{p.passComp}</td>
+                  <td>{p.passYds.toLocaleString()}</td>
+                  <td style={{ fontWeight: 700 }}>{p.passTD}</td>
+                  <td style={{ color: '#ef4444' }}>{p.int}</td>
+                  <td>{p.rushAtt}</td>
+                  <td>{p.rushYds}</td>
+                  <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                </tr>
+              );
+            })}
+            {selectedPos === 'RB' && dispRbs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+              const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              return (
+                <tr key={p.name}>
+                  <td className="rank-cell">{i + 1}</td>
+                  <td><strong>{p.name}</strong></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
+                  <td>{fmtADP(p.adp)}</td>
+                  <td>{p.games}</td>
+                  <td>{p.rushAtt}</td>
+                  <td>{p.rushYds.toLocaleString()}</td>
+                  <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
+                  <td>{p.tgt}</td>
+                  <td>{p.rec}</td>
+                  <td>{p.recYds}</td>
+                  <td style={{ fontWeight: 700 }}>{p.recTD}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                </tr>
+              );
+            })}
+            {selectedPos === 'WR' && dispWrs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+              const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              return (
+                <tr key={p.name}>
+                  <td className="rank-cell">{i + 1}</td>
+                  <td><strong>{p.name}</strong></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
+                  <td>{fmtADP(p.adp)}</td>
+                  <td>{p.games}</td>
+                  <td>{p.tgt}</td>
+                  <td>{p.rec}</td>
+                  <td>{p.recYds.toLocaleString()}</td>
+                  <td style={{ fontWeight: 700 }}>{p.recTD}</td>
+                  <td>{p.rushAtt}</td>
+                  <td>{p.rushYds}</td>
+                  <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                </tr>
+              );
+            })}
+            {selectedPos === 'TE' && dispTes.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+              const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              return (
+                <tr key={p.name}>
+                  <td className="rank-cell">{i + 1}</td>
+                  <td><strong>{p.name}</strong></td>
+                  <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
+                  <td>{fmtADP(p.adp)}</td>
+                  <td>{p.games}</td>
+                  <td>{p.tgt}</td>
+                  <td>{p.rec}</td>
+                  <td>{p.recYds.toLocaleString()}</td>
+                  <td style={{ fontWeight: 700 }}>{p.recTD}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
