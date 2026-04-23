@@ -5,8 +5,13 @@ import { AskData } from './AskData';
 type State =
   | { kind: 'idle' }
   | { kind: 'loading'; msg: string }
-  | { kind: 'results'; columns: string[]; rows: Record<string, unknown>[]; rowCount: number; elapsedMs: number }
+  | { kind: 'results'; columns: string[]; rows: Record<string, unknown>[]; rowCount: number; elapsedMs: number; truncated: boolean }
   | { kind: 'error'; message: string };
+
+// Hard ceiling on rows returned from the SQL tab — catches accidental
+// cartesian joins before DuckDB-WASM materializes billions of rows and
+// OOMs the tab. Queries that hit the cap show a truncation warning.
+const MAX_QUERY_ROWS = 100_000;
 
 // Detailed-table card shown when a table name is clicked in the sidebar.
 interface TableDetail {
@@ -40,6 +45,26 @@ function dedupeRows(
     }
   }
   return out;
+}
+
+/** RFC-4180 CSV encoder. Quotes any field containing `,`, `"`, or a line
+ *  break; escapes embedded quotes by doubling. CRLF line endings for
+ *  Excel compatibility. Null/undefined become empty cells. */
+function toCsv(columns: string[], rows: Record<string, unknown>[]): string {
+  const escape = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines: string[] = [columns.map(escape).join(',')];
+  for (const r of rows) lines.push(columns.map((c) => escape(r[c])).join(','));
+  return lines.join('\r\n');
+}
+
+function csvTimestamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
 const DEFAULT_SQL = `-- Query the underlying model data with SQL.
@@ -133,7 +158,7 @@ export function DataQuery() {
     try { localStorage.setItem(STORAGE_KEY, sql); } catch {}
     setState({ kind: 'loading', msg: 'Running query...' });
     try {
-      const out = await runQuery(sql);
+      const out = await runQuery(sql, { maxRows: MAX_QUERY_ROWS });
       setState({ kind: 'results', ...out });
     } catch (e) {
       setState({ kind: 'error', message: (e as Error).message || String(e) });
@@ -153,6 +178,22 @@ export function DataQuery() {
     if (state.kind !== 'results') return null;
     return dedupe ? dedupeRows(state.columns, state.rows) : state.rows;
   }, [state, dedupe]);
+
+  const downloadCsv = useCallback(() => {
+    if (state.kind !== 'results' || !displayRows) return;
+    const csv = toCsv(state.columns, displayRows);
+    // UTF-8 BOM — Excel otherwise mis-detects non-ASCII (apostrophes,
+    // accented names) as Windows-1252.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stathead-query-${csvTimestamp()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [state, displayRows]);
 
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
@@ -239,11 +280,30 @@ export function DataQuery() {
               />
               Dedupe rows
             </label>
+            <button
+              onClick={downloadCsv}
+              disabled={state.kind !== 'results' || !displayRows || displayRows.length === 0}
+              title={`Export the on-screen rows as CSV (${dedupe ? 'deduped' : 'raw'}, RFC-4180, UTF-8 BOM)`}
+              style={{
+                padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                background: 'transparent', color: state.kind === 'results' && displayRows?.length
+                  ? 'var(--text-secondary)' : 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: 4,
+                cursor: state.kind === 'results' && displayRows?.length ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Download CSV
+            </button>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               {state.kind === 'results' && displayRows && (
                 dedupe && displayRows.length !== state.rowCount
                   ? `${displayRows.length.toLocaleString()} unique of ${state.rowCount.toLocaleString()} rows in ${state.elapsedMs.toFixed(0)} ms`
                   : `${state.rowCount.toLocaleString()} rows in ${state.elapsedMs.toFixed(0)} ms`
+              )}
+              {state.kind === 'results' && state.truncated && (
+                <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                  · truncated at {MAX_QUERY_ROWS.toLocaleString()} rows — add a tighter WHERE / LIMIT
+                </span>
               )}
               {state.kind === 'loading' && state.msg}
             </span>

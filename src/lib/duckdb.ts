@@ -361,6 +361,12 @@ export async function getDuckDB(): Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBC
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
     URL.revokeObjectURL(worker_url);
     const conn = await db.connect();
+    // Ceiling on working-set memory so an accidental cartesian join
+    // errors cleanly instead of crashing the tab. The outer-LIMIT
+    // wrap in runQuery handles streaming shapes; this catches the
+    // aggregation shapes (COUNT/SUM over a huge join) where the
+    // optimizer can't push a LIMIT through the hash table.
+    await conn.query("SET memory_limit='2GB'");
     const tables = await buildTables();
     await registerTables(db, conn, tables);
     // player_stats is loaded separately because it's CSV-sourced across
@@ -372,19 +378,76 @@ export async function getDuckDB(): Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBC
   return dbPromise;
 }
 
-/** Return array-of-objects results for SQL display. Closes the statement. */
-export async function runQuery(sql: string): Promise<{
+// ── SQL heuristics for the safety wrap ──
+
+/** Strip leading whitespace, -- line comments, and slash-star block
+ *  comments from the front of the SQL. Used to peek at the first
+ *  real token for the read-query heuristic. */
+function stripLeadingCommentsAndWs(sql: string): string {
+  let s = sql;
+  for (;;) {
+    const before = s;
+    s = s.replace(/^\s+/, '');
+    s = s.replace(/^--[^\n]*\n?/, '');
+    s = s.replace(/^\/\*[\s\S]*?\*\//, '');
+    if (s === before) return s;
+  }
+}
+
+/** The read shapes that compose cleanly inside SELECT * FROM (...) _q. */
+function looksLikeReadQuery(trimmed: string): boolean {
+  const head = trimmed.slice(0, 10).toUpperCase();
+  return (
+    head.startsWith('SELECT') ||
+    head.startsWith('WITH') ||
+    head.startsWith('VALUES') ||
+    head.startsWith('TABLE ') ||
+    head.startsWith('PIVOT ') ||
+    head.startsWith('UNPIVOT ')
+  );
+}
+
+/** Check for a semicolon outside of strings and comments — a
+ *  multi-statement query (e.g. "SET x=1; SELECT …;") can't be wrapped
+ *  inside a subquery. */
+function hasStatementSeparator(trimmed: string): boolean {
+  const stripped = trimmed
+    .replace(/--[^\n]*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/'(?:''|[^'])*'/g, '')
+    .replace(/"(?:""|[^"])*"/g, '');
+  return /;/.test(stripped);
+}
+
+/** Return array-of-objects results for SQL display. When maxRows is
+ *  set, SELECT/WITH/etc. queries are wrapped in an outer LIMIT
+ *  maxRows+1 subquery so runaway cartesian joins abort early instead
+ *  of crashing the tab. The +1 lets callers detect the truncation. */
+export async function runQuery(
+  sql: string,
+  opts?: { maxRows?: number },
+): Promise<{
   columns: string[];
   rows: Record<string, unknown>[];
   rowCount: number;
   elapsedMs: number;
+  truncated: boolean;
 }> {
   const { conn } = await getDuckDB();
+  const maxRows = opts?.maxRows ?? 0;
+
+  const trimmed = stripLeadingCommentsAndWs(sql).replace(/;\s*$/, '').trim();
+  const canWrap =
+    maxRows > 0 && !!trimmed && looksLikeReadQuery(trimmed) && !hasStatementSeparator(trimmed);
+  const effectiveSql = canWrap
+    ? `SELECT * FROM (${trimmed}) _q_capped LIMIT ${maxRows + 1}`
+    : sql;
+
   const t0 = performance.now();
-  const result = await conn.query(sql);
+  const result = await conn.query(effectiveSql);
   const elapsedMs = performance.now() - t0;
   const columns = result.schema.fields.map((f) => f.name);
-  const rows = result.toArray().map((r) => {
+  let rows = result.toArray().map((r) => {
     const obj: Record<string, unknown> = {};
     for (const c of columns) {
       const v = r[c];
@@ -393,7 +456,12 @@ export async function runQuery(sql: string): Promise<{
     }
     return obj;
   });
-  return { columns, rows, rowCount: rows.length, elapsedMs };
+  let truncated = false;
+  if (canWrap && rows.length > maxRows) {
+    rows = rows.slice(0, maxRows);
+    truncated = true;
+  }
+  return { columns, rows, rowCount: rows.length, elapsedMs, truncated };
 }
 
 /** Schema used by the Data Query UI sidebar. */
