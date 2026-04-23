@@ -1,0 +1,84 @@
+{
+  "_about": "Manual CFBD usage overrides for backtest players missing from cfbd-player-usage.json. Stats provided per season; backfill_cfbd_variants.py picks the season closest to draft_season-1 and computes usage = (player_touches / total_team_plays) where total_team_plays = team_carries + team_pass_att_est, with team_pass_att_est = team_receptions / 0.62 (typical CFB completion rate). Targets used over receptions when available.",
+  "Duke Johnson|RB": {
+    "school": "miami",
+    "seasons": {
+      "2012": {"carries": 139, "team_carries": 400, "receptions": 27, "team_receptions": 258},
+      "2013": {"carries": 145, "team_carries": 451, "receptions": 4, "team_receptions": 224},
+      "2014": {"carries": 242, "team_carries": 442, "receptions": 38, "team_receptions": 215}
+    }
+  },
+  "Todd Gurley|RB": {
+    "school": "georgia",
+    "seasons": {
+      "2012": {"carries": 222, "team_carries": 536, "receptions": 16, "team_receptions": 267},
+      "2013": {"carries": 165, "team_carries": 467, "receptions": 37, "team_receptions": 309},
+      "2014": {"carries": 123, "team_carries": 557, "receptions": 12, "team_receptions": 171}
+    }
+  },
+  "Will Fuller|WR": {
+    "school": "notre dame",
+    "seasons": {
+      "2013": {"carries": 2, "team_carries": 486, "receptions": 6, "team_receptions": 253, "team_pass_att": 409},
+      "2014": {"carries": 0, "team_carries": 443, "receptions": 76, "targets": 132, "team_receptions": 284, "team_pass_att": 443},
+      "2015": {"carries": 1, "team_carries": 480, "receptions": 62, "targets": 98, "team_receptions": 221, "team_pass_att": 363}
+    }
+  },
+  "Nick Chubb|RB": {
+    "school": "georgia",
+    "seasons": {
+      "2014": {"carries": 219, "team_carries": 557, "receptions": 18, "team_receptions": 171},
+      "2015": {"carries": 92, "team_carries": 480, "receptions": 4, "team_receptions": 162},
+      "2016": {"carries": 224, "team_carries": 533, "receptions": 5, "team_receptions": 196},
+      "2017": {"carries": 223, "team_carries": 639, "receptions": 4, "team_receptions": 180}
+    }
+  },
+  "Sony Michel|RB": {
+    "school": "georgia",
+    "seasons": {
+      "2014": {"carries": 64, "team_carries": 557, "receptions": 7, "team_receptions": 171},
+      "2015": {"carries": 219, "team_carries": 480, "receptions": 26, "team_receptions": 162},
+      "2016": {"carries": 152, "team_carries": 533, "receptions": 22, "team_receptions": 196},
+      "2017": {"carries": 156, "team_carries": 639, "receptions": 9, "team_receptions": 180}
+    }
+  },
+  "Curtis Samuel|WR": {
+    "school": "ohio state",
+    "seasons": {
+      "2014": {"carries": 58, "team_carries": 709, "receptions": 11, "team_receptions": 229},
+      "2015": {"carries": 17, "team_carries": 569, "receptions": 22, "team_receptions": 181},
+      "2016": {"carries": 97, "team_carries": 599, "receptions": 74, "team_receptions": 224}
+    }
+  },
+  "John Brown|WR": {
+    "school": "pittsburg state",
+    "seasons": {
+      "2011": {"carries": 14, "team_carries": 641, "receptions": 61, "team_receptions": 181},
+      "2012": {"carries": 13, "team_carries": 488, "receptions": 63, "team_receptions": 191},
+      "2013": {"carries": 17, "team_carries": 453, "receptions": 61, "team_receptions": 218}
+    }
+  },
+  "Tutu Atwell|WR": {
+    "school": "louisville",
+    "seasons": {
+      "2018": {"carries": 1, "team_carries": 413, "receptions": 24, "team_receptions": 223},
+      "2019": {"carries": 9, "team_carries": 516, "receptions": 70, "team_receptions": 204},
+      "2020": {"carries": 2, "team_carries": 414, "receptions": 46, "team_receptions": 202}
+    }
+  },
+  "Christian Watson|WR": {
+    "school": "north dakota state",
+    "seasons": {
+      "2018": {"carries": 0, "team_carries": 694, "receptions": 9, "team_receptions": 160},
+      "2019": {"carries": 13, "team_carries": 703, "receptions": 34, "team_receptions": 168},
+      "2020": {"carries": 21, "team_carries": 468, "receptions": 19, "team_receptions": 114},
+      "2021": {"carries": 15, "team_carries": 636, "receptions": 43, "team_receptions": 151}
+    }
+  },
+  "Odell Beckham|WR": {
+    "school": "lsu",
+    "seasons": {
+      "2013": {"carries": 5, "team_carries": 526, "receptions": 59, "team_receptions": 205, "team_pass_att": 326}
+    }
+  }
+}

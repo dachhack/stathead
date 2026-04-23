@@ -20,6 +20,7 @@ CFBD_USAGE = ROOT / 'public/data/cfbd-player-usage.json'
 CFBD_TALENT = ROOT / 'public/data/cfbd-team-talent.json'
 CFBD_RECRUITS = ROOT / 'public/data/cfbd-recruiting.json'
 CFBD_STATS = ROOT / 'public/data/cfbd-college-stats.json'
+MANUAL_OVERRIDES = ROOT / 'public/data/manual-cfbd-overrides.json'
 
 # Must stay in lock-step with src/lib/featureTypes.ts::EXTENDED_FIRST_NAME_ALIASES
 FIRST_NAME_ALIASES = {
@@ -97,6 +98,16 @@ def main() -> None:
     cfbd_usage = json.loads(CFBD_USAGE.read_text())
     cfbd_talent = json.loads(CFBD_TALENT.read_text())
     cfbd_recruits = json.loads(CFBD_RECRUITS.read_text())
+
+    # Manual overrides for players missing from CFBD's player-usage file.
+    # Each entry: { "Player Name|POS": { school, seasons: { yr: {carries,
+    # team_carries, receptions, team_receptions, [targets, team_pass_att]}}}}.
+    # Backfill computes usage = touches/total_team_plays where total_team_plays
+    # = team_carries + (team_pass_att or team_receptions/0.62).
+    manual: dict = {}
+    if MANUAL_OVERRIDES.exists():
+        raw_overrides = json.loads(MANUAL_OVERRIDES.read_text())
+        manual = {k: v for k, v in raw_overrides.items() if not k.startswith('_')}
 
     # Build (normalized-name → [school, max_season]) from college stats so we
     # can recover school+season for players missing from CFBD's player-usage
@@ -179,9 +190,51 @@ def main() -> None:
                     f['collegeUsageRush'] = u['rush']
                     filled['rush'] += 1
                 break
-        # If CFBD usage didn't have them, fall back to college-stats so we
-        # still get a school+season anchor for team-talent look-up (Odell
-        # Beckham at LSU 2013 path).
+        # Manual override — for players genuinely missing from CFBD's player
+        # usage file (Duke Johnson, Todd Gurley, Will Fuller, Nick Chubb, Sony
+        # Michel, Curtis Samuel, John Brown, Tutu Atwell, Christian Watson,
+        # Odell Beckham). Stats sourced manually and stored in
+        # public/data/manual-cfbd-overrides.json. Computes usage =
+        # touches/total_team_plays, where total_team_plays = team_carries +
+        # (team_pass_att or team_receptions/0.62 if pass_att unknown).
+        ov = manual.get(f'{name}|{pos}')
+        if ov:
+            seasons = ov.get('seasons') or {}
+            # Pick the latest (final) college season available — that's the
+            # one CFBD usage would normally capture and is most representative
+            # of the player's mature production. Training rows don't have
+            # draftSeason populated, so we can't match by draft - 1.
+            chosen_yr: int | None = None
+            chosen_data: dict | None = None
+            if seasons:
+                yr_str = max(seasons.keys(), key=lambda k: int(k))
+                chosen_yr = int(yr_str)
+                chosen_data = seasons[yr_str]
+            if chosen_data:
+                tc = float(chosen_data.get('team_carries') or 0)
+                tr = float(chosen_data.get('team_receptions') or 0)
+                tpa = float(chosen_data.get('team_pass_att') or (tr / 0.62 if tr else 0))
+                total_plays = tc + tpa
+                if total_plays > 0:
+                    car = float(chosen_data.get('carries') or 0)
+                    rec = float(chosen_data.get('receptions') or 0)
+                    targets = float(chosen_data.get('targets') or rec)
+                    if not f.get('collegeUsageRush'):
+                        f['collegeUsageRush'] = round(car / total_plays, 4)
+                        filled['rush_manual'] = filled.get('rush_manual', 0) + 1
+                    if not f.get('collegeUsagePass'):
+                        f['collegeUsagePass'] = round(targets / total_plays, 4)
+                        filled['pass_manual'] = filled.get('pass_manual', 0) + 1
+                    if not f.get('collegeUsageOverall'):
+                        f['collegeUsageOverall'] = round((car + rec) / total_plays, 4)
+                        filled['usage_manual'] = filled.get('usage_manual', 0) + 1
+                if best_season is None:
+                    best_season = chosen_yr
+                    best_team = (ov.get('school') or '').lower()
+
+        # If CFBD usage didn't have them and no manual override hit, fall back
+        # to college-stats for a school+season anchor for team-talent look-up
+        # (Odell Beckham at LSU 2013 path).
         if best_season is None:
             for v in name_variants(name):
                 hit = stats_school_by_name.get(v)
@@ -205,7 +258,8 @@ def main() -> None:
 
     CACHE_PATH.write_text(json.dumps(cache, separators=(',', ':')))
     print(f'Backfilled training-rows-cache-v49.json:')
-    print(f'  usage={filled["usage"]}  pass={filled["pass"]}  rush={filled["rush"]}')
+    print(f'  CFBD: usage={filled["usage"]}  pass={filled["pass"]}  rush={filled["rush"]}')
+    print(f'  manual: usage={filled.get("usage_manual",0)}  pass={filled.get("pass_manual",0)}  rush={filled.get("rush_manual",0)}')
     print(f'  teamTalent={filled["talent"]}  teamTalent_proxy={filled.get("talent_proxy", 0)}')
     print(f'  recruitStars={filled["stars"]}  recruitRating={filled["rating"]}')
 
