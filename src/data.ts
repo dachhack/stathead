@@ -70,7 +70,9 @@ const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'l
 // In Node.js (build scripts), check if local files exist in public/data/
 const IS_NODE = typeof window === 'undefined';
 
-/** Read a local file in Node, returns null if not found */
+/** Read a local file in Node, returns null if not found. Transparently
+ *  decompresses a sibling .gz variant — the raw CSV sources are committed
+ *  compressed (see scripts/pull-all-data-sources.sh). */
 async function readLocalFile(filename: string): Promise<string | null> {
   if (!IS_NODE) return null;
   try {
@@ -78,6 +80,12 @@ async function readLocalFile(filename: string): Promise<string | null> {
     const path = `public/data/${filename}`;
     if (fs.existsSync(path)) {
       return fs.readFileSync(path, 'utf-8');
+    }
+    const gzPath = `${path}.gz`;
+    if (fs.existsSync(gzPath)) {
+      const zlib = await import('zlib');
+      const buf = fs.readFileSync(gzPath);
+      return zlib.gunzipSync(buf).toString('utf-8');
     }
   } catch {}
   return null;
