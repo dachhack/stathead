@@ -3133,6 +3133,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         // ── Build 2026 prediction rows ──
         onStatus?.(`Building ${predictSeason} prediction features...`);
         const predRows: PredictionRow[] = [];
+        // League-mean team volumes derived from the prior season (assigned
+        // inside the predPriorTotals block below). Consumed by the volume
+        // post-processing pass at the bottom of this function so our
+        // league-calibration factor tracks the most recent season instead
+        // of a hardcoded constant.
+        let leagueVolumeTargets: { pass: number; rush: number; targets: number } | null = null;
         {
           const predSeason = predictSeason;
           const priorSeason = predSeason - 1;
@@ -3169,6 +3175,33 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             for (const p of predPriorTotals) {
               if (POSITIONS.includes(p.position)) {
                 predPriorByName.set(normalizeName(p.player_display_name), p);
+              }
+            }
+
+            // Derive league-mean team volumes from the prior season so the
+            // volume-pass calibration target tracks the most recent NFL data
+            // instead of a hardcoded constant. Aggregate player stats by
+            // team and average across all teams represented.
+            {
+              const passByTeam = new Map<string, number>();
+              const rushByTeam = new Map<string, number>();
+              const tgtByTeam = new Map<string, number>();
+              for (const p of predPriorTotals) {
+                const team = p.recent_team;
+                if (!team) continue;
+                passByTeam.set(team, (passByTeam.get(team) || 0) + (p.attempts || 0));
+                rushByTeam.set(team, (rushByTeam.get(team) || 0) + (p.carries || 0));
+                tgtByTeam.set(team, (tgtByTeam.get(team) || 0) + (p.targets || 0));
+              }
+              const teamCount = passByTeam.size;
+              // Guard against thin prior-season data — require ≥ 28 teams
+              // before overriding hardcoded defaults.
+              if (teamCount >= 28) {
+                leagueVolumeTargets = {
+                  pass: [...passByTeam.values()].reduce((a, b) => a + b, 0) / teamCount,
+                  rush: [...rushByTeam.values()].reduce((a, b) => a + b, 0) / teamCount,
+                  targets: [...tgtByTeam.values()].reduce((a, b) => a + b, 0) / teamCount,
+                };
               }
             }
 
@@ -4609,16 +4642,21 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
       }
 
       // Pass 2: compute league-calibration scalars. Scale so the 32-team mean
-      // matches league targets. Preserves per-team ranking; kills systematic bias.
+      // matches league targets. Preserves per-team ranking; kills systematic
+      // bias. Targets are the prior-season league means when available
+      // (tracks league evolution), falling back to the hardcoded constants.
+      const targetPass = leagueVolumeTargets?.pass ?? E.leagueMeanPassAtt;
+      const targetRush = leagueVolumeTargets?.rush ?? E.leagueMeanRushAtt;
+      const targetTgt  = leagueVolumeTargets?.targets ?? E.leagueMeanTargets;
       let passCal = 1, rushCal = 1, tgtCal = 1;
       if (rawByTeam.size > 0) {
         const teams = [...rawByTeam.values()];
         const meanRawPass = teams.reduce((s, v) => s + v.passAtt, 0) / teams.length;
         const meanRawRush = teams.reduce((s, v) => s + v.rushAtt, 0) / teams.length;
         const meanRawTgt  = teams.reduce((s, v) => s + v.targets, 0) / teams.length;
-        if (meanRawPass > 0) passCal = E.leagueMeanPassAtt / meanRawPass;
-        if (meanRawRush > 0) rushCal = E.leagueMeanRushAtt / meanRawRush;
-        if (meanRawTgt  > 0) tgtCal  = E.leagueMeanTargets / meanRawTgt;
+        if (meanRawPass > 0) passCal = targetPass / meanRawPass;
+        if (meanRawRush > 0) rushCal = targetRush / meanRawRush;
+        if (meanRawTgt  > 0) tgtCal  = targetTgt / meanRawTgt;
       }
 
       // Pass 3: write per-player features + compute PPG. Scoring side

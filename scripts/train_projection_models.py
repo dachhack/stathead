@@ -989,6 +989,19 @@ def train_residual_models(rows):
     # residual-ensemble LOSO R²). See scripts/ablate_residual_features.py
     # for the measurement methodology and public/data/residual-feature-ablation.json
     # for the raw Δ values.
+    # Note on per-position residual quality (from the post-sweep training audit):
+    # QB cvR2Ens ≈ 0.57, TE ≈ 0.50, WR ≈ 0.38, RB ≈ 0.17 (much lower).
+    # RB residuals are inherently noisier at a given ADP than other positions:
+    #   - Bimodal role outcomes (bellcow vs committee) that ADP doesn't fully
+    #     resolve until the depth chart settles mid-season.
+    #   - Higher injury rates → fat-tailed residual distribution.
+    #   - TD variance is high (low-count, goal-line, short-field dependent).
+    #   - PPR scoring conflates rushing bellcows with passing-down specialists.
+    # This is the reason `bestAlpha` is now grid-swept to shrink low-R² residuals
+    # toward the baseline ADP curve instead of applying them at full weight.
+    # Candidate features not yet in the RB list (would need feature-store
+    # backfill): priorRZRushShare, priorPassingDownShare, teamRushEPA,
+    # priorInjuryWeeks, goalLineCarryShare.
     RESIDUAL_FEATURE_LISTS = {
         'QB': [
             # Δ ≥ 0.001 (useful / important)
@@ -1163,13 +1176,30 @@ def train_residual_models(rows):
         loso_ens = gbm_w * loso_gbm + (1 - gbm_w) * loso_ridge
         cv_r2_ens = float(r2_score(y_residual_loso, loso_ens)) if n > 0 else 0.0
 
+        # Alpha blend: final PPG = adpImplied + alpha × residualEnsemble.
+        # Previously inherited bestAlpha=1.0 from the old cache, meaning a
+        # weak residual (RB cvR2=0.17) was applied at full weight even
+        # though most of its "signal" is noise. Sweep alpha on a 0–1 grid
+        # and pick the value that minimizes final-PPG LOSO MAE. This makes
+        # the shrinkage automatic: high-R² positions keep alpha ≈ 1, low-R²
+        # positions shrink toward 0 (baseline ADP curve wins).
+        adp_implied = adp_intercept + adp_slope * adps
+        grid = np.linspace(0, 1, 21)
+        best_alpha, best_mae = 1.0, float('inf')
+        for a in grid:
+            final = adp_implied + a * loso_ens
+            mae = float(mean_absolute_error(y_ppg, final))
+            if mae < best_mae:
+                best_mae = mae
+                best_alpha = float(a)
+
         residual_models.append({
             'position': pos,
             'gbmModel': gbm_js,
             'ridgeModel': ridge,
             'adpSlope': adp_slope,
             'adpIntercept': adp_intercept,
-            'bestAlpha': old_m.get('bestAlpha', 1),
+            'bestAlpha': round(best_alpha, 3),
             'featureNames': feature_names,
             'n': n,
             'cvR2Gbm': round(cv_r2_gbm, 3),
@@ -1183,7 +1213,8 @@ def train_residual_models(rows):
         })
         print(f"    {pos}: n={n}, features={len(feature_names)}, "
               f"cvR2Gbm={cv_r2_gbm:.3f}, cvR2Ridge={cv_r2_ridge:.3f}, "
-              f"cvR2Ens={cv_r2_ens:.3f}")
+              f"cvR2Ens={cv_r2_ens:.3f}, bestAlpha={best_alpha:.2f}, "
+              f"finalMae={best_mae:.2f}")
 
     return {'residualModels': residual_models}
 
