@@ -95,6 +95,12 @@ async function readLocalFile(filename: string): Promise<string | null> {
 // Deploy workers/ktc-proxy/ and set this to your worker URL.
 const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 
+// CORS / allowlist proxy for FantasyCalc (Cloudflare Worker).
+// api.fantasycalc.com returns 403 host_not_allowed to most direct browser
+// requests; the worker fronts the call. Deploy workers/fc-proxy/.
+const FC_PROXY = 'https://fc-proxy.dachhack.workers.dev';
+const FC_BASE = IS_PROD ? FC_PROXY : 'https://api.fantasycalc.com';
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
   // In Node, try local file first
@@ -963,9 +969,9 @@ export async function fetchFantasyCalcRankings(
   if (cached) return cached;
 
   const url1qb =
-    'https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=1&numTeams=12&ppr=1';
+    `${FC_BASE}/values/current?isDynasty=true&numQbs=1&numTeams=12&ppr=1`;
   const urlSf =
-    'https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=1';
+    `${FC_BASE}/values/current?isDynasty=true&numQbs=2&numTeams=12&ppr=1`;
 
   // Fetch both in parallel so we can populate both value fields
   const [oneQbData, sfData] = await Promise.all([
@@ -1043,7 +1049,7 @@ export async function fetchFantasyCalcValues(
     return preFetched;
   }
 
-  const url = `https://api.fantasycalc.com/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
+  const url = `${FC_BASE}/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     throw new Error(`FantasyCalc API returned ${response.status}`);
