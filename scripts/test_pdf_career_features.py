@@ -246,6 +246,12 @@ BOOM_GAP_PDF_EXTRAS = {
     'disagree_scout': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
     'disagree_talent': ['recruitProductionGap', 'athleticProductionGap'],
     'disagree_age': ['ageProductionGap'],
+    # PFF overall grade (numeric, parsed from tier field). Added to the
+    # boom regression to see if the scout-grade signal picks up
+    # outperformance relative to draft capital + consensus rank.
+    'pff_grade': ['pffOverallGrade', 'pffHasGrade'],
+    'pff_grade_plus_rank': ['pffOverallGrade', 'pffHasGrade',
+                            'pdfRankOverallMean', 'pdfHasRank'],
     'disagree_all': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual',
                      'recruitProductionGap', 'athleticProductionGap',
                      'ageProductionGap', 'sentimentProductionGap'],
@@ -266,6 +272,12 @@ BUST_PDF_EXTRAS = {
     'disagree_scout': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual'],
     'disagree_talent': ['recruitProductionGap', 'athleticProductionGap'],
     'disagree_overdraft': ['pdfRankXPick', 'pdfRoundXActual'],
+    # PFF overall grade on the bust classifier — does a low PFF grade
+    # predict busts beyond what draft capital, red flags, and consensus
+    # rank already capture?
+    'pff_grade': ['pffOverallGrade', 'pffHasGrade'],
+    'pff_grade_plus_redflags': ['pffOverallGrade', 'pffHasGrade',
+                                'pdfNRedFlags', 'pdfInjuryRedFlags'],
     'disagree_all': ['pdfRankSpread', 'pdfRankXPick', 'pdfRoundXActual',
                      'recruitProductionGap', 'athleticProductionGap',
                      'ageProductionGap', 'sentimentProductionGap'],
