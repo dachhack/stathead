@@ -113,17 +113,18 @@ export const competitionGroup: FeatureGroup = {
       teamDraftedPos.set(posKey, existing);
     }
 
-    // Roster turnover per team
+    // Roster turnover per (team, position). Keyed the same way as
+    // buildFeatureMatrix.ts:1798 so the feature-store path produces values
+    // on the same scale as the prediction path. Previously rolled up to
+    // per-team max here, which made historical training rows 5× larger
+    // than what the model sees at inference.
     const teamRosterTurnover = new Map<string, number>();
     for (const [posKey, currentNames] of d.rosterByTeam) {
-      const team = posKey.split(':')[0];
       const priorNames = d.priorRosterByTeam.get(posKey);
       if (!priorNames || currentNames.size === 0) continue;
       const newCount = [...currentNames].filter(n => !priorNames.has(n)).length;
       const turnover = newCount / currentNames.size;
-      if (turnover > (teamRosterTurnover.get(team) || 0)) {
-        teamRosterTurnover.set(team, Math.round(turnover * 1000) / 1000);
-      }
+      teamRosterTurnover.set(posKey, Math.round(turnover * 1000) / 1000);
     }
 
     for (const [pk, player] of ctx.players) {
@@ -175,7 +176,7 @@ export const competitionGroup: FeatureGroup = {
         teamTargetHHI: teamTargetHHI.get(team) || 0,
         newArrivalBestPPR: newArrivalBestPPR.get(posKey) || 0,
         newArrivalBestADP: newArrivalBestADP.get(posKey) || 0,
-        teamRosterTurnover: teamRosterTurnover.get(team) || 0,
+        teamRosterTurnover: teamRosterTurnover.get(posKey) || 0,
       });
     }
     return results;

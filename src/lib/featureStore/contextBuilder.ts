@@ -354,7 +354,10 @@ export async function buildSharedContext(opts: {
     return isFinite(n) ? n : 0;
   };
   for (const r of rosters) {
-    if (!POSITIONS.includes(r.position)) continue;
+    // ACT-only filter — matches buildFeatureMatrix.ts so the feature-store
+    // path computes turnover and competition features on the same player set
+    // as the prediction path.
+    if (!POSITIONS.includes(r.position) || (r as { status?: string }).status !== 'ACT') continue;
     const name = normalizeName(r.player_name || r.full_name);
     data.playerTeamMap.set(name, r.team);
     // Name → position lookup, used by PBP aggregations that reference receivers
@@ -381,7 +384,8 @@ export async function buildSharedContext(opts: {
     }
   }
   for (const r of priorRosters) {
-    if (!POSITIONS.includes(r.position)) continue;
+    // ACT-only — matches the current-season filter above.
+    if (!POSITIONS.includes(r.position) || (r as { status?: string }).status !== 'ACT') continue;
     const name = normalizeName(r.player_name || r.full_name);
     const posKey = `${r.team}:${r.position}`;
     if (!data.priorRosterByTeam.has(posKey)) data.priorRosterByTeam.set(posKey, new Set());
