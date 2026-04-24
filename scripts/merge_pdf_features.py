@@ -40,6 +40,28 @@ def _source_excluded_from_rank(source_file: str) -> bool:
     return any(p.search(source_file) for p in SKIP_RANK_SOURCE_PATTERNS)
 
 
+# "PFF overall 91.5 (Rank 1)" → 91.5. Present in 288/289 PFF entries; the
+# headline grade PFF is known for. Parsed from the `tier` field on any
+# PFF source item so the merged row exposes it as a first-class numeric.
+PFF_TIER_GRADE = re.compile(r"PFF overall\s+(\d+(?:\.\d+)?)", re.IGNORECASE)
+
+
+def _pff_overall_grade(items: list[dict[str, Any]]) -> float | None:
+    for it in items:
+        if "PFF_Draft" not in it.get("source_file", ""):
+            continue
+        tier = it.get("tier")
+        if not isinstance(tier, str):
+            continue
+        m = PFF_TIER_GRADE.search(tier)
+        if m:
+            try:
+                return float(m.group(1))
+            except ValueError:
+                pass
+    return None
+
+
 def normalize_name(name: str) -> str:
     n = NAME_PUNCT.sub(" ", name.lower())
     n = re.sub(r"\b(jr|sr|ii|iii|iv)\b", "", n)
@@ -135,6 +157,7 @@ def merge_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "rank_overall_mean": round(sum(ranks) / len(ranks), 1) if ranks else None,
             "rank_overall_max": max(ranks) if ranks else None,
             "projected_round_mean": round(sum(prounds) / len(prounds), 2) if prounds else None,
+            "pff_overall_grade": _pff_overall_grade(items),
             "tiers": [i["tier"] for i in items if i.get("tier")],
             "comps": flat("comps"),
             "strengths": flat("strengths"),

@@ -180,6 +180,8 @@ def derive_pdf_features(p: dict) -> dict:
             'pdfTierElite': 0,
             'pdfHasRank': 0,
             'pdfHasRound': 0,
+            'pffOverallGrade': 0,
+            'pffHasGrade': 0,
         }
     rank_mean = p.get('rank_overall_mean')
     rank_min = p.get('rank_overall_min')
@@ -204,6 +206,7 @@ def derive_pdf_features(p: dict) -> dict:
     rank_spread = (float(rank_max) - float(rank_min)) \
         if rank_max is not None and rank_min is not None else 0.0
 
+    pff_grade = p.get('pff_overall_grade')
     return {
         'pdfHasData': 1,
         'pdfNSources': int(p.get('n_sources', 0) or 0),
@@ -222,6 +225,8 @@ def derive_pdf_features(p: dict) -> dict:
         'pdfTierElite': _tier_top_flag(tiers),
         'pdfHasRank': 1 if rank_mean is not None else 0,
         'pdfHasRound': 1 if proj_round is not None else 0,
+        'pffOverallGrade': float(pff_grade) if pff_grade is not None else 0.0,
+        'pffHasGrade': 1 if pff_grade is not None else 0,
     }
 
 
@@ -284,6 +289,9 @@ PDF_FEATURE_SETS = {
     'injury': ['pdfInjuryRedFlags'],
     'consensus': ['pdfNSources', 'pdfHasData'],
     'tier_elite': ['pdfTierElite'],
+    # PFF overall grade parsed from tier field (288/289 PFF entries).
+    # Numeric, paired with pffHasGrade for missing-data handling.
+    'pff_grade': ['pffOverallGrade', 'pffHasGrade'],
     'all_numeric': [
         'pdfHasData', 'pdfNSources',
         'pdfRankOverallMean', 'pdfHasRank',
@@ -291,6 +299,7 @@ PDF_FEATURE_SETS = {
         'pdfNStrengths', 'pdfNWeaknesses', 'pdfNRedFlags',
         'pdfInjuryRedFlags', 'pdfSentimentNet',
         'pdfTierElite',
+        'pffOverallGrade', 'pffHasGrade',
     ],
 }
 
