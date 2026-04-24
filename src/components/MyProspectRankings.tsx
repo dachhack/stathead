@@ -10,7 +10,6 @@ import type {
   SDIOProjection,
 } from '../types';
 import prospectGrades from '../data/prospect-grades-2026.json';
-import zapScores from '../data/zap-scores-2026.json';
 
 // ── Types ──
 
@@ -60,7 +59,6 @@ interface ProspectRankRow {
   percentile: number;
   boomZ?: number;
   bustZ?: number;
-  zapScore: number;
   // NFL landing spot + projected volume (post-draft)
   nflTeam: string;
   hasNflTeam: boolean;
@@ -305,13 +303,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       gradeMap.set(normalizeName(g.name), g);
     }
 
-    const zapMap = new Map<string, number>();
-    for (const pos of ['WR', 'RB', 'TE'] as const) {
-      for (const z of (zapScores as Record<string, Array<{ name: string; zap: number }>>)[pos] || []) {
-        zapMap.set(normalizeName(z.name), z.zap);
-      }
-    }
-
     const prospects2026 = combine.filter(c => c.season === DRAFT_YEAR);
     const rookieFp = fpRanks.filter(r => r.ecr_type === 'drk');
     const fpMap = new Map<string, FantasyRanking>();
@@ -380,7 +371,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
         percentile: career?.percentile || 0,
         boomZ: career?.boomZ,
         bustZ: career?.bustZ,
-        zapScore: zapMap.get(nn) || 0,
         nflTeam,
         hasNflTeam,
         projPPG,
@@ -723,7 +713,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                   title="Rookie career model tier — Alpha, Blue Chip, Starter, Contributor, Depth, Longshot (percentile-bucketed with first-round scout-consensus override)">
                 Tier
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 40 }}>ZAP</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title="Boom z-score">Boom z</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title="Bust z-score">Bust z</th>
               <th style={{
@@ -800,12 +789,6 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                         {modelTierDef.label}
                       </strong>
                     ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                  </td>
-                  <td style={{
-                    ...td, textAlign: 'right', fontWeight: 600,
-                    color: r.zapScore >= 75 ? '#22c55e' : r.zapScore >= 60 ? '#4ade80' : r.zapScore >= 40 ? '#facc15' : r.zapScore > 0 ? '#fb923c' : 'var(--text-muted)',
-                  }}>
-                    {r.zapScore > 0 ? r.zapScore.toFixed(1) : '—'}
                   </td>
                   <td style={{
                     ...td, textAlign: 'right', fontSize: 11, fontWeight: 600,
