@@ -78,7 +78,11 @@ export interface ResidualScore {
  * inspected without loading feature-matrix.json.
  *
  * - `team{Pass,Rush}Att` and `teamTargets` are season-total projected volumes
- *   for the player's team, already adjusted by Vegas implied total.
+ *   for the player's team. Vegas is applied on the scoring side only.
+ * - `team*{Low,High}` are ±1σ bounds derived from the formula's historical
+ *   residual standard deviation across 480 (team, season) pairs (2011–2025
+ *   LOSO). Pass σ=12.4%, rush σ=15.3%, tgt σ=12.7%. Not per-team adaptive
+ *   yet — every team gets the same proportional bounds.
  * - `projPlayerPPG` is the volume-derived PPG estimate (volume × share ×
  *   efficiency, blended with prior at 60/40 when `priorSnapPct > 30`). Not
  *   the primary PPG surfaced to users (that's `score-store/ppg.json`), but
@@ -89,8 +93,14 @@ export interface VolumeScore {
   position: string;
   team: string;
   teamPassAtt: number;
+  teamPassAttLow: number;
+  teamPassAttHigh: number;
   teamRushAtt: number;
+  teamRushAttLow: number;
+  teamRushAttHigh: number;
   teamTargets: number;
+  teamTargetsLow: number;
+  teamTargetsHigh: number;
   projPlayerPPG: number;
 }
 
