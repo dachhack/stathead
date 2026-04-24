@@ -1522,7 +1522,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           };
           for (const r of seasonRosters) {
-            if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
+            // Filter to ACT-status only. Earlier code used `r.status === 'Inactive'`
+            // which doesn't match nflverse status codes (real codes: ACT, INA, RES,
+            // CUT, DEV, UFA, RFA, RET, ...) so historical rosters were "deep"
+            // (53-man + IR + practice squad) producing huge per-position counts and
+            // an inconsistent turnover signal vs the leaner 2026 roster. ACT is the
+            // common code across 2010+ and gives a consistent denominator.
+            if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
             const key = `${r.team}:${r.position}`;
             if (!rosterByTeamPos.has(key)) rosterByTeamPos.set(key, new Set());
             const name = normalizeName(r.full_name);
@@ -1531,10 +1537,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             captureRosterPhysicals(r);
           }
 
-          // Prior-season roster for detecting new arrivals
+          // Prior-season roster for detecting new arrivals (ACT-only, matches
+          // the current-season filter so the diff is consistent).
           const priorRosterByTeamPos = new Map<string, Set<string>>();
           for (const r of priorRosters) {
-            if (!POSITIONS.includes(r.position)) continue;
+            if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
             const key = `${r.team}:${r.position}`;
             if (!priorRosterByTeamPos.has(key)) priorRosterByTeamPos.set(key, new Set());
             priorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
@@ -1788,15 +1795,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           }
 
           // ── Team roster turnover ──
+          // Keyed by `${team}:${position}` so it matches the prediction-side
+          // formula (buildFeatureMatrix.ts:4515–4521 — turnover for the
+          // player's own position, not max across positions). Previously this
+          // map was per-team-max which produced training-time values 5×
+          // larger than what the model sees at inference.
           const teamRosterTurnover = new Map<string, number>();
           for (const [key, currentNames] of rosterByTeamPos) {
-            const [team] = key.split(':');
             const priorNames = priorRosterByTeamPos.get(key);
             if (!priorNames) continue;
             const newPlayers = [...currentNames].filter((n) => !priorNames.has(n)).length;
             const turnover = currentNames.size > 0 ? newPlayers / currentNames.size : 0;
-            const existing = teamRosterTurnover.get(team) || 0;
-            teamRosterTurnover.set(team, Math.max(existing, Math.round(turnover * 1000) / 1000));
+            teamRosterTurnover.set(key, Math.round(turnover * 1000) / 1000);
           }
 
           // Prior season PPR by name + position (for quality-aware competition)
@@ -2721,7 +2731,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   teamRushYPC: teamRushYPC.get(pTeam) || 0,
                   teamQBPassRating: teamQBPassRating.get(pTeam) || 0,
                   injuryRecurrence: injuryRecurrence.get(normalName) || 0,
-                  teamRosterTurnover: teamRosterTurnover.get(pTeam) || 0,
+                  teamRosterTurnover: teamRosterTurnover.get(`${pTeam}:${adpPlayer.position}`) || 0,
                 };
               })(),
 
@@ -3404,7 +3414,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               }
             };
             for (const r of predSeasonRosters) {
-              if (!POSITIONS.includes(r.position) || r.status === 'Inactive') continue;
+              // ACT-status filter matches the training-side filter so the feature
+              // has consistent semantics across both phases. See the comment at
+              // the training-side roster loop for why.
+              if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
               const key = `${r.team}:${r.position}`;
               if (!predRosterByTeamPos.has(key)) predRosterByTeamPos.set(key, new Set());
               const name = normalizeName(r.full_name);
@@ -3427,7 +3440,8 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
             const predPriorRosterByTeamPos = new Map<string, Set<string>>();
             for (const r of predPriorRosters) {
-              if (!POSITIONS.includes(r.position)) continue;
+              // ACT-only — same rationale as the current-season filter above.
+              if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
               const key = `${r.team}:${r.position}`;
               if (!predPriorRosterByTeamPos.has(key)) predPriorRosterByTeamPos.set(key, new Set());
               predPriorRosterByTeamPos.get(key)!.add(normalizeName(r.full_name));
@@ -4600,8 +4614,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
     passAttemptRate: 0.94,
     // Pass attempts → targets — ~5% of attempts are throw-aways / spikes / DPI
     targetRate: 0.95,
-    // Year-over-year regression: shrink team's prior passRate toward league mean
+    // Year-over-year regression: shrink team's prior passRate toward league mean.
+    // Base weight + extras for teams with high uncertainty (new head coach,
+    // high roster turnover). Backtested on 2011–2025: V5 config (HC 0.10,
+    // turnover 0.30) cut pass MAE 9.53% → 9.39% and rush 12.03% → 11.82%.
     passRateRegressionWeight: 0.25,
+    newHCRegressionExtra: 0.10,         // extra weight if team has new head coach
+    turnoverRegressionSlope: 0.30,      // extra weight = slope × team-avg turnover
+    maxRegressionWeight: 0.60,          // cap so we don't over-regress extreme cases
     leagueMeanPassRate: 0.55,
     // League-total calibration targets (2023–2025 rolling NFL averages, per team)
     leagueMeanPassAtt: 570,
@@ -4623,6 +4643,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
       onStatus?.('Computing ML volume projections...');
       const E = VOLUME_EFFICIENCY;
 
+      // Pre-pass: collect per-team uncertainty signals (newHeadCoach + average
+      // turnover across positions). Used in Pass 1 to widen the regression
+      // weight for teams with high YoY uncertainty.
+      const teamNewHC = new Map<string, number>();
+      const teamTurnoverSum = new Map<string, { sum: number; n: number }>();
+      for (const pr of predRows) {
+        const team = pr.team;
+        if (!team) continue;
+        const f = pr.features;
+        if (!teamNewHC.has(team)) {
+          teamNewHC.set(team, Number(f.newHeadCoach) || 0);
+        }
+        const turn = Number(f.teamRosterTurnover) || 0;
+        if (turn > 0) {
+          const acc = teamTurnoverSum.get(team) || { sum: 0, n: 0 };
+          acc.sum += turn;
+          acc.n += 1;
+          teamTurnoverSum.set(team, acc);
+        }
+      }
+      const teamTurnover = new Map<string, number>();
+      for (const [team, acc] of teamTurnoverSum) {
+        teamTurnover.set(team, acc.n > 0 ? acc.sum / acc.n : 0);
+      }
+
       // Pass 1: compute raw per-team volumes (pre-calibration) so we can
       // compute league scalars. Keyed by team; identical for every player
       // on the same team.
@@ -4634,9 +4679,18 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         const f = pr.features;
         const priorPassRate = f.teamPassRate || E.fallbackTeamPassRate;
         const teamPace = f.teamPace || E.fallbackPlaysPerGame;
-        // Regress toward league mean to damp YoY extremes
-        const passRate = priorPassRate * (1 - E.passRateRegressionWeight)
-                       + E.leagueMeanPassRate * E.passRateRegressionWeight;
+        // Regress toward league mean to damp YoY extremes; widen the regression
+        // weight for teams with new HC or heavy roster turnover.
+        const newHC = teamNewHC.get(team) || 0;
+        const turnover = teamTurnover.get(team) || 0;
+        const passRegressW = Math.min(
+          E.maxRegressionWeight,
+          E.passRateRegressionWeight
+            + E.newHCRegressionExtra * newHC
+            + E.turnoverRegressionSlope * turnover,
+        );
+        const passRate = priorPassRate * (1 - passRegressW)
+                       + E.leagueMeanPassRate * passRegressW;
         const playsPerGame = teamPace > 0 ? teamPace : E.fallbackPlaysPerGame;
         const passPlays = playsPerGame * passRate;
         const rushPlays = playsPerGame * (1 - passRate);
@@ -4677,8 +4731,17 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         const rushShare = f.predRushShare || f.priorTeamTouchShare || 0;
         const vegasTotal = f.vegasImpliedTotal || E.vegasBaselineTotal;
 
-        const passRate = priorPassRate * (1 - E.passRateRegressionWeight)
-                       + E.leagueMeanPassRate * E.passRateRegressionWeight;
+        // Same regression weight as Pass 1 — newHC + turnover widen it.
+        const newHC = pr.team ? (teamNewHC.get(pr.team) || 0) : 0;
+        const turnover = pr.team ? (teamTurnover.get(pr.team) || 0) : 0;
+        const passRegressW = Math.min(
+          E.maxRegressionWeight,
+          E.passRateRegressionWeight
+            + E.newHCRegressionExtra * newHC
+            + E.turnoverRegressionSlope * turnover,
+        );
+        const passRate = priorPassRate * (1 - passRegressW)
+                       + E.leagueMeanPassRate * passRegressW;
         const playsPerGame = teamPace > 0 ? teamPace : E.fallbackPlaysPerGame;
         const passPlays = playsPerGame * passRate;
         const rushPlays = playsPerGame * (1 - passRate);

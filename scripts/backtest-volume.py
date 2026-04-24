@@ -39,6 +39,9 @@ DATA_DIR = Path(__file__).parent.parent / 'public' / 'data'
 PASS_ATTEMPT_RATE = 0.94
 TARGET_RATE = 0.95
 PASS_RATE_REGRESS = 0.25
+NEW_HC_REGRESS_EXTRA = 0.10
+TURNOVER_REGRESS_SLOPE = 0.30
+MAX_REGRESS_WEIGHT = 0.60
 LEAGUE_MEAN_PASS_RATE = 0.55
 # Fallback league-mean volumes when the prior year has too few teams
 FALLBACK_LEAGUE_MEAN_PASS_ATT = 570
@@ -92,12 +95,20 @@ def prior_year_pace(prev: dict[str, int]) -> float:
     return total_plays / 17
 
 
-def project_team(prev: dict[str, int]) -> dict[str, float]:
+def project_team(prev: dict[str, int], new_hc: int = 0,
+                 turnover: float = 0.0) -> dict[str, float]:
     """Apply the buildFeatureMatrix volume formula using only prior-year totals
-    (before league calibration)."""
+    (before league calibration). New-HC and roster-turnover signals widen the
+    regression weight to dampen prior-year extremes for high-uncertainty
+    teams — match buildFeatureMatrix.ts:VOLUME_EFFICIENCY."""
     prior_pass_rate = prior_year_pass_rate(prev)
-    eff_pass_rate = (prior_pass_rate * (1 - PASS_RATE_REGRESS)
-                     + LEAGUE_MEAN_PASS_RATE * PASS_RATE_REGRESS)
+    pass_w = min(
+        MAX_REGRESS_WEIGHT,
+        PASS_RATE_REGRESS
+        + NEW_HC_REGRESS_EXTRA * new_hc
+        + TURNOVER_REGRESS_SLOPE * turnover,
+    )
+    eff_pass_rate = prior_pass_rate * (1 - pass_w) + LEAGUE_MEAN_PASS_RATE * pass_w
     plays_per_game = prior_year_pace(prev)
     pass_plays = plays_per_game * eff_pass_rate
     rush_plays = plays_per_game * (1 - eff_pass_rate)
@@ -111,6 +122,8 @@ def project_team(prev: dict[str, int]) -> dict[str, float]:
 def backtest_season(
     target_season: int,
     team_totals: dict[tuple[str, int], dict[str, int]],
+    new_hc_by_st: dict[tuple[int, str], int] | None = None,
+    turnover_by_st: dict[tuple[int, str], float] | None = None,
 ) -> dict[str, float] | None:
     """Project target_season using (target_season - 1) priors; compare to actuals."""
     prior_season = target_season - 1
@@ -122,7 +135,9 @@ def backtest_season(
             cur = team_totals.get((t, target_season))
             if cur is None:
                 continue
-            raw[t] = project_team(prev)
+            new_hc = (new_hc_by_st or {}).get((target_season, t), 0)
+            turn = (turnover_by_st or {}).get((target_season, t), 0.0)
+            raw[t] = project_team(prev, new_hc=new_hc, turnover=turn)
             actuals[t] = cur
 
     if len(raw) < 28:
@@ -199,12 +214,48 @@ def main() -> int:
         print('No player_stats_*.csv.gz files found in public/data/', file=sys.stderr)
         return 2
 
+    # Pull coach + turnover signals from the backfill module so the formula
+    # mirror here matches what the TS volume pass uses at build time.
+    new_hc_by_st: dict[tuple[int, str], int] = {}
+    turnover_by_st: dict[tuple[int, str], float] = {}
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            '_bf', Path(__file__).parent / 'backfill_coach_and_turnover.py')
+        if spec and spec.loader:
+            bf = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bf)
+            coach_by_st = bf.load_coach_by_season_team()
+            for s in coach_by_st:
+                for team, coach in coach_by_st[s].items():
+                    prev = coach_by_st.get(s - 1, {}).get(team)
+                    new_hc_by_st[(s, team)] = 1 if (prev and prev != coach) else 0
+            # Build per-(season, team) avg turnover across positions
+            roster_per_season: dict[int, dict] = {}
+            for s in {x for (_, x) in team_totals.keys()} | {x - 1 for (_, x) in team_totals.keys()}:
+                r = bf.load_roster_by_team_pos(s)
+                if r:
+                    roster_per_season[s] = r
+            for s in roster_per_season:
+                if s - 1 not in roster_per_season:
+                    continue
+                acc: dict[str, list[float]] = {}
+                for (team, _pos), t in bf.compute_team_pos_turnover(
+                    roster_per_season[s], roster_per_season[s - 1]
+                ).items():
+                    acc.setdefault(team, []).append(t)
+                for team, vs in acc.items():
+                    turnover_by_st[(s, team)] = sum(vs) / len(vs)
+    except Exception as e:
+        print(f'(coach/turnover signals unavailable: {e}; running baseline formula)',
+              file=sys.stderr)
+
     seasons = sorted({s for (_, s) in team_totals.keys()})
     target_seasons = [args.season] if args.season else seasons[1:]
 
     results = {}
     for s in target_seasons:
-        r = backtest_season(s, team_totals)
+        r = backtest_season(s, team_totals, new_hc_by_st, turnover_by_st)
         if r is None:
             continue
         results[s] = r
