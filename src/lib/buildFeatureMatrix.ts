@@ -4607,6 +4607,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
     leagueMeanPassAtt: 570,
     leagueMeanRushAtt: 470,
     leagueMeanTargets: 540,
+    // Per-team CI bounds — ±1σ residual stdev measured from 480 (team, season)
+    // backtest pairs across 2011–2025. Applied uniformly (not per-team yet);
+    // see scripts/backtest-volume.py for the measurement.
+    passCIStdev: 0.124,
+    rushCIStdev: 0.153,
+    targetsCIStdev: 0.127,
   };
 
   // Note: no `rows.length > 0` gate — the volume pass only reads features
@@ -4709,17 +4715,34 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         }
 
         f.mlProjPlayerPPG = Math.round(estimatedPPG * 10) / 10;
-        // Apply league-calibrated volumes from raw-team map
+        // Apply league-calibrated volumes from raw-team map + ±1σ CI bounds
+        // from historical residual stdev. CI is symmetric proportional, not
+        // yet per-team adaptive.
         const raw = pr.team ? rawByTeam.get(pr.team) : undefined;
         if (raw) {
-          f.mlProjTeamPassAtt = Math.round(raw.passAtt * passCal);
-          f.mlProjTeamRushAtt = Math.round(raw.rushAtt * rushCal);
-          f.mlProjTeamTargets = Math.round(raw.targets * tgtCal);
+          const passProj = raw.passAtt * passCal;
+          const rushProj = raw.rushAtt * rushCal;
+          const tgtProj = raw.targets * tgtCal;
+          f.mlProjTeamPassAtt = Math.round(passProj);
+          f.mlProjTeamPassAttLow = Math.round(passProj * (1 - E.passCIStdev));
+          f.mlProjTeamPassAttHigh = Math.round(passProj * (1 + E.passCIStdev));
+          f.mlProjTeamRushAtt = Math.round(rushProj);
+          f.mlProjTeamRushAttLow = Math.round(rushProj * (1 - E.rushCIStdev));
+          f.mlProjTeamRushAttHigh = Math.round(rushProj * (1 + E.rushCIStdev));
+          f.mlProjTeamTargets = Math.round(tgtProj);
+          f.mlProjTeamTargetsLow = Math.round(tgtProj * (1 - E.targetsCIStdev));
+          f.mlProjTeamTargetsHigh = Math.round(tgtProj * (1 + E.targetsCIStdev));
         } else {
-          // Free agents / teamless players get league-average volumes
+          // Free agents / teamless players get league-average volumes (no CI)
           f.mlProjTeamPassAtt = E.leagueMeanPassAtt;
+          f.mlProjTeamPassAttLow = Math.round(E.leagueMeanPassAtt * (1 - E.passCIStdev));
+          f.mlProjTeamPassAttHigh = Math.round(E.leagueMeanPassAtt * (1 + E.passCIStdev));
           f.mlProjTeamRushAtt = E.leagueMeanRushAtt;
+          f.mlProjTeamRushAttLow = Math.round(E.leagueMeanRushAtt * (1 - E.rushCIStdev));
+          f.mlProjTeamRushAttHigh = Math.round(E.leagueMeanRushAtt * (1 + E.rushCIStdev));
           f.mlProjTeamTargets = E.leagueMeanTargets;
+          f.mlProjTeamTargetsLow = Math.round(E.leagueMeanTargets * (1 - E.targetsCIStdev));
+          f.mlProjTeamTargetsHigh = Math.round(E.leagueMeanTargets * (1 + E.targetsCIStdev));
         }
       }
     } catch (e) {

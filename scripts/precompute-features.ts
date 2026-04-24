@@ -2092,8 +2092,14 @@ async function main() {
         position: r.position,
         team: r.team || '',
         teamPassAtt: passAtt,
+        teamPassAttLow: Number(f.mlProjTeamPassAttLow) || 0,
+        teamPassAttHigh: Number(f.mlProjTeamPassAttHigh) || 0,
         teamRushAtt: rushAtt,
+        teamRushAttLow: Number(f.mlProjTeamRushAttLow) || 0,
+        teamRushAttHigh: Number(f.mlProjTeamRushAttHigh) || 0,
         teamTargets: tgt,
+        teamTargetsLow: Number(f.mlProjTeamTargetsLow) || 0,
+        teamTargetsHigh: Number(f.mlProjTeamTargetsHigh) || 0,
         projPlayerPPG: playerPPG,
       });
     }
