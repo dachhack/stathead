@@ -1514,7 +1514,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {isActuals
-              ? `Loading ${season} actual stats from nflverse`
+              ? `Loading ${season} actual stats`
               : `Building ${PREDICT_SEASON} stat projections from prior-season rates`}
           </span>
         </div>
@@ -1539,7 +1539,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontWeight: 700, padding: '2px 8px', borderRadius: 4, marginRight: 8, fontSize: 11 }}>
                 ACTUALS
               </span>
-              {season} actual stats from nflverse player_stats. Sorted by PPR.
+              {season} actual player stats. Sorted by PPR.
             </>
           : <>
               <span style={{ background: 'rgba(99,102,241,0.15)', color: '#6366f1', fontWeight: 700, padding: '2px 8px', borderRadius: 4, marginRight: 8, fontSize: 11 }}>

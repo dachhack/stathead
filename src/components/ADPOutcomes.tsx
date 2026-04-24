@@ -286,7 +286,7 @@ export function ADPOutcomes() {
           {loadingStatus}
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Fetching FFC ADP + nflverse stats for {SEASONS.length} seasons
+            Fetching community ADP + actual stats for {SEASONS.length} seasons
           </span>
         </div>
       </div>
@@ -305,7 +305,7 @@ export function ADPOutcomes() {
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-        {outcomes.length.toLocaleString()} player-seasons joined from FFC PPR ADP + nflverse actual stats
+        {outcomes.length.toLocaleString()} player-seasons joined from community PPR ADP + actual NFL stats
         ({SEASONS[0]}-{SEASONS[SEASONS.length - 1]}).
         ADP Delta = ADP pick - actual overall finish (positive = outperformed).
       </p>
@@ -387,7 +387,7 @@ export function ADPOutcomes() {
                 tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
                 domain={[0, maxADP]}
               >
-                <Label value="ADP (FFC PPR, 12-team)" position="bottom" offset={20}
+                <Label value="ADP (Community PPR, 12-team)" position="bottom" offset={20}
                   style={{ fill: 'var(--text-secondary)', fontSize: 13 }} />
               </XAxis>
               <YAxis

@@ -88,7 +88,7 @@ export function PlayerStatsTable({ players, loading, error, season }: Props) {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading player stats from nflverse...</div>
+        <div className="loading-text">Loading player stats...</div>
       </div>
     );
   }

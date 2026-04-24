@@ -812,7 +812,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       )}
 
       <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-muted)' }}>
-        Values from KeepTradeCut · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepLevel > 0 ? ` ${TEP_LABELS[tepLevel]}` : ''} · Projections via GBM time-series
+        Dynasty market values · {leagueFormat === 'superflex' ? 'Superflex' : '1QB'}{tepLevel > 0 ? ` ${TEP_LABELS[tepLevel]}` : ''} · Projections via GBM time-series
         {hasRedraft && ` · Redraft PPG = ML predicted${tepLevel > 0 ? ' (TEs +0.5/rec)' : ''}`}
       </div>
     </>

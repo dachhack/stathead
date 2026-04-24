@@ -40,7 +40,7 @@ export function buildDataContext(
     case 'adp':
       if (extraData && extraData.length > 0) {
         parts.push(
-          `\nFantasyPros ECR/ADP rankings (${extraData.length} entries, showing redraft overall sample):`,
+          `\nExpert consensus rankings / ADP (${extraData.length} entries, showing redraft overall sample):`,
           formatAsTable(
             (extraData as Record<string, unknown>[])
               .filter((r) => r.page_type === 'redraft-overall' || r.page_type === 'best-overall')
@@ -160,7 +160,7 @@ export function buildDataContext(
     case 'ktc':
       if (extraData && extraData.length > 0) {
         parts.push(
-          `\nKeepTradeCut dynasty values (${extraData.length} players):`,
+          `\nDynasty market values (${extraData.length} players):`,
           formatAsTable(extraData.slice(0, 80), [
             'playerName', 'position', 'positionRank', 'team', 'age',
             'value', 'superflexValue', 'isRookie',
@@ -212,7 +212,7 @@ export function buildDataContext(
 
   parts.push(
     `\nYou are a data analyst for the StatHead NFL Fantasy Workbench. ` +
-    `You have access to the full nflverse dataset including play-by-play (1999+), ` +
+    `You have access to comprehensive NFL data including play-by-play (1999+), ` +
     `snap counts (2012+), combine, draft picks (1980+), injuries (2009+), ` +
     `advanced stats (2018+), and game schedules. ` +
     `\n\nThe DATA DICTIONARY above defines every column in the current dataset. ` +

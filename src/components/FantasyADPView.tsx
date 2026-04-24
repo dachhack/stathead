@@ -211,7 +211,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
           className={`format-tab ${viewMode === 'ffc' ? 'active' : ''}`}
           onClick={() => setViewMode('ffc')}
         >
-          FFC ADP
+          Community ADP
         </button>
         <button
           className={`format-tab ${viewMode === 'espn' ? 'active' : ''}`}
@@ -242,11 +242,11 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
           {ffcLoading ? (
             <div className="loading">
               <div className="spinner" />
-              <div className="loading-text">Loading Fantasy Football Calculator ADP...</div>
+              <div className="loading-text">Loading community ADP...</div>
             </div>
           ) : ffcError ? (
             <div className="empty-state">
-              <h3>Failed to load FFC ADP</h3>
+              <h3>Failed to load community ADP</h3>
               <p>{ffcError}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
                 This API may be blocked by CORS in some environments.
@@ -307,12 +307,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
               </div>
 
               <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-                Data from{' '}
-                <a href="https://fantasyfootballcalculator.com/adp" target="_blank" rel="noopener noreferrer"
-                   style={{ color: 'var(--accent)' }}>
-                  Fantasy Football Calculator
-                </a>
-                . Human mock draft ADP only (computer picks excluded).
+                Community mock draft ADP (human picks only; computer picks excluded).
               </p>
 
               <div className="table-container">

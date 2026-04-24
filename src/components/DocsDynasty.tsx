@@ -12,7 +12,7 @@ export function DocsDynasty() {
           1. Overview
         </h2>
         <p style={{ lineHeight: 1.7, marginBottom: 12 }}>
-          Predicts how <strong>KeepTradeCut</strong> or <strong>FantasyCalc</strong> dynasty values will change
+          Predicts how <strong>market</strong> or <strong>FantasyCalc</strong> dynasty values will change
           from September to December. Trained on 2024&#8211;2025 historical value snapshots with
           Leave-One-Season-Out cross-validation.
         </p>

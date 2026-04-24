@@ -204,7 +204,7 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_fantasy_rankings',
     description:
-      'Get FantasyPros ECR (Expert Consensus Rankings) and ADP data. ' +
+      'Get Expert Consensus Rankings (ECR) and ADP data. ' +
       'Use for draft strategy, value picks (ECR vs ADP), expert opinion analysis.',
     input_schema: {
       type: 'object' as const,
@@ -218,15 +218,15 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_adp',
     description:
-      'Get Average Draft Position from Fantasy Football Calculator or ESPN. ' +
+      'Get Average Draft Position from community (ffc) or ESPN sources. ' +
       'Use for draft value analysis, comparing ADP across platforms.',
     input_schema: {
       type: 'object' as const,
       properties: {
         source: { type: 'string', description: 'Data source', enum: ['ffc', 'espn'] },
         season: { type: 'number', description: 'Season year' },
-        scoring: { type: 'string', description: 'Scoring format (FFC only)', enum: ['standard', 'ppr', 'half-ppr'] },
-        teams: { type: 'number', description: 'League size (FFC only)', enum: [8, 10, 12, 14] },
+        scoring: { type: 'string', description: 'Scoring format (community source only)', enum: ['standard', 'ppr', 'half-ppr'] },
+        teams: { type: 'number', description: 'League size (community source only)', enum: [8, 10, 12, 14] },
         limit: { type: 'number', description: 'Max rows (default 50)' },
       },
       required: ['source', 'season'],
@@ -267,7 +267,7 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_dynasty_values',
     description:
-      'Get KeepTradeCut dynasty player values and rankings. ' +
+      'Get dynasty market player values and rankings. ' +
       'Includes 1QB and SuperFlex values, position ranks, age. ' +
       'Use for dynasty trade evaluation, roster building, value comparisons.',
     input_schema: {
@@ -287,7 +287,7 @@ export const NFL_TOOLS: Tool[] = [
       'Get FantasyCalc trade values — algorithm-generated from ~1M real fantasy trades. ' +
       'Supports dynasty and redraft, 1QB and superflex, various league sizes and PPR settings. ' +
       'Returns value, rank, 30-day trend, redraft value, and player details. ' +
-      'Use alongside KTC for cross-source dynasty value comparisons.',
+      'Use alongside the market dynasty values for cross-source dynasty value comparisons.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -394,7 +394,7 @@ export const NFL_TOOLS: Tool[] = [
       properties: {
         season: { type: 'number', description: 'NFL season year (2022+)' },
         week: { type: 'number', description: 'Filter by week' },
-        game_id: { type: 'string', description: 'Filter by nflverse game ID' },
+        game_id: { type: 'string', description: 'Filter by game ID' },
         limit: { type: 'number', description: 'Max rows (default 100)' },
       },
       required: ['season'],
@@ -863,7 +863,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         let data = await fetchFfcADP(season, scoring, teams);
         data = data.slice(0, limit);
         const rows = data as unknown as Record<string, unknown>[];
-        return `FFC ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):\n\n${toMarkdownTable(rows)}`;
+        return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):\n\n${toMarkdownTable(rows)}`;
       } else {
         let data = await fetchEspnADP(season);
         data = data.slice(0, limit);

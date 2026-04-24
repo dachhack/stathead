@@ -513,7 +513,7 @@ export function ModelDocumentation() {
           {([
             { key: 'projection' as const, label: 'Projection Validation', desc: 'Veteran VOR / PPG / Hit-Bust' },
             { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
-            { key: 'ktc-forecast' as const, label: 'KTC Forecast Validation', desc: 'Dynasty value time-series models' },
+            { key: 'ktc-forecast' as const, label: 'Dynasty Forecast Validation', desc: 'Dynasty value time-series models' },
           ]).map(({ key, label, desc }) => (
             <button
               key={key}
@@ -2188,7 +2188,7 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
   if (!models) {
     return (
       <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
-        Loading KTC forecast model data...
+        Loading dynasty forecast model data...
       </div>
     );
   }
@@ -2200,12 +2200,12 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
   return (
     <>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16, marginBottom: 20, border: '1px solid var(--border)' }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>KTC Dynasty Value Forecast Pipeline</h3>
+        <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Dynasty Value Forecast Pipeline</h3>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
-          Per-(position, horizon) LightGBM models predict log-returns on KTC dynasty values.
-          Trained on 6 months of daily KTC price history (Oct 2025 &ndash; Apr 2026) with
+          Per-(position, horizon) LightGBM models predict log-returns on dynasty market values.
+          Trained on 6 months of daily market price history (Oct 2025 &ndash; Apr 2026) with
           fast features (momentum, volatility, rank), slow features (age, draft capital,
-          production), and weekly nflverse features (snap%, targets, carries).
+          production), and weekly NFL stats features (snap%, targets, carries).
           Validated via player-grouped 5-fold CV (no held-out player&apos;s data leaks into training).
         </p>
         <div style={{
@@ -2299,7 +2299,7 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
           </p>
           <p style={{ margin: 0 }}>
             <strong>Confidence intervals</strong> use ±1.96 × cvResidualStd on the log-return, then
-            exponentiate back to KTC value space. Wider residual std = wider CI bands on the forecast chart.
+            exponentiate back to dynasty value space. Wider residual std = wider CI bands on the forecast chart.
           </p>
         </div>
       </div>
