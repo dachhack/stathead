@@ -282,7 +282,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       <div style={{ padding: '16px 16px 8px' }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast</h2>
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
-          GBM time-series models predict KTC value changes at 7/30/60/90 day horizons.
+          GBM time-series models predict dynasty value changes at 7/30/60/90 day horizons.
           Signal is a within-position z-score of composite momentum (higher = rising faster than peers).
         </p>
 

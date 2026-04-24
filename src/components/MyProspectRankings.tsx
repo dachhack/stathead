@@ -718,7 +718,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{
                 ...th, textAlign: 'center', width: 44, borderLeft: '1px solid var(--border)',
                 color: '#6366f1',
-              }} title="NFL team once drafted (from nflverse rosters)">NFL</th>
+              }} title="NFL team once drafted">NFL</th>
               <th style={{ ...th, textAlign: 'right', width: 52, color: '#6366f1' }}
                   title="Projected PPG from our internal projections, scenario-adjusted">
                 Proj PPG

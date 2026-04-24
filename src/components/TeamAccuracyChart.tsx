@@ -417,7 +417,7 @@ export function TeamAccuracyChart() {
         Model projection: prior year team stats blended {Math.round(projectionConfig.winner.teamWeight * 100)}/{Math.round((1 - projectionConfig.winner.teamWeight) * 100)} team/league
         (same methodology as 2026 live projections). 2026 bar shows forecast only — no actuals yet.
         Does not include Vegas lines or coaching change adjustments.
-        Source: nflverse player_stats, 2019–2025.
+        Source: actual NFL player stats, 2019–2025.
       </p>
     </div>
   );

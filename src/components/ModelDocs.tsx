@@ -142,7 +142,7 @@ Average % error across all stats: ${cfg.avgPctError}%`}
           3. Dynasty Value Predictive Model
         </h2>
         <p style={{ lineHeight: 1.7, marginBottom: 12 }}>
-          Predicts how KeepTradeCut or FantasyCalc dynasty values will change from September to December.
+          Predicts how dynasty market or FantasyCalc values will change from September to December.
           Trained on 2024&#8211;2025 historical value snapshots with Leave-One-Season-Out cross-validation.
         </p>
 
@@ -318,12 +318,12 @@ Where:
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Data Sources</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, marginBottom: 16 }}>
           {[
-            'nflverse (stats, PBP, rosters)',
-            'KeepTradeCut (dynasty values)',
+            'NFL stats, PBP, rosters',
+            'Dynasty market values',
             'FantasyCalc (trade values)',
             'Sleeper (trending, projections)',
             'ESPN (ADP)',
-            'FantasyPros (ECR/ADP)',
+            'Expert consensus rankings / ADP',
             'Next Gen Stats (NGS)',
             'SportsDataIO (odds, news)',
             'FTN (play charting)',

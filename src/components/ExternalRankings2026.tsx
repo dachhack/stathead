@@ -269,11 +269,8 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        2026 pre-season rankings — ADP from{' '}
-        <a href="https://fantasyfootballcalculator.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>
-          Fantasy Football Calculator
-        </a>
-        . Proj PPG from model, Scen PPG from redraft projections {hasScenario ? '(scenario-adjusted)' : ''}, Boom/Bust from ADP CI.
+        2026 pre-season rankings with community ADP. Proj PPG from model, Scen PPG from redraft
+        projections {hasScenario ? '(scenario-adjusted)' : ''}, Boom/Bust from ADP CI.
         {' '}{filtered.length} of {rows.length} players shown.
       </p>
 

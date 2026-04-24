@@ -510,7 +510,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
-        {filtered.length} prospects &middot; Prospect grades &amp; draft projections &middot; Combine measurables from NFLverse &middot; Fantasy rankings from FantasyPros
+        {filtered.length} prospects &middot; Prospect grades, draft projections, combine measurables, and expert consensus rankings
       </div>
 
       <div className="table-container">

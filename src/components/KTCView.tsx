@@ -154,7 +154,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
     return (
       <div className="loading">
         <div className="spinner" />
-        <div className="loading-text">Loading {dataSource === 'fc' ? 'FantasyCalc' : 'KeepTradeCut'} dynasty values...</div>
+        <div className="loading-text">Loading {dataSource === 'fc' ? 'FantasyCalc' : 'market'} dynasty values...</div>
       </div>
     );
   }
@@ -162,12 +162,12 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   if (error) {
     return (
       <div className="empty-state">
-        <h3>Failed to load {dataSource === 'fc' ? 'FantasyCalc' : 'KTC'} data</h3>
+        <h3>Failed to load {dataSource === 'fc' ? 'FantasyCalc' : 'dynasty market'} data</h3>
         <p>{error}</p>
         {dataSource === 'ktc' && (
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-            KTC does not have a public API. This feature scrapes their dynasty rankings page,
-            which may be blocked by CORS in some environments.
+            The upstream source does not have a public API. This feature scrapes their dynasty
+            rankings page, which may be blocked by CORS in some environments.
             Works best when deployed behind a CORS proxy or server-side.
           </p>
         )}
@@ -187,7 +187,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
           className={`format-tab ${dataSource === 'ktc' ? 'active' : ''}`}
           onClick={() => setDataSource('ktc')}
         >
-          KTC
+          Market
         </button>
         <button
           className={`format-tab ${dataSource === 'fc' ? 'active' : ''}`}
@@ -232,7 +232,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
         dataSource === 'fc' ? (
           <div className="empty-state">
             <h3>Value history not available for FantasyCalc</h3>
-            <p>Value history is only available for KTC. Switch to KTC source to view historical trends.</p>
+            <p>Value history is only available for the market source. Switch sources to view historical trends.</p>
           </div>
         ) : (
         <>
@@ -341,16 +341,8 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
           )}
 
           <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
-            Historical dynasty trade values from{' '}
-            <a
-              href="https://keeptradecut.com/dynasty-rankings"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--accent)' }}
-            >
-              KeepTradeCut
-            </a>
-            . Search and select up to 8 players to compare value trends over time.
+            Historical dynasty trade values. Search and select up to 8 players to compare value
+            trends over time.
           </p>
 
           {historyLoading ? (
@@ -363,7 +355,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
               <h3>Failed to load history</h3>
               <p>{historyError}</p>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
-                The KTC history endpoint may be blocked by CORS in some environments.
+                The history endpoint may be blocked by CORS in some environments.
               </p>
             </div>
           ) : selectedPlayers.length === 0 ? (
@@ -501,17 +493,8 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
 
           {dataSource === 'ktc' ? (
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>
-              Crowdsourced dynasty trade values from{' '}
-              <a
-                href="https://keeptradecut.com/dynasty-rankings"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'var(--accent)' }}
-              >
-                KeepTradeCut
-              </a>
-              . Values are based on 25M+ user-submitted rankings using an adapted ELO algorithm.
-              Max value = 9999.
+              Crowdsourced dynasty trade values based on tens of millions of user-submitted
+              rankings using an adapted ELO algorithm. Max value = 9999.
             </p>
           ) : (
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 8 }}>

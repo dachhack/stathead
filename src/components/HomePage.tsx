@@ -30,7 +30,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Rankings',
         tab: 'stats',
-        blurb: 'Consensus rankings from FantasyPros ECR, reconciled with our own model tiers.',
+        blurb: 'Expert consensus rankings reconciled with our own model tiers.',
       },
       {
         label: 'Draft Optimizer',
@@ -43,7 +43,7 @@ const SECTIONS: Section[] = [
   {
     title: 'Dynasty',
     description:
-      'Long-term value, trade evaluation, and rookie evaluation. Combines market values (KeepTradeCut) with our forecast and prospect models.',
+      'Long-term value, trade evaluation, and rookie evaluation. Combines dynasty market values with our forecast and prospect models.',
     items: [
       {
         label: 'Dynasty Values',
@@ -53,7 +53,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Trade Calculator',
         tab: 'trade-calc',
-        blurb: 'Evaluate proposed trades using KTC values with projected 30/60/90-day deltas.',
+        blurb: 'Evaluate proposed trades using dynasty market values with projected 30/60/90-day deltas.',
       },
       {
         label: 'Value Forecast',
@@ -85,7 +85,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Data Query (SQL)',
         tab: 'data-query',
-        blurb: 'Run SQL against the full dataset in-browser (DuckDB WASM) — projections, backtest, ADP, KTC, prospect grades.',
+        blurb: 'Run SQL against the full dataset in-browser (DuckDB WASM) — projections, backtest, ADP, dynasty values, prospect grades.',
       },
       {
         label: 'Model Docs',
@@ -105,7 +105,7 @@ rookies.nlargest(10, "percentile")[["name", "position", "predictedCareerPPG", "m
 # Historical backtest — predicted vs actual PPG for every drafted rookie 2010-2025
 backtest = sh.load_career_backtest()
 
-# Historical ADP (2010-2025) and current KTC dynasty values
+# Historical ADP (2010-2025) and current dynasty market values
 adp = sh.load_adp_historical()
 ktc = sh.load_ktc()
 `;
@@ -114,9 +114,9 @@ const LOADERS: { fn: string; desc: string }[] = [
   { fn: 'load_career_predictions_2026()', desc: '2026 rookie predictions (~77 × ~80 cols)' },
   { fn: 'load_career_backtest()', desc: 'Historical rookies with pred + actual PPG (~1087 × ~100)' },
   { fn: 'load_adp_historical()', desc: 'Model-training ADP 2010-2025 (~4507 × 10)' },
-  { fn: 'load_adp_ffc(season=None)', desc: 'FFC PPR raw ADP (per season)' },
-  { fn: 'load_ktc()', desc: 'Current KTC dynasty values (~500 × 9)' },
-  { fn: 'load_ktc_history()', desc: 'Daily KTC history (~100k × 7)' },
+  { fn: 'load_adp_ffc(season=None)', desc: 'Raw community PPR ADP (per season)' },
+  { fn: 'load_ktc()', desc: 'Current dynasty market values (~500 × 9)' },
+  { fn: 'load_ktc_history()', desc: 'Daily dynasty value history (~100k × 7)' },
   { fn: 'load_prospect_grades(year=2026)', desc: 'Draft scouting grades (~200 × 7)' },
   { fn: 'load_feature_matrix()', desc: 'Raw feature-matrix.json' },
 ];
@@ -141,9 +141,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
           StatHead
         </h1>
         <p style={{ fontSize: 15, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
-          Fantasy football projections, dynasty values, and rookie evaluation — built on nflverse,
-          FantasyPros, KeepTradeCut, FFC, CFBD, and scouting PDFs. Everything is open data and the
-          underlying modeling pipeline lives in this repo.
+          Fantasy football projections, dynasty values, and rookie evaluation — combining NFL
+          stats, college football data, expert consensus rankings, ADP, dynasty market values, and
+          scouting PDFs. Everything is open data and the underlying modeling pipeline lives in
+          this repo.
         </p>
       </div>
 

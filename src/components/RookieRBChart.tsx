@@ -170,7 +170,7 @@ export function RookieRBChart() {
   );
 
   const xLabel = xAxis === 'draftPick' ? 'NFL Draft Pick'
-    : xAxis === 'ffcAdp' ? 'FFC ADP (PPR)'
+    : xAxis === 'ffcAdp' ? 'Community ADP (PPR)'
     : 'ESPN Fantasy ADP';
   const xDataKey = xAxis;
 
@@ -217,7 +217,7 @@ export function RookieRBChart() {
           >
             <option value="draftPick">NFL Draft Pick</option>
             <option value="ffcAdp" disabled={!hasFfcAdp}>
-              FFC ADP{!hasFfcAdp ? ' (unavailable)' : ''}
+              Community ADP{!hasFfcAdp ? ' (unavailable)' : ''}
             </option>
             <option value="espnAdp" disabled={!hasEspnAdp}>
               ESPN ADP{!hasEspnAdp ? ' (unavailable)' : ''}
@@ -320,7 +320,7 @@ export function RookieRBChart() {
                     <br />
                     {d.season} | {d.team} | Rd {d.draftRound}, Pick #{d.draftPick}
                     {d.ffcAdp != null && (
-                      <> | FFC ADP: {d.ffcAdp.toFixed(1)}</>
+                      <> | Community ADP: {d.ffcAdp.toFixed(1)}</>
                     )}
                     {d.espnAdp != null && (
                       <> | ESPN ADP: {d.espnAdp.toFixed(1)}</>
@@ -377,7 +377,7 @@ export function RookieRBChart() {
               <th>Player</th>
               <th>Team</th>
               <th>Draft</th>
-              <th>FFC ADP</th>
+              <th>Community ADP</th>
               <th>ESPN ADP</th>
               <th>G</th>
               <th>PPR Pts</th>
