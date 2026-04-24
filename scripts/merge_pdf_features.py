@@ -26,6 +26,19 @@ OUT_MERGED = ROOT / "public" / "data" / "pdf-prospect-features-merged.json"
 
 NAME_PUNCT = re.compile(r"[^\w\s]")
 
+# Sources whose `rank_overall` / `projected_round` should be ignored when
+# computing the consensus across guides. PFF Draft Guide ranks include
+# non-skill prospects (OL/DL) so a skill-position player can show up at
+# rank 9 instead of 1; averaging them with The Beast / RSP (skill-only
+# scale) corrupts the consensus rank for any 2022-25 prospect that PFF
+# also covered. Their qualitative fields (strengths/weaknesses/red_flags
+# /comps/tier) still flow through.
+SKIP_RANK_SOURCE_PATTERNS = (re.compile(r"_PFF_Draft\.pdf$"),)
+
+
+def _source_excluded_from_rank(source_file: str) -> bool:
+    return any(p.search(source_file) for p in SKIP_RANK_SOURCE_PATTERNS)
+
 
 def normalize_name(name: str) -> str:
     n = NAME_PUNCT.sub(" ", name.lower())
@@ -93,8 +106,12 @@ def merge_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for key, items in grouped.items():
         positions = [i.get("position") for i in items if i.get("position")]
         colleges = [i.get("college") for i in items if i.get("college")]
-        ranks = [i["rank_overall"] for i in items if isinstance(i.get("rank_overall"), int)]
-        prounds = [i["projected_round"] for i in items if isinstance(i.get("projected_round"), int)]
+        ranks = [i["rank_overall"] for i in items
+                 if isinstance(i.get("rank_overall"), int)
+                 and not _source_excluded_from_rank(i.get("source_file", ""))]
+        prounds = [i["projected_round"] for i in items
+                   if isinstance(i.get("projected_round"), int)
+                   and not _source_excluded_from_rank(i.get("source_file", ""))]
 
         def flat(field: str) -> list[str]:
             seen: set[str] = set()

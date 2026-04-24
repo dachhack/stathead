@@ -3,21 +3,21 @@
   "results": {
     "QB": {
       "baseline_all": {
-        "r2": 0.3004,
-        "mae": 4.463,
-        "rho": 0.5417,
+        "r2": 0.3731,
+        "mae": 4.275,
+        "rho": 0.6005,
         "n": 131
       },
       "baseline_recent": {
-        "r2": -0.0363,
-        "mae": 4.552,
-        "rho": 0.3715,
+        "r2": 0.3256,
+        "mae": 3.844,
+        "rho": 0.562,
         "n": 34
       },
       "baseline_rtrain": {
-        "r2": -0.7135,
-        "mae": 5.905,
-        "rho": -0.0151,
+        "r2": 0.0877,
+        "mae": 4.648,
+        "rho": 0.4715,
         "n": 34
       },
       "variants": {
@@ -27,21 +27,21 @@
             "pdfHasRank"
           ],
           "all_yrs": {
-            "r2": 0.3004,
-            "mae": 4.463,
-            "rho": 0.5417,
+            "r2": 0.3731,
+            "mae": 4.275,
+            "rho": 0.6005,
             "n": 131
           },
           "recent": {
-            "r2": -0.0363,
-            "mae": 4.552,
-            "rho": 0.3715,
+            "r2": 0.3256,
+            "mae": 3.844,
+            "rho": 0.562,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.7135,
-            "mae": 5.905,
-            "rho": -0.0151,
+            "r2": 0.0877,
+            "mae": 4.648,
+            "rho": 0.4715,
             "n": 34
           },
           "delta_all_r2": 0.0,
@@ -56,28 +56,28 @@
             "pdfHasRound"
           ],
           "all_yrs": {
-            "r2": 0.2993,
-            "mae": 4.475,
-            "rho": 0.541,
+            "r2": 0.3404,
+            "mae": 4.382,
+            "rho": 0.5719,
             "n": 131
           },
           "recent": {
-            "r2": -0.0396,
-            "mae": 4.596,
-            "rho": 0.3673,
+            "r2": 0.1696,
+            "mae": 4.227,
+            "rho": 0.4779,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.7794,
-            "mae": 6.063,
-            "rho": -0.0295,
+            "r2": -0.1885,
+            "mae": 5.233,
+            "rho": 0.3101,
             "n": 34
           },
-          "delta_all_r2": -0.0011,
-          "delta_recent_r2": -0.0033,
-          "delta_rtrain_r2": -0.0659,
-          "delta_all_mae": 0.012,
-          "delta_rtrain_mae": 0.158
+          "delta_all_r2": -0.0327,
+          "delta_recent_r2": -0.156,
+          "delta_rtrain_r2": -0.2762,
+          "delta_all_mae": 0.107,
+          "delta_rtrain_mae": 0.585
         },
         "sentiment": {
           "features": [
@@ -87,56 +87,56 @@
             "pdfSentimentNet"
           ],
           "all_yrs": {
-            "r2": 0.3054,
-            "mae": 4.433,
-            "rho": 0.5437,
+            "r2": 0.3645,
+            "mae": 4.288,
+            "rho": 0.5933,
             "n": 131
           },
           "recent": {
-            "r2": -0.0068,
-            "mae": 4.474,
-            "rho": 0.3954,
+            "r2": 0.2878,
+            "mae": 3.912,
+            "rho": 0.5387,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.5685,
-            "mae": 5.487,
-            "rho": 0.0151,
+            "r2": 0.146,
+            "mae": 4.26,
+            "rho": 0.4901,
             "n": 34
           },
-          "delta_all_r2": 0.005,
-          "delta_recent_r2": 0.0295,
-          "delta_rtrain_r2": 0.145,
-          "delta_all_mae": -0.03,
-          "delta_rtrain_mae": -0.418
+          "delta_all_r2": -0.0086,
+          "delta_recent_r2": -0.0378,
+          "delta_rtrain_r2": 0.0583,
+          "delta_all_mae": 0.013,
+          "delta_rtrain_mae": -0.388
         },
         "injury": {
           "features": [
             "pdfInjuryRedFlags"
           ],
           "all_yrs": {
-            "r2": 0.2839,
-            "mae": 4.509,
-            "rho": 0.528,
+            "r2": 0.3624,
+            "mae": 4.308,
+            "rho": 0.5882,
             "n": 131
           },
           "recent": {
-            "r2": -0.1187,
-            "mae": 4.733,
-            "rho": 0.33,
+            "r2": 0.271,
+            "mae": 3.969,
+            "rho": 0.5112,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.8044,
-            "mae": 5.997,
-            "rho": -0.0387,
+            "r2": 0.0591,
+            "mae": 4.698,
+            "rho": 0.4602,
             "n": 34
           },
-          "delta_all_r2": -0.0165,
-          "delta_recent_r2": -0.0824,
-          "delta_rtrain_r2": -0.0909,
-          "delta_all_mae": 0.046,
-          "delta_rtrain_mae": 0.092
+          "delta_all_r2": -0.0107,
+          "delta_recent_r2": -0.0546,
+          "delta_rtrain_r2": -0.0286,
+          "delta_all_mae": 0.033,
+          "delta_rtrain_mae": 0.05
         },
         "consensus": {
           "features": [
@@ -144,56 +144,56 @@
             "pdfHasData"
           ],
           "all_yrs": {
-            "r2": 0.2949,
-            "mae": 4.482,
-            "rho": 0.5375,
+            "r2": 0.3543,
+            "mae": 4.338,
+            "rho": 0.5832,
             "n": 131
           },
           "recent": {
-            "r2": -0.0585,
-            "mae": 4.629,
-            "rho": 0.3627,
+            "r2": 0.2406,
+            "mae": 4.067,
+            "rho": 0.5173,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.666,
-            "mae": 5.783,
-            "rho": 0.0017,
+            "r2": 0.1162,
+            "mae": 4.558,
+            "rho": 0.4813,
             "n": 34
           },
-          "delta_all_r2": -0.0055,
-          "delta_recent_r2": -0.0222,
-          "delta_rtrain_r2": 0.0475,
-          "delta_all_mae": 0.019,
-          "delta_rtrain_mae": -0.122
+          "delta_all_r2": -0.0188,
+          "delta_recent_r2": -0.085,
+          "delta_rtrain_r2": 0.0285,
+          "delta_all_mae": 0.063,
+          "delta_rtrain_mae": -0.09
         },
         "tier_elite": {
           "features": [
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.2968,
-            "mae": 4.476,
-            "rho": 0.5387,
+            "r2": 0.3683,
+            "mae": 4.293,
+            "rho": 0.5955,
             "n": 131
           },
           "recent": {
-            "r2": -0.0556,
-            "mae": 4.606,
-            "rho": 0.3691,
+            "r2": 0.3004,
+            "mae": 3.912,
+            "rho": 0.5387,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.7259,
-            "mae": 5.886,
-            "rho": -0.0206,
+            "r2": 0.0855,
+            "mae": 4.649,
+            "rho": 0.4599,
             "n": 34
           },
-          "delta_all_r2": -0.0036,
-          "delta_recent_r2": -0.0193,
-          "delta_rtrain_r2": -0.0124,
-          "delta_all_mae": 0.013,
-          "delta_rtrain_mae": -0.019
+          "delta_all_r2": -0.0048,
+          "delta_recent_r2": -0.0252,
+          "delta_rtrain_r2": -0.0022,
+          "delta_all_mae": 0.018,
+          "delta_rtrain_mae": 0.001
         },
         "all_numeric": {
           "features": [
@@ -211,39 +211,39 @@
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.2879,
-            "mae": 4.478,
-            "rho": 0.5284,
+            "r2": 0.3336,
+            "mae": 4.365,
+            "rho": 0.5595,
             "n": 131
           },
           "recent": {
-            "r2": -0.1113,
-            "mae": 4.682,
-            "rho": 0.3254,
+            "r2": 0.1198,
+            "mae": 4.244,
+            "rho": 0.4336,
             "n": 34
           },
           "rtrain": {
-            "r2": -0.7218,
-            "mae": 5.656,
-            "rho": -0.0246,
+            "r2": -0.1204,
+            "mae": 4.902,
+            "rho": 0.2383,
             "n": 34
           },
-          "delta_all_r2": -0.0125,
-          "delta_recent_r2": -0.075,
-          "delta_rtrain_r2": -0.0083,
-          "delta_all_mae": 0.015,
-          "delta_rtrain_mae": -0.249
+          "delta_all_r2": -0.0395,
+          "delta_recent_r2": -0.2058,
+          "delta_rtrain_r2": -0.2081,
+          "delta_all_mae": 0.09,
+          "delta_rtrain_mae": 0.254
         }
       },
       "boom_bust_baseline": {
         "all": {
-          "boom_rho": -0.0328,
-          "bust_auc": 0.6003,
+          "boom_rho": 0.1054,
+          "bust_auc": 0.5762,
           "n": 131
         },
         "recent": {
-          "boom_rho": -0.5359,
-          "bust_auc": 0.45,
+          "boom_rho": -0.3194,
+          "bust_auc": 0.3956,
           "n": 34
         }
       },
@@ -254,17 +254,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": -0.059,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0843,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.4934,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3011,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0262,
-          "delta_recent_rho": 0.0425
+          "delta_all_rho": -0.0211,
+          "delta_recent_rho": 0.0183
         },
         "boom_sentiment": {
           "keys": [
@@ -273,17 +273,17 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": -0.0785,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0819,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5888,
-            "bust_auc": 0.45,
+            "boom_rho": -0.2784,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0457,
-          "delta_recent_rho": -0.0529
+          "delta_all_rho": -0.0235,
+          "delta_recent_rho": 0.041
         },
         "boom_redflags": {
           "keys": [
@@ -291,17 +291,17 @@
             "pdfInjuryRedFlags"
           ],
           "all": {
-            "boom_rho": -0.0887,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0873,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.6134,
-            "bust_auc": 0.45,
+            "boom_rho": -0.329,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0559,
-          "delta_recent_rho": -0.0775
+          "delta_all_rho": -0.0181,
+          "delta_recent_rho": -0.0096
         },
         "boom_disagree_scout": {
           "keys": [
@@ -310,13 +310,13 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3956,
             "n": 34
           },
           "delta_all_rho": 0.0,
@@ -328,34 +328,34 @@
             "athleticProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0773,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0778,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5805,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3156,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0445,
-          "delta_recent_rho": -0.0446
+          "delta_all_rho": -0.0276,
+          "delta_recent_rho": 0.0038
         },
         "boom_disagree_age": {
           "keys": [
             "ageProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0438,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.1159,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5856,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3364,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.011,
-          "delta_recent_rho": -0.0497
+          "delta_all_rho": 0.0105,
+          "delta_recent_rho": -0.017
         },
         "boom_disagree_all": {
           "keys": [
@@ -368,17 +368,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.066,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0732,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5599,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3536,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0332,
-          "delta_recent_rho": -0.024
+          "delta_all_rho": -0.0322,
+          "delta_recent_rho": -0.0342
         },
         "boom_all": {
           "keys": [
@@ -393,17 +393,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": -0.1143,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0577,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.6254,
-            "bust_auc": 0.45,
+            "boom_rho": -0.39,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0815,
-          "delta_recent_rho": -0.0895
+          "delta_all_rho": -0.0477,
+          "delta_recent_rho": -0.0706
         },
         "boom_all_plus_disagree": {
           "keys": [
@@ -423,17 +423,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0976,
-            "bust_auc": 0.6003,
+            "boom_rho": 0.0881,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.6354,
-            "bust_auc": 0.45,
+            "boom_rho": -0.4036,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_rho": -0.0648,
-          "delta_recent_rho": -0.0995
+          "delta_all_rho": -0.0173,
+          "delta_recent_rho": -0.0842
         },
         "bust_redflags": {
           "keys": [
@@ -442,17 +442,17 @@
             "pdfCharacterRedFlags"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.5586,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5379,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.3125,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.2667,
             "n": 34
           },
-          "delta_all_auc": -0.0417,
-          "delta_recent_auc": -0.1375
+          "delta_all_auc": -0.0383,
+          "delta_recent_auc": -0.1289
         },
         "bust_rank": {
           "keys": [
@@ -460,17 +460,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.557,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.548,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.3375,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3333,
             "n": 34
           },
-          "delta_all_auc": -0.0433,
-          "delta_recent_auc": -0.1125
+          "delta_all_auc": -0.0282,
+          "delta_recent_auc": -0.0623
         },
         "bust_weakness": {
           "keys": [
@@ -478,17 +478,17 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.5615,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5461,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.3417,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3422,
             "n": 34
           },
-          "delta_all_auc": -0.0388,
-          "delta_recent_auc": -0.1083
+          "delta_all_auc": -0.0301,
+          "delta_recent_auc": -0.0534
         },
         "bust_disagree_scout": {
           "keys": [
@@ -497,17 +497,17 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.607,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.4792,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_auc": 0.0067,
-          "delta_recent_auc": 0.0292
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
         },
         "bust_disagree_talent": {
           "keys": [
@@ -515,17 +515,17 @@
             "athleticProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.5479,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5119,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.3708,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3111,
             "n": 34
           },
-          "delta_all_auc": -0.0524,
-          "delta_recent_auc": -0.0792
+          "delta_all_auc": -0.0643,
+          "delta_recent_auc": -0.0845
         },
         "bust_disagree_overdraft": {
           "keys": [
@@ -533,17 +533,17 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.607,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5762,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.4792,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3956,
             "n": 34
           },
-          "delta_all_auc": 0.0067,
-          "delta_recent_auc": 0.0292
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
         },
         "bust_disagree_all": {
           "keys": [
@@ -556,17 +556,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.5605,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5534,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.45,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.4044,
             "n": 34
           },
-          "delta_all_auc": -0.0398,
-          "delta_recent_auc": 0.0
+          "delta_all_auc": -0.0228,
+          "delta_recent_auc": 0.0088
         },
         "bust_all": {
           "keys": [
@@ -580,17 +580,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.5519,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5528,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.2542,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.2711,
             "n": 34
           },
-          "delta_all_auc": -0.0484,
-          "delta_recent_auc": -0.1958
+          "delta_all_auc": -0.0234,
+          "delta_recent_auc": -0.1245
         },
         "bust_all_plus_disagree": {
           "keys": [
@@ -609,30 +609,30 @@
             "ageProductionGap"
           ],
           "all": {
-            "boom_rho": -0.0328,
-            "bust_auc": 0.568,
+            "boom_rho": 0.1054,
+            "bust_auc": 0.5453,
             "n": 131
           },
           "recent": {
-            "boom_rho": -0.5359,
-            "bust_auc": 0.3667,
+            "boom_rho": -0.3194,
+            "bust_auc": 0.3111,
             "n": 34
           },
-          "delta_all_auc": -0.0323,
-          "delta_recent_auc": -0.0833
+          "delta_all_auc": -0.0309,
+          "delta_recent_auc": -0.0845
         }
       },
       "gap_fill": {
         "all_yrs": {
-          "r2": 0.3004,
-          "mae": 4.463,
-          "rho": 0.5417,
+          "r2": 0.3731,
+          "mae": 4.275,
+          "rho": 0.6005,
           "n": 131
         },
         "recent": {
-          "r2": -0.0363,
-          "mae": 4.552,
-          "rho": 0.3715,
+          "r2": 0.3256,
+          "mae": 3.844,
+          "rho": 0.562,
           "n": 34
         },
         "delta_all_r2": 0.0,
@@ -642,21 +642,21 @@
     },
     "RB": {
       "baseline_all": {
-        "r2": 0.2933,
-        "mae": 3.531,
-        "rho": 0.4546,
+        "r2": 0.3138,
+        "mae": 3.493,
+        "rho": 0.4694,
         "n": 303
       },
       "baseline_recent": {
-        "r2": 0.0924,
-        "mae": 4.217,
-        "rho": 0.2063,
+        "r2": 0.1697,
+        "mae": 4.05,
+        "rho": 0.285,
         "n": 78
       },
       "baseline_rtrain": {
-        "r2": 0.0266,
-        "mae": 4.322,
-        "rho": 0.2138,
+        "r2": 0.113,
+        "mae": 4.112,
+        "rho": 0.2921,
         "n": 78
       },
       "variants": {
@@ -666,21 +666,21 @@
             "pdfHasRank"
           ],
           "all_yrs": {
-            "r2": 0.2933,
-            "mae": 3.531,
-            "rho": 0.4546,
+            "r2": 0.3138,
+            "mae": 3.493,
+            "rho": 0.4694,
             "n": 303
           },
           "recent": {
-            "r2": 0.0924,
-            "mae": 4.217,
-            "rho": 0.2063,
+            "r2": 0.1697,
+            "mae": 4.05,
+            "rho": 0.285,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.0266,
-            "mae": 4.322,
-            "rho": 0.2138,
+            "r2": 0.113,
+            "mae": 4.112,
+            "rho": 0.2921,
             "n": 78
           },
           "delta_all_r2": 0.0,
@@ -695,28 +695,28 @@
             "pdfHasRound"
           ],
           "all_yrs": {
-            "r2": 0.2877,
-            "mae": 3.565,
-            "rho": 0.4492,
+            "r2": 0.3078,
+            "mae": 3.528,
+            "rho": 0.4615,
             "n": 303
           },
           "recent": {
-            "r2": 0.0763,
-            "mae": 4.329,
-            "rho": 0.1917,
+            "r2": 0.1513,
+            "mae": 4.158,
+            "rho": 0.2675,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.0062,
-            "mae": 4.435,
-            "rho": 0.201,
+            "r2": 0.0835,
+            "mae": 4.226,
+            "rho": 0.2487,
             "n": 78
           },
-          "delta_all_r2": -0.0056,
-          "delta_recent_r2": -0.0161,
-          "delta_rtrain_r2": -0.0204,
-          "delta_all_mae": 0.034,
-          "delta_rtrain_mae": 0.113
+          "delta_all_r2": -0.006,
+          "delta_recent_r2": -0.0184,
+          "delta_rtrain_r2": -0.0295,
+          "delta_all_mae": 0.035,
+          "delta_rtrain_mae": 0.114
         },
         "sentiment": {
           "features": [
@@ -726,56 +726,56 @@
             "pdfSentimentNet"
           ],
           "all_yrs": {
-            "r2": 0.292,
-            "mae": 3.537,
-            "rho": 0.4459,
+            "r2": 0.2964,
+            "mae": 3.545,
+            "rho": 0.4433,
             "n": 303
           },
           "recent": {
-            "r2": 0.1001,
-            "mae": 4.168,
-            "rho": 0.2054,
+            "r2": 0.12,
+            "mae": 4.192,
+            "rho": 0.2283,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.0458,
-            "mae": 4.274,
-            "rho": 0.1936,
+            "r2": 0.0647,
+            "mae": 4.278,
+            "rho": 0.22,
             "n": 78
           },
-          "delta_all_r2": -0.0013,
-          "delta_recent_r2": 0.0077,
-          "delta_rtrain_r2": 0.0192,
-          "delta_all_mae": 0.006,
-          "delta_rtrain_mae": -0.048
+          "delta_all_r2": -0.0174,
+          "delta_recent_r2": -0.0497,
+          "delta_rtrain_r2": -0.0483,
+          "delta_all_mae": 0.052,
+          "delta_rtrain_mae": 0.166
         },
         "injury": {
           "features": [
             "pdfInjuryRedFlags"
           ],
           "all_yrs": {
-            "r2": 0.286,
-            "mae": 3.548,
-            "rho": 0.4468,
+            "r2": 0.3047,
+            "mae": 3.514,
+            "rho": 0.4605,
             "n": 303
           },
           "recent": {
-            "r2": 0.0697,
-            "mae": 4.28,
-            "rho": 0.2028,
+            "r2": 0.1385,
+            "mae": 4.127,
+            "rho": 0.2842,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.0143,
-            "mae": 4.342,
-            "rho": 0.2218,
+            "r2": 0.0871,
+            "mae": 4.148,
+            "rho": 0.2996,
             "n": 78
           },
-          "delta_all_r2": -0.0073,
-          "delta_recent_r2": -0.0227,
-          "delta_rtrain_r2": -0.0123,
-          "delta_all_mae": 0.017,
-          "delta_rtrain_mae": 0.02
+          "delta_all_r2": -0.0091,
+          "delta_recent_r2": -0.0312,
+          "delta_rtrain_r2": -0.0259,
+          "delta_all_mae": 0.021,
+          "delta_rtrain_mae": 0.036
         },
         "consensus": {
           "features": [
@@ -783,56 +783,56 @@
             "pdfHasData"
           ],
           "all_yrs": {
-            "r2": 0.287,
-            "mae": 3.559,
-            "rho": 0.4498,
+            "r2": 0.3053,
+            "mae": 3.528,
+            "rho": 0.4664,
             "n": 303
           },
           "recent": {
-            "r2": 0.084,
-            "mae": 4.245,
-            "rho": 0.2176,
+            "r2": 0.1528,
+            "mae": 4.1,
+            "rho": 0.293,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.029,
-            "mae": 4.333,
-            "rho": 0.2195,
+            "r2": 0.0948,
+            "mae": 4.155,
+            "rho": 0.2816,
             "n": 78
           },
-          "delta_all_r2": -0.0063,
-          "delta_recent_r2": -0.0084,
-          "delta_rtrain_r2": 0.0024,
-          "delta_all_mae": 0.028,
-          "delta_rtrain_mae": 0.011
+          "delta_all_r2": -0.0085,
+          "delta_recent_r2": -0.0169,
+          "delta_rtrain_r2": -0.0182,
+          "delta_all_mae": 0.035,
+          "delta_rtrain_mae": 0.043
         },
         "tier_elite": {
           "features": [
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.2943,
-            "mae": 3.519,
-            "rho": 0.4563,
+            "r2": 0.306,
+            "mae": 3.516,
+            "rho": 0.4673,
             "n": 303
           },
           "recent": {
-            "r2": 0.1026,
-            "mae": 4.128,
-            "rho": 0.2026,
+            "r2": 0.1487,
+            "mae": 4.09,
+            "rho": 0.295,
             "n": 78
           },
           "rtrain": {
-            "r2": 0.0105,
-            "mae": 4.302,
-            "rho": 0.2036,
+            "r2": 0.0593,
+            "mae": 4.198,
+            "rho": 0.2548,
             "n": 78
           },
-          "delta_all_r2": 0.001,
-          "delta_recent_r2": 0.0102,
-          "delta_rtrain_r2": -0.0161,
-          "delta_all_mae": -0.012,
-          "delta_rtrain_mae": -0.02
+          "delta_all_r2": -0.0078,
+          "delta_recent_r2": -0.021,
+          "delta_rtrain_r2": -0.0537,
+          "delta_all_mae": 0.023,
+          "delta_rtrain_mae": 0.086
         },
         "all_numeric": {
           "features": [
@@ -850,39 +850,39 @@
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.2758,
-            "mae": 3.586,
-            "rho": 0.4426,
+            "r2": 0.2721,
+            "mae": 3.618,
+            "rho": 0.4268,
             "n": 303
           },
           "recent": {
-            "r2": 0.0427,
-            "mae": 4.337,
-            "rho": 0.1942,
+            "r2": 0.0321,
+            "mae": 4.445,
+            "rho": 0.1729,
             "n": 78
           },
           "rtrain": {
-            "r2": -0.0123,
-            "mae": 4.375,
-            "rho": 0.2085,
+            "r2": -0.0291,
+            "mae": 4.488,
+            "rho": 0.1767,
             "n": 78
           },
-          "delta_all_r2": -0.0175,
-          "delta_recent_r2": -0.0497,
-          "delta_rtrain_r2": -0.0389,
-          "delta_all_mae": 0.055,
-          "delta_rtrain_mae": 0.053
+          "delta_all_r2": -0.0417,
+          "delta_recent_r2": -0.1376,
+          "delta_rtrain_r2": -0.1421,
+          "delta_all_mae": 0.125,
+          "delta_rtrain_mae": 0.376
         }
       },
       "boom_bust_baseline": {
         "all": {
-          "boom_rho": -0.1668,
-          "bust_auc": 0.4486,
+          "boom_rho": -0.0905,
+          "bust_auc": 0.4572,
           "n": 303
         },
         "recent": {
-          "boom_rho": -0.1985,
-          "bust_auc": 0.3736,
+          "boom_rho": -0.1133,
+          "bust_auc": 0.4462,
           "n": 78
         }
       },
@@ -893,17 +893,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": -0.1783,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.204,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": -0.0115,
-          "delta_recent_rho": -0.0055
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
         },
         "boom_sentiment": {
           "keys": [
@@ -912,17 +912,17 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": -0.1644,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0939,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.3237,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1831,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0024,
-          "delta_recent_rho": -0.1252
+          "delta_all_rho": -0.0034,
+          "delta_recent_rho": -0.0698
         },
         "boom_redflags": {
           "keys": [
@@ -930,17 +930,17 @@
             "pdfInjuryRedFlags"
           ],
           "all": {
-            "boom_rho": -0.1857,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.1256,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.2637,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1638,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": -0.0189,
-          "delta_recent_rho": -0.0652
+          "delta_all_rho": -0.0351,
+          "delta_recent_rho": -0.0505
         },
         "boom_disagree_scout": {
           "keys": [
@@ -949,13 +949,13 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4462,
             "n": 78
           },
           "delta_all_rho": 0.0,
@@ -967,34 +967,34 @@
             "athleticProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1485,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.089,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1834,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1107,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0183,
-          "delta_recent_rho": 0.0151
+          "delta_all_rho": 0.0015,
+          "delta_recent_rho": 0.0026
         },
         "boom_disagree_age": {
           "keys": [
             "ageProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1567,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0967,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.232,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1313,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0101,
-          "delta_recent_rho": -0.0335
+          "delta_all_rho": -0.0062,
+          "delta_recent_rho": -0.018
         },
         "boom_disagree_all": {
           "keys": [
@@ -1007,17 +1007,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1172,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0815,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1827,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.089,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0496,
-          "delta_recent_rho": 0.0158
+          "delta_all_rho": 0.009,
+          "delta_recent_rho": 0.0243
         },
         "boom_all": {
           "keys": [
@@ -1032,17 +1032,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": -0.152,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.1055,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.296,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1931,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0148,
-          "delta_recent_rho": -0.0975
+          "delta_all_rho": -0.015,
+          "delta_recent_rho": -0.0798
         },
         "boom_all_plus_disagree": {
           "keys": [
@@ -1062,17 +1062,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1511,
-            "bust_auc": 0.4486,
+            "boom_rho": -0.0966,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.2516,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1859,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_rho": 0.0157,
-          "delta_recent_rho": -0.0531
+          "delta_all_rho": -0.0061,
+          "delta_recent_rho": -0.0726
         },
         "bust_redflags": {
           "keys": [
@@ -1081,17 +1081,17 @@
             "pdfCharacterRedFlags"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4491,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.445,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3186,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.3941,
             "n": 78
           },
-          "delta_all_auc": 0.0005,
-          "delta_recent_auc": -0.055
+          "delta_all_auc": -0.0122,
+          "delta_recent_auc": -0.0521
         },
         "bust_rank": {
           "keys": [
@@ -1099,17 +1099,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4664,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4572,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.395,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_auc": 0.0178,
-          "delta_recent_auc": 0.0214
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
         },
         "bust_weakness": {
           "keys": [
@@ -1117,17 +1117,17 @@
             "pdfSentimentNet"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4647,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4608,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3464,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.3793,
             "n": 78
           },
-          "delta_all_auc": 0.0161,
-          "delta_recent_auc": -0.0272
+          "delta_all_auc": 0.0036,
+          "delta_recent_auc": -0.0669
         },
         "bust_disagree_scout": {
           "keys": [
@@ -1136,16 +1136,16 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4446,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4495,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_auc": -0.004,
+          "delta_all_auc": -0.0077,
           "delta_recent_auc": 0.0
         },
         "bust_disagree_talent": {
@@ -1154,17 +1154,17 @@
             "athleticProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4521,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4431,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.35,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4307,
             "n": 78
           },
-          "delta_all_auc": 0.0035,
-          "delta_recent_auc": -0.0236
+          "delta_all_auc": -0.0141,
+          "delta_recent_auc": -0.0155
         },
         "bust_disagree_overdraft": {
           "keys": [
@@ -1172,16 +1172,16 @@
             "pdfRoundXActual"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4446,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4495,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3736,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4462,
             "n": 78
           },
-          "delta_all_auc": -0.004,
+          "delta_all_auc": -0.0077,
           "delta_recent_auc": 0.0
         },
         "bust_disagree_all": {
@@ -1195,17 +1195,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4705,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4662,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.4164,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4588,
             "n": 78
           },
-          "delta_all_auc": 0.0219,
-          "delta_recent_auc": 0.0428
+          "delta_all_auc": 0.009,
+          "delta_recent_auc": 0.0126
         },
         "bust_all": {
           "keys": [
@@ -1219,17 +1219,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4739,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4735,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.4143,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.4208,
             "n": 78
           },
-          "delta_all_auc": 0.0253,
-          "delta_recent_auc": 0.0407
+          "delta_all_auc": 0.0163,
+          "delta_recent_auc": -0.0254
         },
         "bust_all_plus_disagree": {
           "keys": [
@@ -1248,30 +1248,30 @@
             "ageProductionGap"
           ],
           "all": {
-            "boom_rho": -0.1668,
-            "bust_auc": 0.4496,
+            "boom_rho": -0.0905,
+            "bust_auc": 0.4569,
             "n": 303
           },
           "recent": {
-            "boom_rho": -0.1985,
-            "bust_auc": 0.3186,
+            "boom_rho": -0.1133,
+            "bust_auc": 0.3899,
             "n": 78
           },
-          "delta_all_auc": 0.001,
-          "delta_recent_auc": -0.055
+          "delta_all_auc": -0.0003,
+          "delta_recent_auc": -0.0563
         }
       },
       "gap_fill": {
         "all_yrs": {
-          "r2": 0.2933,
-          "mae": 3.531,
-          "rho": 0.4546,
+          "r2": 0.3138,
+          "mae": 3.493,
+          "rho": 0.4694,
           "n": 303
         },
         "recent": {
-          "r2": 0.0924,
-          "mae": 4.217,
-          "rho": 0.2063,
+          "r2": 0.1697,
+          "mae": 4.05,
+          "rho": 0.285,
           "n": 78
         },
         "delta_all_r2": 0.0,
@@ -1305,28 +1305,28 @@
             "pdfHasRank"
           ],
           "all_yrs": {
-            "r2": 0.3383,
-            "mae": 3.013,
-            "rho": 0.5636,
+            "r2": 0.3368,
+            "mae": 3.036,
+            "rho": 0.557,
             "n": 446
           },
           "recent": {
-            "r2": 0.2726,
-            "mae": 2.915,
-            "rho": 0.5295,
+            "r2": 0.2593,
+            "mae": 2.969,
+            "rho": 0.5038,
             "n": 115
           },
           "rtrain": {
-            "r2": 0.2447,
-            "mae": 2.933,
-            "rho": 0.482,
+            "r2": 0.1941,
+            "mae": 3.019,
+            "rho": 0.3993,
             "n": 115
           },
-          "delta_all_r2": -0.007,
-          "delta_recent_r2": -0.0188,
-          "delta_rtrain_r2": 0.0371,
-          "delta_all_mae": 0.007,
-          "delta_rtrain_mae": -0.049
+          "delta_all_r2": -0.0085,
+          "delta_recent_r2": -0.0321,
+          "delta_rtrain_r2": -0.0135,
+          "delta_all_mae": 0.03,
+          "delta_rtrain_mae": 0.037
         },
         "round_only": {
           "features": [
@@ -1489,28 +1489,28 @@
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.3209,
-            "mae": 3.053,
-            "rho": 0.5472,
+            "r2": 0.3123,
+            "mae": 3.072,
+            "rho": 0.5366,
             "n": 446
           },
           "recent": {
-            "r2": 0.1999,
-            "mae": 3.01,
-            "rho": 0.4647,
+            "r2": 0.1642,
+            "mae": 3.092,
+            "rho": 0.4336,
             "n": 115
           },
           "rtrain": {
-            "r2": 0.085,
-            "mae": 3.214,
-            "rho": 0.4004,
+            "r2": 0.0415,
+            "mae": 3.278,
+            "rho": 0.3651,
             "n": 115
           },
-          "delta_all_r2": -0.0244,
-          "delta_recent_r2": -0.0915,
-          "delta_rtrain_r2": -0.1226,
-          "delta_all_mae": 0.047,
-          "delta_rtrain_mae": 0.232
+          "delta_all_r2": -0.033,
+          "delta_recent_r2": -0.1272,
+          "delta_rtrain_r2": -0.1661,
+          "delta_all_mae": 0.066,
+          "delta_rtrain_mae": 0.296
         }
       },
       "boom_bust_baseline": {
@@ -1532,17 +1532,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": 0.1418,
+            "boom_rho": 0.1517,
             "bust_auc": 0.5768,
             "n": 446
           },
           "recent": {
-            "boom_rho": 0.1486,
+            "boom_rho": 0.1669,
             "bust_auc": 0.5115,
             "n": 115
           },
-          "delta_all_rho": -0.0099,
-          "delta_recent_rho": -0.0183
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
         },
         "boom_sentiment": {
           "keys": [
@@ -1671,17 +1671,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": 0.1095,
+            "boom_rho": 0.0981,
             "bust_auc": 0.5768,
             "n": 446
           },
           "recent": {
-            "boom_rho": -0.0154,
+            "boom_rho": -0.0171,
             "bust_auc": 0.5115,
             "n": 115
           },
-          "delta_all_rho": -0.0422,
-          "delta_recent_rho": -0.1823
+          "delta_all_rho": -0.0536,
+          "delta_recent_rho": -0.184
         },
         "boom_all_plus_disagree": {
           "keys": [
@@ -1701,17 +1701,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": 0.1472,
+            "boom_rho": 0.1532,
             "bust_auc": 0.5768,
             "n": 446
           },
           "recent": {
-            "boom_rho": 0.1102,
+            "boom_rho": 0.1304,
             "bust_auc": 0.5115,
             "n": 115
           },
-          "delta_all_rho": -0.0045,
-          "delta_recent_rho": -0.0567
+          "delta_all_rho": 0.0015,
+          "delta_recent_rho": -0.0365
         },
         "bust_redflags": {
           "keys": [
@@ -1739,7 +1739,7 @@
           ],
           "all": {
             "boom_rho": 0.1517,
-            "bust_auc": 0.5717,
+            "bust_auc": 0.5733,
             "n": 446
           },
           "recent": {
@@ -1747,7 +1747,7 @@
             "bust_auc": 0.5082,
             "n": 115
           },
-          "delta_all_auc": -0.0051,
+          "delta_all_auc": -0.0035,
           "delta_recent_auc": -0.0033
         },
         "bust_weakness": {
@@ -1859,7 +1859,7 @@
           ],
           "all": {
             "boom_rho": 0.1517,
-            "bust_auc": 0.561,
+            "bust_auc": 0.5621,
             "n": 446
           },
           "recent": {
@@ -1867,7 +1867,7 @@
             "bust_auc": 0.4944,
             "n": 115
           },
-          "delta_all_auc": -0.0158,
+          "delta_all_auc": -0.0147,
           "delta_recent_auc": -0.0171
         },
         "bust_all_plus_disagree": {
@@ -1888,16 +1888,16 @@
           ],
           "all": {
             "boom_rho": 0.1517,
-            "bust_auc": 0.5753,
+            "bust_auc": 0.5746,
             "n": 446
           },
           "recent": {
             "boom_rho": 0.1669,
-            "bust_auc": 0.5283,
+            "bust_auc": 0.5277,
             "n": 115
           },
-          "delta_all_auc": -0.0015,
-          "delta_recent_auc": 0.0168
+          "delta_all_auc": -0.0022,
+          "delta_recent_auc": 0.0162
         }
       },
       "gap_fill": {
@@ -1944,28 +1944,28 @@
             "pdfHasRank"
           ],
           "all_yrs": {
-            "r2": 0.3588,
-            "mae": 2.1,
-            "rho": 0.5594,
+            "r2": 0.3579,
+            "mae": 2.105,
+            "rho": 0.5578,
             "n": 207
           },
           "recent": {
-            "r2": 0.4171,
-            "mae": 2.034,
-            "rho": 0.6069,
+            "r2": 0.4107,
+            "mae": 2.026,
+            "rho": 0.5977,
             "n": 53
           },
           "rtrain": {
-            "r2": 0.3431,
-            "mae": 2.243,
-            "rho": 0.5623,
+            "r2": 0.3417,
+            "mae": 2.227,
+            "rho": 0.543,
             "n": 53
           },
-          "delta_all_r2": 0.0019,
-          "delta_recent_r2": 0.0149,
-          "delta_rtrain_r2": 0.0349,
-          "delta_all_mae": 0.001,
-          "delta_rtrain_mae": -0.033
+          "delta_all_r2": 0.001,
+          "delta_recent_r2": 0.0085,
+          "delta_rtrain_r2": 0.0335,
+          "delta_all_mae": 0.006,
+          "delta_rtrain_mae": -0.049
         },
         "round_only": {
           "features": [
@@ -2128,28 +2128,28 @@
             "pdfTierElite"
           ],
           "all_yrs": {
-            "r2": 0.3459,
-            "mae": 2.107,
-            "rho": 0.5407,
+            "r2": 0.342,
+            "mae": 2.116,
+            "rho": 0.534,
             "n": 207
           },
           "recent": {
-            "r2": 0.4252,
-            "mae": 1.982,
-            "rho": 0.5577,
+            "r2": 0.3902,
+            "mae": 2.018,
+            "rho": 0.5471,
             "n": 53
           },
           "rtrain": {
-            "r2": 0.334,
-            "mae": 2.214,
-            "rho": 0.5393,
+            "r2": 0.2843,
+            "mae": 2.288,
+            "rho": 0.4674,
             "n": 53
           },
-          "delta_all_r2": -0.011,
-          "delta_recent_r2": 0.023,
-          "delta_rtrain_r2": 0.0258,
-          "delta_all_mae": 0.008,
-          "delta_rtrain_mae": -0.062
+          "delta_all_r2": -0.0149,
+          "delta_recent_r2": -0.012,
+          "delta_rtrain_r2": -0.0239,
+          "delta_all_mae": 0.017,
+          "delta_rtrain_mae": 0.012
         }
       },
       "boom_bust_baseline": {
@@ -2171,17 +2171,17 @@
             "pdfHasRank"
           ],
           "all": {
-            "boom_rho": 0.1209,
+            "boom_rho": 0.1297,
             "bust_auc": 0.5467,
             "n": 207
           },
           "recent": {
-            "boom_rho": 0.2169,
+            "boom_rho": 0.133,
             "bust_auc": 0.6721,
             "n": 53
           },
-          "delta_all_rho": -0.0088,
-          "delta_recent_rho": 0.0839
+          "delta_all_rho": 0.0,
+          "delta_recent_rho": 0.0
         },
         "boom_sentiment": {
           "keys": [
@@ -2310,17 +2310,17 @@
             "pdfHasData"
           ],
           "all": {
-            "boom_rho": 0.1349,
+            "boom_rho": 0.1392,
             "bust_auc": 0.5467,
             "n": 207
           },
           "recent": {
-            "boom_rho": 0.1876,
+            "boom_rho": 0.1975,
             "bust_auc": 0.6721,
             "n": 53
           },
-          "delta_all_rho": 0.0052,
-          "delta_recent_rho": 0.0546
+          "delta_all_rho": 0.0095,
+          "delta_recent_rho": 0.0645
         },
         "boom_all_plus_disagree": {
           "keys": [
@@ -2340,17 +2340,17 @@
             "sentimentProductionGap"
           ],
           "all": {
-            "boom_rho": 0.1437,
+            "boom_rho": 0.1435,
             "bust_auc": 0.5467,
             "n": 207
           },
           "recent": {
-            "boom_rho": 0.2102,
+            "boom_rho": 0.2041,
             "bust_auc": 0.6721,
             "n": 53
           },
-          "delta_all_rho": 0.014,
-          "delta_recent_rho": 0.0772
+          "delta_all_rho": 0.0138,
+          "delta_recent_rho": 0.0711
         },
         "bust_redflags": {
           "keys": [
@@ -2378,16 +2378,16 @@
           ],
           "all": {
             "boom_rho": 0.1297,
-            "bust_auc": 0.5665,
+            "bust_auc": 0.5467,
             "n": 207
           },
           "recent": {
             "boom_rho": 0.133,
-            "bust_auc": 0.6442,
+            "bust_auc": 0.6721,
             "n": 53
           },
-          "delta_all_auc": 0.0198,
-          "delta_recent_auc": -0.0279
+          "delta_all_auc": 0.0,
+          "delta_recent_auc": 0.0
         },
         "bust_weakness": {
           "keys": [
@@ -2498,7 +2498,7 @@
           ],
           "all": {
             "boom_rho": 0.1297,
-            "bust_auc": 0.5489,
+            "bust_auc": 0.5499,
             "n": 207
           },
           "recent": {
@@ -2506,7 +2506,7 @@
             "bust_auc": 0.6186,
             "n": 53
           },
-          "delta_all_auc": 0.0022,
+          "delta_all_auc": 0.0032,
           "delta_recent_auc": -0.0535
         },
         "bust_all_plus_disagree": {
@@ -2527,16 +2527,16 @@
           ],
           "all": {
             "boom_rho": 0.1297,
-            "bust_auc": 0.5255,
+            "bust_auc": 0.5249,
             "n": 207
           },
           "recent": {
             "boom_rho": 0.133,
-            "bust_auc": 0.6372,
+            "bust_auc": 0.6256,
             "n": 53
           },
-          "delta_all_auc": -0.0212,
-          "delta_recent_auc": -0.0349
+          "delta_all_auc": -0.0218,
+          "delta_recent_auc": -0.0465
         }
       },
       "gap_fill": {
