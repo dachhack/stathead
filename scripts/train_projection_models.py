@@ -1190,6 +1190,97 @@ def train_residual_models(rows):
 
 # ── Main ────────────────────────────────────────────────────────────
 
+def print_training_audit(adp, ppg, share, residual):
+    """Consolidate per-position sample sizes + CV R²/MAE across all four
+    models trained in this run. Meant to surface position imbalance
+    (audit item 7) at a glance so the reviewer catches when TE/QB drift
+    from WR/RB without having to diff four separate log blocks."""
+    POSITIONS = ['QB', 'RB', 'WR', 'TE']
+
+    def by_pos(models, key_n='n', key_r2='cvR2Ensemble', key_mae='cvMaeGbm'):
+        if not models:
+            return {}
+        out = {}
+        for m in models.get('models', []) if isinstance(models, dict) else models:
+            pos = m.get('position')
+            if pos:
+                out[pos] = (m.get(key_n, 0), m.get(key_r2, 0), m.get(key_mae, 0))
+        return out
+
+    adp_stats = by_pos(adp, key_r2='cvR2Ensemble', key_mae='cvMaeGbm') if adp else {}
+    ppg_stats = by_pos(ppg.get('ppgModels') if isinstance(ppg, dict) else None,
+                       key_r2='cvR2Gbm', key_mae='cvMaeGbm') if ppg else {}
+    res_stats = by_pos(residual.get('residualModels') if isinstance(residual, dict) else None,
+                       key_r2='cvR2Ensemble', key_mae='cvMaeGbm') if residual else {}
+
+    # Shares: one model per (position, share-key) pair. Summarize per-position as
+    # (#models trained, min n, max n, min R², max R²).
+    share_stats = {}
+    if share and share.get('shareModels'):
+        for model_key, m in share['shareModels'].items():
+            pos = model_key.split('_', 1)[0]
+            if pos not in share_stats:
+                share_stats[pos] = {'count': 0, 'ns': [], 'r2s': []}
+            share_stats[pos]['count'] += 1
+            share_stats[pos]['ns'].append(m.get('n', 0))
+            share_stats[pos]['r2s'].append(m.get('cvR2', 0))
+
+    print('\n' + '═' * 78)
+    print(' Training audit — per-position samples + LOSO CV R² (and MAE)')
+    print('═' * 78)
+    header = f' {"Pos":3s} | {"ADP (n, R²)":>17s} | {"PPG (n, R²)":>17s} | {"Resid (n, R²)":>17s} | {"Shares":>18s}'
+    print(header)
+    print('─' * 78)
+    for pos in POSITIONS:
+        a = adp_stats.get(pos)
+        p = ppg_stats.get(pos)
+        r = res_stats.get(pos)
+        s = share_stats.get(pos)
+
+        a_str = f'{a[0]:5d}, {a[1]:+.3f}' if a else '         —       '
+        p_str = f'{p[0]:5d}, {p[1]:+.3f}' if p else '         —       '
+        r_str = f'{r[0]:5d}, {r[1]:+.3f}' if r else '         —       '
+        if s:
+            r2_range = f'{min(s["r2s"]):+.2f}→{max(s["r2s"]):+.2f}'
+            s_str = f'{s["count"]}m, {r2_range}'
+        else:
+            s_str = '         —        '
+        print(f' {pos:3s} | {a_str:>17s} | {p_str:>17s} | {r_str:>17s} | {s_str:>18s}')
+
+    print('─' * 78)
+
+    # Imbalance check: flag when largest / smallest sample exceeds 3× within
+    # any single model. This is the signal that position-stratified training
+    # (or class weights) is worth considering.
+    for label, stats in [('ADP', adp_stats), ('PPG', ppg_stats), ('Residual', res_stats)]:
+        if len(stats) < 2:
+            continue
+        ns = [v[0] for v in stats.values() if v[0] > 0]
+        if not ns:
+            continue
+        ratio = max(ns) / max(1, min(ns))
+        if ratio >= 3.0:
+            big = max(stats.items(), key=lambda kv: kv[1][0])
+            small = min(stats.items(), key=lambda kv: kv[1][0])
+            print(f' ⚠  {label}: {big[0]} (n={big[1][0]}) is {ratio:.1f}× bigger than '
+                  f'{small[0]} (n={small[1][0]}). Position-stratified training not '
+                  f'currently applied; consider class weights or per-position tuning.')
+
+    # Rookie-specific CV within ADP (already computed per-position in train_adp_models)
+    if adp and adp.get('models'):
+        print(' ADP rookie-sub-model coverage:')
+        for m in adp['models']:
+            pos = m.get('position', '?')
+            n_rookie = m.get('nRookies', 0)
+            n_vet = m.get('nVets', 0)
+            r2_rookie = m.get('cvR2RookieOnly', 0)
+            r2_vet = m.get('cvR2VetOnly', 0)
+            rtype = m.get('rookieModelType', 'none')
+            print(f'   {pos}: rookies n={n_rookie} R²={r2_rookie:+.3f}  |  '
+                  f'vets n={n_vet} R²={r2_vet:+.3f}  [{rtype}]')
+    print('═' * 78 + '\n')
+
+
 def main():
     args = set(sys.argv[1:])
     only = None
@@ -1198,41 +1289,58 @@ def main():
         if idx + 1 < len(sys.argv):
             only = set(sys.argv[idx + 1].split(','))
 
+    # --summary: skip training entirely, just print the audit table from the
+    # already-cached model files. Useful to answer "what are the current
+    # per-position sample sizes?" without waiting on a full retrain.
+    if '--summary' in args:
+        adp = json.load(open(DATA_DIR / 'model-cache-adp-v56.json'))
+        ppg = json.load(open(DATA_DIR / 'model-cache-ppg-v56.json'))
+        share = json.load(open(DATA_DIR / 'model-cache-share-v56.json'))
+        residual = json.load(open(DATA_DIR / 'model-cache-residual-v56.json'))
+        print_training_audit(adp, ppg, share, residual)
+        return
+
     rows = load_rows()
     print(f'Loaded {len(rows)} training rows')
     t0 = time.time()
 
+    adp_result = ppg_result = share_result = residual_result = None
+
     if only is None or 'adp' in only:
         print('\n  Training ADP models...')
-        adp = train_adp_models(rows)
-        if adp:
+        adp_result = train_adp_models(rows)
+        if adp_result:
             with open(DATA_DIR / 'model-cache-adp-v56.json', 'w') as f:
-                json.dump(adp, f)
+                json.dump(adp_result, f)
             print(f'  ADP cache saved.')
 
     if only is None or 'ppg' in only:
         print('\n  Training PPG models...')
-        ppg = train_ppg_models(rows)
-        if ppg:
+        ppg_result = train_ppg_models(rows)
+        if ppg_result:
             with open(DATA_DIR / 'model-cache-ppg-v56.json', 'w') as f:
-                json.dump(ppg, f)
+                json.dump(ppg_result, f)
             print(f'  PPG cache saved.')
 
     if only is None or 'share' in only:
         print('\n  Training Share models...')
-        share = train_share_models(rows)
-        if share:
+        share_result = train_share_models(rows)
+        if share_result:
             with open(DATA_DIR / 'model-cache-share-v56.json', 'w') as f:
-                json.dump(share, f)
+                json.dump(share_result, f)
             print(f'  Share cache saved.')
 
     if only is None or 'residual' in only:
         print('\n  Training Residual models...')
-        residual = train_residual_models(rows)
-        if residual:
+        residual_result = train_residual_models(rows)
+        if residual_result:
             with open(DATA_DIR / 'model-cache-residual-v56.json', 'w') as f:
-                json.dump(residual, f)
+                json.dump(residual_result, f)
             print(f'  Residual cache saved.')
+
+    # Position-stratification audit — show sample sizes and CV R² across all
+    # four models in one table so imbalance is obvious (item 7 of the audit).
+    print_training_audit(adp_result, ppg_result, share_result, residual_result)
 
     elapsed = time.time() - t0
     print(f'\nDone in {elapsed:.1f}s')
