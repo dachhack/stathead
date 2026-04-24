@@ -183,6 +183,7 @@ export interface KTCPlayerHistory {
 }
 
 export type Tab =
+  | 'home'
   | 'projections'
   | 'stats'
   | 'compare'

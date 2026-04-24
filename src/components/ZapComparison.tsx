@@ -649,7 +649,6 @@ export function ZapComparison() {
               name: selectedPlayer.name,
               position: selectedPlayer.pos,
               draftSeason,
-              zapScore: selectedPlayer.zapScore,
               ourScore: selectedPlayer.ourScore,
               predictedPPG: selectedPlayer.predictedPPG || (is2026 ? pred?.predictedCareerPPG : bt?.predictedPPG) || 0,
               actualPPG: selectedPlayer.actualPPG,

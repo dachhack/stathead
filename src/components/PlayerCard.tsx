@@ -12,7 +12,6 @@ interface PlayerCardProps {
     name: string;
     position: string;
     draftSeason?: number;
-    zapScore?: number;
     ourScore?: number;
     predictedPPG?: number;
     actualPPG?: number;
@@ -222,19 +221,13 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
             if (ts <= 0) return null;
             return (
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center', minWidth: 72 }}
-                title="Our Score: predicted PPG mapped to ZAP's 2026 tier scale (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver / Dart).">
+                title="Our Score: predicted PPG mapped to a 2026 tier scale (Legendary / Elite / Weekly Starter / Flex / Bench / Waiver / Dart).">
                 <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Our Score</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: tierScoreColor(ts) }}>{ts.toFixed(1)}</div>
                 <div style={{ fontSize: 8, color: tierScoreColor(ts), marginTop: -2 }}>{tierName(ts)}</div>
               </div>
             );
           })()}
-          {player.zapScore != null && player.zapScore > 0 && (
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>ZAP Score</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#3b82f6' }}>{player.zapScore.toFixed(1)}</div>
-            </div>
-          )}
           {player.predictedPPG != null && player.predictedPPG > 0 && (
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 6, padding: '4px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Pred PPG</div>

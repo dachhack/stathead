@@ -6,7 +6,6 @@ import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import { PlayerLink } from './PlayerLink';
 import prospectGrades from '../data/prospect-grades-2026.json';
-import zapScores from '../data/zap-scores-2026.json';
 
 interface ProspectGrade {
   name: string;
@@ -56,7 +55,6 @@ interface ProspectRow {
   bustProb: number;
   boomZ?: number;
   bustZ?: number;
-  zapScore: number;
   careerFeatures?: Record<string, number>;
 }
 
@@ -157,14 +155,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             });
           }
         }
-        // ZAP score lookup
-        const zapMap = new Map<string, number>();
-        for (const pos of ['WR', 'RB', 'TE'] as const) {
-          for (const z of (zapScores as any)[pos] || []) {
-            zapMap.set(normalizeName(z.name), z.zap);
-          }
-        }
-
         // Position-specific thresholds from career models
         const posThresholds: Record<string, number[]> = {};
         if (featureData?.rookieCareerModels) {
@@ -243,7 +233,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             bustProb: career?.bustProb || 0,
             boomZ: career?.boomZ,
             bustZ: career?.bustZ,
-            zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           };
         });
@@ -282,7 +271,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             bustProb: career?.bustProb || 0,
             boomZ: career?.boomZ,
             bustZ: career?.bustZ,
-            zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           });
         }
@@ -317,7 +305,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             bustProb: career?.bustProb || 0,
             boomZ: career?.boomZ,
             bustZ: career?.bustZ,
-            zapScore: zapMap.get(nName) || 0,
             careerFeatures: career?.features,
           });
         }
@@ -334,7 +321,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     if (field === sortField) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortField(field);
-      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile', 'zapScore'];
+      const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile'];
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
@@ -409,7 +396,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       'rookieEcr', 'rookieBest', 'rookieWorst',
       'dynastyValue', 'superflexValue',
       'predictedCareerPPG', 'modelTier', 'percentile', 'combinedScore',
-      'boomProb', 'bustProb', 'boomZ', 'bustZ', 'zapScore',
+      'boomProb', 'bustProb', 'boomZ', 'bustZ',
       ...activeThresholds.map((t: number) => `p_ge_${t}ppg`),
       'ht', 'wt', 'forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle',
       'owned',
@@ -427,7 +414,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         r.rookieEcr || '', r.rookieBest || '', r.rookieWorst || '',
         r.dynastyValue || '', r.superflexValue || '',
         r.predictedCareerPPG || '', r.modelTier || '', r.percentile || '', r.combinedScore || '',
-        r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '', r.zapScore || '',
+        r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '',
         ...activeThresholds.map((t: number) => r.thresholdProbs?.[t] ?? ''),
         r.ht || '', r.wt || '', r.forty || '', r.bench || '', r.vertical || '', r.broadJump || '', r.cone || '', r.shuttle || '',
         r.owned || '',
@@ -558,9 +545,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               </th>
               <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }}>
                 Pctl{sortArrow('percentile')}
-              </th>
-              <th onClick={() => handleSort('zapScore')} style={{ cursor: 'pointer', fontSize: 11 }}>
-                ZAP{sortArrow('zapScore')}
               </th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }} title="Boom z-score: prospect's outperformance score standardized vs the historical NFL rookie distribution. +1σ = strong upside vs typical rookie at this draft slot.">Boom z</th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }} title="Bust z-score: prospect's bust-event score standardized vs the historical NFL rookie distribution. +1σ = unusually high bust risk; -1σ = unusually safe.">Bust z</th>
@@ -715,9 +699,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
                 </td>
-                <td style={{ fontSize: 12, fontWeight: 600, color: r.zapScore >= 75 ? '#22c55e' : r.zapScore >= 60 ? '#4ade80' : r.zapScore >= 40 ? '#facc15' : r.zapScore > 0 ? '#fb923c' : 'var(--text-muted)' }}>
-                  {r.zapScore > 0 ? r.zapScore.toFixed(1) : '-'}
-                </td>
                 <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomZ != null && r.boomZ >= 1 ? '#22c55e' : r.boomZ != null && r.boomZ >= 0.3 ? '#a3e635' : r.boomZ != null && r.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
                   {r.boomZ != null ? (r.boomZ >= 0 ? `+${r.boomZ.toFixed(2)}` : r.boomZ.toFixed(2)) : (r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-')}
                 </td>
@@ -765,7 +746,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               draftSeason: DRAFT_YEAR,
               ourScore: selectedPlayer.combinedScore,
               predictedPPG: selectedPlayer.predictedCareerPPG,
-              zapScore: selectedPlayer.zapScore || undefined,
               thresholdProbs: selectedPlayer.thresholdProbs,
               features: {
                 ...(ss?.features || selectedPlayer.careerFeatures || {}),

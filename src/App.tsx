@@ -35,6 +35,7 @@ import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { MyRankings } from './components/MyRankings';
 import { MyProspectRankings } from './components/MyProspectRankings';
 import { DataQuery } from './components/DataQuery';
+import { HomePage } from './components/HomePage';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
@@ -49,16 +50,18 @@ interface TabGroup {
   tabs: { id: Tab; label: string }[];
 }
 
+// Visible navigation groups. Retired pages (In-Season, Sleeper, Compare, ADP Research,
+// Advanced Stats, PBP, Combine, Draft History, Chart Builder, ZAP Compare, per-model
+// docs) remain wired in the render switch below so they keep working at their existing
+// tab ids — they just no longer appear in the header menu.
 const TAB_GROUPS: TabGroup[] = [
   {
-    label: 'Draft Prep',
+    label: 'Projections',
     tabs: [
       { id: 'projections', label: 'Projections' },
       { id: 'my-rankings', label: 'My Rankings' },
       { id: 'stats', label: 'Rankings' },
-      { id: 'adp', label: 'ADP Research' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
-      { id: 'docs-season-ppg', label: 'PPG Model Docs' },
     ],
   },
   {
@@ -69,33 +72,13 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'dynasty-forecast', label: 'Value Forecast' },
       { id: 'prospects', label: 'Prospects' },
       { id: 'my-prospects', label: 'My Prospect Rankings' },
-      { id: 'sleeper', label: 'Sleeper Sync' },
-      { id: 'compare', label: 'Compare' },
-      { id: 'docs-dynasty', label: 'Dynasty Model Docs' },
-    ],
-  },
-  {
-    label: 'In-Season',
-    tabs: [
-      { id: 'scoring', label: 'Scoring' },
-      { id: 'games', label: 'Games' },
-      { id: 'snaps', label: 'Snap Counts' },
-      { id: 'injuries', label: 'Injuries' },
-      { id: 'sportsdata', label: 'Odds & Lines' },
+      { id: 'career-backtest', label: 'Career Backtest' },
     ],
   },
   {
     label: 'Research',
     tabs: [
-      { id: 'advanced', label: 'Advanced Stats' },
-      { id: 'pbp', label: 'Play-by-Play' },
-      { id: 'combine', label: 'Combine' },
-      { id: 'draft', label: 'Draft History' },
-      { id: 'charts', label: 'Chart Builder' },
-      { id: 'career-backtest', label: 'Career Backtest' },
-      { id: 'zap-compare', label: 'ZAP Compare' },
       { id: 'data-query', label: 'Data Query (SQL)' },
-      { id: 'docs-rookie', label: 'Rookie Model Docs' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
   },
@@ -103,7 +86,7 @@ const TAB_GROUPS: TabGroup[] = [
 
 
 function App() {
-  const [tab, setTab] = useState<Tab>('projections');
+  const [tab, setTab] = useState<Tab>('home');
   const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -145,6 +128,12 @@ function App() {
           </div>
         </div>
         <nav className="nav-tabs">
+          <button
+            className={`nav-tab ${tab === 'home' ? 'active' : ''}`}
+            onClick={() => { setTab('home'); setExtraData([]); setOpenGroup(null); }}
+          >
+            Home
+          </button>
           {TAB_GROUPS.map((group) => {
             const isOpen = openGroup === group.label;
             const activeTab = group.tabs.find((t) => t.id === tab);
@@ -227,6 +216,7 @@ function App() {
           <PlayerDetail playerKey={playerDetailKey} onBack={() => setPlayerHash(null)} />
         ) : (
           <>
+        {tab === 'home' && <HomePage onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
         {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
