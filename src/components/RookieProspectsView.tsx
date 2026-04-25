@@ -60,7 +60,8 @@ interface ProspectRow {
 
 type SortField = keyof ProspectRow;
 
-const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'EDGE', 'DT', 'LB', 'CB', 'SAF', 'OL'];
+const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
+const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const DRAFT_YEAR = 2026;
 
 function normalizeName(name: string): string {
@@ -76,15 +77,6 @@ function normalizeName(name: string): string {
     .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function gradeColor(grade: number): string {
-  if (grade >= 90) return '#22c55e';
-  if (grade >= 85) return '#4ade80';
-  if (grade >= 78) return '#a3e635';
-  if (grade >= 70) return '#facc15';
-  if (grade >= 64) return '#fb923c';
-  return '#ef4444';
 }
 
 function valueColor(value: number): string {
@@ -116,7 +108,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
-  const [sortField, setSortField] = useState<SortField>('grade');
+  const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [view, setView] = useState<'graded' | 'all'>('graded');
   const [posThresholds, setPosThresholds] = useState<Record<string, number[]>>({});
@@ -329,15 +321,10 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const filtered = useMemo(() => {
     let d = [...rows];
     if (view === 'graded') d = d.filter((r) => r.grade > 0);
+    // The fantasy prospects board only shows skill-position rookies.
+    d = d.filter((r) => FANTASY_POSITIONS.has(r.pos.toUpperCase()));
     if (posFilter !== 'ALL') {
-      d = d.filter((r) => {
-        const pos = r.pos.toUpperCase();
-        if (posFilter === 'OL') return ['OT', 'OG', 'C', 'OL', 'IOL', 'G', 'T'].includes(pos);
-        if (posFilter === 'DT') return ['DT', 'DL', 'NT', 'IDL'].includes(pos);
-        if (posFilter === 'EDGE') return ['EDGE', 'OLB', 'DE'].includes(pos);
-        if (posFilter === 'SAF') return ['SAF', 'S', 'FS', 'SS'].includes(pos);
-        return pos === posFilter;
-      });
+      d = d.filter((r) => r.pos.toUpperCase() === posFilter);
     }
     if (search) {
       const q = search.toLowerCase();
@@ -360,7 +347,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         if ((aVal as number) === 0) aVal = sortDir === 'asc' ? Infinity : -Infinity;
         if ((bVal as number) === 0) bVal = sortDir === 'asc' ? Infinity : -Infinity;
       }
-      if (sortField === 'grade' || sortField === 'dynastyValue' || sortField === 'projPick') {
+      if (sortField === 'grade' || sortField === 'dynastyValue' || sortField === 'projPick' || sortField === 'percentile') {
         if ((aVal as number) === 0) aVal = sortDir === 'desc' ? -Infinity : Infinity;
         if ((bVal as number) === 0) bVal = sortDir === 'desc' ? -Infinity : Infinity;
       }
@@ -525,8 +512,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('school')} style={{ cursor: 'pointer' }}>
                 School{sortArrow('school')}
               </th>
-              <th onClick={() => handleSort('grade')} style={{ cursor: 'pointer' }}>
-                Grade{sortArrow('grade')}
+              <th
+                onClick={() => handleSort('percentile')}
+                style={{ cursor: 'pointer' }}
+                title="Career percentile vs all historical rookies at this position"
+              >
+                Pctl{sortArrow('percentile')}
               </th>
               <th onClick={() => handleSort('projRound')} style={{ cursor: 'pointer' }}>
                 Proj. Draft{sortArrow('projRound')}
@@ -543,13 +534,14 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <th onClick={() => handleSort('modelTier')} style={{ cursor: 'pointer' }}>
                 Tier{sortArrow('modelTier')}
               </th>
-              <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }}>
-                Pctl{sortArrow('percentile')}
-              </th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }} title="Boom z-score: prospect's outperformance score standardized vs the historical NFL rookie distribution. +1σ = strong upside vs typical rookie at this draft slot.">Boom z</th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }} title="Bust z-score: prospect's bust-event score standardized vs the historical NFL rookie distribution. +1σ = unusually high bust risk; -1σ = unusually safe.">Bust z</th>
               {activeThresholds.map(t => (
-                <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
+                <th
+                  key={t}
+                  style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}
+                  title={`P(best 2-of-3 PPG ≥ ${t}) — modeled probability the rookie’s best 2 of 3 first-3-year PPG clears ${t} PPR points/game`}
+                >
                   &gt;{t}
                 </th>
               ))}
@@ -583,24 +575,17 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 </td>
                 <td>{r.school || '-'}</td>
                 <td>
-                  {r.grade > 0 ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          background: gradeColor(r.grade),
-                        }}
-                      />
-                      <strong style={{ color: gradeColor(r.grade) }}>
-                        {r.grade}
-                      </strong>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                        {r.tier}
-                      </span>
-                    </span>
+                  {r.percentile > 0 ? (
+                    <strong style={{
+                      color: r.percentile >= 95 ? '#22c55e'
+                        : r.percentile >= 85 ? '#4ade80'
+                        : r.percentile >= 70 ? '#a3e635'
+                        : r.percentile >= 50 ? '#facc15'
+                        : r.percentile >= 25 ? '#fb923c'
+                        : '#ef4444',
+                    }}>
+                      {r.percentile}
+                    </strong>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
@@ -689,15 +674,6 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                       </span>
                     );
                   })()}
-                </td>
-                <td>
-                  {r.percentile > 0 ? (
-                    <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                      {r.percentile}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>-</span>
-                  )}
                 </td>
                 <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.boomZ != null && r.boomZ >= 1 ? '#22c55e' : r.boomZ != null && r.boomZ >= 0.3 ? '#a3e635' : r.boomZ != null && r.boomZ <= -0.5 ? '#fb923c' : 'var(--text-muted)' }}>
                   {r.boomZ != null ? (r.boomZ >= 0 ? `+${r.boomZ.toFixed(2)}` : r.boomZ.toFixed(2)) : (r.boomProb > 0 ? `${r.boomProb.toFixed(0)}%` : '-')}

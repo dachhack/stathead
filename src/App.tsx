@@ -287,7 +287,7 @@ function App() {
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
-        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} scenario={scenario} />}
+        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
         {tab === 'sportsdata' && (
           <SportsDataIOView
             season={season}

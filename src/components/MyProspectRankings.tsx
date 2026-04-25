@@ -67,6 +67,11 @@ interface ProspectRankRow {
   projRushShare: number;
   projTargets: number;
   projRushAtt: number;
+  // Actual draft results (populated once the player is drafted; sourced
+  // from combine.draft_team/draft_round/draft_ovr).
+  actualDraftTeam: string;
+  actualDraftRound: number;
+  actualDraftPick: number;
   // UI
   isLocked: boolean;
 }
@@ -304,6 +309,8 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     }
 
     const prospects2026 = combine.filter(c => c.season === DRAFT_YEAR);
+    const combineMap = new Map<string, CombineResult>();
+    for (const c of prospects2026) combineMap.set(normalizeName(c.player_name), c);
     const rookieFp = fpRanks.filter(r => r.ecr_type === 'drk');
     const fpMap = new Map<string, FantasyRanking>();
     for (const r of rookieFp) fpMap.set(normalizeName(r.player), r);
@@ -331,15 +338,23 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       const career = careerMap.get(nn);
       const proj = projByName.get(nn);
       const rosterTeam = teamByName.get(nn) || '';
+      const combineRec = combineMap.get(nn);
+
+      // Actual draft results from the combine feed. draft_team / draft_round /
+      // draft_ovr populate on the day the pick is announced; before that
+      // they're empty/0 and we fall back to '—' in the UI.
+      const actualDraftTeam = combineRec?.draft_team || '';
+      const actualDraftRound = combineRec?.draft_round || 0;
+      const actualDraftPick = combineRec?.draft_ovr || 0;
 
       // Projected volume — uses our internal redraft projections, scenario-adjusted.
-      // Team comes from the NFL roster feed (populates once rookies are drafted).
+      // Team prefers the actual draft team once announced, then the NFL roster feed.
       let projPPG = 0;
       let projTgtShare = 0;
       let projRushShare = 0;
       let projTargets = 0;
       let projRushAtt = 0;
-      const nflTeam = proj?.Team || rosterTeam;
+      const nflTeam = actualDraftTeam || proj?.Team || rosterTeam;
       const hasNflTeam = !!nflTeam;
       if (proj) {
         projPPG = (proj.FantasyPointsPPR || 0) > 0
@@ -378,6 +393,9 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
         projRushShare,
         projTargets,
         projRushAtt,
+        actualDraftTeam,
+        actualDraftRound,
+        actualDraftPick,
         isLocked: false,
       };
     };
@@ -688,7 +706,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       <div style={{ fontSize: 11, color: customOrder ? '#6366f1' : 'var(--text-muted)', marginBottom: 8 }}>
         {customOrder
           ? 'Custom ranking active. Drag to adjust, or Reset to return to default.'
-          : `Drag rows to reorder. Default sort: prospect grade, model PPG, ECR. NFL team and volume projections flow in from our internal projections once the rookie is rostered.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
+          : `Drag rows to reorder. Default sort: prospect grade, model PPG, ECR. Actual Pick + NFL team populate from the live draft feed; volume projections flow in from our internal projections once the rookie has a team.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
       </div>
 
       {/* Table */}
@@ -701,7 +719,13 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'left', minWidth: 100 }}>School</th>
               <th style={{ ...th, textAlign: 'right', width: 52 }}>Grade</th>
-              <th style={{ ...th, textAlign: 'left', width: 72 }}>Proj Draft</th>
+              <th style={{ ...th, textAlign: 'left', width: 72 }} title="Pre-draft projected round and pick (from prospect grades)">Proj Draft</th>
+              <th
+                style={{ ...th, textAlign: 'left', width: 96 }}
+                title="Actual draft slot once the pick is announced; Δ shows pick difference vs projection (negative = drafted earlier than projected)"
+              >
+                Actual Pick
+              </th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>ECR</th>
               <th style={{ ...th, textAlign: 'right', width: 60 }}>Dyn Val</th>
               <th style={{ ...th, textAlign: 'right', width: 56 }}>
@@ -718,7 +742,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{
                 ...th, textAlign: 'center', width: 44, borderLeft: '1px solid var(--border)',
                 color: '#6366f1',
-              }} title="NFL team once drafted">NFL</th>
+              }} title="NFL team — actual draft team if announced, otherwise current roster">NFL</th>
               <th style={{ ...th, textAlign: 'right', width: 52, color: '#6366f1' }}
                   title="Projected PPG from our internal projections, scenario-adjusted">
                 Proj PPG
@@ -762,6 +786,35 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                     {r.projRound > 0
                       ? `Rd ${r.projRound}${r.projPick > 0 ? ` #${r.projPick}` : ''}`
                       : '—'}
+                  </td>
+                  <td style={{
+                    ...td,
+                    color: r.actualDraftRound === 1 ? '#22c55e'
+                         : r.actualDraftRound === 2 ? '#a3e635'
+                         : r.actualDraftRound > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                    fontWeight: r.actualDraftRound > 0 ? 600 : 400,
+                  }}>
+                    {r.actualDraftRound > 0 ? (
+                      <>
+                        Rd {r.actualDraftRound}
+                        {r.actualDraftPick > 0 ? ` #${r.actualDraftPick}` : ''}
+                        {r.projPick > 0 && r.actualDraftPick > 0 && (() => {
+                          const delta = r.actualDraftPick - r.projPick;
+                          if (delta === 0) return null;
+                          const sign = delta > 0 ? '+' : '';
+                          // Drafted earlier than projected = good (negative delta).
+                          const color = delta < 0 ? '#22c55e' : '#fb923c';
+                          return (
+                            <span
+                              style={{ marginLeft: 6, fontSize: 10, color, fontWeight: 600 }}
+                              title="Actual pick − projected pick (negative = drafted earlier than projected)"
+                            >
+                              Δ {sign}{delta}
+                            </span>
+                          );
+                        })()}
+                      </>
+                    ) : '—'}
                   </td>
                   <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: r.rookieEcr < 999 ? ecrTierColor(r.rookieEcr) : 'var(--text-muted)' }}>
                     {r.rookieEcr < 999 ? r.rookieEcr.toFixed(1) : '—'}
