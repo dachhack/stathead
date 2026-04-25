@@ -198,8 +198,12 @@ export function DraftOptimizerTable() {
 
         const curve = adpCurves[a.position];
         // Curve undefined OR ADP missing OR predicted PPG missing → no edge.
+        // poolOffset corrects for selection bias between historical training
+        // rows and the curated 2026 pool (see AdpCurve docstring). Falls
+        // back to 0 (sqrt-only baseline) if a manifest from before the
+        // recentering shipped is in use.
         const adpBaselinePPG = curve && adp < 999 && pred > 0
-          ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp)
+          ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp) + (curve.poolOffset ?? 0)
           : NaN;
         const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
         const pBeat = haveCI && pred > 0 ? probBeatBaseline(pred, ciL, ciU, adpBaselinePPG) : NaN;
@@ -308,17 +312,21 @@ export function DraftOptimizerTable() {
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
         Sorted by <strong>Pick Edge</strong> — predicted PPG (ADP-free model)
         minus the position's ADP-curve baseline{' '}
-        <code>(intercept + slope·√ADP)</code>, fit on 2010–2025.{' '}
-        <strong>Beat %</strong> is the Gaussian-approximated probability that
-        actual PPG exceeds that baseline, with σ borrowed from the 10/90
-        quantile bounds. <strong>Upside / Downside</strong> are raw PPG
-        distances from the central prediction to ciUpper / ciLower — they
-        describe the size of the model's uncertainty band, not a probability
-        of booming or busting. Note: in-sample CI coverage is on target
-        (~80%); out-of-sample coverage is not yet validated. The 2026 pool's
-        PPG predictions trend above the historical curve average, so most
-        players show Beat % above 50% — that's the model's bullishness on
-        this pool, not a metric bug.
+        <code>(intercept + slope·√ADP + poolOffset)</code>. The
+        sqrt-curve is fit on 2010–2025 historical actuals; the poolOffset
+        recenters the baseline so PickEdge averages zero across the
+        current 2026 pool — without it, predictions skew systematically
+        positive because the pool is curated to rosterable players while
+        the historical curve includes every flameout that ever had an
+        ADP. So PickEdge reads as "edge over the typical 2026 draftable
+        at this ADP."{' '}
+        <strong>Beat %</strong> is the Gaussian-approximated probability
+        that actual PPG exceeds that baseline, with σ borrowed from the
+        10/90 quantile bounds (in-sample 80% CI coverage on target; OOS
+        not yet validated). <strong>Upside / Downside</strong> are raw
+        PPG distances from the central prediction to ciUpper / ciLower —
+        size of the uncertainty band, not a probability of booming or
+        busting.
         {Object.keys(curves).length === 0 && (
           <span style={{ color: '#fb923c', marginLeft: 6 }}>
             ADP curve unavailable — Pick Edge and Beat % will show as “—”

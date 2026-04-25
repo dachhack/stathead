@@ -2110,10 +2110,19 @@ async function main() {
     writeVolumeScores(volumeScores);
     console.log(`    volumes: ${volumeScores.length} predictions`);
 
-    // Per-position ADP→PPG baseline curve. Pulled from the residual models
-    // (each carries its own fitted sqrt-curve coefficients). Frontend uses
-    // these to compute Pick Edge = predictedPPG − (intercept + slope·√ADP).
-    const adpCurves: Record<string, { sqrtSlope: number; sqrtIntercept: number; n?: number }> = {};
+    // Per-position ADP→PPG baseline curve. The (slope, intercept) pair is
+    // pulled from the residual models (sqrt-curve fit on 2010–2025 historical
+    // actuals). The `poolOffset` is a recentering correction for selection
+    // bias — see the AdpCurve docstring in modelScoreStore.ts. Without it,
+    // PickEdge skews 2–4 PPG positive across the whole pool because the
+    // 2026 prediction set is curated to rosterable players while the
+    // historical curve is fit on all ADPed rows (including flameouts).
+    //
+    // Computed as: poolOffset[pos] = mean over the 2026 PPG-prediction pool
+    //   of (predictedPPG − (intercept + slope·√ADP)).
+    // After applying the offset, mean PickEdge across the pool is 0 by
+    // construction. Sort order is preserved (constant per-position shift).
+    const adpCurves: Record<string, { sqrtSlope: number; sqrtIntercept: number; poolOffset?: number; n?: number }> = {};
     for (const m of residualModels as Array<{ position: string; adpSqrtSlope?: number; adpSqrtIntercept?: number; n?: number }>) {
       if (m.adpSqrtSlope !== undefined && m.adpSqrtIntercept !== undefined) {
         adpCurves[m.position] = {
@@ -2122,6 +2131,19 @@ async function main() {
           n: m.n,
         };
       }
+    }
+    // Compute poolOffset per position from the 2026 PPG prediction pool.
+    for (const pos of Object.keys(adpCurves)) {
+      const c = adpCurves[pos];
+      const pool = (ppgPredictions2026 ?? []).filter((p: { position: string; adp: number; predictedPPG: number }) =>
+        p.position === pos && p.adp > 0 && p.adp <= MAX_ADP && p.predictedPPG > 0);
+      if (pool.length < 5) continue; // not enough players to recenter reliably
+      let sum = 0;
+      for (const p of pool) {
+        const baseSqrtOnly = c.sqrtIntercept + c.sqrtSlope * Math.sqrt(p.adp);
+        sum += p.predictedPPG - baseSqrtOnly;
+      }
+      c.poolOffset = Math.round((sum / pool.length) * 1000) / 1000;
     }
 
     // Manifest
