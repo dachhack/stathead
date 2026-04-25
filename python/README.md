@@ -67,14 +67,33 @@ cache directory or call `clear_cache()` to force a refresh.
 | `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
 | `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
 
+## Feature columns
+
+Career-prediction and backtest rows include flattened model features
+under names like `collegeDominatorRating`, `relativeAthleticScore`,
+`recruitRating`, `nflDraftPick`, plus two source-agnostic families
+aggregated from the project's scouting pipeline:
+
+- **`scout*`** — single-scout grade signals (e.g. `scoutGradeDraft`,
+  `scoutTierOrdinal`, `scoutBreadthDraft`, `scoutNComps`).
+- **`guide*`** — multi-source draft-guide aggregations
+  (`guideRankMean`, `guideRankSpread`, `guideNStrengths`,
+  `guideNWeaknesses`, `guideSentimentNet`, …).
+
+Both families are derived numeric features (counts, means, ordinals) —
+no verbatim scout text is shipped. `hasScoutGrade` / `hasGuideData`
+flag missing-data so models can distinguish "no scout coverage" from
+"low score".
+
 ## Licensing & attribution
 
 Package code is MIT-licensed. The data this package retrieves is derived
 from the StatHead project's own modeling pipeline; upstream sources
 (nflverse, FFC, CFBD, etc.) retain their own terms — see each source's
 license before redistributing. Sources whose terms do not permit
-third-party redistribution (e.g. KeepTradeCut dynasty values) are
-intentionally not exposed by this client.
+third-party redistribution (e.g. KeepTradeCut dynasty values, verbatim
+prose from paid scouting publications) are intentionally not exposed by
+this client.
 
 ADP data exposed by `load_adp_ffc` is courtesy of
 [Fantasy Football Calculator](https://fantasyfootballcalculator.com/) — please
