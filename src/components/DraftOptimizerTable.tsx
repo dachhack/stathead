@@ -12,6 +12,7 @@ import {
 } from '../lib/edgeBoardRow';
 import { DraftRoundPlan } from './DraftRoundPlan';
 import { DraftTierMap } from './DraftTierMap';
+import { DraftTargetsFades } from './DraftTargetsFades';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
 // the user's saved league settings.
@@ -633,6 +634,12 @@ export function DraftOptimizerTable() {
           predicted PPG — answer the "where do positions run out?"
           question; verdict color overlays the value signal. */}
       <DraftTierMap rows={rows} settings={settings} />
+
+      {/* Section 4: Targets & Fades. Top-N undervalued and overvalued
+          per position, scored by edge × confidence. Filtered to
+          ADP ≤ 200 by default to keep the lists in actionable
+          territory; toggle off for sleepers. */}
+      <DraftTargetsFades rows={rows} />
     </div>
   );
 }
