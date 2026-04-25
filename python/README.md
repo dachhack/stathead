@@ -62,7 +62,7 @@ cache directory or call `clear_cache()` to force a refresh.
 | `load_career_predictions_2026()` | 2026 rookie predictions | ~77 × ~80 cols |
 | `load_career_backtest()` | Historical rookies with pred + actual PPG | ~1087 × ~100 cols |
 | `load_adp_historical()` | Model-training ADP 2010-2025 | 4507 × 10 |
-| `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) | variable |
+| `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) — data via [Fantasy Football Calculator](https://fantasyfootballcalculator.com/adp/ppr) | variable |
 | `load_prospect_grades(year=2026)` | Draft scouting grades | ~200 × 7 |
 | `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
 | `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
@@ -74,9 +74,14 @@ from the StatHead project's own modeling pipeline; upstream sources
 (nflverse, FFC, CFBD, etc.) retain their own terms — see each source's
 license before redistributing. Sources whose terms do not permit
 third-party redistribution (e.g. KeepTradeCut dynasty values) are
-intentionally not exposed by this client. If you're building on these
-predictions, a link back to the StatHead repo is appreciated but not
-required.
+intentionally not exposed by this client.
+
+ADP data exposed by `load_adp_ffc` is courtesy of
+[Fantasy Football Calculator](https://fantasyfootballcalculator.com/) — please
+preserve attribution when redistributing.
+
+If you're building on these predictions, a link back to the StatHead repo
+is appreciated but not required.
 
 ## Contributing
 
