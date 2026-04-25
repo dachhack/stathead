@@ -10,8 +10,8 @@ Helpers on this module make the crosswalk ergonomic:
 
 - :func:`resolve_player` — name + optional position → ``player_key``
 - :func:`get_player` — ``player_key`` → full crosswalk record (dict)
-- :func:`load_player_profile` — merges every loader (backtest, ADP, KTC,
-  KTC history, career_2026, prospect grades) for one player
+- :func:`load_player_profile` — merges every loader (backtest, ADP,
+  career_2026, prospect grades) for one player
 """
 from __future__ import annotations
 
@@ -31,21 +31,22 @@ def load_player_crosswalk() -> pd.DataFrame:
     Columns include ``player_key`` (canonical), ``display_name``,
     ``position``, ``birth_date``, ``college``, ``gsis_id``, ``pfr_id``,
     ``sleeper_id``, ``espn_id``, ``pff_id``, ``yahoo_id``,
-    ``sportradar_id``, ``fantasy_data_id``, ``ktc_id``, ``draft_class``,
+    ``sportradar_id``, ``fantasy_data_id``, ``draft_class``,
     ``earliest_season``, ``latest_season``, ``is_college_only``.
 
-    Join any other loader (career backtest, ADP, KTC, player_stats) on
+    Join any other loader (career backtest, ADP, player_stats) on
     ``player_key`` for unambiguous cross-table analysis.
     """
     raw = fetch_json("public/data/player-crosswalk.json")
-    rows = [{k: v for k, v in rec.items() if k != "aliases"}
+    drop_keys = {"aliases", "ktc_id"}
+    rows = [{k: v for k, v in rec.items() if k not in drop_keys}
             for rec in raw.get("players") or []]
     df = pd.DataFrame(rows)
     # Consistent column order
     front = [c for c in [
         "player_key", "display_name", "position", "birth_date", "college",
         "gsis_id", "pfr_id", "sleeper_id", "espn_id", "pff_id", "yahoo_id",
-        "sportradar_id", "rotowire_id", "fantasy_data_id", "ktc_id",
+        "sportradar_id", "rotowire_id", "fantasy_data_id",
         "draft_class", "is_college_only", "earliest_season", "latest_season",
     ] if c in df.columns]
     rest = [c for c in df.columns if c not in front]
@@ -132,7 +133,7 @@ def get_player(player_key: str) -> dict[str, Any]:
     (display_name, position, every known alt ID, aliases, etc.)."""
     for rec in _crosswalk_cached():
         if rec.get("player_key") == player_key:
-            return dict(rec)
+            return {k: v for k, v in rec.items() if k != "ktc_id"}
     raise ValueError(f"Unknown player_key: {player_key!r}")
 
 
@@ -141,8 +142,7 @@ def load_player_profile(player_key: str) -> dict[str, pd.DataFrame | dict]:
 
     Returns a mapping of ``{table_name: DataFrame}`` where each DataFrame
     is filtered to rows matching ``player_key``. ``crosswalk`` is the
-    canonical record (dict). Silently skips tables without a ``player_key``
-    column (KTC lacks one today; future work will add it).
+    canonical record (dict).
 
     >>> profile = load_player_profile(sh.resolve_player("Ja'Marr Chase"))
     >>> profile['backtest'].shape
@@ -150,7 +150,6 @@ def load_player_profile(player_key: str) -> dict[str, pd.DataFrame | dict]:
     >>> profile['career_2026'].iloc[0]['predictedCareerPPG']
     """
     from .adp import load_adp_ffc, load_adp_historical
-    from .ktc import load_ktc, load_ktc_history
     from .predictions import load_career_backtest, load_career_predictions_2026
     from .prospects import load_prospect_grades
 
@@ -165,18 +164,6 @@ def load_player_profile(player_key: str) -> dict[str, pd.DataFrame | dict]:
             out[label] = df[df.player_key == player_key].reset_index(drop=True)
         else:
             out[label] = df.iloc[0:0]
-
-    # KTC / KTC history don't carry player_key yet — match via ktc_id on
-    # the crosswalk record. Fall back to name if ktc_id is missing.
-    ktc_id = out["crosswalk"].get("ktc_id")  # type: ignore[union-attr]
-    ktc = load_ktc()
-    hist = load_ktc_history()
-    if ktc_id is not None:
-        out["ktc"] = ktc[ktc.playerID == ktc_id].reset_index(drop=True)
-        out["ktc_history"] = hist[hist.playerID == ktc_id].reset_index(drop=True)
-    else:
-        out["ktc"] = ktc.iloc[0:0]
-        out["ktc_history"] = hist.iloc[0:0]
 
     prospects = load_prospect_grades()
     pname = out["crosswalk"].get("display_name", "")  # type: ignore[union-attr]

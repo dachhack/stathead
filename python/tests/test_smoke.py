@@ -11,7 +11,6 @@ import json
 import sys
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -53,19 +52,6 @@ def test_adp_historical_is_fully_populated():
     assert set(range(2010, 2026)).issubset(set(df.season.unique()))
 
 
-def test_ktc_current_values():
-    df = stathead.load_ktc()
-    assert not df.empty
-    assert {"name", "value_1qb", "value_superflex", "isRookie"}.issubset(df.columns)
-
-
-def test_ktc_history_is_long():
-    df = stathead.load_ktc_history()
-    assert not df.empty
-    assert {"playerID", "date", "value_1qb"}.issubset(df.columns)
-    assert pd.api.types.is_datetime64_any_dtype(df.date)
-
-
 def test_prospect_grades_2026():
     df = stathead.load_prospect_grades(2026)
     assert not df.empty
@@ -103,10 +89,8 @@ def test_load_player_profile_merges_tables():
     key = stathead.resolve_player("Ja'Marr Chase", position="WR")
     prof = stathead.load_player_profile(key)
     assert set(prof.keys()) >= {"crosswalk", "backtest", "adp_historical",
-                                "ktc", "ktc_history", "prospect_grades"}
+                                "prospect_grades"}
     assert prof["crosswalk"]["display_name"] == "Ja'Marr Chase"
-    # Chase should have KTC history
-    assert len(prof["ktc_history"]) > 0
 
 
 def test_player_crosswalk_is_populated():

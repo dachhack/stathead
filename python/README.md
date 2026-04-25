@@ -1,6 +1,6 @@
 # stathead
 
-Python client for the [StatHead](https://github.com/dachhack/stathead) fantasy football model. Returns pandas DataFrames of rookie career predictions, historical ADP, KeepTradeCut dynasty values, and the flattened feature matrix used to train the models.
+Python client for the [StatHead](https://github.com/dachhack/stathead) fantasy football model. Returns pandas DataFrames of rookie career predictions, historical ADP, and the flattened feature matrix used to train the models.
 
 ## Install
 
@@ -32,14 +32,6 @@ wr.groupby("modelTier")[["actualPPG", "predictedPPG"]].mean()
 # Historical ADP, every season fully populated
 adp = sh.load_adp_historical()
 adp[(adp.season == 2023) & (adp.adp <= 24)]
-
-# Dynasty values
-ktc = sh.load_ktc()
-ktc.nlargest(25, "value_1qb")
-
-# Daily KTC history (for momentum / trend analysis)
-hist = sh.load_ktc_history()
-hist.pivot_table(index="date", columns="name", values="value_1qb")
 ```
 
 ## Pinning to a specific version
@@ -71,8 +63,6 @@ cache directory or call `clear_cache()` to force a refresh.
 | `load_career_backtest()` | Historical rookies with pred + actual PPG | ~1087 × ~100 cols |
 | `load_adp_historical()` | Model-training ADP 2010-2025 | 4507 × 10 |
 | `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) | variable |
-| `load_ktc()` | Current KTC dynasty values | ~500 × 9 |
-| `load_ktc_history()` | Daily KTC history | ~100k × 7 |
 | `load_prospect_grades(year=2026)` | Draft scouting grades | ~200 × 7 |
 | `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
 | `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
@@ -81,8 +71,10 @@ cache directory or call `clear_cache()` to force a refresh.
 
 Package code is MIT-licensed. The data this package retrieves is derived
 from the StatHead project's own modeling pipeline; upstream sources
-(nflverse, FFC, KeepTradeCut, CFBD, etc.) retain their own terms — see
-each source's license before redistributing. If you're building on these
+(nflverse, FFC, CFBD, etc.) retain their own terms — see each source's
+license before redistributing. Sources whose terms do not permit
+third-party redistribution (e.g. KeepTradeCut dynasty values) are
+intentionally not exposed by this client. If you're building on these
 predictions, a link back to the StatHead repo is appreciated but not
 required.
 
