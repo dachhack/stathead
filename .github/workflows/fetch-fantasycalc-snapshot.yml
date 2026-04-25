@@ -1,0 +1,85 @@
+name: Fetch FantasyCalc Snapshot
+
+# Refreshes the latest FantasyCalc dynasty + redraft values, then appends
+# today's point to each player's history file. Commits both the refreshed
+# snapshots and the updated history series back to the triggering branch.
+#
+# api.fantasycalc.com rejects most direct browser requests with 403
+# host_not_allowed, so the fetch routes through workers/fc-proxy
+# (https://fc-proxy.dachhack.workers.dev). GitHub runners reach the worker
+# without issue.
+#
+# Trigger from the GitHub mobile app: repo → Actions → "Fetch FantasyCalc
+# Snapshot" → "Run workflow" → pick the branch.
+
+on:
+  schedule:
+    # 6:30 AM UTC — 30 min after the KTC snapshot, so both daily captures
+    # land before the deploy.yml site rebuild.
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch only, do not commit (for testing)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-fantasycalc-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Refresh current FantasyCalc snapshots
+        run: node scripts/fetch-fantasycalc.cjs public/data
+
+      - name: Append today's point to history series
+        run: node scripts/snapshot-fantasycalc.cjs public/data
+
+      - name: Show fetched file sizes
+        run: |
+          echo "=== current snapshots ==="
+          ls -lh public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json 2>&1 || true
+          echo ""
+          echo "=== history series ==="
+          ls -lh public/data/fantasycalc_history_*.json 2>&1 || true
+          echo ""
+          echo "=== history depth (dynasty_1qb) ==="
+          node -e "const h = require('./public/data/fantasycalc_history_dynasty_1qb.json'); console.log('players:', h.length); console.log('first player history points:', h[0]?.valueHistory?.length); console.log('earliest date:', h[0]?.valueHistory?.[0]?.d); console.log('latest date:', h[0]?.valueHistory?.slice(-1)?.[0]?.d);"
+
+      - name: Commit snapshot to triggering branch
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -f public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json
+          git add -f public/data/fantasycalc_history_dynasty_1qb.json public/data/fantasycalc_history_dynasty_sf.json public/data/fantasycalc_history_redraft_1qb.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit — snapshot already matches the tree."
+            exit 0
+          fi
+          TARGET_BRANCH="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
+          git commit -m "Fetch FantasyCalc snapshot ($(date -u +%Y-%m-%d))
+
+          Current values + appended history point for dynasty 1QB, dynasty SF,
+          and redraft 1QB. Fetched by .github/workflows/fetch-fantasycalc-snapshot.yml
+          on branch ${TARGET_BRANCH}.
+
+          [skip ci]"
+          git push origin HEAD:${TARGET_BRANCH}

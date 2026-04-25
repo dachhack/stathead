@@ -48,6 +48,7 @@ public/data/*
 !public/data/ffc_adp_ppr_*.json
 !public/data/espn_adp_*.json
 !public/data/fantasycalc_*.json
+!public/data/fantasycalc_history_*.json
 !public/data/ktc-fc-rescale.json
 .claude/*
 !.claude/commands/
