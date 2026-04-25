@@ -30,27 +30,36 @@ export interface EdgeBoardRow {
 }
 
 /**
- * Per-position verdict thresholds derived from the live PickEdge σ within
- * position, combined with Beat % bands. Per-position thresholds (instead
- * of universal cutoffs) compensate for the fact that QB has narrower
- * PickEdge spread than RB/WR/TE.
+ * Verdict thresholds derived from cohort-relative PickEdge z-scores.
+ * The cohort is `(position × ADP band)`, not just `position`. This
+ * matters because the curve baseline is structurally high at low ADPs
+ * (round-1 picks all show negative edge vs. curve) and structurally
+ * low at deep ADPs (every meaningful late prediction shows huge
+ * positive edge). Without per-band stratification, round-1 players
+ * cluster as Fade/Strong Fade and round-11 players cluster as Strong
+ * Target — independent of any genuine value disagreement. Recentering
+ * on each band's own mean and rescaling by its own σ makes the verdict
+ * read as "best/worst within your draft slot range."
  *
- * Strong Target: PickEdge ≥ +1.0σ AND Beat ≥ 60%
- * Target:        PickEdge ≥ +0.5σ AND Beat ≥ 50%
- * Strong Fade:   PickEdge ≤ −1.0σ AND Beat ≤ 40%
- * Fade:          PickEdge ≤ −0.5σ AND Beat ≤ 50%
+ * Strong Target: cohort z ≥ +1.0
+ * Target:        cohort z ≥ +0.5
+ * Strong Fade:   cohort z ≤ −1.0
+ * Fade:          cohort z ≤ −0.5
  *
- * If Beat % is missing (degenerate CI bounds), the verdict falls back to
- * PickEdge-only thresholds.
+ * Beat % is NOT mixed into the verdict — it's a separate, absolute
+ * probability ("does this player beat curve baseline regardless of
+ * cohort"). Anding it with cohort z would block all R1-3 Strong
+ * Targets, since everyone in that band has Beat < 50% by construction.
+ * Beat % stays as its own column so users can see both the cohort-
+ * relative and absolute views side by side.
  */
-export function verdictFor(pickEdge: number, pBeat: number, sigma: number): Verdict {
+export function verdictFor(pickEdge: number, _pBeat: number, sigma: number, mean = 0): Verdict {
   if (!Number.isFinite(pickEdge) || !Number.isFinite(sigma) || sigma <= 0) return 'Unknown';
-  const z = pickEdge / sigma;
-  const beatKnown = Number.isFinite(pBeat);
-  if (z >= 1.0 && (!beatKnown || pBeat >= 0.60)) return 'Strong Target';
-  if (z >= 0.5 && (!beatKnown || pBeat >= 0.50)) return 'Target';
-  if (z <= -1.0 && (!beatKnown || pBeat <= 0.40)) return 'Strong Fade';
-  if (z <= -0.5 && (!beatKnown || pBeat <= 0.50)) return 'Fade';
+  const z = (pickEdge - mean) / sigma;
+  if (z >= 1.0) return 'Strong Target';
+  if (z >= 0.5) return 'Target';
+  if (z <= -1.0) return 'Strong Fade';
+  if (z <= -0.5) return 'Fade';
   return 'Fair';
 }
 

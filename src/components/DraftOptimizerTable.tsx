@@ -5,7 +5,7 @@ import type { AdpCurve } from '../lib/modelScoreStore';
 import { DraftPrepSettings as SettingsHeader } from './DraftPrepSettings';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { loadSettings } from '../lib/draftPrepSettings';
-import { userPickNumbers, maxSurvival } from '../lib/snakeDraft';
+import { userPickNumbers, maxSurvival, bandIdFor } from '../lib/snakeDraft';
 import {
   type EdgeBoardRow,
   verdictFor, VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct,
@@ -276,20 +276,9 @@ export function DraftOptimizerTable() {
         };
       });
 
-      // Per-position σ of PickEdge for verdict thresholds.
-      const sigmaByPos = new Map<string, number>();
-      for (const pos of ['QB', 'RB', 'WR', 'TE']) {
-        const vals = partial
-          .filter((r) => r.position === pos && Number.isFinite(r.pickEdge))
-          .map((r) => r.pickEdge as number);
-        if (vals.length < 5) continue;
-        const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-        const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
-        sigmaByPos.set(pos, Math.sqrt(variance));
-      }
-
       // Per-position target-share percentile. Only RB/WR/TE have shares;
-      // QBs always get NaN (column displays as “—”).
+      // QBs always get NaN (column displays as “—”). Computed once at
+      // load time — doesn't depend on settings.
       const sortedSharesByPos = new Map<string, number[]>();
       for (const pos of ['RB', 'WR', 'TE']) {
         const vals = partial
@@ -301,7 +290,6 @@ export function DraftOptimizerTable() {
       const pctileFor = (pos: string, share: number): number => {
         const sorted = sortedSharesByPos.get(pos);
         if (!sorted || !Number.isFinite(share) || share <= 0) return NaN;
-        // Percent of pool ≤ this share.
         let lo = 0, hi = sorted.length;
         while (lo < hi) {
           const mid = (lo + hi) >> 1;
@@ -310,13 +298,16 @@ export function DraftOptimizerTable() {
         return Math.round((lo / sorted.length) * 100);
       };
 
-      const built: Row[] = partial.map((r) => {
-        const sigma = sigmaByPos.get(r.position) ?? NaN;
-        const verdict = verdictFor(r.pickEdge, r.pBeat, sigma);
-        const targetSharePctile = pctileFor(r.position, r.rawTargetShare);
-        const survivalBest = r.adp < 999 ? maxSurvival(r.adp, r.stdev || undefined, myPicks) : NaN;
-        return { ...r, verdict, targetSharePctile, survivalBest };
-      });
+      // Settings-independent fields baked here. Verdict + survivalBest
+      // depend on settings (numTeams shifts band edges; pick slot shifts
+      // survival picks) and are derived in a useMemo below so changing
+      // the settings header doesn't force a data refetch.
+      const built: Row[] = partial.map((r) => ({
+        ...r,
+        verdict: 'Unknown' as const,
+        targetSharePctile: pctileFor(r.position, r.rawTargetShare),
+        survivalBest: NaN,
+      }));
 
       setRows(built);
       setCurves(adpCurves);
@@ -328,10 +319,53 @@ export function DraftOptimizerTable() {
       }
     });
     return () => { cancelled = true; };
-  }, [myPicks]);
+  }, []);
+
+  // Settings-derived fields. Verdict thresholds use per-(position × ADP
+  // band) stats — recentered on each band's own mean and rescaled by its
+  // own σ. Without per-band stratification, round-1 picks all cluster as
+  // Fade (curve baseline is high) and round-11 picks all cluster as
+  // Strong Target (curve baseline is low) — independent of any genuine
+  // value disagreement. Cohort-relative verdicts make Strong Target read
+  // as "best in your draft slot range" rather than "guaranteed to beat
+  // ADP" (which Beat % already conveys).
+  const enrichedRows = useMemo<Row[]>(() => {
+    if (rows.length === 0) return rows;
+    const N = settings.numTeams;
+    const stats = new Map<string, { mean: number; std: number }>();
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      // Position-wide fallback for bands too thin to be reliable on their own.
+      const all = rows.filter((r) => r.position === pos && Number.isFinite(r.pickEdge));
+      if (all.length >= 5) {
+        const m = all.reduce((s, r) => s + r.pickEdge, 0) / all.length;
+        const v = all.reduce((s, r) => s + (r.pickEdge - m) ** 2, 0) / all.length;
+        stats.set(`${pos}::ALL`, { mean: m, std: Math.sqrt(v) });
+      }
+      for (const bandId of ['R1-3', 'R4-6', 'R7-10', 'R11+'] as const) {
+        const band = rows.filter((r) =>
+          r.position === pos
+          && Number.isFinite(r.pickEdge)
+          && bandIdFor(r.adp, N) === bandId,
+        );
+        if (band.length < 5) continue;
+        const m = band.reduce((s, r) => s + r.pickEdge, 0) / band.length;
+        const v = band.reduce((s, r) => s + (r.pickEdge - m) ** 2, 0) / band.length;
+        stats.set(`${pos}::${bandId}`, { mean: m, std: Math.sqrt(v) });
+      }
+    }
+    return rows.map((r) => {
+      const bandId = bandIdFor(r.adp, N);
+      const cohort = stats.get(`${r.position}::${bandId}`) ?? stats.get(`${r.position}::ALL`);
+      const verdict = cohort
+        ? verdictFor(r.pickEdge, r.pBeat, cohort.std, cohort.mean)
+        : 'Unknown';
+      const survivalBest = r.adp < 999 ? maxSurvival(r.adp, r.stdev || undefined, myPicks) : NaN;
+      return { ...r, verdict, survivalBest };
+    });
+  }, [rows, settings.numTeams, myPicks]);
 
   const displayRows = useMemo(() => {
-    let out = rows;
+    let out = enrichedRows;
     if (posFilter !== 'ALL') out = out.filter((r) => r.position === posFilter);
     if (adpBand !== 'ALL') {
       const band = ADP_BANDS.find((b) => b.id === adpBand);
@@ -366,7 +400,7 @@ export function DraftOptimizerTable() {
       return sortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
     return out;
-  }, [rows, posFilter, adpBand, myPicksOnly, search, sortKey, sortAsc, settings.numTeams]);
+  }, [enrichedRows, posFilter, adpBand, myPicksOnly, search, sortKey, sortAsc, settings.numTeams]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -429,8 +463,10 @@ export function DraftOptimizerTable() {
         / ciLower (uncertainty band, not a hit/bust probability).{' '}
         <strong>TS %ile</strong> = predicted target-share percentile
         within position (RB/WR R²≈0.30, TE R²≈0.12 — shown muted).{' '}
-        <strong>Verdict</strong> uses per-position PickEdge σ × Beat %
-        bands — Strong Target/Target/Fair/Fade/Strong Fade. Toggle{' '}
+        <strong>Verdict</strong> is cohort-relative — per-(position × ADP
+        band) z-score — so Strong Target reads as "best in your draft
+        slot range." Beat % stands alone as the absolute "will they beat
+        curve baseline" view. Toggle{' '}
         <em>Available at my picks</em> to filter to players with ≥15%
         survival probability across your snake-draft picks.
         {Object.keys(curves).length === 0 && (
@@ -529,7 +565,7 @@ export function DraftOptimizerTable() {
                 <span title="Within-position percentile of predicted target share (RB/WR/TE only). RB/WR share models are LOSO R²≈0.30; TE is R²≈0.12 (shown muted).">TS %ile</span>{sortArrow('targetSharePctile')}
               </th>
               <th style={{ ...th, textAlign: 'center', width: 110, cursor: 'default' }}>
-                <span title="Verdict: per-position thresholds combining PickEdge z-score and Beat %. Strong Target = ≥+1σ edge AND ≥60% beat; Target = ≥+0.5σ AND ≥50% beat; Fade/Strong Fade are mirrors.">Verdict</span>
+                <span title="Verdict: cohort-relative — z-score within (position × ADP band). Strong Target = top of band (z ≥ +1), Strong Fade = bottom of band (z ≤ −1). Per-band stratification keeps round-1 picks from all clustering as Fade and round-11 picks from all clustering as Strong Target. Beat % is separate (absolute probability vs curve).">Verdict</span>
               </th>
             </tr>
           </thead>
@@ -624,22 +660,21 @@ export function DraftOptimizerTable() {
         </div>
       )}
 
-      {/* Section 2: Round-by-Round Plan. Reads from the same `rows` and
-          `settings` the Edge Board uses; keyed off pickSlot/numTeams/
-          draftType so it auto-updates when the user tweaks the header. */}
-      <DraftRoundPlan rows={rows} settings={settings} />
+      {/* Section 2: Round-by-Round Plan. Reads enrichedRows so verdict
+          + survival reflect the user's current settings header. */}
+      <DraftRoundPlan rows={enrichedRows} settings={settings} />
 
       {/* Section 3: Tier Map. Per-position scatter (ADP × Pred PPG)
           with cliff lines at tier boundaries. Production tiers — by
           predicted PPG — answer the "where do positions run out?"
           question; verdict color overlays the value signal. */}
-      <DraftTierMap rows={rows} settings={settings} />
+      <DraftTierMap rows={enrichedRows} settings={settings} />
 
       {/* Section 4: Targets & Fades. Top-N undervalued and overvalued
           per position, scored by edge × confidence. Filtered to
           ADP ≤ 200 by default to keep the lists in actionable
           territory; toggle off for sleepers. */}
-      <DraftTargetsFades rows={rows} />
+      <DraftTargetsFades rows={enrichedRows} />
     </div>
   );
 }
