@@ -30,6 +30,18 @@ export function userPickNumbers(rounds: number, slot: number, numTeams: number, 
   return out;
 }
 
+/** ADP-band identifier — keeps in sync with the Edge Board's filter buttons. */
+export type AdpBandId = 'R1-3' | 'R4-6' | 'R7-10' | 'R11+';
+
+/** Bucket an ADP into a round-based band, scaled by the user's league size. */
+export function bandIdFor(adp: number, numTeams: number): AdpBandId {
+  const round = Math.ceil(adp / numTeams);
+  if (round <= 3) return 'R1-3';
+  if (round <= 6) return 'R4-6';
+  if (round <= 10) return 'R7-10';
+  return 'R11+';
+}
+
 /** Abramowitz & Stegun 26.2.17 normal CDF, accurate to ~7.5e-8. */
 function normCdf(z: number): number {
   const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
