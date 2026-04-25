@@ -6,12 +6,16 @@
  *
  *   career_2026     — 2026 prospect career predictions (flattened features)
  *   backtest        — historical rookie backtest rows (2010-2025, all pos)
- *   prospects       — 2026 draft-prospect scouting grades
+ *   prospects       — 2026 draft-prospect composite scouting grades
  *   player_stats    — per-player per-week NFL stats (2010-2026) including
- *                     fantasy_points / fantasy_points_ppr — from nflverse
- *   adp_ffc         — FFC PPR preseason ADP (per-season)
- *   ktc             — current KTC dynasty values (both 1qb + superflex)
- *   ktc_history     — daily KTC value history (flattened per player + date)
+ *                     fantasy_points / fantasy_points_ppr
+ *   adp_ffc         — community PPR preseason ADP (per-season)
+ *   adp_historical  — historical ADP used in training (2010-2025)
+ *   ktc             — current dynasty market values (1qb + superflex)
+ *   ktc_history     — daily dynasty value history (per player + date)
+ *
+ * Vendor-named feature columns (rsp*, pdf*) are renamed to source-agnostic
+ * scout* / guide* aliases at registration time — see FEATURE_RENAME below.
  *
  * Keep in lock-step with TABLE_DOCS below — the Data Query UI surfaces
  * that schema so users can discover columns.
@@ -68,6 +72,51 @@ function flattenFeatures<T extends { features?: Record<string, number> }>(
 ): Record<string, unknown> {
   const { features, ...rest } = row;
   return { ...rest, ...(features || {}) };
+}
+
+/** Vendor-named feature columns leak the upstream scouting source. The
+ *  on-disk training files keep the original names (the model pipeline
+ *  trains against them), but every public surface — python client, SQL
+ *  tab, anywhere user-visible — renames them at read time so consumers
+ *  see source-agnostic columns:
+ *    rsp* (single-source scout grade)  -> scout*
+ *    pdf* (multi-source draft guides)  -> guide*
+ *  Mirrors python/src/stathead/_renames.py. Keep in sync. */
+const FEATURE_RENAME: Record<string, string> = {
+  // single-scout grade family
+  rspAppearances: 'scoutAppearances',
+  rspBreadthDraft: 'scoutBreadthDraft',
+  rspBreadthLatest: 'scoutBreadthLatest',
+  rspDotDelta: 'scoutGradeDelta',
+  rspDotDraft: 'scoutGradeDraft',
+  rspDotLatest: 'scoutGradeLatest',
+  rspDotMax: 'scoutGradeMax',
+  rspHasData: 'hasScoutGrade',
+  rspNComps: 'scoutNComps',
+  rspTierOrdinal: 'scoutTierOrdinal',
+  // multi-source draft-guide aggregation
+  pdfHasData: 'hasGuideData',
+  pdfHasRank: 'hasGuideRank',
+  pdfHasRound: 'hasGuideRound',
+  pdfNRedFlags: 'guideNRedFlags',
+  pdfNStrengths: 'guideNStrengths',
+  pdfNWeaknesses: 'guideNWeaknesses',
+  pdfProjectedRound: 'guideProjectedRound',
+  pdfRankOverallMax: 'guideRankMax',
+  pdfRankOverallMean: 'guideRankMean',
+  pdfRankOverallMin: 'guideRankMin',
+  pdfRankSpread: 'guideRankSpread',
+  pdfRankXPick: 'guideRankXPick',
+  pdfRoundXActual: 'guideRoundXActual',
+  pdfSentimentNet: 'guideSentimentNet',
+};
+
+function renameVendorKeys(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[FEATURE_RENAME[k] ?? k] = v;
+  }
+  return out;
 }
 
 /** Fetch + gunzip a .csv.gz source file, return the raw CSV bytes ready to
@@ -208,7 +257,7 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
 
   const career_2026: Record<string, unknown>[] =
     (fm?.careerPredictions2026 || []).map((p) => {
-      const flat = flattenFeatures(p) as Record<string, unknown>;
+      const flat = renameVendorKeys(flattenFeatures(p) as Record<string, unknown>);
       // feature-matrix.json already stamps player_key via precompute, but
       // safety-net if the file was built pre-crosswalk.
       if (!flat.player_key && p.name && p.position) {
@@ -222,7 +271,9 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
   const rookieModels = cache?.rookieCareerModels || {};
   for (const [pos, model] of Object.entries(rookieModels)) {
     for (const r of model.backtestRows || []) {
-      const flat = flattenFeatures({ ...r, position: r.position || pos }) as Record<string, unknown>;
+      const flat = renameVendorKeys(
+        flattenFeatures({ ...r, position: r.position || pos }) as Record<string, unknown>,
+      );
       const pk = stampKey(r.name, r.position || pos);
       if (pk) flat.player_key = pk;
       backtest.push(flat);
@@ -473,11 +524,9 @@ export const TABLE_DOCS: Array<{
   {
     name: 'player_crosswalk',
     description:
-      'Canonical player identity — one row per player with every known ID (gsis, pfr, sleeper, espn, yahoo, pff, sportradar, fantasy_data, ktc, etc.). Every other table carries a `player_key` column that joins here. College-only rows (`is_college_only = true`) are pre-draft prospects; they get upgraded to the NFL GSIS key once drafted.',
+      'Canonical player identity — one row per player with the IDs we use to join across tables. Every other table carries a `player_key` column that joins here. College-only rows (`is_college_only = true`) are pre-draft prospects; they get upgraded to the NFL ID once drafted.',
     exampleColumns: [
       'player_key', 'display_name', 'position', 'birth_date', 'college',
-      'gsis_id', 'pfr_id', 'sleeper_id', 'espn_id', 'pff_id', 'yahoo_id',
-      'sportradar_id', 'fantasy_data_id', 'ktc_id',
       'draft_class', 'earliest_season', 'latest_season', 'is_college_only',
     ],
   },
@@ -489,7 +538,7 @@ export const TABLE_DOCS: Array<{
       'player_key', 'name', 'position', 'adp', 'predictedCareerPPG', 'percentile', 'modelTier',
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
       'nflDraftPick', 'projRound', 'recruitRating', 'collegeUsageOverall',
-      'collegeDominatorRating', 'collegeBreakoutScore', 'rspDotDraft', 'pdfRankOverallMean',
+      'collegeDominatorRating', 'collegeBreakoutScore', 'scoutGradeDraft', 'guideRankMean',
       'relativeAthleticScore', 'speedScore', 'forty', 'weight',
     ],
   },
@@ -507,13 +556,13 @@ export const TABLE_DOCS: Array<{
   {
     name: 'prospects',
     description:
-      '2026 draft-prospect scouting grades (NFL.com / PFN composite). Use to join scouting grades onto career_2026 via name.',
+      '2026 draft-prospect composite scouting grades. Use to join scout grades onto career_2026 via name.',
     exampleColumns: ['name', 'pos', 'school', 'grade', 'projRound', 'projPick', 'tier'],
   },
   {
     name: 'player_stats',
     description:
-      'Per-player per-week NFL stats from nflverse (2010-2026). Includes fantasy_points + fantasy_points_ppr, and a canonical player_key stamped via LEFT JOIN on crosswalk.gsis_id — use player_key for clean joins. Schema drifted in 2025: use COALESCE(recent_team, team), COALESCE(interceptions, passing_interceptions), COALESCE(sacks, sacks_suffered) to normalize across years.',
+      'Per-player per-week NFL stats (2010-2026). Includes fantasy_points + fantasy_points_ppr, and a canonical player_key stamped via the crosswalk — use player_key for clean joins. Schema drifted in 2025: use COALESCE(recent_team, team), COALESCE(interceptions, passing_interceptions), COALESCE(sacks, sacks_suffered) to normalize across years.',
     exampleColumns: [
       'player_key', 'player_id', 'player_name', 'position',
       'recent_team', 'team', 'season', 'week', 'season_type', 'opponent_team',
@@ -526,7 +575,7 @@ export const TABLE_DOCS: Array<{
   {
     name: 'adp_ffc',
     description:
-      'FFC PPR preseason ADP — raw FFC API response by season. Coverage depends on what has been fetched; run scripts/pull-all-data-sources.sh to refresh.',
+      'Community PPR preseason ADP by season. Coverage depends on what has been fetched into the local cache.',
     exampleColumns: ['season', 'name', 'position', 'team', 'adp', 'high', 'low', 'stdev', 'timesDrafted', 'bye'],
   },
   {
@@ -538,13 +587,13 @@ export const TABLE_DOCS: Array<{
   {
     name: 'ktc',
     description:
-      'Current KeepTradeCut dynasty values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies.',
+      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies.',
     exampleColumns: ['playerID', 'name', 'position', 'positionRank', 'team', 'age', 'value_1qb', 'value_superflex', 'isRookie'],
   },
   {
     name: 'ktc_history',
     description:
-      'Daily KTC value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis.',
+      'Daily dynasty value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis.',
     exampleColumns: ['playerID', 'name', 'position', 'team', 'date', 'value_1qb', 'value_superflex'],
   },
 ];
@@ -664,14 +713,14 @@ WHERE c.percentile >= 80
 ORDER BY c.percentile DESC;`,
   },
   {
-    label: 'Alpha rate by RSP Tier (backtest)',
-    sql: `SELECT rspTierOrdinal AS tier,
+    label: 'Alpha rate by scout tier (backtest)',
+    sql: `SELECT scoutTierOrdinal AS tier,
        COUNT(*) AS n,
        AVG(CASE WHEN modelTier = 1 THEN 1.0 ELSE 0 END) AS alpha_rate,
        AVG(actualPPG) AS avg_actual_ppg
 FROM backtest
-WHERE rspTierOrdinal >= 7
-GROUP BY rspTierOrdinal
-ORDER BY rspTierOrdinal DESC;`,
+WHERE scoutTierOrdinal >= 7
+GROUP BY scoutTierOrdinal
+ORDER BY scoutTierOrdinal DESC;`,
   },
 ];

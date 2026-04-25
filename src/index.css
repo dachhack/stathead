@@ -613,6 +613,21 @@ tr:hover td {
   .player-cell {
     min-width: 150px;
   }
+
+  .data-query-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .data-query-sidebar {
+    max-height: 240px !important;
+  }
+}
+
+.data-query-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 12px;
+  min-height: 220px;
 }
 
 /* Chat Drawer */
