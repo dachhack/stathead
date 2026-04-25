@@ -436,12 +436,12 @@ async function main() {
     const pos = m.position as string;
     const resGbm = m.gbmModel as any;
     const resRidge = m.ridgeModel as any;
-    const slope = m.adpSlope as number;
-    const intercept = m.adpIntercept as number;
+    const slope = m.adpSqrtSlope as number;
+    const intercept = m.adpSqrtIntercept as number;
     const alpha = m.bestAlpha as number;
     const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
     for (const r of posPredRows) {
-      const adpImplied = intercept + slope * r.adp;
+      const adpImplied = intercept + slope * Math.sqrt(r.adp);
       const gbmRes = predictGBM(resGbm, r.features).predicted;
       const ridgeRes = predict(resRidge, r.features).predicted;
       const residual = gbmRes * 0.7 + ridgeRes * 0.3;
@@ -1936,7 +1936,7 @@ async function main() {
   // Strip players2025 and trained models from residualModels to reduce output size
   const residualModelsOutput = residualModels.map((m: any) => ({
     position: m.position, bestAlpha: m.bestAlpha, n: m.n, backtest: m.backtest,
-    adpSlope: m.adpSlope, adpIntercept: m.adpIntercept,
+    adpSqrtSlope: m.adpSqrtSlope, adpSqrtIntercept: m.adpSqrtIntercept,
   }));
   // Build share model summary for output (no trained model weights, just metrics)
   const shareModelSummary: Record<string, { cvR2: number; cvMAE: number; n: number }> = {};
@@ -2110,6 +2110,42 @@ async function main() {
     writeVolumeScores(volumeScores);
     console.log(`    volumes: ${volumeScores.length} predictions`);
 
+    // Per-position ADP→PPG baseline curve. The (slope, intercept) pair is
+    // pulled from the residual models (sqrt-curve fit on 2010–2025 historical
+    // actuals). The `poolOffset` is a recentering correction for selection
+    // bias — see the AdpCurve docstring in modelScoreStore.ts. Without it,
+    // PickEdge skews 2–4 PPG positive across the whole pool because the
+    // 2026 prediction set is curated to rosterable players while the
+    // historical curve is fit on all ADPed rows (including flameouts).
+    //
+    // Computed as: poolOffset[pos] = mean over the 2026 PPG-prediction pool
+    //   of (predictedPPG − (intercept + slope·√ADP)).
+    // After applying the offset, mean PickEdge across the pool is 0 by
+    // construction. Sort order is preserved (constant per-position shift).
+    const adpCurves: Record<string, { sqrtSlope: number; sqrtIntercept: number; poolOffset?: number; n?: number }> = {};
+    for (const m of residualModels as Array<{ position: string; adpSqrtSlope?: number; adpSqrtIntercept?: number; n?: number }>) {
+      if (m.adpSqrtSlope !== undefined && m.adpSqrtIntercept !== undefined) {
+        adpCurves[m.position] = {
+          sqrtSlope: m.adpSqrtSlope,
+          sqrtIntercept: m.adpSqrtIntercept,
+          n: m.n,
+        };
+      }
+    }
+    // Compute poolOffset per position from the 2026 PPG prediction pool.
+    for (const pos of Object.keys(adpCurves)) {
+      const c = adpCurves[pos];
+      const pool = (ppgPredictions2026 ?? []).filter((p: { position: string; adp: number; predictedPPG: number }) =>
+        p.position === pos && p.adp > 0 && p.adp <= MAX_ADP && p.predictedPPG > 0);
+      if (pool.length < 5) continue; // not enough players to recenter reliably
+      let sum = 0;
+      for (const p of pool) {
+        const baseSqrtOnly = c.sqrtIntercept + c.sqrtSlope * Math.sqrt(p.adp);
+        sum += p.predictedPPG - baseSqrtOnly;
+      }
+      c.poolOffset = Math.round((sum / pool.length) * 1000) / 1000;
+    }
+
     // Manifest
     writeScoreManifest({
       version: 1,
@@ -2120,6 +2156,7 @@ async function main() {
         ppg: { version: 'v50', count: ppgScores.length },
         volumes: { version: 'v1', count: volumeScores.length },
       },
+      adpCurves,
     });
     console.log('    manifest written');
   }

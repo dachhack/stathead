@@ -963,8 +963,12 @@ def train_share_models(rows):
 def train_residual_models(rows):
     """Train ADP-residual models.
 
-    Residual target: y_residual = rawPPG - (adp_intercept + adp_slope * adp).
-    The model learns corrections on top of a linear ADP→PPG baseline.
+    Residual target: y_residual = rawPPG - (adp_sqrt_intercept + adp_sqrt_slope * sqrt(adp)).
+    The model learns corrections on top of a sqrt-ADP→PPG baseline. The
+    sqrt form was chosen empirically (LOSO MAE) over linear/log/inverse/
+    quadratic — it captures the elite-tier dropoff cleanly without the
+    edge pathologies of log (blowup near ADP=0) or quadratic (non-monotone
+    extremes). See git log for the audit.
 
     Feature lists below are the pruned sets produced by running
     scripts/ablate_residual_features.py on the post-leakage-fix feature set.
@@ -1085,15 +1089,17 @@ def train_residual_models(rows):
         adps = np.array([sf(r.get('adp', 999)) for r in pos_rows])
         n = len(pos_rows)
 
-        # ADP→PPG curve
+        # ADP→PPG curve: PPG = adp_sqrt_intercept + adp_sqrt_slope * sqrt(ADP).
+        # See module docstring for why sqrt over linear.
         valid_adp = adps < 250
         if valid_adp.sum() >= 10:
-            coeffs = np.polyfit(adps[valid_adp], y_ppg[valid_adp], 1)
-            adp_slope, adp_intercept = float(coeffs[0]), float(coeffs[1])
+            coeffs = np.polyfit(np.sqrt(adps[valid_adp]), y_ppg[valid_adp], 1)
+            adp_sqrt_slope, adp_sqrt_intercept = float(coeffs[0]), float(coeffs[1])
         else:
-            adp_slope, adp_intercept = old_m.get('adpSlope', 0), old_m.get('adpIntercept', 0)
+            adp_sqrt_slope = old_m.get('adpSqrtSlope', 0)
+            adp_sqrt_intercept = old_m.get('adpSqrtIntercept', 0)
 
-        y_residual = y_ppg - (adp_intercept + adp_slope * adps)
+        y_residual = y_ppg - (adp_sqrt_intercept + adp_sqrt_slope * np.sqrt(adps))
 
         ridge = train_ridge_js(X, y_residual, feature_names, 8)
         lgb_params = {
@@ -1126,12 +1132,12 @@ def train_residual_models(rows):
             y_ppg_tr = y_ppg[tr]
             valid_tr = adps_tr < 250
             if valid_tr.sum() >= 10:
-                c = np.polyfit(adps_tr[valid_tr], y_ppg_tr[valid_tr], 1)
+                c = np.polyfit(np.sqrt(adps_tr[valid_tr]), y_ppg_tr[valid_tr], 1)
                 s_tr, i_tr = float(c[0]), float(c[1])
             else:
-                s_tr, i_tr = adp_slope, adp_intercept
-            y_res_tr = y_ppg_tr - (i_tr + s_tr * adps_tr)
-            y_res_te_true = y_ppg[te] - (i_tr + s_tr * adps[te])
+                s_tr, i_tr = adp_sqrt_slope, adp_sqrt_intercept
+            y_res_tr = y_ppg_tr - (i_tr + s_tr * np.sqrt(adps_tr))
+            y_res_te_true = y_ppg[te] - (i_tr + s_tr * np.sqrt(adps[te]))
 
             r_fold = Ridge(alpha=8)
             r_fold.fit(X[tr], y_res_tr)
@@ -1159,12 +1165,12 @@ def train_residual_models(rows):
             y_ppg_tr = y_ppg[tr]
             valid_tr = adps_tr < 250
             if valid_tr.sum() >= 10:
-                c = np.polyfit(adps_tr[valid_tr], y_ppg_tr[valid_tr], 1)
+                c = np.polyfit(np.sqrt(adps_tr[valid_tr]), y_ppg_tr[valid_tr], 1)
                 s_tr, i_tr = float(c[0]), float(c[1])
             else:
-                s_tr, i_tr = adp_slope, adp_intercept
+                s_tr, i_tr = adp_sqrt_slope, adp_sqrt_intercept
             for idx in te:
-                y_residual_loso[idx] = y_ppg[idx] - (i_tr + s_tr * adps[idx])
+                y_residual_loso[idx] = y_ppg[idx] - (i_tr + s_tr * np.sqrt(adps[idx]))
 
         cv_r2_gbm = float(r2_score(y_residual_loso, loso_gbm)) if n > 0 else 0.0
         cv_r2_ridge = float(r2_score(y_residual_loso, loso_ridge)) if n > 0 else 0.0
@@ -1183,7 +1189,7 @@ def train_residual_models(rows):
         # and pick the value that minimizes final-PPG LOSO MAE. This makes
         # the shrinkage automatic: high-R² positions keep alpha ≈ 1, low-R²
         # positions shrink toward 0 (baseline ADP curve wins).
-        adp_implied = adp_intercept + adp_slope * adps
+        adp_implied = adp_sqrt_intercept + adp_sqrt_slope * np.sqrt(adps)
         grid = np.linspace(0, 1, 21)
         best_alpha, best_mae = 1.0, float('inf')
         for a in grid:
@@ -1197,8 +1203,8 @@ def train_residual_models(rows):
             'position': pos,
             'gbmModel': gbm_js,
             'ridgeModel': ridge,
-            'adpSlope': adp_slope,
-            'adpIntercept': adp_intercept,
+            'adpSqrtSlope': adp_sqrt_slope,
+            'adpSqrtIntercept': adp_sqrt_intercept,
             'bestAlpha': round(best_alpha, 3),
             'featureNames': feature_names,
             'n': n,

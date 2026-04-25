@@ -43,6 +43,13 @@ export interface ADPScore {
   position: string;
   team: string;
   adp: number;
+  /**
+   * MISNOMER (kept for backwards compat): this field is the ADP-aware model's
+   * predicted PPG, not VOR. The z-score normalization was baked into the
+   * model weights at training time and is NOT re-applied at prediction time.
+   * Real "edge over ADP" should be computed against `manifest.adpCurves[pos]`
+   * (see `AdpCurve`); see `DraftOptimizerTable` for the canonical use.
+   */
   predictedVor: number;
   hitProb: string;
   ciLower: number;
@@ -104,6 +111,37 @@ export interface VolumeScore {
   projPlayerPPG: number;
 }
 
+/**
+ * Per-position ADP→PPG baseline curve. Form:
+ * `PPG = sqrtIntercept + sqrtSlope * sqrt(ADP) + poolOffset`.
+ *
+ * The (sqrtSlope, sqrtIntercept) pair is fit on 2010–2025 historical data —
+ * sqrt was chosen empirically over linear/log/inverse/quadratic by LOSO
+ * MAE (see audit in train_projection_models.py docstring).
+ *
+ * `poolOffset` corrects for selection bias between the historical training
+ * cohort (which includes ADPed flameouts that never played) and the curated
+ * 2026 prediction pool (rosterable players only). Without it, PickEdge
+ * skews systematically high — the 2026 pool's prior-year stats are 1.5–3×
+ * stronger than historical players at the same ADP, so model predictions
+ * land 1.8–4.4 PPG above the historical-mean curve at every position. The
+ * offset is computed at build time as the per-position mean of
+ * `(predictedPPG − sqrt-only baseline)` across the pool, so it recenters
+ * PickEdge to "edge vs typical 2026 draftable at this ADP."
+ *
+ * The frontend uses the full form (including poolOffset) when computing
+ * Pick Edge and Beat %. Sort order is unaffected — the offset is a
+ * constant shift per position.
+ */
+export interface AdpCurve {
+  sqrtSlope: number;
+  sqrtIntercept: number;
+  /** Per-position recentering offset. See interface docstring. */
+  poolOffset?: number;
+  /** Sample size used to fit (training rows after ADP ≤ 250 filter). */
+  n?: number;
+}
+
 export interface ScoreManifest {
   version: number;
   updatedAt: string;
@@ -114,6 +152,8 @@ export interface ScoreManifest {
     residual?: { version: string; count: number };
     volumes?: { version: string; count: number };
   };
+  /** Per-position ADP→PPG baseline curve. Keys: 'QB' | 'RB' | 'WR' | 'TE'. */
+  adpCurves?: Record<string, AdpCurve>;
 }
 
 // ── Store API ─────────────────────────────────────────────────────

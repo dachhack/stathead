@@ -2,8 +2,8 @@
 """
 Feature ablation for residual models.
 
-Residual models predict `rawPPG - (adp_intercept + adp_slope * adp)` — the
-deviation from a linear ADP→PPG baseline. Their feature lists were
+Residual models predict `rawPPG - (adp_sqrt_intercept + adp_sqrt_slope * sqrt(adp))`
+— the deviation from a sqrt-ADP→PPG baseline. Their feature lists were
 inherited from an old training cache and never hand-curated, so they're
 full of candidate dead weight (combine measurables, redundant draft-pick
 encodings, rookie-only features applied to veterans).
@@ -64,7 +64,7 @@ def make_X(rows, keys):
 def loso_residual_r2(pos_rows, feature_names, cfg):
     """LOSO CV on the residual target, mirroring train_residual_models.
 
-    Per-fold the ADP→PPG linear curve is refit on the training seasons,
+    Per-fold the ADP→PPG sqrt curve is refit on the training seasons,
     and the residual target is recomputed honestly for both train and test.
     Returns (cvR2Gbm, cvR2Ridge, cvR2Ensemble) on the residual target.
 
@@ -94,19 +94,19 @@ def loso_residual_r2(pos_rows, feature_names, cfg):
         te = [i for i, r in enumerate(pos_rows) if r['season'] == held]
         if len(tr) < 15 or not te:
             continue
-        # Per-fold ADP curve on training data
+        # Per-fold ADP curve on training data — sqrt form, matches train_residual_models.
         adps_tr = adps[tr]
         y_ppg_tr = y_ppg[tr]
         valid_tr = adps_tr < 250
         if valid_tr.sum() >= 10:
-            c = np.polyfit(adps_tr[valid_tr], y_ppg_tr[valid_tr], 1)
+            c = np.polyfit(np.sqrt(adps_tr[valid_tr]), y_ppg_tr[valid_tr], 1)
             s_tr, i_tr = float(c[0]), float(c[1])
         else:
             continue
-        y_res_tr = y_ppg_tr - (i_tr + s_tr * adps_tr)
+        y_res_tr = y_ppg_tr - (i_tr + s_tr * np.sqrt(adps_tr))
         # Per-fold residual target for test rows (honest)
         for idx in te:
-            y_residual_loso[idx] = y_ppg[idx] - (i_tr + s_tr * adps[idx])
+            y_residual_loso[idx] = y_ppg[idx] - (i_tr + s_tr * np.sqrt(adps[idx]))
             valid[idx] = True
 
         r_fold = Ridge(alpha=RIDGE_ALPHA)

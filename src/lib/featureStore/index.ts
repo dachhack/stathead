@@ -332,7 +332,9 @@ export class FeatureStoreBuilder {
   }
 
   /**
-   * Compute hit/bust labels using ADP→PPG residual z-scores.
+   * Compute hit/bust labels using ADP→PPG residual z-scores. Curve form
+   * is `PPG = intercept + slope * sqrt(ADP)`; see buildFeatureMatrix.ts
+   * for why sqrt over linear.
    */
   private computeHitBust(rows: PlayerRow[]): void {
     // POSITIONS imported at top level
@@ -343,21 +345,21 @@ export class FeatureStoreBuilder {
       const posRows = rows.filter(r => r.position === pos);
       if (posRows.length < 10) continue;
 
-      // Fit ADP→PPG linear curve
-      const adps = posRows.map(r => r.adp);
+      // Fit ADP→PPG sqrt curve
+      const sqrtAdps = posRows.map(r => Math.sqrt(r.adp));
       const ppgs = posRows.map(r => r.rawPPG);
-      const adpMean = adps.reduce((a, b) => a + b, 0) / adps.length;
+      const xMean = sqrtAdps.reduce((a, b) => a + b, 0) / sqrtAdps.length;
       const ppgMean = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
-      let ssAdp = 0, ssAdpPpg = 0;
-      for (let i = 0; i < adps.length; i++) {
-        ssAdp += (adps[i] - adpMean) ** 2;
-        ssAdpPpg += (adps[i] - adpMean) * (ppgs[i] - ppgMean);
+      let ssX = 0, ssXPpg = 0;
+      for (let i = 0; i < sqrtAdps.length; i++) {
+        ssX += (sqrtAdps[i] - xMean) ** 2;
+        ssXPpg += (sqrtAdps[i] - xMean) * (ppgs[i] - ppgMean);
       }
-      const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
-      const intercept = ppgMean - slope * adpMean;
+      const slope = ssX > 0 ? ssXPpg / ssX : 0;
+      const intercept = ppgMean - slope * xMean;
 
       // Compute ratios and z-scores
-      const ratios = posRows.map(r => r.rawPPG / Math.max(1, intercept + slope * r.adp));
+      const ratios = posRows.map(r => r.rawPPG / Math.max(1, intercept + slope * Math.sqrt(r.adp)));
       const ratioMean = ratios.reduce((a, b) => a + b, 0) / ratios.length;
       const ratioVar = ratios.reduce((s, v) => s + (v - ratioMean) ** 2, 0) / ratios.length;
       const ratioStd = Math.sqrt(ratioVar) || 1;
