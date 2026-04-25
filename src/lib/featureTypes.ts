@@ -461,42 +461,44 @@ export const FEATURES: FeatureDef[] = [
   // Team offensive turnover rate
   { key: 'teamRosterTurnover', label: 'Team Roster Turnover Rate', category: 'Competition', positions: ['QB', 'RB', 'WR', 'TE'] },
 
-  // PDF scouting features (The Beast / RSP / Late-Round Guide). Populated
-  // for 2022+ rookies by _derive_pdf_features in train_career_models.py
-  // and mirrored in scripts/precompute-features.ts for prospect cards.
-  { key: 'pdfRankOverallMean', label: 'Scout Rank (Beast mean)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfHasRank', label: 'Has Scout Rank', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfRankOverallMin', label: 'Scout Rank (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfRankOverallMax', label: 'Scout Rank (worst)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfRankSpread', label: 'Scout Rank Spread', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfProjectedRound', label: 'Scout Projected Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfNStrengths', label: 'Scout # Strengths', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfNWeaknesses', label: 'Scout # Weaknesses', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfNRedFlags', label: 'Scout # Red Flags', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'pdfSentimentNet', label: 'Scout Sentiment Net', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Multi-source draft-guide features. Populated for 2022+ rookies by
+  // _derive_pdf_features in train_career_models.py and mirrored in
+  // scripts/precompute-features.ts for prospect cards. Keys keep their
+  // on-disk names; user-visible labels are source-agnostic guide* /
+  // scout* (mirrors python/src/stathead/_renames.py).
+  { key: 'pdfRankOverallMean', label: 'Guide Rank (mean)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfHasRank', label: 'Has Guide Rank', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankOverallMin', label: 'Guide Rank (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankOverallMax', label: 'Guide Rank (worst)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankSpread', label: 'Guide Rank Spread', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfProjectedRound', label: 'Guide Projected Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNStrengths', label: 'Guide # Strengths', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNWeaknesses', label: 'Guide # Weaknesses', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfNRedFlags', label: 'Guide # Red Flags', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfSentimentNet', label: 'Guide Sentiment Net', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
 
   // Disagreement features — cross-signal gaps that only light up when two
   // channels that should agree don't. Computed in _attach_disagreement_features.
-  { key: 'pdfRankXPick', label: 'Scout Rank vs Draft Pick', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'pdfRankXPick', label: 'Guide Rank vs Draft Pick', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'pdfRoundXActual', label: 'Proj Round vs Actual Round', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'recruit_production_gap', label: 'Recruit-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
   { key: 'athletic_production_gap', label: 'Athletic-vs-Production Gap', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
 
-  // RSP-specific features (Matt Waldman's Rookie Scouting Portfolio). DOT =
-  // "Depth of Talent" numeric grade parsed from tier strings like
-  // "Starter (87.4)". Cross-year trajectory (draft-year DOT vs latest
-  // appearance) from rsp-historical-rankings.json. Shipped for RB/WR pre-draft
-  // rookie career models 2026-04 (see docs/pdf-career-feature-test.md).
-  { key: 'rspDotMax', label: 'RSP DOT (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspDotDraft', label: 'RSP DOT (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspDotLatest', label: 'RSP DOT (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspDotDelta', label: 'RSP DOT Trajectory', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspBreadthDraft', label: 'RSP Breadth (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspBreadthLatest', label: 'RSP Breadth (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspTierOrdinal', label: 'RSP Tier Class', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspAppearances', label: 'RSP Guide Appearances', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspNComps', label: 'RSP # NFL Comps', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
-  { key: 'rspHasData', label: 'Has RSP Data', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  // Single-scout grade family — depth-of-talent grades parsed from tier
+  // strings like "Starter (87.4)", with cross-year trajectory. Shipped
+  // for RB/WR pre-draft rookie career models 2026-04 (see
+  // docs/pdf-career-feature-test.md). Keys keep on-disk names; labels
+  // surface scout* (mirrors the python rename layer).
+  { key: 'rspDotMax', label: 'Scout Grade (best)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotDraft', label: 'Scout Grade (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotLatest', label: 'Scout Grade (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspDotDelta', label: 'Scout Grade Trajectory', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspBreadthDraft', label: 'Scout Breadth (draft year)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspBreadthLatest', label: 'Scout Breadth (latest)', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspTierOrdinal', label: 'Scout Tier Class', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspAppearances', label: 'Scout Appearances', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspNComps', label: 'Scout # NFL Comps', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
+  { key: 'rspHasData', label: 'Has Scout Grade', category: 'Scouting', positions: ['QB', 'RB', 'WR', 'TE'] },
 ];
 
 // ── Helpers ──
