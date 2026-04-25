@@ -19,5 +19,27 @@
       "version": "v1",
       "count": 277
     }
+  },
+  "adpCurves": {
+    "QB": {
+      "sqrtSlope": -0.478003,
+      "sqrtIntercept": 17.8319,
+      "n": 561
+    },
+    "RB": {
+      "sqrtSlope": -1.068988,
+      "sqrtIntercept": 18.9465,
+      "n": 1234
+    },
+    "WR": {
+      "sqrtSlope": -0.957684,
+      "sqrtIntercept": 18.1846,
+      "n": 1700
+    },
+    "TE": {
+      "sqrtSlope": -0.768321,
+      "sqrtIntercept": 14.6277,
+      "n": 718
+    }
   }
 }

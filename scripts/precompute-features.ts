@@ -436,12 +436,12 @@ async function main() {
     const pos = m.position as string;
     const resGbm = m.gbmModel as any;
     const resRidge = m.ridgeModel as any;
-    const slope = m.adpSlope as number;
-    const intercept = m.adpIntercept as number;
+    const slope = m.adpSqrtSlope as number;
+    const intercept = m.adpSqrtIntercept as number;
     const alpha = m.bestAlpha as number;
     const posPredRows = result.predRows.filter((r: { position: string; adp: number }) => r.position === pos && r.adp <= MAX_ADP);
     for (const r of posPredRows) {
-      const adpImplied = intercept + slope * r.adp;
+      const adpImplied = intercept + slope * Math.sqrt(r.adp);
       const gbmRes = predictGBM(resGbm, r.features).predicted;
       const ridgeRes = predict(resRidge, r.features).predicted;
       const residual = gbmRes * 0.7 + ridgeRes * 0.3;
@@ -1936,7 +1936,7 @@ async function main() {
   // Strip players2025 and trained models from residualModels to reduce output size
   const residualModelsOutput = residualModels.map((m: any) => ({
     position: m.position, bestAlpha: m.bestAlpha, n: m.n, backtest: m.backtest,
-    adpSlope: m.adpSlope, adpIntercept: m.adpIntercept,
+    adpSqrtSlope: m.adpSqrtSlope, adpSqrtIntercept: m.adpSqrtIntercept,
   }));
   // Build share model summary for output (no trained model weights, just metrics)
   const shareModelSummary: Record<string, { cvR2: number; cvMAE: number; n: number }> = {};
@@ -2110,6 +2110,20 @@ async function main() {
     writeVolumeScores(volumeScores);
     console.log(`    volumes: ${volumeScores.length} predictions`);
 
+    // Per-position ADP→PPG baseline curve. Pulled from the residual models
+    // (each carries its own fitted sqrt-curve coefficients). Frontend uses
+    // these to compute Pick Edge = predictedPPG − (intercept + slope·√ADP).
+    const adpCurves: Record<string, { sqrtSlope: number; sqrtIntercept: number; n?: number }> = {};
+    for (const m of residualModels as Array<{ position: string; adpSqrtSlope?: number; adpSqrtIntercept?: number; n?: number }>) {
+      if (m.adpSqrtSlope !== undefined && m.adpSqrtIntercept !== undefined) {
+        adpCurves[m.position] = {
+          sqrtSlope: m.adpSqrtSlope,
+          sqrtIntercept: m.adpSqrtIntercept,
+          n: m.n,
+        };
+      }
+    }
+
     // Manifest
     writeScoreManifest({
       version: 1,
@@ -2120,6 +2134,7 @@ async function main() {
         ppg: { version: 'v50', count: ppgScores.length },
         volumes: { version: 'v1', count: volumeScores.length },
       },
+      adpCurves,
     });
     console.log('    manifest written');
   }

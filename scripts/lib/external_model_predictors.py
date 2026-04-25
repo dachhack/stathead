@@ -148,8 +148,8 @@ def load_ppg_residual_adp(data_dir: Path):
                 'gbmFeats': m['gbmModel']['featureNames'],
                 'ridgeFeats': m['ridgeModel']['featureNames'],
                 'weight': float(m.get('gbmWeight', 0.7)),
-                'adpSlope': float(m.get('adpSlope', 0.0)),
-                'adpIntercept': float(m.get('adpIntercept', 0.0)),
+                'adpSqrtSlope': float(m.get('adpSqrtSlope', 0.0)),
+                'adpSqrtIntercept': float(m.get('adpSqrtIntercept', 0.0)),
             }
 
     adp_path = data_dir / 'model-cache-adp-v56.json'
@@ -203,9 +203,10 @@ def predict_residual_ensemble(entry, features_dict):
 
 
 def predict_residual_total_ppg(entry, features_dict, adp_value):
-    """Residual ensemble output added to the linear ADP baseline →
+    """Residual ensemble output added to the sqrt-ADP baseline →
     predicted rawPPG."""
-    baseline = entry['adpSlope'] * adp_value + entry['adpIntercept']
+    import math
+    baseline = entry['adpSqrtSlope'] * math.sqrt(adp_value) + entry['adpSqrtIntercept']
     return baseline + predict_residual_ensemble(entry, features_dict)
 
 

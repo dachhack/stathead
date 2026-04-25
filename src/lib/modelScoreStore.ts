@@ -43,6 +43,13 @@ export interface ADPScore {
   position: string;
   team: string;
   adp: number;
+  /**
+   * MISNOMER (kept for backwards compat): this field is the ADP-aware model's
+   * predicted PPG, not VOR. The z-score normalization was baked into the
+   * model weights at training time and is NOT re-applied at prediction time.
+   * Real "edge over ADP" should be computed against `manifest.adpCurves[pos]`
+   * (see `AdpCurve`); see `DraftOptimizerTable` for the canonical use.
+   */
   predictedVor: number;
   hitProb: string;
   ciLower: number;
@@ -104,6 +111,21 @@ export interface VolumeScore {
   projPlayerPPG: number;
 }
 
+/**
+ * Per-position ADP→PPG baseline curve. Form: `PPG = intercept + slope * sqrt(ADP)`.
+ * Sqrt was chosen empirically over linear/log/inverse/quadratic by LOSO MAE
+ * across 2010–2025 (see audit in train_projection_models.py docstring). The
+ * frontend uses these coefficients to compute "Pick Edge" — a player's
+ * predicted PPG minus what someone at their ADP slot is typically expected
+ * to deliver.
+ */
+export interface AdpCurve {
+  sqrtSlope: number;
+  sqrtIntercept: number;
+  /** Sample size used to fit (training rows after ADP ≤ 250 filter). */
+  n?: number;
+}
+
 export interface ScoreManifest {
   version: number;
   updatedAt: string;
@@ -114,6 +136,8 @@ export interface ScoreManifest {
     residual?: { version: string; count: number };
     volumes?: { version: string; count: number };
   };
+  /** Per-position ADP→PPG baseline curve. Keys: 'QB' | 'RB' | 'WR' | 'TE'. */
+  adpCurves?: Record<string, AdpCurve>;
 }
 
 // ── Store API ─────────────────────────────────────────────────────

@@ -3059,31 +3059,35 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         }
 
         // ── Hit/bust labels: actual PPR / expected PPR, then z-score ────────
-        // Expected PPR = ADP→PPG linear fit per position, scaled to season.
-        // Ratio = actual / expected. Z-score the ratio, then threshold.
-        // This means a round-1 RB at 15 PPG can be a bust (expected 18+),
-        // while a round-8 RB at 15 PPG is a hit (expected 8).
+        // Expected PPR = ADP→PPG sqrt fit per position. The functional form
+        // is `PPG = intercept + slope * sqrt(ADP)` — sqrt was chosen
+        // empirically (LOSO MAE) over linear/log/inverse/quadratic; it
+        // captures the elite-tier dropoff cleanly without the edge
+        // pathologies of log (blowup near ADP=0) or quadratic (non-monotone
+        // extremes). Ratio = actual / expected. Z-score the ratio, then
+        // threshold. This means a round-1 RB at 15 PPG can be a bust
+        // (expected 18+), while a round-8 RB at 15 PPG is a hit (expected 8).
         for (const pos of POSITIONS) {
           const posRows = rows.filter((r) => r.position === pos);
           if (posRows.length < 10) continue;
 
-          // Fit ADP→PPG linear curve for this position (across all seasons)
-          const adps = posRows.map((r) => r.adp);
+          // Fit ADP→PPG sqrt curve for this position (across all seasons)
+          const sqrtAdps = posRows.map((r) => Math.sqrt(r.adp));
           const ppgs = posRows.map((r) => r.rawPPG);
-          const adpMean = adps.reduce((a, b) => a + b, 0) / adps.length;
+          const xMean = sqrtAdps.reduce((a, b) => a + b, 0) / sqrtAdps.length;
           const ppgMean = ppgs.reduce((a, b) => a + b, 0) / ppgs.length;
-          let ssAdp = 0, ssAdpPpg = 0;
-          for (let i = 0; i < adps.length; i++) {
-            ssAdp += (adps[i] - adpMean) ** 2;
-            ssAdpPpg += (adps[i] - adpMean) * (ppgs[i] - ppgMean);
+          let ssX = 0, ssXPpg = 0;
+          for (let i = 0; i < sqrtAdps.length; i++) {
+            ssX += (sqrtAdps[i] - xMean) ** 2;
+            ssXPpg += (sqrtAdps[i] - xMean) * (ppgs[i] - ppgMean);
           }
-          const slope = ssAdp > 0 ? ssAdpPpg / ssAdp : 0;
-          const intercept = ppgMean - slope * adpMean;
+          const slope = ssX > 0 ? ssXPpg / ssX : 0;
+          const intercept = ppgMean - slope * xMean;
 
           // Compute ratio = actual PPG / expected PPG for each player
           const ratios: number[] = [];
           for (const r of posRows) {
-            const expectedPPG = Math.max(1, intercept + slope * r.adp); // floor at 1 to avoid division issues
+            const expectedPPG = Math.max(1, intercept + slope * Math.sqrt(r.adp)); // floor at 1 to avoid division issues
             const ratio = r.rawPPG / expectedPPG;
             ratios.push(ratio);
           }
@@ -3109,7 +3113,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const countAbove = (t: number) => zScores.filter(z => z > t).length;
           const countBelow = (t: number) => zScores.filter(z => z < t).length;
           onStatus?.(`  ${pos} hit/bust (n=${n}): ` +
-            `ADP→PPG curve: PPG = ${intercept.toFixed(1)} + ${slope.toFixed(4)}*ADP | ` +
+            `ADP→PPG curve: PPG = ${intercept.toFixed(1)} + ${slope.toFixed(4)}*sqrt(ADP) | ` +
             `z>0.0: ${countAbove(0)} (${Math.round(countAbove(0)/n*100)}%), ` +
             `z>0.5: ${countAbove(0.5)} (${Math.round(countAbove(0.5)/n*100)}%), ` +
             `z>1.0: ${countAbove(1)} (${Math.round(countAbove(1)/n*100)}%) | ` +

@@ -1,18 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
+import { loadScoreManifest } from '../lib/modelScoreClient';
+import type { AdpCurve } from '../lib/modelScoreStore';
 
-// Simple draft-board table backed by the ADP-model score-store. Replaces
-// the previous in-browser model-training UI, which is parked until a
-// proper redesign. Per-position boom/bust z-scores come from the CI
-// bounds in score-store/adp.json so the column reads consistently with
-// MyRankings and the Projections page.
+// Simple draft-board table backed by the model score-store. Per-position
+// boom/bust z-scores come from the CI bounds in score-store/adp.json so the
+// column reads consistently with MyRankings and the Projections page.
+//
+// Pick Edge = predictedPPG − (intercept + slope·√ADP) per position, where
+// the curve is fit on 2010–2025 historical data and shipped in
+// score-store/manifest.json. Positive = our model thinks the player will
+// out-earn what someone at this ADP slot typically delivers.
 
 interface AdpScoreEntry {
   name: string;
   position: string;
   team: string;
   adp: number;
-  predictedVor: number;
+  predictedVor: number; // (Mislabeled in the JSON — actually ADP-aware predicted PPG; kept here only for boom/bust CI math.)
   hitProb: string;
   ciLower: number;
   ciUpper: number;
@@ -31,7 +36,8 @@ interface Row {
   team: string;
   adp: number;
   predictedPPG: number;
-  predictedVor: number;
+  adpBaselinePPG: number; // intercept + slope·√ADP for this player's position (NaN if curve missing or ADP missing)
+  pickEdge: number;       // predictedPPG − adpBaselinePPG (NaN if either side missing)
   hitProb: string;
   boomZ: number;
   bustZ: number;
@@ -41,7 +47,7 @@ interface Row {
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 type PosFilter = typeof POSITIONS[number];
 
-type SortKey = 'adp' | 'predictedVor' | 'predictedPPG' | 'boomZ' | 'bustZ' | 'name';
+type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'boomZ' | 'bustZ' | 'name';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -49,6 +55,23 @@ function fmtZ(z: number): string {
   if (!Number.isFinite(z) || z === 0) return '—';
   const sign = z > 0 ? '+' : '';
   return `${sign}${z.toFixed(2)}`;
+}
+
+function fmtEdge(v: number): string {
+  if (!Number.isFinite(v)) return '—';
+  const sign = v > 0 ? '+' : '';
+  return `${sign}${v.toFixed(1)}`;
+}
+
+function pickEdgeColor(e: number): string {
+  if (!Number.isFinite(e)) return 'var(--text-muted)';
+  if (e >= 2.0) return '#22c55e';
+  if (e >= 1.0) return '#86efac';
+  if (e >= 0.3) return '#a3e635';
+  if (e <= -2.0) return '#ef4444';
+  if (e <= -1.0) return '#fca5a5';
+  if (e <= -0.3) return '#fb923c';
+  return 'var(--text-muted)';
 }
 
 function boomColor(z: number): string {
@@ -73,12 +96,13 @@ function hitProbColor(p: string): string {
 
 export function DraftOptimizerTable() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [curves, setCurves] = useState<Record<string, AdpCurve>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('adp');
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>('pickEdge');
+  const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +110,8 @@ export function DraftOptimizerTable() {
     Promise.all([
       fetch(`${BASE}data/score-store/adp.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    ]).then(([adpData, ppgData]: [AdpScoreEntry[], PpgScoreEntry[]]) => {
+      loadScoreManifest(),
+    ]).then(([adpData, ppgData, manifest]: [AdpScoreEntry[], PpgScoreEntry[], Awaited<ReturnType<typeof loadScoreManifest>>]) => {
       if (cancelled) return;
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
@@ -97,6 +122,7 @@ export function DraftOptimizerTable() {
       for (const p of ppgData ?? []) {
         if (p?.name) ppgByName.set(normName(p.name), Number(p.predictedPPG) || 0);
       }
+      const adpCurves = manifest?.adpCurves ?? {};
       // Per-position z-scores over CI spreads. Only positive spreads
       // contribute to the cohort so deep depth-pieces with degenerate CIs
       // don't drag the mean down.
@@ -111,13 +137,22 @@ export function DraftOptimizerTable() {
       const built: Row[] = adpData.map((a) => {
         const up = Math.max(0, (a.ciUpper ?? 0) - (a.predictedVor ?? 0));
         const down = Math.max(0, (a.predictedVor ?? 0) - (a.ciLower ?? 0));
+        const adp = Number(a.adp) || 999;
+        const pred = ppgByName.get(normName(a.name)) ?? 0;
+        const curve = adpCurves[a.position];
+        // Curve undefined OR ADP missing OR predicted PPG missing → no edge.
+        const adpBaselinePPG = curve && adp < 999 && pred > 0
+          ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp)
+          : NaN;
+        const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
         return {
           name: a.name,
           position: a.position,
           team: a.team,
-          adp: Number(a.adp) || 999,
-          predictedPPG: ppgByName.get(normName(a.name)) ?? 0,
-          predictedVor: Number(a.predictedVor) || 0,
+          adp,
+          predictedPPG: pred,
+          adpBaselinePPG,
+          pickEdge,
           hitProb: a.hitProb ?? '',
           boomZ: up > 0 ? Math.round(zScore(up, upStats.get(a.position)) * 100) / 100 : 0,
           bustZ: down > 0 ? Math.round(zScore(down, downStats.get(a.position)) * 100) / 100 : 0,
@@ -125,6 +160,7 @@ export function DraftOptimizerTable() {
         };
       });
       setRows(built);
+      setCurves(adpCurves);
       setLoading(false);
     }).catch((e) => {
       if (!cancelled) {
@@ -148,6 +184,13 @@ export function DraftOptimizerTable() {
       if (typeof av === 'string' && typeof bv === 'string') {
         return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
       }
+      // NaN always sorts to the bottom regardless of direction (e.g. Pick Edge
+      // is NaN when ADP curve or PPG prediction is missing).
+      const aNaN = typeof av === 'number' && !Number.isFinite(av);
+      const bNaN = typeof bv === 'number' && !Number.isFinite(bv);
+      if (aNaN && bNaN) return 0;
+      if (aNaN) return 1;
+      if (bNaN) return -1;
       return sortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
     return out;
@@ -158,6 +201,7 @@ export function DraftOptimizerTable() {
       setSortAsc((v) => !v);
     } else {
       setSortKey(key);
+      // ADP and name default to ascending; everything else (edge, PPG, z-scores) descending.
       setSortAsc(key === 'adp' || key === 'name');
     }
   };
@@ -203,11 +247,19 @@ export function DraftOptimizerTable() {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
-        Best-available board sorted by ADP. Predicted VOR, hit probability, and
-        the within-position boom/bust z-scores are pulled from the ADP model
-        (<code>score-store/adp.json</code>); predicted PPG comes from the
-        ADP-free PPG model. The previous in-browser optimizer is parked
-        pending a redesign.
+        Sorted by <strong>Pick Edge</strong> — predicted PPG (from the ADP-free
+        model) minus what someone at this ADP slot typically delivers. Positive
+        = our models think the player out-earns the market at this draft cost.
+        The baseline curve is fit per position as{' '}
+        <code>PPG = intercept + slope·√ADP</code> on 2010–2025 historical data.
+        Hit probability and boom/bust z-scores come from the ADP model's
+        confidence intervals.
+        {Object.keys(curves).length === 0 && (
+          <span style={{ color: '#fb923c', marginLeft: 6 }}>
+            ADP curve unavailable — Pick Edge will show as “—” until the next
+            score-store build.
+          </span>
+        )}
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -249,8 +301,8 @@ export function DraftOptimizerTable() {
               <th style={{ ...th, textAlign: 'right', width: 64 }} onClick={() => handleSort('predictedPPG')}>
                 <span title="Model-predicted PPG">Pred PPG</span>{sortArrow('predictedPPG')}
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 60 }} onClick={() => handleSort('predictedVor')}>
-                <span title="Predicted PPG over replacement">Pred VOR</span>{sortArrow('predictedVor')}
+              <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('pickEdge')}>
+                <span title="Pick Edge: predicted PPG minus the ADP curve baseline (intercept + slope·√ADP) for this position. Positive = model thinks the player out-earns ADP.">Pick Edge</span>{sortArrow('pickEdge')}
               </th>
               <th style={{ ...th, textAlign: 'center', width: 84 }}>Hit</th>
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('boomZ')}>
@@ -279,8 +331,15 @@ export function DraftOptimizerTable() {
                 <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
                   {r.predictedPPG > 0 ? r.predictedPPG.toFixed(1) : '—'}
                 </td>
-                <td style={{ ...td, textAlign: 'right' }}>
-                  {r.predictedVor !== 0 ? r.predictedVor.toFixed(1) : '—'}
+                <td
+                  style={{ ...td, textAlign: 'right', fontWeight: 700, color: pickEdgeColor(r.pickEdge) }}
+                  title={
+                    Number.isFinite(r.pickEdge)
+                      ? `Predicted ${r.predictedPPG.toFixed(1)} PPG − baseline ${r.adpBaselinePPG.toFixed(1)} PPG (${r.position} curve at ADP ${r.adp.toFixed(1)})`
+                      : 'No baseline available — missing ADP, predicted PPG, or curve coefficients.'
+                  }
+                >
+                  {fmtEdge(r.pickEdge)}
                 </td>
                 <td style={{ ...td, textAlign: 'center', fontSize: 11, color: hitProbColor(r.hitProb) }}>
                   {r.hitProb || '—'}
