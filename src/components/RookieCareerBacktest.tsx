@@ -712,6 +712,16 @@ export function RookieCareerBacktest() {
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
         {filtered.length} rookies &middot; LOSO cross-validated &middot; Percentile ranked vs all historical rookies at position
       </div>
+      <div style={{ padding: '0 16px 12px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+        <strong style={{ color: 'var(--text-secondary)' }}>{'>N'} columns:</strong>{' '}
+        modeled probability that the player&apos;s <em>best 2-of-3 PPG</em> over their
+        first 3 NFL seasons clears <em>N</em> PPR points/game. Thresholds are
+        position-specific (e.g. RB <code>{'>12'}</code>, WR <code>{'>14'}</code>) and
+        come from the rookie career model&apos;s LOSO-CV out-of-sample
+        predictions. A green <span style={{ color: '#22c55e' }}>✓</span> next
+        to the cell means the player&apos;s actual best 2-of-3 PPG hit that
+        threshold.
+      </div>
 
       <div className="table-container">
         <table>
@@ -729,7 +739,11 @@ export function RookieCareerBacktest() {
               <th style={{ textAlign: 'center', fontSize: 11 }} title="Boom z-score: outperformance score standardized vs the LOSO cohort. +1σ = unusually high upside.">Boom z</th>
               <th style={{ textAlign: 'center', fontSize: 11 }} title="Bust z-score: bust-classifier score standardized vs the LOSO cohort. +1σ = unusually high bust risk.">Bust z</th>
               {thresholds.map(t => (
-                <th key={t} style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}>
+                <th
+                  key={t}
+                  style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}
+                  title={`P(best 2-of-3 PPG ≥ ${t}) — modeled probability the player’s best 2 of 3 first-3-year PPG clears ${t} PPR points/game`}
+                >
                   &gt;{t}
                 </th>
               ))}

@@ -25,7 +25,7 @@ import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { TradeCalculator } from './components/TradeCalculator';
 import { DynastyForecast } from './components/DynastyForecast';
-import { ADPFactorAnalysis } from './components/ADPFactorAnalysis';
+import { DraftOptimizerTable } from './components/DraftOptimizerTable';
 import { ModelDocumentation } from './components/ModelDocumentation';
 import { RookieCareerBacktest } from './components/RookieCareerBacktest';
 import { ZapComparison } from './components/ZapComparison';
@@ -43,6 +43,15 @@ import { createEmptyScenario } from './lib/scenarioEngine';
 import type { Tab, ScenarioConfig } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
+
+// Tabs whose render path actually consumes the `season` prop or
+// `seasonTotals` derived from `usePlayerData(season)`. The header season
+// selector only shows for these — every other page is hardcoded to 2026
+// (projections, dynasty, prospects) or season-agnostic (research, docs).
+const SEASON_AWARE_TABS = new Set<Tab>([
+  'projections', 'stats', 'compare', 'scoring', 'adp',
+  'snaps', 'injuries', 'advanced', 'pbp', 'sleeper', 'sportsdata',
+]);
 
 // Tab groups for navigation
 interface TabGroup {
@@ -191,17 +200,21 @@ function App() {
           })}
         </nav>
         <div className="control-group" style={{ marginLeft: 'auto' }}>
-          <label className="control-label">Season</label>
-          <select
-            value={season}
-            onChange={(e) => setSeason(Number(e.target.value))}
-          >
-            {SEASONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          {SEASON_AWARE_TABS.has(tab) && (
+            <>
+              <label className="control-label">Season</label>
+              <select
+                value={season}
+                onChange={(e) => setSeason(Number(e.target.value))}
+              >
+                {SEASONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           <button
             className="settings-gear"
             onClick={() => setSettingsOpen(true)}
@@ -252,7 +265,7 @@ function App() {
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
         {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
         {tab === 'data-query' && <DataQuery />}
-        {tab === 'draft-optimizer' && <ADPFactorAnalysis initialView="strategy" />}
+        {tab === 'draft-optimizer' && <DraftOptimizerTable />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
         {tab === 'injuries' && (
@@ -274,7 +287,7 @@ function App() {
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
-        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} scenario={scenario} />}
+        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
         {tab === 'sportsdata' && (
           <SportsDataIOView
             season={season}

@@ -6,6 +6,7 @@ import {
 } from '../data';
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { positionStats, zScore } from '../lib/nameUtils';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import { TeamAccuracyChart } from './TeamAccuracyChart';
 import projectionConfig from '../generated/projection-config.json';
@@ -450,6 +451,12 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   // Model-predicted PPG lookup (score-store/ppg.json). Keyed by normalized name.
   const [projPPGMap, setProjPPGMap] = useState<Map<string, number>>(new Map());
 
+  // ADP-model lookups (score-store/adp.json). Used to (a) fill ADP for
+  // players FFC doesn't list, and (b) compute within-position boom/bust
+  // z-scores from the model's confidence interval.
+  interface AdpModelEntry { adp: number; predictedVor: number; ciLower: number; ciUpper: number }
+  const [projAdpMap, setProjAdpMap] = useState<Map<string, AdpModelEntry>>(new Map());
+
   const searchProjections = useMemo(
     () => buildSearchProjections(qbProjections, rbProjections, wrProjections, teProjections),
     [qbProjections, rbProjections, wrProjections, teProjections],
@@ -551,7 +558,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -560,7 +567,25 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           fetchOddsGameLines().catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/score-store/shares.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/score-store/ppg.json`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${import.meta.env.BASE_URL}data/score-store/adp.json`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
         ]);
+        const redraftFallback = (redraftData as { players?: Array<{ name: string; position: string; ppg: number }> }).players ?? [];
+
+        // ADP-model lookup (score-store/adp.json). Populates ADP for
+        // players FFC misses and exposes the CI bounds we use for the
+        // boom/bust z-score columns.
+        const adpModelMap = new Map<string, AdpModelEntry>();
+        for (const a of adpScoresData as Array<{ name: string; adp: number; predictedVor: number; ciLower: number; ciUpper: number }>) {
+          if (!a?.name) continue;
+          adpModelMap.set(normalizeName(a.name), {
+            adp: Number(a.adp) || 0,
+            predictedVor: Number(a.predictedVor) || 0,
+            ciLower: Number(a.ciLower) || 0,
+            ciUpper: Number(a.ciUpper) || 0,
+          });
+        }
+        setProjAdpMap(adpModelMap);
 
         // ML share predictions lookup: name → { predTargetShare, predRushShare }
         const mlShares = new Map<string, { predTargetShare: number; predRushShare: number }>();
@@ -584,6 +609,13 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         const mlPPG = new Map<string, number>();
         for (const s of mlPPGEntries) {
           if (s.predictedPPG > 0) mlPPG.set(normalizeName(s.name), s.predictedPPG);
+        }
+        // Fill from the redraft-projections shard for players the ML
+        // model doesn't list (depth pieces beyond the model's coverage)
+        // so the Proj PPG column isn't a sea of em-dashes.
+        for (const p of redraftFallback) {
+          const k = normalizeName(p.name);
+          if (!mlPPG.has(k) && p.ppg > 0) mlPPG.set(k, p.ppg);
         }
         setProjPPGMap(mlPPG);
         if (cancelled) return;
@@ -1460,6 +1492,62 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     return dispTes;
   }, [selectedPos, dispQbs, dispRbs, dispWrs, dispTes]);
 
+  // Boom/bust z-scores from the ADP model's CI bounds, computed within
+  // position. Returns a name → { boomZ, bustZ } lookup so the position
+  // tables can read constant-time per row.
+  const boomBustZByName = useMemo(() => {
+    interface ZRow { name: string; position: Position; up: number; down: number }
+    const rows: ZRow[] = [];
+    const stripStar = (n: string) => n.replace(/^★\s*/, '');
+    const positions: { pos: Position; arr: { name: string }[] }[] = [
+      { pos: 'QB', arr: dispQbs }, { pos: 'RB', arr: dispRbs },
+      { pos: 'WR', arr: dispWrs }, { pos: 'TE', arr: dispTes },
+    ];
+    for (const { pos, arr } of positions) {
+      for (const p of arr) {
+        const m = projAdpMap.get(normalizeName(stripStar(p.name)));
+        if (!m) continue;
+        const up = Math.max(0, m.ciUpper - m.predictedVor);
+        const down = Math.max(0, m.predictedVor - m.ciLower);
+        if (up <= 0 && down <= 0) continue;
+        rows.push({ name: p.name, position: pos, up, down });
+      }
+    }
+    const upStats = positionStats(rows.filter((r) => r.up > 0), (r) => r.position, (r) => r.up);
+    const downStats = positionStats(rows.filter((r) => r.down > 0), (r) => r.position, (r) => r.down);
+    const out = new Map<string, { boomZ: number; bustZ: number }>();
+    for (const r of rows) {
+      out.set(normalizeName(stripStar(r.name)), {
+        boomZ: r.up > 0 ? Math.round(zScore(r.up, upStats.get(r.position)) * 100) / 100 : 0,
+        bustZ: r.down > 0 ? Math.round(zScore(r.down, downStats.get(r.position)) * 100) / 100 : 0,
+      });
+    }
+    return out;
+  }, [dispQbs, dispRbs, dispWrs, dispTes, projAdpMap]);
+
+  const lookupZ = (name: string) => boomBustZByName.get(normalizeName(name.replace(/^★\s*/, ''))) ?? { boomZ: 0, bustZ: 0 };
+  const lookupAdpFallback = (name: string, adp: number): number => {
+    if (adp < 500) return adp;
+    const m = projAdpMap.get(normalizeName(name.replace(/^★\s*/, '')));
+    return m && m.adp > 0 ? m.adp : adp;
+  };
+  const fmtZCell = (z: number): string => {
+    if (!z) return '—';
+    const sign = z > 0 ? '+' : '';
+    return `${sign}${z.toFixed(2)}`;
+  };
+  const zColor = (z: number, bust = false): string | undefined => {
+    if (!z) return 'var(--text-muted)';
+    if (bust) {
+      if (z >= 1.0) return '#ef4444';
+      if (z >= 0.5) return '#fb923c';
+      return undefined;
+    }
+    if (z >= 1.0) return '#22c55e';
+    if (z >= 0.5) return '#a3e635';
+    return undefined;
+  };
+
   const teamGroups = useMemo(() => {
     const byTeam = new Map<string, TeamGroup>();
     function ensure(team: string): TeamGroup {
@@ -1969,7 +2057,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               {selectedPos === 'TE' && (
                 <th colSpan={4} style={{ textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.TE}` }}>RECEIVING</th>
               )}
-              <th colSpan={3} style={{ textAlign: 'center', borderBottom: '2px solid #f59e0b' }}>PPR</th>
+              <th colSpan={5} style={{ textAlign: 'center', borderBottom: '2px solid #f59e0b' }}>PPR</th>
             </tr>
             <tr>
               <th></th>
@@ -2003,18 +2091,21 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               <th title="Total PPR points over projected games">Pts</th>
               <th title="Scenario-adjusted PPG (projected points ÷ games)">PPG</th>
               <th title="Model-predicted PPG (ADP-free model)">Proj PPG</th>
+              <th title="Boom z-score within position — CI upside spread normalized to position peers. >+1 = unusually wide upside.">Boom z</th>
+              <th title="Bust z-score within position — CI downside spread normalized to position peers. >+1 = unusually wide downside risk.">Bust z</th>
             </tr>
           </thead>
           <tbody>
             {selectedPos === 'QB' && dispQbs.map((p, i) => {
               const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              const z = lookupZ(p.name);
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong>{p.name}</strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(p.adp)}</td>
+                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
                   <td>{p.passAtt}</td>
                   <td>{p.passComp}</td>
@@ -2027,18 +2118,21 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
+                  <td style={{ color: zColor(z.bustZ, true), fontWeight: 600 }}>{fmtZCell(z.bustZ)}</td>
                 </tr>
               );
             })}
             {selectedPos === 'RB' && dispRbs.map((p, i) => {
               const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              const z = lookupZ(p.name);
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong>{p.name}</strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(p.adp)}</td>
+                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
                   <td>{p.rushAtt}</td>
                   <td>{p.rushYds.toLocaleString()}</td>
@@ -2050,18 +2144,21 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
+                  <td style={{ color: zColor(z.bustZ, true), fontWeight: 600 }}>{fmtZCell(z.bustZ)}</td>
                 </tr>
               );
             })}
             {selectedPos === 'WR' && dispWrs.map((p, i) => {
               const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              const z = lookupZ(p.name);
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong>{p.name}</strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(p.adp)}</td>
+                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
                   <td>{p.tgt}</td>
                   <td>{p.rec}</td>
@@ -2073,18 +2170,21 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
+                  <td style={{ color: zColor(z.bustZ, true), fontWeight: 600 }}>{fmtZCell(z.bustZ)}</td>
                 </tr>
               );
             })}
             {selectedPos === 'TE' && dispTes.map((p, i) => {
               const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
+              const z = lookupZ(p.name);
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
                   <td><strong>{p.name}</strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
-                  <td>{fmtADP(p.adp)}</td>
+                  <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
                   <td>{p.tgt}</td>
                   <td>{p.rec}</td>
@@ -2093,6 +2193,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
+                  <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
+                  <td style={{ color: zColor(z.bustZ, true), fontWeight: 600 }}>{fmtZCell(z.bustZ)}</td>
                 </tr>
               );
             })}

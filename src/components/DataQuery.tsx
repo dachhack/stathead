@@ -234,9 +234,9 @@ export function DataQuery() {
 
       {mode === 'sql' && <>
 
-      {/* Editor + sidebar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 12, minHeight: 220 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Editor + sidebar — stacks below 768px (see .data-query-grid in index.css). */}
+      <div className="data-query-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
           <textarea
             ref={taRef}
             value={sql}
@@ -251,7 +251,7 @@ export function DataQuery() {
               border: '1px solid var(--border)', borderRadius: 6, resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={run}
               disabled={!dbReady || state.kind === 'loading'}
@@ -311,10 +311,13 @@ export function DataQuery() {
         </div>
 
         {/* Sidebar: schema + examples */}
-        <div style={{
-          background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-          borderRadius: 6, padding: 10, fontSize: 11, overflowY: 'auto', maxHeight: 320,
-        }}>
+        <div
+          className="data-query-sidebar"
+          style={{
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: 10, fontSize: 11, overflowY: 'auto', maxHeight: 320,
+          }}
+        >
           <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontSize: 12 }}>
             Tables
           </div>
@@ -370,8 +373,9 @@ export function DataQuery() {
           ))}
 
           <div style={{ marginTop: 12, fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-            Tip: columns with 0 for scout/PDF/RSP features indicate the player
-            wasn't in that source. NULL is genuinely unknown.
+            Tip: columns with 0 for <code>scout*</code> or <code>guide*</code>{' '}
+            features indicate the player wasn't covered by that source. NULL
+            is genuinely unknown.
           </div>
         </div>
       </div>

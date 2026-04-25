@@ -63,7 +63,7 @@ cache directory or call `clear_cache()` to force a refresh.
 | `load_career_backtest()` | Historical rookies with pred + actual PPG | ~1087 × ~100 cols |
 | `load_adp_historical()` | Model-training ADP 2010-2025 | 4507 × 10 |
 | `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) — data via [Fantasy Football Calculator](https://fantasyfootballcalculator.com/adp/ppr) | variable |
-| `load_prospect_grades(year=2026)` | Draft scouting grades | ~200 × 7 |
+| `load_prospect_grades(year=2026)` | Scouting-report grades | ~200 × 7 |
 | `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
 | `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
 
@@ -72,7 +72,7 @@ cache directory or call `clear_cache()` to force a refresh.
 Career-prediction and backtest rows include flattened model features
 under names like `collegeDominatorRating`, `relativeAthleticScore`,
 `recruitRating`, `nflDraftPick`, plus two source-agnostic families
-aggregated from the project's scouting pipeline:
+aggregated from the project's scouting-report pipeline:
 
 - **`scout*`** — single-scout grade signals (e.g. `scoutGradeDraft`,
   `scoutTierOrdinal`, `scoutBreadthDraft`, `scoutNComps`).
@@ -81,9 +81,9 @@ aggregated from the project's scouting pipeline:
   `guideNWeaknesses`, `guideSentimentNet`, …).
 
 Both families are derived numeric features (counts, means, ordinals) —
-no verbatim scout text is shipped. `hasScoutGrade` / `hasGuideData`
-flag missing-data so models can distinguish "no scout coverage" from
-"low score".
+no verbatim scouting-report text is shipped. `hasScoutGrade` /
+`hasGuideData` flag missing-data so models can distinguish
+"no scout coverage" from "low score".
 
 ## Licensing & attribution
 
@@ -92,7 +92,7 @@ from the StatHead project's own modeling pipeline; upstream sources
 (nflverse, FFC, CFBD, etc.) retain their own terms — see each source's
 license before redistributing. Sources whose terms do not permit
 third-party redistribution (e.g. KeepTradeCut dynasty values, verbatim
-prose from paid scouting publications) are intentionally not exposed by
+prose from paid scouting reports) are intentionally not exposed by
 this client.
 
 ADP data exposed by `load_adp_ffc` is courtesy of

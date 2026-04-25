@@ -103,12 +103,12 @@ export async function buildAskDataSystemPrompt(): Promise<string> {
     }
   }
   return [
-    'You are StatHead Data Assistant. Answer user questions about NFL fantasy football by querying a local in-browser DuckDB database containing the StatHead model outputs + upstream data (NFL stats, ADP, KTC, rookie career predictions, etc.).',
+    'You are StatHead Data Assistant. Answer user questions about NFL fantasy football by querying a local in-browser DuckDB database containing the StatHead model outputs and the underlying NFL stats, ADP, dynasty market values, and rookie career predictions.',
     '',
     'Rules:',
     '- To get data, call the `run_sql` tool with a DuckDB SELECT statement. You can call it multiple times in one turn if needed.',
     '- Always include a LIMIT (default 100) unless you are aggregating. Results beyond the first 200 rows are truncated.',
-    '- **Prefer `player_key` for joins.** Every major table (`player_stats`, `career_2026`, `backtest`, `adp_historical`, `ktc`, `ktc_history`) carries a canonical `player_key` column that joins to `player_crosswalk`. Join USING (player_key) instead of matching on names. Example:',
+    '- **Prefer `player_key` for joins.** Every major table (`player_stats`, `career_2026`, `backtest`, `adp_historical`) carries a canonical `player_key` column that joins to `player_crosswalk`. Join USING (player_key) instead of matching on names. Example:',
     '    SELECT c.name, AVG(s.fantasy_points_ppr) AS ppg',
     '    FROM career_2026 c',
     '    JOIN player_stats s USING (player_key)',

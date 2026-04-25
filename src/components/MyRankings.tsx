@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
-import { normName, boomPct, bustPct } from '../lib/nameUtils';
+import { normName, positionStats, zScore } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 
 // ── Types ──
@@ -61,10 +61,11 @@ interface RankingRow {
   ppg: number;
   // ADP
   adp: number;
-  // Model signals — VOR boom/bust from ADP model
-  predictedVor: number;
-  boomPct: number;       // upside % from CI
-  bustPct: number;       // downside % from CI
+  // Raw CI bounds from the ADP model (z-scored within position below)
+  ciSpreadUp: number;   // ciUpper - predictedVor
+  ciSpreadDown: number; // predictedVor - ciLower
+  boomZ: number;        // z-score within position of ciSpreadUp
+  bustZ: number;        // z-score within position of ciSpreadDown
   // Projected shares (from SDIO team totals)
   projTgtShare: number;  // 0-1
   projRushShare: number; // 0-1
@@ -100,18 +101,25 @@ function pct(v: number): string {
   return `${Math.round(v * 100)}%`;
 }
 
-function boomColor(v: number): string {
-  if (v >= 40) return '#22c55e';
-  if (v >= 25) return '#86efac';
-  if (v >= 15) return '#a3e635';
+// Color a z-score: positive boom z = upside, positive bust z = downside risk.
+function boomColor(z: number): string {
+  if (z >= 1.0) return '#22c55e';
+  if (z >= 0.5) return '#86efac';
+  if (z >= 0.2) return '#a3e635';
   return 'var(--text-muted)';
 }
 
-function bustColor(v: number): string {
-  if (v >= 40) return '#ef4444';
-  if (v >= 25) return '#fca5a5';
-  if (v >= 15) return '#fb923c';
+function bustColor(z: number): string {
+  if (z >= 1.0) return '#ef4444';
+  if (z >= 0.5) return '#fca5a5';
+  if (z >= 0.2) return '#fb923c';
   return 'var(--text-muted)';
+}
+
+function fmtZ(z: number): string {
+  if (!Number.isFinite(z) || z === 0) return '—';
+  const sign = z > 0 ? '+' : '';
+  return `${sign}${z.toFixed(2)}`;
 }
 
 // ── Component ──
@@ -343,13 +351,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       const resolvedTeam = ffcP?.team ?? adpS?.team ?? sdioP?.Team ?? team;
 
-      // Boom/bust from ADP model's VOR confidence interval. Helpers floor the
-      // denominator and clamp to [0, 99] so deep-bench VORs don't read as ±100%.
+      // CI bounds from the ADP model. The boom/bust *spreads* (raw numbers)
+      // are computed here; the within-position z-score is applied in a
+      // second pass once we have all rows, since z-score requires the
+      // position cohort's mean+std.
       const vor = adpS?.predictedVor ?? 0;
       const ciLow = adpS?.ciLower ?? 0;
       const ciHigh = adpS?.ciUpper ?? 0;
-      const rowBoomPct = boomPct(vor, ciHigh);
-      const rowBustPct = bustPct(vor, ciLow);
+      const ciSpreadUp = adpS ? Math.max(0, ciHigh - vor) : 0;
+      const ciSpreadDown = adpS ? Math.max(0, vor - ciLow) : 0;
 
       // Projected shares: SDIO (scenario) > share model predictions > prior year
       let projTgtShare = 0;
@@ -388,9 +398,10 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         team: resolvedTeam,
         ppg,
         adp: ffcP?.adp ?? adpS?.adp ?? 999,
-        predictedVor: vor,
-        boomPct: rowBoomPct,
-        bustPct: rowBustPct,
+        ciSpreadUp,
+        ciSpreadDown,
+        boomZ: 0, // filled in below once position stats are known
+        bustZ: 0,
         projTgtShare,
         projRushShare,
         priorPPG: prior?.priorPPG ?? 0,
@@ -412,6 +423,22 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       if (!['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
       const row = buildRow(p.name, p.position, 0, p.team);
       if (row) rows.push(row);
+    }
+
+    // Within-position z-scores for boom (CI upside spread) and bust
+    // (CI downside spread). Only count rows that have CI data (>0) so an
+    // ocean of 0-spread rookies/depth pieces doesn't drag the mean down.
+    const boomPool = rows.filter((r) => r.ciSpreadUp > 0);
+    const bustPool = rows.filter((r) => r.ciSpreadDown > 0);
+    const boomStats = positionStats(boomPool, (r) => r.position, (r) => r.ciSpreadUp);
+    const bustStats = positionStats(bustPool, (r) => r.position, (r) => r.ciSpreadDown);
+    for (const r of rows) {
+      if (r.ciSpreadUp > 0) {
+        r.boomZ = Math.round(zScore(r.ciSpreadUp, boomStats.get(r.position)) * 100) / 100;
+      }
+      if (r.ciSpreadDown > 0) {
+        r.bustZ = Math.round(zScore(r.ciSpreadDown, bustStats.get(r.position)) * 100) / 100;
+      }
     }
 
     // Sort by PPG descending
@@ -637,14 +664,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>PPG</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>ADP</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>
-                <span title="Predicted PPG Value Over Replacement from ADP model">VOR</span>
+              <th style={{ ...th, textAlign: 'right', width: 48 }}>
+                <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 40 }}>
-                <span title="Upside % — CI upper vs predicted VOR">Boom%</span>
-              </th>
-              <th style={{ ...th, textAlign: 'right', width: 40 }}>
-                <span title="Downside % — predicted VOR vs CI lower">Bust%</span>
+              <th style={{ ...th, textAlign: 'right', width: 48 }}>
+                <span title="Bust z-score — CI downside spread vs the position cohort. >+1 = unusually wide downside risk.">Bust z</span>
               </th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>Tgt%</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }}>Rush%</th>
@@ -685,17 +709,14 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
                 <td style={{ ...td, textAlign: 'center' }}>
                   <span className={`pos-badge pos-${r.position}`} style={{ fontSize: 10 }}>{r.position}</span>
                 </td>
-                <td style={{ ...td, textAlign: 'center', color: 'var(--text-muted)' }}>{r.team}</td>
+                <td style={{ ...td, textAlign: 'center', color: 'var(--text-muted)' }}>{r.team || '—'}</td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{r.ppg > 0 ? r.ppg.toFixed(1) : '—'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>{r.adp < 999 ? r.adp.toFixed(1) : '—'}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>
-                  {r.predictedVor > 0 ? r.predictedVor.toFixed(1) : '—'}
+                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: boomColor(r.boomZ) }}>
+                  {fmtZ(r.boomZ)}
                 </td>
-                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: boomColor(r.boomPct) }}>
-                  {r.boomPct > 0 ? `${r.boomPct}%` : '—'}
-                </td>
-                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: bustColor(r.bustPct) }}>
-                  {r.bustPct > 0 ? `${r.bustPct}%` : '—'}
+                <td style={{ ...td, textAlign: 'right', fontSize: 11, fontWeight: 600, color: bustColor(r.bustZ) }}>
+                  {fmtZ(r.bustZ)}
                 </td>
                 <td style={{ ...td, textAlign: 'right', color: 'var(--text-secondary)' }}>
                   {r.projTgtShare > 0 ? pct(r.projTgtShare) : '—'}
