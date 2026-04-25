@@ -1,20 +1,30 @@
 import { useState } from 'react';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { saveSettings } from '../lib/draftPrepSettings';
+import type { ScenarioConfig } from '../types';
 
 // Pinned settings header for the draft prep tool. Five inputs (numTeams,
 // pickSlot, draftType, roster, scoring) drive every downstream
 // computation. Persists to localStorage on every change.
+//
+// Optional scenario dropdown lets users swap in a saved projection
+// scenario from `scenarioEngine` (defined in StatProjections /
+// MyRankings / ScenarioBuilder). When active, scenario-projected PPG
+// flows through PickEdge / Beat % / Verdict so the user can see how
+// alternative projection assumptions change every recommendation.
 
 interface Props {
   settings: DraftPrepSettings;
   onChange: (next: DraftPrepSettings) => void;
+  scenarios?: ScenarioConfig[];
+  selectedScenarioId?: string;
+  onScenarioChange?: (id: string) => void;
 }
 
 const TEAM_OPTIONS = [8, 10, 12, 14] as const;
 const ROSTER_KEYS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SF'] as const;
 
-export function DraftPrepSettings({ settings, onChange }: Props) {
+export function DraftPrepSettings({ settings, onChange, scenarios, selectedScenarioId, onScenarioChange }: Props) {
   const [open, setOpen] = useState(false);
 
   const update = (next: DraftPrepSettings) => {
@@ -97,6 +107,27 @@ export function DraftPrepSettings({ settings, onChange }: Props) {
         >
           {open ? '▾' : '▸'} Roster
         </button>
+
+        {scenarios !== undefined && onScenarioChange && (
+          <label style={pillStyle}>
+            Scenario{' '}
+            <select
+              value={selectedScenarioId ?? ''}
+              onChange={(e) => onScenarioChange(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
+              title={
+                scenarios.length === 0
+                  ? 'No saved scenarios yet — create one from the Projections tab'
+                  : 'Apply a saved projection scenario; PickEdge / Beat % / Verdict recompute against scenario PPG'
+              }
+            >
+              <option value="">Default model</option>
+              {scenarios.map((s) => (
+                <option key={s.id} value={s.id}>{s.name || 'Untitled'}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {ROSTER_KEYS.map((k) => `${k}:${settings.roster[k]}`).join('  ')}

@@ -6,6 +6,9 @@ import { DraftPrepSettings as SettingsHeader } from './DraftPrepSettings';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { loadSettings } from '../lib/draftPrepSettings';
 import { userPickNumbers, maxSurvival, bandIdFor } from '../lib/snakeDraft';
+import type { ScenarioConfig, SDIOProjection } from '../types';
+import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
+import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import {
   type EdgeBoardRow,
   verdictFor, VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct,
@@ -173,10 +176,30 @@ function tsharePctileColor(p: number): string {
 }
 
 
+// Scenario-independent inputs per player. The `enrichedRows` useMemo
+// derives PPG / baseline / PickEdge / Beat % from these plus the active
+// scenario, so flipping scenarios doesn't require a refetch.
+interface RawRow {
+  name: string;
+  position: string;
+  team: string;
+  adp: number;
+  stdev: number;
+  basePpg: number;     // ADP-free model PPG (score-store/ppg.json)
+  ciLower: number;     // ADP-aware quantile bounds (unaffected by scenario)
+  ciUpper: number;
+  ciCenter: number;    // predictedVor — center of the CI
+  rawTargetShare: number;
+  isRookie: boolean;
+}
+
 export function DraftOptimizerTable() {
   const [settings, setSettings] = useState<DraftPrepSettings>(() => loadSettings());
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rawRows, setRawRows] = useState<RawRow[]>([]);
   const [curves, setCurves] = useState<Record<string, AdpCurve>>({});
+  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
+  const [scenarios, setScenarios] = useState<ScenarioConfig[]>([]);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
@@ -194,6 +217,16 @@ export function DraftOptimizerTable() {
     [settings.pickSlot, settings.numTeams, settings.draftType],
   );
 
+  // Saved scenarios live in localStorage. Loaded on mount; refreshed
+  // whenever the user re-enters the tab (focus event) so a scenario
+  // saved on the Projections page shows up here without a hard reload.
+  useEffect(() => {
+    setScenarios(loadAllScenarios());
+    const onFocus = () => setScenarios(loadAllScenarios());
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -208,23 +241,32 @@ export function DraftOptimizerTable() {
         .then((d) => Array.isArray(d) ? d : (d?.players ?? []))
         .catch(() => []),
       loadScoreManifest(),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest]: [
+      // SDIO projections power scenario PPG. Skipped (empty array)
+      // when no API key is configured; scenarios still apply on top of
+      // an empty SDIO array as a no-op, so the dropdown stays usable
+      // even if the user hasn't configured SDIO.
+      hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
       FfcAdpEntry[],
       Awaited<ReturnType<typeof loadScoreManifest>>,
+      SDIOProjection[],
     ]) => {
       if (cancelled) return;
+      setSdio(sdioData);
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
         setLoading(false);
         return;
       }
 
-      const ppgByName = new Map<string, number>();
+      // Base PPG from the score-store (the trained model's prediction).
+      // Scenarios may override this in `enrichedRows` below.
+      const basePpgByName = new Map<string, number>();
       for (const p of ppgData ?? []) {
-        if (p?.name) ppgByName.set(normName(p.name), Number(p.predictedPPG) || 0);
+        if (p?.name) basePpgByName.set(normName(p.name), Number(p.predictedPPG) || 0);
       }
       const shareByKey = new Map<string, number>();
       for (const s of shareData ?? []) {
@@ -236,80 +278,33 @@ export function DraftOptimizerTable() {
       }
       const adpCurves = manifest?.adpCurves ?? {};
 
-      // First pass: build everything except verdict + targetSharePctile —
-      // those need pool-wide stats (per-position σ of PickEdge, share
-      // percentiles within position).
-      const partial = adpData.map((a) => {
+      // Raw rows hold only scenario-independent fields. PPG, baseline,
+      // PickEdge, Beat % are derived in `enrichedRows` below so they
+      // recompute on scenario change without refetching.
+      const built: RawRow[] = adpData.map((a) => {
         const adp = Number(a.adp) || 999;
-        const pred = ppgByName.get(normName(a.name)) ?? 0;
         const ciL = Number(a.ciLower);
         const ciU = Number(a.ciUpper);
         const center = Number(a.predictedVor);
-        const haveCI = Number.isFinite(ciL) && Number.isFinite(ciU) && ciU > ciL;
-        const upsidePPG = haveCI && Number.isFinite(center) ? Math.max(0, ciU - center) : NaN;
-        const downsidePPG = haveCI && Number.isFinite(center) ? Math.max(0, center - ciL) : NaN;
-
-        const curve = adpCurves[a.position];
-        const adpBaselinePPG = curve && adp < 999 && pred > 0
-          ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp) + (curve.poolOffset ?? 0)
-          : NaN;
-        const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
-        const pBeat = haveCI && pred > 0 ? probBeatBaseline(pred, ciL, ciU, adpBaselinePPG) : NaN;
-
         const stdev = stdevByKey.get(`${normName(a.name)}::${a.position}`) ?? 0;
         const rawTargetShare = shareByKey.get(`${normName(a.name)}::${a.position}`) ?? NaN;
-
+        const basePpg = basePpgByName.get(normName(a.name)) ?? 0;
         return {
           name: a.name,
           position: a.position,
           team: a.team,
           adp,
           stdev,
-          predictedPPG: pred,
-          adpBaselinePPG,
-          pickEdge,
-          pBeat,
-          upsidePPG,
-          downsidePPG,
+          basePpg,
+          ciLower: ciL,
+          ciUpper: ciU,
+          ciCenter: center,
           rawTargetShare,
           isRookie: !!a.isRookie,
         };
       });
 
-      // Per-position target-share percentile. Only RB/WR/TE have shares;
-      // QBs always get NaN (column displays as “—”). Computed once at
-      // load time — doesn't depend on settings.
-      const sortedSharesByPos = new Map<string, number[]>();
-      for (const pos of ['RB', 'WR', 'TE']) {
-        const vals = partial
-          .filter((r) => r.position === pos && Number.isFinite(r.rawTargetShare) && r.rawTargetShare > 0)
-          .map((r) => r.rawTargetShare as number)
-          .sort((a, b) => a - b);
-        if (vals.length >= 3) sortedSharesByPos.set(pos, vals);
-      }
-      const pctileFor = (pos: string, share: number): number => {
-        const sorted = sortedSharesByPos.get(pos);
-        if (!sorted || !Number.isFinite(share) || share <= 0) return NaN;
-        let lo = 0, hi = sorted.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (sorted[mid] <= share) lo = mid + 1; else hi = mid;
-        }
-        return Math.round((lo / sorted.length) * 100);
-      };
-
-      // Settings-independent fields baked here. Verdict + survivalBest
-      // depend on settings (numTeams shifts band edges; pick slot shifts
-      // survival picks) and are derived in a useMemo below so changing
-      // the settings header doesn't force a data refetch.
-      const built: Row[] = partial.map((r) => ({
-        ...r,
-        verdict: 'Unknown' as const,
-        targetSharePctile: pctileFor(r.position, r.rawTargetShare),
-        survivalBest: NaN,
-      }));
-
-      setRows(built);
+      setRawRows(built);
       setCurves(adpCurves);
       setLoading(false);
     }).catch((e) => {
@@ -321,28 +316,114 @@ export function DraftOptimizerTable() {
     return () => { cancelled = true; };
   }, []);
 
-  // Settings-derived fields. Verdict thresholds use per-(position × ADP
-  // band) stats — recentered on each band's own mean and rescaled by its
-  // own σ. Without per-band stratification, round-1 picks all cluster as
-  // Fade (curve baseline is high) and round-11 picks all cluster as
-  // Strong Target (curve baseline is low) — independent of any genuine
-  // value disagreement. Cohort-relative verdicts make Strong Target read
-  // as "best in your draft slot range" rather than "guaranteed to beat
-  // ADP" (which Beat % already conveys).
+  // Active scenario — user-selected from the saved-scenarios dropdown.
+  // Falls back to "no scenario" when nothing is selected.
+  const activeScenario = useMemo<ScenarioConfig | null>(() => {
+    if (!selectedScenarioId) return null;
+    return scenarios.find((s) => s.id === selectedScenarioId) ?? null;
+  }, [selectedScenarioId, scenarios]);
+
+  // Apply scenario to SDIO projections. When no scenario is active or
+  // SDIO data isn't loaded, returns SDIO unchanged (so the
+  // scenarioPpgByName map below is empty and the score-store base PPG
+  // wins for every player).
+  const scenarioSdio = useMemo<SDIOProjection[]>(() => {
+    if (!sdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return sdio;
+    return applyScenario(sdio, activeScenario);
+  }, [sdio, activeScenario]);
+
+  // Scenario-derived PPG per player. SDIO `FantasyPointsPPR` is a season
+  // total; divide by 17 to align with our per-game PPG convention.
+  const scenarioPpgByName = useMemo<Map<string, number>>(() => {
+    const m = new Map<string, number>();
+    if (!activeScenario || isScenarioEmpty(activeScenario)) return m;
+    for (const p of scenarioSdio) {
+      const ppg = (p.FantasyPointsPPR ?? 0) / 17;
+      if (ppg > 0 && p.Name) m.set(normName(p.Name), Math.round(ppg * 10) / 10);
+    }
+    return m;
+  }, [scenarioSdio, activeScenario]);
+
+  // Per-position target-share %ile lookup. Doesn't depend on scenario;
+  // computed once over the raw share data.
+  const tsharePctile = useMemo(() => {
+    const sortedByPos = new Map<string, number[]>();
+    for (const pos of ['RB', 'WR', 'TE']) {
+      const vals = rawRows
+        .filter((r) => r.position === pos && Number.isFinite(r.rawTargetShare) && r.rawTargetShare > 0)
+        .map((r) => r.rawTargetShare)
+        .sort((a, b) => a - b);
+      if (vals.length >= 3) sortedByPos.set(pos, vals);
+    }
+    return (pos: string, share: number): number => {
+      const sorted = sortedByPos.get(pos);
+      if (!sorted || !Number.isFinite(share) || share <= 0) return NaN;
+      let lo = 0, hi = sorted.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (sorted[mid] <= share) lo = mid + 1; else hi = mid;
+      }
+      return Math.round((lo / sorted.length) * 100);
+    };
+  }, [rawRows]);
+
+  // Derive everything that depends on scenario, settings, or live picks.
+  // Verdict thresholds use per-(position × ADP band) stats — recentered
+  // on each band's own mean and rescaled by its own σ. Without per-band
+  // stratification, round-1 picks all cluster as Fade (curve baseline
+  // is high) and round-11 picks all cluster as Strong Target. Verdict
+  // reads as "best in your draft slot range" — Beat % is the absolute
+  // probability counterpart.
   const enrichedRows = useMemo<Row[]>(() => {
-    if (rows.length === 0) return rows;
+    if (rawRows.length === 0) return [];
     const N = settings.numTeams;
+
+    // First pass: resolve PPG (scenario-overridden if active, else
+    // model base) and derive baseline/edge/beat from it.
+    const seeded: Row[] = rawRows.map((r) => {
+      const scenarioPpg = scenarioPpgByName.get(normName(r.name));
+      const pred = scenarioPpg !== undefined && scenarioPpg > 0 ? scenarioPpg : r.basePpg;
+      const haveCI = Number.isFinite(r.ciLower) && Number.isFinite(r.ciUpper) && r.ciUpper > r.ciLower;
+      const upsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciUpper - r.ciCenter) : NaN;
+      const downsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciCenter - r.ciLower) : NaN;
+      const curve = curves[r.position];
+      const adpBaselinePPG = curve && r.adp < 999 && pred > 0
+        ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(r.adp) + (curve.poolOffset ?? 0)
+        : NaN;
+      const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
+      const pBeat = haveCI && pred > 0 ? probBeatBaseline(pred, r.ciLower, r.ciUpper, adpBaselinePPG) : NaN;
+      return {
+        name: r.name,
+        position: r.position,
+        team: r.team,
+        adp: r.adp,
+        stdev: r.stdev,
+        predictedPPG: pred,
+        adpBaselinePPG,
+        pickEdge,
+        pBeat,
+        upsidePPG,
+        downsidePPG,
+        rawTargetShare: r.rawTargetShare,
+        targetSharePctile: tsharePctile(r.position, r.rawTargetShare),
+        survivalBest: r.adp < 999 ? maxSurvival(r.adp, r.stdev || undefined, myPicks) : NaN,
+        verdict: 'Unknown' as const,
+        isRookie: r.isRookie,
+      };
+    });
+
+    // Second pass: cohort-relative verdict thresholds derived from
+    // *seeded* PickEdge so the verdict re-stratifies under each scenario.
     const stats = new Map<string, { mean: number; std: number }>();
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
-      // Position-wide fallback for bands too thin to be reliable on their own.
-      const all = rows.filter((r) => r.position === pos && Number.isFinite(r.pickEdge));
+      const all = seeded.filter((r) => r.position === pos && Number.isFinite(r.pickEdge));
       if (all.length >= 5) {
         const m = all.reduce((s, r) => s + r.pickEdge, 0) / all.length;
         const v = all.reduce((s, r) => s + (r.pickEdge - m) ** 2, 0) / all.length;
         stats.set(`${pos}::ALL`, { mean: m, std: Math.sqrt(v) });
       }
       for (const bandId of ['R1-3', 'R4-6', 'R7-10', 'R11+'] as const) {
-        const band = rows.filter((r) =>
+        const band = seeded.filter((r) =>
           r.position === pos
           && Number.isFinite(r.pickEdge)
           && bandIdFor(r.adp, N) === bandId,
@@ -353,16 +434,15 @@ export function DraftOptimizerTable() {
         stats.set(`${pos}::${bandId}`, { mean: m, std: Math.sqrt(v) });
       }
     }
-    return rows.map((r) => {
-      const bandId = bandIdFor(r.adp, N);
-      const cohort = stats.get(`${r.position}::${bandId}`) ?? stats.get(`${r.position}::ALL`);
+    return seeded.map((r) => {
+      const cohort = stats.get(`${r.position}::${bandIdFor(r.adp, N)}`)
+        ?? stats.get(`${r.position}::ALL`);
       const verdict = cohort
         ? verdictFor(r.pickEdge, r.pBeat, cohort.std, cohort.mean)
         : 'Unknown';
-      const survivalBest = r.adp < 999 ? maxSurvival(r.adp, r.stdev || undefined, myPicks) : NaN;
-      return { ...r, verdict, survivalBest };
+      return { ...r, verdict };
     });
-  }, [rows, settings.numTeams, myPicks]);
+  }, [rawRows, curves, scenarioPpgByName, tsharePctile, settings.numTeams, myPicks]);
 
   const displayRows = useMemo(() => {
     let out = enrichedRows;
@@ -452,7 +532,13 @@ export function DraftOptimizerTable() {
         </span>
       </div>
 
-      <SettingsHeader settings={settings} onChange={setSettings} />
+      <SettingsHeader
+        settings={settings}
+        onChange={setSettings}
+        scenarios={scenarios}
+        selectedScenarioId={selectedScenarioId}
+        onScenarioChange={setSelectedScenarioId}
+      />
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
         <strong>Pick Edge</strong> = predicted PPG minus the position's
@@ -469,6 +555,15 @@ export function DraftOptimizerTable() {
         curve baseline" view. Toggle{' '}
         <em>Available at my picks</em> to filter to players with ≥15%
         survival probability across your snake-draft picks.
+        {scenarios.length > 0 && (
+          <>
+            {' '}Pick a saved <strong>Scenario</strong> in the settings
+            header to swap your Projections-tab assumptions in — PPG,
+            PickEdge, Beat %, and Verdict all recompute against the
+            scenario's projections, and verdicts re-stratify against the
+            new distribution.
+          </>
+        )}
         {Object.keys(curves).length === 0 && (
           <span style={{ color: '#fb923c', marginLeft: 6 }}>
             ADP curve unavailable — Pick Edge / Beat % / Verdict will
