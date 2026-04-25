@@ -4,12 +4,13 @@ from __future__ import annotations
 import pandas as pd
 
 from ._fetch import fetch_json
+from ._renames import rename_feature_dict
 
 
 def _flatten(row: dict) -> dict:
     """Lift ``features`` sub-dict into top-level columns."""
     features = row.pop("features", None) or {}
-    return {**row, **features}
+    return {**row, **rename_feature_dict(features)}
 
 
 def load_career_predictions_2026() -> pd.DataFrame:
@@ -18,8 +19,8 @@ def load_career_predictions_2026() -> pd.DataFrame:
     Columns (non-exhaustive): ``name``, ``position``, ``adp``, ``team``,
     ``predictedCareerPPG``, ``percentile``, ``modelTier``, ``boomProb``,
     ``bustProb``, ``boomZ``, ``bustZ``, plus every feature in the model
-    (``collegeDominatorRating``, ``collegeUsageOverall``, ``rspDotDraft``,
-    ``pdfRankOverallMean``, ``recruitRating``, ``relativeAthleticScore``, …).
+    (``collegeDominatorRating``, ``collegeUsageOverall``, ``scoutGradeDraft``,
+    ``guideRankMean``, ``recruitRating``, ``relativeAthleticScore``, …).
     """
     fm = fetch_json("public/data/feature-matrix.json")
     rows = [_flatten(dict(p)) for p in fm.get("careerPredictions2026") or []]

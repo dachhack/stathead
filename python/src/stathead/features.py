@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from ._fetch import fetch_json
+from ._renames import rename_features_in_tree
 
 
 def load_feature_matrix() -> dict[str, Any]:
@@ -14,7 +15,7 @@ def load_feature_matrix() -> dict[str, Any]:
     :func:`~stathead.load_career_predictions_2026` instead — this is an
     escape hatch for advanced introspection.
     """
-    return fetch_json("public/data/feature-matrix.json")
+    return rename_features_in_tree(fetch_json("public/data/feature-matrix.json"))
 
 
 def load_manual_overrides() -> dict[str, Any]:
