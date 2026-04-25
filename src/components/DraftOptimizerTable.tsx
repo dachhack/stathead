@@ -11,6 +11,7 @@ import {
   verdictFor, VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct,
 } from '../lib/edgeBoardRow';
 import { DraftRoundPlan } from './DraftRoundPlan';
+import { DraftTierMap } from './DraftTierMap';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
 // the user's saved league settings.
@@ -626,6 +627,12 @@ export function DraftOptimizerTable() {
           `settings` the Edge Board uses; keyed off pickSlot/numTeams/
           draftType so it auto-updates when the user tweaks the header. */}
       <DraftRoundPlan rows={rows} settings={settings} />
+
+      {/* Section 3: Tier Map. Per-position scatter (ADP × Pred PPG)
+          with cliff lines at tier boundaries. Production tiers — by
+          predicted PPG — answer the "where do positions run out?"
+          question; verdict color overlays the value signal. */}
+      <DraftTierMap rows={rows} settings={settings} />
     </div>
   );
 }
