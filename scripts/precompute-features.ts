@@ -1868,6 +1868,18 @@ async function main() {
     ciLower: number; ciUpper: number; isRookie: boolean;
   }> = [];
 
+  // Rookie identification needs a positive signal — the previous
+  // `yearsInLeague <= 1` predicate flagged sophomores as rookies AND
+  // mis-flagged every UDFA vet (Ekeler, Mostert, Dowdle, Jaylen
+  // Warren, …) because their `yearsInLeague` defaults to 0 when
+  // they're missing from the draft DB. We resolve to `true` only when
+  // the player name appears in the current year's `prospectGrades`
+  // file — the canonical source of truth for the upcoming NFL Draft
+  // class. Pre-draft this evaluates false for everyone in ADP (correct
+  // — no current ADP-eligible player is a 2026 rookie until the 2026
+  // NFL Draft happens); post-draft, true rookies will start appearing.
+  const rookieNameSet = new Set(prospectGrades.map((p) => normalizeName(p.name)));
+
   for (const m of models) {
     const pos = m.position as string;
     const gbm = m.gbmModel as any;
@@ -1883,7 +1895,7 @@ async function main() {
     const threshold = posThresholds[pos];
 
     for (const r of posPlayers) {
-      const isRookie = (r.features.yearsInLeague || 0) <= 1;
+      const isRookie = rookieNameSet.has(normalizeName(r.name));
       const hasDraftData = r.features.nflDraftRound > 0 && r.features.nflDraftRound < 8;
 
       // Combined model baseline (always computed)
