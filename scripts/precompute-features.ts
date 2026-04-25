@@ -1868,6 +1868,18 @@ async function main() {
     ciLower: number; ciUpper: number; isRookie: boolean;
   }> = [];
 
+  // Rookie identification needs a positive signal — the previous
+  // `yearsInLeague <= 1` predicate flagged sophomores as rookies AND
+  // mis-flagged every UDFA vet (Ekeler, Mostert, Dowdle, Jaylen
+  // Warren, …) because their `yearsInLeague` defaults to 0 when
+  // they're missing from the draft DB. We resolve to `true` only when
+  // the player name appears in the current year's `prospectGrades`
+  // file — the canonical source of truth for the upcoming NFL Draft
+  // class. Pre-draft this evaluates false for everyone in ADP (correct
+  // — no current ADP-eligible player is a 2026 rookie until the 2026
+  // NFL Draft happens); post-draft, true rookies will start appearing.
+  const rookieNameSet = new Set(prospectGrades.map((p) => normalizeName(p.name)));
+
   for (const m of models) {
     const pos = m.position as string;
     const gbm = m.gbmModel as any;
@@ -1883,7 +1895,7 @@ async function main() {
     const threshold = posThresholds[pos];
 
     for (const r of posPlayers) {
-      const isRookie = (r.features.yearsInLeague || 0) <= 1;
+      const isRookie = rookieNameSet.has(normalizeName(r.name));
       const hasDraftData = r.features.nflDraftRound > 0 && r.features.nflDraftRound < 8;
 
       // Combined model baseline (always computed)
@@ -2110,27 +2122,46 @@ async function main() {
     writeVolumeScores(volumeScores);
     console.log(`    volumes: ${volumeScores.length} predictions`);
 
-    // Per-position ADP→PPG baseline curve. The (slope, intercept) pair is
-    // pulled from the residual models (sqrt-curve fit on 2010–2025 historical
-    // actuals). The `poolOffset` is a recentering correction for selection
-    // bias — see the AdpCurve docstring in modelScoreStore.ts. Without it,
-    // PickEdge skews 2–4 PPG positive across the whole pool because the
-    // 2026 prediction set is curated to rosterable players while the
-    // historical curve is fit on all ADPed rows (including flameouts).
+    // Per-position ADP→PPG baseline curve.
     //
-    // Computed as: poolOffset[pos] = mean over the 2026 PPG-prediction pool
-    //   of (predictedPPG − (intercept + slope·√ADP)).
-    // After applying the offset, mean PickEdge across the pool is 0 by
-    // construction. Sort order is preserved (constant per-position shift).
+    // Fit fresh sqrt-curve coefficients (`PPG = intercept + slope·√ADP`)
+    // directly from `result.rows` here rather than reading them out of
+    // the residual model cache. The cache may have been trained with the
+    // old linear coefficients (pre-sqrt-overhaul) under different keys,
+    // and we don't want a stale cache to silently produce an empty
+    // `adpCurves` map. Refitting is cheap — it's just OLS on ~1k rows
+    // per position — and self-heals against any past or future cache
+    // schema drift.
+    //
+    // `poolOffset` is a recentering correction for selection bias: the
+    // historical curve is fit on all ADPed rows (including flameouts)
+    // while the 2026 prediction set is curated to rosterable players,
+    // so PickEdge skews 2–4 PPG positive without it. Computed as the
+    // mean of `(predictedPPG − sqrt-only baseline)` across the 2026
+    // pool. After applying, mean PickEdge per position is 0 by
+    // construction; sort order is preserved.
     const adpCurves: Record<string, { sqrtSlope: number; sqrtIntercept: number; poolOffset?: number; n?: number }> = {};
-    for (const m of residualModels as Array<{ position: string; adpSqrtSlope?: number; adpSqrtIntercept?: number; n?: number }>) {
-      if (m.adpSqrtSlope !== undefined && m.adpSqrtIntercept !== undefined) {
-        adpCurves[m.position] = {
-          sqrtSlope: m.adpSqrtSlope,
-          sqrtIntercept: m.adpSqrtIntercept,
-          n: m.n,
-        };
+    for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+      const posRows = (result.rows as Array<{ position: string; adp: number; rawPPG: number }>)
+        .filter((r) => r.position === pos && r.adp > 0 && r.adp <= 250 && r.rawPPG >= 0);
+      if (posRows.length < 30) continue;
+      const xs = posRows.map((r) => Math.sqrt(r.adp));
+      const ys = posRows.map((r) => r.rawPPG);
+      const n = posRows.length;
+      const mx = xs.reduce((s, v) => s + v, 0) / n;
+      const my = ys.reduce((s, v) => s + v, 0) / n;
+      let sxx = 0, sxy = 0;
+      for (let i = 0; i < n; i++) {
+        sxx += (xs[i] - mx) ** 2;
+        sxy += (xs[i] - mx) * (ys[i] - my);
       }
+      const slope = sxx > 0 ? sxy / sxx : 0;
+      const intercept = my - slope * mx;
+      adpCurves[pos] = {
+        sqrtSlope: Math.round(slope * 1e6) / 1e6,
+        sqrtIntercept: Math.round(intercept * 1e4) / 1e4,
+        n,
+      };
     }
     // Compute poolOffset per position from the 2026 PPG prediction pool.
     for (const pos of Object.keys(adpCurves)) {
