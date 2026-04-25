@@ -78,6 +78,13 @@ interface FfcAdpEntry {
   stdev: number;
 }
 
+interface RedraftProjEntry {
+  name: string;
+  position: string;
+  ppg: number;
+  recPG?: number;
+}
+
 // Row + verdict types live in lib/edgeBoardRow.ts so multiple sections
 // (Edge Board, Round Plan, future Tier Map / Targets & Fades) can share
 // the same shape without circular imports. The local alias keeps
@@ -186,6 +193,7 @@ interface RawRow {
   adp: number;
   stdev: number;
   basePpg: number;     // ADP-free model PPG (score-store/ppg.json)
+  baseProjPpg: number; // Base projection PPG (redraft-projections.json) — pre-scenario
   ciLower: number;     // ADP-aware quantile bounds (unaffected by scenario)
   ciUpper: number;
   ciCenter: number;    // predictedVor — center of the CI
@@ -246,13 +254,22 @@ export function DraftOptimizerTable() {
       // an empty SDIO array as a no-op, so the dropdown stays usable
       // even if the user hasn't configured SDIO.
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData]: [
+      // Base projections — the same redraft-projections.json the
+      // Projections tab reads. Always available (no API key needed),
+      // 320 players with `ppg`. Drives the Proj column when no
+      // scenario is active; scenarios override on top of these.
+      fetch(`${BASE}data/redraft-projections.json`)
+        .then((r) => (r.ok ? r.json() : { players: [] }))
+        .then((d) => (Array.isArray(d) ? d : (d?.players ?? [])) as RedraftProjEntry[])
+        .catch(() => [] as RedraftProjEntry[]),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
       FfcAdpEntry[],
       Awaited<ReturnType<typeof loadScoreManifest>>,
       SDIOProjection[],
+      RedraftProjEntry[],
     ]) => {
       if (cancelled) return;
       setSdio(sdioData);
@@ -276,6 +293,13 @@ export function DraftOptimizerTable() {
       for (const f of ffcData ?? []) {
         if (f?.name) stdevByKey.set(`${normName(f.name)}::${f.position}`, Number(f.stdev) || 0);
       }
+      // Base projection PPG keyed by player name. Drives the Proj
+      // column when no scenario is active; scenarios layer on top via
+      // applyScenario() in the useMemo below.
+      const baseProjByName = new Map<string, number>();
+      for (const p of redraftData ?? []) {
+        if (p?.name) baseProjByName.set(normName(p.name), Number(p.ppg) || 0);
+      }
       const adpCurves = manifest?.adpCurves ?? {};
 
       // Raw rows hold only scenario-independent fields. PPG, baseline,
@@ -289,6 +313,7 @@ export function DraftOptimizerTable() {
         const stdev = stdevByKey.get(`${normName(a.name)}::${a.position}`) ?? 0;
         const rawTargetShare = shareByKey.get(`${normName(a.name)}::${a.position}`) ?? NaN;
         const basePpg = basePpgByName.get(normName(a.name)) ?? 0;
+        const baseProjPpg = baseProjByName.get(normName(a.name)) ?? 0;
         return {
           name: a.name,
           position: a.position,
@@ -296,6 +321,7 @@ export function DraftOptimizerTable() {
           adp,
           stdev,
           basePpg,
+          baseProjPpg,
           ciLower: ciL,
           ciUpper: ciU,
           ciCenter: center,
@@ -378,15 +404,23 @@ export function DraftOptimizerTable() {
     if (rawRows.length === 0) return [];
     const N = settings.numTeams;
 
-    // First pass: resolve PPG (scenario-overridden if active, else
-    // model base) and derive baseline/edge/beat from it. Both numbers
-    // are kept on the row — modelPPG is always the score-store
-    // ensemble, projPPG is the active scenario's projection (NaN when
-    // no scenario or this player isn't covered), and predictedPPG is
-    // whichever drives the math (proj if finite, else model).
+    // First pass: resolve PPG and derive baseline/edge/beat from it.
+    // Three numbers per row:
+    //   modelPPG = score-store ensemble (always present).
+    //   projPPG  = scenario PPG when active and player is covered, else
+    //              the base projection (redraft-projections.json) when
+    //              available, else NaN. The Proj column reflects this.
+    //   predictedPPG = whichever drives PickEdge / Beat % / verdict —
+    //              projPPG if finite, else modelPPG.
     const seeded: Row[] = rawRows.map((r) => {
       const scenarioPpg = scenarioPpgByName.get(normName(r.name));
-      const projPPG = scenarioPpg !== undefined && scenarioPpg > 0 ? scenarioPpg : NaN;
+      const scenarioPpgFinite = scenarioPpg !== undefined && scenarioPpg > 0;
+      const baseProjFinite = r.baseProjPpg > 0;
+      const projPPG = scenarioPpgFinite
+        ? (scenarioPpg as number)
+        : baseProjFinite
+          ? r.baseProjPpg
+          : NaN;
       const modelPPG = r.basePpg;
       const pred = Number.isFinite(projPPG) ? projPPG : modelPPG;
       const haveCI = Number.isFinite(r.ciLower) && Number.isFinite(r.ciUpper) && r.ciUpper > r.ciLower;
@@ -549,9 +583,12 @@ export function DraftOptimizerTable() {
       />
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
-        <strong>Model</strong> = our ADP-free ensemble's predicted PPG.{' '}
-        <strong>Proj</strong> = the active scenario's projection
-        (FantasyPointsPPR ÷ 17); blank when no scenario is active.
+        <strong>Model</strong> = our ADP-free ensemble's predicted PPG
+        (Stathead, score-store/ppg.json).{' '}
+        <strong>Proj</strong> = base projections from{' '}
+        <code>redraft-projections.json</code> (the same source the
+        Projections tab uses); when a scenario is active, scenario
+        PPG (FantasyPointsPPR ÷ 17) overrides for covered players.
         Pick Edge / Beat % / Verdict use Proj when available, else fall
         back to Model.{' '}
         <strong>Pick Edge</strong> = effective PPG minus the position's
@@ -658,7 +695,7 @@ export function DraftOptimizerTable() {
                 <span title="Model-predicted PPG (Stathead ADP-free ensemble, score-store/ppg.json). Shown alongside Proj so you can see what the model thinks regardless of which scenario is active.">Model</span>{sortArrow('modelPPG')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('projPPG')}>
-                <span title="Scenario-projected PPG (FantasyPointsPPR / 17 from the active scenario). Falls back to '—' when no scenario is active or the player isn't covered. Drives PickEdge / Beat % / Verdict when present.">Proj</span>{sortArrow('projPPG')}
+                <span title="Projected PPG. Source: redraft-projections.json by default (same as the Projections tab); when a scenario is active, the scenario's FantasyPointsPPR/17 overrides for covered players. Drives PickEdge / Beat % / Verdict when present.">Proj</span>{sortArrow('projPPG')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('pickEdge')}>
                 <span title="Pick Edge: predicted PPG minus the ADP curve baseline (intercept + slope·√ADP) for this position. Positive = model thinks the player out-earns ADP.">Pick Edge</span>{sortArrow('pickEdge')}
