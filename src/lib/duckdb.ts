@@ -9,13 +9,16 @@
  *   prospects       — 2026 draft-prospect composite scouting grades
  *   player_stats    — per-player per-week NFL stats (2010-2026) including
  *                     fantasy_points / fantasy_points_ppr
- *   adp_ffc         — community PPR preseason ADP (per-season)
- *   adp_historical  — historical ADP used in training (2010-2025)
- *   ktc             — current dynasty market values (1qb + superflex)
- *   ktc_history     — daily dynasty value history (per player + date)
+ *   adp_ffc                 — community PPR preseason ADP (per-season)
+ *   adp_historical          — historical ADP used in training (2010-2025)
+ *   dynasty_values          — current dynasty market values (1qb + superflex)
+ *   dynasty_value_history   — daily dynasty value history (per player + date)
  *
- * Vendor-named feature columns (rsp*, pdf*) are renamed to source-agnostic
- * scout* / guide* aliases at registration time — see FEATURE_RENAME below.
+ * Backwards-compat views `ktc` and `ktc_history` mirror dynasty_values /
+ * dynasty_value_history so user queries saved before the rename keep
+ * working. Vendor-named feature columns (rsp*, pdf*) are renamed to
+ * source-agnostic scout* / guide* aliases at registration time — see
+ * FEATURE_RENAME below.
  *
  * Keep in lock-step with TABLE_DOCS below — the Data Query UI surfaces
  * that schema so users can discover columns.
@@ -284,9 +287,9 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     ? (prospectGrades as ProspectGrade[]).map((g) => ({ ...g }))
     : [];
 
-  // KTC — current values. The 1qb file carries both `value` (1QB) and
+  // Dynasty values — current. The 1qb file carries both `value` (1QB) and
   // `superflexValue`, so one load gives us everything.
-  const ktc: Record<string, unknown>[] = (ktc1qb || []).map((r) => ({
+  const dynasty_values: Record<string, unknown>[] = (ktc1qb || []).map((r) => ({
     playerID: r.playerID,
     name: r.playerName,
     position: r.position,
@@ -298,10 +301,11 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     isRookie: r.isRookie,
   }));
 
-  // KTC history — flatten {playerID, oneQB.valueHistory, superflex.valueHistory}
-  // into one row per (playerID, date). Joining 1QB + Superflex on the
-  // same date is a common query so we emit them side-by-side.
-  const ktc_history: Record<string, unknown>[] = [];
+  // Dynasty value history — flatten {playerID, oneQB.valueHistory,
+  // superflex.valueHistory} into one row per (playerID, date). Joining
+  // 1QB + Superflex on the same date is a common query so we emit them
+  // side-by-side.
+  const dynasty_value_history: Record<string, unknown>[] = [];
   const ktcNameById = new Map<number, { name: string; position: string; team: string }>();
   for (const r of ktc1qb || []) {
     ktcNameById.set(r.playerID, { name: r.playerName, position: r.position, team: r.team });
@@ -310,7 +314,7 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     const info = ktcNameById.get(h.playerID);
     const sfMap = new Map((h.superflex?.valueHistory || []).map((p) => [p.d, p.v]));
     for (const p of h.oneQB?.valueHistory || []) {
-      ktc_history.push({
+      dynasty_value_history.push({
         playerID: h.playerID,
         name: info?.name ?? null,
         position: info?.position ?? null,
@@ -376,7 +380,11 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
     return rest as Record<string, unknown>;
   });
 
-  return { career_2026, backtest, prospects, ktc, ktc_history, adp_ffc, adp_historical, player_crosswalk };
+  return {
+    career_2026, backtest, prospects,
+    dynasty_values, dynasty_value_history,
+    adp_ffc, adp_historical, player_crosswalk,
+  };
 }
 
 /** CREATE TABLE statements + INSERT via read_json. Loaded as JS arrays, so
@@ -424,6 +432,14 @@ export async function getDuckDB(): Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBC
     // 16+ seasons (UNION ALL BY NAME). Run in parallel with other table
     // setup would be nice but registerFileBuffer is single-threaded.
     await registerPlayerStats(db, conn);
+    // Backwards-compat aliases — `ktc` / `ktc_history` were the legacy
+    // table names. Saved user queries from before the rename keep working.
+    if (tables.dynasty_values?.length) {
+      await conn.query('CREATE OR REPLACE VIEW ktc AS SELECT * FROM dynasty_values');
+    }
+    if (tables.dynasty_value_history?.length) {
+      await conn.query('CREATE OR REPLACE VIEW ktc_history AS SELECT * FROM dynasty_value_history');
+    }
     return { db, conn };
   })();
   return dbPromise;
@@ -585,15 +601,15 @@ export const TABLE_DOCS: Array<{
     exampleColumns: ['player_key', 'season', 'name', 'position', 'adp', 'adpRound', 'nflDraftPick', 'nflDraftRound', 'age', 'yearsInLeague'],
   },
   {
-    name: 'ktc',
+    name: 'dynasty_values',
     description:
-      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies.',
+      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies. Aliased as `ktc` for backwards compat.',
     exampleColumns: ['playerID', 'name', 'position', 'positionRank', 'team', 'age', 'value_1qb', 'value_superflex', 'isRookie'],
   },
   {
-    name: 'ktc_history',
+    name: 'dynasty_value_history',
     description:
-      'Daily dynasty value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis.',
+      'Daily dynasty value history. One row per (playerID, date) with both 1QB and Superflex values. ~200 days × ~500 players ≈ 100k rows. Use for trend / momentum analysis. Aliased as `ktc_history` for backwards compat.',
     exampleColumns: ['playerID', 'name', 'position', 'team', 'date', 'value_1qb', 'value_superflex'],
   },
 ];
@@ -677,28 +693,28 @@ LIMIT 25;`,
   {
     label: 'Top 25 dynasty values (1QB)',
     sql: `SELECT name, position, team, age, value_1qb, value_superflex, isRookie
-FROM ktc
+FROM dynasty_values
 ORDER BY value_1qb DESC
 LIMIT 25;`,
   },
   {
-    label: 'Biggest KTC movers — last 30 days',
+    label: 'Biggest dynasty movers — last 30 days',
     sql: `WITH today AS (
-  SELECT MAX(date) AS d FROM ktc_history
+  SELECT MAX(date) AS d FROM dynasty_value_history
 ),
 month_ago AS (
-  SELECT MAX(date) AS d FROM ktc_history WHERE date <= (SELECT d FROM today) - INTERVAL 30 DAY
+  SELECT MAX(date) AS d FROM dynasty_value_history WHERE date <= (SELECT d FROM today) - INTERVAL 30 DAY
 )
-SELECT k_now.name, k_now.position, k_now.team,
-       k_prev.value_1qb AS value_1qb_30d_ago,
-       k_now.value_1qb AS value_1qb_today,
-       k_now.value_1qb - k_prev.value_1qb AS delta
-FROM ktc_history k_now
-JOIN ktc_history k_prev
-  ON k_prev.playerID = k_now.playerID
-WHERE k_now.date = (SELECT d FROM today)
-  AND k_prev.date = (SELECT d FROM month_ago)
-  AND k_now.value_1qb > 3000
+SELECT v_now.name, v_now.position, v_now.team,
+       v_prev.value_1qb AS value_1qb_30d_ago,
+       v_now.value_1qb AS value_1qb_today,
+       v_now.value_1qb - v_prev.value_1qb AS delta
+FROM dynasty_value_history v_now
+JOIN dynasty_value_history v_prev
+  ON v_prev.playerID = v_now.playerID
+WHERE v_now.date = (SELECT d FROM today)
+  AND v_prev.date = (SELECT d FROM month_ago)
+  AND v_now.value_1qb > 3000
 ORDER BY delta DESC
 LIMIT 20;`,
   },
