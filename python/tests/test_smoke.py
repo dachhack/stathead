@@ -11,7 +11,6 @@ import json
 import sys
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -53,19 +52,6 @@ def test_adp_historical_is_fully_populated():
     assert set(range(2010, 2026)).issubset(set(df.season.unique()))
 
 
-def test_ktc_current_values():
-    df = stathead.load_ktc()
-    assert not df.empty
-    assert {"name", "value_1qb", "value_superflex", "isRookie"}.issubset(df.columns)
-
-
-def test_ktc_history_is_long():
-    df = stathead.load_ktc_history()
-    assert not df.empty
-    assert {"playerID", "date", "value_1qb"}.issubset(df.columns)
-    assert pd.api.types.is_datetime64_any_dtype(df.date)
-
-
 def test_prospect_grades_2026():
     df = stathead.load_prospect_grades(2026)
     assert not df.empty
@@ -103,10 +89,8 @@ def test_load_player_profile_merges_tables():
     key = stathead.resolve_player("Ja'Marr Chase", position="WR")
     prof = stathead.load_player_profile(key)
     assert set(prof.keys()) >= {"crosswalk", "backtest", "adp_historical",
-                                "ktc", "ktc_history", "prospect_grades"}
+                                "prospect_grades"}
     assert prof["crosswalk"]["display_name"] == "Ja'Marr Chase"
-    # Chase should have KTC history
-    assert len(prof["ktc_history"]) > 0
 
 
 def test_player_crosswalk_is_populated():
@@ -128,6 +112,32 @@ def test_manual_overrides_keyed_by_name_pos():
     assert isinstance(o, dict)
     keys = [k for k in o if not k.startswith("_")]
     assert any("|" in k for k in keys)
+
+
+def test_no_vendor_named_columns_leak():
+    """Source-agnostic feature naming — no rsp*/pdf* columns reach users."""
+    pred = stathead.load_career_predictions_2026()
+    back = stathead.load_career_backtest()
+    for df, label in ((pred, "predictions_2026"), (back, "backtest")):
+        leaked = [c for c in df.columns if c.startswith("rsp") or c.startswith("pdf")]
+        assert not leaked, f"{label} leaked vendor-named columns: {leaked}"
+    # And the renamed columns are actually present.
+    assert "scoutGradeDraft" in pred.columns
+    assert "guideRankMean" in pred.columns
+
+
+def test_feature_matrix_renames_apply_recursively():
+    """load_feature_matrix() should also strip vendor-named keys from the
+    nested features dicts inside backtest rows + 2026 prediction rows."""
+    fm = stathead.load_feature_matrix()
+    sample_2026 = (fm.get("careerPredictions2026") or [{}])[0]
+    sample_back = (
+        ((fm.get("rookieCareerModels") or {}).get("WR") or {}).get("backtestRows") or [{}]
+    )[0]
+    for sample, label in ((sample_2026, "2026"), (sample_back, "backtest")):
+        feats = sample.get("features") or {}
+        leaked = [k for k in feats if k.startswith("rsp") or k.startswith("pdf")]
+        assert not leaked, f"{label} features dict leaked: {leaked}"
 
 
 def test_pin_version_changes_cache_root(tmp_path, monkeypatch):

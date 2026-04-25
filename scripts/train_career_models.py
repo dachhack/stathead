@@ -46,7 +46,7 @@ POST_DRAFT_CACHE = OUTPUT_DIR / 'model-cache-career-postdraft-v4.json'
 # PDF features and rely on the has-indicator for the model to handle them.
 # Ablation: scripts/test_pdf_career_features.py (findings in
 # docs/pdf-career-feature-test.md) — ships the winners per-position.
-PDF_FEATURES_PATH = OUTPUT_DIR / 'pdf-prospect-features-merged.json'
+PDF_FEATURES_PATH = Path('pdfs/.cache/pdf-prospect-features-merged.json')
 # Rookie Scouting Portfolio cross-year rankings (Matt Waldman's DOT +
 # breadth per guide). 2026-04 ablation (scripts/test_rsp_career_features.py,
 # see docs/pdf-career-feature-test.md) ships the winners: rspNComps

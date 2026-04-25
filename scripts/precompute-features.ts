@@ -775,7 +775,11 @@ async function main() {
       position?: string;
     }> = {};
     try {
-      const pdfRaw = JSON.parse(readFileSync('public/data/pdf-prospect-features-merged.json', 'utf-8'));
+      // Prose-bearing intermediate, written by scripts/merge_pdf_features.py
+      // alongside its scrubbed public twin. Lives under the gitignored
+      // pdfs/.cache/ tree because the strengths/weaknesses/red_flags arrays
+      // are verbatim copyrighted text we can't redistribute.
+      const pdfRaw = JSON.parse(readFileSync('pdfs/.cache/pdf-prospect-features-merged.json', 'utf-8'));
       for (const p of pdfRaw) {
         // Index under every alias variant so lookups by any spelling
         // succeed (Nicholas↔Nick, Joshua↔Josh, "John Michael" vs "John").

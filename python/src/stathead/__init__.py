@@ -11,7 +11,6 @@ Quick start:
     rookies = sh.load_career_predictions_2026()
     backtest = sh.load_career_backtest()
     adp = sh.load_adp_historical()
-    ktc = sh.load_ktc()
 
 Pin to a specific commit for reproducibility:
 
@@ -26,11 +25,10 @@ from .crosswalk import (
     resolve_player,
 )
 from .features import load_feature_matrix, load_manual_overrides
-from .ktc import load_ktc, load_ktc_history
 from .predictions import load_career_backtest, load_career_predictions_2026
 from .prospects import load_prospect_grades
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",
@@ -42,8 +40,6 @@ __all__ = [
     "load_career_backtest",
     "load_career_predictions_2026",
     "load_feature_matrix",
-    "load_ktc",
-    "load_ktc_history",
     "load_manual_overrides",
     "load_player_crosswalk",
     "load_player_profile",

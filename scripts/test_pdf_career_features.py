@@ -48,7 +48,7 @@ from train_career_models import (  # noqa: E402
     CACHE_PATH,
 )
 
-PDF_PATH = Path('public/data/pdf-prospect-features-merged.json')
+PDF_PATH = Path('pdfs/.cache/pdf-prospect-features-merged.json')
 
 
 # ── Name matching ─────────────────────────────────────────────────────

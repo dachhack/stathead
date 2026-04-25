@@ -54,6 +54,10 @@ def load_adp_ffc(season: int | None = None) -> pd.DataFrame:
 
     Columns: ``season``, ``name``, ``position``, ``team``, ``adp``, ``high``,
     ``low``, ``stdev``, ``timesDrafted``, ``bye``.
+
+    Data courtesy of Fantasy Football Calculator
+    (https://fantasyfootballcalculator.com/) — please preserve attribution
+    when redistributing.
     """
     seasons = [season] if season else [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
     rows: list[dict] = []
