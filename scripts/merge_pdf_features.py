@@ -7,6 +7,9 @@ Reads every pdfs/.cache/*.features.json (written by the
     public/data/pdf-prospect-features.json           one row per (player, source)
     public/data/pdf-prospect-features-merged.json    one row per player, aggregated
 
+Output rows are scrubbed of verbatim scout prose by ``_scout_scrub`` —
+public files only carry counts, numeric ranks, and anonymized guide IDs.
+
 Pure Python, no LLM calls. Safe to rerun any time.
 """
 
@@ -18,6 +21,13 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+
+from _scout_scrub import (
+    build_guide_id_map,
+    parse_guide_year,
+    scrub_merged_row,
+    scrub_per_source_row,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "pdfs" / ".cache"
@@ -140,11 +150,20 @@ def main() -> int:
         print("error: no *.features.json files found in pdfs/.cache/", file=sys.stderr)
         return 1
 
-    OUT_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PER_SOURCE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    print(f"wrote {len(rows)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}")
+    # Build the guide-id map up front so per-source and merged outputs agree.
+    id_map = build_guide_id_map([r.get("source_file", "") for r in rows])
 
-    merged = merge_rows(rows)
+    scrubbed_per_source = [
+        scrub_per_source_row(r, id_map.get(r.get("source_file", ""), 0),
+                             parse_guide_year(r.get("source_file")))
+        for r in rows
+    ]
+    OUT_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
+    OUT_PER_SOURCE.write_text(json.dumps(scrubbed_per_source, indent=2), encoding="utf-8")
+    print(f"wrote {len(scrubbed_per_source)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}")
+
+    # merge_rows() still needs the prose-bearing rows to dedupe before counting.
+    merged = [scrub_merged_row(m, id_map) for m in merge_rows(rows)]
     OUT_MERGED.write_text(json.dumps(merged, indent=2), encoding="utf-8")
     print(f"wrote {len(merged)} merged players -> {OUT_MERGED.relative_to(ROOT)}")
     return 0
