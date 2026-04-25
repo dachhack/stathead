@@ -2,33 +2,47 @@ import { useState, useEffect, useMemo } from 'react';
 import { normName } from '../lib/nameUtils';
 import { loadScoreManifest } from '../lib/modelScoreClient';
 import type { AdpCurve } from '../lib/modelScoreStore';
+import { DraftPrepSettings as SettingsHeader } from './DraftPrepSettings';
+import type { DraftPrepSettings } from '../lib/draftPrepSettings';
+import { loadSettings } from '../lib/draftPrepSettings';
+import { userPickNumbers, maxSurvival } from '../lib/snakeDraft';
 
-// Simple draft-board table backed by the model score-store.
+// Edge Board for the draft prep tool. Backed by the model score-store and
+// the user's saved league settings.
 //
 // Three signals per row, each with a clean definition:
 //
-//  Pick Edge   = predictedPPG (ADP-free model) − (intercept + slope·√ADP).
-//                Positive = model thinks the player out-earns what someone
-//                at this ADP slot typically delivers.
+//  Pick Edge   = predictedPPG (ADP-free model) − (intercept + slope·√ADP
+//                + poolOffset). Positive = model thinks the player
+//                out-earns what someone at this ADP slot typically delivers
+//                in the curated 2026 pool.
 //
-//  Beat %      = P(actual season PPG > ADP-curve baseline), Gaussian
-//                approximation from the 10/90 quantile bounds in
-//                score-store/adp.json. Two-tailed quantile gap → σ;
-//                midpoint → μ. Real probability, not a categorical label.
+//  Beat %      = P(actual season PPG > baseline), Gaussian approximation
+//                with μ = predictedPPG, σ from the 10/90 quantile bounds.
+//                Real probability, not a categorical label.
 //
 //  Upside / Downside (PPG) = ciUpper − predictedVor and predictedVor −
-//                ciLower. Raw PPG range to the model's 90th/10th
-//                percentile. NOT a probability — it's the size of the
-//                model's belief band on either side of its central
-//                prediction.
+//                ciLower. Raw PPG range. Size of the model's belief band,
+//                NOT a probability of booming or busting.
+//
+// Plus two prep-specific columns:
+//
+//  Target Share %ile = within-position percentile of `predTargetShare`
+//                from score-store/shares.json. RB/WR have R²≈0.30 LOSO
+//                — useful color. TE has R²≈0.12 — shown with low-conf
+//                styling.
+//
+//  Verdict     = Strong Target / Target / Fair / Fade / Strong Fade.
+//                Per-position thresholds derived from the live PickEdge
+//                σ within position, combined with Beat %. See verdictFor().
 
 interface AdpScoreEntry {
   name: string;
   position: string;
   team: string;
   adp: number;
-  predictedVor: number; // (Mislabeled in the JSON — actually ADP-aware predicted PPG; kept here only for upside/downside range math.)
-  hitProb: string;      // Categorical 'Likely Hit' / 'Middle' / 'Likely Bust' label — no longer surfaced; superseded by `pBeat`.
+  predictedVor: number;
+  hitProb: string;
   ciLower: number;
   ciUpper: number;
   isRookie: boolean;
@@ -40,24 +54,56 @@ interface PpgScoreEntry {
   predictedPPG: number;
 }
 
+interface ShareScoreEntry {
+  name: string;
+  position: string;
+  predTargetShare: number;
+  predRushShare: number;
+}
+
+interface FfcAdpEntry {
+  name: string;
+  position: string;
+  adp: number;
+  stdev: number;
+}
+
+type Verdict = 'Strong Target' | 'Target' | 'Fair' | 'Fade' | 'Strong Fade' | 'Unknown';
+
 interface Row {
   name: string;
   position: string;
   team: string;
   adp: number;
+  stdev: number;             // FFC ADP stdev; 0 if unavailable
   predictedPPG: number;
-  adpBaselinePPG: number; // intercept + slope·√ADP for this player's position (NaN if curve missing or ADP missing)
-  pickEdge: number;       // predictedPPG − adpBaselinePPG (NaN if either side missing)
-  pBeat: number;          // P(actual season PPG > adpBaselinePPG) from quantile-bound Gaussian (NaN if bounds or baseline missing)
-  upsidePPG: number;      // ciUpper − predictedVor (NaN if bounds missing)
-  downsidePPG: number;    // predictedVor − ciLower (NaN if bounds missing)
+  adpBaselinePPG: number;
+  pickEdge: number;
+  pBeat: number;
+  upsidePPG: number;
+  downsidePPG: number;
+  targetSharePctile: number; // 0–100 within position; NaN if no share data
+  rawTargetShare: number;    // raw 0–1 fraction; NaN if missing
+  survivalBest: number;      // best survival prob across user's picks; NaN if no FFC data
+  verdict: Verdict;
   isRookie: boolean;
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 type PosFilter = typeof POSITIONS[number];
 
-type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'pBeat' | 'upsidePPG' | 'downsidePPG' | 'name';
+// ADP bands by round in user's league. Round cutoffs are universal; band
+// edges scale by numTeams, so R1-3 in 12-team = 1-36, in 10-team = 1-30.
+const ADP_BANDS = [
+  { id: 'ALL', label: 'All' },
+  { id: 'R1-3', label: 'R1–3', maxRound: 3 },
+  { id: 'R4-6', label: 'R4–6', minRound: 4, maxRound: 6 },
+  { id: 'R7-10', label: 'R7–10', minRound: 7, maxRound: 10 },
+  { id: 'R11+', label: 'R11+', minRound: 11 },
+] as const;
+type AdpBandId = typeof ADP_BANDS[number]['id'];
+
+type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'pBeat' | 'upsidePPG' | 'downsidePPG' | 'targetSharePctile' | 'name';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -156,15 +202,70 @@ function downsideColor(v: number): string {
   return 'var(--text-muted)';
 }
 
+function tsharePctileColor(p: number): string {
+  if (!Number.isFinite(p)) return 'var(--text-muted)';
+  if (p >= 80) return '#22c55e';
+  if (p >= 60) return '#86efac';
+  if (p >= 40) return 'var(--text-primary)';
+  if (p >= 20) return '#fb923c';
+  return '#ef4444';
+}
+
+const VERDICT_STYLE: Record<Verdict, { label: string; bg: string; fg: string }> = {
+  'Strong Target': { label: 'Strong Target', bg: '#0c4a2c', fg: '#86efac' },
+  'Target':        { label: 'Target',        bg: '#1a3a2a', fg: '#a3e635' },
+  'Fair':          { label: 'Fair',          bg: 'var(--bg-tertiary)', fg: 'var(--text-muted)' },
+  'Fade':          { label: 'Fade',          bg: '#3a1a1a', fg: '#fb923c' },
+  'Strong Fade':   { label: 'Strong Fade',   bg: '#4a0c0c', fg: '#fca5a5' },
+  'Unknown':       { label: '—',             bg: 'transparent', fg: 'var(--text-muted)' },
+};
+
+/**
+ * Per-position verdict thresholds derived from the live PickEdge σ within
+ * position, combined with Beat % bands. Per-position thresholds (instead
+ * of universal cutoffs) compensate for the fact that QB has narrower
+ * PickEdge spread than RB/WR/TE — a +1 PPG edge means more at QB than
+ * at WR.
+ *
+ * Strong Target: PickEdge ≥ +1.0σ AND Beat ≥ 60%
+ * Target:        PickEdge ≥ +0.5σ AND Beat ≥ 50%
+ * Strong Fade:   PickEdge ≤ −1.0σ AND Beat ≤ 40%
+ * Fade:          PickEdge ≤ −0.5σ AND Beat ≤ 50%
+ *
+ * If Beat % is missing (degenerate CI bounds), the verdict falls back to
+ * PickEdge-only thresholds.
+ */
+function verdictFor(pickEdge: number, pBeat: number, sigma: number): Verdict {
+  if (!Number.isFinite(pickEdge) || !Number.isFinite(sigma) || sigma <= 0) return 'Unknown';
+  const z = pickEdge / sigma;
+  const beatKnown = Number.isFinite(pBeat);
+  if (z >= 1.0 && (!beatKnown || pBeat >= 0.60)) return 'Strong Target';
+  if (z >= 0.5 && (!beatKnown || pBeat >= 0.50)) return 'Target';
+  if (z <= -1.0 && (!beatKnown || pBeat <= 0.40)) return 'Strong Fade';
+  if (z <= -0.5 && (!beatKnown || pBeat <= 0.50)) return 'Fade';
+  return 'Fair';
+}
+
 export function DraftOptimizerTable() {
+  const [settings, setSettings] = useState<DraftPrepSettings>(() => loadSettings());
   const [rows, setRows] = useState<Row[]>([]);
   const [curves, setCurves] = useState<Record<string, AdpCurve>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
+  const [adpBand, setAdpBand] = useState<AdpBandId>('ALL');
+  const [myPicksOnly, setMyPicksOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('pickEdge');
   const [sortAsc, setSortAsc] = useState(false);
+
+  // User's pick numbers across the first 12 rounds — feeds the my-picks
+  // filter and the survival-best column. Rebuilt whenever the user
+  // tweaks league size, slot, or draft type.
+  const myPicks = useMemo(
+    () => userPickNumbers(12, settings.pickSlot, settings.numTeams, settings.draftType),
+    [settings.pickSlot, settings.numTeams, settings.draftType],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -172,21 +273,41 @@ export function DraftOptimizerTable() {
     Promise.all([
       fetch(`${BASE}data/score-store/adp.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch(`${BASE}data/score-store/shares.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch(`${BASE}data/ffc_adp_ppr_2026.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       loadScoreManifest(),
-    ]).then(([adpData, ppgData, manifest]: [AdpScoreEntry[], PpgScoreEntry[], Awaited<ReturnType<typeof loadScoreManifest>>]) => {
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest]: [
+      AdpScoreEntry[],
+      PpgScoreEntry[],
+      ShareScoreEntry[],
+      FfcAdpEntry[],
+      Awaited<ReturnType<typeof loadScoreManifest>>,
+    ]) => {
       if (cancelled) return;
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
         setLoading(false);
         return;
       }
+
       const ppgByName = new Map<string, number>();
       for (const p of ppgData ?? []) {
         if (p?.name) ppgByName.set(normName(p.name), Number(p.predictedPPG) || 0);
       }
+      const shareByKey = new Map<string, number>();
+      for (const s of shareData ?? []) {
+        if (s?.name) shareByKey.set(`${normName(s.name)}::${s.position}`, Number(s.predTargetShare) || 0);
+      }
+      const stdevByKey = new Map<string, number>();
+      for (const f of ffcData ?? []) {
+        if (f?.name) stdevByKey.set(`${normName(f.name)}::${f.position}`, Number(f.stdev) || 0);
+      }
       const adpCurves = manifest?.adpCurves ?? {};
 
-      const built: Row[] = adpData.map((a) => {
+      // First pass: build everything except verdict + targetSharePctile —
+      // those need pool-wide stats (per-position σ of PickEdge, share
+      // percentiles within position).
+      const partial = adpData.map((a) => {
         const adp = Number(a.adp) || 999;
         const pred = ppgByName.get(normName(a.name)) ?? 0;
         const ciL = Number(a.ciLower);
@@ -197,31 +318,74 @@ export function DraftOptimizerTable() {
         const downsidePPG = haveCI && Number.isFinite(center) ? Math.max(0, center - ciL) : NaN;
 
         const curve = adpCurves[a.position];
-        // Curve undefined OR ADP missing OR predicted PPG missing → no edge.
-        // poolOffset corrects for selection bias between historical training
-        // rows and the curated 2026 pool (see AdpCurve docstring). Falls
-        // back to 0 (sqrt-only baseline) if a manifest from before the
-        // recentering shipped is in use.
         const adpBaselinePPG = curve && adp < 999 && pred > 0
           ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp) + (curve.poolOffset ?? 0)
           : NaN;
         const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
         const pBeat = haveCI && pred > 0 ? probBeatBaseline(pred, ciL, ciU, adpBaselinePPG) : NaN;
 
+        const stdev = stdevByKey.get(`${normName(a.name)}::${a.position}`) ?? 0;
+        const rawTargetShare = shareByKey.get(`${normName(a.name)}::${a.position}`) ?? NaN;
+
         return {
           name: a.name,
           position: a.position,
           team: a.team,
           adp,
+          stdev,
           predictedPPG: pred,
           adpBaselinePPG,
           pickEdge,
           pBeat,
           upsidePPG,
           downsidePPG,
+          rawTargetShare,
           isRookie: !!a.isRookie,
         };
       });
+
+      // Per-position σ of PickEdge for verdict thresholds.
+      const sigmaByPos = new Map<string, number>();
+      for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+        const vals = partial
+          .filter((r) => r.position === pos && Number.isFinite(r.pickEdge))
+          .map((r) => r.pickEdge as number);
+        if (vals.length < 5) continue;
+        const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+        const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
+        sigmaByPos.set(pos, Math.sqrt(variance));
+      }
+
+      // Per-position target-share percentile. Only RB/WR/TE have shares;
+      // QBs always get NaN (column displays as “—”).
+      const sortedSharesByPos = new Map<string, number[]>();
+      for (const pos of ['RB', 'WR', 'TE']) {
+        const vals = partial
+          .filter((r) => r.position === pos && Number.isFinite(r.rawTargetShare) && r.rawTargetShare > 0)
+          .map((r) => r.rawTargetShare as number)
+          .sort((a, b) => a - b);
+        if (vals.length >= 3) sortedSharesByPos.set(pos, vals);
+      }
+      const pctileFor = (pos: string, share: number): number => {
+        const sorted = sortedSharesByPos.get(pos);
+        if (!sorted || !Number.isFinite(share) || share <= 0) return NaN;
+        // Percent of pool ≤ this share.
+        let lo = 0, hi = sorted.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (sorted[mid] <= share) lo = mid + 1; else hi = mid;
+        }
+        return Math.round((lo / sorted.length) * 100);
+      };
+
+      const built: Row[] = partial.map((r) => {
+        const sigma = sigmaByPos.get(r.position) ?? NaN;
+        const verdict = verdictFor(r.pickEdge, r.pBeat, sigma);
+        const targetSharePctile = pctileFor(r.position, r.rawTargetShare);
+        const survivalBest = r.adp < 999 ? maxSurvival(r.adp, r.stdev || undefined, myPicks) : NaN;
+        return { ...r, verdict, targetSharePctile, survivalBest };
+      });
+
       setRows(built);
       setCurves(adpCurves);
       setLoading(false);
@@ -232,11 +396,24 @@ export function DraftOptimizerTable() {
       }
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [myPicks]);
 
   const displayRows = useMemo(() => {
     let out = rows;
     if (posFilter !== 'ALL') out = out.filter((r) => r.position === posFilter);
+    if (adpBand !== 'ALL') {
+      const band = ADP_BANDS.find((b) => b.id === adpBand);
+      const N = settings.numTeams;
+      const minAdp = band && 'minRound' in band ? (band.minRound - 1) * N + 1 : 1;
+      const maxAdp = band && 'maxRound' in band ? band.maxRound * N : Infinity;
+      out = out.filter((r) => r.adp >= minAdp && r.adp <= maxAdp);
+    }
+    if (myPicksOnly) {
+      // Show players with a meaningful chance of being available at any of
+      // the user's picks. Threshold (15%) is intentionally generous —
+      // includes coin-flip sleepers, excludes only "definitely gone" picks.
+      out = out.filter((r) => Number.isFinite(r.survivalBest) && r.survivalBest >= 0.15);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       out = out.filter((r) => r.name.toLowerCase().includes(q) || r.team.toLowerCase().includes(q));
@@ -257,7 +434,7 @@ export function DraftOptimizerTable() {
       return sortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
     return out;
-  }, [rows, posFilter, search, sortKey, sortAsc]);
+  }, [rows, posFilter, adpBand, myPicksOnly, search, sortKey, sortAsc, settings.numTeams]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -296,46 +473,43 @@ export function DraftOptimizerTable() {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Optimizer</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Prep</h1>
         <span style={{
           fontSize: 11, background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
           border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
         }}>
-          Table view
+          Edge Board
         </span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {displayRows.length} players
         </span>
       </div>
 
+      <SettingsHeader settings={settings} onChange={setSettings} />
+
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
-        Sorted by <strong>Pick Edge</strong> — predicted PPG (ADP-free model)
-        minus the position's ADP-curve baseline{' '}
-        <code>(intercept + slope·√ADP + poolOffset)</code>. The
-        sqrt-curve is fit on 2010–2025 historical actuals; the poolOffset
-        recenters the baseline so PickEdge averages zero across the
-        current 2026 pool — without it, predictions skew systematically
-        positive because the pool is curated to rosterable players while
-        the historical curve includes every flameout that ever had an
-        ADP. So PickEdge reads as "edge over the typical 2026 draftable
-        at this ADP."{' '}
-        <strong>Beat %</strong> is the Gaussian-approximated probability
-        that actual PPG exceeds that baseline, with σ borrowed from the
-        10/90 quantile bounds (in-sample 80% CI coverage on target; OOS
-        not yet validated). <strong>Upside / Downside</strong> are raw
-        PPG distances from the central prediction to ciUpper / ciLower —
-        size of the uncertainty band, not a probability of booming or
-        busting.
+        <strong>Pick Edge</strong> = predicted PPG minus the position's
+        ADP-curve baseline (recentered to the 2026 pool).{' '}
+        <strong>Beat %</strong> = P(actual PPG &gt; baseline), Gaussian
+        approx with σ from quantile bounds.{' '}
+        <strong>Upside / Downside</strong> = raw PPG distances to ciUpper
+        / ciLower (uncertainty band, not a hit/bust probability).{' '}
+        <strong>TS %ile</strong> = predicted target-share percentile
+        within position (RB/WR R²≈0.30, TE R²≈0.12 — shown muted).{' '}
+        <strong>Verdict</strong> uses per-position PickEdge σ × Beat %
+        bands — Strong Target/Target/Fair/Fade/Strong Fade. Toggle{' '}
+        <em>Available at my picks</em> to filter to players with ≥15%
+        survival probability across your snake-draft picks.
         {Object.keys(curves).length === 0 && (
           <span style={{ color: '#fb923c', marginLeft: 6 }}>
-            ADP curve unavailable — Pick Edge and Beat % will show as “—”
-            until the next score-store build.
+            ADP curve unavailable — Pick Edge / Beat % / Verdict will
+            show as “—” until the next score-store build.
           </span>
         )}
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map((p) => (
           <button
             key={p}
@@ -356,6 +530,39 @@ export function DraftOptimizerTable() {
             width: 200, fontFamily: 'inherit', marginLeft: 'auto',
           }}
         />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
+          ADP BAND
+        </span>
+        {ADP_BANDS.map((b) => (
+          <button
+            key={b.id}
+            className={`pos-filter ${adpBand === b.id ? 'active' : ''}`}
+            onClick={() => setAdpBand(b.id)}
+            style={{ minWidth: 56 }}
+          >
+            {b.label}
+          </button>
+        ))}
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+          background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+          borderRadius: 6, padding: '3px 10px', cursor: 'pointer', marginLeft: 8,
+        }}>
+          <input
+            type="checkbox"
+            checked={myPicksOnly}
+            onChange={(e) => setMyPicksOnly(e.target.checked)}
+            style={{ margin: 0 }}
+          />
+          Available at my picks
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 400 }}>
+            (≥15% survival)
+          </span>
+        </label>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -385,6 +592,12 @@ export function DraftOptimizerTable() {
               </th>
               <th style={{ ...th, textAlign: 'right', width: 60 }} onClick={() => handleSort('downsidePPG')}>
                 <span title="Downside PPG: model's central prediction minus ciLower (10th percentile). Size of the model's belief band on the low side. NOT a probability of busting.">Downside</span>{sortArrow('downsidePPG')}
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 64 }} onClick={() => handleSort('targetSharePctile')}>
+                <span title="Within-position percentile of predicted target share (RB/WR/TE only). RB/WR share models are LOSO R²≈0.30; TE is R²≈0.12 (shown muted).">TS %ile</span>{sortArrow('targetSharePctile')}
+              </th>
+              <th style={{ ...th, textAlign: 'center', width: 110, cursor: 'default' }}>
+                <span title="Verdict: per-position thresholds combining PickEdge z-score and Beat %. Strong Target = ≥+1σ edge AND ≥60% beat; Target = ≥+0.5σ AND ≥50% beat; Fade/Strong Fade are mirrors.">Verdict</span>
               </th>
             </tr>
           </thead>
@@ -437,6 +650,35 @@ export function DraftOptimizerTable() {
                   title={Number.isFinite(r.downsidePPG) ? `−${r.downsidePPG.toFixed(1)} PPG to ciLower` : 'No CI bounds available.'}
                 >
                   {fmtRange(r.downsidePPG)}
+                </td>
+                <td
+                  style={{
+                    ...td, textAlign: 'right', fontWeight: 600,
+                    color: tsharePctileColor(r.targetSharePctile),
+                    opacity: r.position === 'TE' && Number.isFinite(r.targetSharePctile) ? 0.65 : 1,
+                  }}
+                  title={
+                    Number.isFinite(r.targetSharePctile)
+                      ? `Predicted target share ${(r.rawTargetShare * 100).toFixed(1)}% — p${r.targetSharePctile} within ${r.position}` +
+                        (r.position === 'TE' ? ' (TE share model R²≈0.12, treat as low confidence).' : '')
+                      : 'No share prediction available.'
+                  }
+                >
+                  {Number.isFinite(r.targetSharePctile) ? `p${r.targetSharePctile}` : '—'}
+                </td>
+                <td style={{ ...td, textAlign: 'center' }}>
+                  <span
+                    style={{
+                      display: 'inline-block', fontSize: 10, fontWeight: 700,
+                      padding: '2px 8px', borderRadius: 10,
+                      background: VERDICT_STYLE[r.verdict].bg,
+                      color: VERDICT_STYLE[r.verdict].fg,
+                      border: r.verdict === 'Fair' || r.verdict === 'Unknown' ? '1px solid var(--border)' : 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {VERDICT_STYLE[r.verdict].label}
+                  </span>
                 </td>
               </tr>
             ))}
