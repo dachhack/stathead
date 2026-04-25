@@ -1,24 +1,34 @@
 import { useState, useEffect, useMemo } from 'react';
-import { normName, positionStats, zScore } from '../lib/nameUtils';
+import { normName } from '../lib/nameUtils';
 import { loadScoreManifest } from '../lib/modelScoreClient';
 import type { AdpCurve } from '../lib/modelScoreStore';
 
-// Simple draft-board table backed by the model score-store. Per-position
-// boom/bust z-scores come from the CI bounds in score-store/adp.json so the
-// column reads consistently with MyRankings and the Projections page.
+// Simple draft-board table backed by the model score-store.
 //
-// Pick Edge = predictedPPG − (intercept + slope·√ADP) per position, where
-// the curve is fit on 2010–2025 historical data and shipped in
-// score-store/manifest.json. Positive = our model thinks the player will
-// out-earn what someone at this ADP slot typically delivers.
+// Three signals per row, each with a clean definition:
+//
+//  Pick Edge   = predictedPPG (ADP-free model) − (intercept + slope·√ADP).
+//                Positive = model thinks the player out-earns what someone
+//                at this ADP slot typically delivers.
+//
+//  Beat %      = P(actual season PPG > ADP-curve baseline), Gaussian
+//                approximation from the 10/90 quantile bounds in
+//                score-store/adp.json. Two-tailed quantile gap → σ;
+//                midpoint → μ. Real probability, not a categorical label.
+//
+//  Upside / Downside (PPG) = ciUpper − predictedVor and predictedVor −
+//                ciLower. Raw PPG range to the model's 90th/10th
+//                percentile. NOT a probability — it's the size of the
+//                model's belief band on either side of its central
+//                prediction.
 
 interface AdpScoreEntry {
   name: string;
   position: string;
   team: string;
   adp: number;
-  predictedVor: number; // (Mislabeled in the JSON — actually ADP-aware predicted PPG; kept here only for boom/bust CI math.)
-  hitProb: string;
+  predictedVor: number; // (Mislabeled in the JSON — actually ADP-aware predicted PPG; kept here only for upside/downside range math.)
+  hitProb: string;      // Categorical 'Likely Hit' / 'Middle' / 'Likely Bust' label — no longer surfaced; superseded by `pBeat`.
   ciLower: number;
   ciUpper: number;
   isRookie: boolean;
@@ -38,29 +48,76 @@ interface Row {
   predictedPPG: number;
   adpBaselinePPG: number; // intercept + slope·√ADP for this player's position (NaN if curve missing or ADP missing)
   pickEdge: number;       // predictedPPG − adpBaselinePPG (NaN if either side missing)
-  hitProb: string;
-  boomZ: number;
-  bustZ: number;
+  pBeat: number;          // P(actual season PPG > adpBaselinePPG) from quantile-bound Gaussian (NaN if bounds or baseline missing)
+  upsidePPG: number;      // ciUpper − predictedVor (NaN if bounds missing)
+  downsidePPG: number;    // predictedVor − ciLower (NaN if bounds missing)
   isRookie: boolean;
 }
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 type PosFilter = typeof POSITIONS[number];
 
-type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'boomZ' | 'bustZ' | 'name';
+type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'pBeat' | 'upsidePPG' | 'downsidePPG' | 'name';
 
 const BASE = import.meta.env.BASE_URL;
 
-function fmtZ(z: number): string {
-  if (!Number.isFinite(z) || z === 0) return '—';
-  const sign = z > 0 ? '+' : '';
-  return `${sign}${z.toFixed(2)}`;
+// 80% CI = ±1.2816σ. q90 − q10 = 2 × 1.2816σ → σ = (q90 − q10) / 2.5631.
+const TWO_Z_90 = 2 * 1.2815515655446004;
+
+/** Abramowitz & Stegun 26.2.17 normal CDF, accurate to ~7.5e-8. */
+function normCdf(z: number): number {
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = z < 0 ? -1 : 1;
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sign * y);
+}
+
+/**
+ * P(actual > baseline) under a Gaussian approximation. We anchor μ on the
+ * ADP-free model's `predictedPPG` (same input PickEdge uses) and borrow σ
+ * from the ADP-aware quantile bounds: σ = (ciUpper − ciLower) / 2.5631.
+ *
+ * Why mix models: PickEdge and Beat % must agree at the boundary
+ * (Edge=0 ↔ Beat=50%). The CI midpoint is the ADP-aware model's center,
+ * which can differ from the ADP-free PPG by several PPG (the two models
+ * disagree about how much ADP-as-a-feature should pull predictions toward
+ * the curve). Using ADP-aware σ as a proxy for the ADP-free model's σ is
+ * a heuristic — both predict the same outcome so their uncertainty is
+ * roughly comparable. Out-of-sample CI calibration is not yet validated
+ * (in-sample 80% coverage = 79–83% per position, on target).
+ *
+ * Returns NaN when bounds are degenerate or required inputs are missing.
+ */
+function probBeatBaseline(
+  centerPPG: number,
+  ciLower: number,
+  ciUpper: number,
+  baseline: number,
+): number {
+  if (!Number.isFinite(centerPPG) || !Number.isFinite(ciLower) || !Number.isFinite(ciUpper) || !Number.isFinite(baseline)) return NaN;
+  const width = ciUpper - ciLower;
+  if (width <= 0.5) return NaN; // degenerate / fallback ±0.5 — no real distribution to integrate.
+  const sigma = width / TWO_Z_90;
+  return 1 - normCdf((baseline - centerPPG) / sigma);
 }
 
 function fmtEdge(v: number): string {
   if (!Number.isFinite(v)) return '—';
   const sign = v > 0 ? '+' : '';
   return `${sign}${v.toFixed(1)}`;
+}
+
+function fmtRange(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return '—';
+  return v.toFixed(1);
+}
+
+function fmtPct(p: number): string {
+  if (!Number.isFinite(p)) return '—';
+  return `${Math.round(p * 100)}%`;
 }
 
 function pickEdgeColor(e: number): string {
@@ -74,23 +131,28 @@ function pickEdgeColor(e: number): string {
   return 'var(--text-muted)';
 }
 
-function boomColor(z: number): string {
-  if (z >= 1.0) return '#22c55e';
-  if (z >= 0.5) return '#86efac';
-  if (z >= 0.2) return '#a3e635';
+function pBeatColor(p: number): string {
+  if (!Number.isFinite(p)) return 'var(--text-muted)';
+  if (p >= 0.65) return '#22c55e';
+  if (p >= 0.55) return '#86efac';
+  if (p >= 0.45) return 'var(--text-primary)';
+  if (p >= 0.35) return '#fb923c';
+  return '#ef4444';
+}
+
+function upsideColor(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return 'var(--text-muted)';
+  if (v >= 7) return '#22c55e';
+  if (v >= 4) return '#86efac';
+  if (v >= 2) return '#a3e635';
   return 'var(--text-muted)';
 }
 
-function bustColor(z: number): string {
-  if (z >= 1.0) return '#ef4444';
-  if (z >= 0.5) return '#fca5a5';
-  if (z >= 0.2) return '#fb923c';
-  return 'var(--text-muted)';
-}
-
-function hitProbColor(p: string): string {
-  if (p === 'Likely Hit') return '#22c55e';
-  if (p === 'Likely Bust') return '#ef4444';
+function downsideColor(v: number): string {
+  if (!Number.isFinite(v) || v <= 0) return 'var(--text-muted)';
+  if (v >= 7) return '#ef4444';
+  if (v >= 4) return '#fca5a5';
+  if (v >= 2) return '#fb923c';
   return 'var(--text-muted)';
 }
 
@@ -123,28 +185,25 @@ export function DraftOptimizerTable() {
         if (p?.name) ppgByName.set(normName(p.name), Number(p.predictedPPG) || 0);
       }
       const adpCurves = manifest?.adpCurves ?? {};
-      // Per-position z-scores over CI spreads. Only positive spreads
-      // contribute to the cohort so deep depth-pieces with degenerate CIs
-      // don't drag the mean down.
-      const spreads = adpData.map((a) => ({
-        position: a.position,
-        up: Math.max(0, (a.ciUpper ?? 0) - (a.predictedVor ?? 0)),
-        down: Math.max(0, (a.predictedVor ?? 0) - (a.ciLower ?? 0)),
-      }));
-      const upStats = positionStats(spreads.filter((s) => s.up > 0), (s) => s.position, (s) => s.up);
-      const downStats = positionStats(spreads.filter((s) => s.down > 0), (s) => s.position, (s) => s.down);
 
       const built: Row[] = adpData.map((a) => {
-        const up = Math.max(0, (a.ciUpper ?? 0) - (a.predictedVor ?? 0));
-        const down = Math.max(0, (a.predictedVor ?? 0) - (a.ciLower ?? 0));
         const adp = Number(a.adp) || 999;
         const pred = ppgByName.get(normName(a.name)) ?? 0;
+        const ciL = Number(a.ciLower);
+        const ciU = Number(a.ciUpper);
+        const center = Number(a.predictedVor);
+        const haveCI = Number.isFinite(ciL) && Number.isFinite(ciU) && ciU > ciL;
+        const upsidePPG = haveCI && Number.isFinite(center) ? Math.max(0, ciU - center) : NaN;
+        const downsidePPG = haveCI && Number.isFinite(center) ? Math.max(0, center - ciL) : NaN;
+
         const curve = adpCurves[a.position];
         // Curve undefined OR ADP missing OR predicted PPG missing → no edge.
         const adpBaselinePPG = curve && adp < 999 && pred > 0
           ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(adp)
           : NaN;
         const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
+        const pBeat = haveCI && pred > 0 ? probBeatBaseline(pred, ciL, ciU, adpBaselinePPG) : NaN;
+
         return {
           name: a.name,
           position: a.position,
@@ -153,9 +212,9 @@ export function DraftOptimizerTable() {
           predictedPPG: pred,
           adpBaselinePPG,
           pickEdge,
-          hitProb: a.hitProb ?? '',
-          boomZ: up > 0 ? Math.round(zScore(up, upStats.get(a.position)) * 100) / 100 : 0,
-          bustZ: down > 0 ? Math.round(zScore(down, downStats.get(a.position)) * 100) / 100 : 0,
+          pBeat,
+          upsidePPG,
+          downsidePPG,
           isRookie: !!a.isRookie,
         };
       });
@@ -247,17 +306,23 @@ export function DraftOptimizerTable() {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
-        Sorted by <strong>Pick Edge</strong> — predicted PPG (from the ADP-free
-        model) minus what someone at this ADP slot typically delivers. Positive
-        = our models think the player out-earns the market at this draft cost.
-        The baseline curve is fit per position as{' '}
-        <code>PPG = intercept + slope·√ADP</code> on 2010–2025 historical data.
-        Hit probability and boom/bust z-scores come from the ADP model's
-        confidence intervals.
+        Sorted by <strong>Pick Edge</strong> — predicted PPG (ADP-free model)
+        minus the position's ADP-curve baseline{' '}
+        <code>(intercept + slope·√ADP)</code>, fit on 2010–2025.{' '}
+        <strong>Beat %</strong> is the Gaussian-approximated probability that
+        actual PPG exceeds that baseline, with σ borrowed from the 10/90
+        quantile bounds. <strong>Upside / Downside</strong> are raw PPG
+        distances from the central prediction to ciUpper / ciLower — they
+        describe the size of the model's uncertainty band, not a probability
+        of booming or busting. Note: in-sample CI coverage is on target
+        (~80%); out-of-sample coverage is not yet validated. The 2026 pool's
+        PPG predictions trend above the historical curve average, so most
+        players show Beat % above 50% — that's the model's bullishness on
+        this pool, not a metric bug.
         {Object.keys(curves).length === 0 && (
           <span style={{ color: '#fb923c', marginLeft: 6 }}>
-            ADP curve unavailable — Pick Edge will show as “—” until the next
-            score-store build.
+            ADP curve unavailable — Pick Edge and Beat % will show as “—”
+            until the next score-store build.
           </span>
         )}
       </p>
@@ -304,12 +369,14 @@ export function DraftOptimizerTable() {
               <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('pickEdge')}>
                 <span title="Pick Edge: predicted PPG minus the ADP curve baseline (intercept + slope·√ADP) for this position. Positive = model thinks the player out-earns ADP.">Pick Edge</span>{sortArrow('pickEdge')}
               </th>
-              <th style={{ ...th, textAlign: 'center', width: 84 }}>Hit</th>
-              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('boomZ')}>
-                <span title="Boom z-score within position — CI upside spread vs cohort">Boom z</span>{sortArrow('boomZ')}
+              <th style={{ ...th, textAlign: 'right', width: 60 }} onClick={() => handleSort('pBeat')}>
+                <span title="P(season PPG > ADP-curve baseline). Gaussian approximation from the 10/90 quantile bounds (q90 − q10 = 2 × 1.2816σ).">Beat %</span>{sortArrow('pBeat')}
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('bustZ')}>
-                <span title="Bust z-score within position — CI downside spread vs cohort">Bust z</span>{sortArrow('bustZ')}
+              <th style={{ ...th, textAlign: 'right', width: 60 }} onClick={() => handleSort('upsidePPG')}>
+                <span title="Upside PPG: ciUpper (90th percentile) minus the model's central prediction. Size of the model's belief band on the high side. NOT a probability of booming.">Upside</span>{sortArrow('upsidePPG')}
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 60 }} onClick={() => handleSort('downsidePPG')}>
+                <span title="Downside PPG: model's central prediction minus ciLower (10th percentile). Size of the model's belief band on the low side. NOT a probability of busting.">Downside</span>{sortArrow('downsidePPG')}
               </th>
             </tr>
           </thead>
@@ -341,14 +408,27 @@ export function DraftOptimizerTable() {
                 >
                   {fmtEdge(r.pickEdge)}
                 </td>
-                <td style={{ ...td, textAlign: 'center', fontSize: 11, color: hitProbColor(r.hitProb) }}>
-                  {r.hitProb || '—'}
+                <td
+                  style={{ ...td, textAlign: 'right', fontWeight: 700, color: pBeatColor(r.pBeat) }}
+                  title={
+                    Number.isFinite(r.pBeat)
+                      ? `Gaussian P(actual > ${r.adpBaselinePPG.toFixed(1)} PPG) using μ=midpoint(${(r.upsidePPG + r.downsidePPG > 0 ? 'CI bounds' : 'n/a')}), σ from CI width.`
+                      : 'No CI bounds or baseline available.'
+                  }
+                >
+                  {fmtPct(r.pBeat)}
                 </td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: boomColor(r.boomZ) }}>
-                  {fmtZ(r.boomZ)}
+                <td
+                  style={{ ...td, textAlign: 'right', fontWeight: 600, color: upsideColor(r.upsidePPG) }}
+                  title={Number.isFinite(r.upsidePPG) ? `+${r.upsidePPG.toFixed(1)} PPG to ciUpper` : 'No CI bounds available.'}
+                >
+                  {fmtRange(r.upsidePPG)}
                 </td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: bustColor(r.bustZ) }}>
-                  {fmtZ(r.bustZ)}
+                <td
+                  style={{ ...td, textAlign: 'right', fontWeight: 600, color: downsideColor(r.downsidePPG) }}
+                  title={Number.isFinite(r.downsidePPG) ? `−${r.downsidePPG.toFixed(1)} PPG to ciLower` : 'No CI bounds available.'}
+                >
+                  {fmtRange(r.downsidePPG)}
                 </td>
               </tr>
             ))}
