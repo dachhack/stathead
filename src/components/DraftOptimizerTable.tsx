@@ -98,7 +98,7 @@ const ADP_BANDS = [
 ] as const;
 type AdpBandId = typeof ADP_BANDS[number]['id'];
 
-type SortKey = 'adp' | 'pickEdge' | 'predictedPPG' | 'pBeat' | 'upsidePPG' | 'downsidePPG' | 'targetSharePctile' | 'name';
+type SortKey = 'adp' | 'pickEdge' | 'modelPPG' | 'projPPG' | 'pBeat' | 'upsidePPG' | 'downsidePPG' | 'targetSharePctile' | 'name';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -379,10 +379,16 @@ export function DraftOptimizerTable() {
     const N = settings.numTeams;
 
     // First pass: resolve PPG (scenario-overridden if active, else
-    // model base) and derive baseline/edge/beat from it.
+    // model base) and derive baseline/edge/beat from it. Both numbers
+    // are kept on the row — modelPPG is always the score-store
+    // ensemble, projPPG is the active scenario's projection (NaN when
+    // no scenario or this player isn't covered), and predictedPPG is
+    // whichever drives the math (proj if finite, else model).
     const seeded: Row[] = rawRows.map((r) => {
       const scenarioPpg = scenarioPpgByName.get(normName(r.name));
-      const pred = scenarioPpg !== undefined && scenarioPpg > 0 ? scenarioPpg : r.basePpg;
+      const projPPG = scenarioPpg !== undefined && scenarioPpg > 0 ? scenarioPpg : NaN;
+      const modelPPG = r.basePpg;
+      const pred = Number.isFinite(projPPG) ? projPPG : modelPPG;
       const haveCI = Number.isFinite(r.ciLower) && Number.isFinite(r.ciUpper) && r.ciUpper > r.ciLower;
       const upsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciUpper - r.ciCenter) : NaN;
       const downsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciCenter - r.ciLower) : NaN;
@@ -398,6 +404,8 @@ export function DraftOptimizerTable() {
         team: r.team,
         adp: r.adp,
         stdev: r.stdev,
+        modelPPG,
+        projPPG,
         predictedPPG: pred,
         adpBaselinePPG,
         pickEdge,
@@ -541,7 +549,12 @@ export function DraftOptimizerTable() {
       />
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
-        <strong>Pick Edge</strong> = predicted PPG minus the position's
+        <strong>Model</strong> = our ADP-free ensemble's predicted PPG.{' '}
+        <strong>Proj</strong> = the active scenario's projection
+        (FantasyPointsPPR ÷ 17); blank when no scenario is active.
+        Pick Edge / Beat % / Verdict use Proj when available, else fall
+        back to Model.{' '}
+        <strong>Pick Edge</strong> = effective PPG minus the position's
         ADP-curve baseline (recentered to the 2026 pool).{' '}
         <strong>Beat %</strong> = P(actual PPG &gt; baseline), Gaussian
         approx with σ from quantile bounds.{' '}
@@ -641,8 +654,11 @@ export function DraftOptimizerTable() {
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('adp')}>
                 ADP{sortArrow('adp')}
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 64 }} onClick={() => handleSort('predictedPPG')}>
-                <span title="Model-predicted PPG">Pred PPG</span>{sortArrow('predictedPPG')}
+              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('modelPPG')}>
+                <span title="Model-predicted PPG (Stathead ADP-free ensemble, score-store/ppg.json). Shown alongside Proj so you can see what the model thinks regardless of which scenario is active.">Model</span>{sortArrow('modelPPG')}
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('projPPG')}>
+                <span title="Scenario-projected PPG (FantasyPointsPPR / 17 from the active scenario). Falls back to '—' when no scenario is active or the player isn't covered. Drives PickEdge / Beat % / Verdict when present.">Proj</span>{sortArrow('projPPG')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('pickEdge')}>
                 <span title="Pick Edge: predicted PPG minus the ADP curve baseline (intercept + slope·√ADP) for this position. Positive = model thinks the player out-earns ADP.">Pick Edge</span>{sortArrow('pickEdge')}
@@ -679,8 +695,25 @@ export function DraftOptimizerTable() {
                 </td>
                 <td style={{ ...td, textAlign: 'center', color: 'var(--text-muted)' }}>{r.team || '—'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>{r.adp < 999 ? r.adp.toFixed(1) : '—'}</td>
-                <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
-                  {r.predictedPPG > 0 ? r.predictedPPG.toFixed(1) : '—'}
+                <td
+                  style={{
+                    ...td, textAlign: 'right', fontWeight: 700,
+                    // Dim the model column when a scenario is active so the
+                    // user's eye lands on Proj — Model is reference, not driver.
+                    opacity: Number.isFinite(r.projPPG) ? 0.6 : 1,
+                  }}
+                >
+                  {r.modelPPG > 0 ? r.modelPPG.toFixed(1) : '—'}
+                </td>
+                <td
+                  style={{ ...td, textAlign: 'right', fontWeight: 700 }}
+                  title={
+                    Number.isFinite(r.projPPG) && r.modelPPG > 0
+                      ? `Scenario projects ${r.projPPG.toFixed(1)} vs model's ${r.modelPPG.toFixed(1)} (Δ ${(r.projPPG - r.modelPPG >= 0 ? '+' : '') + (r.projPPG - r.modelPPG).toFixed(1)})`
+                      : 'No scenario projection for this player.'
+                  }
+                >
+                  {Number.isFinite(r.projPPG) ? r.projPPG.toFixed(1) : '—'}
                 </td>
                 <td
                   style={{ ...td, textAlign: 'right', fontWeight: 700, color: pickEdgeColor(r.pickEdge) }}

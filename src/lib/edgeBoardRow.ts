@@ -16,6 +16,16 @@ export interface EdgeBoardRow {
   team: string;
   adp: number;
   stdev: number;             // FFC ADP stdev; 0 if unavailable
+  /** Model's ADP-free PPG (score-store/ppg.json). Always present even
+   *  when a scenario is active. */
+  modelPPG: number;
+  /** Scenario-projected PPG (FantasyPointsPPR / 17 from the active
+   *  scenario). NaN when no scenario is active OR the scenario doesn't
+   *  cover this player. */
+  projPPG: number;
+  /** Effective PPG that drives PickEdge / Beat % / verdict — projPPG
+   *  if finite, else modelPPG. Single number to read for downstream
+   *  metrics. */
   predictedPPG: number;
   adpBaselinePPG: number;
   pickEdge: number;
