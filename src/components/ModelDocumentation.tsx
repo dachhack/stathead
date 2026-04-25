@@ -52,36 +52,36 @@ const GAP_FEATURE_LABELS: Record<string, string> = {
   qbr_vs_pick: 'QBR vs Draft Pick',
   ypa_vs_pick: 'YPA vs Draft Pick',
   qb_context_vs_pick: 'QB Context vs Draft Pick',
-  // PDF scouting (The Beast / RSP / Late-Round Guide) — per-position
-  // BOOM_GAP_FEATURES_BY_POS includes pdfRankOverallMean + pdfHasRank for QB
-  // and athletic_production_gap / recruit_production_gap for WR.
-  pdfRankOverallMean: 'Scout Rank (Beast mean)',
-  pdfHasRank: 'Has Scout Rank',
-  pdfRankOverallMin: 'Scout Rank (best)',
-  pdfRankOverallMax: 'Scout Rank (worst)',
-  pdfRankSpread: 'Scout Rank Spread',
-  pdfProjectedRound: 'Scout Projected Round',
-  pdfNStrengths: 'Scout # Strengths',
-  pdfNWeaknesses: 'Scout # Weaknesses',
-  pdfNRedFlags: 'Scout # Red Flags',
-  pdfSentimentNet: 'Scout Sentiment Net',
-  pdfRankXPick: 'Scout Rank vs Draft Pick',
+  // Multi-source draft-guide features. Per-position BOOM_GAP_FEATURES_BY_POS
+  // includes pdfRankOverallMean + pdfHasRank for QB and the recruit/athletic
+  // production gaps for WR. On-disk keys are kept; labels surface guide*.
+  pdfRankOverallMean: 'Guide Rank (mean)',
+  pdfHasRank: 'Has Guide Rank',
+  pdfRankOverallMin: 'Guide Rank (best)',
+  pdfRankOverallMax: 'Guide Rank (worst)',
+  pdfRankSpread: 'Guide Rank Spread',
+  pdfProjectedRound: 'Guide Projected Round',
+  pdfNStrengths: 'Guide # Strengths',
+  pdfNWeaknesses: 'Guide # Weaknesses',
+  pdfNRedFlags: 'Guide # Red Flags',
+  pdfSentimentNet: 'Guide Sentiment Net',
+  pdfRankXPick: 'Guide Rank vs Draft Pick',
   pdfRoundXActual: 'Proj Round vs Actual Round',
   recruit_production_gap: 'Recruit-vs-Production Gap',
   athletic_production_gap: 'Athletic-vs-Production Gap',
-  // RSP (Rookie Scouting Portfolio) adds (2026-04) — DOT, tier class,
-  // breadth, comps count, cross-year trajectory. Shipped in RB/WR pre-draft
+  // Single-scout grade family (2026-04) — grade, tier class, breadth,
+  // comps count, cross-year trajectory. Shipped in RB/WR pre-draft
   // rookie career lists; not currently in BOOM_GAP_FEATURES_BY_POS.
-  rspDotMax: 'RSP DOT (best)',
-  rspDotDraft: 'RSP DOT (draft year)',
-  rspDotLatest: 'RSP DOT (latest)',
-  rspDotDelta: 'RSP DOT Trajectory',
-  rspBreadthDraft: 'RSP Breadth (draft year)',
-  rspBreadthLatest: 'RSP Breadth (latest)',
-  rspTierOrdinal: 'RSP Tier Class',
-  rspAppearances: 'RSP Guide Appearances',
-  rspNComps: 'RSP # NFL Comps',
-  rspHasData: 'Has RSP Data',
+  rspDotMax: 'Scout Grade (best)',
+  rspDotDraft: 'Scout Grade (draft year)',
+  rspDotLatest: 'Scout Grade (latest)',
+  rspDotDelta: 'Scout Grade Trajectory',
+  rspBreadthDraft: 'Scout Breadth (draft year)',
+  rspBreadthLatest: 'Scout Breadth (latest)',
+  rspTierOrdinal: 'Scout Tier Class',
+  rspAppearances: 'Scout Appearances',
+  rspNComps: 'Scout # NFL Comps',
+  rspHasData: 'Has Scout Grade',
 };
 
 // Human-readable labels for the bust-classifier feature vocabulary (see
@@ -94,14 +94,14 @@ const BUST_FEATURE_LABELS: Record<string, string> = {
   production_deficit: 'Production Deficit vs Hits',
   age_for_draft: 'Age at Draft',
   missing_data_count: 'Missing Data Count',
-  // PDF + disagreement adds in BUST_FEATURES_BY_POS per-position lists
-  pdfRankOverallMean: 'Scout Rank (Beast mean)',
-  pdfHasRank: 'Has Scout Rank',
-  pdfRankSpread: 'Scout Rank Spread',
-  pdfRankXPick: 'Scout Rank vs Draft Pick',
+  // Guide + disagreement adds in BUST_FEATURES_BY_POS per-position lists
+  pdfRankOverallMean: 'Guide Rank (mean)',
+  pdfHasRank: 'Has Guide Rank',
+  pdfRankSpread: 'Guide Rank Spread',
+  pdfRankXPick: 'Guide Rank vs Draft Pick',
   pdfRoundXActual: 'Proj Round vs Actual Round',
-  pdfNWeaknesses: 'Scout # Weaknesses',
-  pdfSentimentNet: 'Scout Sentiment Net',
+  pdfNWeaknesses: 'Guide # Weaknesses',
+  pdfSentimentNet: 'Guide Sentiment Net',
   recruit_production_gap: 'Recruit-vs-Production Gap',
   athletic_production_gap: 'Athletic-vs-Production Gap',
 };

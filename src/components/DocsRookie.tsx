@@ -118,21 +118,24 @@ Bust:       actual PPG < 80% of ADP-Expected PPG`}
               features: ['Team implied total', 'Projected volume change', 'Projected target share'],
             },
             {
-              // Scouting features extracted from The Beast, RSP, and Late-Round Guide
-              // via scripts/extract_pdf_features.py + merge_pdf_features.py. RSP adds
-              // (2026-04) surface Matt Waldman's DOT numeric grade, tier class, cross-year
-              // trajectory, and comps count — shipped in the RB + WR pre-draft lists.
-              cat: 'Scouting (Beast / RSP / Late-Round)', color: '#f97316',
+              // Two source-agnostic scouting families derived from upstream
+              // draft guides — see python/src/stathead/_renames.py for the
+              // rename map. `guide*` aggregates rank/round/sentiment across
+              // multiple guides; `scout*` carries a single-scout grade
+              // family (depth-of-talent grade, tier class, breadth, comps,
+              // cross-year trajectory). Features ship in the RB + WR
+              // pre-draft lists.
+              cat: 'Scouting (guide* + scout*)', color: '#f97316',
               features: [
-                'Consensus scout rank (The Beast)',
-                'Projected round (PDF consensus)',
+                'Guide rank consensus (mean / best / worst / spread)',
+                'Guide projected round',
                 '# strengths / weaknesses / red flags (sentiment)',
-                'RSP DOT score (Matt Waldman, draft year)',
-                'RSP DOT trajectory (draft year → latest)',
-                'RSP breadth score',
-                'RSP tier class (Franchise → Street)',
-                'RSP # NFL comps',
-                'Scout-vs-pick disagreement (rank vs pick, round vs round)',
+                'Scout grade (draft year)',
+                'Scout grade trajectory (draft year → latest)',
+                'Scout breadth score',
+                'Scout tier class',
+                'Scout # NFL comps',
+                'Scout/guide-vs-pick disagreement (rank vs pick, round vs round)',
               ],
             },
           ].map((g) => (
