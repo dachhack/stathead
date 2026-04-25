@@ -68,8 +68,8 @@ def norm_pdf_name(n):
     n = re.sub(r'\s+(sr|jr|iii|ii|iv)$', '', n).replace('  ', ' ')
     return n.strip()
 
-# Load data
-with open('public/data/pdf-prospect-features-merged.json') as f:
+# Load data — prose-bearing intermediate, not the scrubbed public twin.
+with open('pdfs/.cache/pdf-prospect-features-merged.json') as f:
     pdf_list = json.load(f)
 pdf_idx = {f"{norm_pdf_name(p['player_name'])}::{p['position']}": p for p in pdf_list}
 

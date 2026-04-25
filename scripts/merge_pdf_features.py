@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Merge per-PDF feature JSONs into the two public outputs.
+"""Merge per-PDF feature JSONs into the prose-bearing internal cache and
+the scrubbed public outputs.
 
 Reads every pdfs/.cache/*.features.json (written by the
 /extract-pdf-features Claude Code slash command) and produces:
 
-    public/data/pdf-prospect-features.json           one row per (player, source)
-    public/data/pdf-prospect-features-merged.json    one row per player, aggregated
+    pdfs/.cache/pdf-prospect-features.json           prose-bearing per-source
+    pdfs/.cache/pdf-prospect-features-merged.json    prose-bearing merged
+    public/data/pdf-prospect-features.json           scrubbed per-source (public)
+    public/data/pdf-prospect-features-merged.json    scrubbed merged (public)
 
-Output rows are scrubbed of verbatim scout prose by ``_scout_scrub`` —
-public files only carry counts, numeric ranks, and anonymized guide IDs.
+The internal cache files are gitignored (under pdfs/) and used by the
+local training pipeline (precompute-features.ts, train_career_models.py,
+…). The public files are scrubbed of verbatim scout prose by
+``_scout_scrub`` — only counts, numeric ranks, and anonymized guide IDs.
 
 Pure Python, no LLM calls. Safe to rerun any time.
 """
@@ -31,6 +36,8 @@ from _scout_scrub import (
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "pdfs" / ".cache"
+INTERNAL_PER_SOURCE = CACHE_DIR / "pdf-prospect-features.json"
+INTERNAL_MERGED = CACHE_DIR / "pdf-prospect-features-merged.json"
 OUT_PER_SOURCE = ROOT / "public" / "data" / "pdf-prospect-features.json"
 OUT_MERGED = ROOT / "public" / "data" / "pdf-prospect-features-merged.json"
 
@@ -152,7 +159,17 @@ def main() -> int:
 
     # Build the guide-id map up front so per-source and merged outputs agree.
     id_map = build_guide_id_map([r.get("source_file", "") for r in rows])
+    merged_with_prose = merge_rows(rows)
 
+    # Internal cache (prose-bearing) — consumed by the local training
+    # pipeline. Gitignored along with the rest of pdfs/.
+    INTERNAL_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
+    INTERNAL_PER_SOURCE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    INTERNAL_MERGED.write_text(json.dumps(merged_with_prose, indent=2), encoding="utf-8")
+    print(f"wrote {len(rows)} rows         -> {INTERNAL_PER_SOURCE.relative_to(ROOT)}")
+    print(f"wrote {len(merged_with_prose)} merged   -> {INTERNAL_MERGED.relative_to(ROOT)}")
+
+    # Public outputs (scrubbed) — safe to redistribute.
     scrubbed_per_source = [
         scrub_per_source_row(r, id_map.get(r.get("source_file", ""), 0),
                              parse_guide_year(r.get("source_file")))
@@ -160,12 +177,11 @@ def main() -> int:
     ]
     OUT_PER_SOURCE.parent.mkdir(parents=True, exist_ok=True)
     OUT_PER_SOURCE.write_text(json.dumps(scrubbed_per_source, indent=2), encoding="utf-8")
-    print(f"wrote {len(scrubbed_per_source)} rows -> {OUT_PER_SOURCE.relative_to(ROOT)}")
+    print(f"wrote {len(scrubbed_per_source)} rows         -> {OUT_PER_SOURCE.relative_to(ROOT)}")
 
-    # merge_rows() still needs the prose-bearing rows to dedupe before counting.
-    merged = [scrub_merged_row(m, id_map) for m in merge_rows(rows)]
-    OUT_MERGED.write_text(json.dumps(merged, indent=2), encoding="utf-8")
-    print(f"wrote {len(merged)} merged players -> {OUT_MERGED.relative_to(ROOT)}")
+    scrubbed_merged = [scrub_merged_row(m, id_map) for m in merged_with_prose]
+    OUT_MERGED.write_text(json.dumps(scrubbed_merged, indent=2), encoding="utf-8")
+    print(f"wrote {len(scrubbed_merged)} merged   -> {OUT_MERGED.relative_to(ROOT)}")
     return 0
 
 
