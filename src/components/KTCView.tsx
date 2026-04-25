@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
-import { fetchKTCRankings, fetchKTCHistory, fetchFantasyCalcRankings } from '../data';
+import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay, fetchFantasyCalcRankings } from '../data';
 import { KTCFactorAnalysis } from './KTCFactorAnalysis';
 import { KTCPredictiveModel } from './KTCPredictiveModel';
 import { PlayerLink } from './PlayerLink';
@@ -46,7 +46,7 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchKTCRankings;
+    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchKTCRankingsForDisplay;
     fetcher(format)
       .then((data) => {
         setPlayers(data);
@@ -64,7 +64,8 @@ export function KTCView({ onDataLoaded, scenario }: Props) {
     }
     setHistoryLoading(true);
     setHistoryError(null);
-    fetchKTCHistory(selectedPlayers.map((p) => p.playerID))
+    const positionByID = new Map(selectedPlayers.map((p) => [p.playerID, p.position]));
+    fetchKTCHistoryForDisplay(selectedPlayers.map((p) => p.playerID), positionByID)
       .then(setHistoryData)
       .catch((e) => setHistoryError(e instanceof Error ? e.message : 'Failed to load history'))
       .finally(() => setHistoryLoading(false));

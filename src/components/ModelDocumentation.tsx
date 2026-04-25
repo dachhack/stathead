@@ -2203,9 +2203,10 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
         <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Dynasty Value Forecast Pipeline</h3>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
           Per-(position, horizon) LightGBM models predict log-returns on dynasty market values.
-          Trained on 6 months of daily market price history (Oct 2025 &ndash; Apr 2026) with
+          Trained on 6 months of daily KTC price history (Oct 2025 &ndash; Apr 2026) with
           fast features (momentum, volatility, rank), slow features (age, draft capital,
           production), and weekly NFL stats features (snap%, targets, carries).
+          Forecast outputs are rescaled per-player into FantasyCalc&apos;s value scale for display.
           Validated via player-grouped 5-fold CV (no held-out player&apos;s data leaks into training).
         </p>
         <div style={{

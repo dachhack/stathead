@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchCombine, fetchFantasyRankings, fetchKTCRankings, fetchRosters } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay, fetchRosters } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
   CombineResult,
@@ -180,7 +180,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     Promise.all([
       fetchCombine().catch(() => [] as CombineResult[]),
       fetchFantasyRankings().catch(() => [] as FantasyRanking[]),
-      fetchKTCRankings('1qb').catch(() => [] as KTCPlayer[]),
+      fetchKTCRankingsForDisplay('1qb').catch(() => [] as KTCPlayer[]),
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
       fetchRosters(DRAFT_YEAR).catch(() => [] as Roster[]),

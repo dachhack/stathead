@@ -1,7 +1,7 @@
 import { normalizeName } from './featureTypes';
 import type { CrosswalkRec } from './playerLookup';
 import type { KTCPlayer, KTCPlayerHistory, PlayerStats } from '../types';
-import { fetchKTCRankings, fetchKTCHistory, fetchPlayerStats } from '../data';
+import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay, fetchPlayerStats } from '../data';
 
 export interface CareerPrediction {
   name: string;
@@ -80,11 +80,11 @@ async function loadCareer(rec: CrosswalkRec): Promise<CareerPrediction | null> {
 async function loadKtc(rec: CrosswalkRec): Promise<{ current: KTCPlayer | null; history: KTCPlayerHistory | null }> {
   if (!rec.ktc_id) return { current: null, history: null };
   try {
-    const [rankings, history] = await Promise.all([
-      fetchKTCRankings('1qb'),
-      fetchKTCHistory([rec.ktc_id]),
-    ]);
+    const rankings = await fetchKTCRankingsForDisplay('1qb');
     const current = rankings.find((p) => p.playerID === rec.ktc_id) || null;
+    const positionByID = new Map<number, string>();
+    if (current) positionByID.set(current.playerID, current.position);
+    const history = await fetchKTCHistoryForDisplay([rec.ktc_id], positionByID);
     const hist = history.find((h) => h.playerID === rec.ktc_id) || null;
     return { current, history: hist };
   } catch {

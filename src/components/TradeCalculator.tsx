@@ -3,8 +3,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory } from '../types';
-import { fetchKTCRankings, fetchKTCHistory } from '../data';
-import { loadForecasts, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type TepLevel } from '../lib/ktcForecast';
+import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay } from '../data';
+import { loadForecastsForDisplay, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type TepLevel } from '../lib/ktcForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -101,7 +101,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   useEffect(() => {
     // Only show full loading spinner on initial load — format switches update silently
     if (players.length === 0) setLoading(true);
-    fetchKTCRankings(ktcFormat as '1qb' | 'superflex')
+    fetchKTCRankingsForDisplay(ktcFormat as '1qb' | 'superflex')
       .then((data) => {
         setPlayers(data);
         onDataLoaded?.(data);
@@ -112,7 +112,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   // Load pre-computed KTC forecasts (fire-and-forget, non-blocking)
   useEffect(() => {
-    loadForecasts(ktcFormat as '1qb' | 'superflex')
+    loadForecastsForDisplay(ktcFormat as '1qb' | 'superflex')
       .then(c => { if (c) setForecastCache(c); });
   }, [ktcFormat]);
 
@@ -122,9 +122,10 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   }, []);
 
   // Fetch history for all players in the trade
+  const tradePlayers = useMemo(() => [...sideA, ...sideB], [sideA, sideB]);
   const allTradePlayerIds = useMemo(
-    () => [...sideA, ...sideB].map((p) => p.playerID),
-    [sideA, sideB],
+    () => tradePlayers.map((p) => p.playerID),
+    [tradePlayers],
   );
 
   useEffect(() => {
@@ -133,11 +134,12 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       return;
     }
     setHistoryLoading(true);
-    fetchKTCHistory(allTradePlayerIds)
+    const positionByID = new Map(tradePlayers.map((p) => [p.playerID, p.position]));
+    fetchKTCHistoryForDisplay(allTradePlayerIds, positionByID)
       .then(setHistoryData)
       .catch(() => setHistoryData([]))
       .finally(() => setHistoryLoading(false));
-  }, [allTradePlayerIds]);
+  }, [allTradePlayerIds, tradePlayers]);
 
   const getValue = (p: KTCPlayer) => {
     const base = leagueFormat === '1qb' ? p.value : p.superflexValue;

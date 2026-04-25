@@ -957,6 +957,56 @@ export async function fetchKTCHistory(
   return results;
 }
 
+// --- KTC → FantasyCalc value rescaling (for display) ---
+//
+// The site shows FC values everywhere but uses a KTC-trained forecast model.
+// These wrappers apply a per-player ratio (see scripts/build-rescale-snapshot.cjs)
+// to KTC values so they appear in FC's scale. Raw fetchers above stay
+// untouched because the ML training pipeline expects native KTC scale.
+
+import {
+  makeRescaler,
+  rescaleKTCPlayer,
+  rescaleKTCHistory,
+  type Rescaler,
+  type RescaleSnapshot,
+} from './lib/valueRescale';
+
+let _rescalerPromise: Promise<Rescaler | null> | null = null;
+
+export function loadRescaler(): Promise<Rescaler | null> {
+  if (_rescalerPromise) return _rescalerPromise;
+  _rescalerPromise = tryPreFetched<RescaleSnapshot>('ktc-fc-rescale.json')
+    .then(snap => snap ? makeRescaler(snap) : null);
+  return _rescalerPromise;
+}
+
+export async function fetchKTCRankingsForDisplay(
+  format: '1qb' | 'superflex' = '1qb',
+): Promise<KTCPlayer[]> {
+  const [raw, rescaler] = await Promise.all([
+    fetchKTCRankings(format),
+    loadRescaler(),
+  ]);
+  if (!rescaler) return raw;
+  const out = raw.map(p => rescaleKTCPlayer(p, rescaler));
+  // Re-sort by rescaled value since per-player ratios can change order
+  out.sort((a, b) => (format === '1qb' ? b.value - a.value : b.superflexValue - a.superflexValue));
+  return out;
+}
+
+export async function fetchKTCHistoryForDisplay(
+  playerIDs: number[],
+  positionByID: Map<number, string>,
+): Promise<KTCPlayerHistory[]> {
+  const [raw, rescaler] = await Promise.all([
+    fetchKTCHistory(playerIDs),
+    loadRescaler(),
+  ]);
+  if (!rescaler) return raw;
+  return raw.map(h => rescaleKTCHistory(h, positionByID.get(h.playerID) ?? '', rescaler));
+}
+
 // --- FantasyCalc Rankings (normalized to KTCPlayer shape) ---
 
 const fcCache = new Map<string, KTCPlayer[]>();

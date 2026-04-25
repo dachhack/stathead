@@ -62,6 +62,47 @@ export function loadForecasts(format: '1qb' | 'superflex' = '1qb'): Promise<Fore
   return _forecastPromises.get(format)!;
 }
 
+// Display-scale variant: rescale every value/CI bound into FC's scale using the
+// per-player ratio from ktc-fc-rescale.json. logReturn is scale-invariant and
+// passes through unchanged.
+const _displayForecastPromises = new Map<string, Promise<ForecastCache | null>>();
+
+export function loadForecastsForDisplay(format: '1qb' | 'superflex' = '1qb'): Promise<ForecastCache | null> {
+  if (_displayForecastPromises.has(format)) return _displayForecastPromises.get(format)!;
+  const promise = (async (): Promise<ForecastCache | null> => {
+    const [raw, { loadRescaler }] = await Promise.all([
+      loadForecasts(format),
+      import('../data'),
+    ]);
+    if (!raw) return null;
+    const rescaler = await loadRescaler();
+    if (!rescaler) return raw;
+    const players: Record<string, PlayerForecastEntry> = {};
+    for (const [idStr, entry] of Object.entries(raw.players)) {
+      const playerID = Number(idStr);
+      const r = rescaler.ratio(playerID, entry.currentValue, entry.position, format);
+      if (r == null) { players[idStr] = entry; continue; }
+      const forecasts: PlayerForecastEntry['forecasts'] = {};
+      for (const [h, f] of Object.entries(entry.forecasts)) {
+        forecasts[h] = {
+          value: Math.round(f.value * r),
+          logReturn: f.logReturn,
+          ciLow: Math.round(f.ciLow * r),
+          ciHigh: Math.round(f.ciHigh * r),
+        };
+      }
+      players[idStr] = {
+        ...entry,
+        currentValue: Math.round(entry.currentValue * r),
+        forecasts,
+      };
+    }
+    return { ...raw, players };
+  })();
+  _displayForecastPromises.set(format, promise);
+  return promise;
+}
+
 // ── Player forecast lookup ──────────────────────────────────────────
 
 /** Get pre-computed forecasts for a player (by playerID) at all horizons. */

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
-import { fetchCombine, fetchFantasyRankings, fetchKTCRankings } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay } from '../data';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
@@ -131,7 +131,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     Promise.all([
       fetchCombine(),
       fetchFantasyRankings(),
-      fetchKTCRankings('1qb'),
+      fetchKTCRankingsForDisplay('1qb'),
       fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
         .then(r => r.ok ? r.json() : null)
         .catch(() => null),

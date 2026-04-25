@@ -4,9 +4,9 @@ import {
   ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
 import type { KTCPlayer } from '../types';
-import { fetchKTCRankings, fetchKTCHistory } from '../data';
+import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay } from '../data';
 import {
-  loadForecasts, getPlayerForecasts,
+  loadForecastsForDisplay, getPlayerForecasts,
   type ForecastCache, type ForecastResult,
 } from '../lib/ktcForecast';
 
@@ -118,11 +118,11 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
       setLoading(true);
       try {
         const [cache, rankings] = await Promise.all([
-          loadForecasts(format).then(c => {
+          loadForecastsForDisplay(format).then(c => {
             if (!c) throw new Error('Forecast data unavailable');
             return c;
           }),
-          fetchKTCRankings(format),
+          fetchKTCRankingsForDisplay(format),
         ]);
         if (cancelled) return;
         setForecastCache(cache);
@@ -141,7 +141,10 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   // Fetch value history for the selected player (for chart)
   useEffect(() => {
     if (selectedId === null) { setSelectedHistory([]); return; }
-    fetchKTCHistory([selectedId])
+    const player = players.find(p => p.playerID === selectedId);
+    const positionByID = new Map<number, string>();
+    if (player) positionByID.set(selectedId, player.position);
+    fetchKTCHistoryForDisplay([selectedId], positionByID)
       .then(data => {
         const h = data.find(d => d.playerID === selectedId);
         if (h) {
@@ -151,7 +154,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
         }
       })
       .catch(() => setSelectedHistory([]));
-  }, [selectedId, format]);
+  }, [selectedId, format, players]);
 
   // Build forecasts from pre-computed cache + compute within-position signal
   const allForecasts = useMemo(() => {
