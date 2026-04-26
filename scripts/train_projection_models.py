@@ -714,11 +714,27 @@ def train_ppg_models(rows):
             # (Δ=+0.0001) were borderline at one-at-a-time ablation, but dropping
             # all three together regressed QB by 0.003 (mutual-signal effect).
             # Kept in — marginal positive ≥0 always, pays their keep.
-            'priorTimeToThrow', 'priorPPG2yr',  # was priorPPG (single year)
+            'priorTimeToThrow',
+            # priorPPG2yr alone (the 0.65/0.35 weighted smoother) lost the
+            # raw Y-1 signal — and a per-player ablation showed the smoothed
+            # version contributing only ~1 PPG to top-QB predictions on
+            # average. Adding back the single-year `priorPPG` alongside
+            # priorPPG2yr gives the GBM both: it can split on the gap between
+            # them ("Y-1 was anomalous vs typical") and weight each per row.
+            # LOSO ΔMAE -0.016 — biggest single-feature win since the
+            # priorPPG2yr-undefined fix.
+            'priorPPG', 'priorPPG2yr',
             'teamSamePosCount', 'newArrivalBestPPR',
             'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
             'collegeQBR', 'collegeSosFinalYr', 'ppgTrend', 'teamRosterTurnover',
-            'priorInjuryWeeks', 'injuryRecurrence', 'priorKneeInjury',
+            # Dropped April 2026 ablation: injuryRecurrence and priorKneeInjury
+            # had zero gain in the GBM (never used in any tree split, only
+            # tied weights in Ridge). Removed to keep the feature list
+            # honest. The "PPG controls for injury exposure already, so
+            # injury features only catch post-injury performance decline"
+            # premise turned out to be ~true at QB — see ablation in
+            # scripts/eval_injury_features.py.
+            'priorInjuryWeeks',
             # Multi-year trends added April 2026. The 2-year `ppgTrend` over-
             # reacts to single-bad-year cliffs (Lamar Jackson 2024→2025 was
             # 25.3 → 16.5, a -8.8 trend, but his 4-year career has been
