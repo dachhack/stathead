@@ -201,15 +201,42 @@ async function main() {
       // year for active players like Lamar Jackson), so we can't rely
       // on the cache for Y-1.
       const y1 = Number(pr.features.priorPPG) || 0;
-      // Y-2 from the training-rows cache — that's what the cache is
-      // for (older seasons of historical PPG).
+      // Y-2 / Y-3 / Y-4 from the training-rows cache — that's what the
+      // cache is for (older seasons of historical PPG).
       const y2 = bySeason?.get(PREDICT_SEASON - 2)?.rawPPG ?? 0;
+      const y3 = bySeason?.get(PREDICT_SEASON - 3)?.rawPPG ?? 0;
+      const y4 = bySeason?.get(PREDICT_SEASON - 4)?.rawPPG ?? 0;
 
       let priorPPG2yr = 0;
       if (y1 > 0 && y2 > 0) priorPPG2yr = Math.round((0.65 * y1 + 0.35 * y2) * 100) / 100;
       else if (y1 > 0) priorPPG2yr = Math.round(y1 * 100) / 100;
 
-      const ppgTrend = (y1 > 0 && y2 > 0) ? Math.round((y1 - y2) * 10) / 10 : 0;
+      // ppgTrend2yr / 3yr / 4yr: OLS slope of PPG vs offset, where
+      // positive = improving recently. Multi-year windows smooth out
+      // single-bad-year noise — Lamar's 2-year trend is -8.8 (his
+      // 25.3 → 16.5 cliff in 2025) but his 4-year trend is essentially
+      // flat. Mirrors `_slope` in train_projection_models.py exactly.
+      const slope = (vals: Array<[number, number]>) => {
+        const active = vals.filter(([, p]) => p > 0);
+        if (active.length < 2) return 0;
+        const n = active.length;
+        const xs = active.map(([o]) => -o);
+        const ys = active.map(([, p]) => p);
+        const mx = xs.reduce((s, v) => s + v, 0) / n;
+        const my = ys.reduce((s, v) => s + v, 0) / n;
+        let num = 0, den = 0;
+        for (let i = 0; i < n; i++) { num += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) ** 2; }
+        return den > 0 ? Math.round((num / den) * 100) / 100 : 0;
+      };
+      const ppgTrend2yr = slope([[1, y1], [2, y2]]);
+      const ppgTrend3yr = slope([[1, y1], [2, y2], [3, y3]]);
+      const ppgTrend4yr = slope([[1, y1], [2, y2], [3, y3], [4, y4]]);
+
+      // Back-compat: keep `ppgTrend` mirroring the 2-year value so any
+      // old consumers (model caches still keyed on `ppgTrend`) keep
+      // reading the same number until they're retrained on the new
+      // feature set.
+      const ppgTrend = ppgTrend2yr;
 
       // durabilityStreak counts back from Y-1, but Y-1 games aren't on
       // the predRow's `priorGames` until further back, so we use just
@@ -230,6 +257,12 @@ async function main() {
 
       if (priorPPG2yr > 0) pr.features.priorPPG2yr = priorPPG2yr;
       if (y1 > 0 && y2 > 0) pr.features.ppgTrend = ppgTrend;
+      // Always set the new multi-year trend features. Zero is a
+      // legitimate value for "we don't have enough history" and the
+      // GBM should treat it as such.
+      pr.features.ppgTrend2yr = ppgTrend2yr;
+      pr.features.ppgTrend3yr = ppgTrend3yr;
+      pr.features.ppgTrend4yr = ppgTrend4yr;
       pr.features.durabilityStreak = streak;
       backfilled++;
     }

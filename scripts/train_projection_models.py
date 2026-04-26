@@ -419,12 +419,43 @@ def augment_derived_features(rows):
         # priorPPG2yr: weighted 2-year prior PPG (0.65 * Y-1 + 0.35 * Y-2)
         y1 = lookup.get((name, pos, season - 1), {}).get('rawPPG', 0.0)
         y2 = lookup.get((name, pos, season - 2), {}).get('rawPPG', 0.0)
+        y3 = lookup.get((name, pos, season - 3), {}).get('rawPPG', 0.0)
+        y4 = lookup.get((name, pos, season - 4), {}).get('rawPPG', 0.0)
         if y1 > 0 and y2 > 0:
             f['priorPPG2yr'] = round(0.65 * y1 + 0.35 * y2, 2)
         elif y1 > 0:
             f['priorPPG2yr'] = round(y1, 2)
         else:
             f['priorPPG2yr'] = 0.0
+
+        # ppgTrend2yr / ppgTrend3yr / ppgTrend4yr: OLS slope of PPG vs
+        # season offset over the last N seasons. Sign matches the
+        # original `ppgTrend` (positive = improving, negative = falling
+        # off). Multi-year windows smooth out single-bad-year noise —
+        # the original 2-year trend made Lamar Jackson's 25.3 → 16.5
+        # cliff look like a -8.8 PPG decline, but his 4-year window
+        # shows a stable career. Where Y-2/3/4 is missing, fall back to
+        # the next shorter window so we never produce 0 from missing
+        # data when shorter signal is available.
+        def _slope(vals):
+            # vals: list of (offset, ppg) where offset=1 is Y-1, 2 is Y-2…
+            # Active values only (ppg > 0). Returns OLS slope of ppg vs
+            # x = -offset (so more recent = larger x), 0 if <2 active.
+            active = [(o, p) for o, p in vals if p > 0]
+            if len(active) < 2:
+                return 0.0
+            n = len(active)
+            xs = [-o for o, _ in active]
+            ys = [p for _, p in active]
+            mx = sum(xs) / n
+            my = sum(ys) / n
+            num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+            den = sum((x - mx) ** 2 for x in xs)
+            return round(num / den, 2) if den > 0 else 0.0
+
+        f['ppgTrend2yr'] = _slope([(1, y1), (2, y2)])
+        f['ppgTrend3yr'] = _slope([(1, y1), (2, y2), (3, y3)])
+        f['ppgTrend4yr'] = _slope([(1, y1), (2, y2), (3, y3), (4, y4)])
 
         # durabilityStreak: consecutive prior seasons with ≥15 games
         streak = 0
@@ -688,6 +719,15 @@ def train_ppg_models(rows):
             'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
             'collegeQBR', 'collegeSosFinalYr', 'ppgTrend', 'teamRosterTurnover',
             'priorInjuryWeeks', 'injuryRecurrence', 'priorKneeInjury',
+            # Multi-year trends added April 2026. The 2-year `ppgTrend` over-
+            # reacts to single-bad-year cliffs (Lamar Jackson 2024→2025 was
+            # 25.3 → 16.5, a -8.8 trend, but his 4-year career has been
+            # stable around 20 PPG). 3yr and 4yr are OLS slopes over the last
+            # 3 / 4 active seasons and smooth out single-year noise. LOSO
+            # ablation: adding 3yr + 4yr alongside 2yr gives -0.005 MAE
+            # (marginal); replacing the 2-year with longer-window alone
+            # is clearly worse. Keep all three.
+            'ppgTrend3yr', 'ppgTrend4yr',
         ],
         'RB': [
             'age', 'yearsInLeague', 'invDraftPick', 'draftClassDepth', 'vertical', 'bmi',
