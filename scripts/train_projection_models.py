@@ -457,6 +457,14 @@ def augment_derived_features(rows):
         f['ppgTrend3yr'] = _slope([(1, y1), (2, y2), (3, y3)])
         f['ppgTrend4yr'] = _slope([(1, y1), (2, y2), (3, y3), (4, y4)])
 
+        # isProjectedStarter: clean "is this player the team's projected
+        # starter" boolean derived from depthChartRank. Replaces the
+        # bimodal-missing-data role teamSamePosCount was playing for QB
+        # and RB PPG models. depthChartRank is computed in
+        # buildFeatureMatrix.ts and backfilled on the training-rows
+        # cache by scripts/reaug_depth_chart.py.
+        f['isProjectedStarter'] = 1 if (sf(f.get('depthChartRank', 99)) == 1) else 0
+
         # durabilityStreak: consecutive prior seasons with ≥15 games
         streak = 0
         for delta in range(1, int(yil) + 2):
@@ -724,7 +732,18 @@ def train_ppg_models(rows):
             # LOSO ΔMAE -0.016 — biggest single-feature win since the
             # priorPPG2yr-undefined fix.
             'priorPPG', 'priorPPG2yr',
-            'teamSamePosCount', 'newArrivalBestPPR',
+            # Replaced `teamSamePosCount` with `isProjectedStarter` in
+            # April 2026. teamSamePosCount was carrying 44% of total GBM
+            # gain — almost entirely from a "value=0 = missing data =
+            # backup tier" binary split. Its real cardinal-count signal
+            # was near-zero (values 1–7 averaged 15–17 PPG with no clear
+            # pattern). isProjectedStarter is a clean derived boolean
+            # from depthChartRank == 1; it captures the same "premium
+            # starter" signal without the missing-data confound. LOSO
+            # ΔMAE -0.090 for QB after the swap. See depth-chart
+            # ablation in scripts/eval_team_same_pos.py and
+            # scripts/reaug_depth_chart.py.
+            'isProjectedStarter', 'newArrivalBestPPR',
             'teamNeutralPassRate', 'teamShotgunRate', 'vegasImpliedSpread', 'vegasWinPct',
             'collegeQBR', 'collegeSosFinalYr', 'ppgTrend', 'teamRosterTurnover',
             # Dropped April 2026 ablation: injuryRecurrence and priorKneeInjury
@@ -747,7 +766,8 @@ def train_ppg_models(rows):
         ],
         'RB': [
             'age', 'yearsInLeague', 'invDraftPick', 'draftClassDepth', 'vertical', 'bmi',
-            'priorRecEPA', 'priorRushEPA', 'priorPPR', 'teamSamePosCount',
+            # Same teamSamePosCount → isProjectedStarter swap as QB. ΔMAE -0.042 on RB.
+            'priorRecEPA', 'priorRushEPA', 'priorPPR', 'isProjectedStarter',
             'teammatePriorPPR', 'projPlayerPPR', 'projTargetShare', 'prospectGrade',
             'ppgTrend', 'priorBoomRate',
             # Dropped by ablation re-pass (Δ=-0.0030, clear noise):

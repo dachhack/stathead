@@ -2211,6 +2211,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 return {
                   teamSamePosCount: samePosCount,
                   depthChartRank: depthRankByName.get(normalName) || 99,
+                  // Clean "is the team's projected starter at this position"
+                  // boolean. Replaces the bimodal-missing-data role
+                  // teamSamePosCount was playing in the QB / RB PPG models —
+                  // see scripts/eval_team_same_pos.py and the depth-chart
+                  // ablation. Cleaner signal than counting roster mates.
+                  isProjectedStarter: (depthRankByName.get(normalName) || 99) === 1 ? 1 : 0,
                   priorTeamTouchShare: Math.round(playerTouchShare * 1000) / 1000,
                   priorTeamTargetShare: Math.round(playerTargetShareTeam * 1000) / 1000,
                   newSamePosAdded: newArrivals,
@@ -4045,6 +4051,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   return {
                     teamSamePosCount: samePosCount,
                     depthChartRank: predDepthRankByName.get(normalName) || 99,
+                    isProjectedStarter: (predDepthRankByName.get(normalName) || 99) === 1 ? 1 : 0,
                     priorTeamTouchShare: Math.round(playerTouchShare * 1000) / 1000,
                     priorTeamTargetShare: Math.round(playerTargetShareTeam * 1000) / 1000,
                     newSamePosAdded: newArrivals,
