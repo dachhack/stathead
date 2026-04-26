@@ -165,6 +165,77 @@ async function main() {
 
   console.log(`  Features done: ${result.rows.length} training rows, ${result.predRows.length} prediction rows`);
 
+  // Backfill priorPPG2yr / durabilityStreak / ppgTrend onto predRows
+  // from the training-rows cache. The training-row build inside
+  // buildFeatureMatrix populates `playerHistoryMap` season-by-season —
+  // but the cached-training path (`seasons: []`) skips that loop, so
+  // for production builds the map only carries the predSeason-1 entry
+  // from the predPriorTotals push, leaving Y-2 / Y-3 missing. That made
+  // priorPPG2yr fall back to Y-1 alone (e.g. Lamar Jackson got 16.5
+  // instead of 0.65×16.5 + 0.35×25.3 = 19.6) and ppgTrend default to 0
+  // for everyone.
+  //
+  // Mirrors augment_derived_features() in scripts/train_projection_models.py
+  // exactly so training rows (built in Python) and prediction rows
+  // (built in TS) agree.
+  if (result.predRows.length > 0 && result.rows.length > 0) {
+    const histByKey = new Map<string, Map<number, { rawPPG: number; games: number }>>();
+    for (const tr of result.rows as Array<{ name: string; position: string; season: number; rawPPG: number; features: Record<string, number> }>) {
+      const key = `${normalizeName(tr.name)}::${tr.position}`;
+      let bySeason = histByKey.get(key);
+      if (!bySeason) { bySeason = new Map(); histByKey.set(key, bySeason); }
+      bySeason.set(tr.season, {
+        rawPPG: Number(tr.rawPPG) || 0,
+        games: Number(tr.features?.priorGames) || 0,
+      });
+    }
+    let backfilled = 0;
+    for (const pr of result.predRows as Array<{ name: string; position: string; features: Record<string, number> }>) {
+      const key = `${normalizeName(pr.name)}::${pr.position}`;
+      const bySeason = histByKey.get(key);
+
+      // Y-1 from the predRow's own priorPPG (populated by buildFeatureMatrix
+      // from predPriorTotals — fresh fetch of season 2025 stats). The
+      // training-rows cache may not include the predSeason-1 row yet
+      // (it's frozen at v49 — currently 2024 is the latest training
+      // year for active players like Lamar Jackson), so we can't rely
+      // on the cache for Y-1.
+      const y1 = Number(pr.features.priorPPG) || 0;
+      // Y-2 from the training-rows cache — that's what the cache is
+      // for (older seasons of historical PPG).
+      const y2 = bySeason?.get(PREDICT_SEASON - 2)?.rawPPG ?? 0;
+
+      let priorPPG2yr = 0;
+      if (y1 > 0 && y2 > 0) priorPPG2yr = Math.round((0.65 * y1 + 0.35 * y2) * 100) / 100;
+      else if (y1 > 0) priorPPG2yr = Math.round(y1 * 100) / 100;
+
+      const ppgTrend = (y1 > 0 && y2 > 0) ? Math.round((y1 - y2) * 10) / 10 : 0;
+
+      // durabilityStreak counts back from Y-1, but Y-1 games aren't on
+      // the predRow's `priorGames` until further back, so we use just
+      // the training cache for now (covers Y-2 and earlier).
+      let streak = 0;
+      if (bySeason) {
+        // Y-1 from predRow's priorGames if present.
+        const y1Games = Number(pr.features.priorGames) || 0;
+        if (y1Games >= 15) {
+          streak = 1;
+          for (let delta = 2; delta < 8; delta++) {
+            const past = bySeason.get(PREDICT_SEASON - delta);
+            if (past && (past.games || 0) >= 15) streak += 1;
+            else break;
+          }
+        }
+      }
+
+      if (priorPPG2yr > 0) pr.features.priorPPG2yr = priorPPG2yr;
+      if (y1 > 0 && y2 > 0) pr.features.ppgTrend = ppgTrend;
+      pr.features.durabilityStreak = streak;
+      backfilled++;
+    }
+    console.log(`  Backfilled priorPPG2yr / ppgTrend / durabilityStreak on ${backfilled}/${result.predRows.length} predRows.`);
+  }
+
   // Write ::2026 entries to feature store from prediction row features
   // so MyRankings can display 2025 prior stats (targets, PPG, shares)
   if (result.predRows.length > 0) {
