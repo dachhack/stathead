@@ -3915,6 +3915,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 yearsInLeague: draft ? predSeason - draft.season : 0,
                 nflDraftRound: draft?.round || projDraftByName.get(normalName)?.projRound || 8,
                 nflDraftPick: draft?.pick || projDraftByName.get(normalName)?.projPick || 300,
+                // log(pick+1) so pick #1 → 0.693 instead of 0 — same
+                // rationale as the training-row build paths. The
+                // prediction-row build was previously missing these
+                // two derived encodings, leaving them undefined for
+                // every 2026 player. Models that use invDraftPick as
+                // a feature (QB / RB / WR / TE PPG ensembles) read
+                // undefined as 0 → the GBM trees treat every player
+                // like an undrafted UDFA, suppressing predictions.
+                logDraftPick: Math.log((draft?.pick || projDraftByName.get(normalName)?.projPick || 300) + 1),
+                invDraftPick: 1 / (draft?.pick || projDraftByName.get(normalName)?.projPick || 300),
                 draftPickPct: draftPickPctByName.get(normalName) ?? 1,
                 draftPickPctOverall: draftPickPctOverallByName.get(normalName) ?? 1,
                 draftClassDepth: draftClassDepthByName.get(normalName) ?? 0,
