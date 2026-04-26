@@ -7,6 +7,7 @@ import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import { normalizeName } from '../lib/featureTypes';
 import zapScores2026 from '../data/zap-scores-2026.json';
+import zapScores2026PostDraft from '../data/zap-scores-2026-postdraft.json';
 import zapScores2025 from '../data/zap-scores-2025.json';
 import zapScores2024 from '../data/zap-scores-2024.json';
 import zapScores2023 from '../data/zap-scores-2023.json';
@@ -89,14 +90,17 @@ interface CompRow {
 type SortField = 'zapRank' | 'name' | 'pos' | 'zapScore' | 'ourScore' | 'actualPPG' | 'predictedPPG' | 'delta' | 'absDelta' | 'winner';
 
 type SeasonKey = '2026' | '2025' | '2024' | '2023';
+type DraftPhase = 'pre' | 'post';
 
 export function ZapComparison() {
-  const [rows2026, setRows2026] = useState<CompRow[]>([]);
+  const [rows2026Pre, setRows2026Pre] = useState<CompRow[]>([]);
+  const [rows2026Post, setRows2026Post] = useState<CompRow[]>([]);
   const [rows2025, setRows2025] = useState<CompRow[]>([]);
   const [rows2024, setRows2024] = useState<CompRow[]>([]);
   const [rows2023, setRows2023] = useState<CompRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState<SeasonKey>('2026');
+  const [draftPhase, setDraftPhase] = useState<DraftPhase>('post');
   const [posFilter, setPosFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('zapRank');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -167,31 +171,36 @@ export function ZapComparison() {
       // stored on careerPredictions2026 (rank vs historical backtest), so it
       // matches the Dynasty Prospects view. Keep it the single source of
       // truth — diverging formulas across tabs have caused inconsistencies.
-      const r2026: CompRow[] = [];
-      for (const pos of ['RB', 'WR', 'TE'] as const) {
-        const posList = (zapScores2026 as any)[pos] || [];
-        const predList = posList.map((z: any) => ({ z, predPPG: ourPredPPG2026.get(normalizeName(z.name)) || 0 }));
-        const ourRankMap = new Map<string, number>();
-        [...predList].filter((p: any) => p.predPPG > 0)
-          .sort((a: any, b: any) => b.predPPG - a.predPPG)
-          .forEach((p: any, i: number) => ourRankMap.set(normalizeName(p.z.name), i + 1));
-        for (const { z, predPPG } of predList) {
-          const nn = normalizeName(z.name);
-          const pred = pred2026Map.get(nn);
-          const ourScore = pred?.percentile || 0;
-          r2026.push({
-            name: z.name, pos, zapRank: z.rank,
-            zapScore: z.zap, ourScore,
-            ourRank: ourRankMap.get(nn) || 0,
-            actualRank: 0,
-            actualPPG: 0,
-            predictedPPG: predPPG,
-            delta: ourScore > 0 ? ourScore - z.zap : 0,
-            winner: '',
-          });
+      // Build both pre-draft and post-draft sets so the toggle is instant.
+      const build2026Rows = (source: any): CompRow[] => {
+        const out: CompRow[] = [];
+        for (const pos of ['RB', 'WR', 'TE'] as const) {
+          const posList = source[pos] || [];
+          const predList = posList.map((z: any) => ({ z, predPPG: ourPredPPG2026.get(normalizeName(z.name)) || 0 }));
+          const ourRankMap = new Map<string, number>();
+          [...predList].filter((p: any) => p.predPPG > 0)
+            .sort((a: any, b: any) => b.predPPG - a.predPPG)
+            .forEach((p: any, i: number) => ourRankMap.set(normalizeName(p.z.name), i + 1));
+          for (const { z, predPPG } of predList) {
+            const nn = normalizeName(z.name);
+            const pred = pred2026Map.get(nn);
+            const ourScore = pred?.percentile || 0;
+            out.push({
+              name: z.name, pos, zapRank: z.rank,
+              zapScore: z.zap, ourScore,
+              ourRank: ourRankMap.get(nn) || 0,
+              actualRank: 0,
+              actualPPG: 0,
+              predictedPPG: predPPG,
+              delta: ourScore > 0 ? ourScore - z.zap : 0,
+              winner: '',
+            });
+          }
         }
-      }
-      setRows2026(r2026);
+        return out;
+      };
+      setRows2026Pre(build2026Rows(zapScores2026));
+      setRows2026Post(build2026Rows(zapScores2026PostDraft));
 
       // Build multi-season backtest index keyed by "season-name" so lookups
       // from the PlayerCard side (which knows draftSeason) stay O(1) and can
@@ -302,7 +311,7 @@ export function ZapComparison() {
     load();
   }, []);
 
-  const rows = season === '2026' ? rows2026
+  const rows = season === '2026' ? (draftPhase === 'post' ? rows2026Post : rows2026Pre)
     : season === '2025' ? rows2025
     : season === '2024' ? rows2024
     : rows2023;
@@ -432,6 +441,21 @@ export function ZapComparison() {
             <option value="2023">2023 (with actuals)</option>
           </select>
         </div>
+        {season === '2026' && (
+          <div className="control-group">
+            <label className="control-label">Phase</label>
+            <div className="position-filters">
+              <button
+                className={`pos-filter ${draftPhase === 'pre' ? 'active' : ''}`}
+                onClick={() => setDraftPhase('pre')}
+              >Pre-Draft</button>
+              <button
+                className={`pos-filter ${draftPhase === 'post' ? 'active' : ''}`}
+                onClick={() => setDraftPhase('post')}
+              >Post-Draft</button>
+            </div>
+          </div>
+        )}
         <div className="position-filters">
           {POSITIONS.map(pos => (
             <button key={pos} className={`pos-filter ${posFilter === pos ? 'active' : ''}`} onClick={() => setPosFilter(pos)}>
@@ -504,7 +528,7 @@ export function ZapComparison() {
           Chip 85-94, Starter 70-84, Contributor 50-69, Depth 25-49,
           Longshot &lt;25. WR Alpha requires first-round draft capital.
           {season === '2026'
-            ? " ZAP's 2026 scores are on the same talent-gap scale, so the score delta is meaningful."
+            ? ` ZAP's 2026 scores are on the same talent-gap scale, so the score delta is meaningful. Showing ${draftPhase === 'post' ? 'post-draft' : 'pre-draft'} ZAP rankings.`
             : ` ZAP's ${season} scores used percentile methodology (different scale), so the Delta column shows rank delta — our predicted rank minus ZAP's rank within ${season} ${posFilter === 'ALL' ? 'class' : posFilter}. Winner = whichever model ranked the player closer to their actual-PPG rank.`}
         </div>
       </div>
@@ -555,7 +579,7 @@ export function ZapComparison() {
 
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
         {season === '2026'
-          ? 'StatHead career model percentile (vs all historical rookies) vs ZAP Model'
+          ? `StatHead career model percentile (vs all historical rookies) vs ZAP Model — ${draftPhase === 'post' ? 'Post-Draft' : 'Pre-Draft'}`
           : `StatHead percentile (cross-year) vs ZAP scores vs actual best 2-of-3 PPG (${season} class)`}
       </div>
 
