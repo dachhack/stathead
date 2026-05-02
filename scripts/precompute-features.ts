@@ -579,7 +579,7 @@ async function main() {
   }> = [];
 
   // Load prospect grades from static JSON
-  let prospectGrades: Array<{ name: string; pos: string; school: string; grade: number; projRound: number; projPick: number; tier: string }> = [];
+  let prospectGrades: Array<{ name: string; pos: string; school: string; grade: number; projRound: number; projPick: number; tier: string; team?: string; actualRound?: number; actualPick?: number }> = [];
   try {
     prospectGrades = JSON.parse(readFileSync('src/data/prospect-grades-2026.json', 'utf-8'));
     console.log(`    Loaded ${prospectGrades.length} prospect grades`);
@@ -1242,11 +1242,25 @@ async function main() {
 
     // Score each prospect
     const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
-    for (const prospect of prospectGrades) {
-      if (!FANTASY_POSITIONS.has(prospect.pos)) continue;
-      const pos = prospect.pos;
+    for (const rawProspect of prospectGrades) {
+      if (!FANTASY_POSITIONS.has(rawProspect.pos)) continue;
+      const pos = rawProspect.pos;
       const cm = (rookieCareerModels as any)[pos];
       if (!cm?.ridgeModel) continue;
+
+      // Post-draft override: when a prospect was actually drafted, swap in the
+      // real slot so model features (logDraftPick, invDraftPick, draftCapXSpeed,
+      // etc.) reflect the team's actual decision instead of the pre-draft
+      // projection. UDFAs (no actualPick) keep the projected slot.
+      const prospect = {
+        ...rawProspect,
+        projPick: rawProspect.actualPick && rawProspect.actualPick > 0
+          ? rawProspect.actualPick
+          : rawProspect.projPick,
+        projRound: rawProspect.actualRound && rawProspect.actualRound > 0
+          ? rawProspect.actualRound
+          : rawProspect.projRound,
+      };
 
       const nName = normalizeName(prospect.name);
 

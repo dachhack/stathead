@@ -67,6 +67,9 @@ interface ProspectGrade {
   projRound: number;
   projPick: number;
   tier: string;
+  team?: string;
+  actualRound?: number;
+  actualPick?: number;
 }
 
 /** Flatten a row by merging top-level scalars with features.*  into one row. */
@@ -572,8 +575,8 @@ export const TABLE_DOCS: Array<{
   {
     name: 'prospects',
     description:
-      '2026 draft-prospect composite scouting grades. Use to join scout grades onto career_2026 via name.',
-    exampleColumns: ['name', 'pos', 'school', 'grade', 'projRound', 'projPick', 'tier'],
+      '2026 draft-prospect composite scouting grades + actual draft results. Use to join scout grades and the team/round/pick a rookie was actually drafted at onto career_2026 via name. `team`, `actualRound`, `actualPick` are populated for drafted players; null for UDFAs.',
+    exampleColumns: ['name', 'pos', 'school', 'grade', 'projRound', 'projPick', 'tier', 'team', 'actualRound', 'actualPick'],
   },
   {
     name: 'player_stats',

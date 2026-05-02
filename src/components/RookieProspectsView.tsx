@@ -15,6 +15,9 @@ interface ProspectGrade {
   projRound: number;
   projPick: number;
   tier: string;
+  team?: string;
+  actualRound?: number;
+  actualPick?: number;
 }
 
 interface ProspectRow {
@@ -26,6 +29,10 @@ interface ProspectRow {
   projRound: number;
   projPick: number;
   tier: string;
+  // Actual NFL draft results (post-draft). Empty/0 for UDFAs.
+  team: string;
+  actualRound: number;
+  actualPick: number;
   // Combine measurables
   ht: string;
   wt: number;
@@ -202,6 +209,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             projRound: pg?.projRound || 0,
             projPick: pg?.projPick || 0,
             tier: pg?.tier || '',
+            team: pg?.team || '',
+            actualRound: pg?.actualRound || 0,
+            actualPick: pg?.actualPick || 0,
             ht: c.ht || '',
             wt: c.wt || 0,
             forty: c.forty || 0,
@@ -247,6 +257,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             projRound: pg.projRound,
             projPick: pg.projPick,
             tier: pg.tier,
+            team: pg.team || '',
+            actualRound: pg.actualRound || 0,
+            actualPick: pg.actualPick || 0,
             ht: '', wt: 0, forty: 0, bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
             rookieEcr: fp ? fp.ecr : 999,
             rookieBest: fp ? fp.best : 0,
@@ -281,6 +294,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             school: '',
             grade: 0,
             projRound: 0, projPick: 0, tier: '',
+            team: '', actualRound: 0, actualPick: 0,
             ht: '', wt: 0, forty: 0, bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
             rookieEcr: fp.ecr,
             rookieBest: fp.best,
@@ -314,6 +328,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     else {
       setSortField(field);
       const descFields: SortField[] = ['grade', 'dynastyValue', 'superflexValue', 'wt', 'bench', 'vertical', 'broadJump', 'owned', 'predictedCareerPPG', 'combinedScore', 'percentile'];
+      // actualPick / actualRound: lower is better, so default ascending — best
+      // pick (#1 overall) at the top.
       setSortDir(descFields.includes(field) ? 'desc' : 'asc');
     }
   };
@@ -351,6 +367,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         if ((aVal as number) === 0) aVal = sortDir === 'desc' ? -Infinity : Infinity;
         if ((bVal as number) === 0) bVal = sortDir === 'desc' ? -Infinity : Infinity;
       }
+      // Undrafted players sort to the bottom regardless of asc/desc on actual pick.
+      if (sortField === 'actualPick' || sortField === 'actualRound') {
+        if ((aVal as number) === 0) aVal = Infinity;
+        if ((bVal as number) === 0) bVal = Infinity;
+      }
       if (typeof aVal === 'string')
         return sortDir === 'asc'
           ? (aVal as string).localeCompare(bVal as string)
@@ -380,6 +401,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     const headers = [
       '#', 'name', 'pos', 'school',
       'grade', 'tier', 'projRound', 'projPick',
+      'team', 'actualRound', 'actualPick',
       'rookieEcr', 'rookieBest', 'rookieWorst',
       'dynastyValue', 'superflexValue',
       'predictedCareerPPG', 'modelTier', 'percentile', 'combinedScore',
@@ -398,6 +420,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       const row = [
         i + 1, r.name, r.pos, r.school,
         r.grade || '', r.tier || '', r.projRound || '', r.projPick || '',
+        r.team || '', r.actualRound || '', r.actualPick || '',
         r.rookieEcr || '', r.rookieBest || '', r.rookieWorst || '',
         r.dynastyValue || '', r.superflexValue || '',
         r.predictedCareerPPG || '', r.modelTier || '', r.percentile || '', r.combinedScore || '',
@@ -519,8 +542,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               >
                 Pctl{sortArrow('percentile')}
               </th>
-              <th onClick={() => handleSort('projRound')} style={{ cursor: 'pointer' }}>
-                Proj. Draft{sortArrow('projRound')}
+              <th
+                onClick={() => handleSort('actualPick')}
+                style={{ cursor: 'pointer' }}
+                title="Actual NFL draft slot (team and overall pick). Falls back to the projected slot if a player went undrafted on the public big board."
+              >
+                NFL Draft{sortArrow('actualPick')}
               </th>
               <th onClick={() => handleSort('rookieEcr')} style={{ cursor: 'pointer' }}>
                 Rookie ECR{sortArrow('rookieEcr')}
@@ -591,15 +618,30 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                   )}
                 </td>
                 <td>
-                  {r.projRound > 0 ? (
+                  {r.actualPick > 0 ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+                      <strong style={{ fontSize: 12 }}>{r.team}</strong>
+                      <span
+                        style={{
+                          fontWeight: r.actualRound <= 2 ? 700 : 400,
+                          color: r.actualRound === 1 ? '#22c55e' : r.actualRound === 2 ? '#a3e635' : r.actualRound === 3 ? '#facc15' : 'inherit',
+                          fontSize: 11,
+                        }}
+                      >
+                        Rd {r.actualRound} #{r.actualPick}
+                      </span>
+                    </span>
+                  ) : r.projRound > 0 ? (
                     <span
+                      title="No NFL pick recorded — projected draft slot shown."
                       style={{
                         fontWeight: r.projRound <= 2 ? 700 : 400,
-                        color: r.projRound === 1 ? '#22c55e' : r.projRound === 2 ? '#a3e635' : r.projRound === 3 ? '#facc15' : 'inherit',
+                        color: 'var(--text-muted)',
+                        fontStyle: 'italic',
                       }}
                     >
-                      Rd {r.projRound}
-                      {r.projPick > 0 ? <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>#{r.projPick}</span> : ''}
+                      proj Rd {r.projRound}
+                      {r.projPick > 0 ? <span style={{ marginLeft: 4 }}>#{r.projPick}</span> : ''}
                     </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
@@ -731,8 +773,15 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 // table row, so the row is the source of truth here.
                 ...(selectedPlayer.wt ? { weight: selectedPlayer.wt } : {}),
                 ...(selectedPlayer.forty ? { forty: selectedPlayer.forty } : {}),
-                ...(selectedPlayer.projPick ? { nflDraftPick: selectedPlayer.projPick } : {}),
-                ...(selectedPlayer.projRound ? { nflDraftRound: selectedPlayer.projRound } : {}),
+                // Actual draft slot wins over projected when the player was
+                // drafted; pre-draft model features are computed from projPick
+                // upstream, but the PlayerCard popover should reflect reality.
+                ...(selectedPlayer.actualPick
+                  ? { nflDraftPick: selectedPlayer.actualPick }
+                  : selectedPlayer.projPick ? { nflDraftPick: selectedPlayer.projPick } : {}),
+                ...(selectedPlayer.actualRound
+                  ? { nflDraftRound: selectedPlayer.actualRound }
+                  : selectedPlayer.projRound ? { nflDraftRound: selectedPlayer.projRound } : {}),
                 ...(selectedPlayer.grade ? { prospectGrade: selectedPlayer.grade } : {}),
               },
               featurePercentiles: ss?.featurePercentiles,
