@@ -21,6 +21,9 @@ interface ProspectGrade {
   projRound: number;
   projPick: number;
   tier: string;
+  team?: string;
+  actualRound?: number;
+  actualPick?: number;
 }
 
 interface RedraftPlayer {
