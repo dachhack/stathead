@@ -1274,6 +1274,21 @@ async function main() {
           if (hit) { storedProspect = hit; break; }
         }
       }
+      // Apply the post-draft override here too: the stored prospect carries
+      // its own (pre-draft) projPick/projRound, which is what
+      // buildProspectFeatureRecord uses for every draft-derived feature
+      // (logDraftPick, invDraftPick, draftCapXSpeed, draftPickXEarlyDeclare,
+      // nflDraftPick, nflDraftRound). Without this, the swap above only
+      // changes scores for prospects that fall through to the nflverse path,
+      // and the overwhelming majority that hit the stored path keep scoring
+      // against their pre-draft projection.
+      if (storedProspect && rawProspect.actualPick && rawProspect.actualPick > 0) {
+        storedProspect = {
+          ...storedProspect,
+          projPick: rawProspect.actualPick,
+          projRound: rawProspect.actualRound || storedProspect.projRound,
+        };
+      }
       if (storedProspect) {
         const posAvgForStore = combineAvg.get(pos) || {};
         const storedFeatures = buildProspectFeatureRecord(storedProspect, posAvgForStore);
