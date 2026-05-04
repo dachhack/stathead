@@ -345,10 +345,16 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       // Actual draft results from the combine feed. draft_team / draft_round /
       // draft_ovr populate on the day the pick is announced; before that
-      // they're empty/0 and we fall back to '—' in the UI.
-      const actualDraftTeam = combineRec?.draft_team || '';
-      const actualDraftRound = combineRec?.draft_round || 0;
-      const actualDraftPick = combineRec?.draft_ovr || 0;
+      // they're empty/0 and we fall back to '—' in the UI. Per-season the
+      // combine feed sometimes lags — fall back to the post-draft fields on
+      // the prospect-grades record (`pg.team` / `pg.actualRound` /
+      // `pg.actualPick`), which is populated from nflverse the moment the
+      // draft results are pulled. Without this fallback, the entire 2026
+      // class shows '—' for team in MyProspectRankings until the combine
+      // feed catches up.
+      const actualDraftTeam = combineRec?.draft_team || pg?.team || '';
+      const actualDraftRound = combineRec?.draft_round || pg?.actualRound || 0;
+      const actualDraftPick = combineRec?.draft_ovr || pg?.actualPick || 0;
 
       // Projected volume — uses our internal redraft projections, scenario-adjusted.
       // Team prefers the actual draft team once announced, then the NFL roster feed.

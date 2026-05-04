@@ -180,5 +180,10 @@
   { "name": "RJ Maryland", "pos": "TE", "school": "SMU", "grade": 36, "projRound": 7, "projPick": 264, "tier": "UDFA" },
   { "name": "Bauer Sharp", "pos": "TE", "school": "Iowa State", "grade": 34, "projRound": 7, "projPick": 266, "tier": "UDFA", "team": "TAM", "actualRound": 6, "actualPick": 185 },
   { "name": "Miles Kitselman", "pos": "TE", "school": "UCF", "grade": 34, "projRound": 7, "projPick": 268, "tier": "UDFA" },
-  { "name": "DJ Rogers", "pos": "TE", "school": "Minnesota", "grade": 32, "projRound": 7, "projPick": 270, "tier": "UDFA" }
+  { "name": "DJ Rogers", "pos": "TE", "school": "Minnesota", "grade": 32, "projRound": 7, "projPick": 270, "tier": "UDFA" },
+  { "name": "Cade Klubnik", "pos": "QB", "school": "Clemson", "grade": 68, "projRound": 4, "projPick": 110, "tier": "Day 3", "team": "NYJ", "actualRound": 4, "actualPick": 110 },
+  { "name": "Cole Payton", "pos": "QB", "school": "North Dakota St.", "grade": 58, "projRound": 5, "projPick": 178, "tier": "Day 3", "team": "PHI", "actualRound": 5, "actualPick": 178 },
+  { "name": "Taylen Green", "pos": "QB", "school": "Arkansas", "grade": 58, "projRound": 6, "projPick": 182, "tier": "Day 3", "team": "CLE", "actualRound": 6, "actualPick": 182 },
+  { "name": "Athan Kaliakmanis", "pos": "QB", "school": "Rutgers", "grade": 50, "projRound": 7, "projPick": 223, "tier": "Day 3", "team": "WAS", "actualRound": 7, "actualPick": 223 },
+  { "name": "Behren Morton", "pos": "QB", "school": "Texas Tech", "grade": 47, "projRound": 7, "projPick": 234, "tier": "UDFA", "team": "NWE", "actualRound": 7, "actualPick": 234 }
 ]
