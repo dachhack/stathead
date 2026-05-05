@@ -185,5 +185,6 @@
   { "name": "Cole Payton", "pos": "QB", "school": "North Dakota St.", "grade": 58, "projRound": 5, "projPick": 178, "tier": "Day 3", "team": "PHI", "actualRound": 5, "actualPick": 178 },
   { "name": "Taylen Green", "pos": "QB", "school": "Arkansas", "grade": 58, "projRound": 6, "projPick": 182, "tier": "Day 3", "team": "CLE", "actualRound": 6, "actualPick": 182 },
   { "name": "Athan Kaliakmanis", "pos": "QB", "school": "Rutgers", "grade": 50, "projRound": 7, "projPick": 223, "tier": "Day 3", "team": "WAS", "actualRound": 7, "actualPick": 223 },
-  { "name": "Behren Morton", "pos": "QB", "school": "Texas Tech", "grade": 47, "projRound": 7, "projPick": 234, "tier": "UDFA", "team": "NWE", "actualRound": 7, "actualPick": 234 }
+  { "name": "Behren Morton", "pos": "QB", "school": "Texas Tech", "grade": 47, "projRound": 7, "projPick": 234, "tier": "UDFA", "team": "NWE", "actualRound": 7, "actualPick": 234 },
+  { "name": "Kaelon Black", "pos": "RB", "school": "Indiana", "grade": 71, "projRound": 3, "projPick": 90, "tier": "Day 2", "team": "SFO", "actualRound": 3, "actualPick": 90 }
 ]
