@@ -648,7 +648,14 @@ async function main() {
     // Build college per-game stats
     const collegePerGame = new Map<string, { games: number; recPerGame: number; ydsPerGame: number; tdsPerGame: number; rushYPC: number; ydsPerRec: number }>();
     for (const [name, totals] of collegeByProspect) {
-      const games = totals.get('Games Played') || 1;
+      // 'Games Played' is in the legacy CSV (2014-2020) but NOT in
+      // cfbd-college-stats.json (only counting stats), so for every
+      // current-class prospect a literal 1 was the fallback and the
+      // per-game features came out as career totals (e.g. Caleb
+      // Douglas recPerGame = 134). Estimate games from seasons × 12
+      // (~regular-season length) when the stat isn't present.
+      const seasonsCount = collegeSeasonsByProspect.get(name)?.size || 0;
+      const games = totals.get('Games Played') || (seasonsCount > 0 ? seasonsCount * 12 : 1);
       const recYds = totals.get('Receiving Yards') || 0;
       const rushYds = totals.get('Rushing Yards') || 0;
       const recs = totals.get('Receptions') || 0;
@@ -1344,6 +1351,17 @@ async function main() {
           if (!storedFeatures.collegeReceptions) storedFeatures.collegeReceptions = cs.get('Receptions') || 0;
           if (!storedFeatures.collegeTotalTDs) {
             storedFeatures.collegeTotalTDs = (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0);
+          }
+          if (!storedFeatures.collegeYdsPerRec && (cs.get('Receptions') || 0) > 0) {
+            storedFeatures.collegeYdsPerRec = (cs.get('Receiving Yards') || 0) / cs.get('Receptions')!;
+          }
+        }
+        if (pg) {
+          if (!storedFeatures.collegeRecPerGame)    storedFeatures.collegeRecPerGame    = pg.recPerGame;
+          if (!storedFeatures.collegeRecYdsPerGame) storedFeatures.collegeRecYdsPerGame = pg.ydsPerGame;
+          if (!storedFeatures.collegeTDsPerGame)    storedFeatures.collegeTDsPerGame    = pg.tdsPerGame;
+          if (!storedFeatures.collegeRushYPC && pg.rushYPC > 0) {
+            storedFeatures.collegeRushYPC = pg.rushYPC;
           }
         }
         if (storedFeatures.draftPickPct == null) storedFeatures.draftPickPct = prospectDraftPctByName.get(nName) ?? 1;

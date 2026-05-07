@@ -235,19 +235,22 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             actualRound: pg?.actualRound || 0,
             actualPick: pg?.actualPick || 0,
             // Combine-feed values win; otherwise fall back to careerFeatures
-            // when the model stamped a real-data flag (i.e. the value came
-            // from the prospect store, not a position-mean default). This
-            // surfaces height for prospects who never combined but are in
-            // CFBD recruiting, and weight for those whose combine row has
-            // no `wt` column populated.
+            // for ht/wt/forty only — those are the three fields the prospect
+            // store carries (height ~93%, weight ~92%, forty ~82% coverage).
+            // bench/vertical/broadJump/cone/shuttle are NEVER in the store,
+            // so any non-zero value in careerFeatures for those is a
+            // position-mean default the model injected during prediction.
+            // Surfacing those would mislead users (Caleb Douglas attended
+            // the combine but skipped the bench, cone, and shuttle tests —
+            // his features carry the WR mean, but that's not real data).
             ht: c.ht || inchesToHt(realFeature(career?.features, 'height', 'hasPhysicalData')),
             wt: c.wt || realFeature(career?.features, 'weight', 'hasPhysicalData'),
             forty: c.forty || realFeature(career?.features, 'forty', 'hasCombineData'),
-            bench: c.bench || realFeature(career?.features, 'bench', 'hasCombineData'),
-            vertical: c.vertical || realFeature(career?.features, 'vertical', 'hasCombineData'),
-            broadJump: c.broad_jump || realFeature(career?.features, 'broadJump', 'hasCombineData'),
-            cone: c.cone || realFeature(career?.features, 'cone', 'hasCombineData'),
-            shuttle: c.shuttle || realFeature(career?.features, 'shuttle', 'hasCombineData'),
+            bench: c.bench || 0,
+            vertical: c.vertical || 0,
+            broadJump: c.broad_jump || 0,
+            cone: c.cone || 0,
+            shuttle: c.shuttle || 0,
             rookieEcr: fp ? fp.ecr : 999,
             rookieBest: fp ? fp.best : 0,
             rookieWorst: fp ? fp.worst : 0,
@@ -288,17 +291,15 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             team: pg.team || '',
             actualRound: pg.actualRound || 0,
             actualPick: pg.actualPick || 0,
-            // No combine row for this prospect — pull measurables from
-            // careerFeatures when the model stamped a real-data flag. Same
-            // gating as the combine-path branch above.
+            // No combine row for this prospect — pull ht/wt/forty from
+            // careerFeatures (the three fields the prospect store covers).
+            // bench/vert/broad/cone/shuttle stay blank; the careerFeatures
+            // values for those are model-injected position averages, not
+            // real measurements (see combine-path comment above).
             ht: inchesToHt(realFeature(career?.features, 'height', 'hasPhysicalData')),
             wt: realFeature(career?.features, 'weight', 'hasPhysicalData'),
             forty: realFeature(career?.features, 'forty', 'hasCombineData'),
-            bench: realFeature(career?.features, 'bench', 'hasCombineData'),
-            vertical: realFeature(career?.features, 'vertical', 'hasCombineData'),
-            broadJump: realFeature(career?.features, 'broadJump', 'hasCombineData'),
-            cone: realFeature(career?.features, 'cone', 'hasCombineData'),
-            shuttle: realFeature(career?.features, 'shuttle', 'hasCombineData'),
+            bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
             rookieEcr: fp ? fp.ecr : 999,
             rookieBest: fp ? fp.best : 0,
             rookieWorst: fp ? fp.worst : 0,
@@ -333,15 +334,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             grade: 0,
             projRound: 0, projPick: 0, tier: '',
             team: '', actualRound: 0, actualPick: 0,
-            // Same careerFeatures fallback as the gradeMap path above.
+            // Same careerFeatures fallback as the gradeMap path above —
+            // ht/wt/forty only.
             ht: inchesToHt(realFeature(career?.features, 'height', 'hasPhysicalData')),
             wt: realFeature(career?.features, 'weight', 'hasPhysicalData'),
             forty: realFeature(career?.features, 'forty', 'hasCombineData'),
-            bench: realFeature(career?.features, 'bench', 'hasCombineData'),
-            vertical: realFeature(career?.features, 'vertical', 'hasCombineData'),
-            broadJump: realFeature(career?.features, 'broadJump', 'hasCombineData'),
-            cone: realFeature(career?.features, 'cone', 'hasCombineData'),
-            shuttle: realFeature(career?.features, 'shuttle', 'hasCombineData'),
+            bench: 0, vertical: 0, broadJump: 0, cone: 0, shuttle: 0,
             rookieEcr: fp.ecr,
             rookieBest: fp.best,
             rookieWorst: fp.worst,
