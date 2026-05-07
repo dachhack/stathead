@@ -9,7 +9,7 @@ import { predict } from '../src/lib/ridge';
 import { predictGBM, predictBaggedGBM } from '../src/lib/gbm';
 import { normalCdf, PPG_THRESHOLD_CONFIG, predictRookieCareerPPG, bootstrapThresholdProb } from '../src/lib/rookieCareerModel';
 import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR,
-  fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage } from '../src/data';
+  fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage, fetchCfbdCollegeStats } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
 import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeVolumeScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
@@ -586,12 +586,23 @@ async function main() {
   } catch { console.log('    No prospect grades file found'); }
 
   if (prospectGrades.length > 0) {
-    // Load combine and college stats for feature construction
-    const [combineData, collegeData, collegeQBRData] = await Promise.all([
+    // Load combine and college stats for feature construction. The legacy
+    // college_statistics.csv is frozen at 2014-2020 and doesn't cover any
+    // current draft class. cfbd-college-stats.json covers 2005-2025; we
+    // append the post-2020 slice so the model sees real production for
+    // 2021-2025 college careers (the 2026 draft class). Both sources
+    // share the same flat-row schema (player_name, season, statistic,
+    // value, school).
+    const [combineData, collegeDataLegacy, collegeQBRData, collegeDataCfbd] = await Promise.all([
       fetchCombine().catch(() => []),
       fetchCollegeStats().catch(() => []),
       fetchCollegeQBR().catch(() => []),
+      fetchCfbdCollegeStats().catch(() => []),
     ]);
+    const collegeData = [
+      ...collegeDataLegacy,
+      ...collegeDataCfbd.filter((r: any) => Number(r.season) >= 2021),
+    ];
 
     // College QBR per-season → finalYr and 2yr avg maps for 2026 prospects.
     const prospectQBRSeasons = new Map<string, Array<{ season: number; qbr: number }>>();
@@ -1309,6 +1320,32 @@ async function main() {
         if (!storedFeatures.forty && combine?.forty) storedFeatures.forty = combine.forty;
         if (!storedFeatures.collegeRecYds && cs) storedFeatures.collegeRecYds = cs.get('Receiving Yards') || 0;
         if (!storedFeatures.collegeRushYds && cs) storedFeatures.collegeRushYds = cs.get('Rushing Yards') || 0;
+        // Best-single-season totals from collegeBestByProspect (now populated
+        // for 2021-2025 via cfbd-college-stats.json). Backfill on the stored
+        // path so prospects who entered the store without college stats —
+        // e.g. CFBD-recruit fills like Kaelon Black — pick up their best
+        // year automatically. The nflverse path below already does this.
+        const best = collegeBestByProspect.get(nName);
+        if (best) {
+          if (!storedFeatures.collegeBestRushYds) storedFeatures.collegeBestRushYds = best.bestRushYds;
+          if (!storedFeatures.collegeBestRecYds) storedFeatures.collegeBestRecYds = best.bestRecYds;
+          if (!storedFeatures.collegeBestRecTDs) storedFeatures.collegeBestRecTDs = best.bestRecTDs;
+          if (!storedFeatures.collegeBestReceptions) storedFeatures.collegeBestReceptions = best.bestReceptions;
+        }
+        // collegeDominatorRating intentionally NOT backfilled from
+        // collegeAdvByProspect — that map's heuristic computes
+        // totalYds/(totalYds*3) which degenerates to ≈0.33 for every
+        // player. Real curated entries (Singleton, Love, Price) carry
+        // a percentile-scale value (e.g. 28.5 = 28.5%); the 0-1 heuristic
+        // would mix scales. Leave dominator at 0 when not curated.
+        if (cs) {
+          if (!storedFeatures.collegeRushTDs) storedFeatures.collegeRushTDs = cs.get('Rushing Touchdowns') || 0;
+          if (!storedFeatures.collegeRecTDs)  storedFeatures.collegeRecTDs  = cs.get('Receiving Touchdowns') || 0;
+          if (!storedFeatures.collegeReceptions) storedFeatures.collegeReceptions = cs.get('Receptions') || 0;
+          if (!storedFeatures.collegeTotalTDs) {
+            storedFeatures.collegeTotalTDs = (cs.get('Rushing Touchdowns') || 0) + (cs.get('Receiving Touchdowns') || 0);
+          }
+        }
         if (storedFeatures.draftPickPct == null) storedFeatures.draftPickPct = prospectDraftPctByName.get(nName) ?? 1;
         if (storedFeatures.draftPickPctOverall == null) storedFeatures.draftPickPctOverall = prospectDraftPctOverallByName.get(nName) ?? 1;
         if (storedFeatures.draftClassDepth == null) storedFeatures.draftClassDepth = prospectDraftClassDepthByName.get(nName) ?? 0;
