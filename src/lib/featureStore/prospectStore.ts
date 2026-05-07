@@ -191,6 +191,10 @@ export function buildProspectFeatureRecord(
     yearsInLeague: 0,
     weight: wt,
     forty: ft,
+    // height (inches): exported as a feature so the UI can render a real
+    // figure for prospects who weren't combined but have it from another
+    // source (CFBD recruiting). Zero means we have nothing.
+    height: ht,
     bench: prospect.bench || posAvg?.bench || 0,
     vertical: prospect.vertical || posAvg?.vertical || 0,
     broadJump: prospect.broadJump || posAvg?.broadJump || 0,
