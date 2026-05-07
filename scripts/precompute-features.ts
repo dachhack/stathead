@@ -610,9 +610,16 @@ async function main() {
       prospectQBR2yr.set(name, Math.round((lastTwo.reduce((s, x) => s + x.qbr, 0) / lastTwo.length) * 10) / 10);
     }
 
-    // Build combine lookup
+    // Build combine lookup. Filter to the current draft class so a name
+    // collision with a historical combine entry (e.g. 2006 Syracuse S
+    // "Anthony Smith" colliding with the 2026 East Carolina WR of the
+    // same name) doesn't pull stale measurables / hasCombineData=1 onto
+    // the current prospect.
     const combineByProspect = new Map<string, any>();
-    for (const c of combineData) combineByProspect.set(normalizeName(c.player_name), c);
+    for (const c of combineData) {
+      if (Number(c.season) !== PREDICT_SEASON) continue;
+      combineByProspect.set(normalizeName(c.player_name), c);
+    }
 
     // Build college stats lookup (aggregate career totals)
     // CollegeStats format: { player_name, season, statistic, value }
@@ -1418,7 +1425,14 @@ async function main() {
             storedFeatures.relativeAthleticScore = computeProspectRAS(combineForRas, pos);
           }
           if (storedFeatures.hasPhysicalData == null) {
-            storedFeatures.hasPhysicalData = realWt > 0 ? 1 : 0;
+            // Real height alone counts: it doesn't change post-HS, and
+            // CFBD recruiting backfills carry real height (no posAvg
+            // fallback for height in buildProspectFeatureRecord). Without
+            // this, prospects who only have a recruit-derived height
+            // would render blank measurables in the UI even though we
+            // have a verified figure.
+            const realHt = (storedProspect.height || 0) > 0;
+            storedFeatures.hasPhysicalData = (realWt > 0 || realHt) ? 1 : 0;
           }
           if (storedFeatures.hasCombineData == null) {
             storedFeatures.hasCombineData = realWt > 0 && realForty > 0 ? 1 : 0;
@@ -1538,6 +1552,10 @@ async function main() {
         yearsInLeague: 0,
         weight: wt,
         forty: ft,
+        // height (inches): exported as a feature so the UI can render a real
+        // figure for prospects who weren't combined but have it from another
+        // source. Mirrors prospectStore.buildProspectFeatureRecord.
+        height: ht,
         bench: combine?.bench || posAvg.bench || 0,
         vertical: combine?.vertical || posAvg.vertical || 0,
         broadJump: combine?.broad_jump || posAvg.broadJump || 0,

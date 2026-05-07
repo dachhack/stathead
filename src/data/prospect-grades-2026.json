@@ -186,5 +186,11 @@
   { "name": "Taylen Green", "pos": "QB", "school": "Arkansas", "grade": 58, "projRound": 6, "projPick": 182, "tier": "Day 3", "team": "CLE", "actualRound": 6, "actualPick": 182 },
   { "name": "Athan Kaliakmanis", "pos": "QB", "school": "Rutgers", "grade": 50, "projRound": 7, "projPick": 223, "tier": "Day 3", "team": "WAS", "actualRound": 7, "actualPick": 223 },
   { "name": "Behren Morton", "pos": "QB", "school": "Texas Tech", "grade": 47, "projRound": 7, "projPick": 234, "tier": "UDFA", "team": "NWE", "actualRound": 7, "actualPick": 234 },
-  { "name": "Kaelon Black", "pos": "RB", "school": "Indiana", "grade": 71, "projRound": 3, "projPick": 90, "tier": "Day 2", "team": "SFO", "actualRound": 3, "actualPick": 90 }
+  { "name": "Kaelon Black", "pos": "RB", "school": "Indiana", "grade": 71, "projRound": 3, "projPick": 90, "tier": "Day 2", "team": "SFO", "actualRound": 3, "actualPick": 90 },
+  { "name": "Cyrus Allen", "pos": "WR", "school": "Cincinnati", "grade": 60, "projRound": 5, "projPick": 176, "tier": "Day 3", "team": "KAN", "actualRound": 5, "actualPick": 176 },
+  { "name": "Seydou Traore", "pos": "TE", "school": "Mississippi St.", "grade": 59, "projRound": 5, "projPick": 180, "tier": "Day 3", "team": "MIA", "actualRound": 5, "actualPick": 180 },
+  { "name": "CJ Williams", "pos": "WR", "school": "Stanford", "grade": 55, "projRound": 6, "projPick": 203, "tier": "Day 3", "team": "JAX", "actualRound": 6, "actualPick": 203 },
+  { "name": "Lewis Bond", "pos": "WR", "school": "Boston Col.", "grade": 54, "projRound": 6, "projPick": 204, "tier": "Day 3", "team": "HOU", "actualRound": 6, "actualPick": 204 },
+  { "name": "Anthony Smith", "pos": "WR", "school": "East Carolina", "grade": 51, "projRound": 7, "projPick": 218, "tier": "Day 3", "team": "DAL", "actualRound": 7, "actualPick": 218 },
+  { "name": "Carsen Ryan", "pos": "TE", "school": "BYU", "grade": 45, "projRound": 7, "projPick": 248, "tier": "UDFA", "team": "CLE", "actualRound": 7, "actualPick": 248 }
 ]
