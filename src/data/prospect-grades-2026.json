@@ -144,7 +144,7 @@
   { "name": "Trey Zuhn III", "pos": "OT", "school": "Texas A&M", "grade": 64, "projRound": 5, "projPick": 143, "tier": "Day 3", "team": "LVR", "actualRound": 3, "actualPick": 91 },
   { "name": "Tim Keenan III", "pos": "DT", "school": "Alabama", "grade": 64, "projRound": 5, "projPick": 144, "tier": "Day 3", "team": "LAR", "actualRound": 7, "actualPick": 232 },
   { "name": "Taurean York", "pos": "LB", "school": "Texas A&M", "grade": 64, "projRound": 5, "projPick": 145, "tier": "Day 3" },
-  { "name": "Nick Singleton", "pos": "RB", "school": "Penn St.", "grade": 64, "projRound": 5, "projPick": 146, "tier": "Day 3", "team": "TEN", "actualRound": 5, "actualPick": 165 },
+  { "name": "Nicholas Singleton", "pos": "RB", "school": "Penn St.", "grade": 64, "projRound": 5, "projPick": 146, "tier": "Day 3", "team": "TEN", "actualRound": 5, "actualPick": 165 },
   { "name": "J.C. Davis", "pos": "OT", "school": "Illinois", "grade": 64, "projRound": 5, "projPick": 147, "tier": "Day 3", "team": "NYG", "actualRound": 6, "actualPick": 192 },
   { "name": "Nadame Tucker", "pos": "EDGE", "school": "Western Michigan", "grade": 64, "projRound": 5, "projPick": 148, "tier": "Day 3" },
   { "name": "Austin Barber", "pos": "OT", "school": "Florida", "grade": 64, "projRound": 5, "projPick": 149, "tier": "Day 3", "team": "CLE", "actualRound": 3, "actualPick": 86 },
