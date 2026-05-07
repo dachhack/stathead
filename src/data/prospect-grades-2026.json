@@ -192,5 +192,12 @@
   { "name": "CJ Williams", "pos": "WR", "school": "Stanford", "grade": 55, "projRound": 6, "projPick": 203, "tier": "Day 3", "team": "JAX", "actualRound": 6, "actualPick": 203 },
   { "name": "Lewis Bond", "pos": "WR", "school": "Boston Col.", "grade": 54, "projRound": 6, "projPick": 204, "tier": "Day 3", "team": "HOU", "actualRound": 6, "actualPick": 204 },
   { "name": "Anthony Smith", "pos": "WR", "school": "East Carolina", "grade": 51, "projRound": 7, "projPick": 218, "tier": "Day 3", "team": "DAL", "actualRound": 7, "actualPick": 218 },
-  { "name": "Carsen Ryan", "pos": "TE", "school": "BYU", "grade": 45, "projRound": 7, "projPick": 248, "tier": "UDFA", "team": "CLE", "actualRound": 7, "actualPick": 248 }
+  { "name": "Carsen Ryan", "pos": "TE", "school": "BYU", "grade": 45, "projRound": 7, "projPick": 248, "tier": "UDFA", "team": "CLE", "actualRound": 7, "actualPick": 248 },
+  { "name": "Caleb Douglas", "pos": "WR", "school": "Texas Tech", "grade": 76, "projRound": 3, "projPick": 75, "tier": "Day 2", "team": "MIA", "actualRound": 3, "actualPick": 75 },
+  { "name": "Zavion Thomas", "pos": "WR", "school": "LSU", "grade": 73, "projRound": 3, "projPick": 89, "tier": "Day 2", "team": "CHI", "actualRound": 3, "actualPick": 89 },
+  { "name": "Kaden Wetjen", "pos": "WR", "school": "Iowa", "grade": 67, "projRound": 4, "projPick": 121, "tier": "Day 3", "team": "PIT", "actualRound": 4, "actualPick": 121 },
+  { "name": "Colbie Young", "pos": "WR", "school": "Georgia", "grade": 65, "projRound": 4, "projPick": 140, "tier": "Day 3", "team": "CIN", "actualRound": 4, "actualPick": 140 },
+  { "name": "Josh Cameron", "pos": "WR", "school": "Baylor", "grade": 58, "projRound": 6, "projPick": 191, "tier": "Day 3", "team": "JAX", "actualRound": 6, "actualPick": 191 },
+  { "name": "Malik Benson", "pos": "WR", "school": "Oregon", "grade": 57, "projRound": 6, "projPick": 195, "tier": "Day 3", "team": "LVR", "actualRound": 6, "actualPick": 195 },
+  { "name": "Emmanuel Henderson Jr.", "pos": "WR", "school": "Kansas", "grade": 56, "projRound": 6, "projPick": 199, "tier": "Day 3", "team": "SEA", "actualRound": 6, "actualPick": 199 }
 ]

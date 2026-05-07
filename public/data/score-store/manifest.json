@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-07T13:44:27.439Z",
+  "updatedAt": "2026-05-07T14:03:21.794Z",
   "models": {
     "career": {
       "version": "v51",
-      "count": 89,
+      "count": 96,
       "backtestCount": 1087
     },
     "adp": {
