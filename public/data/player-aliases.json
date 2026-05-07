@@ -130,5 +130,29 @@
       "gsis_id":"00-0032765"
     }
   ],
-  "unresolved":[]
+  "unresolved":[
+    {
+      "source":"stathead_backtest",
+      "name":"Mike Williams",
+      "position":"WR",
+      "year":2010,
+      "outcome":"ambiguous",
+      "candidates":[
+        {
+          "gsis_id":"00-0023452",
+          "display_name":"Mike Williams",
+          "birth_date":"1984-01-04",
+          "college":"",
+          "latest_season":2011
+        },
+        {
+          "gsis_id":"00-0027702",
+          "display_name":"Mike Williams",
+          "birth_date":"1987-05-18",
+          "college":"",
+          "latest_season":2016
+        }
+      ]
+    }
+  ]
 }
