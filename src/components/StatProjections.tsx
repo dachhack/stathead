@@ -688,6 +688,50 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         const draftByName = new Map<string, DraftPick>();
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
 
+        // Rookie workload share by draft pick + position. Used by the no-
+        // prior projection branches so a recently-drafted rookie like
+        // Jeremiyah Love (R1 #3 ARI) gets a starter-level share of his
+        // team's RB pool instead of the generic `1 / (players.length * 4)`
+        // depth-piece fallback. Returns 0 for non-2026-rookies (vets without
+        // prior stats) so the existing depth-piece fallback still kicks in.
+        // Numbers are heuristic typical Y1 workload shares — RBs ramp fast,
+        // TEs slow, QBs binary on starter status.
+        function rookieShare(name: string, pos: string): number {
+          const draft = draftByName.get(name);
+          if (!draft || draft.season !== PREDICT_SEASON) return 0;
+          const pick = draft.pick || 999;
+          if (pos === 'RB') {
+            if (pick <= 32)  return 0.55;
+            if (pick <= 64)  return 0.30;
+            if (pick <= 100) return 0.18;
+            if (pick <= 150) return 0.10;
+            return 0.05;
+          }
+          if (pos === 'WR') {
+            if (pick <= 16)  return 0.22;
+            if (pick <= 32)  return 0.18;
+            if (pick <= 64)  return 0.12;
+            if (pick <= 100) return 0.08;
+            if (pick <= 150) return 0.05;
+            return 0.03;
+          }
+          if (pos === 'TE') {
+            if (pick <= 32)  return 0.18;
+            if (pick <= 64)  return 0.12;
+            if (pick <= 100) return 0.08;
+            if (pick <= 150) return 0.05;
+            return 0.03;
+          }
+          if (pos === 'QB') {
+            if (pick <= 3)   return 0.85;
+            if (pick <= 15)  return 0.50;
+            if (pick <= 32)  return 0.25;
+            if (pick <= 100) return 0.10;
+            return 0.05;
+          }
+          return 0;
+        }
+
         // Age-based regression factor
         function ageFactor(name: string, pos: string): number {
           const draft = draftByName.get(name);
@@ -993,7 +1037,44 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           addedNames.add(nn);
         }
 
-        // Second pass: rostered players not in ADP
+        // Second pass: rostered players not in ADP. Rookies land here
+        // because community ADP doesn't price them yet — assign a synthetic
+        // ADP based on draft pick + position so high-pick rookies sort
+        // ahead of vet bench pieces (Mendoza R1 #1 LV ahead of Aidan O'Connell,
+        // Jeremiyah Love R1 #3 ARI ahead of Trey Benson, etc.). Without
+        // this, every drafted rookie sorts to ADP 999 and gets the depth-
+        // piece projection branch downstream.
+        function syntheticRookieAdp(name: string, pos: string): number {
+          const draft = draftByName.get(name);
+          if (!draft || draft.season !== PREDICT_SEASON) return 999;
+          const pick = draft.pick || 999;
+          if (pos === 'RB') {
+            if (pick <= 32)  return 50;
+            if (pick <= 64)  return 100;
+            if (pick <= 100) return 150;
+            return 200;
+          }
+          if (pos === 'WR') {
+            if (pick <= 16)  return 30;
+            if (pick <= 32)  return 70;
+            if (pick <= 64)  return 130;
+            if (pick <= 100) return 180;
+            return 230;
+          }
+          if (pos === 'TE') {
+            if (pick <= 16)  return 60;
+            if (pick <= 32)  return 110;
+            if (pick <= 64)  return 170;
+            return 220;
+          }
+          if (pos === 'QB') {
+            if (pick <= 3)   return 80;
+            if (pick <= 15)  return 150;
+            if (pick <= 32)  return 220;
+            return 280;
+          }
+          return 999;
+        }
         for (const r of rosters) {
           if (!POSITIONS.includes(r.position as Position)) continue;
           const nn = normalizeName(r.full_name);
@@ -1001,7 +1082,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           const prior = priorByName.get(nn);
           ensureList(tpKey(r.team, r.position)).push({
             name: r.full_name, team: r.team, position: r.position as Position,
-            adp: 999, prior,
+            adp: syntheticRookieAdp(nn, r.position), prior,
           });
           addedNames.add(nn);
         }
@@ -1084,11 +1165,17 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 let passAtt: number, passComp: number, passYds: number, passTD: number, ints: number;
                 let rushAtt: number, rushYds: number, rushTD: number;
 
-                if (isPrimary && prior && prior.games >= 3) {
+                // High-pick rookie QBs (top 15) project as starters even
+                // without prior NFL stats — Mendoza R1 #1 LV starts week 1
+                // by every reasonable expectation. Treat them like the
+                // starter branch but use rookie-typical efficiency rates.
+                const rookieQbShare = rookieShare(normalizeName(player.name), 'QB');
+                const isRookieStarter = isPrimary && (!prior || prior.games < 3) && rookieQbShare >= 0.5;
+                if ((isPrimary && prior && prior.games >= 3) || isRookieStarter) {
                   // Starter throws ALL team passes in their games (no intra-game sharing with backup).
                   // Game allocation already encodes the time split, so no passShare multiplier needed.
                   passAtt = Math.round(qbPassPool * gamesScale);
-                  const compRate = (prior.attempts || 0) > 0 ? (prior.completions || 0) / prior.attempts : 0.63;
+                  const compRate = (prior?.attempts || 0) > 0 ? (prior!.completions || 0) / prior!.attempts : 0.62;
                   passComp = Math.round(passAtt * compRate);
                   // Anchor passYds to the team's projected passing yards so QB passYds
                   // reconcile with receiver recYds (same pool, gamesScale applied like receivers)
@@ -1096,13 +1183,18 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   // Anchor TDs to the team's projected receiving TD budget so QB passTDs
                   // reconcile with receiver recTDs (same pool, gamesScale applied like receivers)
                   passTD = Math.round(projTeam.recTD * gamesScale);
-                  const intRate = (prior.attempts || 0) > 0 ? (prior.interceptions || 0) / prior.attempts : 0.025;
+                  const intRate = (prior?.attempts || 0) > 0 ? (prior!.interceptions || 0) / prior!.attempts : 0.028;
                   ints = Math.round(passAtt * intRate);
 
-                  const adjCar = healthAdjust(prior.carries || 0, prior.games);
-                  const rushShare = priorRushAttTotal > 0 ? adjCar / priorRushAttTotal : 0.5;
+                  const adjCar = prior ? healthAdjust(prior.carries || 0, prior.games) : 0;
+                  // Rookie starters: assume moderate rush share (0.5 of QB rush
+                  // pool) — rookies are often more mobile than vets but we
+                  // don't want to overcommit without a usage signal.
+                  const rushShare = priorRushAttTotal > 0
+                    ? adjCar / priorRushAttTotal
+                    : (isRookieStarter ? 0.5 : 0.5);
                   rushAtt = Math.round(qbRushPool * rushShare * gamesScale);
-                  const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
+                  const ypc = (prior?.carries || 0) > 0 ? (prior!.rushing_yards || 0) / prior!.carries : 5.0;
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.round(qbRushTDPool * rushShare * gamesScale);
                 } else {
@@ -1200,14 +1292,24 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
                   recYds = Math.round(rec * ypr);
                 } else {
-                  const share = 1 / (players.length * 4);
+                  // No prior NFL stats: 2026 rookies use draft-pick-based
+                  // share; everyone else falls back to the depth-piece
+                  // share. Rookie ypc is positional-typical (4.3); rookie
+                  // ypr ~7.5 from college reception data.
+                  const rs = rookieShare(normalizeName(player.name), 'RB');
+                  const share = rs > 0 ? rs : 1 / (players.length * 4);
                   rushAtt = Math.round(rbRushPool * share * gamesScale);
-                  rushYds = Math.round(rushAtt * 3.8);
+                  const ypc = rs > 0 ? 4.3 : 3.8;
+                  rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.max(0, Math.round(rbRushTDPool * share * gamesScale));
-                  tgt = Math.round(rbTgtPool * share * gamesScale);
+                  // Rookie target share scales down since RBs catch fewer
+                  // passes than they run early in their careers.
+                  const tgtShare = rs > 0 ? rs * 0.7 : share;
+                  tgt = Math.round(rbTgtPool * tgtShare * gamesScale);
                   rec = Math.round(tgt * 0.72);
-                  recYds = Math.round(rec * 6.5);
-                  recTD = 0;
+                  const ypr = rs > 0 ? 7.5 : 6.5;
+                  recYds = Math.round(rec * ypr);
+                  recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare));
                 }
 
                 const pts = computePPR({ rushYds, rushTD, rec, recYds, recTD });
@@ -1300,11 +1402,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   rushYds = Math.round(rushAtt * ypc);
                   rushTD = Math.max(0, Math.round(wrRushTDPool * rushShare * gamesScale));
                 } else {
-                  const share = 1 / (players.length * 4);
+                  // No prior NFL stats: 2026 rookies use draft-pick-based
+                  // target share; vets without prior fall back to depth.
+                  const rs = rookieShare(normalizeName(player.name), 'WR');
+                  const share = rs > 0 ? rs : 1 / (players.length * 4);
                   tgt = Math.round(wrTgtPool * share * gamesScale);
                   rec = Math.round(tgt * 0.62);
-                  recYds = Math.round(rec * 11.0);
-                  recTD = 0;
+                  const ypr = rs > 0 ? 12.0 : 11.0;
+                  recYds = Math.round(rec * ypr);
+                  recTD = Math.max(0, Math.round(wrRecTDPool * share));
                   rushAtt = 0; rushYds = 0; rushTD = 0;
                 }
 
@@ -1375,11 +1481,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
                   recYds = Math.round(rec * ypr);
                 } else {
-                  const share = 1 / (players.length * 4);
+                  // No prior NFL stats: 2026 rookies use draft-pick-based
+                  // target share; vets without prior fall back to depth.
+                  const rs = rookieShare(normalizeName(player.name), 'TE');
+                  const share = rs > 0 ? rs : 1 / (players.length * 4);
                   tgt = Math.round(teTgtPool * share * gamesScale);
                   rec = Math.round(tgt * 0.65);
-                  recYds = Math.round(rec * 9.5);
-                  recTD = 0;
+                  const ypr = rs > 0 ? 10.5 : 9.5;
+                  recYds = Math.round(rec * ypr);
+                  recTD = Math.max(0, Math.round(teRecTDPool * share));
                 }
 
                 const pts = computePPR({ rec, recYds, recTD });
