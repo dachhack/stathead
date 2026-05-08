@@ -2032,6 +2032,77 @@ async function main() {
   careerPredictions2026.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
   console.log(`  Career predictions: ${careerPredictions2026.length} rookies scored`);
 
+  // ──────────────────────────────────────────────────────────────────────
+  // Extend ppgPredictions2026 with rookies. The seasonal PPG model trained
+  // above runs on `predRows` whose feature vector includes priorPPG /
+  // priorPPG2yr / ppgTrend — vet-only signals that rookies don't have, so
+  // they're filtered out and never appear in the seasonal PPG output.
+  //
+  // For each drafted skill rookie, compute Y1 PPG = best-2-of-3 career PPG
+  // (from the rookie career model) × per-position pick-based discount
+  // fraction. This mirrors `scripts/augment-projections-with-rookies.py`
+  // and exposes rookie projections to every consumer of ppgPredictions2026
+  // (MyRankings, score-store/ppg shard, etc.) without a downstream merge.
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    const y1Fraction = (pos: string, pick: number): number => {
+      if (pos === 'RB') {
+        if (pick <= 32)  return 0.85;
+        if (pick <= 64)  return 0.60;
+        if (pick <= 100) return 0.45;
+        if (pick <= 150) return 0.30;
+        return 0.20;
+      }
+      if (pos === 'WR') {
+        if (pick <= 32)  return 0.60;
+        if (pick <= 64)  return 0.45;
+        if (pick <= 100) return 0.35;
+        if (pick <= 150) return 0.25;
+        return 0.15;
+      }
+      if (pos === 'TE') {
+        if (pick <= 32)  return 0.45;
+        if (pick <= 64)  return 0.35;
+        if (pick <= 100) return 0.25;
+        if (pick <= 150) return 0.20;
+        return 0.10;
+      }
+      if (pos === 'QB') {
+        if (pick <= 3)   return 0.75;
+        if (pick <= 15)  return 0.40;
+        if (pick <= 50)  return 0.20;
+        return 0.10;
+      }
+      return 0.30;
+    };
+    // Look up team for each rookie from prospectGrades (the post-draft
+    // augmented file). Career predictions don't carry team natively.
+    const teamByName = new Map<string, string>();
+    for (const g of prospectGrades) {
+      if (g.team) teamByName.set(normalizeName(g.name), g.team);
+    }
+    let rookiesAdded = 0;
+    for (const p of careerPredictions2026) {
+      const career = p.predictedCareerPPG || 0;
+      if (career <= 0) continue;
+      const pos = p.position;
+      if (!['QB', 'RB', 'WR', 'TE'].includes(pos)) continue;
+      const feats = (p.features || {}) as Record<string, number>;
+      const pick = Number(feats.nflDraftPick) || 999;
+      const y1Ppg = Math.round(career * y1Fraction(pos, pick) * 10) / 10;
+      ppgPredictions2026.push({
+        name: p.name,
+        team: teamByName.get(normalizeName(p.name)) || '',
+        position: pos,
+        adp: 9999,                  // sentinel: rookies don't have community ADP yet
+        predictedPPG: y1Ppg,
+        predictedSeasonPPR: Math.round(y1Ppg * 17),
+      });
+      rookiesAdded++;
+    }
+    console.log(`  PPG predictions: ${rookiesAdded} rookies added → ${ppgPredictions2026.length} total`);
+  }
+
   // Stamp player_key onto each prediction row via the crosswalk — the
   // canonical cross-source ID users will join on. Canonical file is built
   // by scripts/build-player-crosswalk.py and committed to the repo; we
