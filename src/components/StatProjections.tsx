@@ -1256,6 +1256,18 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 });
               }
             } else if (pos === 'RB') {
+              // Reserve pool space for top rookies first, then let vets
+              // split the residual. Without this, vets divide 100% of
+              // the RB pool among themselves *and* a rookie like Love
+              // (R1 #3, rookieShare=0.55) gets another 55% on top —
+              // double-allocating the team's RB volume and leaving Bam
+              // Knight with starter carries even when Love is RB1.
+              const rookieRushShareSum = players.reduce((s, p) => {
+                const isRookie = !p.prior || p.prior.games < 3;
+                if (!isRookie) return s;
+                return s + rookieShare(normalizeName(p.name), 'RB');
+              }, 0);
+              const vetShareScaler = Math.max(0, 1 - rookieRushShareSum);
               const priorRushTotal = players.reduce((s, p, i) => {
                 const car = p.prior?.carries || 0;
                 const g = p.prior?.games ?? 17;
@@ -1300,8 +1312,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   } else {
                     const adjCar = isPrimary ? healthAdjust(prior.carries || 0, prior.games) : (prior.carries || 0);
                     const rushShare = priorRushTotal2 > 0 ? adjCar / priorRushTotal2 : 1 / players.length;
-                    rushAtt = Math.round(rbRushPool * rushShare * af * gamesScale);
-                    rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * gamesScale));
+                    rushAtt = Math.round(rbRushPool * rushShare * vetShareScaler * af * gamesScale);
+                    rushTD = Math.max(0, Math.round(rbRushTDPool * rushShare * vetShareScaler * gamesScale));
                   }
                   const ypc = (prior.carries || 0) > 0 ? (prior.rushing_yards || 0) / prior.carries : 4.0;
                   rushYds = Math.round(rushAtt * ypc);
@@ -1313,8 +1325,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                     const tgtShare = priorTgtTotal2 > 0 ? adjTgt / priorTgtTotal2 : 1 / players.length;
-                    tgt = Math.round(rbTgtPool * tgtShare * af * gamesScale);
-                    recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare));
+                    tgt = Math.round(rbTgtPool * tgtShare * vetShareScaler * af * gamesScale);
+                    recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * vetShareScaler));
                   }
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
                   rec = Math.round(tgt * catchRate);
@@ -1376,6 +1388,14 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 }));
               }
             } else if (pos === 'WR') {
+              // Same vet/rookie pool composition as RB — top rookie WRs
+              // claim a fixed share, vets split the residual.
+              const rookieTgtShareSum = players.reduce((s, p) => {
+                const isRookie = !p.prior || p.prior.games < 3;
+                if (!isRookie) return s;
+                return s + rookieShare(normalizeName(p.name), 'WR');
+              }, 0);
+              const vetShareScaler = Math.max(0, 1 - rookieTgtShareSum);
               const priorTgtTotal = players.reduce((s, p, i) => {
                 const tgt = p.prior?.targets || 0;
                 const g = p.prior?.games ?? 17;
@@ -1415,8 +1435,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                     const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
-                    tgt = Math.round(wrTgtPool * tgtShare * af * gamesScale);
-                    recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare));
+                    tgt = Math.round(wrTgtPool * tgtShare * vetShareScaler * af * gamesScale);
+                    recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * vetShareScaler));
                   }
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
                   rec = Math.round(tgt * catchRate);
@@ -1473,6 +1493,13 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                 }));
               }
             } else if (pos === 'TE') {
+              // Same vet/rookie pool composition as RB/WR.
+              const rookieTgtShareSum = players.reduce((s, p) => {
+                const isRookie = !p.prior || p.prior.games < 3;
+                if (!isRookie) return s;
+                return s + rookieShare(normalizeName(p.name), 'TE');
+              }, 0);
+              const vetShareScaler = Math.max(0, 1 - rookieTgtShareSum);
               const priorTgtTotal = players.reduce((s, p, i) => {
                 const tgt = p.prior?.targets || 0;
                 const g = p.prior?.games ?? 17;
@@ -1502,8 +1529,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                   } else {
                     const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
                     const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
-                    tgt = Math.round(teTgtPool * tgtShare * af * gamesScale);
-                    recTD = Math.max(0, Math.round(teRecTDPool * tgtShare));
+                    tgt = Math.round(teTgtPool * tgtShare * vetShareScaler * af * gamesScale);
+                    recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * vetShareScaler));
                   }
                   const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
                   rec = Math.round(tgt * catchRate);
