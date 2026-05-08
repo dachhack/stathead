@@ -558,7 +558,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthChartData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -569,7 +569,22 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           fetch(`${import.meta.env.BASE_URL}data/score-store/ppg.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/score-store/adp.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
+          fetch(`${import.meta.env.BASE_URL}data/depth-chart-2026.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
         ]);
+        // Per-team / per-position depth chart, derived from Mike Clay's
+        // 2026 projection ordering (built offline by
+        // scripts/build-depth-chart-from-clay.py). Used as the primary
+        // sort key so depth-chart truth wins over community ADP — handles
+        // rookies who don't have ADP yet, plus offseason role changes
+        // ADP hasn't priced in (e.g. R1 QB Mendoza starting over the
+        // veteran on his roster).
+        const depthChart = depthChartData as Record<string, Record<string, string[]>>;
+        function depthRank(team: string, pos: string, name: string): number {
+          const list = depthChart?.[team]?.[pos];
+          if (!list) return 9999;
+          const idx = list.findIndex((n) => normalizeName(n) === normalizeName(name));
+          return idx >= 0 ? idx : 9999;
+        }
         const redraftFallback = (redraftData as { players?: Array<{ name: string; position: string; ppg: number }> }).players ?? [];
 
         // ADP-model lookup (score-store/adp.json). Populates ADP for
@@ -700,27 +715,34 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           const draft = draftByName.get(name);
           if (!draft || draft.season !== PREDICT_SEASON) return 0;
           const pick = draft.pick || 999;
+          // Calibrated against Mike Clay's 2026 projection set — at the
+          // prior shares we were ~4 PPG below Clay on top rookie WRs/TEs
+          // (Tate, Tyson, Sadiq) and ~1.5 PPG too high on R3+ RB depth.
+          // These are workload shares (target/rush share of position
+          // pool); R1 WRs see WR1-level targets, R1 RBs lead-back carry
+          // share, R1 TEs full TE1 target share.
           if (pos === 'RB') {
             if (pick <= 32)  return 0.55;
             if (pick <= 64)  return 0.30;
-            if (pick <= 100) return 0.18;
-            if (pick <= 150) return 0.10;
-            return 0.05;
+            if (pick <= 100) return 0.15;
+            if (pick <= 150) return 0.08;
+            return 0.03;
           }
           if (pos === 'WR') {
-            if (pick <= 16)  return 0.22;
-            if (pick <= 32)  return 0.18;
-            if (pick <= 64)  return 0.12;
-            if (pick <= 100) return 0.08;
-            if (pick <= 150) return 0.05;
-            return 0.03;
+            if (pick <= 16)  return 0.35;
+            if (pick <= 32)  return 0.28;
+            if (pick <= 64)  return 0.18;
+            if (pick <= 100) return 0.12;
+            if (pick <= 150) return 0.08;
+            return 0.05;
           }
           if (pos === 'TE') {
-            if (pick <= 32)  return 0.18;
-            if (pick <= 64)  return 0.12;
-            if (pick <= 100) return 0.08;
-            if (pick <= 150) return 0.05;
-            return 0.03;
+            if (pick <= 16)  return 0.40;
+            if (pick <= 32)  return 0.30;
+            if (pick <= 64)  return 0.20;
+            if (pick <= 100) return 0.12;
+            if (pick <= 150) return 0.08;
+            return 0.05;
           }
           if (pos === 'QB') {
             if (pick <= 3)   return 0.85;
@@ -1101,9 +1123,16 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           addedNames.add(nn);
         }
 
-        // Sort each team+pos group: by ADP (lower = better), then by prior PPR
-        for (const [, list] of candidatesByTeamPos) {
+        // Sort each team+pos group. Primary: Clay's depth chart (lower
+        // index = starter). Secondary: ADP. Tertiary: prior PPR. Players
+        // not in Clay's depth chart get rank 9999 and fall through to
+        // ADP-based ordering — same as before for that subset.
+        for (const [key, list] of candidatesByTeamPos) {
+          const [team, pos] = key.split(':');
           list.sort((a, b) => {
+            const aDepth = depthRank(team, pos, a.name);
+            const bDepth = depthRank(team, pos, b.name);
+            if (aDepth !== bDepth) return aDepth - bDepth;
             if (a.adp !== b.adp) return a.adp - b.adp;
             const aPPR = a.prior ? (a.prior.fantasy_points_ppr || 0) : 0;
             const bPPR = b.prior ? (b.prior.fantasy_points_ppr || 0) : 0;

@@ -2046,24 +2046,33 @@ async function main() {
   // ──────────────────────────────────────────────────────────────────────
   {
     const y1Fraction = (pos: string, pick: number): number => {
+      // Y1 fraction of best-2-of-3 career PPG. Calibrated against Mike
+      // Clay's 2026 projection set: at the prior 0.60 / 0.45 R1 levels,
+      // Carnell Tate / Jordyn Tyson / Sadiq were 4 PPG below Clay (the
+      // gold-standard public projector treats top-pick rookies as near-
+      // immediate starters). New levels also pull down R3+ RB picks
+      // where we were over-projecting depth backs (Kaelon Black 0.45
+      // vs Clay's implied 0.25).
       if (pos === 'RB') {
+        if (pick <= 32)  return 0.85;
+        if (pick <= 64)  return 0.55;
+        if (pick <= 100) return 0.30;
+        if (pick <= 150) return 0.18;
+        return 0.10;
+      }
+      if (pos === 'WR') {
+        if (pick <= 16)  return 0.95;
         if (pick <= 32)  return 0.85;
         if (pick <= 64)  return 0.60;
         if (pick <= 100) return 0.45;
         if (pick <= 150) return 0.30;
-        return 0.20;
-      }
-      if (pos === 'WR') {
-        if (pick <= 32)  return 0.60;
-        if (pick <= 64)  return 0.45;
-        if (pick <= 100) return 0.35;
-        if (pick <= 150) return 0.25;
-        return 0.15;
+        return 0.18;
       }
       if (pos === 'TE') {
-        if (pick <= 32)  return 0.45;
-        if (pick <= 64)  return 0.35;
-        if (pick <= 100) return 0.25;
+        if (pick <= 16)  return 0.80;
+        if (pick <= 32)  return 0.55;
+        if (pick <= 64)  return 0.40;
+        if (pick <= 100) return 0.30;
         if (pick <= 150) return 0.20;
         return 0.10;
       }
