@@ -647,6 +647,12 @@
       "recPG": 0.0
     },
     {
+      "name": "Carnell Tate",
+      "position": "WR",
+      "ppg": 11.5,
+      "recPG": 3.8
+    },
+    {
       "name": "Dallas Goedert",
       "position": "TE",
       "ppg": 11.4,
@@ -803,6 +809,12 @@
       "recPG": 0.0
     },
     {
+      "name": "Jordyn Tyson",
+      "position": "WR",
+      "ppg": 10.4,
+      "recPG": 3.43
+    },
+    {
       "name": "Colston Loveland",
       "position": "TE",
       "ppg": 10.3,
@@ -935,6 +947,12 @@
       "recPG": 4.21
     },
     {
+      "name": "Makai Lemon",
+      "position": "WR",
+      "ppg": 9.0,
+      "recPG": 2.97
+    },
+    {
       "name": "Isiah Pacheco",
       "position": "RB",
       "ppg": 8.8,
@@ -951,6 +969,12 @@
       "position": "TE",
       "ppg": 8.8,
       "recPG": 0.0
+    },
+    {
+      "name": "Kenyon Sadiq",
+      "position": "TE",
+      "ppg": 8.8,
+      "recPG": 2.46
     },
     {
       "name": "Jordan Mason",
@@ -1007,6 +1031,12 @@
       "recPG": 0.0
     },
     {
+      "name": "KC Concepcion",
+      "position": "WR",
+      "ppg": 8.4,
+      "recPG": 2.77
+    },
+    {
       "name": "Quinn Ewers",
       "position": "QB",
       "ppg": 8.3,
@@ -1023,6 +1053,12 @@
       "position": "WR",
       "ppg": 8.1,
       "recPG": 0.0
+    },
+    {
+      "name": "Omar Cooper Jr.",
+      "position": "WR",
+      "ppg": 8.1,
+      "recPG": 2.67
     },
     {
       "name": "Evan Engram",
@@ -1163,12 +1199,6 @@
       "recPG": 0.0
     },
     {
-      "name": "Carnell Tate",
-      "position": "WR",
-      "ppg": 7.3,
-      "recPG": 2.41
-    },
-    {
       "name": "Adam Thielen",
       "position": "WR",
       "ppg": 7.2,
@@ -1289,12 +1319,6 @@
       "recPG": 2.67
     },
     {
-      "name": "Jordyn Tyson",
-      "position": "WR",
-      "ppg": 6.5,
-      "recPG": 2.15
-    },
-    {
       "name": "Cedric Tillman",
       "position": "WR",
       "ppg": 6.4,
@@ -1311,12 +1335,6 @@
       "position": "RB",
       "ppg": 6.4,
       "recPG": 2.18
-    },
-    {
-      "name": "Makai Lemon",
-      "position": "WR",
-      "ppg": 6.4,
-      "recPG": 2.11
     },
     {
       "name": "Dontayvion Wicks",
@@ -1355,12 +1373,6 @@
       "recPG": 0.0
     },
     {
-      "name": "KC Concepcion",
-      "position": "WR",
-      "ppg": 5.9,
-      "recPG": 1.95
-    },
-    {
       "name": "Dylan Sampson",
       "position": "RB",
       "ppg": 5.8,
@@ -1385,6 +1397,12 @@
       "recPG": 2.88
     },
     {
+      "name": "Denzel Boston",
+      "position": "WR",
+      "ppg": 5.8,
+      "recPG": 1.91
+    },
+    {
       "name": "Ray Davis",
       "position": "RB",
       "ppg": 5.7,
@@ -1401,12 +1419,6 @@
       "position": "TE",
       "ppg": 5.7,
       "recPG": 0.0
-    },
-    {
-      "name": "Omar Cooper Jr.",
-      "position": "WR",
-      "ppg": 5.7,
-      "recPG": 1.88
     },
     {
       "name": "Ryan Flournoy",
@@ -1487,12 +1499,6 @@
       "recPG": 3.67
     },
     {
-      "name": "Kenyon Sadiq",
-      "position": "TE",
-      "ppg": 5.0,
-      "recPG": 1.4
-    },
-    {
       "name": "Jaleel McLaughlin",
       "position": "RB",
       "ppg": 4.8,
@@ -1503,6 +1509,12 @@
       "position": "QB",
       "ppg": 4.8,
       "recPG": 0.0
+    },
+    {
+      "name": "Germie Bernard",
+      "position": "WR",
+      "ppg": 4.8,
+      "recPG": 1.58
     },
     {
       "name": "Ja'Tavion Sanders",
@@ -1547,6 +1559,12 @@
       "recPG": 0.0
     },
     {
+      "name": "De'Zhaun Stribling",
+      "position": "WR",
+      "ppg": 4.5,
+      "recPG": 1.49
+    },
+    {
       "name": "Tutu Atwell",
       "position": "WR",
       "ppg": 4.4,
@@ -1557,12 +1575,6 @@
       "position": "WR",
       "ppg": 4.4,
       "recPG": 0.0
-    },
-    {
-      "name": "Denzel Boston",
-      "position": "WR",
-      "ppg": 4.4,
-      "recPG": 1.45
     },
     {
       "name": "Braelon Allen",
@@ -1637,16 +1649,22 @@
       "recPG": 0.0
     },
     {
+      "name": "Antonio Williams",
+      "position": "WR",
+      "ppg": 3.9,
+      "recPG": 1.29
+    },
+    {
       "name": "Brashard Smith",
       "position": "RB",
       "ppg": 3.7,
       "recPG": 0.0
     },
     {
-      "name": "Kaelon Black",
-      "position": "RB",
+      "name": "Eli Stowers",
+      "position": "TE",
       "ppg": 3.7,
-      "recPG": 0.59
+      "recPG": 1.04
     },
     {
       "name": "Xavier Restrepo",
@@ -1667,12 +1685,6 @@
       "recPG": 0.0
     },
     {
-      "name": "Germie Bernard",
-      "position": "WR",
-      "ppg": 3.6,
-      "recPG": 1.19
-    },
-    {
       "name": "Kyle Williams",
       "position": "WR",
       "ppg": 3.5,
@@ -1691,7 +1703,7 @@
       "recPG": 0.0
     },
     {
-      "name": "De'Zhaun Stribling",
+      "name": "Chris Bell",
       "position": "WR",
       "ppg": 3.4,
       "recPG": 1.12
@@ -1715,16 +1727,28 @@
       "recPG": 1.25
     },
     {
+      "name": "Max Klare",
+      "position": "TE",
+      "ppg": 3.3,
+      "recPG": 0.92
+    },
+    {
+      "name": "Chris Brazzell II",
+      "position": "WR",
+      "ppg": 3.3,
+      "recPG": 1.09
+    },
+    {
       "name": "Ollie Gordon",
       "position": "RB",
       "ppg": 3.2,
       "recPG": 0.0
     },
     {
-      "name": "Eli Stowers",
-      "position": "TE",
-      "ppg": 3.2,
-      "recPG": 0.9
+      "name": "Zachariah Branch",
+      "position": "WR",
+      "ppg": 3.1,
+      "recPG": 1.02
     },
     {
       "name": "Jack Bech",
@@ -1757,7 +1781,13 @@
       "recPG": 0.0
     },
     {
-      "name": "Antonio Williams",
+      "name": "Marlin Klein",
+      "position": "TE",
+      "ppg": 3.0,
+      "recPG": 0.84
+    },
+    {
+      "name": "Caleb Douglas",
       "position": "WR",
       "ppg": 3.0,
       "recPG": 0.99
@@ -1775,10 +1805,16 @@
       "recPG": 0.0
     },
     {
-      "name": "Max Klare",
-      "position": "TE",
+      "name": "Malachi Fields",
+      "position": "WR",
       "ppg": 2.9,
-      "recPG": 0.81
+      "recPG": 0.96
+    },
+    {
+      "name": "Ja'Kobi Lane",
+      "position": "WR",
+      "ppg": 2.9,
+      "recPG": 0.96
     },
     {
       "name": "Elijah Arroyo",
@@ -1787,7 +1823,7 @@
       "recPG": 0.0
     },
     {
-      "name": "Chris Bell",
+      "name": "Zavion Thomas",
       "position": "WR",
       "ppg": 2.7,
       "recPG": 0.89
@@ -1805,22 +1841,10 @@
       "recPG": 0.0
     },
     {
-      "name": "Marlin Klein",
-      "position": "TE",
-      "ppg": 2.6,
-      "recPG": 0.73
-    },
-    {
-      "name": "Jonah Coleman",
+      "name": "Kaelon Black",
       "position": "RB",
-      "ppg": 2.6,
-      "recPG": 0.42
-    },
-    {
-      "name": "Chris Brazzell II",
-      "position": "WR",
-      "ppg": 2.6,
-      "recPG": 0.86
+      "ppg": 2.5,
+      "recPG": 0.4
     },
     {
       "name": "John FitzPatrick",
@@ -1835,16 +1859,16 @@
       "recPG": 0.0
     },
     {
-      "name": "Mike Washington Jr.",
-      "position": "RB",
+      "name": "Sam Roush",
+      "position": "TE",
       "ppg": 2.5,
-      "recPG": 0.4
+      "recPG": 0.7
     },
     {
-      "name": "Zachariah Branch",
-      "position": "WR",
+      "name": "Michael Trigg",
+      "position": "TE",
       "ppg": 2.4,
-      "recPG": 0.79
+      "recPG": 0.67
     },
     {
       "name": "Tanner Conner",
@@ -1883,31 +1907,19 @@
       "recPG": 0.0
     },
     {
-      "name": "Caleb Douglas",
-      "position": "WR",
-      "ppg": 2.3,
-      "recPG": 0.76
-    },
-    {
-      "name": "Malachi Fields",
-      "position": "WR",
-      "ppg": 2.3,
-      "recPG": 0.76
-    },
-    {
       "name": "Payne Durham",
       "position": "TE",
       "ppg": 2.2,
       "recPG": 0.0
     },
     {
-      "name": "Le'Veon Moss",
-      "position": "RB",
+      "name": "Oscar Delp",
+      "position": "TE",
       "ppg": 2.2,
-      "recPG": 0.35
+      "recPG": 0.62
     },
     {
-      "name": "Ja'Kobi Lane",
+      "name": "Ted Hurst",
       "position": "WR",
       "ppg": 2.2,
       "recPG": 0.73
@@ -1931,19 +1943,7 @@
       "recPG": 0.0
     },
     {
-      "name": "Sam Roush",
-      "position": "TE",
-      "ppg": 2.1,
-      "recPG": 0.59
-    },
-    {
-      "name": "Zavion Thomas",
-      "position": "WR",
-      "ppg": 2.1,
-      "recPG": 0.69
-    },
-    {
-      "name": "Michael Trigg",
+      "name": "Eli Raridon",
       "position": "TE",
       "ppg": 2.0,
       "recPG": 0.56
@@ -1967,6 +1967,24 @@
       "recPG": 0.0
     },
     {
+      "name": "Nate Boerkircher",
+      "position": "TE",
+      "ppg": 1.9,
+      "recPG": 0.53
+    },
+    {
+      "name": "Brenen Thompson",
+      "position": "WR",
+      "ppg": 1.9,
+      "recPG": 0.63
+    },
+    {
+      "name": "Skyler Bell",
+      "position": "WR",
+      "ppg": 1.9,
+      "recPG": 0.63
+    },
+    {
       "name": "Charlie Jones",
       "position": "WR",
       "ppg": 1.8,
@@ -1985,10 +2003,16 @@
       "recPG": 0.0
     },
     {
-      "name": "Oscar Delp",
-      "position": "TE",
+      "name": "Reggie Virgil",
+      "position": "WR",
       "ppg": 1.8,
-      "recPG": 0.5
+      "recPG": 0.59
+    },
+    {
+      "name": "Eric McAlister",
+      "position": "WR",
+      "ppg": 1.8,
+      "recPG": 0.59
     },
     {
       "name": "Tip Reiman",
@@ -1997,28 +2021,10 @@
       "recPG": 0.0
     },
     {
-      "name": "Eli Raridon",
-      "position": "TE",
-      "ppg": 1.7,
-      "recPG": 0.48
-    },
-    {
-      "name": "Emmett Johnson",
+      "name": "Jonah Coleman",
       "position": "RB",
-      "ppg": 1.7,
-      "recPG": 0.27
-    },
-    {
-      "name": "Nate Boerkircher",
-      "position": "TE",
-      "ppg": 1.7,
-      "recPG": 0.48
-    },
-    {
-      "name": "Ted Hurst",
-      "position": "WR",
-      "ppg": 1.7,
-      "recPG": 0.56
+      "ppg": 1.6,
+      "recPG": 0.26
     },
     {
       "name": "Quintin Morris",
@@ -2039,16 +2045,10 @@
       "recPG": 0.0
     },
     {
-      "name": "Brenen Thompson",
-      "position": "WR",
-      "ppg": 1.6,
-      "recPG": 0.53
-    },
-    {
-      "name": "Skyler Bell",
-      "position": "WR",
-      "ppg": 1.6,
-      "recPG": 0.53
+      "name": "Mike Washington Jr.",
+      "position": "RB",
+      "ppg": 1.5,
+      "recPG": 0.24
     },
     {
       "name": "Derius Davis",
@@ -2057,19 +2057,13 @@
       "recPG": 0.0
     },
     {
-      "name": "Demond Claiborne",
-      "position": "RB",
-      "ppg": 1.5,
-      "recPG": 0.24
-    },
-    {
-      "name": "Reggie Virgil",
+      "name": "Elijah Sarratt",
       "position": "WR",
       "ppg": 1.5,
       "recPG": 0.49
     },
     {
-      "name": "Eric McAlister",
+      "name": "Bryce Lance",
       "position": "WR",
       "ppg": 1.5,
       "recPG": 0.49
@@ -2081,28 +2075,10 @@
       "recPG": 0.0
     },
     {
-      "name": "Nicholas Singleton",
+      "name": "Le'Veon Moss",
       "position": "RB",
-      "ppg": 1.4,
-      "recPG": 0.22
-    },
-    {
-      "name": "Adam Randall",
-      "position": "RB",
-      "ppg": 1.4,
-      "recPG": 0.22
-    },
-    {
-      "name": "Seth McGowan",
-      "position": "RB",
-      "ppg": 1.4,
-      "recPG": 0.22
-    },
-    {
-      "name": "Kaytron Allen",
-      "position": "RB",
-      "ppg": 1.4,
-      "recPG": 0.22
+      "ppg": 1.3,
+      "recPG": 0.21
     },
     {
       "name": "Rasheen Ali",
@@ -2111,19 +2087,13 @@
       "recPG": 0.0
     },
     {
-      "name": "Jam Miller",
-      "position": "RB",
+      "name": "Kaden Wetjen",
+      "position": "WR",
       "ppg": 1.3,
-      "recPG": 0.21
+      "recPG": 0.43
     },
     {
-      "name": "Noah Whittington",
-      "position": "RB",
-      "ppg": 1.3,
-      "recPG": 0.21
-    },
-    {
-      "name": "Elijah Sarratt",
+      "name": "Colbie Young",
       "position": "WR",
       "ppg": 1.3,
       "recPG": 0.43
@@ -2141,28 +2111,10 @@
       "recPG": 0.34
     },
     {
-      "name": "Rahsul Faison",
-      "position": "RB",
+      "name": "Will Kacmarek",
+      "position": "TE",
       "ppg": 1.2,
-      "recPG": 0.19
-    },
-    {
-      "name": "Roman Hemby",
-      "position": "RB",
-      "ppg": 1.2,
-      "recPG": 0.19
-    },
-    {
-      "name": "J'Mari Taylor",
-      "position": "RB",
-      "ppg": 1.2,
-      "recPG": 0.19
-    },
-    {
-      "name": "Bryce Lance",
-      "position": "WR",
-      "ppg": 1.2,
-      "recPG": 0.4
+      "recPG": 0.34
     },
     {
       "name": "Anthony Richardson",
@@ -2183,25 +2135,19 @@
       "recPG": 0.0
     },
     {
-      "name": "CJ Donaldson",
-      "position": "RB",
-      "ppg": 1.1,
-      "recPG": 0.18
-    },
-    {
-      "name": "Eli Heidenreich",
-      "position": "RB",
-      "ppg": 1.1,
-      "recPG": 0.18
-    },
-    {
-      "name": "Kaden Wetjen",
+      "name": "CJ Williams",
       "position": "WR",
       "ppg": 1.1,
       "recPG": 0.36
     },
     {
-      "name": "Colbie Young",
+      "name": "CJ Daniels",
+      "position": "WR",
+      "ppg": 1.1,
+      "recPG": 0.36
+    },
+    {
+      "name": "Cyrus Allen",
       "position": "WR",
       "ppg": 1.1,
       "recPG": 0.36
@@ -2219,34 +2165,34 @@
       "recPG": 0.0
     },
     {
-      "name": "Will Kacmarek",
-      "position": "TE",
+      "name": "Barion Brown",
+      "position": "WR",
       "ppg": 1.0,
-      "recPG": 0.28
+      "recPG": 0.33
     },
     {
-      "name": "Desmond Reid",
-      "position": "RB",
+      "name": "Emmanuel Henderson Jr.",
+      "position": "WR",
       "ppg": 1.0,
-      "recPG": 0.16
+      "recPG": 0.33
     },
     {
-      "name": "Robert Henry",
-      "position": "RB",
+      "name": "Kevin Coleman",
+      "position": "WR",
       "ppg": 1.0,
-      "recPG": 0.16
+      "recPG": 0.33
+    },
+    {
+      "name": "Anthony Smith",
+      "position": "WR",
+      "ppg": 1.0,
+      "recPG": 0.33
     },
     {
       "name": "Kaleb Johnson",
       "position": "RB",
       "ppg": 0.9,
       "recPG": 0.0
-    },
-    {
-      "name": "CJ Williams",
-      "position": "WR",
-      "ppg": 0.9,
-      "recPG": 0.3
     },
     {
       "name": "Carson Beck",
@@ -2267,28 +2213,34 @@
       "recPG": 0.0
     },
     {
-      "name": "CJ Daniels",
+      "name": "Deion Burks",
       "position": "WR",
       "ppg": 0.9,
       "recPG": 0.3
     },
     {
-      "name": "Cyrus Allen",
+      "name": "Lewis Bond",
       "position": "WR",
       "ppg": 0.9,
       "recPG": 0.3
     },
     {
-      "name": "Barion Brown",
+      "name": "Kendrick Law",
       "position": "WR",
       "ppg": 0.9,
       "recPG": 0.3
     },
     {
-      "name": "Emmanuel Henderson Jr.",
-      "position": "WR",
-      "ppg": 0.9,
-      "recPG": 0.3
+      "name": "Emmett Johnson",
+      "position": "RB",
+      "ppg": 0.8,
+      "recPG": 0.13
+    },
+    {
+      "name": "Demond Claiborne",
+      "position": "RB",
+      "ppg": 0.8,
+      "recPG": 0.13
     },
     {
       "name": "Trevor Etienne",
@@ -2303,34 +2255,34 @@
       "recPG": 0.0
     },
     {
-      "name": "Kevin Coleman",
-      "position": "WR",
-      "ppg": 0.8,
-      "recPG": 0.26
-    },
-    {
-      "name": "Anthony Smith",
-      "position": "WR",
-      "ppg": 0.8,
-      "recPG": 0.26
-    },
-    {
-      "name": "Deion Burks",
-      "position": "WR",
-      "ppg": 0.8,
-      "recPG": 0.26
-    },
-    {
       "name": "Cole Payton",
       "position": "QB",
       "ppg": 0.8,
       "recPG": 0.0
     },
     {
-      "name": "Lewis Bond",
-      "position": "WR",
-      "ppg": 0.8,
-      "recPG": 0.26
+      "name": "Nicholas Singleton",
+      "position": "RB",
+      "ppg": 0.7,
+      "recPG": 0.11
+    },
+    {
+      "name": "Adam Randall",
+      "position": "RB",
+      "ppg": 0.7,
+      "recPG": 0.11
+    },
+    {
+      "name": "Seth McGowan",
+      "position": "RB",
+      "ppg": 0.7,
+      "recPG": 0.11
+    },
+    {
+      "name": "Kaytron Allen",
+      "position": "RB",
+      "ppg": 0.7,
+      "recPG": 0.11
     },
     {
       "name": "Britain Covey",
@@ -2343,12 +2295,6 @@
       "position": "TE",
       "ppg": 0.7,
       "recPG": 0.2
-    },
-    {
-      "name": "Kendrick Law",
-      "position": "WR",
-      "ppg": 0.7,
-      "recPG": 0.23
     },
     {
       "name": "Taylen Green",
@@ -2369,6 +2315,48 @@
       "recPG": 0.0
     },
     {
+      "name": "Josh Cameron",
+      "position": "WR",
+      "ppg": 0.7,
+      "recPG": 0.23
+    },
+    {
+      "name": "Jam Miller",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
+      "name": "Noah Whittington",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
+      "name": "Rahsul Faison",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
+      "name": "Roman Hemby",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
+      "name": "J'Mari Taylor",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
+      "name": "CJ Donaldson",
+      "position": "RB",
+      "ppg": 0.6,
+      "recPG": 0.1
+    },
+    {
       "name": "Tanner Koziol",
       "position": "TE",
       "ppg": 0.6,
@@ -2387,10 +2375,28 @@
       "recPG": 0.17
     },
     {
-      "name": "Josh Cameron",
+      "name": "Malik Benson",
       "position": "WR",
       "ppg": 0.6,
       "recPG": 0.2
+    },
+    {
+      "name": "Eli Heidenreich",
+      "position": "RB",
+      "ppg": 0.5,
+      "recPG": 0.08
+    },
+    {
+      "name": "Desmond Reid",
+      "position": "RB",
+      "ppg": 0.5,
+      "recPG": 0.08
+    },
+    {
+      "name": "Robert Henry",
+      "position": "RB",
+      "ppg": 0.5,
+      "recPG": 0.08
     },
     {
       "name": "Dylan Laube",
@@ -2459,7 +2465,7 @@
       "recPG": 0.14
     },
     {
-      "name": "Malik Benson",
+      "name": "Jeff Caldwell",
       "position": "WR",
       "ppg": 0.5,
       "recPG": 0.17
@@ -2481,12 +2487,6 @@
       "position": "TE",
       "ppg": 0.4,
       "recPG": 0.11
-    },
-    {
-      "name": "Jeff Caldwell",
-      "position": "WR",
-      "ppg": 0.4,
-      "recPG": 0.13
     },
     {
       "name": "Bauer Sharp",

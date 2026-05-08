@@ -27,24 +27,28 @@ ROOT = Path('/home/user/stathead')
 PROJ = ROOT / 'public/data/redraft-projections.json'
 FM = ROOT / 'public/data/feature-matrix.json'
 
-# Y1 PPG fraction by position + pick range
+# Y1 PPG fraction by position + pick range. Calibrated against Mike Clay's
+# 2026 projection set. Keep in sync with `y1Fraction` in
+# scripts/precompute-features.ts.
 def y1_fraction(pos: str, pick: int) -> float:
     if pos == 'RB':
+        if pick <= 32:  return 0.85
+        if pick <= 64:  return 0.55
+        if pick <= 100: return 0.30
+        if pick <= 150: return 0.18
+        return 0.10
+    if pos == 'WR':
+        if pick <= 16:  return 0.95
         if pick <= 32:  return 0.85
         if pick <= 64:  return 0.60
         if pick <= 100: return 0.45
         if pick <= 150: return 0.30
-        return 0.20
-    if pos == 'WR':
-        if pick <= 32:  return 0.60
-        if pick <= 64:  return 0.45
-        if pick <= 100: return 0.35
-        if pick <= 150: return 0.25
-        return 0.15
+        return 0.18
     if pos == 'TE':
-        if pick <= 32:  return 0.45
-        if pick <= 64:  return 0.35
-        if pick <= 100: return 0.25
+        if pick <= 16:  return 0.80
+        if pick <= 32:  return 0.55
+        if pick <= 64:  return 0.40
+        if pick <= 100: return 0.30
         if pick <= 150: return 0.20
         return 0.10
     if pos == 'QB':
@@ -62,17 +66,14 @@ def main() -> int:
     data = json.loads(PROJ.read_text())
     fm = json.loads(FM.read_text())
     preds = {p['name']: p for p in fm.get('careerPredictions2026', [])}
-    existing_names = {p['name'] for p in data.get('players', [])}
+    by_name = {p['name']: p for p in data.get('players', [])}
 
     added = 0
-    skipped_already = 0
+    updated = 0
     skipped_no_pred = 0
     for name, p in preds.items():
         pos = p['position']
         if pos not in ('QB', 'RB', 'WR', 'TE'):
-            continue
-        if name in existing_names:
-            skipped_already += 1
             continue
         career_ppg = p.get('predictedCareerPPG', 0)
         if not career_ppg or career_ppg <= 0:
@@ -83,13 +84,22 @@ def main() -> int:
         frac = y1_fraction(pos, pick)
         y1_ppg = round(career_ppg * frac, 1)
         recpg = round(y1_ppg * RECPG_RATIO[pos], 2)
-        data.setdefault('players', []).append({
-            'name': name,
-            'position': pos,
-            'ppg': y1_ppg,
-            'recPG': recpg,
-        })
-        added += 1
+        existing = by_name.get(name)
+        if existing:
+            # Refresh in place — heuristic constants may have changed
+            # since the last run (e.g. Clay-calibrated bumps to R1 WR/TE).
+            existing['ppg'] = y1_ppg
+            existing['recPG'] = recpg
+            existing['position'] = pos
+            updated += 1
+        else:
+            data.setdefault('players', []).append({
+                'name': name,
+                'position': pos,
+                'ppg': y1_ppg,
+                'recPG': recpg,
+            })
+            added += 1
 
     # Re-sort by ppg desc within position so the file is browseable
     data['players'].sort(key=lambda r: -r.get('ppg', 0))
@@ -107,7 +117,7 @@ def main() -> int:
 
     PROJ.write_text(json.dumps(data, indent=2))
     print(f'Added {added} rookies')
-    print(f'  skipped (already in file): {skipped_already}')
+    print(f'  updated in place: {updated}')
     print(f'  skipped (no career prediction): {skipped_no_pred}')
     print(f'New total players: {len(data["players"])}')
     return 0
