@@ -34,6 +34,29 @@ function pctlColor(pctl: number): string {
   return '#ef4444';
 }
 
+// Features where a HIGH raw value is WORSE for projection (late draft pick,
+// older rookie, slower 40, more red flags). Bars + colors invert for these so
+// "longer green bar = better for the player" reads consistently across the
+// card. The raw feature value is still shown unchanged in the rightmost col.
+const LOWER_IS_BETTER = new Set<string>([
+  'nflDraftPick', 'nflDraftRound', 'logDraftPick',
+  'draftPickPct', 'draftPickPctOverall',
+  'adp', 'adpRound',
+  'age',
+  'forty', 'cone', 'shuttle',
+  'pdfNWeaknesses', 'pdfNRedFlags', 'pdfRankOverallMean',
+  'priorINTs', 'priorBustGameRate', 'teamSackRate', 'injuryRecurrence',
+  'priorGamesMissed', 'priorInjuryWeeks', 'priorGamesOut',
+  'preseasonInjured', 'preseasonInjWeeks',
+  'priorSoftTissue', 'priorKneeInjury',
+]);
+
+// Returns the "goodness" percentile — high = better for the player —
+// regardless of the underlying feature's natural direction.
+function goodnessPctl(key: string, pctl: number): number {
+  return LOWER_IS_BETTER.has(key) ? 100 - pctl : pctl;
+}
+
 const FEATURE_LABELS: Record<string, string> = {};
 for (const f of FEATURES) { FEATURE_LABELS[f.key] = f.label; }
 
@@ -336,7 +359,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   Career Model Inputs ({pos})
                 </div>
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
-                  Bars show percentile vs all rookies at position
+                  Bars show goodness percentile (longer/greener = better) vs all rookies at position
                 </div>
                 {modelFeatureKeys.filter(key => {
                   // Hide combine-derived rows when the player skipped the
@@ -356,14 +379,15 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                   const val = rawVal ?? 0;
                   const pctl = missing ? undefined : player.featurePercentiles?.[key];
                   const usePctl = pctl !== undefined;
-                  const barPct = missing ? 0 : (usePctl ? pctl : (() => {
+                  const goodPctl = usePctl ? goodnessPctl(key, pctl) : undefined;
+                  const barPct = missing ? 0 : (goodPctl !== undefined ? goodPctl : (() => {
                     const maxVal = key.includes('log') ? 6 : key.includes('inv') ? 0.5 :
                       key === 'age' ? 24 : key === 'weight' ? 250 :
                       key.includes('Score') ? 120 : key.includes('Yds') ? 2000 :
                       key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
                     return Math.min(100, (Math.abs(val) / maxVal) * 100);
                   })());
-                  const color = missing ? 'var(--bg-tertiary)' : (usePctl ? pctlColor(pctl) : '#8b5cf6');
+                  const color = missing ? 'var(--bg-tertiary)' : (goodPctl !== undefined ? pctlColor(goodPctl) : '#8b5cf6');
                   return (
                     <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -373,7 +397,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                         {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                        {missing ? 'missing' : (usePctl ? `${pctl}` : fmtVal(val))}
+                        {missing ? 'missing' : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
                       </span>
                       <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
                         {missing ? '—' : fmtVal(val)}
@@ -402,7 +426,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       Boom / Bust Inputs ({pos})
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
-                      Raw features fed into the outperformance + bust-event models
+                      Raw features fed into the outperformance + bust-event models. Bars show goodness percentile (longer/greener = better).
                     </div>
                     {visible.map(key => {
                       const rawVal = features[key] ?? (key === 'predictedPPG' ? (player.predictedPPG ?? undefined) : undefined);
@@ -411,7 +435,8 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                       const val = rawVal ?? 0;
                       const pctl = missing ? undefined : player.featurePercentiles?.[key];
                       const usePctl = pctl !== undefined;
-                      const barPct = missing ? 0 : (usePctl ? pctl : (() => {
+                      const goodPctl = usePctl ? goodnessPctl(key, pctl) : undefined;
+                      const barPct = missing ? 0 : (goodPctl !== undefined ? goodPctl : (() => {
                         const maxVal = key === 'age' ? 24 : key === 'weight' ? 250 :
                           key === 'nflDraftPick' ? 260 : key === 'predictedPPG' ? 20 :
                           key === 'collegeQBR2yr' ? 90 : key === 'collegeTeamTalent' ? 1000 :
@@ -421,7 +446,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                           key.includes('TDs') ? 40 : key.includes('Rating') ? 50 : 1;
                         return Math.min(100, (Math.abs(val) / maxVal) * 100);
                       })());
-                      const color = missing ? 'var(--bg-tertiary)' : (usePctl ? pctlColor(pctl) : '#f59e0b');
+                      const color = missing ? 'var(--bg-tertiary)' : (goodPctl !== undefined ? pctlColor(goodPctl) : '#f59e0b');
                       return (
                         <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <span style={{ fontSize: 10, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -431,7 +456,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                             {!missing && <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />}
                           </div>
                           <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
-                            {missing ? 'missing' : (usePctl ? `${pctl}` : fmtVal(val))}
+                            {missing ? 'missing' : (goodPctl !== undefined ? `${goodPctl}` : fmtVal(val))}
                           </span>
                           <span style={{ fontSize: 9, color: missing ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', fontStyle: missing ? 'italic' : 'normal' }}>
                             {missing ? '—' : fmtVal(val)}
@@ -466,6 +491,7 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                         <div style={{ paddingLeft: 8 }}>
                           {nonZero.map(({ key, value }) => {
                             const pctl = player.featurePercentiles?.[key];
+                            const goodPctl = pctl !== undefined ? goodnessPctl(key, pctl) : undefined;
                             return (
                               <div key={key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 28px 32px', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                 <span style={{ fontSize: 9, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -473,14 +499,14 @@ export function PlayerCard({ player, onClose }: PlayerCardProps) {
                                 </span>
                                 <div style={{ height: 4, background: 'var(--bg-tertiary)', borderRadius: 2, overflow: 'hidden' }}>
                                   <div style={{
-                                    width: `${pctl !== undefined ? pctl : 0}%`,
+                                    width: `${goodPctl !== undefined ? goodPctl : 0}%`,
                                     height: '100%',
-                                    background: pctl !== undefined ? pctlColor(pctl) : 'var(--bg-tertiary)',
+                                    background: goodPctl !== undefined ? pctlColor(goodPctl) : 'var(--bg-tertiary)',
                                     borderRadius: 2,
                                   }} />
                                 </div>
                                 <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'right' }}>
-                                  {pctl !== undefined ? pctl : ''}
+                                  {goodPctl !== undefined ? goodPctl : ''}
                                 </span>
                                 <span style={{ fontSize: 9, color: 'var(--text-secondary)', textAlign: 'right' }}>
                                   {fmtVal(value)}
