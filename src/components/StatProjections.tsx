@@ -448,6 +448,12 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
+  // Lifted out of the projection effect so the by-team grouping memo can
+  // consult Clay's depth ordering directly. Belt-and-suspenders against
+  // edge cases where pprPts ordering doesn't perfectly match depth (e.g.
+  // a starter rookie whose Y1 projection misses a pool reconciliation
+  // step and lands behind a vet's ML-shared volume).
+  const [depthChart, setDepthChart] = useState<Record<string, Record<string, string[]>>>({});
   // Model-predicted PPG lookup (score-store/ppg.json). Keyed by normalized name.
   const [projPPGMap, setProjPPGMap] = useState<Map<string, number>>(new Map());
 
@@ -579,6 +585,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ADP hasn't priced in (e.g. R1 QB Mendoza starting over the
         // veteran on his roster).
         const depthChart = depthChartData as Record<string, Record<string, string[]>>;
+        // Stash for the by-team grouping memo (which can't see this scope).
+        if (!cancelled) setDepthChart(depthChart);
         function depthRank(team: string, pos: string, name: string): number {
           const list = depthChart?.[team]?.[pos];
           if (!list) return 9999;
@@ -1724,15 +1732,34 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     for (const p of dispRbs) { if (p.team) ensure(p.team).rbs.push(p); }
     for (const p of dispWrs) { if (p.team) ensure(p.team).wrs.push(p); }
     for (const p of dispTes) { if (p.team) ensure(p.team).tes.push(p); }
+    // Depth-chart-aware sort. Primary: Clay's depth ordering (lower
+    // index = starter). Tiebreaker: projected pprPts. Anything not in
+    // the depth chart gets rank 9999 and sorts purely by pprPts. This
+    // is intentionally redundant with the candidatesByTeamPos sort —
+    // by also sorting here, the by-team display is robust to any
+    // projection-side issue that produces a starter pprPts < backup.
+    const rankByDepth = (team: string, pos: string, name: string): number => {
+      const list = depthChart?.[team]?.[pos];
+      if (!list) return 9999;
+      const norm = name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
+      const idx = list.findIndex((n) => n.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim() === norm);
+      return idx >= 0 ? idx : 9999;
+    };
+    const sortBy = (pos: string) => (a: { name: string; team: string; pprPts: number }, b: { name: string; team: string; pprPts: number }) => {
+      const ad = rankByDepth(a.team, pos, a.name.replace(/^★\s*/, ''));
+      const bd = rankByDepth(b.team, pos, b.name.replace(/^★\s*/, ''));
+      if (ad !== bd) return ad - bd;
+      return b.pprPts - a.pprPts;
+    };
     for (const g of byTeam.values()) {
-      g.qbs = g.qbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.QB);
-      g.rbs = g.rbs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.RB);
-      g.wrs = g.wrs.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.WR);
-      g.tes = g.tes.sort((a, b) => b.pprPts - a.pprPts).slice(0, TEAM_POS_LIMITS.TE);
+      g.qbs = g.qbs.sort(sortBy('QB')).slice(0, TEAM_POS_LIMITS.QB);
+      g.rbs = g.rbs.sort(sortBy('RB')).slice(0, TEAM_POS_LIMITS.RB);
+      g.wrs = g.wrs.sort(sortBy('WR')).slice(0, TEAM_POS_LIMITS.WR);
+      g.tes = g.tes.sort(sortBy('TE')).slice(0, TEAM_POS_LIMITS.TE);
       g.totalPPR = [...g.qbs, ...g.rbs, ...g.wrs, ...g.tes].reduce((s, p) => s + p.pprPts, 0);
     }
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
-  }, [dispQbs, dispRbs, dispWrs, dispTes]);
+  }, [dispQbs, dispRbs, dispWrs, dispTes, depthChart]);
 
   // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
   const teamTotals = useMemo((): TeamTotalRow[] => {
