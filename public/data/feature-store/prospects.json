@@ -39978,7 +39978,7 @@
     "projRound": 4,
     "projPick": 112,
     "weight": 201,
-    "forty": 4.51,
+    "forty": 4.36,
     "height": 73,
     "collegeRushYds": 30,
     "collegeRushTDs": 0,
@@ -40004,10 +40004,10 @@
     "collegeBreakoutScore": 0.03,
     "collegeTeammateScore": 0.04,
     "collegeEarlyDeclare": 0,
-    "speedScore": 97.2,
-    "heightAdjSpeedScore": 93.4,
+    "speedScore": 111.2,
+    "heightAdjSpeedScore": 106.8,
     "source": "csv",
-    "updatedAt": "2026-04-07T12:38:13.465Z"
+    "updatedAt": "2026-05-09T00:00:00.000Z"
   },
   "cj daniels": {
     "name": "CJ Daniels",

@@ -822,11 +822,19 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
     fetchDraftPicks().catch(() => []),
   ]);
 
-  // Combine lookups
+  // Combine lookups. PFR occasionally carries a legal name with a hyphenated
+  // middle (e.g. "De'Zhaun-Ryan Stribling") that won't match the canonical
+  // first+last form used by prospect / draft sources after hyphen-stripping
+  // normalization. Manual aliases bridge those one-offs.
+  const COMBINE_NAME_ALIASES: Record<string, string> = {
+    "De'Zhaun-Ryan Stribling": "De'Zhaun Stribling",
+  };
   const combineByName = new Map<string, any>();
   const combineAvg = new Map<string, Record<string, number>>();
   for (const c of combineData) {
     combineByName.set(normalizeName(c.player_name), c);
+    const alias = COMBINE_NAME_ALIASES[c.player_name];
+    if (alias) combineByName.set(normalizeName(alias), c);
   }
   // Position averages
   for (const pos of POSITIONS) {
