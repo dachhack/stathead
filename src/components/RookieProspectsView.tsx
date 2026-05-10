@@ -6,7 +6,7 @@ import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import { PlayerLink } from './PlayerLink';
 import prospectGrades from '../data/prospect-grades-2026.json';
-import { aliasCombineName } from '../lib/combineNameAliases';
+import { canonicalizePlayerName } from '../lib/combineNameAliases';
 
 interface ProspectGrade {
   name: string;
@@ -184,10 +184,13 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             if (m?.thresholds) posThresholds[pos] = m.thresholds;
           }
         }
-        // Build prospect grade lookup
+        // Build prospect grade lookup. All map keys flow through
+        // canonicalizePlayerName so spelling variants across sources
+        // (PFR's hyphenated middle, FantasyPros' Nick-vs-Nicholas) collapse
+        // to a single key before normalization.
         const gradeMap = new Map<string, ProspectGrade>();
         for (const g of prospectGrades as ProspectGrade[]) {
-          gradeMap.set(normalizeName(g.name), g);
+          gradeMap.set(normalizeName(canonicalizePlayerName(g.name)), g);
         }
 
         // Filter to 2026 combine prospects
@@ -197,14 +200,14 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         const rookieRanks = fpRankings.filter((r: FantasyRanking) => r.ecr_type === 'drk');
         const fpMap = new Map<string, FantasyRanking>();
         for (const r of rookieRanks) {
-          fpMap.set(normalizeName(r.player), r);
+          fpMap.set(normalizeName(canonicalizePlayerName(r.player)), r);
         }
 
         // KTC rookies
         const ktcRookies = ktcPlayers.filter((p: KTCPlayer) => p.isRookie);
         const ktcMap = new Map<string, KTCPlayer>();
         for (const p of ktcRookies) {
-          ktcMap.set(normalizeName(p.playerName), p);
+          ktcMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
         }
 
         // Build merged rows from combine as base. `seenNames` tracks every
@@ -215,7 +218,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         // upstream data sometimes has character variants our regex misses).
         const seenNames = new Set<string>();
         const allRows: ProspectRow[] = prospects2026.map((c: CombineResult) => {
-          const canonicalName = aliasCombineName(c.player_name);
+          const canonicalName = canonicalizePlayerName(c.player_name);
           const nName = normalizeName(canonicalName);
           seenNames.add(nName);
           const pg = gradeMap.get(nName);
@@ -274,7 +277,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
 
         // Add graded prospects not in combine
         for (const [, pg] of gradeMap) {
-          const nName = normalizeName(pg.name);
+          const nName = normalizeName(canonicalizePlayerName(pg.name));
           if (seenNames.has(nName)) continue;
           seenNames.add(nName);
           const fp = fpMap.get(nName);
@@ -323,14 +326,15 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
 
         // Add FantasyPros rookies not yet matched
         for (const [, fp] of fpMap) {
-          const nName = normalizeName(fp.player);
+          const canonicalName = canonicalizePlayerName(fp.player);
+          const nName = normalizeName(canonicalName);
           if (seenNames.has(nName)) continue;
           seenNames.add(nName);
           const ktc = ktcMap.get(nName);
           if (ktc) ktcMap.delete(nName);
           const career = careerMap.get(nName);
           allRows.push({
-            name: fp.player,
+            name: canonicalName,
             pos: fp.pos || '',
             school: '',
             grade: 0,
