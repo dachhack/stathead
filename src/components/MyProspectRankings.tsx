@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay, fetchRosters } from '../data';
-import { aliasCombineName } from '../lib/combineNameAliases';
+import { canonicalizePlayerName } from '../lib/combineNameAliases';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
   CombineResult,
@@ -306,22 +306,24 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
   // ── Build merged rows ──
   const allRows = useMemo((): ProspectRankRow[] => {
-    // Lookup maps
+    // Lookup maps. All keys flow through canonicalizePlayerName so spelling
+    // variants across sources (PFR's hyphenated middle, FantasyPros' "Nick"
+    // vs "Nicholas") collapse to a single key.
     const gradeMap = new Map<string, ProspectGrade>();
     for (const g of prospectGrades as ProspectGrade[]) {
-      gradeMap.set(normalizeName(g.name), g);
+      gradeMap.set(normalizeName(canonicalizePlayerName(g.name)), g);
     }
 
     const prospects2026 = combine.filter(c => c.season === DRAFT_YEAR);
     const combineMap = new Map<string, CombineResult>();
-    for (const c of prospects2026) combineMap.set(normalizeName(aliasCombineName(c.player_name)), c);
+    for (const c of prospects2026) combineMap.set(normalizeName(canonicalizePlayerName(c.player_name)), c);
     const rookieFp = fpRanks.filter(r => r.ecr_type === 'drk');
     const fpMap = new Map<string, FantasyRanking>();
-    for (const r of rookieFp) fpMap.set(normalizeName(r.player), r);
+    for (const r of rookieFp) fpMap.set(normalizeName(canonicalizePlayerName(r.player)), r);
 
     const ktcRookies = ktc.filter(p => p.isRookie);
     const ktcMap = new Map<string, KTCPlayer>();
-    for (const p of ktcRookies) ktcMap.set(normalizeName(p.playerName), p);
+    for (const p of ktcRookies) ktcMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
 
     const seen = new Set<string>();
     const rows: ProspectRankRow[] = [];
@@ -412,7 +414,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
     // Seed from combine 2026 prospects
     for (const c of prospects2026) {
-      const canonicalName = aliasCombineName(c.player_name);
+      const canonicalName = canonicalizePlayerName(c.player_name);
       const nn = normalizeName(canonicalName);
       const pg = gradeMap.get(nn);
       const fp = fpMap.get(nn);
@@ -431,7 +433,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     for (const [nn, pg] of gradeMap) {
       const fp = fpMap.get(nn);
       const ktcP = ktcMap.get(nn);
-      const row = buildRow(pg.name, pg.pos, pg.school, pg, fp, ktcP);
+      const row = buildRow(canonicalizePlayerName(pg.name), pg.pos, pg.school, pg, fp, ktcP);
       if (row) {
         rows.push(row);
         fpMap.delete(nn);
@@ -442,7 +444,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     // Add FantasyPros rookies not yet matched
     for (const [nn, fp] of fpMap) {
       const ktcP = ktcMap.get(nn);
-      const row = buildRow(fp.player, fp.pos || '', '', undefined, fp, ktcP);
+      const row = buildRow(canonicalizePlayerName(fp.player), fp.pos || '', '', undefined, fp, ktcP);
       if (row) {
         rows.push(row);
         ktcMap.delete(nn);
