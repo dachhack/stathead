@@ -17,6 +17,7 @@ import {
   fetchCombine, fetchCollegeStats, fetchDraftPicks,
 } from '../../data';
 import { normalizeName, POSITIONS } from '../featureTypes';
+import { COMBINE_NAME_ALIASES } from '../combineNameAliases';
 import { buildCollegeAnalytics } from '../collegeAnalytics';
 
 // ── Types for intermediate aggregations ─────────────────────────────
@@ -825,10 +826,7 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
   // Combine lookups. PFR occasionally carries a legal name with a hyphenated
   // middle (e.g. "De'Zhaun-Ryan Stribling") that won't match the canonical
   // first+last form used by prospect / draft sources after hyphen-stripping
-  // normalization. Manual aliases bridge those one-offs.
-  const COMBINE_NAME_ALIASES: Record<string, string> = {
-    "De'Zhaun-Ryan Stribling": "De'Zhaun Stribling",
-  };
+  // normalization. The shared COMBINE_NAME_ALIASES map bridges those.
   const combineByName = new Map<string, any>();
   const combineAvg = new Map<string, Record<string, number>>();
   for (const c of combineData) {

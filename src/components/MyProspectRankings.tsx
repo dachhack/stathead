@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay, fetchRosters } from '../data';
+import { aliasCombineName } from '../lib/combineNameAliases';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
   CombineResult,
@@ -313,7 +314,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
     const prospects2026 = combine.filter(c => c.season === DRAFT_YEAR);
     const combineMap = new Map<string, CombineResult>();
-    for (const c of prospects2026) combineMap.set(normalizeName(c.player_name), c);
+    for (const c of prospects2026) combineMap.set(normalizeName(aliasCombineName(c.player_name)), c);
     const rookieFp = fpRanks.filter(r => r.ecr_type === 'drk');
     const fpMap = new Map<string, FantasyRanking>();
     for (const r of rookieFp) fpMap.set(normalizeName(r.player), r);
@@ -411,12 +412,13 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
     // Seed from combine 2026 prospects
     for (const c of prospects2026) {
-      const nn = normalizeName(c.player_name);
+      const canonicalName = aliasCombineName(c.player_name);
+      const nn = normalizeName(canonicalName);
       const pg = gradeMap.get(nn);
       const fp = fpMap.get(nn);
       const ktcP = ktcMap.get(nn);
       const pos = pg?.pos || c.pos || '';
-      const row = buildRow(c.player_name, pos, c.school || pg?.school || '', pg, fp, ktcP);
+      const row = buildRow(canonicalName, pos, c.school || pg?.school || '', pg, fp, ktcP);
       if (row) {
         rows.push(row);
         gradeMap.delete(nn);
