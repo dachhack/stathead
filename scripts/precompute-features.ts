@@ -12,6 +12,7 @@ import { fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchCollegeQBR,
   fetchCfbdRecruiting, fetchCfbdTeamTalent, fetchCfbdPlayerUsage, fetchCfbdCollegeStats } from '../src/data';
 import { FeatureStoreBuilder } from '../src/lib/featureStore';
 import { loadProspectStore, buildProspectFeatureRecord } from '../src/lib/featureStore/prospectStore';
+import { COMBINE_NAME_ALIASES } from '../src/lib/combineNameAliases';
 import { writeCareerScores, writeADPScores, writePPGScores, writeShareScores, writeVolumeScores, writeScoreManifest, tierFromPercentile } from '../src/lib/modelScoreStore';
 import type { ShareScore, VolumeScore } from '../src/lib/modelScoreStore';
 import type { CareerScore, ADPScore, PPGScore } from '../src/lib/modelScoreStore';
@@ -627,13 +628,6 @@ async function main() {
     // same name) doesn't pull stale measurables / hasCombineData=1 onto
     // the current prospect.
     const combineByProspect = new Map<string, any>();
-    // Manual aliases: PFR sometimes carries a player's legal name with a
-    // hyphenated middle name (e.g. "De'Zhaun-Ryan Stribling"), which won't
-    // match the prospect-store entry ("De'Zhaun Stribling") through the
-    // exact-match normalizeName lookup. Map upstream → prospect-store key.
-    const COMBINE_NAME_ALIASES: Record<string, string> = {
-      "De'Zhaun-Ryan Stribling": "De'Zhaun Stribling",
-    };
     for (const c of combineData) {
       if (Number(c.season) !== PREDICT_SEASON) continue;
       combineByProspect.set(normalizeName(c.player_name), c);

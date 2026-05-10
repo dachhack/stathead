@@ -6,6 +6,7 @@ import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import { PlayerLink } from './PlayerLink';
 import prospectGrades from '../data/prospect-grades-2026.json';
+import { aliasCombineName } from '../lib/combineNameAliases';
 
 interface ProspectGrade {
   name: string;
@@ -214,7 +215,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         // upstream data sometimes has character variants our regex misses).
         const seenNames = new Set<string>();
         const allRows: ProspectRow[] = prospects2026.map((c: CombineResult) => {
-          const nName = normalizeName(c.player_name);
+          const canonicalName = aliasCombineName(c.player_name);
+          const nName = normalizeName(canonicalName);
           seenNames.add(nName);
           const pg = gradeMap.get(nName);
           const fp = fpMap.get(nName);
@@ -224,7 +226,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           if (pg) gradeMap.delete(nName);
           const career = careerMap.get(nName);
           return {
-            name: c.player_name,
+            name: canonicalName,
             pos: pg?.pos || c.pos || '',
             school: c.school || pg?.school || '',
             grade: pg?.grade || 0,
