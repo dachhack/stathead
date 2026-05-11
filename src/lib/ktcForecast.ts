@@ -241,7 +241,11 @@ export function getRedraftPPG(
   if (!entry) return null;
   let ppg = entry.ppg;
   if (tepLevel > 0 && position === 'TE') {
-    ppg += TEP_PPG_BONUS[tepLevel] * entry.recPG;
+    // recPG is 0 for rookies and backups without prior NFL receiving stats.
+    // Fall back to a ppg-based estimate so they still get the TEP boost.
+    // Across TEs with both stats, recPG/ppg has median ~0.34, mean ~0.39.
+    const recPG = entry.recPG > 0 ? entry.recPG : entry.ppg * 0.38;
+    ppg += TEP_PPG_BONUS[tepLevel] * recPG;
   }
   return ppg;
 }
