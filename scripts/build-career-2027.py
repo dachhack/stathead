@@ -105,6 +105,26 @@ def main():
             best_season[int(r["season"])][stat] += val
             school_seen = r.get("school")
 
+        # Per-season breakdown for the player card. Skip seasons with no
+        # production at all so a redshirt/reserve year doesn't show as 0/0/0.
+        STAT_KEYS = [
+            "Passing Yards", "Passing Touchdowns", "Interceptions",
+            "Completions", "Passing Attempts",
+            "Rushing Yards", "Rushing Touchdowns",
+            "Receiving Yards", "Receiving Touchdowns", "Receptions",
+        ]
+        season_stats = []
+        for s in sorted(seasons):
+            entry = {"season": s, "school": None}
+            any_val = False
+            for k in STAT_KEYS:
+                v = round(best_season[s].get(k, 0))
+                entry[k] = v
+                if v:
+                    any_val = True
+            if any_val:
+                season_stats.append(entry)
+
         # Best-single-season values for headline stats
         def best(stat):
             return max((best_season[s].get(stat, 0) for s in best_season), default=0)
@@ -121,16 +141,25 @@ def main():
         if recruit_info:
             matched_recruit += 1
 
-        # Most recent usage (2024 + 2025 if available, latest preferred)
-        usage_2025 = None
-        usage_2024 = None
-        for k in keys:
-            if not usage_2025 and f"{k}:2025" in usage:
-                usage_2025 = usage[f"{k}:2025"]
-            if not usage_2024 and f"{k}:2024" in usage:
-                usage_2024 = usage[f"{k}:2024"]
-            if usage_2025 and usage_2024:
-                break
+        # Per-season usage (overall snap share). Walk every year a player
+        # could plausibly have an entry. Useful when a redshirt freshman has
+        # 2024 reps but no 2025 reps, etc.
+        usage_by_season = []
+        for season_year in range(2022, 2026):
+            for k in keys:
+                hit = usage.get(f"{k}:{season_year}")
+                if hit:
+                    usage_by_season.append({
+                        "season": season_year,
+                        "team": hit.get("team"),
+                        "position": hit.get("position"),
+                        "overall": hit.get("overall"),
+                        "pass": hit.get("pass"),
+                        "rush": hit.get("rush"),
+                    })
+                    break
+        usage_2025 = next((u for u in usage_by_season if u["season"] == 2025), None)
+        usage_2024 = next((u for u in usage_by_season if u["season"] == 2024), None)
 
         row = {
             "name": name,
@@ -161,12 +190,19 @@ def main():
             "bestPassYds": round(best("Passing Yards")),
             "bestRushYds": round(best("Rushing Yards")),
             "bestRecYds": round(best("Receiving Yards")),
-            # Recruit
+            # Recruit (247 composite + measurables at HS)
             "recruitStars": recruit_info.get("stars") if recruit_info else None,
             "recruitRating": recruit_info.get("composite_rating") if recruit_info else None,
+            "recruitRank": recruit_info.get("rank") if recruit_info else None,
             "recruitClassYear": recruit_info.get("class_year") if recruit_info else None,
             "recruitPosition": recruit_info.get("position") if recruit_info else None,
-            # Usage (overall snap-weighted, most recent)
+            "recruitCommittedTo": recruit_info.get("committed_to") if recruit_info else None,
+            "recruitHeight": recruit_info.get("height") if recruit_info else None,
+            "recruitWeight": recruit_info.get("weight") if recruit_info else None,
+            # Per-season production + usage (for the player card)
+            "seasonStats": season_stats,
+            "usageBySeason": usage_by_season,
+            # Most-recent usage shortcuts (table convenience)
             "usage2025": usage_2025.get("overall") if usage_2025 else None,
             "usage2024": usage_2024.get("overall") if usage_2024 else None,
             # Provenance
