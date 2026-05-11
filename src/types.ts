@@ -201,6 +201,7 @@ export type Tab =
   | 'ktc'
   | 'sportsdata'
   | 'prospects'
+  | 'prospects-2027'
   | 'draft-optimizer'
   | 'trade-calc'
   | 'dynasty-forecast'

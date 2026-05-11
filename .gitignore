@@ -26,6 +26,7 @@ public/data/*
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
 !public/data/depth-chart-2026.json
+!public/data/career-2027.json
 !public/data/cfbd-college-stats.json
 !public/data/cfbd-sp-ratings.json
 !public/data/cfbd-recruiting.json
