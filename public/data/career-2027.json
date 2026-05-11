@@ -36,8 +36,82 @@
     "bestRecYds": 0,
     "recruitStars": 5,
     "recruitRating": 0.998,
+    "recruitRank": 4,
     "recruitClassYear": 2023,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "UCLA",
+    "recruitHeight": 74.5,
+    "recruitWeight": 210,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 1610,
+        "Passing Touchdowns": 11,
+        "Interceptions": 9,
+        "Completions": 114,
+        "Passing Attempts": 213,
+        "Rushing Yards": -83,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 49,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 7,
+        "Passing Attempts": 8,
+        "Rushing Yards": 6,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3565,
+        "Passing Touchdowns": 30,
+        "Interceptions": 10,
+        "Completions": 296,
+        "Passing Attempts": 412,
+        "Rushing Yards": 156,
+        "Rushing Touchdowns": 2,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "ucla",
+        "position": "QB",
+        "overall": 0.377,
+        "pass": 0.698,
+        "rush": 0.061
+      },
+      {
+        "season": 2024,
+        "team": "oregon",
+        "position": "QB",
+        "overall": 0.035,
+        "pass": 0.06,
+        "rush": 0.008
+      },
+      {
+        "season": 2025,
+        "team": "oregon",
+        "position": "QB",
+        "overall": 0.486,
+        "pass": 0.937,
+        "rush": 0.105
+      }
+    ],
     "usage2025": 0.486,
     "usage2024": 0.035,
     "cfbdKey": "dantemoore",
@@ -80,8 +154,82 @@
     "bestRecYds": 4,
     "recruitStars": 5,
     "recruitRating": 0.9995,
+    "recruitRank": 1,
     "recruitClassYear": 2023,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Texas",
+    "recruitHeight": 76,
+    "recruitWeight": 215,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 30,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 2,
+        "Passing Attempts": 5,
+        "Rushing Yards": 7,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 938,
+        "Passing Touchdowns": 9,
+        "Interceptions": 2,
+        "Completions": 61,
+        "Passing Attempts": 90,
+        "Rushing Yards": 108,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3163,
+        "Passing Touchdowns": 26,
+        "Interceptions": 7,
+        "Completions": 248,
+        "Passing Attempts": 404,
+        "Rushing Yards": 399,
+        "Rushing Touchdowns": 10,
+        "Receiving Yards": 4,
+        "Receiving Touchdowns": 1,
+        "Receptions": 1
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "texas",
+        "position": "QB",
+        "overall": 0.095,
+        "pass": 0.143,
+        "rush": 0.051
+      },
+      {
+        "season": 2024,
+        "team": "texas",
+        "position": "QB",
+        "overall": 0.159,
+        "pass": 0.259,
+        "rush": 0.055
+      },
+      {
+        "season": 2025,
+        "team": "texas",
+        "position": "QB",
+        "overall": 0.495,
+        "pass": 0.82,
+        "rush": 0.149
+      }
+    ],
     "usage2025": 0.495,
     "usage2024": 0.159,
     "cfbdKey": "archmanning",
@@ -123,8 +271,60 @@
     "bestRecYds": 1315,
     "recruitStars": 5,
     "recruitRating": 0.9997,
+    "recruitRank": 1,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Ohio State",
+    "recruitHeight": 75,
+    "recruitWeight": 214,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 47,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 1315,
+        "Receiving Touchdowns": 15,
+        "Receptions": 76
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 21,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 1243,
+        "Receiving Touchdowns": 12,
+        "Receptions": 87
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "ohio state",
+        "position": "WR",
+        "overall": 0.096,
+        "pass": 0.19,
+        "rush": 0.012
+      },
+      {
+        "season": 2025,
+        "team": "ohio state",
+        "position": "WR",
+        "overall": 0.129,
+        "pass": 0.257,
+        "rush": 0.007
+      }
+    ],
     "usage2025": 0.129,
     "usage2024": 0.096,
     "cfbdKey": "jeremiahsmith",
@@ -166,8 +366,60 @@
     "bestRecYds": 0,
     "recruitStars": 5,
     "recruitRating": 0.9966,
+    "recruitRank": 6,
     "recruitClassYear": 2024,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Alabama",
+    "recruitHeight": 73,
+    "recruitWeight": 195,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 84,
+        "Passing Touchdowns": 1,
+        "Interceptions": 0,
+        "Completions": 5,
+        "Passing Attempts": 12,
+        "Rushing Yards": 24,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3610,
+        "Passing Touchdowns": 32,
+        "Interceptions": 8,
+        "Completions": 301,
+        "Passing Attempts": 391,
+        "Rushing Yards": -44,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "ohio state",
+        "position": "QB",
+        "overall": 0.043,
+        "pass": 0.072,
+        "rush": 0.014
+      },
+      {
+        "season": 2025,
+        "team": "ohio state",
+        "position": "QB",
+        "overall": 0.473,
+        "pass": 0.934,
+        "rush": 0.053
+      }
+    ],
     "usage2025": 0.473,
     "usage2024": 0.043,
     "cfbdKey": "juliansayin",
@@ -210,8 +462,60 @@
     "bestRecYds": 725,
     "recruitStars": 5,
     "recruitRating": 0.9985,
+    "recruitRank": 3,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Auburn",
+    "recruitHeight": 75,
+    "recruitWeight": 180,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 598,
+        "Receiving Touchdowns": 8,
+        "Receptions": 37
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 725,
+        "Receiving Touchdowns": 5,
+        "Receptions": 57
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "auburn",
+        "position": "WR",
+        "overall": 0.064,
+        "pass": 0.122,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "auburn",
+        "position": "WR",
+        "overall": 0.114,
+        "pass": 0.231,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.114,
     "usage2024": 0.064,
     "cfbdKey": "camcoleman",
@@ -252,8 +556,38 @@
     "bestRecYds": 0,
     "recruitStars": 4,
     "recruitRating": 0.9685,
+    "recruitRank": 68,
     "recruitClassYear": 2024,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Notre Dame",
+    "recruitHeight": 74.5,
+    "recruitWeight": 195,
+    "seasonStats": [
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2741,
+        "Passing Touchdowns": 24,
+        "Interceptions": 6,
+        "Completions": 195,
+        "Passing Attempts": 293,
+        "Rushing Yards": 33,
+        "Rushing Touchdowns": 3,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2025,
+        "team": "notre dame",
+        "position": "QB",
+        "overall": 0.421,
+        "pass": 0.883,
+        "rush": 0.069
+      }
+    ],
     "usage2025": 0.421,
     "usage2024": null,
     "cfbdKey": "cjcarr",
@@ -295,8 +629,60 @@
     "bestRecYds": 72,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1352,
+        "Rushing Touchdowns": 13,
+        "Receiving Yards": 72,
+        "Receiving Touchdowns": 0,
+        "Receptions": 8
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1649,
+        "Rushing Touchdowns": 16,
+        "Receiving Yards": 22,
+        "Receiving Touchdowns": 0,
+        "Receptions": 6
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "ul monroe",
+        "position": "RB",
+        "overall": 0.352,
+        "pass": 0.031,
+        "rush": 0.546
+      },
+      {
+        "season": 2025,
+        "team": "missouri",
+        "position": "RB",
+        "overall": 0.278,
+        "pass": 0.02,
+        "rush": 0.468
+      }
+    ],
     "usage2025": 0.278,
     "usage2024": 0.352,
     "cfbdKey": "ahmadhardy",
@@ -338,8 +724,60 @@
     "bestRecYds": 510,
     "recruitStars": 4,
     "recruitRating": 0.9008,
+    "recruitRank": 328,
     "recruitClassYear": 2023,
     "recruitPosition": "ATH",
+    "recruitCommittedTo": "Louisville",
+    "recruitHeight": 76,
+    "recruitWeight": 270,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 158,
+        "Receiving Touchdowns": 1,
+        "Receptions": 13
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 510,
+        "Receiving Touchdowns": 3,
+        "Receptions": 32
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "louisville",
+        "position": "TE",
+        "overall": 0.027,
+        "pass": 0.047,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "oregon",
+        "position": "TE",
+        "overall": 0.044,
+        "pass": 0.096,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.044,
     "usage2024": 0.027,
     "cfbdKey": "jamarijohnson",
@@ -381,8 +819,60 @@
     "bestRecYds": 433,
     "recruitStars": 4,
     "recruitRating": 0.9814,
+    "recruitRank": 40,
     "recruitClassYear": 2024,
     "recruitPosition": "TE",
+    "recruitCommittedTo": "LSU",
+    "recruitHeight": 78.5,
+    "recruitWeight": 225,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 101,
+        "Receiving Touchdowns": 4,
+        "Receptions": 13
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 433,
+        "Receiving Touchdowns": 7,
+        "Receptions": 33
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "lsu",
+        "position": "TE",
+        "overall": 0.031,
+        "pass": 0.052,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "lsu",
+        "position": "TE",
+        "overall": 0.081,
+        "pass": 0.14,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.081,
     "usage2024": 0.031,
     "cfbdKey": "treydezgreen",
@@ -424,8 +914,60 @@
     "bestRecYds": 0,
     "recruitStars": 2,
     "recruitRating": 0.7933,
+    "recruitRank": 2289,
     "recruitClassYear": 2023,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Tulane",
+    "recruitHeight": 75,
+    "recruitWeight": 215,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 2723,
+        "Passing Touchdowns": 22,
+        "Interceptions": 6,
+        "Completions": 189,
+        "Passing Attempts": 287,
+        "Rushing Yards": 132,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3973,
+        "Passing Touchdowns": 34,
+        "Interceptions": 6,
+        "Completions": 334,
+        "Passing Attempts": 500,
+        "Rushing Yards": -32,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": -11,
+        "Receiving Touchdowns": 0,
+        "Receptions": 1
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "tulane",
+        "position": "QB",
+        "overall": 0.407,
+        "pass": 0.951,
+        "rush": 0.088
+      },
+      {
+        "season": 2025,
+        "team": "duke",
+        "position": "QB",
+        "overall": 0.555,
+        "pass": 0.966,
+        "rush": 0.071
+      }
+    ],
     "usage2025": 0.555,
     "usage2024": 0.407,
     "cfbdKey": "darianmensah",
@@ -467,8 +1009,60 @@
     "bestRecYds": 177,
     "recruitStars": 4,
     "recruitRating": 0.9268,
+    "recruitRank": 178,
     "recruitClassYear": 2024,
     "recruitPosition": "RB",
+    "recruitCommittedTo": "Missouri",
+    "recruitHeight": 72,
+    "recruitWeight": 205,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 104,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 9,
+        "Receiving Touchdowns": 0,
+        "Receptions": 2
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1567,
+        "Rushing Touchdowns": 24,
+        "Receiving Yards": 177,
+        "Receiving Touchdowns": 0,
+        "Receptions": 29
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "missouri",
+        "position": "RB",
+        "overall": 0.057,
+        "pass": 0.01,
+        "rush": 0.1
+      },
+      {
+        "season": 2025,
+        "team": "ole miss",
+        "position": "RB",
+        "overall": 0.3,
+        "pass": 0.069,
+        "rush": 0.529
+      }
+    ],
     "usage2025": 0.3,
     "usage2024": 0.057,
     "cfbdKey": "kewanlacy",
@@ -510,8 +1104,60 @@
     "bestRecYds": 679,
     "recruitStars": 3,
     "recruitRating": 0.8681,
+    "recruitRank": 969,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": null,
+    "recruitHeight": 75,
+    "recruitWeight": 185,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 3,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 679,
+        "Receiving Touchdowns": 4,
+        "Receptions": 34
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "indiana",
+        "position": "WR",
+        "overall": 0.015,
+        "pass": 0,
+        "rush": 0.021
+      },
+      {
+        "season": 2025,
+        "team": "indiana",
+        "position": "WR",
+        "overall": 0.053,
+        "pass": 0.133,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.053,
     "usage2024": 0.015,
     "cfbdKey": "charliebecker",
@@ -553,8 +1199,60 @@
     "bestRecYds": 911,
     "recruitStars": 4,
     "recruitRating": 0.9056,
+    "recruitRank": 309,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Mississippi State",
+    "recruitHeight": 71,
+    "recruitWeight": 165,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 7,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 368,
+        "Receiving Touchdowns": 3,
+        "Receptions": 17
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 81,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 911,
+        "Receiving Touchdowns": 4,
+        "Receptions": 58
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "mississippi state",
+        "position": "WR",
+        "overall": 0.047,
+        "pass": 0.083,
+        "rush": 0.011
+      },
+      {
+        "season": 2025,
+        "team": "texas a&m",
+        "position": "WR",
+        "overall": 0.113,
+        "pass": 0.218,
+        "rush": 0.025
+      }
+    ],
     "usage2025": 0.113,
     "usage2024": 0.047,
     "cfbdKey": "mariocraver",
@@ -596,8 +1294,82 @@
     "bestRecYds": 21,
     "recruitStars": 4,
     "recruitRating": 0.9127,
+    "recruitRank": 256,
     "recruitClassYear": 2023,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "South Carolina",
+    "recruitHeight": 74.5,
+    "recruitWeight": 217,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 86,
+        "Passing Touchdowns": 2,
+        "Interceptions": 0,
+        "Completions": 4,
+        "Passing Attempts": 4,
+        "Rushing Yards": 51,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 2527,
+        "Passing Touchdowns": 18,
+        "Interceptions": 7,
+        "Completions": 197,
+        "Passing Attempts": 300,
+        "Rushing Yards": 681,
+        "Rushing Touchdowns": 7,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2437,
+        "Passing Touchdowns": 13,
+        "Interceptions": 8,
+        "Completions": 178,
+        "Passing Attempts": 293,
+        "Rushing Yards": 270,
+        "Rushing Touchdowns": 5,
+        "Receiving Yards": 21,
+        "Receiving Touchdowns": 0,
+        "Receptions": 1
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "south carolina",
+        "position": "QB",
+        "overall": 0.046,
+        "pass": 0.039,
+        "rush": 0.054
+      },
+      {
+        "season": 2024,
+        "team": "south carolina",
+        "position": "QB",
+        "overall": 0.572,
+        "pass": 0.937,
+        "rush": 0.31
+      },
+      {
+        "season": 2025,
+        "team": "south carolina",
+        "position": "QB",
+        "overall": 0.564,
+        "pass": 0.855,
+        "rush": 0.28
+      }
+    ],
     "usage2025": 0.564,
     "usage2024": 0.572,
     "cfbdKey": "lanorrissellers",
@@ -635,8 +1407,14 @@
     "bestRecYds": 0,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [],
+    "usageBySeason": [],
     "usage2025": null,
     "usage2024": null,
     "cfbdKey": null,
@@ -677,8 +1455,60 @@
     "bestRecYds": 0,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 462,
+        "Passing Touchdowns": 2,
+        "Interceptions": 2,
+        "Completions": 30,
+        "Passing Attempts": 46,
+        "Rushing Yards": 87,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 4369,
+        "Passing Touchdowns": 34,
+        "Interceptions": 9,
+        "Completions": 319,
+        "Passing Attempts": 465,
+        "Rushing Yards": 89,
+        "Rushing Touchdowns": 5,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "north texas",
+        "position": "QB",
+        "overall": 0.208,
+        "pass": 0.285,
+        "rush": 0.09
+      },
+      {
+        "season": 2025,
+        "team": "north texas",
+        "position": "QB",
+        "overall": 0.472,
+        "pass": 0.914,
+        "rush": 0.075
+      }
+    ],
     "usage2025": 0.472,
     "usage2024": 0.208,
     "cfbdKey": "drewmestemaker",
@@ -720,8 +1550,74 @@
     "bestRecYds": 662,
     "recruitStars": 4,
     "recruitRating": 0.928,
+    "recruitRank": 176,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Michigan State",
+    "recruitHeight": 75,
+    "recruitWeight": 200,
+    "seasonStats": [
+      {
+        "season": 2011,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 15,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 23,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 649,
+        "Receiving Touchdowns": 3,
+        "Receptions": 41
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 11,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 662,
+        "Receiving Touchdowns": 6,
+        "Receptions": 59
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "michigan state",
+        "position": "WR",
+        "overall": 0.074,
+        "pass": 0.134,
+        "rush": 0.012
+      },
+      {
+        "season": 2025,
+        "team": "michigan state",
+        "position": "WR",
+        "overall": 0.132,
+        "pass": 0.247,
+        "rush": 0.009
+      }
+    ],
     "usage2025": 0.132,
     "usage2024": 0.074,
     "cfbdKey": "nickmarsh",
@@ -764,8 +1660,104 @@
     "bestRecYds": 0,
     "recruitStars": 3,
     "recruitRating": 0.8596,
+    "recruitRank": 1012,
     "recruitClassYear": 2022,
     "recruitPosition": "QB",
+    "recruitCommittedTo": null,
+    "recruitHeight": 75,
+    "recruitWeight": 220,
+    "seasonStats": [
+      {
+        "season": 2022,
+        "school": null,
+        "Passing Yards": 8,
+        "Passing Touchdowns": 0,
+        "Interceptions": 1,
+        "Completions": 3,
+        "Passing Attempts": 6,
+        "Rushing Yards": -8,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 1582,
+        "Passing Touchdowns": 15,
+        "Interceptions": 5,
+        "Completions": 135,
+        "Passing Attempts": 236,
+        "Rushing Yards": 291,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 2813,
+        "Passing Touchdowns": 18,
+        "Interceptions": 7,
+        "Completions": 249,
+        "Passing Attempts": 389,
+        "Rushing Yards": 445,
+        "Rushing Touchdowns": 9,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2786,
+        "Passing Touchdowns": 26,
+        "Interceptions": 5,
+        "Completions": 206,
+        "Passing Attempts": 335,
+        "Rushing Yards": 580,
+        "Rushing Touchdowns": 9,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2022,
+        "team": "indiana",
+        "position": "QB",
+        "overall": 0.127,
+        "pass": 0.229,
+        "rush": 0
+      },
+      {
+        "season": 2023,
+        "team": "indiana",
+        "position": "QB",
+        "overall": 0.508,
+        "pass": 0.773,
+        "rush": 0.271
+      },
+      {
+        "season": 2024,
+        "team": "cincinnati",
+        "position": "QB",
+        "overall": 0.603,
+        "pass": 0.978,
+        "rush": 0.228
+      },
+      {
+        "season": 2025,
+        "team": "cincinnati",
+        "position": "QB",
+        "overall": 0.608,
+        "pass": 0.957,
+        "rush": 0.259
+      }
+    ],
     "usage2025": 0.608,
     "usage2024": 0.603,
     "cfbdKey": "brendansorsby",
@@ -807,8 +1799,60 @@
     "bestRecYds": 116,
     "recruitStars": 4,
     "recruitRating": 0.9777,
+    "recruitRank": 49,
     "recruitClassYear": 2024,
     "recruitPosition": "RB",
+    "recruitCommittedTo": "Georgia",
+    "recruitHeight": 69.5,
+    "recruitWeight": 206,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 671,
+        "Rushing Touchdowns": 8,
+        "Receiving Yards": 85,
+        "Receiving Touchdowns": 0,
+        "Receptions": 12
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 947,
+        "Rushing Touchdowns": 6,
+        "Receiving Yards": 116,
+        "Receiving Touchdowns": 1,
+        "Receptions": 16
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "georgia",
+        "position": "RB",
+        "overall": 0.171,
+        "pass": 0.028,
+        "rush": 0.345
+      },
+      {
+        "season": 2025,
+        "team": "georgia",
+        "position": "RB",
+        "overall": 0.187,
+        "pass": 0.044,
+        "rush": 0.301
+      }
+    ],
     "usage2025": 0.187,
     "usage2024": 0.171,
     "cfbdKey": "natefrazier",
@@ -850,8 +1894,60 @@
     "bestRecYds": 1084,
     "recruitStars": 4,
     "recruitRating": 0.9073,
+    "recruitRank": 296,
     "recruitClassYear": 2024,
     "recruitPosition": "TE",
+    "recruitCommittedTo": "Rutgers",
+    "recruitHeight": 77,
+    "recruitWeight": 207,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 433,
+        "Receiving Touchdowns": 1,
+        "Receptions": 28
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 1084,
+        "Receiving Touchdowns": 7,
+        "Receptions": 60
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "rutgers",
+        "position": "WR",
+        "overall": 0.04,
+        "pass": 0.086,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "rutgers",
+        "position": "WR",
+        "overall": 0.112,
+        "pass": 0.226,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.112,
     "usage2024": 0.04,
     "cfbdKey": "kjduff",
@@ -892,8 +1988,60 @@
     "bestRecYds": 834,
     "recruitStars": 4,
     "recruitRating": 0.9819,
+    "recruitRank": 39,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Texas",
+    "recruitHeight": 73.5,
+    "recruitWeight": 210,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 100,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 423,
+        "Receiving Touchdowns": 2,
+        "Receptions": 27
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 2,
+        "Rushing Yards": 42,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 834,
+        "Receiving Touchdowns": 7,
+        "Receptions": 54
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "texas",
+        "position": "WR",
+        "overall": 0.05,
+        "pass": 0.085,
+        "rush": 0.011
+      },
+      {
+        "season": 2025,
+        "team": "texas",
+        "position": "WR",
+        "overall": 0.117,
+        "pass": 0.213,
+        "rush": 0.019
+      }
+    ],
     "usage2025": 0.117,
     "usage2024": 0.05,
     "cfbdKey": "ryanwingo",
@@ -935,8 +2083,82 @@
     "bestRecYds": 807,
     "recruitStars": 4,
     "recruitRating": 0.9096,
+    "recruitRank": 274,
     "recruitClassYear": 2023,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Colorado",
+    "recruitHeight": 74,
+    "recruitWeight": 190,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 234,
+        "Receiving Touchdowns": 1,
+        "Receptions": 11
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 216,
+        "Receiving Touchdowns": 1,
+        "Receptions": 10
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 807,
+        "Receiving Touchdowns": 8,
+        "Receptions": 44
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "colorado",
+        "position": "WR",
+        "overall": 0.043,
+        "pass": 0.071,
+        "rush": 0
+      },
+      {
+        "season": 2024,
+        "team": "colorado",
+        "position": "WR",
+        "overall": 0.064,
+        "pass": 0.098,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "colorado",
+        "position": "WR",
+        "overall": 0.095,
+        "pass": 0.196,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.095,
     "usage2024": 0.064,
     "cfbdKey": "omarionmiller",
@@ -977,8 +2199,60 @@
     "bestRecYds": 837,
     "recruitStars": 5,
     "recruitRating": 0.9887,
+    "recruitRank": 23,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Clemson",
+    "recruitHeight": 75,
+    "recruitWeight": 195,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 651,
+        "Receiving Touchdowns": 5,
+        "Receptions": 45
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 8,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 837,
+        "Receiving Touchdowns": 4,
+        "Receptions": 52
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "clemson",
+        "position": "WR",
+        "overall": 0.064,
+        "pass": 0.113,
+        "rush": 0.002
+      },
+      {
+        "season": 2025,
+        "team": "clemson",
+        "position": "WR",
+        "overall": 0.089,
+        "pass": 0.16,
+        "rush": 0.005
+      }
+    ],
     "usage2025": 0.089,
     "usage2024": 0.064,
     "cfbdKey": "tjmoore",
@@ -1027,8 +2301,186 @@
     "bestRecYds": 865,
     "recruitStars": 5,
     "recruitRating": 0.9982,
+    "recruitRank": 4,
     "recruitClassYear": 2024,
     "recruitPosition": "WR",
+    "recruitCommittedTo": "Alabama",
+    "recruitHeight": 72.5,
+    "recruitWeight": 165,
+    "seasonStats": [
+      {
+        "season": 2005,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 290,
+        "Rushing Touchdowns": 3,
+        "Receiving Yards": 32,
+        "Receiving Touchdowns": 1,
+        "Receptions": 3
+      },
+      {
+        "season": 2006,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 442,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": 2,
+        "Receiving Touchdowns": 0,
+        "Receptions": 1
+      },
+      {
+        "season": 2007,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 220,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 24,
+        "Receiving Touchdowns": 0,
+        "Receptions": 2
+      },
+      {
+        "season": 2009,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1655,
+        "Rushing Touchdowns": 21,
+        "Receiving Yards": 180,
+        "Receiving Touchdowns": 1,
+        "Receptions": 16
+      },
+      {
+        "season": 2010,
+        "school": null,
+        "Passing Yards": 2075,
+        "Passing Touchdowns": 13,
+        "Interceptions": 10,
+        "Completions": 165,
+        "Passing Attempts": 290,
+        "Rushing Yards": 300,
+        "Rushing Touchdowns": 9,
+        "Receiving Yards": 109,
+        "Receiving Touchdowns": 1,
+        "Receptions": 10
+      },
+      {
+        "season": 2012,
+        "school": null,
+        "Passing Yards": 137,
+        "Passing Touchdowns": 1,
+        "Interceptions": 0,
+        "Completions": 15,
+        "Passing Attempts": 20,
+        "Rushing Yards": -6,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2013,
+        "school": null,
+        "Passing Yards": 369,
+        "Passing Touchdowns": 3,
+        "Interceptions": 1,
+        "Completions": 22,
+        "Passing Attempts": 32,
+        "Rushing Yards": -16,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2014,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 1,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2016,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 51,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 48,
+        "Rushing Touchdowns": 2,
+        "Receiving Yards": 865,
+        "Receiving Touchdowns": 8,
+        "Receptions": 48
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 21,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 689,
+        "Receiving Touchdowns": 4,
+        "Receptions": 49
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "alabama",
+        "position": "WR",
+        "overall": 0.095,
+        "pass": 0.199,
+        "rush": 0.011
+      },
+      {
+        "season": 2025,
+        "team": "alabama",
+        "position": "WR",
+        "overall": 0.091,
+        "pass": 0.155,
+        "rush": 0.006
+      }
+    ],
     "usage2025": 0.091,
     "usage2024": 0.095,
     "cfbdKey": "ryanwilliams",
@@ -1070,8 +2522,82 @@
     "bestRecYds": 0,
     "recruitStars": 4,
     "recruitRating": 0.9026,
+    "recruitRank": 311,
     "recruitClassYear": 2023,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Michigan State",
+    "recruitHeight": 74,
+    "recruitWeight": 197,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 139,
+        "Passing Touchdowns": 2,
+        "Interceptions": 2,
+        "Completions": 15,
+        "Passing Attempts": 23,
+        "Rushing Yards": 67,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 2885,
+        "Passing Touchdowns": 24,
+        "Interceptions": 6,
+        "Completions": 216,
+        "Passing Attempts": 350,
+        "Rushing Yards": 443,
+        "Rushing Touchdowns": 5,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 1628,
+        "Passing Touchdowns": 10,
+        "Interceptions": 3,
+        "Completions": 145,
+        "Passing Attempts": 239,
+        "Rushing Yards": 306,
+        "Rushing Touchdowns": 5,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "michigan state",
+        "position": "QB",
+        "overall": 0.133,
+        "pass": 0.17,
+        "rush": 0.089
+      },
+      {
+        "season": 2024,
+        "team": "arizona state",
+        "position": "QB",
+        "overall": 0.502,
+        "pass": 0.967,
+        "rush": 0.181
+      },
+      {
+        "season": 2025,
+        "team": "arizona state",
+        "position": "QB",
+        "overall": 0.601,
+        "pass": 0.995,
+        "rush": 0.226
+      }
+    ],
     "usage2025": 0.601,
     "usage2024": 0.502,
     "cfbdKey": "samleavitt",
@@ -1113,8 +2639,82 @@
     "bestRecYds": 1074,
     "recruitStars": 5,
     "recruitRating": 0.9875,
+    "recruitRank": 15,
     "recruitClassYear": 2023,
     "recruitPosition": "TE",
+    "recruitCommittedTo": "USC",
+    "recruitHeight": 78,
+    "recruitWeight": 225,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 351,
+        "Receiving Touchdowns": 2,
+        "Receptions": 16
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 396,
+        "Receiving Touchdowns": 5,
+        "Receptions": 23
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 1074,
+        "Receiving Touchdowns": 6,
+        "Receptions": 56
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "usc",
+        "position": "WR",
+        "overall": 0.045,
+        "pass": 0.073,
+        "rush": 0
+      },
+      {
+        "season": 2024,
+        "team": "usc",
+        "position": "WR",
+        "overall": 0.035,
+        "pass": 0.056,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "florida state",
+        "position": "WR",
+        "overall": 0.106,
+        "pass": 0.255,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.106,
     "usage2024": 0.035,
     "cfbdKey": "ducerobinson",
@@ -1152,8 +2752,14 @@
     "bestRecYds": 0,
     "recruitStars": 4,
     "recruitRating": 0.9377,
+    "recruitRank": 149,
     "recruitClassYear": 2023,
     "recruitPosition": "RB",
+    "recruitCommittedTo": "Miami",
+    "recruitHeight": 72.5,
+    "recruitWeight": 226,
+    "seasonStats": [],
+    "usageBySeason": [],
     "usage2025": null,
     "usage2024": null,
     "cfbdKey": null,
@@ -1195,8 +2801,82 @@
     "bestRecYds": 689,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 255,
+        "Receiving Touchdowns": 3,
+        "Receptions": 28
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 689,
+        "Receiving Touchdowns": 4,
+        "Receptions": 48
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 24,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 624,
+        "Receiving Touchdowns": 5,
+        "Receptions": 55
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "louisiana",
+        "position": "TE",
+        "overall": 0.043,
+        "pass": 0.094,
+        "rush": 0
+      },
+      {
+        "season": 2024,
+        "team": "louisiana",
+        "position": "TE",
+        "overall": 0.062,
+        "pass": 0.131,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "texas tech",
+        "position": "TE",
+        "overall": 0.082,
+        "pass": 0.169,
+        "rush": 0.004
+      }
+    ],
     "usage2025": 0.082,
     "usage2024": 0.062,
     "cfbdKey": "terrancecarter",
@@ -1237,8 +2917,82 @@
     "bestRecYds": 0,
     "recruitStars": 3,
     "recruitRating": 0.8663,
+    "recruitRank": 852,
     "recruitClassYear": 2022,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "UNLV",
+    "recruitHeight": 76,
+    "recruitWeight": 205,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 3085,
+        "Passing Touchdowns": 17,
+        "Interceptions": 10,
+        "Completions": 224,
+        "Passing Attempts": 353,
+        "Rushing Yards": 277,
+        "Rushing Touchdowns": 3,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 1201,
+        "Passing Touchdowns": 11,
+        "Interceptions": 6,
+        "Completions": 101,
+        "Passing Attempts": 169,
+        "Rushing Yards": 45,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": -3,
+        "Receiving Touchdowns": 0,
+        "Receptions": 1
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3711,
+        "Passing Touchdowns": 24,
+        "Interceptions": 10,
+        "Completions": 265,
+        "Passing Attempts": 403,
+        "Rushing Yards": 157,
+        "Rushing Touchdowns": 6,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "unlv",
+        "position": "QB",
+        "overall": 0.431,
+        "pass": 0.819,
+        "rush": 0.115
+      },
+      {
+        "season": 2024,
+        "team": "usc",
+        "position": "QB",
+        "overall": 0.368,
+        "pass": 0.603,
+        "rush": 0.081
+      },
+      {
+        "season": 2025,
+        "team": "usc",
+        "position": "QB",
+        "overall": 0.512,
+        "pass": 0.94,
+        "rush": 0.09
+      }
+    ],
     "usage2025": 0.512,
     "usage2024": 0.368,
     "cfbdKey": "jaydenmaiava",
@@ -1277,8 +3031,38 @@
     "bestRecYds": 8,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3937,
+        "Passing Touchdowns": 22,
+        "Interceptions": 3,
+        "Completions": 294,
+        "Passing Attempts": 445,
+        "Rushing Yards": 527,
+        "Rushing Touchdowns": 8,
+        "Receiving Yards": 8,
+        "Receiving Touchdowns": 0,
+        "Receptions": 1
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2025,
+        "team": "ole miss",
+        "position": "QB",
+        "overall": 0.509,
+        "pass": 0.834,
+        "rush": 0.207
+      }
+    ],
     "usage2025": 0.509,
     "usage2024": null,
     "cfbdKey": "trinidadchambliss",
@@ -1320,8 +3104,82 @@
     "bestRecYds": 618,
     "recruitStars": 5,
     "recruitRating": 0.9865,
+    "recruitRank": 20,
     "recruitClassYear": 2023,
     "recruitPosition": "ATH",
+    "recruitCommittedTo": "South Carolina",
+    "recruitHeight": 77,
+    "recruitWeight": 225,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 10,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 195,
+        "Receiving Touchdowns": 1,
+        "Receptions": 12
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 376,
+        "Receiving Touchdowns": 3,
+        "Receptions": 26
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 12,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 618,
+        "Receiving Touchdowns": 6,
+        "Receptions": 30
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "south carolina",
+        "position": "WR",
+        "overall": 0.049,
+        "pass": 0.08,
+        "rush": 0.012
+      },
+      {
+        "season": 2024,
+        "team": "south carolina",
+        "position": "WR",
+        "overall": 0.051,
+        "pass": 0.115,
+        "rush": 0.002
+      },
+      {
+        "season": 2025,
+        "team": "south carolina",
+        "position": "WR",
+        "overall": 0.062,
+        "pass": 0.121,
+        "rush": 0.003
+      }
+    ],
     "usage2025": 0.062,
     "usage2024": 0.051,
     "cfbdKey": "nyckharbor",
@@ -1359,8 +3217,14 @@
     "bestRecYds": 0,
     "recruitStars": null,
     "recruitRating": null,
+    "recruitRank": null,
     "recruitClassYear": null,
     "recruitPosition": null,
+    "recruitCommittedTo": null,
+    "recruitHeight": null,
+    "recruitWeight": null,
+    "seasonStats": [],
+    "usageBySeason": [],
     "usage2025": null,
     "usage2024": null,
     "cfbdKey": null,
@@ -1401,8 +3265,60 @@
     "bestRecYds": 1264,
     "recruitStars": 3,
     "recruitRating": 0.8428,
+    "recruitRank": 1767,
     "recruitClassYear": 2024,
     "recruitPosition": "ATH",
+    "recruitCommittedTo": "North Texas",
+    "recruitHeight": 73,
+    "recruitWeight": 180,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 31,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 1,
+        "Passing Attempts": 1,
+        "Rushing Yards": -7,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 295,
+        "Receiving Touchdowns": 2,
+        "Receptions": 18
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 16,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 1264,
+        "Receiving Touchdowns": 10,
+        "Receptions": 70
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "north texas",
+        "position": "WR",
+        "overall": 0.03,
+        "pass": 0.043,
+        "rush": 0.01
+      },
+      {
+        "season": 2025,
+        "team": "north texas",
+        "position": "WR",
+        "overall": 0.091,
+        "pass": 0.185,
+        "rush": 0.006
+      }
+    ],
     "usage2025": 0.091,
     "usage2024": 0.03,
     "cfbdKey": "wyattyoung",
@@ -1442,8 +3358,60 @@
     "bestRecYds": 0,
     "recruitStars": 5,
     "recruitRating": 0.9964,
+    "recruitRank": 7,
     "recruitClassYear": 2024,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Florida",
+    "recruitHeight": 74,
+    "recruitWeight": 225,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 1915,
+        "Passing Touchdowns": 12,
+        "Interceptions": 9,
+        "Completions": 115,
+        "Passing Attempts": 192,
+        "Rushing Yards": 101,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2264,
+        "Passing Touchdowns": 16,
+        "Interceptions": 14,
+        "Completions": 213,
+        "Passing Attempts": 337,
+        "Rushing Yards": 136,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "florida",
+        "position": "QB",
+        "overall": 0.331,
+        "pass": 0.612,
+        "rush": 0.095
+      },
+      {
+        "season": 2025,
+        "team": "florida",
+        "position": "QB",
+        "overall": 0.519,
+        "pass": 0.892,
+        "rush": 0.137
+      }
+    ],
     "usage2025": 0.519,
     "usage2024": 0.331,
     "cfbdKey": "djlagway",
@@ -1483,8 +3451,60 @@
     "bestRecYds": 0,
     "recruitStars": 5,
     "recruitRating": 0.9926,
+    "recruitRank": 21,
     "recruitClassYear": 2024,
     "recruitPosition": "QB",
+    "recruitCommittedTo": "Nebraska",
+    "recruitHeight": 75,
+    "recruitWeight": 230,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 2806,
+        "Passing Touchdowns": 13,
+        "Interceptions": 11,
+        "Completions": 274,
+        "Passing Attempts": 409,
+        "Rushing Yards": -65,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2000,
+        "Passing Touchdowns": 18,
+        "Interceptions": 6,
+        "Completions": 181,
+        "Passing Attempts": 250,
+        "Rushing Yards": -87,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "nebraska",
+        "position": "QB",
+        "overall": 0.502,
+        "pass": 0.926,
+        "rush": 0.074
+      },
+      {
+        "season": 2025,
+        "team": "nebraska",
+        "position": "QB",
+        "overall": 0.515,
+        "pass": 0.91,
+        "rush": 0.071
+      }
+    ],
     "usage2025": 0.515,
     "usage2024": 0.502,
     "cfbdKey": "dylanraiola",
@@ -1524,8 +3544,60 @@
     "bestRecYds": 210,
     "recruitStars": 4,
     "recruitRating": 0.8984,
+    "recruitRank": 379,
     "recruitClassYear": 2024,
     "recruitPosition": "ATH",
+    "recruitCommittedTo": "Florida",
+    "recruitHeight": 72.5,
+    "recruitWeight": 214,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 673,
+        "Rushing Touchdowns": 7,
+        "Receiving Yards": 33,
+        "Receiving Touchdowns": 1,
+        "Receptions": 4
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 1170,
+        "Rushing Touchdowns": 8,
+        "Receiving Yards": 210,
+        "Receiving Touchdowns": 2,
+        "Receptions": 33
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "florida",
+        "position": "RB",
+        "overall": 0.17,
+        "pass": 0.017,
+        "rush": 0.297
+      },
+      {
+        "season": 2025,
+        "team": "florida",
+        "position": "RB",
+        "overall": 0.334,
+        "pass": 0.103,
+        "rush": 0.58
+      }
+    ],
     "usage2025": 0.334,
     "usage2024": 0.17,
     "cfbdKey": "jadanbaugh",
@@ -1567,8 +3639,104 @@
     "bestRecYds": 0,
     "recruitStars": 3,
     "recruitRating": 0.873,
+    "recruitRank": 709,
     "recruitClassYear": 2022,
     "recruitPosition": "QB",
+    "recruitCommittedTo": null,
+    "recruitHeight": 73,
+    "recruitWeight": 206,
+    "seasonStats": [
+      {
+        "season": 2022,
+        "school": null,
+        "Passing Yards": 2,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 1,
+        "Passing Attempts": 1,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 2210,
+        "Passing Touchdowns": 15,
+        "Interceptions": 9,
+        "Completions": 186,
+        "Passing Attempts": 299,
+        "Rushing Yards": 5,
+        "Rushing Touchdowns": 2,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 3949,
+        "Passing Touchdowns": 27,
+        "Interceptions": 11,
+        "Completions": 313,
+        "Passing Attempts": 471,
+        "Rushing Yards": -19,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 3472,
+        "Passing Touchdowns": 29,
+        "Interceptions": 13,
+        "Completions": 272,
+        "Passing Attempts": 413,
+        "Rushing Yards": 4,
+        "Rushing Touchdowns": 2,
+        "Receiving Yards": -5,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2022,
+        "team": "tcu",
+        "position": "QB",
+        "overall": 0.014,
+        "pass": 0.029,
+        "rush": 0
+      },
+      {
+        "season": 2023,
+        "team": "tcu",
+        "position": "QB",
+        "overall": 0.472,
+        "pass": 0.764,
+        "rush": 0.053
+      },
+      {
+        "season": 2024,
+        "team": "tcu",
+        "position": "QB",
+        "overall": 0.579,
+        "pass": 0.969,
+        "rush": 0.086
+      },
+      {
+        "season": 2025,
+        "team": "tcu",
+        "position": "QB",
+        "overall": 0.546,
+        "pass": 0.962,
+        "rush": 0.097
+      }
+    ],
     "usage2025": 0.546,
     "usage2024": 0.579,
     "cfbdKey": "joshhoover",
@@ -1609,8 +3777,82 @@
     "bestRecYds": 754,
     "recruitStars": 3,
     "recruitRating": 0.8619,
+    "recruitRank": 1072,
     "recruitClassYear": 2023,
     "recruitPosition": "WR",
+    "recruitCommittedTo": null,
+    "recruitHeight": 70,
+    "recruitWeight": 165,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 8,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 1,
+        "Passing Attempts": 1,
+        "Rushing Yards": 9,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 664,
+        "Receiving Touchdowns": 5,
+        "Receptions": 44
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 131,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 754,
+        "Receiving Touchdowns": 3,
+        "Receptions": 56
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 1,
+        "Rushing Yards": 61,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 534,
+        "Receiving Touchdowns": 3,
+        "Receptions": 58
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "georgia tech",
+        "position": "WR",
+        "overall": 0.085,
+        "pass": 0.19,
+        "rush": 0.003
+      },
+      {
+        "season": 2024,
+        "team": "georgia tech",
+        "position": "WR",
+        "overall": 0.101,
+        "pass": 0.166,
+        "rush": 0.045
+      },
+      {
+        "season": 2025,
+        "team": "auburn",
+        "position": "WR",
+        "overall": 0.123,
+        "pass": 0.214,
+        "rush": 0.025
+      }
+    ],
     "usage2025": 0.123,
     "usage2024": 0.101,
     "cfbdKey": "ericsingletonjr",
@@ -1651,8 +3893,82 @@
     "bestRecYds": 483,
     "recruitStars": 3,
     "recruitRating": 0.8589,
+    "recruitRank": 1148,
     "recruitClassYear": 2023,
     "recruitPosition": "TE",
+    "recruitCommittedTo": null,
+    "recruitHeight": 78,
+    "recruitWeight": 248,
+    "seasonStats": [
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 18,
+        "Receiving Touchdowns": 1,
+        "Receptions": 2
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 16,
+        "Receiving Touchdowns": 2,
+        "Receptions": 3
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 483,
+        "Receiving Touchdowns": 6,
+        "Receptions": 30
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2023,
+        "team": "temple",
+        "position": "TE",
+        "overall": 0.011,
+        "pass": 0.021,
+        "rush": 0
+      },
+      {
+        "season": 2024,
+        "team": "temple",
+        "position": "TE",
+        "overall": 0.015,
+        "pass": 0.027,
+        "rush": 0
+      },
+      {
+        "season": 2025,
+        "team": "temple",
+        "position": "TE",
+        "overall": 0.061,
+        "pass": 0.131,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.061,
     "usage2024": 0.015,
     "cfbdKey": "peterclarke",
@@ -1694,8 +4010,104 @@
     "bestRecYds": 1106,
     "recruitStars": 3,
     "recruitRating": 0.8889,
+    "recruitRank": 435,
     "recruitClassYear": 2022,
     "recruitPosition": "ATH",
+    "recruitCommittedTo": "Harvard",
+    "recruitHeight": 73,
+    "recruitWeight": 182,
+    "seasonStats": [
+      {
+        "season": 2022,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 157,
+        "Receiving Touchdowns": 0,
+        "Receptions": 10
+      },
+      {
+        "season": 2023,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 81,
+        "Rushing Touchdowns": 1,
+        "Receiving Yards": 467,
+        "Receiving Touchdowns": 3,
+        "Receptions": 38
+      },
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 6,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 1084,
+        "Receiving Touchdowns": 11,
+        "Receptions": 63
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 0,
+        "Passing Touchdowns": 0,
+        "Interceptions": 0,
+        "Completions": 0,
+        "Passing Attempts": 0,
+        "Rushing Yards": 0,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 1106,
+        "Receiving Touchdowns": 7,
+        "Receptions": 72
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2022,
+        "team": "harvard",
+        "position": "WR",
+        "overall": 0.057,
+        "pass": 0.108,
+        "rush": 0
+      },
+      {
+        "season": 2023,
+        "team": "harvard",
+        "position": "WR",
+        "overall": 0.13,
+        "pass": 0.258,
+        "rush": 0.038
+      },
+      {
+        "season": 2024,
+        "team": "harvard",
+        "position": "WR",
+        "overall": 0.107,
+        "pass": 0.238,
+        "rush": 0.006
+      },
+      {
+        "season": 2025,
+        "team": "duke",
+        "position": "WR",
+        "overall": 0.121,
+        "pass": 0.224,
+        "rush": 0
+      }
+    ],
     "usage2025": 0.121,
     "usage2024": 0.107,
     "cfbdKey": "cooperbarkate",
@@ -1735,8 +4147,60 @@
     "bestRecYds": 0,
     "recruitStars": 3,
     "recruitRating": 0.8717,
+    "recruitRank": 873,
     "recruitClassYear": 2024,
     "recruitPosition": "QB",
+    "recruitCommittedTo": null,
+    "recruitHeight": 77,
+    "recruitWeight": 220,
+    "seasonStats": [
+      {
+        "season": 2024,
+        "school": null,
+        "Passing Yards": 50,
+        "Passing Touchdowns": 1,
+        "Interceptions": 0,
+        "Completions": 4,
+        "Passing Attempts": 5,
+        "Rushing Yards": 6,
+        "Rushing Touchdowns": 0,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      },
+      {
+        "season": 2025,
+        "school": null,
+        "Passing Yards": 2382,
+        "Passing Touchdowns": 18,
+        "Interceptions": 6,
+        "Completions": 246,
+        "Passing Attempts": 389,
+        "Rushing Yards": -119,
+        "Rushing Touchdowns": 4,
+        "Receiving Yards": 0,
+        "Receiving Touchdowns": 0,
+        "Receptions": 0
+      }
+    ],
+    "usageBySeason": [
+      {
+        "season": 2024,
+        "team": "minnesota",
+        "position": "QB",
+        "overall": 0.043,
+        "pass": 0.075,
+        "rush": 0.014
+      },
+      {
+        "season": 2025,
+        "team": "minnesota",
+        "position": "QB",
+        "overall": 0.533,
+        "pass": 0.956,
+        "rush": 0.037
+      }
+    ],
     "usage2025": 0.533,
     "usage2024": 0.043,
     "cfbdKey": "drakelindsey",

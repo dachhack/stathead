@@ -1,39 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { SortDirection } from '../types';
+import { Prospect2027Card, type Prospect2027CardData } from './Prospect2027Card';
 
-interface Prospect2027 {
-  name: string;
-  pos: string;
-  school: string;
-  grade: number;
-  projPick: number;
-  projRound: number;
-  tier: string;
-  sources: string[];
-  consensusRank: number | null;
-  pffRank: number | null;
-  tankathonPick: number | null;
-  careerSeasons: number;
-  careerSeasonList: number[];
-  careerPassYds: number;
-  careerPassTDs: number;
-  careerPassInt: number;
-  careerPassCmp: number;
-  careerPassAtt: number;
-  careerRushYds: number;
-  careerRushTDs: number;
-  careerRecYds: number;
-  careerRecTDs: number;
-  careerReceptions: number;
-  bestPassYds: number;
-  bestRushYds: number;
-  bestRecYds: number;
-  recruitStars: number | null;
-  recruitRating: number | null;
-  recruitClassYear: number | null;
-  recruitPosition: string | null;
-  usage2025: number | null;
-  usage2024: number | null;
+interface Prospect2027 extends Prospect2027CardData {
   cfbdKey: string | null;
   cfbdSchool: string | null;
 }
@@ -107,6 +76,7 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
   const [posFilter, setPosFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('projPick');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
+  const [selected, setSelected] = useState<Prospect2027 | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +196,8 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
         </div>
       </div>
 
+      {selected && <Prospect2027Card prospect={selected} onClose={() => setSelected(null)} />}
+
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
@@ -262,7 +234,12 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                 <td style={tdStyle}>
                   <span style={{ color: tierColor(p.tier), fontSize: 11 }}>{p.tier}</span>
                 </td>
-                <td style={{ ...tdStyle, fontWeight: 600 }}>{p.name}</td>
+                <td
+                  style={{ ...tdStyle, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }}
+                  onClick={() => setSelected(p)}
+                >
+                  {p.name}
+                </td>
                 <td style={tdStyle}>{p.pos}</td>
                 <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.school}</td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{p.grade}</td>
