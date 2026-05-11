@@ -23,6 +23,7 @@ import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
 import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
+import { Prospects2027View } from './components/Prospects2027View';
 import { TradeCalculator } from './components/TradeCalculator';
 import { DynastyForecast } from './components/DynastyForecast';
 import { DraftOptimizerTable } from './components/DraftOptimizerTable';
@@ -80,6 +81,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
       { id: 'prospects', label: 'Prospects' },
+      { id: 'prospects-2027', label: '2027 Prospects' },
       { id: 'my-prospects', label: 'My Prospect Rankings' },
       { id: 'career-backtest', label: 'Career Backtest' },
     ],
@@ -263,6 +265,7 @@ function App() {
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
         {tab === 'prospects' && <RookieProspectsView onDataLoaded={onDataLoaded} />}
+        {tab === 'prospects-2027' && <Prospects2027View onDataLoaded={onDataLoaded} />}
         {tab === 'my-prospects' && <MyProspectRankings scenario={scenario} />}
         {tab === 'data-query' && <DataQuery />}
         {tab === 'draft-optimizer' && <DraftOptimizerTable />}
