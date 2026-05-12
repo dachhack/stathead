@@ -87,6 +87,23 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * TE Premium adjustment to predicted PPG. Returns the bonus to add on top
+ * of standard PPR PPG. Non-TE positions get zero.
+ *
+ * Derivation: in 2025, NFL TEs with ≥8 games + receptions averaged 0.38
+ * receptions per PPR PPG in the 10–14 PPG band (where most fantasy-
+ * relevant rookie TEs project). TEP +0.5 adds 0.5 × rec_per_game per
+ * game, TEP +1.0 adds 1.0. The bonus thus equals
+ * predictedPPG × 0.38 × bonusPerRec.
+ */
+const TE_REC_PER_PPG = 0.38;
+function tepBonus(pos: string, ppg: number, mode: 'std' | 'half' | 'full'): number {
+  if (mode === 'std' || pos !== 'TE' || !ppg || ppg <= 0) return 0;
+  const bonusPerRec = mode === 'half' ? 0.5 : 1.0;
+  return ppg * TE_REC_PER_PPG * bonusPerRec;
+}
+
 function valueColor(value: number): string {
   if (value >= 7000) return '#22c55e';
   if (value >= 5000) return '#4ade80';
@@ -138,6 +155,22 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
+  // TE Premium (TEP) scoring toggle. Adds a bonus per TE reception:
+  //   "std"    → 0 (default PPR)
+  //   "half"   → +0.5 per TE reception
+  //   "full"   → +1.0 per TE reception
+  // The model predicts standard PPR PPG; we approximate the TEP bonus as
+  // predictedPPG × 0.38 × bonusPerRec, where 0.38 is the empirical
+  // receptions-per-PPR-PPG ratio for 2025 NFL TEs in the 10–14 PPG band.
+  // Persist across sessions so the user's league setting sticks.
+  const [tepMode, setTepMode] = useState<'std' | 'half' | 'full'>(
+    () => (typeof localStorage !== 'undefined'
+      ? ((localStorage.getItem('tepMode') as 'std' | 'half' | 'full') || 'std')
+      : 'std'),
+  );
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem('tepMode', tepMode);
+  }, [tepMode]);
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [view, setView] = useState<'graded' | 'all'>('graded');
@@ -404,6 +437,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     d.sort((a, b) => {
       let aVal = a[sortField];
       let bVal = b[sortField];
+      // PPG sort respects the TEP bonus so TEs rank in their league-adjusted
+      // order when the user enables TE Premium.
+      if (sortField === 'predictedCareerPPG') {
+        aVal = a.predictedCareerPPG + tepBonus(a.pos, a.predictedCareerPPG, tepMode);
+        bVal = b.predictedCareerPPG + tepBonus(b.pos, b.predictedCareerPPG, tepMode);
+      }
       // Push zeros/999 to bottom
       if (sortField === 'rookieEcr') {
         if ((aVal as number) >= 999) aVal = sortDir === 'asc' ? Infinity : -Infinity;
@@ -431,7 +470,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         : (bVal as number) - (aVal as number);
     });
     return d.slice(0, 400);
-  }, [rows, view, posFilter, search, sortField, sortDir]);
+  }, [rows, view, posFilter, search, sortField, sortDir, tepMode]);
 
   const sortArrow = (field: SortField) =>
     field === sortField ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
@@ -467,7 +506,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       'team', 'actualRound', 'actualPick',
       'rookieEcr', 'rookieBest', 'rookieWorst',
       'dynastyValue', 'superflexValue',
-      'predictedCareerPPG', 'modelTier', 'percentile', 'combinedScore',
+      tepMode === 'std' ? 'predictedCareerPPG' : `predictedCareerPPG_tep${tepMode === 'half' ? '0.5' : '1.0'}`,
+      'modelTier', 'percentile', 'combinedScore',
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
       ...tierIndices.map((i) =>
         filteredPosThresholds
@@ -490,7 +530,10 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         r.team || '', r.actualRound || '', r.actualPick || '',
         r.rookieEcr || '', r.rookieBest || '', r.rookieWorst || '',
         r.dynastyValue || '', r.superflexValue || '',
-        r.predictedCareerPPG || '', r.modelTier || '', r.percentile || '', r.combinedScore || '',
+        r.predictedCareerPPG > 0
+          ? Math.round((r.predictedCareerPPG + tepBonus(r.pos, r.predictedCareerPPG, tepMode)) * 10) / 10
+          : '',
+        r.modelTier || '', r.percentile || '', r.combinedScore || '',
         r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '',
         ...tierIndices.map((i) => probForTier(r, i) ?? ''),
         r.ht || '', r.wt || '', r.forty || '', r.bench || '', r.vertical || '', r.broadJump || '', r.cone || '', r.shuttle || '',
@@ -506,7 +549,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
-  }, [filtered, tierIndices, filteredPosThresholds, probForTier, posFilter, view]);
+  }, [filtered, tierIndices, filteredPosThresholds, probForTier, posFilter, view, tepMode]);
 
   if (loading)
     return (
@@ -567,6 +610,25 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               onClick={() => setPosFilter(pos)}
             >
               {pos}
+            </button>
+          ))}
+        </div>
+        <div
+          className="position-filters"
+          title="TE Premium scoring. Adds 0.5 or 1.0 PPR per TE reception. Approximates the bonus as predictedPPG × 0.38 × bonusPerRec (empirical rec/PPG ratio for 2025 NFL TEs in the 10–14 PPG band). Tier hit-rates are unchanged."
+        >
+          <label className="control-label" style={{ marginRight: 4 }}>TEP</label>
+          {([
+            { value: 'std', label: 'Std' },
+            { value: 'half', label: '+0.5' },
+            { value: 'full', label: '+1.0' },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              className={`pos-filter ${tepMode === opt.value ? 'active' : ''}`}
+              onClick={() => setTepMode(opt.value)}
+            >
+              {opt.label}
             </button>
           ))}
         </div>
@@ -760,16 +822,30 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                   )}
                 </td>
                 <td>
-                  {r.predictedCareerPPG > 0 ? (
-                    <strong style={{
-                      color: r.predictedCareerPPG >= 15 ? '#22c55e'
-                        : r.predictedCareerPPG >= 10 ? '#a3e635'
-                        : r.predictedCareerPPG >= 6 ? '#facc15'
-                        : '#fb923c',
-                    }}>
-                      {r.predictedCareerPPG.toFixed(1)}
-                    </strong>
-                  ) : (
+                  {r.predictedCareerPPG > 0 ? (() => {
+                    const bonus = tepBonus(r.pos, r.predictedCareerPPG, tepMode);
+                    const ppg = r.predictedCareerPPG + bonus;
+                    return (
+                      <strong
+                        title={
+                          bonus > 0
+                            ? `Standard PPR: ${r.predictedCareerPPG.toFixed(1)} + TEP ${tepMode === 'half' ? '+0.5' : '+1.0'} bonus ${bonus.toFixed(1)} = ${ppg.toFixed(1)}`
+                            : undefined
+                        }
+                        style={{
+                          color: ppg >= 15 ? '#22c55e'
+                            : ppg >= 10 ? '#a3e635'
+                            : ppg >= 6 ? '#facc15'
+                            : '#fb923c',
+                        }}
+                      >
+                        {ppg.toFixed(1)}
+                        {bonus > 0 && (
+                          <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 2 }}>+</span>
+                        )}
+                      </strong>
+                    );
+                  })() : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
                 </td>
@@ -850,7 +926,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               position: selectedPlayer.pos,
               draftSeason: DRAFT_YEAR,
               ourScore: selectedPlayer.combinedScore,
-              predictedPPG: selectedPlayer.predictedCareerPPG,
+              predictedPPG:
+                selectedPlayer.predictedCareerPPG > 0
+                  ? selectedPlayer.predictedCareerPPG +
+                    tepBonus(selectedPlayer.pos, selectedPlayer.predictedCareerPPG, tepMode)
+                  : selectedPlayer.predictedCareerPPG,
               thresholdProbs: selectedPlayer.thresholdProbs,
               features: {
                 ...(ss?.features || selectedPlayer.careerFeatures || {}),
