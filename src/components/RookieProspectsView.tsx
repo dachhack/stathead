@@ -436,12 +436,25 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const sortArrow = (field: SortField) =>
     field === sortField ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
 
-  // Get relevant thresholds for current position filter
-  const activeThresholds = useMemo(() => {
+  // Tier-index columns (T1..T4). Each model uses 4 thresholds, but the PPG
+  // values differ by position: TE [8,9,10,11], RB/WR [12,14,16,18], QB
+  // [16,18,20,22]. Indexing by tier index instead of literal PPG value lets
+  // a TE row show all 4 hit-rates against the TE thresholds rather than
+  // pulling RB/WR-keyed values that don't exist on the TE record.
+  const N_TIERS = 4;
+  const tierIndices = useMemo(() => Array.from({ length: N_TIERS }, (_, i) => i), []);
+  const filteredPosThresholds: number[] | null = useMemo(() => {
     if (posFilter !== 'ALL' && posThresholds[posFilter]) return posThresholds[posFilter];
-    // When ALL positions, show RB/WR thresholds (most common)
-    return posThresholds['RB'] || posThresholds['WR'] || [];
+    return null;
   }, [posFilter, posThresholds]);
+  const probForTier = useCallback(
+    (r: ProspectRow, tierIdx: number): number | undefined => {
+      const t = posThresholds[r.pos]?.[tierIdx];
+      if (t == null) return undefined;
+      return r.thresholdProbs?.[t];
+    },
+    [posThresholds],
+  );
 
   // CSV export — flattens the currently-filtered rows (respects search, view,
   // position filter, sort) into a downloadable file. Includes the same
@@ -456,7 +469,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       'dynastyValue', 'superflexValue',
       'predictedCareerPPG', 'modelTier', 'percentile', 'combinedScore',
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
-      ...activeThresholds.map((t: number) => `p_ge_${t}ppg`),
+      ...tierIndices.map((i) =>
+        filteredPosThresholds
+          ? `p_ge_${filteredPosThresholds[i]}ppg`
+          : `p_tier${i + 1}`,
+      ),
       'ht', 'wt', 'forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle',
       'owned',
     ];
@@ -475,7 +492,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
         r.dynastyValue || '', r.superflexValue || '',
         r.predictedCareerPPG || '', r.modelTier || '', r.percentile || '', r.combinedScore || '',
         r.boomProb ?? '', r.bustProb ?? '', r.boomZ ?? '', r.bustZ ?? '',
-        ...activeThresholds.map((t: number) => r.thresholdProbs?.[t] ?? ''),
+        ...tierIndices.map((i) => probForTier(r, i) ?? ''),
         r.ht || '', r.wt || '', r.forty || '', r.bench || '', r.vertical || '', r.broadJump || '', r.cone || '', r.shuttle || '',
         r.owned || '',
       ];
@@ -489,7 +506,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
-  }, [filtered, activeThresholds, posFilter, view]);
+  }, [filtered, tierIndices, filteredPosThresholds, probForTier, posFilter, view]);
 
   if (loading)
     return (
@@ -613,15 +630,26 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               </th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#22c55e' }} title="Boom z-score: prospect's outperformance score standardized vs the historical NFL rookie distribution. +1σ = strong upside vs typical rookie at this draft slot.">Boom z</th>
               <th style={{ textAlign: 'center', fontSize: 11, color: '#ef4444' }} title="Bust z-score: prospect's bust-event score standardized vs the historical NFL rookie distribution. +1σ = unusually high bust risk; -1σ = unusually safe.">Bust z</th>
-              {activeThresholds.map(t => (
-                <th
-                  key={t}
-                  style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}
-                  title={`P(best 2-of-3 PPG ≥ ${t}) — modeled probability the rookie’s best 2 of 3 first-3-year PPG clears ${t} PPR points/game`}
-                >
-                  &gt;{t}
-                </th>
-              ))}
+              {tierIndices.map((i) => {
+                // When a single position is filtered, show the literal PPG
+                // threshold for that tier; otherwise show "T1..T4" because
+                // QB/RB/WR/TE have different per-tier PPG values.
+                const label = filteredPosThresholds
+                  ? `>${filteredPosThresholds[i]}`
+                  : `T${i + 1}`;
+                const tooltip = filteredPosThresholds
+                  ? `P(best 2-of-3 PPG ≥ ${filteredPosThresholds[i]}) — modeled probability the rookie’s best 2 of 3 first-3-year PPG clears ${filteredPosThresholds[i]} PPR points/game.`
+                  : `Tier ${i + 1} hit-rate: P(best 2-of-3 PPG ≥ pos-specific PPG threshold). QB ${posThresholds['QB']?.[i] ?? '?'}, RB ${posThresholds['RB']?.[i] ?? '?'}, WR ${posThresholds['WR']?.[i] ?? '?'}, TE ${posThresholds['TE']?.[i] ?? '?'} PPR PPG.`;
+                return (
+                  <th
+                    key={i}
+                    style={{ textAlign: 'center', fontSize: 11, padding: '6px 4px', minWidth: 48 }}
+                    title={tooltip}
+                  >
+                    {label}
+                  </th>
+                );
+              })}
               <th onClick={() => handleSort('ht')} style={{ cursor: 'pointer' }}>
                 Ht{sortArrow('ht')}
               </th>
@@ -773,15 +801,24 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                 <td style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: r.bustZ != null && r.bustZ >= 1 ? '#ef4444' : r.bustZ != null && r.bustZ >= 0.3 ? '#fb923c' : r.bustZ != null && r.bustZ <= -0.5 ? '#22c55e' : 'var(--text-muted)' }}>
                   {r.bustZ != null ? (r.bustZ >= 0 ? `+${r.bustZ.toFixed(2)}` : r.bustZ.toFixed(2)) : (r.bustProb > 0 ? `${r.bustProb.toFixed(0)}%` : '-')}
                 </td>
-                {activeThresholds.map(t => {
-                  const prob = r.thresholdProbs?.[t];
+                {tierIndices.map((i) => {
+                  const prob = probForTier(r, i);
                   const hasProb = prob != null && prob > 0 && r.predictedCareerPPG > 0;
+                  const tVal = posThresholds[r.pos]?.[i];
                   return (
-                    <td key={t} style={{
-                      textAlign: 'center', fontSize: 12, fontWeight: 600, padding: '4px 3px',
-                      background: hasProb ? probBg(prob) : undefined,
-                      color: hasProb ? probColor(prob) : 'var(--text-muted)',
-                    }}>
+                    <td
+                      key={i}
+                      title={
+                        tVal != null
+                          ? `${r.pos} tier ${i + 1}: P(best 2-of-3 PPG ≥ ${tVal})`
+                          : undefined
+                      }
+                      style={{
+                        textAlign: 'center', fontSize: 12, fontWeight: 600, padding: '4px 3px',
+                        background: hasProb ? probBg(prob) : undefined,
+                        color: hasProb ? probColor(prob) : 'var(--text-muted)',
+                      }}
+                    >
                       {hasProb ? `${prob.toFixed(0)}%` : '-'}
                     </td>
                   );
