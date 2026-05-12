@@ -104,6 +104,23 @@ function tepBonus(pos: string, ppg: number, mode: 'std' | 'half' | 'full'): numb
   return ppg * TE_REC_PER_PPG * bonusPerRec;
 }
 
+/**
+ * TEP-equivalent PPG threshold for a given position. A TE who hit ≥8 PPR
+ * PPG also hit ≥8 × (1 + 0.38 × bonusPerRec) in TEP scoring because the
+ * bonus scales proportionally with their PPR PPG. So `thresholdProbs[8]`
+ * answers the same question, just with a higher displayed cutoff. Only
+ * TE thresholds shift; RB/WR/QB are unchanged.
+ */
+function effectiveThreshold(pos: string, t: number, mode: 'std' | 'half' | 'full'): number {
+  if (mode === 'std' || pos !== 'TE') return t;
+  const bonusPerRec = mode === 'half' ? 0.5 : 1.0;
+  return t * (1 + TE_REC_PER_PPG * bonusPerRec);
+}
+
+function fmtThreshold(t: number): string {
+  return Number.isInteger(t) ? String(t) : t.toFixed(1);
+}
+
 function valueColor(value: number): string {
   if (value >= 7000) return '#22c55e';
   if (value >= 5000) return '#4ade80';
@@ -511,7 +528,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       'boomProb', 'bustProb', 'boomZ', 'bustZ',
       ...tierIndices.map((i) =>
         filteredPosThresholds
-          ? `p_ge_${filteredPosThresholds[i]}ppg`
+          ? `p_ge_${fmtThreshold(effectiveThreshold(posFilter, filteredPosThresholds[i], tepMode))}ppg`
           : `p_tier${i + 1}`,
       ),
       'ht', 'wt', 'forty', 'bench', 'vertical', 'broadJump', 'cone', 'shuttle',
@@ -695,13 +712,30 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               {tierIndices.map((i) => {
                 // When a single position is filtered, show the literal PPG
                 // threshold for that tier; otherwise show "T1..T4" because
-                // QB/RB/WR/TE have different per-tier PPG values.
-                const label = filteredPosThresholds
-                  ? `>${filteredPosThresholds[i]}`
-                  : `T${i + 1}`;
-                const tooltip = filteredPosThresholds
-                  ? `P(best 2-of-3 PPG ≥ ${filteredPosThresholds[i]}) — modeled probability the rookie’s best 2 of 3 first-3-year PPG clears ${filteredPosThresholds[i]} PPR points/game.`
-                  : `Tier ${i + 1} hit-rate: P(best 2-of-3 PPG ≥ pos-specific PPG threshold). QB ${posThresholds['QB']?.[i] ?? '?'}, RB ${posThresholds['RB']?.[i] ?? '?'}, WR ${posThresholds['WR']?.[i] ?? '?'}, TE ${posThresholds['TE']?.[i] ?? '?'} PPR PPG.`;
+                // QB/RB/WR/TE have different per-tier PPG values. TE
+                // thresholds scale up with TEP; other positions don't.
+                let label: string;
+                let tooltip: string;
+                if (filteredPosThresholds) {
+                  const raw = filteredPosThresholds[i];
+                  const eff = effectiveThreshold(posFilter, raw, tepMode);
+                  label = `>${fmtThreshold(eff)}`;
+                  tooltip =
+                    eff === raw
+                      ? `P(best 2-of-3 PPG ≥ ${raw}) — modeled probability the rookie’s best 2 of 3 first-3-year PPG clears ${raw} PPR points/game.`
+                      : `P(best 2-of-3 PPG ≥ ${fmtThreshold(eff)}) in TEP ${tepMode === 'half' ? '+0.5' : '+1.0'} — equivalent to ≥${raw} standard PPR. Hit-rate unchanged; cutoff displayed in league units.`;
+                } else {
+                  label = `T${i + 1}`;
+                  const teRaw = posThresholds['TE']?.[i];
+                  const teEff = teRaw != null ? effectiveThreshold('TE', teRaw, tepMode) : undefined;
+                  const tePart =
+                    teRaw == null
+                      ? '?'
+                      : teEff !== teRaw
+                      ? `${fmtThreshold(teEff!)} (${teRaw} std)`
+                      : `${teRaw}`;
+                  tooltip = `Tier ${i + 1} hit-rate: P(best 2-of-3 PPG ≥ pos-specific PPG threshold). QB ${posThresholds['QB']?.[i] ?? '?'}, RB ${posThresholds['RB']?.[i] ?? '?'}, WR ${posThresholds['WR']?.[i] ?? '?'}, TE ${tePart} PPG.`;
+                }
                 return (
                   <th
                     key={i}
@@ -881,14 +915,17 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
                   const prob = probForTier(r, i);
                   const hasProb = prob != null && prob > 0 && r.predictedCareerPPG > 0;
                   const tVal = posThresholds[r.pos]?.[i];
+                  const tEff = tVal != null ? effectiveThreshold(r.pos, tVal, tepMode) : undefined;
+                  const title =
+                    tVal == null
+                      ? undefined
+                      : tEff === tVal
+                      ? `${r.pos} tier ${i + 1}: P(best 2-of-3 PPG ≥ ${tVal})`
+                      : `${r.pos} tier ${i + 1}: P(best 2-of-3 PPG ≥ ${fmtThreshold(tEff!)} in TEP ${tepMode === 'half' ? '+0.5' : '+1.0'}, equivalent to ≥${tVal} standard PPR)`;
                   return (
                     <td
                       key={i}
-                      title={
-                        tVal != null
-                          ? `${r.pos} tier ${i + 1}: P(best 2-of-3 PPG ≥ ${tVal})`
-                          : undefined
-                      }
+                      title={title}
                       style={{
                         textAlign: 'center', fontSize: 12, fontWeight: 600, padding: '4px 3px',
                         background: hasProb ? probBg(prob) : undefined,
