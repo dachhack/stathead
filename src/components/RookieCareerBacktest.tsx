@@ -52,7 +52,7 @@ function probColor(pct: number): string {
 
 const POS_COLORS: Record<string, string> = { QB: '#ef4444', RB: '#22c55e', WR: '#3b82f6', TE: '#f59e0b' };
 
-type SortField = 'name' | 'position' | 'draftSeason' | 'actualPPG' | 'predictedPPG' | 'combinedScore' | 'percentile' | 'modelTier' | 'error';
+type SortField = 'name' | 'position' | 'draftSeason' | 'draftPick' | 'actualPPG' | 'predictedPPG' | 'combinedScore' | 'percentile' | 'modelTier' | 'error';
 
 export function RookieCareerBacktest() {
   const [models, setModels] = useState<Record<string, RookieCareerModelResult> | null>(null);
@@ -322,6 +322,12 @@ export function RookieCareerBacktest() {
       if (sortField === 'error') {
         aVal = Math.abs(a.actualPPG - a.predictedPPG);
         bVal = Math.abs(b.actualPPG - b.predictedPPG);
+      } else if (sortField === 'draftPick') {
+        // Undrafted/missing sorts to the bottom regardless of direction.
+        const aPick = (a.features as Record<string, number> | undefined)?.nflDraftPick || 0;
+        const bPick = (b.features as Record<string, number> | undefined)?.nflDraftPick || 0;
+        aVal = aPick > 0 ? aPick : 9999;
+        bVal = bPick > 0 ? bPick : 9999;
       } else {
         aVal = a[sortField];
         bVal = b[sortField];
@@ -731,6 +737,7 @@ export function RookieCareerBacktest() {
               <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>Player{sortArrow('name')}</th>
               <th>Pos</th>
               <th onClick={() => handleSort('draftSeason')} style={{ cursor: 'pointer' }}>Class{sortArrow('draftSeason')}</th>
+              <th onClick={() => handleSort('draftPick')} style={{ cursor: 'pointer' }} title="Actual NFL draft pick (overall). UDFA = undrafted.">Pick{sortArrow('draftPick')}</th>
               <th onClick={() => handleSort('modelTier')} style={{ cursor: 'pointer' }}>Tier{sortArrow('modelTier')}</th>
               <th onClick={() => handleSort('percentile')} style={{ cursor: 'pointer' }} title="Career-model percentile: rank of predicted PPG against the historical backtest pool for this position (matches ZAP Compare & Dynasty Prospects).">Pctl{sortArrow('percentile')}</th>
               <th onClick={() => handleSort('predictedPPG')} style={{ cursor: 'pointer' }}>Pred PPG{sortArrow('predictedPPG')}</th>
@@ -759,6 +766,19 @@ export function RookieCareerBacktest() {
                   <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
                   <td><span style={{ color: POS_COLORS[r.position] || 'var(--text-secondary)', fontWeight: 600 }}>{r.position}</span></td>
                   <td>{r.draftSeason}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {(() => {
+                      const pick = (r.features as Record<string, number> | undefined)?.nflDraftPick || 0;
+                      const round = (r.features as Record<string, number> | undefined)?.nflDraftRound || 0;
+                      if (!pick) return <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>UDFA</span>;
+                      return (
+                        <span>
+                          {pick}
+                          {round > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 10, marginLeft: 4 }}>R{round}</span>}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td>
                     {(() => {
                       const def = TIER_DEFS.find(t => t.tier === r.modelTier);
