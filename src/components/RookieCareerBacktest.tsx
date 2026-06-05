@@ -266,22 +266,28 @@ export function RookieCareerBacktest() {
         ? predRef[Math.min(predRef.length - 1, Math.floor(predRef.length * 0.94))]
         : 0;
       for (const r of posRows) {
+        // Canonical tier from the trained model. For historical rows this is
+        // the Python backtest tier (model-cache-career); for the injected
+        // 2026 prospects it's the careerPredictions2026 tier. Both already
+        // bake in the first-round scout-consensus override. Capture it before
+        // we recompute the percentile-based tier so the override survives.
+        const srcTier = r.modelTier || 0;
         const rank = predRef.filter(ppg => ppg <= r.predictedPPG).length;
         const pctl = Math.round((rank / predRef.length) * 100);
         r.combinedScore = pctl;
         r.percentile = pctl;
-        r.modelTier = tierFromPercentile(pctl).tier;
+        let pctlTier = tierFromPercentile(pctl).tier;
         // WR Alpha requires first-round draft capital — same cap as
         // train_career_models.py and precompute-features.ts. Without
         // this the UI tier recomputation bypasses the Python-side
         // guard and late-round WRs with high predictedPPG show as
         // Alpha (e.g. McCluster 2010 pick 36).
-        if (pos === 'WR' && r.modelTier === 1) {
+        if (pos === 'WR' && pctlTier === 1) {
           const pk = (r.features as Record<string, number> | undefined)?.nflDraftPick || 0;
           const rd = (r.features as Record<string, number> | undefined)?.nflDraftRound || 0;
           const isR1 = (rd > 0 && rd <= 1) || (pk > 0 && pk <= 32);
           if (!isR1) {
-            r.modelTier = 2;
+            pctlTier = 2;
             // Also cap displayed Pctl + PredPPG so the whole row
             // reads BlueChip consistently. The raw model prediction
             // is still visible as "pred PPG capped" via the tier
@@ -292,6 +298,14 @@ export function RookieCareerBacktest() {
             }
           }
         }
+        // Keep the model's scout-consensus tier upgrade. The override is
+        // always an upgrade (lower tier number = better), so take the better
+        // of the percentile tier and the model tier. Without this the
+        // backtest showed a lower tier than Dynasty Prospects / My Prospect
+        // Rankings / Data Query for the same player — most visibly for TEs,
+        // whose scout override fires at the lowest bar (1.6σ Alpha / 1.0σ
+        // Blue Chip), so scout-darling TEs were under-tiered only here.
+        r.modelTier = srcTier > 0 ? Math.min(pctlTier, srcTier) : pctlTier;
         if (r.actualPPG > 0 && actualRef.length > 0) {
           const aRank = actualRef.filter(ppg => ppg <= r.actualPPG).length;
           const aPctl = Math.round((aRank / actualRef.length) * 100);
