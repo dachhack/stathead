@@ -2254,6 +2254,20 @@ async function main() {
     // Career scores: backtest + 2026 prospects
     const careerScores: CareerScore[] = [];
 
+    // Reconcile the percentile-bucketed tier with the model's assigned tier,
+    // which bakes in the first-round scout-consensus override (and WR Alpha
+    // cap) from train_career_models.py / the careerPredictions2026 pass. The
+    // override is always an upgrade (lower tier number), so keep the better of
+    // the two — identical to the Career Backtest UI reconciliation, so
+    // career.json's tier agrees with Dynasty Prospects / My Prospect Rankings
+    // instead of silently dropping the override (most visible for TEs).
+    const TIER_LABELS = ['Alpha', 'Blue Chip', 'Starter', 'Contributor', 'Depth', 'Longshot'];
+    const reconcileTier = (pctl: number, modelTier?: number): { tier: number; label: string } => {
+      const base = tierFromPercentile(pctl).tier;
+      const tier = modelTier && modelTier > 0 ? Math.min(base, modelTier) : base;
+      return { tier, label: TIER_LABELS[tier - 1] || 'Longshot' };
+    };
+
     // Backtest rows from all positions (with cross-year percentile)
     for (const pos of ['QB', 'RB', 'WR', 'TE']) {
       const cm = (rookieCareerModels as any)[pos];
@@ -2262,7 +2276,7 @@ async function main() {
       for (const r of cm.backtestRows) {
         const rank = allPPGs.filter((p: number) => p <= r.predictedPPG).length;
         const pctl = Math.round((rank / allPPGs.length) * 100);
-        const t = tierFromPercentile(pctl);
+        const t = reconcileTier(pctl, r.modelTier);
         careerScores.push({
           name: r.name, position: pos, draftSeason: r.draftSeason,
           predictedPPG: r.predictedPPG, actualPPG: r.actualPPG,
@@ -2277,7 +2291,7 @@ async function main() {
 
     // 2026 prospects
     for (const p of careerPredictions2026) {
-      const t = tierFromPercentile(p.percentile || p.combinedScore || 0);
+      const t = reconcileTier(p.percentile || p.combinedScore || 0, p.modelTier);
       careerScores.push({
         name: p.name, position: p.position, draftSeason: 2026,
         predictedPPG: p.predictedCareerPPG || 0,
