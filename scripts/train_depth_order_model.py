@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Depth-order model: predict each team's RB1/RB2 and TE1/TE2 ordering.
+"""Depth-order model: predict each team's QB/RB/WR/TE depth ordering.
 
 Trains a small logistic classifier ("is this player his team's #1 at his
 position this season?") on PUBLIC data only — prior-season production
@@ -14,9 +14,9 @@ season's rosters, a depth score (modeled P(team #1)) and the implied within-
 team rank. StatProjections consumes this to seed the "primary" RB/TE instead
 of relying on ADP order alone.
 
-WR is intentionally excluded: public signals stall on WR1 (~50% vs Clay 61%),
-so WR keeps the existing approach until richer features (ADP / target
-competition) are added.
+Covers all four positions. WR1 is the hardest from public signals (Clay's
+human synthesis still leads there), but a target-share + 2-year-prior feature
+set keeps it respectable and, crucially, removes the proprietary dependency.
 
 Usage:
   python3 scripts/train_depth_order_model.py [--season 2026] [--clay /tmp/clay_all.json]
@@ -27,7 +27,7 @@ from __future__ import annotations
 import csv, json, glob, re, gzip, sys, os
 from collections import defaultdict
 
-POSITIONS = ('RB', 'TE')
+POSITIONS = ('QB', 'RB', 'WR', 'TE')
 TEAM_CANON = {'AZ': 'ARI', 'ARZ': 'ARI', 'JAC': 'JAX', 'LAR': 'LA', 'STL': 'LA',
               'SD': 'LAC', 'OAK': 'LV', 'LVR': 'LV', 'WSH': 'WAS', 'GNB': 'GB',
               'KAN': 'KC', 'NWE': 'NE', 'NOR': 'NO', 'SFO': 'SF', 'TAM': 'TB',
@@ -42,13 +42,14 @@ def load_actuals():
     act = {}
     for f in glob.glob('public/data/player_stats_20*.csv'):
         yr = int(re.search(r'(\d{4})', f).group(1))
-        agg = defaultdict(lambda: {'ppr': 0.0, 'tgt': 0.0, 'team': None, 'pos': None})
+        agg = defaultdict(lambda: {'ppr': 0.0, 'tgt': 0.0, 'att': 0.0, 'team': None, 'pos': None})
         for r in csv.DictReader(open(f)):
             if r.get('season_type') != 'REG' or r.get('position') not in ('QB', 'RB', 'WR', 'TE'):
                 continue
             a = agg[(norm(r.get('player_display_name')), yr)]
             a['ppr'] += float(r.get('fantasy_points_ppr') or 0)
             a['tgt'] += float(r.get('targets') or 0)
+            a['att'] += float(r.get('attempts') or 0)  # passing attempts (QB volume)
             a['team'] = norm_team(r.get('team') or r.get('recent_team'))
             a['pos'] = r.get('position')
         act.update(agg)
@@ -128,17 +129,34 @@ def main(argv):
 
     act, (dc, fbset), draft = load_actuals(), load_depth(), load_draft()
 
-    def feats(nm, yr):
-        pr = act.get((nm, yr - 1)) or {}
-        return [pr.get('ppr', 0), pr.get('tgt', 0), 1.0 / dc.get((nm, yr), 99),
+    # team prior-season volume totals, for the share feature
+    team_tgt = defaultdict(float); team_att = defaultdict(float)
+    for (nm, yr), a in act.items():
+        if a['team']:
+            team_tgt[(a['team'], yr)] += a['tgt']
+            team_att[(a['team'], yr)] += a['att']
+
+    def feats(nm, yr, pos):
+        p1 = act.get((nm, yr - 1)) or {}
+        p2 = act.get((nm, yr - 2)) or {}
+        prior_ppr = max(p1.get('ppr', 0), p2.get('ppr', 0))  # 2-yr max: robust to a lost season
+        if pos == 'QB':
+            vol = p1.get('att', 0); tv = team_att.get((p1.get('team'), yr - 1), 0)
+        else:
+            vol = p1.get('tgt', 0); tv = team_tgt.get((p1.get('team'), yr - 1), 0)
+        share = vol / tv if tv > 0 else 0.0
+        return [prior_ppr, vol, share, 1.0 / dc.get((nm, yr), 99),
                 1.0 if dc.get((nm, yr), 99) == 1 else 0.0,
                 300 - min(draft.get((nm, yr), 300), 300)]
+
+    def is_real(a):
+        return (a['ppr'] >= 50 or a['att'] >= 100) if a['pos'] == 'QB' \
+            else (a['tgt'] >= 15 or a['ppr'] >= 40)
 
     # training groups from actual rosters 2019..season-1
     groups = defaultdict(list)
     for (nm, yr), a in act.items():
-        if a['team'] and a['pos'] in POSITIONS and 2019 <= yr <= season - 1 \
-                and (a['tgt'] >= 15 or a['ppr'] >= 40):
+        if a['team'] and a['pos'] in POSITIONS and 2019 <= yr <= season - 1 and is_real(a):
             groups[(a['team'], yr, a['pos'])].append(nm)
 
     clay = None
@@ -157,12 +175,12 @@ def main(argv):
                 if yr == hold: continue
                 truth = max(names, key=lambda nm: act[(nm, yr)]['ppr'])
                 for nm in names:
-                    Xtr.append(feats(nm, yr)); ytr.append(1 if nm == truth else 0)
+                    Xtr.append(feats(nm, yr, pos)); ytr.append(1 if nm == truth else 0)
             clf = make_model().fit(np.array(Xtr), np.array(ytr))
             for (t, yr, p), names in G:
                 if yr != hold: continue
                 truth = max(names, key=lambda nm: act[(nm, yr)]['ppr'])
-                probs = {nm: clf.predict_proba([feats(nm, yr)])[0, 1] for nm in names}
+                probs = {nm: clf.predict_proba([feats(nm, yr, pos)])[0, 1] for nm in names}
                 n += 1
                 t1m += (max(names, key=lambda nm: probs[nm]) == truth)
                 t1p += (max(names, key=lambda nm: (act.get((nm, yr - 1)) or {}).get('ppr', 0)) == truth)
@@ -176,7 +194,7 @@ def main(argv):
         for (t, yr, p), names in G:
             truth = max(names, key=lambda nm: act[(nm, yr)]['ppr'])
             for nm in names:
-                Xtr.append(feats(nm, yr)); ytr.append(1 if nm == truth else 0)
+                Xtr.append(feats(nm, yr, pos)); ytr.append(1 if nm == truth else 0)
         clf = make_model().fit(np.array(Xtr), np.array(ytr))
         models[pos] = clf
 
@@ -189,7 +207,7 @@ def main(argv):
     out = []
     for (team, pos), members in pos_players.items():
         clf = models[pos]
-        scored = sorted(((nm, disp, float(clf.predict_proba([feats(nm, season)])[0, 1]))
+        scored = sorted(((nm, disp, float(clf.predict_proba([feats(nm, season, pos)])[0, 1]))
                          for nm, disp in members), key=lambda x: -x[2])
         for rank, (nm, disp, score) in enumerate(scored, 1):
             out.append({'name': disp, 'team': team, 'pos': pos,
@@ -197,7 +215,7 @@ def main(argv):
     outpath = 'public/data/depth-order-%d.json' % season
     json.dump({'season': season, 'positions': list(POSITIONS), 'players': out},
               open(outpath, 'w'))
-    print('wrote %d RB/TE depth-order predictions -> %s' % (len(out), outpath))
+    print('wrote %d QB/RB/WR/TE depth-order predictions -> %s' % (len(out), outpath))
     # sample: a few teams' predicted RB1/TE1
     by = defaultdict(list)
     for r in out: by[(r['team'], r['pos'])].append(r)

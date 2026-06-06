@@ -12,18 +12,22 @@ committed) showed the top-1 hit rate to beat:
 
 | Pos | Prior-year only (old basis) | This model | Consensus benchmark |
 |-----|----------------------------|------------|---------------------|
-| RB  | 55.8% | **68.7%** | 74.7% |
-| TE  | 65.9% | **68.1%** | 72.5% |
+| QB  | 61.0% | **69.5%** | 67.1% (we beat it) |
+| RB  | 55.8% | **69.1%** | 74.7% |
+| WR  | 52.7% | **63.4%** | 66.5% |
+| TE  | 65.9% | **69.8%** | 72.5% |
 
-(LOSO by season, 2019–2025, "did we name the actual #1".) WR is intentionally
-excluded — public signals stall there (~50%); it keeps the existing approach
-until richer features (ADP / target competition) are added.
+(LOSO by season, 2019–2025, "did we name the actual #1".) All four positions
+are covered. WR1 is the hardest from public signals — a target/attempt-share +
+2-year-prior feature set lifted it from ~50% to 63%, close to the consensus
+bar, which fully removes the proprietary dependency (previously a Clay-derived
+`depth-chart-2026.json` shipped in the repo).
 
 ## How
 `scripts/train_depth_order_model.py` trains a logistic classifier
 ("is this player his team's #1?") on:
 
-- prior-season PPR + targets (nflverse `player_stats`)
+- prior-season PPR + target/attempt **share** + 2-year-max prior (nflverse `player_stats`)
 - modal preseason depth-chart rank (nflverse `depth_charts`; mode across
   snapshots, not min — min collapses everyone to rank 1)
 - rookie draft capital (nflverse `draft_picks`)
