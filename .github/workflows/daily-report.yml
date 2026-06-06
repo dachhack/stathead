@@ -1,0 +1,72 @@
+name: Daily Report
+
+# Emails a daily health + data digest (pipeline activity, surface freshness,
+# model snapshot, KTC dynasty movers) and posts it to the Actions job summary.
+#
+# Runs at 13:00 UTC — after the morning KTC (06:00) + FantasyCalc (06:30)
+# snapshots and the noon data refresh, so the freshness numbers reflect the
+# day's updates.
+#
+# Email requires three repository secrets (Settings → Secrets → Actions):
+#   MAIL_USERNAME    Gmail address that sends the report
+#   MAIL_PASSWORD    Google **App Password** (not the account password —
+#                    create at https://myaccount.google.com/apppasswords)
+#   REPORT_TO_EMAIL  recipient address
+# If the secrets are absent the report still runs and lands in the job summary;
+# only the email step is skipped.
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/nfl-fantasy-workbench-6D1yd
+          # Full history so git-log freshness + commit-activity counts work.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate report
+        run: |
+          python3 scripts/daily-report.py report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check mail secrets
+        id: cfg
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+        run: |
+          if [ -n "$MAIL_USERNAME" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Mail secrets not set — skipping email (report is in the job summary)."
+          fi
+
+      - name: Email report
+        if: steps.cfg.outputs.ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: StatHead Bot <${{ secrets.MAIL_USERNAME }}>
+          to: ${{ secrets.REPORT_TO_EMAIL }}
+          subject: "StatHead Daily Report — ${{ github.run_id }}"
+          # Plain-text body (the report is Markdown — readable as-is and in
+          # clients that render it). convert_markdown isn't used so links/tables
+          # stay legible as source.
+          body: file://report.md

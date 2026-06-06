@@ -65,6 +65,23 @@ jobs:
       - name: Rebuild player crosswalk
         run: python3 scripts/build-player-crosswalk.py
 
+      # Re-gzip the freshly-downloaded current-season roster + depth chart so
+      # the committed .csv.gz fallback snapshots stay current. download-data.sh
+      # force-refreshes these every run (the live build uses the .csv), but the
+      # tracked .gz are the fallback when nflverse 404s and what local dev /
+      # the Python loaders read. Without this they drift (post-draft signings,
+      # UDFAs, depth-chart churn). Bump SEASON each year alongside
+      # download-data.sh's DYNAMIC_SEASON. Never fails the build.
+      - name: Refresh dynamic roster snapshots
+        run: |
+          SEASON=2026
+          for base in roster_${SEASON} depth_charts_${SEASON}; do
+            if [ -s "public/data/${base}.csv" ]; then
+              gzip -9 -c "public/data/${base}.csv" > "public/data/${base}.csv.gz" \
+                && echo "  refreshed ${base}.csv.gz ($(zcat public/data/${base}.csv.gz | wc -l) rows)"
+            fi
+          done || true
+
       # Commit the rebuilt caches back so downstream jobs (model training,
       # coverage audit, local analysis) work off the fresh data instead of
       # whatever last got checked in. [skip ci] prevents this commit from
@@ -76,6 +93,9 @@ jobs:
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
                   public/data/feature-store/ \
+                  public/data/score-store/ \
+                  public/data/roster_2026.csv.gz \
+                  public/data/depth_charts_2026.csv.gz \
                   public/data/player-crosswalk.json \
                   public/data/player-aliases.json \
                   public/data/player-promotions.json 2>/dev/null || true
