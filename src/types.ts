@@ -1015,6 +1015,17 @@ export interface PlayerMovement {
   toTeam: string;
 }
 
+// Per-player games/availability haircut (e.g. "Injury skeptic").
+// `games` is projected games played out of 17; counting stats are scaled
+// by games/17. Non-zero-sum — lost games are not redistributed to teammates.
+export interface PlayerAvailability {
+  playerId: number;
+  playerName: string;
+  team: string;
+  position: string;
+  games: number; // 1..17 (17 = full season, no haircut)
+}
+
 export interface CustomPlayer {
   id: string;
   name: string;
@@ -1077,4 +1088,5 @@ export interface ScenarioConfig {
   movements: PlayerMovement[];
   customPlayers: CustomPlayer[];
   freeAgentSignings: FreeAgentSigning[];
+  playerAvailability: PlayerAvailability[];
 }
