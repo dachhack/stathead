@@ -12,14 +12,14 @@ committed) showed the top-1 hit rate to beat:
 
 | Pos | Prior-year only (old basis) | This model | Consensus benchmark |
 |-----|----------------------------|------------|---------------------|
-| QB  | 61.0% | **69.5%** | 67.1% (we beat it) |
-| RB  | 55.8% | **69.1%** | 74.7% |
-| WR  | 52.7% | **63.4%** | 66.5% |
-| TE  | 65.9% | **69.8%** | 72.5% |
+| QB  | 61.0% | **68.3%** | 67.1% (we beat it) |
+| RB  | 55.8% | **68.7%** | 74.7% |
+| WR  | 52.7% | **65.2%** | 66.5% |
+| TE  | 65.9% | **71.4%** | 72.5% |
 
 (LOSO by season, 2019–2025, "did we name the actual #1".) All four positions
 are covered. WR1 is the hardest from public signals — a target/attempt-share +
-2-year-prior feature set lifted it from ~50% to 63%, close to the consensus
+2-year-prior + ADP feature set lifted it from ~50% to 65%, essentially at the consensus
 bar, which fully removes the proprietary dependency (previously a Clay-derived
 `depth-chart-2026.json` shipped in the repo).
 
@@ -31,6 +31,7 @@ bar, which fully removes the proprietary dependency (previously a Clay-derived
 - modal preseason depth-chart rank (nflverse `depth_charts`; mode across
   snapshots, not min — min collapses everyone to rank 1)
 - rookie draft capital (nflverse `draft_picks`)
+- community **ADP** — the market's read on who's the #1 (training cache for 2019-25, FFC snapshot for the current year)
 
 A **logistic** (monotonic) learner is used on purpose: the feature set is tiny
 and elite returnees (a 400+ PPR back) fall far outside the training range,
