@@ -19,6 +19,12 @@ on:
   schedule:
     - cron: '0 13 * * *'
   workflow_dispatch:
+  # On-demand trigger that needs only contents-write: push (any commit, e.g. an
+  # empty one) to the `report-now` branch and this runs. The job always checks
+  # out the default branch below, so the report reflects live data regardless
+  # of what's on report-now.
+  push:
+    branches: [report-now]
 
 permissions:
   contents: read
