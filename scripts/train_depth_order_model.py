@@ -4,7 +4,7 @@
 Trains a small logistic classifier ("is this player his team's #1 at his
 position this season?") on PUBLIC data only — prior-season production
 (nflverse player_stats), preseason depth-chart rank (nflverse depth_charts),
-and rookie draft capital (nflverse draft_picks). No proprietary projections
+rookie draft capital (nflverse draft_picks), and community ADP. No proprietary projections
 are used or shipped; Mike Clay's projections were only an offline yardstick
 during development (RB matches within ~5 pts of his top-1 hit rate, TE
 matches it).
@@ -15,7 +15,7 @@ team rank. StatProjections consumes this to seed the "primary" RB/TE instead
 of relying on ADP order alone.
 
 Covers all four positions. WR1 is the hardest from public signals (Clay's
-human synthesis still leads there), but a target-share + 2-year-prior feature
+human synthesis still leads there), but a target-share + 2-year-prior + ADP feature
 set keeps it respectable and, crucially, removes the proprietary dependency.
 
 Usage:
@@ -97,6 +97,30 @@ def load_draft():
     return d
 
 
+def load_adp():
+    """Community ADP per (name, season). 2019-2025 from the training cache,
+    current season from the committed FFC snapshot. ADP is public/community
+    data (already shipped in the repo) — not a proprietary projection."""
+    adp = {}
+    try:
+        for r in json.load(open('public/data/training-rows-cache-v49.json')).get('rows', []):
+            a = r.get('adp')
+            if a and a > 0:
+                adp[(norm(r.get('name')), r.get('season'))] = float(a)
+    except Exception:
+        pass
+    for f in glob.glob('public/data/ffc_adp_ppr_*.json'):
+        try:
+            yr = int(re.search(r'(\d{4})', f).group(1))
+            for p in (json.load(open(f)).get('players') or []):
+                a = p.get('adp')
+                if a and a > 0:
+                    adp.setdefault((norm(p.get('name')), yr), float(a))
+        except Exception:
+            pass
+    return adp
+
+
 def load_rosters(season):
     """name -> (team, pos) for the prediction season."""
     out = {}
@@ -127,7 +151,7 @@ def main(argv):
     def make_model():
         return make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
 
-    act, (dc, fbset), draft = load_actuals(), load_depth(), load_draft()
+    act, (dc, fbset), draft, adp_map = load_actuals(), load_depth(), load_draft(), load_adp()
 
     # team prior-season volume totals, for the share feature
     team_tgt = defaultdict(float); team_att = defaultdict(float)
@@ -145,7 +169,8 @@ def main(argv):
         else:
             vol = p1.get('tgt', 0); tv = team_tgt.get((p1.get('team'), yr - 1), 0)
         share = vol / tv if tv > 0 else 0.0
-        return [prior_ppr, vol, share, 1.0 / dc.get((nm, yr), 99),
+        adp_score = (300 - min(adp_map.get((nm, yr), 300), 300)) / 300.0  # market signal; 0 if undrafted
+        return [prior_ppr, vol, share, adp_score, 1.0 / dc.get((nm, yr), 99),
                 1.0 if dc.get((nm, yr), 99) == 1 else 0.0,
                 300 - min(draft.get((nm, yr), 300), 300)]
 
