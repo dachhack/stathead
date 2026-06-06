@@ -1696,6 +1696,28 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         wrs.forEach(anchorReceiver);
         tes.forEach(anchorReceiver);
 
+        // "Depth-order wins ordering": within each team, assign the WR/TE point
+        // values in the depth-order model's rank order, so the modeled #1 is
+        // the projected #1 even when the ML-PPG anchor would rank a teammate
+        // higher — e.g. injury-year returnees the PPG model under-rates
+        // (Marvin Harrison Jr. over Michael Wilson on ARI). Same point values,
+        // reassigned by rank, so team totals are unchanged. No-op where the
+        // anchor order already matches the model, and skipped when the model
+        // has no opinion for a team/position.
+        for (const [arr, pos] of [[wrs, 'WR'], [tes, 'TE']] as const) {
+          const byTeam = new Map<string, typeof arr>();
+          for (const p of arr) (byTeam.get(p.team) ?? byTeam.set(p.team, []).get(p.team)!).push(p);
+          for (const [team, group] of byTeam) {
+            if (group.length < 2) continue;
+            if (group.every((p) => depthRank(team, pos, p.name) >= 9999)) continue;
+            const byRank = [...group].sort((a, b) => depthRank(team, pos, a.name) - depthRank(team, pos, b.name));
+            const byPts = [...group].sort((a, b) => b.pprPts - a.pprPts);
+            const fields = ['tgt', 'rec', 'recYds', 'recTD', 'rushAtt', 'rushYds', 'rushTD', 'pprPts'] as const;
+            const slots = byPts.map((s) => Object.fromEntries(fields.map((f) => [f, (s as unknown as Record<string, number>)[f] ?? 0])));
+            byRank.forEach((p, i) => { for (const f of fields) (p as unknown as Record<string, number>)[f] = slots[i][f]; });
+          }
+        }
+
         // Sort by PPR points descending
         qbs.sort((a, b) => b.pprPts - a.pprPts);
         rbs.sort((a, b) => b.pprPts - a.pprPts);
