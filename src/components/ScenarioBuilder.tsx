@@ -6,12 +6,10 @@ import type {
   TeamVolume,
   TeamStatAdjustment,
   TeamStatKey,
-  VolumeOverride,
   PlayerMovement,
   CustomPlayer,
   FreeAgentPlayer,
   FreeAgentSigning,
-  PlayerAvailability,
 } from '../types';
 import {
   saveScenario,
@@ -75,16 +73,9 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
   const [newTeamVolTeam, setNewTeamVolTeam] = useState('');
   const [newTeamVolDelta, setNewTeamVolDelta] = useState(0);
 
-  // Volume override add form
-  const [volSearch, setVolSearch] = useState('');
-  const [volPlayer, setVolPlayer] = useState<SDIOProjection | null>(null);
-  const [volDelta, setVolDelta] = useState(0);
-  const [volPerStat, setVolPerStat] = useState(false);
-  const [volRush, setVolRush] = useState<number | undefined>(undefined);
-  const [volRec, setVolRec] = useState<number | undefined>(undefined);
-  const [volPass, setVolPass] = useState<number | undefined>(undefined);
-  const [expandedOverride, setExpandedOverride] = useState<number | null>(null);
-  const volResults = usePlayerSearch(projections, volSearch);
+  // Roster editor (by-team interactive view for volume / availability / projection)
+  const [editTeam, setEditTeam] = useState('');
+  const [editMetric, setEditMetric] = useState<'volume' | 'games' | 'ppr'>('volume');
 
   // Player movement add form
   const [moveSearch, setMoveSearch] = useState('');
@@ -97,12 +88,6 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
   const [newStatTeam, setNewStatTeam] = useState('');
   const [newStatKey, setNewStatKey] = useState<TeamStatKey>('PassingYards');
   const [newStatDelta, setNewStatDelta] = useState(0);
-
-  // Player availability (games haircut) add form
-  const [availSearch, setAvailSearch] = useState('');
-  const [availPlayer, setAvailPlayer] = useState<SDIOProjection | null>(null);
-  const [availGames, setAvailGames] = useState(13);
-  const availResults = usePlayerSearch(projections, availSearch);
 
   // Custom player add form
   const [addingCustom, setAddingCustom] = useState(false);
@@ -141,6 +126,23 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
     const set = new Set(projections.map((p) => p.Team).filter(Boolean));
     return Array.from(set).sort();
   }, [projections]);
+
+  // Roster editor: selected team's players grouped by position, each group
+  // sorted by projected PPR (so the depth order reads top-down).
+  const editRoster = useMemo(() => {
+    if (!editTeam) return [] as { pos: string; players: SDIOProjection[] }[];
+    const byPos: Record<string, SDIOProjection[]> = {};
+    for (const p of projections) {
+      if (p.Team !== editTeam) continue;
+      (byPos[p.Position] ??= []).push(p);
+    }
+    return ['QB', 'RB', 'WR', 'TE']
+      .filter((pos) => byPos[pos]?.length)
+      .map((pos) => ({
+        pos,
+        players: byPos[pos].sort((a, b) => (b.FantasyPointsPPR || 0) - (a.FantasyPointsPPR || 0)),
+      }));
+  }, [projections, editTeam]);
 
   useEffect(() => {
     if (open) setSavedList(loadAllScenarios());
@@ -207,45 +209,43 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
       ),
     });
 
-  // --- Volume override actions ---
-  const addVolumeOverride = () => {
-    if (!volPlayer) return;
-    const hasAny = volDelta !== 0 || volRush !== undefined || volRec !== undefined || volPass !== undefined;
-    if (!hasAny) return;
-    if (scenario.volumeOverrides.find((v) => v.playerId === volPlayer.PlayerID)) return;
-    const override: VolumeOverride = {
-      playerId: volPlayer.PlayerID,
-      playerName: volPlayer.Name,
-      team: volPlayer.Team,
-      position: volPlayer.Position,
-      volumeDelta: volDelta,
-      rushDelta: volRush,
-      recDelta: volRec,
-      passDelta: volPass,
-    };
-    update({ volumeOverrides: [...scenario.volumeOverrides, override] });
-    setVolSearch('');
-    setVolPlayer(null);
-    setVolDelta(0);
-    setVolPerStat(false);
-    setVolRush(undefined);
-    setVolRec(undefined);
-    setVolPass(undefined);
+  // --- Roster editor: per-player upsert setters (volume / availability / projection) ---
+  // Each looks up the player's current value and writes (or clears) the matching
+  // override array entry, keyed by PlayerID.
+  const volumeOf = (id: number) =>
+    scenario.volumeOverrides.find((v) => v.playerId === id)?.volumeDelta ?? 0;
+  const gamesOf = (id: number) =>
+    (scenario.playerAvailability ?? []).find((a) => a.playerId === id)?.games ?? 17;
+  const pprOf = (id: number) =>
+    (scenario.pointsOverrides ?? []).find((o) => o.playerId === id)?.ppr;
+
+  const setPlayerVolume = (p: SDIOProjection, delta: number) => {
+    const rest = scenario.volumeOverrides.filter((v) => v.playerId !== p.PlayerID);
+    update({
+      volumeOverrides: delta === 0 ? rest : [
+        ...rest,
+        { playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, volumeDelta: delta },
+      ],
+    });
   };
-  const removeVolumeOverride = (id: number) =>
-    update({ volumeOverrides: scenario.volumeOverrides.filter((v) => v.playerId !== id) });
-  const updateVolumeDelta = (id: number, delta: number) =>
+  const setPlayerGames = (p: SDIOProjection, games: number) => {
+    const rest = (scenario.playerAvailability ?? []).filter((a) => a.playerId !== p.PlayerID);
     update({
-      volumeOverrides: scenario.volumeOverrides.map((v) =>
-        v.playerId === id ? { ...v, volumeDelta: delta } : v
-      ),
+      playerAvailability: games >= 17 ? rest : [
+        ...rest,
+        { playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, games },
+      ],
     });
-  const updateVolumeStatDelta = (id: number, field: 'rushDelta' | 'recDelta' | 'passDelta', value: number | undefined) =>
+  };
+  const setPlayerPpr = (p: SDIOProjection, ppr: number | undefined) => {
+    const rest = (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID);
     update({
-      volumeOverrides: scenario.volumeOverrides.map((v) =>
-        v.playerId === id ? { ...v, [field]: value } : v
-      ),
+      pointsOverrides: (ppr === undefined || ppr <= 0) ? rest : [
+        ...rest,
+        { playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, ppr: Math.round(ppr) },
+      ],
     });
+  };
 
   // --- Player movement actions ---
   const addMovement = () => {
@@ -336,43 +336,6 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
     onChange({ ...next, id: scenario.id, name: preset.name });
   };
   const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
-
-  // --- Player points overrides ---
-  const updatePointsOverride = (playerId: number, ppr: number) =>
-    update({
-      pointsOverrides: (scenario.pointsOverrides ?? []).map((o) =>
-        o.playerId === playerId ? { ...o, ppr } : o),
-    });
-  const removePointsOverride = (playerId: number) =>
-    update({ pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== playerId) });
-
-  // --- Player availability ---
-  const addAvailability = () => {
-    if (!availPlayer) return;
-    const entry: PlayerAvailability = {
-      playerId: availPlayer.PlayerID,
-      playerName: availPlayer.Name,
-      team: availPlayer.Team,
-      position: availPlayer.Position,
-      games: availGames,
-    };
-    update({
-      playerAvailability: [
-        ...(scenario.playerAvailability ?? []).filter((a) => norm(a.playerName) !== norm(entry.playerName)),
-        entry,
-      ],
-    });
-    setAvailSearch('');
-    setAvailPlayer(null);
-    setAvailGames(13);
-  };
-  const updateAvailabilityGames = (playerId: number, games: number) =>
-    update({
-      playerAvailability: (scenario.playerAvailability ?? []).map((a) =>
-        a.playerId === playerId ? { ...a, games } : a),
-    });
-  const removeAvailability = (playerId: number) =>
-    update({ playerAvailability: (scenario.playerAvailability ?? []).filter((a) => a.playerId !== playerId) });
 
   // --- Save/load ---
   const handleSave = () => {
@@ -824,381 +787,112 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
             )}
           </div>
 
-          {/* 6. Player Volume */}
+          {/* Roster Editor — interactive by-team volume / availability / projection */}
           <div className="scenario-section">
             <div className="scenario-section-header">
-              <span className="scenario-section-title">Player Volume</span>
+              <span className="scenario-section-title">Roster Editor</span>
             </div>
             <p className="scenario-section-hint">
-              Override target/carry share for individual players.
+              Pick a team and tap chips to tweak each player — no searching. Volume is
+              zero-sum within the team; availability scales games; projection sets PPR.
             </p>
 
-            <div className="scenario-add-form">
-              <div className="scenario-search-wrap">
-                <input
-                  type="text"
-                  placeholder="Search player..."
-                  value={volPlayer ? volPlayer.Name : volSearch}
-                  onChange={(e) => {
-                    setVolSearch(e.target.value);
-                    setVolPlayer(null);
-                  }}
-                  className="scenario-search"
-                />
-                {volResults.length > 0 && !volPlayer && (
-                  <div className="scenario-dropdown">
-                    {volResults.map((p) => (
-                      <div
-                        key={p.PlayerID}
-                        className="scenario-dropdown-item"
-                        onClick={() => {
-                          setVolPlayer(p);
-                          setVolSearch('');
-                        }}
-                      >
-                        <span className={`pos-badge pos-${p.Position}`}>{p.Position}</span>
-                        <span className="scenario-dropdown-name">{p.Name}</span>
-                        <span className="scenario-dropdown-team">{p.Team}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {volPlayer && (
-                <>
-                  <div className="scenario-selected-player">
-                    <span className={`pos-badge pos-${volPlayer.Position}`}>
-                      {volPlayer.Position}
-                    </span>
-                    <span>{volPlayer.Name}</span>
-                    <span className="scenario-dropdown-team">{volPlayer.Team}</span>
+            <div className="scenario-roster-controls">
+              <select
+                className="scenario-select"
+                value={editTeam}
+                onChange={(e) => setEditTeam(e.target.value)}
+              >
+                <option value="">Select a team…</option>
+                {teams.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              {editTeam && (
+                <div className="scenario-metric-toggle">
+                  {([['volume', 'Volume'], ['games', 'Availability'], ['ppr', 'Projection']] as const).map(([m, label]) => (
                     <button
-                      className="scenario-clear-selection"
-                      onClick={() => { setVolPlayer(null); setVolPerStat(false); setVolRush(undefined); setVolRec(undefined); setVolPass(undefined); }}
+                      key={m}
+                      className={`scenario-metric-btn ${editMetric === m ? 'active' : ''}`}
+                      onClick={() => setEditMetric(m)}
                     >
-                      ✕
+                      {label}
                     </button>
-                  </div>
-                  <div className="scenario-slider-row">
-                    <span className="scenario-slider-label scenario-label-run">−50%</span>
-                    <input
-                      type="range"
-                      min={-50}
-                      max={100}
-                      value={volDelta}
-                      onChange={(e) => setVolDelta(Number(e.target.value))}
-                      className="scenario-slider"
-                    />
-                    <span className="scenario-slider-label scenario-label-pass">+100%</span>
-                  </div>
-                  <div className="scenario-slider-value-row">
-                    <span
-                      className={`scenario-slider-value ${
-                        volDelta > 0 ? 'positive' : volDelta < 0 ? 'negative' : ''
-                      }`}
-                    >
-                      Overall: {deltaLabel(volDelta, 'volume')}
-                    </span>
-                    <button
-                      className="scenario-link-btn"
-                      style={{ marginLeft: 8, fontSize: 11 }}
-                      onClick={() => setVolPerStat((v) => !v)}
-                    >
-                      {volPerStat ? 'Hide per-stat' : 'Per-stat'}
-                    </button>
-                  </div>
-                  {volPerStat && (
-                    <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                      {(volPlayer.Position === 'QB' ? [
-                        { label: 'Passing', field: 'pass' as const, val: volPass, set: setVolPass },
-                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
-                      ] : volPlayer.Position === 'RB' ? [
-                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
-                        { label: 'Receiving', field: 'rec' as const, val: volRec, set: setVolRec },
-                      ] : [
-                        { label: 'Receiving', field: 'rec' as const, val: volRec, set: setVolRec },
-                        { label: 'Rushing', field: 'rush' as const, val: volRush, set: setVolRush },
-                      ]).map(({ label, val, set }) => (
-                        <div key={label} style={{ marginBottom: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, minWidth: 60 }}>{label}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              {val !== undefined ? deltaLabel(val, 'volume') : `(uses overall: ${deltaLabel(volDelta, 'volume')})`}
-                            </span>
-                            {val !== undefined && (
-                              <button className="scenario-link-btn" style={{ fontSize: 10 }} onClick={() => set(undefined)}>
-                                reset
-                              </button>
-                            )}
-                          </div>
-                          <div className="scenario-slider-row" style={{ marginBottom: 0 }}>
-                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>−50%</span>
-                            <input
-                              type="range" min={-50} max={100}
-                              value={val ?? volDelta}
-                              onChange={(e) => set(Number(e.target.value))}
-                              className="scenario-slider"
-                            />
-                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>+100%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    className="scenario-confirm-btn"
-                    onClick={addVolumeOverride}
-                    disabled={volDelta === 0 && volRush === undefined && volRec === undefined && volPass === undefined}
-                  >
-                    Add Override
-                  </button>
-                </>
+                  ))}
+                </div>
               )}
             </div>
 
-            {scenario.volumeOverrides.map((v) => {
-              const hasPerStat = v.rushDelta !== undefined || v.recDelta !== undefined || v.passDelta !== undefined;
-              const isExpanded = expandedOverride === v.playerId;
-              const perStatEntries = v.position === 'QB'
-                ? [{ label: 'Passing', field: 'passDelta' as const, val: v.passDelta }, { label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }]
-                : v.position === 'RB'
-                ? [{ label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }, { label: 'Receiving', field: 'recDelta' as const, val: v.recDelta }]
-                : [{ label: 'Receiving', field: 'recDelta' as const, val: v.recDelta }, { label: 'Rushing', field: 'rushDelta' as const, val: v.rushDelta }];
-              return (
-                <div key={v.playerId}>
-                  <div className="scenario-item">
-                    <div className="scenario-item-left">
-                      <span className={`pos-badge pos-${v.position}`}>{v.position}</span>
-                      <span className="scenario-item-name">{v.playerName}</span>
-                      <span
-                        className={`scenario-item-delta ${
-                          v.volumeDelta > 0 ? 'positive' : v.volumeDelta < 0 ? 'negative' : ''
-                        }`}
-                      >
-                        {deltaLabel(v.volumeDelta, 'volume')}
-                      </span>
-                      {hasPerStat && (
-                        <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>+per-stat</span>
-                      )}
-                    </div>
-                    <div className="scenario-item-controls">
-                      <button
-                        className="scenario-link-btn"
-                        style={{ fontSize: 10, marginRight: 4 }}
-                        onClick={() => setExpandedOverride(isExpanded ? null : v.playerId)}
-                      >
-                        {isExpanded ? 'Less' : 'More'}
-                      </button>
-                      <input
-                        type="range"
-                        min={-50}
-                        max={100}
-                        value={v.volumeDelta}
-                        onChange={(e) => updateVolumeDelta(v.playerId, Number(e.target.value))}
-                        className="scenario-slider-inline"
-                      />
-                      <button
-                        className="scenario-remove-btn"
-                        onClick={() => removeVolumeOverride(v.playerId)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <div style={{ padding: '4px 12px 8px', borderBottom: '1px solid var(--border)' }}>
-                      {perStatEntries.map(({ label, field, val }) => (
-                        <div key={field} style={{ marginBottom: 6 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, minWidth: 60 }}>{label}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              {val !== undefined ? deltaLabel(val, 'volume') : `(overall: ${deltaLabel(v.volumeDelta, 'volume')})`}
-                            </span>
-                            {val !== undefined && (
-                              <button className="scenario-link-btn" style={{ fontSize: 10 }} onClick={() => updateVolumeStatDelta(v.playerId, field, undefined)}>
-                                reset
-                              </button>
-                            )}
-                          </div>
-                          <div className="scenario-slider-row" style={{ marginBottom: 0 }}>
-                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>−50%</span>
-                            <input
-                              type="range" min={-50} max={100}
-                              value={val ?? v.volumeDelta}
-                              onChange={(e) => updateVolumeStatDelta(v.playerId, field, Number(e.target.value))}
-                              className="scenario-slider"
-                            />
-                            <span className="scenario-slider-label" style={{ fontSize: 10 }}>+100%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {scenario.volumeOverrides.length === 0 && !volPlayer && !volSearch && (
-              <div className="scenario-section-empty">No volume overrides</div>
-            )}
-          </div>
-
-          {/* Player Availability — games haircut (injury skeptic) */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Player Availability</span>
-            </div>
-            <p className="scenario-section-hint">
-              Project a player for fewer than 17 games. Counting stats scale by games/17
-              (an injury discount). Not redistributed to teammates.
-            </p>
-
-            <div className="scenario-add-form">
-              <div className="scenario-search-wrap">
-                <input
-                  type="text"
-                  placeholder="Search player..."
-                  value={availPlayer ? availPlayer.Name : availSearch}
-                  onChange={(e) => {
-                    setAvailSearch(e.target.value);
-                    setAvailPlayer(null);
-                  }}
-                  className="scenario-search"
-                />
-                {availResults.length > 0 && !availPlayer && (
-                  <div className="scenario-dropdown">
-                    {availResults.map((p) => (
-                      <div
-                        key={p.PlayerID}
-                        className="scenario-dropdown-item"
-                        onClick={() => {
-                          setAvailPlayer(p);
-                          setAvailSearch('');
-                        }}
-                      >
-                        <span className={`pos-badge pos-${p.Position}`}>{p.Position}</span>
-                        <span className="scenario-dropdown-name">{p.Name}</span>
-                        <span className="scenario-dropdown-team">{p.Team}</span>
+            {editTeam && editRoster.map((group) => (
+              <div key={group.pos} className="scenario-roster-group">
+                <div className="scenario-roster-pos">{group.pos}</div>
+                {group.players.map((p) => {
+                  const vol = volumeOf(p.PlayerID);
+                  const games = gamesOf(p.PlayerID);
+                  const ppr = pprOf(p.PlayerID);
+                  const touched = vol !== 0 || games < 17 || ppr !== undefined;
+                  return (
+                    <div key={p.PlayerID} className="scenario-roster-row">
+                      <div className="scenario-roster-name">
+                        {touched && <span className="scenario-active-dot" />}
+                        <span className="scenario-roster-label">{p.Name}</span>
+                        <span className="scenario-roster-base">{Math.round(p.FantasyPointsPPR || 0)}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {availPlayer && (
-                <>
-                  <div className="scenario-selected-player">
-                    <span className={`pos-badge pos-${availPlayer.Position}`}>
-                      {availPlayer.Position}
-                    </span>
-                    <span>{availPlayer.Name}</span>
-                    <span className="scenario-dropdown-team">{availPlayer.Team}</span>
-                    <button
-                      className="scenario-clear-selection"
-                      onClick={() => { setAvailPlayer(null); setAvailGames(13); }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="scenario-slider-row">
-                    <span className="scenario-slider-label scenario-label-run">1</span>
-                    <input
-                      type="range"
-                      min={1}
-                      max={17}
-                      value={availGames}
-                      onChange={(e) => setAvailGames(Number(e.target.value))}
-                      className="scenario-slider"
-                    />
-                    <span className="scenario-slider-label scenario-label-pass">17</span>
-                  </div>
-                  <div className="scenario-slider-value-row">
-                    <span className="scenario-slider-value negative">
-                      {availGames} games ({Math.round((availGames / 17) * 100)}% of full)
-                    </span>
-                  </div>
-                  <button
-                    className="scenario-confirm-btn"
-                    onClick={addAvailability}
-                    disabled={availGames >= 17}
-                  >
-                    Add Availability
-                  </button>
-                </>
-              )}
-            </div>
-
-            {(scenario.playerAvailability ?? []).map((a) => (
-              <div key={a.playerId} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className={`pos-badge pos-${a.position}`}>{a.position}</span>
-                  <span className="scenario-item-name">{a.playerName}</span>
-                  <span className="scenario-item-delta negative">{a.games} gm</span>
-                </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="range"
-                    min={1}
-                    max={17}
-                    value={a.games}
-                    onChange={(e) => updateAvailabilityGames(a.playerId, Number(e.target.value))}
-                    className="scenario-slider-inline"
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removeAvailability(a.playerId)}
-                  >
-                    ✕
-                  </button>
-                </div>
+                      <div className="scenario-chip-row">
+                        {editMetric === 'volume' && [-25, -10, 10, 25].map((d) => (
+                          <button
+                            key={d}
+                            className={`scenario-chip ${vol === d ? (d < 0 ? 'active-neg' : 'active-pos') : ''}`}
+                            onClick={() => setPlayerVolume(p, vol === d ? 0 : d)}
+                          >
+                            {d > 0 ? `+${d}` : d}%
+                          </button>
+                        ))}
+                        {editMetric === 'games' && [17, 14, 11, 8].map((g) => (
+                          <button
+                            key={g}
+                            className={`scenario-chip ${games === g ? (g < 17 ? 'active-neg' : 'active-pos') : ''}`}
+                            onClick={() => setPlayerGames(p, g)}
+                          >
+                            {g} gm
+                          </button>
+                        ))}
+                        {editMetric === 'ppr' && (
+                          <>
+                            {[-15, -5, 5, 15].map((pct) => {
+                              const base = Math.round(p.FantasyPointsPPR || 0);
+                              const target = Math.round(base * (1 + pct / 100));
+                              const active = ppr === target;
+                              return (
+                                <button
+                                  key={pct}
+                                  className={`scenario-chip ${active ? (pct < 0 ? 'active-neg' : 'active-pos') : ''}`}
+                                  onClick={() => setPlayerPpr(p, active ? undefined : target)}
+                                >
+                                  {pct > 0 ? `+${pct}` : pct}%
+                                </button>
+                              );
+                            })}
+                            <input
+                              type="number"
+                              min={0}
+                              placeholder={String(Math.round(p.FantasyPointsPPR || 0))}
+                              value={ppr ?? ''}
+                              onChange={(e) => setPlayerPpr(p, e.target.value === '' ? undefined : Number(e.target.value))}
+                              className="scenario-input-sm"
+                              style={{ width: 56 }}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
 
-            {(scenario.playerAvailability ?? []).length === 0 && !availPlayer && !availSearch && (
-              <div className="scenario-section-empty">No availability adjustments</div>
-            )}
-          </div>
-
-          {/* Player Projection (PPR) — absolute points targets (Consensus preset) */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Player Projection (PPR)</span>
-            </div>
-            <p className="scenario-section-hint">
-              Set a player's projected PPR points directly. Stats scale to match.
-              Populated by the Consensus preset; edit any value below.
-            </p>
-
-            {(scenario.pointsOverrides ?? []).map((o) => (
-              <div key={o.playerId} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className={`pos-badge pos-${o.position}`}>{o.position}</span>
-                  <span className="scenario-item-name">{o.playerName}</span>
-                </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="number"
-                    min={0}
-                    value={Math.round(o.ppr)}
-                    onChange={(e) => updatePointsOverride(o.playerId, Number(e.target.value))}
-                    className="scenario-input-sm"
-                    style={{ width: 64 }}
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removePointsOverride(o.playerId)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {(scenario.pointsOverrides ?? []).length === 0 && (
-              <div className="scenario-section-empty">
-                No projection overrides{!hasClay && ' — apply the Consensus preset (needs local Clay data)'}
-              </div>
+            {!editTeam && (
+              <div className="scenario-section-empty">Select a team to edit its players</div>
             )}
           </div>
 

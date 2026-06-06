@@ -1502,6 +1502,123 @@ tr:hover td {
   }
 }
 
+/* Roster editor (interactive by-team chips) */
+
+.scenario-roster-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.scenario-metric-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.scenario-metric-btn {
+  flex: 1;
+  padding: 7px 0;
+  background: var(--bg-tertiary);
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.scenario-metric-btn:last-child { border-right: none; }
+
+.scenario-metric-btn:hover { color: var(--text-primary); }
+
+.scenario-metric-btn.active {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--accent);
+}
+
+.scenario-roster-group { margin-top: 10px; }
+
+.scenario-roster-pos {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.scenario-roster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  flex-wrap: wrap;
+}
+
+.scenario-roster-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.scenario-roster-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.scenario-roster-base {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.scenario-chip {
+  padding: 3px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.scenario-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+
+.scenario-chip.active-pos {
+  background: rgba(0, 212, 170, 0.18);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.scenario-chip.active-neg {
+  background: rgba(100, 200, 255, 0.18);
+  border-color: #64c8ff;
+  color: #64c8ff;
+}
+
 /* Add button */
 
 .scenario-add-btn {
