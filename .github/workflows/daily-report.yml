@@ -39,7 +39,7 @@ jobs:
 
       - name: Generate report
         run: |
-          python3 scripts/daily-report.py report.md
+          python3 scripts/daily-report.py report.md report.html
           cat report.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check mail secrets
@@ -66,7 +66,7 @@ jobs:
           from: StatHead Bot <${{ secrets.MAIL_USERNAME }}>
           to: ${{ secrets.REPORT_TO_EMAIL }}
           subject: "StatHead Daily Report — ${{ github.run_id }}"
-          # Plain-text body (the report is Markdown — readable as-is and in
-          # clients that render it). convert_markdown isn't used so links/tables
-          # stay legible as source.
+          # Styled HTML body, with the Markdown as the plain-text fallback for
+          # clients that don't render HTML.
+          html_body: file://report.html
           body: file://report.md
