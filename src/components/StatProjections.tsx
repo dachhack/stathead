@@ -16,6 +16,23 @@ import teamProjectionsEnsemble from '../generated/team-projections.json';
 
 const PREDICT_SEASON = 2026;
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
+
+// Canonicalize team abbreviations to the nflverse codes used by the stats +
+// team-projection data. The 2026 roster feed labels Arizona "AZ" while the
+// prior-season stats and team-projections use "ARI"; without this the entire
+// Arizona pipeline (team totals, pool shares, projTeam lookup) mismatches and
+// its depth players get the studs' reconciled volume — e.g. Kendrick Bourne /
+// Josiah Deguara projecting as WR1/TE1 over Harrison / McBride. Also maps the
+// other historical nflverse variants so the same class of bug can't recur.
+const TEAM_CANON: Record<string, string> = {
+  AZ: 'ARI', ARZ: 'ARI', JAC: 'JAX', LAR: 'LA', STL: 'LA', SD: 'LAC',
+  OAK: 'LV', LVR: 'LV', WSH: 'WAS', GNB: 'GB', KAN: 'KC', NWE: 'NE',
+  NOR: 'NO', SFO: 'SF', TAM: 'TB', CLV: 'CLE', BLT: 'BAL', HST: 'HOU',
+};
+const normTeam = (t: string | undefined | null): string => {
+  const u = (t || '').toUpperCase();
+  return TEAM_CANON[u] || u;
+};
 type Position = typeof POSITIONS[number];
 
 const POS_COLORS: Record<string, string> = {
@@ -665,7 +682,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         const rosterTeam = new Map<string, string>();
         for (const r of rosters) {
           if (['QB', 'RB', 'WR', 'TE'].includes(r.position)) {
-            rosterTeam.set(normalizeName(r.full_name), r.team);
+            rosterTeam.set(normalizeName(r.full_name), normTeam(r.team));
           }
         }
 
@@ -816,14 +833,15 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         const priorTeamTotals = new Map<string, TeamStats>();
         for (const p of priorTotals) {
           if (!p.recent_team || !['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
-          if (!priorTeamTotals.has(p.recent_team)) {
-            priorTeamTotals.set(p.recent_team, {
+          const pteam = normTeam(p.recent_team);
+          if (!priorTeamTotals.has(pteam)) {
+            priorTeamTotals.set(pteam, {
               passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0,
               rushAtt: 0, rushYds: 0, rushTD: 0,
               targets: 0, receptions: 0, recYds: 0, recTD: 0,
             });
           }
-          const t = priorTeamTotals.get(p.recent_team)!;
+          const t = priorTeamTotals.get(pteam)!;
           t.passAtt += p.attempts || 0;
           t.passComp += p.completions || 0;
           t.passYds += p.passing_yards || 0;
@@ -903,7 +921,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // Compute actual shares from prior-season player stats grouped by team+position
         function computePoolShares(team: string): PosPoolShares {
           const teamPlayers = priorTotals.filter(
-            (p) => p.recent_team === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)
+            (p) => normTeam(p.recent_team) === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)
           );
           const teamRushAtt = teamPlayers.reduce((s, p) => s + (p.carries || 0), 0) || 1;
           const teamRushYds = teamPlayers.reduce((s, p) => s + (p.rushing_yards || 0), 0) || 1;
@@ -1057,7 +1075,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           if (!POSITIONS.includes(adp.position as Position)) continue;
           if (adp.adp > 400) continue;
           const nn = normalizeName(adp.name);
-          const team = rosterTeam.get(nn) || adp.team || '';
+          const team = normTeam(rosterTeam.get(nn) || adp.team || '');
           if (!team) continue;
           const prior = priorByName.get(nn);
           ensureList(tpKey(team, adp.position)).push({
@@ -1110,8 +1128,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           const nn = normalizeName(r.full_name);
           if (addedNames.has(nn)) continue;
           const prior = priorByName.get(nn);
-          ensureList(tpKey(r.team, r.position)).push({
-            name: r.full_name, team: r.team, position: r.position as Position,
+          ensureList(tpKey(normTeam(r.team), r.position)).push({
+            name: r.full_name, team: normTeam(r.team), position: r.position as Position,
             adp: syntheticRookieAdp(nn, r.position), prior,
           });
           addedNames.add(nn);
@@ -1122,7 +1140,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           if (!POSITIONS.includes(p.position as Position)) continue;
           const nn = normalizeName(p.player_display_name);
           if (addedNames.has(nn)) continue;
-          const team = rosterTeam.get(nn) || p.recent_team || '';
+          const team = normTeam(rosterTeam.get(nn) || p.recent_team || '');
           if (!team) continue;
           ensureList(tpKey(team, p.position)).push({
             name: p.player_display_name, team, position: p.position as Position,
@@ -1155,7 +1173,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         const tes: TEProjection[] = [];
 
         const allTeams = new Set<string>();
-        for (const r of rosters) { if (r.team && POSITIONS.includes(r.position as Position)) allTeams.add(r.team); }
+        for (const r of rosters) { if (r.team && POSITIONS.includes(r.position as Position)) allTeams.add(normTeam(r.team)); }
         for (const [team] of priorTeamTotals) allTeams.add(team);
 
         for (const team of allTeams) {
