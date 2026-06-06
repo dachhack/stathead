@@ -43,6 +43,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Install the PUBLISHED package so the report's "Package health" section
+      # exercises exactly what users get from PyPI (import + default-ref fetch).
+      # Non-fatal: if it fails, the report flags the package as unhealthy.
+      - name: Install published stathead (health probe)
+        run: pip install --quiet --upgrade stathead || echo "stathead install failed — report will flag it"
+
       - name: Generate report
         run: |
           python3 scripts/daily-report.py report.md report.html
