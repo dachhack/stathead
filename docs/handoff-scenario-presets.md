@@ -96,6 +96,37 @@ read the table) is what we used; install `puppeteer` ad hoc and **revert package
 (it's a verify-only dep). Scenario testing: apply a preset in-page, confirm the projected
 PPG/order shifts the intended way (e.g. rookie optimistic → rookies climb their team's order).
 
+## Consensus preset (local-only Clay blend) — SHIPPED
+
+The **Consensus** preset blends `0.8·Clay + 0.2·our` projection per player (at the
+PPR level — counting stats keep our shape, scaled to the blended PPG). It is
+**local-only** so Clay's licensed numbers are never committed/shipped:
+
+- It reads a **gitignored** runtime file: `public/data/clay/clay-<season>.json`
+  (`/public/data/clay/` is in `.gitignore`). `StatProjections` fetches it on load;
+  Clay PPR is computed from the stat line with our scoring (sidesteps Clay's
+  std-vs-PPR `pts` column).
+- When the file is **absent** (the public deploy — CI has no `/private/`), the
+  Clay map is empty and the **Consensus preset is hidden** (`requiresClay`).
+- The blend uses the app's *own live* projection as the "us" term (computed in
+  the browser at apply time), so only Clay's raw numbers need to be present.
+- Mechanism: a new **`pointsOverrides`** lever on `ScenarioConfig` (set a player
+  to an absolute PPR target; stats scale to match; non-zero-sum). Handled in both
+  `applyScenario` and `applyScenarioToProjections`. The position table now
+  re-sorts by adjusted points so re-ranks are visible.
+
+**To enable it locally** (never commit the output):
+```bash
+# Parse Clay's PDFs (offline tool) → JSON of {name,pos,passYds,passTD,int,
+# rushYds,rushTD,rec,recYds,recTD,...}. Drop it at the runtime path:
+python3 scripts/scrape_clay_projections.py <clay-2026.pdf> 2026 \
+  public/data/clay/clay-2026.json
+# (or --dir to parse a folder). The file is gitignored; the Consensus preset
+# appears in the Scenario Builder once it's present.
+```
+The current preset's old "Consensus" (market-compression) name is now
+**"Vegas Weighted"** (`vegasWeighting: 25`), unchanged behavior.
+
 ## Conventions
 - Branch off the default branch **`claude/nfl-fantasy-workbench-6D1yd`** (NOT `main` — there is no `main`). Open a PR, merge it; deploy auto-fires on push to default (runs full `npm run build` incl. precompute).
 - `tsc -b` must pass; pre-existing `any`/empty-block lint in `StatProjections.tsx` is fine (don't add new).

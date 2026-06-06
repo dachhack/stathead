@@ -3,6 +3,7 @@ import type {
   ScenarioConfig,
   VolumeOverride,
   PlayerAvailability,
+  PointsOverride,
 } from '../types';
 import { createEmptyScenario } from './scenarioEngine';
 
@@ -18,16 +19,27 @@ export interface PlayerMeta {
 
 export type PresetMeta = Map<string, PlayerMeta>;
 
+// Optional external inputs a preset may consult. `clayPpr` is the local-only
+// Clay projection set (PPR by normalized name) — present only when the
+// gitignored runtime file exists, so Clay-dependent presets are hidden in the
+// public deploy.
+export interface PresetContext {
+  clayPpr?: Map<string, number>;
+}
+
 // A preset is a factory: given the live projection pool + metadata it produces
 // a ready-to-apply ScenarioConfig built entirely from existing scenario levers.
+// `requiresClay` presets are only offered when `ctx.clayPpr` has data.
 export interface ScenarioPreset {
   id: string;
   name: string;
   description: string;
+  requiresClay?: boolean;
   build: (
     players: SDIOProjection[],
     meta: PresetMeta,
     normalize: (s: string) => string,
+    ctx?: PresetContext,
   ) => ScenarioConfig;
 }
 
@@ -151,18 +163,52 @@ const injurySkeptic: ScenarioPreset = {
   },
 };
 
-// ── Consensus ──────────────────────────────────────────────────────
-// Market-compression tilt toward position means. NOTE: this is NOT Clay /
-// industry data (which is licensed and kept offline) — our base projection is
-// already consensus-calibrated, and this preset simply regresses upside toward
-// the mean to mimic a conservative, market-efficient view.
+// ── Vegas Weighted ─────────────────────────────────────────────────
+// Market-compression tilt toward position means. A conservative,
+// market-efficient view that regresses upside toward the mean. No external
+// data dependency.
+const vegasWeighted: ScenarioPreset = {
+  id: 'preset-vegas-weighted',
+  name: 'Vegas Weighted',
+  description: 'Regress projections 25% toward position means — a conservative, market-efficient view.',
+  build: () => {
+    const sc = base('Vegas Weighted');
+    sc.vegasWeighting = 25;
+    return sc;
+  },
+};
+
+// ── Consensus (80% Clay / 20% us) ──────────────────────────────────
+// Blend each player's projection toward Mike Clay's numbers: 0.8·Clay + 0.2·us
+// at the PPR level (counting stats keep our shape, scaled to the blended PPG).
+// LOCAL-ONLY: depends on the gitignored Clay set (ctx.clayPpr); this preset is
+// hidden in the public deploy where that data is absent, so Clay's licensed
+// numbers are never shipped. Falls back to a no-op if no Clay data is present.
+const CONSENSUS_CLAY_WEIGHT = 0.8;
 const consensus: ScenarioPreset = {
   id: 'preset-consensus',
   name: 'Consensus',
-  description: 'Regress projections 25% toward position means — a conservative, market-efficient (not Clay) view.',
-  build: () => {
+  description: 'Blend 80% Clay / 20% our projection per player (local Clay data required).',
+  requiresClay: true,
+  build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus');
-    sc.vegasWeighting = 25;
+    const clay = ctx?.clayPpr;
+    if (!clay || clay.size === 0) return sc; // no Clay data → no-op
+    const overrides: PointsOverride[] = [];
+    for (const p of players) {
+      const clayPpr = clay.get(normalize(p.Name));
+      if (clayPpr === undefined || clayPpr <= 0) continue;
+      const ours = p.FantasyPointsPPR || 0;
+      const blended = CONSENSUS_CLAY_WEIGHT * clayPpr + (1 - CONSENSUS_CLAY_WEIGHT) * ours;
+      overrides.push({
+        playerId: p.PlayerID,
+        playerName: p.Name,
+        team: p.Team,
+        position: p.Position,
+        ppr: Math.round(blended),
+      });
+    }
+    sc.pointsOverrides = overrides;
     return sc;
   },
 };
@@ -171,5 +217,6 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   rookieOptimistic,
   vetOptimistic,
   injurySkeptic,
+  vegasWeighted,
   consensus,
 ];
