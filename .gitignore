@@ -62,3 +62,6 @@ __pycache__/
 .cache/
 .venv/
 pdfs/
+
+# Proprietary inputs (Clay PDFs + parsed dataset) — never committed.
+/private/
