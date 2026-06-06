@@ -383,6 +383,83 @@ def section_model_snapshot():
     return "\n".join(md), _card("Model snapshot", _html_table(["Metric", "Value"], rows))
 
 
+def _pypi_latest():
+    """(version, upload_iso) of the latest stathead release on PyPI."""
+    try:
+        import urllib.request
+        with urllib.request.urlopen("https://pypi.org/pypi/stathead/json", timeout=20) as r:
+            d = json.loads(r.read().decode("utf-8"))
+        v = d["info"]["version"]
+        files = d.get("releases", {}).get(v) or []
+        up = files[0].get("upload_time_iso_8601") if files else None
+        return v, (up[:10] if up else None)
+    except Exception:
+        return None, None
+
+
+def _repo_pkg_version():
+    try:
+        m = re.search(r'^version\s*=\s*"([^"]+)"', Path("python/pyproject.toml").read_text(), re.M)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def section_package():
+    """Health of the *published* package, tested the way a fresh user hits it:
+    import it, then do a default-ref (no pin) live call. Also checks PyPI is in
+    sync with the repo. Returns (md, html, healthy)."""
+    repo_v = _repo_pkg_version()
+    pypi_v, pypi_up = _pypi_latest()
+    inst_v, default_ref, import_ok, fetch_ok, detail = None, None, False, False, ""
+    try:
+        import stathead
+        import_ok = True
+        inst_v = getattr(stathead, "__version__", None)
+        try:
+            default_ref = stathead._fetch.current_ref()
+        except Exception:
+            pass
+        try:
+            # Fresh-user path: no pin_version(), exercise fetch + parse + resolver.
+            key = stathead.resolve_player("Ja'Marr Chase", position="WR")
+            fetch_ok = isinstance(key, str) and key.startswith("sh_")
+            detail = f"resolve_player → {key}" if fetch_ok else f"unexpected: {key!r}"
+        except Exception as e:
+            detail = f"{type(e).__name__}: {str(e)[:90]}"
+    except Exception as e:
+        detail = f"import failed: {type(e).__name__}: {str(e)[:80]}"
+
+    in_sync = bool(pypi_v and repo_v and pypi_v == repo_v)
+    healthy = import_ok and fetch_ok and in_sync
+    issues = []
+    if not import_ok:
+        issues.append("import failed")
+    if not fetch_ok:
+        issues.append("default-ref fetch failing")
+    if pypi_v and repo_v and pypi_v != repo_v:
+        issues.append(f"PyPI {pypi_v} behind repo {repo_v} — release pending")
+    status = "✅ healthy" if healthy else "⚠️ " + "; ".join(issues or ["unknown"])
+
+    md = ["## Package health — " + status, "",
+          f"- **PyPI latest:** {pypi_v or '?'}" + (f" ({pypi_up})" if pypi_up else ""),
+          f"- **Repo version:** {repo_v or '?'}",
+          f"- **Installed (tested):** {inst_v or '—'}",
+          f"- **Default ref:** {default_ref or '—'}",
+          f"- **Live fetch (no pin):** {'✅ ' if fetch_ok else '❌ '}{detail}", ""]
+
+    sc = C_GREEN if healthy else C_AMBER
+    rows = [
+        ["Status", (status, sc)],
+        ["PyPI latest", ((f"{pypi_v} ({pypi_up})" if pypi_up else (pypi_v or '?')), C_TEXT)],
+        ["Repo version", (repo_v or "?", C_TEXT)],
+        ["Installed (tested)", (inst_v or "—", C_TEXT)],
+        ["Default ref", (default_ref or "—", C_MUTED)],
+        ["Live fetch (no pin)", (("✅ " if fetch_ok else "❌ ") + detail, C_GREEN if fetch_ok else C_RED)],
+    ]
+    return "\n".join(md), _card("Package health", _html_table(["Check", "Result"], rows)), healthy
+
+
 def section_ktc_movers():
     try:
         hist = load_json("ktc_history.json") or []
@@ -442,16 +519,19 @@ def main():
     fr_md, fr_html, stale = section_freshness()
     ro_md, ro_html = section_roster()
     ms_md, ms_html = section_model_snapshot()
+    pk_md, pk_html, pkg_ok = section_package()
     kt_md, kt_html = section_ktc_movers()
 
     headline = "✅ all surfaces fresh" if not stale else f"⚠️ {len(stale)} stale surface(s): {', '.join(stale)}"
     badge_color = C_GREEN if not stale else C_AMBER
+    pkg_badge = "✅ package healthy" if pkg_ok else "⚠️ package issue"
+    pkg_badge_color = C_GREEN if pkg_ok else C_AMBER
 
     md = "\n".join([
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
-        f"_{headline} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
+        f"_{headline} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        pl_md, fr_md, ro_md, ms_md, kt_md,
+        pl_md, fr_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -464,11 +544,13 @@ def main():
         f'<div style="margin:0 0 14px;">'
         f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{badge_color};'
         f'border-radius:12px;padding:3px 10px;">{esc(headline)}</span>'
+        f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{pkg_badge_color};'
+        f'border-radius:12px;padding:3px 10px;margin-left:8px;">{esc(pkg_badge)}</span>'
         f'<a href="{SITE}" style="display:inline-block;font-size:12px;font-weight:600;color:#fff;'
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{pl_html}{fr_html}{ro_html}{ms_html}{kt_html}'
+        f'{pl_html}{fr_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )
