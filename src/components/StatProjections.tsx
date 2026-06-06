@@ -581,7 +581,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthChartData, depthOrderData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -592,22 +592,16 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           fetch(`${import.meta.env.BASE_URL}data/score-store/ppg.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/score-store/adp.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
-          fetch(`${import.meta.env.BASE_URL}data/depth-chart-2026.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
           fetch(`${import.meta.env.BASE_URL}data/depth-order-2026.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
         ]);
-        // Per-team / per-position depth chart, derived from Mike Clay's
-        // 2026 projection ordering (built offline by
-        // scripts/build-depth-chart-from-clay.py). Used as the primary
-        // sort key so depth-chart truth wins over community ADP — handles
-        // rookies who don't have ADP yet, plus offseason role changes
-        // ADP hasn't priced in (e.g. R1 QB Mendoza starting over the
-        // veteran on his roster).
-        const depthChart = depthChartData as Record<string, Record<string, string[]>>;
-        // Replace the RB/TE ordering with our own public-data depth-order model
-        // (scripts/train_depth_order_model.py -> depth-order-2026.json), so those
-        // positions no longer depend on the Clay-derived ordering. The model's
-        // LOSO top-1 hit rate is RB 68.7% / TE 68.1% (vs ADP/prior ~56-66%).
-        // QB/WR keep the existing depth-chart ordering until a model covers them.
+        // Per-team / per-position depth chart from our own public-data
+        // depth-order model (scripts/train_depth_order_model.py ->
+        // depth-order-2026.json). Used as the primary sort key so the modeled
+        // starter wins over community ADP — handles rookies without ADP and
+        // offseason role changes ADP lags. Replaces the prior Clay-derived
+        // depth chart; teams/players the model misses fall back to ADP order.
+        // LOSO top-1 hit rate: QB 69.5% / RB 69.1% / WR 63.4% / TE 69.8%.
+        const depthChart: Record<string, Record<string, string[]>> = {};
         {
           const players = (depthOrderData as { players?: Array<{ name: string; team: string; pos: string; teamRank: number }> }).players || [];
           const byTeamPos: Record<string, Record<string, { name: string; teamRank: number }[]>> = {};
@@ -616,11 +610,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             ((byTeamPos[t] ??= {})[p.pos] ??= []).push({ name: p.name, teamRank: p.teamRank });
           }
           for (const t of Object.keys(byTeamPos)) {
-            for (const pos of ['RB', 'TE']) {
+            for (const pos of Object.keys(byTeamPos[t])) {
               const lst = byTeamPos[t][pos];
-              if (lst && lst.length) {
-                (depthChart[t] ??= {})[pos] = lst.sort((a, b) => a.teamRank - b.teamRank).map((x) => x.name);
-              }
+              (depthChart[t] ??= {})[pos] = lst.sort((a, b) => a.teamRank - b.teamRank).map((x) => x.name);
             }
           }
         }
