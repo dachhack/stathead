@@ -581,7 +581,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthChartData] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthChartData, depthOrderData] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -593,6 +593,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           fetch(`${import.meta.env.BASE_URL}data/score-store/adp.json`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${import.meta.env.BASE_URL}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
           fetch(`${import.meta.env.BASE_URL}data/depth-chart-2026.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+          fetch(`${import.meta.env.BASE_URL}data/depth-order-2026.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
         ]);
         // Per-team / per-position depth chart, derived from Mike Clay's
         // 2026 projection ordering (built offline by
@@ -602,6 +603,27 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // ADP hasn't priced in (e.g. R1 QB Mendoza starting over the
         // veteran on his roster).
         const depthChart = depthChartData as Record<string, Record<string, string[]>>;
+        // Replace the RB/TE ordering with our own public-data depth-order model
+        // (scripts/train_depth_order_model.py -> depth-order-2026.json), so those
+        // positions no longer depend on the Clay-derived ordering. The model's
+        // LOSO top-1 hit rate is RB 68.7% / TE 68.1% (vs ADP/prior ~56-66%).
+        // QB/WR keep the existing depth-chart ordering until a model covers them.
+        {
+          const players = (depthOrderData as { players?: Array<{ name: string; team: string; pos: string; teamRank: number }> }).players || [];
+          const byTeamPos: Record<string, Record<string, { name: string; teamRank: number }[]>> = {};
+          for (const p of players) {
+            const t = normTeam(p.team);
+            ((byTeamPos[t] ??= {})[p.pos] ??= []).push({ name: p.name, teamRank: p.teamRank });
+          }
+          for (const t of Object.keys(byTeamPos)) {
+            for (const pos of ['RB', 'TE']) {
+              const lst = byTeamPos[t][pos];
+              if (lst && lst.length) {
+                (depthChart[t] ??= {})[pos] = lst.sort((a, b) => a.teamRank - b.teamRank).map((x) => x.name);
+              }
+            }
+          }
+        }
         // Stash for the by-team grouping memo (which can't see this scope).
         if (!cancelled) setDepthChart(depthChart);
         function depthRank(team: string, pos: string, name: string): number {
