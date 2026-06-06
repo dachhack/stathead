@@ -1649,6 +1649,39 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           }
         }
 
+        // ── Anchor receiver projections to the validated ML PPG model ──
+        // The team-volume model compresses the WR/TE distribution: it under-
+        // rates true alphas (it splits a team's targets too evenly) and over-
+        // rates the lone receiver left on a team whose starter departed (he
+        // inherits the vacated pool via the team-total reconciliation). The
+        // in-repo ML PPG model (score-store/ppg.json → `mlPPG`) tracks
+        // consensus far better, so anchor each modeled receiver's PPG to it
+        // and rescale the stat line to match. Receivers the ML model doesn't
+        // cover are non-featured by construction, so haircut them toward depth.
+        // Weights are calibrated against a 2026 consensus projection set and
+        // live here (not in committed data).
+        const ML_ANCHOR = 0.8;          // weight on ML PPG for modeled receivers
+        const NONMODELED_HAIRCUT = 0.7; // scale for receivers absent from the ML model
+        const anchorReceiver = (p: WRProjection | TEProjection) => {
+          const games = p.games || 16;
+          const volPPG = games > 0 ? p.pprPts / games : 0;
+          const ml = mlPPG.get(normalizeName(p.name)) || 0;
+          const finalPPG = ml > 0
+            ? ML_ANCHOR * ml + (1 - ML_ANCHOR) * volPPG
+            : volPPG * NONMODELED_HAIRCUT;
+          const scale = volPPG > 0 ? finalPPG / volPPG : 1;
+          const w = p as WRProjection;
+          w.tgt = Math.round((w.tgt || 0) * scale);
+          w.rec = Math.round((w.rec || 0) * scale);
+          w.recYds = Math.round((w.recYds || 0) * scale);
+          w.recTD = Math.round(((w.recTD || 0) * scale) * 10) / 10;
+          if (w.rushYds) w.rushYds = Math.round(w.rushYds * scale);
+          if (w.rushTD) w.rushTD = Math.round((w.rushTD * scale) * 10) / 10;
+          p.pprPts = Math.round(finalPPG * games);
+        };
+        wrs.forEach(anchorReceiver);
+        tes.forEach(anchorReceiver);
+
         // Sort by PPR points descending
         qbs.sort((a, b) => b.pprPts - a.pprPts);
         rbs.sort((a, b) => b.pprPts - a.pprPts);
