@@ -17,6 +17,7 @@ import gzip
 import html as html_lib
 import io
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
@@ -26,6 +27,67 @@ DATA = Path("public/data")
 SEASON = 2026
 NOW = datetime.now(timezone.utc)
 POS_ORDER = {"QB": 0, "RB": 1, "WR": 2, "TE": 3}
+
+# nflverse occasionally switches a team's abbreviation between snapshots (e.g.
+# ARI↔AZ, WAS↔WSH). Canonicalize so an abbreviation flip isn't reported as a
+# real team change.
+TEAM_ALIASES = {
+    "AZ": "ARI", "BLT": "BAL", "CLV": "CLE", "HST": "HOU",
+    "JAC": "JAX", "LAR": "LA", "STL": "LA", "SD": "LAC",
+    "OAK": "LV", "LVR": "LV", "WSH": "WAS", "GNB": "GB",
+    "KAN": "KC", "NWE": "NE", "NOR": "NO", "SFO": "SF", "TAM": "TB",
+}
+
+
+def norm_team(t):
+    t = (t or "").upper()
+    return TEAM_ALIASES.get(t, t)
+
+
+# ── deep links to the deployed app ────────────────────────────────────
+SITE = "https://dachhack.github.io/stathead/"
+# player_key resolution maps, populated once in main() from the crosswalk.
+LINKS = {"gsis": {}, "name": {}}
+_SUFFIX = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def nm_norm(s):
+    s = re.sub(r"[^a-z ]", "", (s or "").lower())
+    return " ".join(t for t in s.split() if t not in _SUFFIX)
+
+
+def load_player_links():
+    cw = load_json("player-crosswalk.json") or {}
+    for p in cw.get("players") or []:
+        key = p.get("player_key")
+        if not key:
+            continue
+        if p.get("gsis_id"):
+            LINKS["gsis"].setdefault(p["gsis_id"], key)
+        for nm in (p.get("all_names") or [p.get("display_name")]):
+            if nm:
+                LINKS["name"].setdefault(nm_norm(nm), key)
+
+
+def _resolve_key(name, gsis=None):
+    return (LINKS["gsis"].get(gsis) if gsis else None) or LINKS["name"].get(nm_norm(name))
+
+
+def player_url(key):
+    return f"{SITE}#/player/{key}"
+
+
+def link_html(name, gsis=None):
+    key = _resolve_key(name, gsis)
+    if key:
+        return (f'<a href="{player_url(key)}" style="color:{C_BLUE};'
+                f'text-decoration:none;">{esc(name)}</a>')
+    return esc(name)
+
+
+def link_md(name, gsis=None):
+    key = _resolve_key(name, gsis)
+    return f"[{name}]({player_url(key)})" if key else name
 
 # ── palette (inline styles — email clients strip <style> blocks) ──────
 C_BG = "#f5f6f8"; C_CARD = "#ffffff"; C_BORDER = "#e5e7eb"
@@ -93,18 +155,48 @@ def _parse_roster(raw_bytes):
         if pos not in POS_ORDER:
             continue
         name = row.get("full_name") or f"{row.get('first_name','')} {row.get('last_name','')}".strip()
-        team = (row.get("team") or "").upper()
         key = row.get("gsis_id") or name.lower()
         if not key:
             continue
-        out[key] = (name, team, pos)
+        out[key] = (name, norm_team(row.get("team")), pos)
     return out
 
 
+def load_depth_ranks():
+    """Current-season depth-chart rank (1 = starter), keyed by gsis_id + name."""
+    path = DATA / f"depth_charts_{SEASON}.csv.gz"
+    by_id, by_name = {}, {}
+    if not path.exists():
+        return by_id, by_name
+    try:
+        text = gzip.decompress(path.read_bytes()).decode("utf-8", "replace")
+    except Exception:
+        return by_id, by_name
+    for row in csv.DictReader(io.StringIO(text)):
+        try:
+            rank = int(float(row.get("pos_rank") or 0))
+        except ValueError:
+            rank = 0
+        if rank <= 0:
+            continue
+        gid = row.get("gsis_id") or ""
+        nm = (row.get("player_name") or "").lower()
+        if gid:
+            by_id[gid] = min(rank, by_id.get(gid, 99))
+        if nm:
+            by_name[nm] = min(rank, by_name.get(nm, 99))
+    return by_id, by_name
+
+
 def roster_changes(hours=24):
-    """(added, removed, moved) lists of fantasy-position roster changes vs ~hours ago."""
+    """(added, removed, moved) roster changes vs ~hours ago, sorted by depth.
+
+    Each item is a dict with name/pos/depth plus team info. Lists lead with
+    starters (lowest depth rank) so marquee moves surface at the top.
+    """
     path = f"public/data/roster_{SEASON}.csv.gz"
-    new_raw = (DATA / f"roster_{SEASON}.csv.gz").read_bytes() if (DATA / f"roster_{SEASON}.csv.gz").exists() else None
+    cur = DATA / f"roster_{SEASON}.csv.gz"
+    new_raw = cur.read_bytes() if cur.exists() else None
     rev = sh(["git", "log", f"--until={hours} hours ago", "-1", "--format=%H", "--", path])
     rev = rev.strip() if rev else None
     old_raw = sh(["git", "show", f"{rev}:{path}"], binary=True) if rev else None
@@ -113,16 +205,24 @@ def roster_changes(hours=24):
     new, old = _parse_roster(new_raw), _parse_roster(old_raw)
     if not new or not old:
         return None
+
+    by_id, by_name = load_depth_ranks()
+
+    def depth_of(key, name):
+        return min(by_id.get(key, 99), by_name.get(name.lower(), 99))
+
     added, removed, moved = [], [], []
     for k, (n, t, p) in new.items():
+        d = depth_of(k, n)
         if k not in old:
-            added.append((p, n, t))
-        elif old[k][1] != t:
-            moved.append((p, n, old[k][1], t))
+            added.append({"pos": p, "name": n, "team": t, "depth": d, "key": k})
+        elif old[k][1] != t:  # both already team-normalized
+            moved.append({"pos": p, "name": n, "old": old[k][1], "new": t, "depth": d, "key": k})
     for k, (n, t, p) in old.items():
         if k not in new:
-            removed.append((p, n, t))
-    skey = lambda x: (POS_ORDER.get(x[0], 9), x[1])
+            removed.append({"pos": p, "name": n, "team": t, "depth": depth_of(k, n), "key": k})
+
+    skey = lambda x: (x["depth"], POS_ORDER.get(x["pos"], 9), x["name"])
     return sorted(added, key=skey), sorted(removed, key=skey), sorted(moved, key=skey)
 
 
@@ -201,43 +301,49 @@ def section_freshness():
 def section_roster():
     changes = roster_changes(24)
     if changes is None:
-        return "## Roster changes\n\n_(no baseline to compare)_\n", _card("Roster changes (last 24h)", f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No baseline to compare.</p>')
+        return "## Roster changes\n\n_(no baseline to compare)_\n", _card("Roster moves (last 24h)", f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No baseline to compare.</p>')
     added, removed, moved = changes
     if not (added or removed or moved):
-        return "## Roster changes (last 24h)\n\n_No fantasy-position roster changes._\n", _card("Roster changes (last 24h)", f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No fantasy-position roster changes.</p>')
+        return "## Roster moves (last 24h)\n\n_No fantasy-position roster moves._\n", _card("Roster moves (last 24h)", f'<p style="color:{C_MUTED};font-size:13px;margin:0;">No fantasy-position roster moves.</p>')
 
-    CAP = 25
-    md = [f"## Roster changes (last 24h) — +{len(added)} / −{len(removed)} / ⇄{len(moved)}", ""]
-    html_parts = [
-        f'<p style="margin:0 0 10px;font-size:13px;color:{C_MUTED};">'
-        f'<b style="color:{C_GREEN};">+{len(added)} added</b> · '
-        f'<b style="color:{C_RED};">−{len(removed)} removed</b> · '
-        f'<b style="color:{C_BLUE};">⇄{len(moved)} team change</b> '
-        f'(QB/RB/WR/TE)</p>'
-    ]
+    # Unify into one feed: signings (FA → team), releases (team → FA) and
+    # team changes (team → team). Coloured by kind. Sorted by depth-chart rank
+    # so starters / marquee moves lead.
+    feed = []
+    for x in added:
+        feed.append({**x, "frm": "FA", "to": x["team"], "color": C_GREEN})
+    for x in removed:
+        feed.append({**x, "frm": x["team"], "to": "FA", "color": C_RED})
+    for x in moved:
+        feed.append({**x, "frm": x["old"], "to": x["new"], "color": C_BLUE})
+    feed.sort(key=lambda x: (x["depth"], POS_ORDER.get(x["pos"], 9), x["name"]))
 
-    def block(title, items, fmt_md, fmt_html, color):
-        if not items:
-            return
-        md.append(f"**{title} ({len(items)})**  ")
-        for it in items[:CAP]:
-            md.append(f"- {fmt_md(it)}")
-        if len(items) > CAP:
-            md.append(f"- …and {len(items) - CAP} more")
-        md.append("")
-        lis = "".join(f'<li style="margin:2px 0;">{fmt_html(it)}</li>' for it in items[:CAP])
-        if len(items) > CAP:
-            lis += f'<li style="margin:2px 0;color:{C_MUTED};">…and {len(items) - CAP} more</li>'
-        html_parts.append(
-            f'<div style="margin:8px 0 4px;font-size:13px;color:{color};font-weight:600;">{esc(title)} ({len(items)})</div>'
-            f'<ul style="margin:0 0 6px;padding-left:18px;font-size:13px;color:{C_TEXT};">{lis}</ul>'
-        )
+    CAP = 40
+    title = f"Roster moves (last 24h) — {len(added)} signed · {len(removed)} released · {len(moved)} traded"
+    md = [f"## {title}", ""]
+    for x in feed[:CAP]:
+        md.append(f"- {link_md(x['name'], x['key'])} ({x['pos']}) {x['frm']} → {x['to']}")
+    if len(feed) > CAP:
+        md.append(f"- …and {len(feed) - CAP} more")
+    md.append("")
 
-    block("Added", added, lambda x: f"{x[1]} ({x[0]}) → {x[2]}", lambda x: f"{esc(x[1])} <span style='color:{C_MUTED};'>({esc(x[0])})</span> → <b>{esc(x[2])}</b>", C_GREEN)
-    block("Removed", removed, lambda x: f"{x[1]} ({x[0]}) — was {x[2]}", lambda x: f"{esc(x[1])} <span style='color:{C_MUTED};'>({esc(x[0])})</span> — was {esc(x[2])}", C_RED)
-    block("Team changes", moved, lambda x: f"{x[1]} ({x[0]}) {x[2]} → {x[3]}", lambda x: f"{esc(x[1])} <span style='color:{C_MUTED};'>({esc(x[0])})</span> {esc(x[2])} → <b>{esc(x[3])}</b>", C_BLUE)
-
-    return "\n".join(md), _card("Roster changes (last 24h)", "".join(html_parts))
+    rows = "".join(
+        f'<li style="margin:2px 0;">{link_html(x["name"], x["key"])} '
+        f'<span style="color:{C_MUTED};">({esc(x["pos"])})</span> '
+        f'{esc(x["frm"])} → <b style="color:{x["color"]};">{esc(x["to"])}</b></li>'
+        for x in feed[:CAP]
+    )
+    if len(feed) > CAP:
+        rows += f'<li style="margin:2px 0;color:{C_MUTED};">…and {len(feed) - CAP} more</li>'
+    inner = (
+        f'<p style="margin:0 0 8px;font-size:13px;color:{C_MUTED};">'
+        f'<b style="color:{C_GREEN};">{len(added)} signed</b> · '
+        f'<b style="color:{C_RED};">{len(removed)} released</b> · '
+        f'<b style="color:{C_BLUE};">{len(moved)} traded</b> '
+        f'(QB/RB/WR/TE, starters first)</p>'
+        f'<ul style="margin:0;padding-left:18px;font-size:13px;color:{C_TEXT};">{rows}</ul>'
+    )
+    return "\n".join(md), _card("Roster moves (last 24h)", inner)
 
 
 def section_model_snapshot():
@@ -307,16 +413,16 @@ def section_ktc_movers():
 
         md = ["## KTC dynasty movers (superflex, 1-day)", "", "**Risers**  "]
         for d, n, p, v in risers:
-            md.append(f"- {n} ({p}) +{d} → {v}")
+            md.append(f"- {link_md(n)} ({p}) +{d} → {v}")
         if fallers:
             md += ["", "**Fallers**  "]
             for d, n, p, v in fallers:
-                md.append(f"- {n} ({p}) {d} → {v}")
+                md.append(f"- {link_md(n)} ({p}) {d} → {v}")
         md.append("")
 
         def ul(items, color, sign):
             lis = "".join(
-                f'<li style="margin:2px 0;">{esc(n)} <span style="color:{C_MUTED};">({esc(p)})</span> '
+                f'<li style="margin:2px 0;">{link_html(n)} <span style="color:{C_MUTED};">({esc(p)})</span> '
                 f'<b style="color:{color};">{sign}{d}</b> → {esc(v)}</li>' for d, n, p, v in items
             )
             return f'<ul style="margin:0 0 6px;padding-left:18px;font-size:13px;color:{C_TEXT};">{lis}</ul>'
@@ -331,6 +437,7 @@ def section_ktc_movers():
 
 # ── assemble ──────────────────────────────────────────────────────────
 def main():
+    load_player_links()
     pl_md, pl_html = section_pipeline()
     fr_md, fr_html, stale = section_freshness()
     ro_md, ro_html = section_roster()
@@ -343,6 +450,7 @@ def main():
     md = "\n".join([
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
+        f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
         pl_md, fr_md, ro_md, ms_md, kt_md,
     ])
     print(md)
@@ -353,8 +461,13 @@ def main():
         f'\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
         f'<h1 style="margin:0 0 2px;font-size:20px;color:{C_TEXT};">StatHead Daily Report</h1>'
         f'<div style="font-size:13px;color:{C_MUTED};margin:0 0 4px;">{NOW:%A, %B %d, %Y} · {NOW:%H:%M UTC}</div>'
-        f'<div style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{badge_color};'
-        f'border-radius:12px;padding:3px 10px;margin:0 0 14px;">{esc(headline)}</div>'
+        f'<div style="margin:0 0 14px;">'
+        f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{badge_color};'
+        f'border-radius:12px;padding:3px 10px;">{esc(headline)}</span>'
+        f'<a href="{SITE}" style="display:inline-block;font-size:12px;font-weight:600;color:#fff;'
+        f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
+        f'text-decoration:none;">Open StatHead →</a>'
+        f'</div>'
         f'{pl_html}{fr_html}{ro_html}{ms_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
