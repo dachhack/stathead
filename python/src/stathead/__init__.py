@@ -28,7 +28,7 @@ from .features import load_feature_matrix, load_manual_overrides
 from .predictions import load_career_backtest, load_career_predictions_2026
 from .prospects import load_prospect_grades
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "__version__",

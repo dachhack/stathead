@@ -18,7 +18,11 @@ from typing import Any
 from urllib.request import Request, urlopen
 
 _BASE_URL = "https://raw.githubusercontent.com/dachhack/stathead"
-_DEFAULT_REF = "main"
+# The repo's data + models live on its default branch (there is no `main`),
+# and the every-2h refresh workflow commits there, so this is the ref that
+# always has fresh feature-matrix / score-store / crosswalk files. Override
+# per-session with pin_version() or per-shell with STATHEAD_REF.
+_DEFAULT_REF = "claude/nfl-fantasy-workbench-6D1yd"
 _ref: str = os.environ.get("STATHEAD_REF", _DEFAULT_REF)
 
 
