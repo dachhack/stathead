@@ -6,6 +6,7 @@ import {
 } from '../data';
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import { TeamAccuracyChart } from './TeamAccuracyChart';
@@ -375,6 +376,55 @@ function applyScenarioToProjections(
     return f === 1 ? p : applyTeStats(p, f);
   });
 
+  // Player availability — per-player games haircut (non-zero-sum).
+  // Scale counting stats by games/17 and recompute pprPts. Mirrors the
+  // PlayerAvailability lever in scenarioEngine.applyScenario; matched by name
+  // (consistent with volumeOverrides above) since this path keys on names.
+  const availByName = new Map<string, number>();
+  for (const pa of (sc.playerAvailability ?? [])) {
+    if (pa.games < 17) availByName.set(normalizeName(pa.playerName), pa.games / 17);
+  }
+  if (availByName.size > 0) {
+    const hairQb = (p: QBProjection): QBProjection => {
+      const f = availByName.get(normalizeName(p.name));
+      if (f === undefined) return p;
+      const passYds = Math.round(p.passYds * f), passTD = Math.round(p.passTD * f), int = Math.round(p.int * f);
+      const rushYds = Math.round(p.rushYds * f), rushTD = Math.round(p.rushTD * f);
+      return { ...p, passAtt: Math.round(p.passAtt * f), passComp: Math.round(p.passComp * f),
+        passYds, passTD, int, rushAtt: Math.round(p.rushAtt * f), rushYds, rushTD,
+        pprPts: Math.round(computePPR({ passYds, passTD, int, rushYds, rushTD })) };
+    };
+    const hairRb = (p: RBProjection): RBProjection => {
+      const f = availByName.get(normalizeName(p.name));
+      if (f === undefined) return p;
+      const rushYds = Math.round(p.rushYds * f), rushTD = Math.round(p.rushTD * f);
+      const rec = Math.round(p.rec * f), recYds = Math.round(p.recYds * f), recTD = Math.round(p.recTD * f);
+      return { ...p, rushAtt: Math.round(p.rushAtt * f), rushYds, rushTD,
+        tgt: Math.round(p.tgt * f), rec, recYds, recTD,
+        pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+    };
+    const hairWr = (p: WRProjection): WRProjection => {
+      const f = availByName.get(normalizeName(p.name));
+      if (f === undefined) return p;
+      const rec = Math.round(p.rec * f), recYds = Math.round(p.recYds * f), recTD = Math.round(p.recTD * f);
+      const rushYds = Math.round(p.rushYds * f), rushTD = Math.round(p.rushTD * f);
+      return { ...p, tgt: Math.round(p.tgt * f), rec, recYds, recTD,
+        rushAtt: Math.round(p.rushAtt * f), rushYds, rushTD,
+        pprPts: Math.round(computePPR({ rushYds, rushTD, rec, recYds, recTD })) };
+    };
+    const hairTe = (p: TEProjection): TEProjection => {
+      const f = availByName.get(normalizeName(p.name));
+      if (f === undefined) return p;
+      const rec = Math.round(p.rec * f), recYds = Math.round(p.recYds * f), recTD = Math.round(p.recTD * f);
+      return { ...p, tgt: Math.round(p.tgt * f), rec, recYds, recTD,
+        pprPts: Math.round(computePPR({ rec, recYds, recTD })) };
+    };
+    adjQbs.forEach((p, i) => { adjQbs[i] = hairQb(p); });
+    adjRbs.forEach((p, i) => { adjRbs[i] = hairRb(p); });
+    adjWrs.forEach((p, i) => { adjWrs[i] = hairWr(p); });
+    adjTes.forEach((p, i) => { adjTes[i] = hairTe(p); });
+  }
+
   // Vegas weighting — regression toward position mean on pprPts
   if (sc.vegasWeighting > 0) {
     const factor = sc.vegasWeighting / 100;
@@ -464,6 +514,9 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
+  // Per-player metadata (rookie / years-exp / age / prior-season games) for
+  // the Scenario Builder preset factories. Keyed by normalized name.
+  const [playerMetaMap, setPlayerMetaMap] = useState<PresetMeta>(new Map());
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
   // Lifted out of the projection effect so the by-team grouping memo can
   // consult Clay's depth ordering directly. Belt-and-suspenders against
@@ -741,6 +794,39 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
         // Draft data for age/experience
         const draftByName = new Map<string, DraftPick>();
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
+
+        // ── Per-player metadata for Scenario Builder presets ──
+        // Combines roster experience/age, draft age/class, and prior-season
+        // games played into a single map the preset factories consult.
+        {
+          const meta = new Map<string, PlayerMeta>();
+          const ensure = (nn: string): PlayerMeta => {
+            let m = meta.get(nn);
+            if (!m) { m = { isRookie: false, yearsExp: null, age: null, priorGames: null }; meta.set(nn, m); }
+            return m;
+          };
+          for (const r of rosters) {
+            if (!['QB', 'RB', 'WR', 'TE'].includes(r.position)) continue;
+            const m = ensure(normalizeName(r.full_name));
+            if (typeof r.years_exp === 'number') m.yearsExp = r.years_exp;
+            if (r.years_exp === 0 || r.entry_year === PREDICT_SEASON || r.rookie_year === PREDICT_SEASON) m.isRookie = true;
+            if (r.birth_date) {
+              const by = new Date(r.birth_date).getFullYear();
+              if (by > 1950) m.age = PREDICT_SEASON - by;
+            }
+          }
+          for (const [nn, d] of draftByName) {
+            const m = ensure(nn);
+            if (d.season === PREDICT_SEASON) m.isRookie = true;
+            if (m.age == null && d.age) m.age = (d.age || 0) + (PREDICT_SEASON - d.season);
+            if (m.yearsExp == null) m.yearsExp = Math.max(0, PREDICT_SEASON - d.season);
+          }
+          for (const [nn, p] of priorByName) {
+            const m = ensure(nn);
+            if (typeof p.games === 'number') m.priorGames = p.games;
+          }
+          if (!cancelled) setPlayerMetaMap(meta);
+        }
 
         // Rookie workload share by draft pick + position. Used by the no-
         // prior projection branches so a recently-drafted rookie like
@@ -2492,6 +2578,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           onClose={() => setScenarioOpen(false)}
           projections={searchProjections}
           freeAgents={freeAgentList}
+          playerMeta={playerMetaMap}
+          normalizeName={normalizeName}
           scenario={scenario}
           onChange={(sc) => { setScenario(sc); onScenarioChange?.(sc); }}
         />

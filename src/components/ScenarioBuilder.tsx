@@ -11,19 +11,24 @@ import type {
   CustomPlayer,
   FreeAgentPlayer,
   FreeAgentSigning,
+  PlayerAvailability,
 } from '../types';
 import {
   saveScenario,
   loadAllScenarios,
   deleteScenario,
   isScenarioEmpty,
+  createEmptyScenario,
 } from '../lib/scenarioEngine';
+import { SCENARIO_PRESETS, type PresetMeta } from '../lib/scenarioPresets';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   projections: SDIOProjection[];
   freeAgents?: FreeAgentPlayer[];
+  playerMeta?: PresetMeta;
+  normalizeName?: (s: string) => string;
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
 }
@@ -52,7 +57,10 @@ function useFASearch(freeAgents: FreeAgentPlayer[], query: string) {
   }, [freeAgents, query]);
 }
 
-export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], scenario, onChange }: Props) {
+const defaultNormalize = (s: string) =>
+  s.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
+
+export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], playerMeta, normalizeName, scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -88,6 +96,12 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
   const [newStatTeam, setNewStatTeam] = useState('');
   const [newStatKey, setNewStatKey] = useState<TeamStatKey>('PassingYards');
   const [newStatDelta, setNewStatDelta] = useState(0);
+
+  // Player availability (games haircut) add form
+  const [availSearch, setAvailSearch] = useState('');
+  const [availPlayer, setAvailPlayer] = useState<SDIOProjection | null>(null);
+  const [availGames, setAvailGames] = useState(13);
+  const availResults = usePlayerSearch(projections, availSearch);
 
   // Custom player add form
   const [addingCustom, setAddingCustom] = useState(false);
@@ -310,6 +324,45 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
   const removeFASigning = (id: string) =>
     update({ freeAgentSignings: (scenario.freeAgentSignings ?? []).filter((s) => s.id !== id) });
 
+  // --- Presets ---
+  const norm = normalizeName ?? defaultNormalize;
+  const applyPreset = (id: string) => {
+    const preset = SCENARIO_PRESETS.find((p) => p.id === id);
+    if (!preset) return;
+    const next = preset.build(projections, playerMeta ?? new Map(), norm);
+    // Preserve the user's current scenario name if they've set one.
+    onChange({ ...next, id: scenario.id, name: preset.name });
+  };
+  const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
+
+  // --- Player availability ---
+  const addAvailability = () => {
+    if (!availPlayer) return;
+    const entry: PlayerAvailability = {
+      playerId: availPlayer.PlayerID,
+      playerName: availPlayer.Name,
+      team: availPlayer.Team,
+      position: availPlayer.Position,
+      games: availGames,
+    };
+    update({
+      playerAvailability: [
+        ...(scenario.playerAvailability ?? []).filter((a) => norm(a.playerName) !== norm(entry.playerName)),
+        entry,
+      ],
+    });
+    setAvailSearch('');
+    setAvailPlayer(null);
+    setAvailGames(13);
+  };
+  const updateAvailabilityGames = (playerId: number, games: number) =>
+    update({
+      playerAvailability: (scenario.playerAvailability ?? []).map((a) =>
+        a.playerId === playerId ? { ...a, games } : a),
+    });
+  const removeAvailability = (playerId: number) =>
+    update({ playerAvailability: (scenario.playerAvailability ?? []).filter((a) => a.playerId !== playerId) });
+
   // --- Save/load ---
   const handleSave = () => {
     saveScenario(scenario);
@@ -329,6 +382,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
     (scenario.teamVolumes ?? []).length +
     (scenario.teamStatAdjustments ?? []).length +
     scenario.volumeOverrides.length +
+    (scenario.playerAvailability ?? []).length +
     scenario.movements.length +
     scenario.customPlayers.length +
     (scenario.freeAgentSignings ?? []).length;
@@ -404,6 +458,38 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
                 )}
               </div>
             )}
+          </div>
+
+          {/* Quick presets — one-click opinionated tilts */}
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Quick Presets</span>
+            </div>
+            <p className="scenario-section-hint">
+              One click fills the scenario with an opinionated tilt built from the levers below.
+              Apply one, then fine-tune any section. Presets replace the current adjustments.
+            </p>
+            <div className="scenario-preset-grid">
+              {SCENARIO_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  className="scenario-preset-btn"
+                  onClick={() => applyPreset(preset.id)}
+                  title={preset.description}
+                >
+                  <span className="scenario-preset-name">{preset.name}</span>
+                  <span className="scenario-preset-desc">{preset.description}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              className="scenario-add-btn"
+              onClick={resetToBase}
+              disabled={isScenarioEmpty(scenario)}
+              style={{ marginTop: 8 }}
+            >
+              ↺ Reset to base
+            </button>
           </div>
 
           {/* 1. Vegas Line Weighting */}
@@ -946,6 +1032,122 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
             )}
           </div>
 
+          {/* Player Availability — games haircut (injury skeptic) */}
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Player Availability</span>
+            </div>
+            <p className="scenario-section-hint">
+              Project a player for fewer than 17 games. Counting stats scale by games/17
+              (an injury discount). Not redistributed to teammates.
+            </p>
+
+            <div className="scenario-add-form">
+              <div className="scenario-search-wrap">
+                <input
+                  type="text"
+                  placeholder="Search player..."
+                  value={availPlayer ? availPlayer.Name : availSearch}
+                  onChange={(e) => {
+                    setAvailSearch(e.target.value);
+                    setAvailPlayer(null);
+                  }}
+                  className="scenario-search"
+                />
+                {availResults.length > 0 && !availPlayer && (
+                  <div className="scenario-dropdown">
+                    {availResults.map((p) => (
+                      <div
+                        key={p.PlayerID}
+                        className="scenario-dropdown-item"
+                        onClick={() => {
+                          setAvailPlayer(p);
+                          setAvailSearch('');
+                        }}
+                      >
+                        <span className={`pos-badge pos-${p.Position}`}>{p.Position}</span>
+                        <span className="scenario-dropdown-name">{p.Name}</span>
+                        <span className="scenario-dropdown-team">{p.Team}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {availPlayer && (
+                <>
+                  <div className="scenario-selected-player">
+                    <span className={`pos-badge pos-${availPlayer.Position}`}>
+                      {availPlayer.Position}
+                    </span>
+                    <span>{availPlayer.Name}</span>
+                    <span className="scenario-dropdown-team">{availPlayer.Team}</span>
+                    <button
+                      className="scenario-clear-selection"
+                      onClick={() => { setAvailPlayer(null); setAvailGames(13); }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="scenario-slider-row">
+                    <span className="scenario-slider-label scenario-label-run">1</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={17}
+                      value={availGames}
+                      onChange={(e) => setAvailGames(Number(e.target.value))}
+                      className="scenario-slider"
+                    />
+                    <span className="scenario-slider-label scenario-label-pass">17</span>
+                  </div>
+                  <div className="scenario-slider-value-row">
+                    <span className="scenario-slider-value negative">
+                      {availGames} games ({Math.round((availGames / 17) * 100)}% of full)
+                    </span>
+                  </div>
+                  <button
+                    className="scenario-confirm-btn"
+                    onClick={addAvailability}
+                    disabled={availGames >= 17}
+                  >
+                    Add Availability
+                  </button>
+                </>
+              )}
+            </div>
+
+            {(scenario.playerAvailability ?? []).map((a) => (
+              <div key={a.playerId} className="scenario-item">
+                <div className="scenario-item-left">
+                  <span className={`pos-badge pos-${a.position}`}>{a.position}</span>
+                  <span className="scenario-item-name">{a.playerName}</span>
+                  <span className="scenario-item-delta negative">{a.games} gm</span>
+                </div>
+                <div className="scenario-item-controls">
+                  <input
+                    type="range"
+                    min={1}
+                    max={17}
+                    value={a.games}
+                    onChange={(e) => updateAvailabilityGames(a.playerId, Number(e.target.value))}
+                    className="scenario-slider-inline"
+                  />
+                  <button
+                    className="scenario-remove-btn"
+                    onClick={() => removeAvailability(a.playerId)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(scenario.playerAvailability ?? []).length === 0 && !availPlayer && !availSearch && (
+              <div className="scenario-section-empty">No availability adjustments</div>
+            )}
+          </div>
+
           {/* 5. Player Movement */}
           <div className="scenario-section">
             <div className="scenario-section-header">
@@ -1256,6 +1458,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], s
                 teamVolumes: [],
                 teamStatAdjustments: [],
                 volumeOverrides: [],
+                playerAvailability: [],
                 movements: [],
                 customPlayers: [],
                 freeAgentSignings: [],
