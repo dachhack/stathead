@@ -28,6 +28,7 @@ interface Props {
   projections: SDIOProjection[];
   freeAgents?: FreeAgentPlayer[];
   playerMeta?: PresetMeta;
+  clayPpr?: Map<string, number>;
   normalizeName?: (s: string) => string;
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
@@ -60,7 +61,7 @@ function useFASearch(freeAgents: FreeAgentPlayer[], query: string) {
 const defaultNormalize = (s: string) =>
   s.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 
-export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], playerMeta, normalizeName, scenario, onChange }: Props) {
+export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -326,14 +327,24 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
 
   // --- Presets ---
   const norm = normalizeName ?? defaultNormalize;
+  const hasClay = !!clayPpr && clayPpr.size > 0;
+  const availablePresets = SCENARIO_PRESETS.filter((p) => !p.requiresClay || hasClay);
   const applyPreset = (id: string) => {
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (!preset) return;
-    const next = preset.build(projections, playerMeta ?? new Map(), norm);
-    // Preserve the user's current scenario name if they've set one.
+    const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr });
     onChange({ ...next, id: scenario.id, name: preset.name });
   };
   const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
+
+  // --- Player points overrides ---
+  const updatePointsOverride = (playerId: number, ppr: number) =>
+    update({
+      pointsOverrides: (scenario.pointsOverrides ?? []).map((o) =>
+        o.playerId === playerId ? { ...o, ppr } : o),
+    });
+  const removePointsOverride = (playerId: number) =>
+    update({ pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== playerId) });
 
   // --- Player availability ---
   const addAvailability = () => {
@@ -383,6 +394,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
     (scenario.teamStatAdjustments ?? []).length +
     scenario.volumeOverrides.length +
     (scenario.playerAvailability ?? []).length +
+    (scenario.pointsOverrides ?? []).length +
     scenario.movements.length +
     scenario.customPlayers.length +
     (scenario.freeAgentSignings ?? []).length;
@@ -470,7 +482,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               Apply one, then fine-tune any section. Presets replace the current adjustments.
             </p>
             <div className="scenario-preset-grid">
-              {SCENARIO_PRESETS.map((preset) => (
+              {availablePresets.map((preset) => (
                 <button
                   key={preset.id}
                   className="scenario-preset-btn"
@@ -1148,6 +1160,48 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
             )}
           </div>
 
+          {/* Player Projection (PPR) — absolute points targets (Consensus preset) */}
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <span className="scenario-section-title">Player Projection (PPR)</span>
+            </div>
+            <p className="scenario-section-hint">
+              Set a player's projected PPR points directly. Stats scale to match.
+              Populated by the Consensus preset; edit any value below.
+            </p>
+
+            {(scenario.pointsOverrides ?? []).map((o) => (
+              <div key={o.playerId} className="scenario-item">
+                <div className="scenario-item-left">
+                  <span className={`pos-badge pos-${o.position}`}>{o.position}</span>
+                  <span className="scenario-item-name">{o.playerName}</span>
+                </div>
+                <div className="scenario-item-controls">
+                  <input
+                    type="number"
+                    min={0}
+                    value={Math.round(o.ppr)}
+                    onChange={(e) => updatePointsOverride(o.playerId, Number(e.target.value))}
+                    className="scenario-input-sm"
+                    style={{ width: 64 }}
+                  />
+                  <button
+                    className="scenario-remove-btn"
+                    onClick={() => removePointsOverride(o.playerId)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(scenario.pointsOverrides ?? []).length === 0 && (
+              <div className="scenario-section-empty">
+                No projection overrides{!hasClay && ' — apply the Consensus preset (needs local Clay data)'}
+              </div>
+            )}
+          </div>
+
           {/* 5. Player Movement */}
           <div className="scenario-section">
             <div className="scenario-section-header">
@@ -1459,6 +1513,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                 teamStatAdjustments: [],
                 volumeOverrides: [],
                 playerAvailability: [],
+                pointsOverrides: [],
                 movements: [],
                 customPlayers: [],
                 freeAgentSignings: [],

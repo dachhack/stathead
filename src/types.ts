@@ -1015,6 +1015,17 @@ export interface PlayerMovement {
   toTeam: string;
 }
 
+// Set a player's projection to an absolute PPR target (e.g. the "Consensus"
+// preset blends toward Mike Clay's numbers). Counting stats are scaled by
+// target/current so the stat line stays internally consistent. Non-zero-sum.
+export interface PointsOverride {
+  playerId: number;
+  playerName: string;
+  team: string;
+  position: string;
+  ppr: number; // target PPR fantasy points
+}
+
 // Per-player games/availability haircut (e.g. "Injury skeptic").
 // `games` is projected games played out of 17; counting stats are scaled
 // by games/17. Non-zero-sum — lost games are not redistributed to teammates.
@@ -1089,4 +1100,5 @@ export interface ScenarioConfig {
   customPlayers: CustomPlayer[];
   freeAgentSignings: FreeAgentSigning[];
   playerAvailability: PlayerAvailability[];
+  pointsOverrides: PointsOverride[];
 }

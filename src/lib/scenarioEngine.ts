@@ -8,6 +8,7 @@ export function isScenarioEmpty(s: ScenarioConfig): boolean {
     (s.teamStatAdjustments ?? []).length === 0 &&
     s.volumeOverrides.length === 0 &&
     (s.playerAvailability ?? []).length === 0 &&
+    (s.pointsOverrides ?? []).length === 0 &&
     s.movements.length === 0 &&
     s.customPlayers.length === 0 &&
     (s.freeAgentSignings ?? []).length === 0
@@ -263,6 +264,32 @@ export function applyScenario(
     player.FantasyPoints = std;
   }
 
+  // 3.7. Points overrides — set a player to an absolute PPR target.
+  // Scale all counting stats by target/current so the stat line stays
+  // internally consistent and PPR lands on the target. Non-zero-sum (used by
+  // the "Consensus" preset to blend toward an external projection set).
+  for (const po of (scenario.pointsOverrides ?? [])) {
+    const player = result.find((p) => p.PlayerID === po.playerId);
+    if (!player) continue;
+    const cur = recalcPoints(player).ppr;
+    if (cur <= 0 || po.ppr < 0) continue;
+    const f = po.ppr / cur;
+    player.PassingAttempts = (player.PassingAttempts || 0) * f;
+    player.PassingCompletions = (player.PassingCompletions || 0) * f;
+    player.PassingYards = (player.PassingYards || 0) * f;
+    player.PassingTouchdowns = (player.PassingTouchdowns || 0) * f;
+    player.PassingInterceptions = (player.PassingInterceptions || 0) * f;
+    player.RushingAttempts = (player.RushingAttempts || 0) * f;
+    player.RushingYards = (player.RushingYards || 0) * f;
+    player.RushingTouchdowns = (player.RushingTouchdowns || 0) * f;
+    player.Receptions = (player.Receptions || 0) * f;
+    player.ReceivingYards = (player.ReceivingYards || 0) * f;
+    player.ReceivingTouchdowns = (player.ReceivingTouchdowns || 0) * f;
+    const { ppr, std } = recalcPoints(player);
+    player.FantasyPointsPPR = ppr;
+    player.FantasyPoints = std;
+  }
+
   // 4. Vegas weighting — regression toward position mean
   // Simulates market-efficiency compression: high-upside projections regress
   // toward the mean at the rate specified (0% = no change, 50% = halfway to mean)
@@ -400,5 +427,6 @@ export function createEmptyScenario(): ScenarioConfig {
     customPlayers: [],
     freeAgentSignings: [],
     playerAvailability: [],
+    pointsOverrides: [],
   };
 }

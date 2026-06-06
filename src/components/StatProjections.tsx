@@ -425,6 +425,50 @@ function applyScenarioToProjections(
     adjTes.forEach((p, i) => { adjTes[i] = hairTe(p); });
   }
 
+  // Player points overrides — set a player to an absolute PPR target.
+  // Scale counting stats by target/current so columns stay consistent; matched
+  // by name (consistent with the other overrides on this path). Non-zero-sum.
+  const pointsByName = new Map<string, number>();
+  for (const po of (sc.pointsOverrides ?? [])) pointsByName.set(normalizeName(po.playerName), po.ppr);
+  if (pointsByName.size > 0) {
+    const scaleQb = (p: QBProjection): QBProjection => {
+      const t = pointsByName.get(normalizeName(p.name));
+      if (t === undefined || p.pprPts <= 0) return p;
+      const f = t / p.pprPts;
+      return { ...p, passAtt: Math.round(p.passAtt * f), passComp: Math.round(p.passComp * f),
+        passYds: Math.round(p.passYds * f), passTD: Math.round(p.passTD * f), int: Math.round(p.int * f),
+        rushAtt: Math.round(p.rushAtt * f), rushYds: Math.round(p.rushYds * f), rushTD: Math.round(p.rushTD * f),
+        pprPts: Math.round(t) };
+    };
+    const scaleRb = (p: RBProjection): RBProjection => {
+      const t = pointsByName.get(normalizeName(p.name));
+      if (t === undefined || p.pprPts <= 0) return p;
+      const f = t / p.pprPts;
+      return { ...p, rushAtt: Math.round(p.rushAtt * f), rushYds: Math.round(p.rushYds * f), rushTD: Math.round(p.rushTD * f),
+        tgt: Math.round(p.tgt * f), rec: Math.round(p.rec * f), recYds: Math.round(p.recYds * f), recTD: Math.round(p.recTD * f),
+        pprPts: Math.round(t) };
+    };
+    const scaleWr = (p: WRProjection): WRProjection => {
+      const t = pointsByName.get(normalizeName(p.name));
+      if (t === undefined || p.pprPts <= 0) return p;
+      const f = t / p.pprPts;
+      return { ...p, tgt: Math.round(p.tgt * f), rec: Math.round(p.rec * f), recYds: Math.round(p.recYds * f), recTD: Math.round(p.recTD * f),
+        rushAtt: Math.round(p.rushAtt * f), rushYds: Math.round(p.rushYds * f), rushTD: Math.round(p.rushTD * f),
+        pprPts: Math.round(t) };
+    };
+    const scaleTe = (p: TEProjection): TEProjection => {
+      const t = pointsByName.get(normalizeName(p.name));
+      if (t === undefined || p.pprPts <= 0) return p;
+      const f = t / p.pprPts;
+      return { ...p, tgt: Math.round(p.tgt * f), rec: Math.round(p.rec * f), recYds: Math.round(p.recYds * f), recTD: Math.round(p.recTD * f),
+        pprPts: Math.round(t) };
+    };
+    adjQbs.forEach((p, i) => { adjQbs[i] = scaleQb(p); });
+    adjRbs.forEach((p, i) => { adjRbs[i] = scaleRb(p); });
+    adjWrs.forEach((p, i) => { adjWrs[i] = scaleWr(p); });
+    adjTes.forEach((p, i) => { adjTes[i] = scaleTe(p); });
+  }
+
   // Vegas weighting — regression toward position mean on pprPts
   if (sc.vegasWeighting > 0) {
     const factor = sc.vegasWeighting / 100;
@@ -451,6 +495,14 @@ function applyScenarioToProjections(
       adjTes.push({ ...base, tgt: 0, rec: 0, recYds: 0, recTD: 0 });
     }
   }
+
+  // Re-sort by adjusted points so the position table re-ranks to reflect the
+  // scenario (e.g. a boosted/Clay-blended player climbs). The empty-scenario
+  // path skips this function entirely and keeps the base sort.
+  adjQbs.sort((a, b) => b.pprPts - a.pprPts);
+  adjRbs.sort((a, b) => b.pprPts - a.pprPts);
+  adjWrs.sort((a, b) => b.pprPts - a.pprPts);
+  adjTes.sort((a, b) => b.pprPts - a.pprPts);
 
   return { qbs: adjQbs, rbs: adjRbs, wrs: adjWrs, tes: adjTes };
 }
@@ -517,6 +569,11 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   // Per-player metadata (rookie / years-exp / age / prior-season games) for
   // the Scenario Builder preset factories. Keyed by normalized name.
   const [playerMetaMap, setPlayerMetaMap] = useState<PresetMeta>(new Map());
+  // Local-only Clay projection PPR by normalized name, for the "Consensus"
+  // preset. Sourced from a gitignored runtime file (public/data/clay/) so Clay's
+  // proprietary numbers are never committed — empty (preset hidden) in the
+  // public deploy where the file is absent.
+  const [clayPprMap, setClayPprMap] = useState<Map<string, number>>(new Map());
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
   // Lifted out of the projection effect so the by-team grouping memo can
   // consult Clay's depth ordering directly. Belt-and-suspenders against
@@ -826,6 +883,31 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             if (typeof p.games === 'number') m.priorGames = p.games;
           }
           if (!cancelled) setPlayerMetaMap(meta);
+        }
+
+        // ── Local-only Clay projections for the "Consensus" preset ──
+        // Fetched from a gitignored runtime path; absent (→ empty map, preset
+        // hidden) in the public deploy. Clay's PPR is computed from its stat
+        // line with our scoring so it's consistent with our projections and
+        // sidesteps Clay's std-vs-PPR `pts` ambiguity.
+        {
+          const clayRaw = await fetch(`${import.meta.env.BASE_URL}data/clay/clay-${PREDICT_SEASON}.json`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
+          if (!cancelled && Array.isArray(clayRaw)) {
+            const clayMap = new Map<string, number>();
+            for (const c of clayRaw as Array<Record<string, number | string>>) {
+              const name = String(c.name ?? '');
+              if (!name) continue;
+              const ppr = computePPR({
+                passYds: Number(c.passYds) || 0, passTD: Number(c.passTD) || 0, int: Number(c.int) || 0,
+                rushYds: Number(c.rushYds) || 0, rushTD: Number(c.rushTD) || 0,
+                rec: Number(c.rec) || 0, recYds: Number(c.recYds) || 0, recTD: Number(c.recTD) || 0,
+              });
+              if (ppr > 0) clayMap.set(normalizeName(name), Math.round(ppr));
+            }
+            setClayPprMap(clayMap);
+          }
         }
 
         // Rookie workload share by draft pick + position. Used by the no-
@@ -2579,6 +2661,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
           projections={searchProjections}
           freeAgents={freeAgentList}
           playerMeta={playerMetaMap}
+          clayPpr={clayPprMap}
           normalizeName={normalizeName}
           scenario={scenario}
           onChange={(sc) => { setScenario(sc); onScenarioChange?.(sc); }}
