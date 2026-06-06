@@ -2115,6 +2115,30 @@ async function main() {
     console.log(`  PPG predictions: ${rookiesAdded} rookies added → ${ppgPredictions2026.length} total`);
   }
 
+  // ── Elite-tier calibration ──────────────────────────────────────────
+  // The seasonal PPG models are squared-loss / MAE-optimal, which compresses
+  // the top of each position toward the mean — elite players are systematically
+  // under-projected (LOSO top-decile bias: QB -5.2, WR -2.8, RB -2.6, TE -2.4
+  // PPG vs actual; e.g. Bowers, Lamar). This isn't over-regularization (TE
+  // alpha sweep was flat) — it's inherent to mean-regression. A per-position
+  // spread expansion around the positional mean recovers the elite tier:
+  // pred' = mean + (pred - mean) * k. Backtest (LOSO 2010-2024): at these k the
+  // top-decile MAE *improves* (QB 5.21→4.16, WR 3.22→2.96, TE 2.57→2.43) for a
+  // ~1-6% overall-MAE cost on the easy-to-predict middle. Lifts elites across
+  // every consumer of ppg.json (Projections anchor, My Rankings, Draft Optimizer).
+  // Centers are the per-position mean PPG of scoring players in the training
+  // cache (the same center the LOSO backtest validated) — NOT the prediction
+  // pool mean, which is dragged low by deep roster filler and would over-expand.
+  const PPG_SPREAD_K: Record<string, number> = { QB: 1.30, RB: 1.15, WR: 1.15, TE: 1.15 };
+  const PPG_CENTER: Record<string, number> = { QB: 13.6, RB: 9.1, WR: 9.2, TE: 6.7 };
+  for (const p of ppgPredictions2026) {
+    const k = PPG_SPREAD_K[p.position];
+    const c = PPG_CENTER[p.position];
+    if (!k || c === undefined) continue;
+    p.predictedPPG = Math.max(0, Math.round((c + (p.predictedPPG - c) * k) * 10) / 10);
+    p.predictedSeasonPPR = Math.round(p.predictedPPG * 17);
+  }
+
   // Stamp player_key onto each prediction row via the crosswalk — the
   // canonical cross-source ID users will join on. Canonical file is built
   // by scripts/build-player-crosswalk.py and committed to the repo; we
