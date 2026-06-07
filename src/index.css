@@ -1656,6 +1656,50 @@ tr:hover td {
 
 .scenario-stat-reset { align-self: center; font-size: 10px; }
 
+/* Editable cells in the by-team projection view */
+
+.team-edit-input {
+  width: 46px;
+  padding: 1px 3px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.team-edit-input::-webkit-outer-spin-button,
+.team-edit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.team-edit-input:hover {
+  border-color: var(--border);
+}
+
+.team-edit-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+.team-edit-input.edited {
+  color: var(--accent);
+  font-weight: 700;
+  border-color: rgba(0, 212, 170, 0.35);
+}
+
+.team-edit-input.edited-neg {
+  color: #64c8ff;
+  font-weight: 700;
+  border-color: rgba(100, 200, 255, 0.35);
+}
+
 /* Add button */
 
 .scenario-add-btn {
