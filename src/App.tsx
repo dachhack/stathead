@@ -20,6 +20,7 @@ import { StatProjections } from './components/StatProjections';
 import { ScheduleView } from './components/ScheduleView';
 import { SleeperLeagueView } from './components/SleeperLeagueView';
 import { SleeperUserSnooper } from './components/SleeperUserSnooper';
+import { SleeperWaiverWire } from './components/SleeperWaiverWire';
 import { ConsensusAdpView } from './components/ConsensusAdpView';
 import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
@@ -85,6 +86,7 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Sleeper',
     tabs: [
       { id: 'sleeper-league', label: 'My Leagues' },
+      { id: 'sleeper-waivers', label: 'Waiver Wire' },
       { id: 'sleeper-snooper', label: 'User Snooper' },
       { id: 'sleeper', label: 'Trending & Projections' },
     ],
@@ -308,6 +310,7 @@ function App() {
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'sleeper-league' && <SleeperLeagueView />}
+        {tab === 'sleeper-waivers' && <SleeperWaiverWire />}
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
