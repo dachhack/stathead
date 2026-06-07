@@ -632,7 +632,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   </div>
                   {STAT_GROUPS.map((group) => (
                     <div key={group.label} className="se-statadj-group">
-                      <div className="se-statadj-grouptitle">{group.label}</div>
+                      <div className="se-statadj-grouptitle" style={{ color: group.label === 'Passing' ? POS_COLORS.QB : group.label === 'Rushing' ? POS_COLORS.RB : POS_COLORS.WR }}>{group.label}</div>
                       <div className="se-team-levers">
                         {group.stats.map((stat) => {
                           const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
