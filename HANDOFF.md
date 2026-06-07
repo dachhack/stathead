@@ -45,8 +45,8 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 1. ✅ Collapsible current-team rosters in Scenario Builder (PR #316)
 2. ✅ Team schedules + estimated SOS (PRs #318–#321; reg+preseason committed, SOS overall/thirds)
 3. ⬜ Clean up + test the **My Rankings** page (scope it with the user — bugs? layout?)
-4. ⬜ **Consensus Projections** = Clay ±10% of base, + wire other projection sources. ⚠️ Clay data is local-only/gitignored — not present in this env; can scaffold generic multi-source consensus.
-5. 🟡 **Sleeper API** features — league import (PR #323) + `sleeper_id`→`player_key` PlayerDetail links (PR #324) shipped; trending/projections already existed. Remaining: Sleeper ADP consensus source.
+4. 🟡 **Consensus Projections** = Clay ±10% of base, + wire other projection sources. ⚠️ Clay data is local-only/gitignored — not present in this env. Consensus ADP source now exists (FantasyCalc redraft, PR #325); Clay/projection wiring still open.
+5. ✅ **Sleeper API** features — league import (#323), `sleeper_id`→`player_key` PlayerDetail links (#324), Consensus ADP (#325); trending/projections already existed. (Note: Sleeper has no public ADP API — Consensus ADP uses FantasyCalc's Sleeper-inclusive redraft snapshot, already refreshed daily by `fetch-fantasycalc-snapshot.yml`. `maybeAdp` is null in offseason; the view shows live consensus value/rank and auto-reveals the ADP column in-season.)
 6. ⬜ Add **Scenario Builder to the Home/intro page menu** (quick win).
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
