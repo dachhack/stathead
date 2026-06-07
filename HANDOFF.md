@@ -6,24 +6,25 @@ Last updated 2026-06-07. **Resume section below is the live one;** older notes f
 
 ## ⚡ Resume here (2026-06-07) — Scenario Builder / Schedule / Sleeper
 
-Working branch: **`claude/scenario-builder-presets-TgX5p`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). Many PRs merged (#294–#321).
+Working branch: **`claude/scenario-builder-presets-resume-rYlS1`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). Many PRs merged (#294–#322); Sleeper league import shipped in #323.
 
-### First thing in the new session
-User added `site.api.espn.com` + `api.sleeper.app` to the env network allowlist; the prior session predated the change so it still got `403`. **Re-test:**
+### Allowlist — RESOLVED (2026-06-07)
+`site.api.espn.com` + `api.sleeper.app` are both reachable (`200`) now. Re-test if needed:
 ```
 curl -s -o /dev/null -w '%{http_code}\n' "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=1&dates=2026"
 curl -s -o /dev/null -w '%{http_code}\n' "https://api.sleeper.app/v1/state/nfl"
 ```
-- If `200` → do the two tasks below.
-- If `403` → env likely saved as **Custom** without "include default package managers" (also drops GitHub) or domains have stray `https://`/paths. Tell the user.
+(If they ever 403 again: env likely saved as **Custom** without "include default package managers", or domains have a stray `https://`/path.)
 
-### Task 1 — commit ESPN schedule data (now reachable)
-- Reg-season committed networks are **248/272** (`public/data/schedule-networks-2026.json`); gaps = holiday/international (Netflix Christmas, Amazon, NFL Net). Fetch ESPN scoreboard (`seasontype=2`, wk 1–18, `dates=2026`), merge network onto that file, then `node scripts/build_schedule.mjs 2026`.
-- Preseason network/venue: `public/data/schedule-preseason-2026.json` has matchups/times but empty `network`/`venue`; fill from ESPN `seasontype=1` wk 1–4.
-- Mirror the in-browser overlay logic in `src/lib/nflSchedule.ts` (`overlayEspn`) server-side; make it a script so it's reproducible.
+### Task 1 — commit ESPN schedule data ✅ (PR #322)
+- `scripts/enrich_schedule_espn.mjs` — reproducible server-side mirror of `overlayEspn`. Fills *missing* reg-season networks then re-runs `build_schedule.mjs`; fills preseason network + venue.
+- Committed **49 preseason venues + 5 preseason networks**.
+- ⚠️ The "~24 missing reg-season networks" (weeks 16–18) are still **TBD on ESPN itself** (flex scheduling) — ESPN has the same 248/272 we do, only cosmetic naming diffs (`Prime`→`Prime Video`, `NETFLIX`→`Netflix`) that the runtime overlay already applies live. Re-run `node scripts/enrich_schedule_espn.mjs 2026` once ESPN finalizes weeks 16–18 and they'll fill in.
 
 ### Task 2 — Sleeper features (`https://docs.sleeper.com/`)
-Ask user which first (league import by league id → rosters/settings; trending adds/drops; ADP). New `src/lib/sleeper.ts` + a view + nav tab.
+- ✅ **League import** (PR #323): `src/lib/sleeper.ts` (`importLeague(id)`) + `src/components/SleeperLeagueView.tsx` + "Sleeper League" nav tab (Projections group). Enter a league id → standings + per-team rosters (starters w/ slot labels + bench), player names resolved via the existing `fetchSleeperPlayers()` map in `data.ts`. League id persists in localStorage. Verified against real league `1182033380414181376`.
+- Pre-existing (retired `'sleeper'` tab, `SleeperView.tsx`): **trending adds/drops + Sleeper projections** already shipped via `fetchSleeperTrending`/`fetchSleeperProjections` in `data.ts`.
+- Remaining Sleeper ideas: Sleeper **ADP** as a consensus source; sync `sleeper_id`→`player_key` so league rosters link to PlayerDetail/career model.
 
 ### Conventions
 One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; verify UI with headless puppeteer (`npm i --no-save puppeteer`) against `npx vite preview` on a fresh port (don't `pkill`). Merge via GitHub MCP tools. Commit/PR footer = session URL; never commit the model id.
@@ -45,12 +46,12 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 2. ✅ Team schedules + estimated SOS (PRs #318–#321; reg+preseason committed, SOS overall/thirds)
 3. ⬜ Clean up + test the **My Rankings** page (scope it with the user — bugs? layout?)
 4. ⬜ **Consensus Projections** = Clay ±10% of base, + wire other projection sources. ⚠️ Clay data is local-only/gitignored — not present in this env; can scaffold generic multi-source consensus.
-5. ⬜ **Sleeper API** features (now unblocked via allowlist) — ask which first.
+5. 🟡 **Sleeper API** features — league import shipped (PR #323); trending/projections already existed. Remaining: Sleeper ADP consensus source, `sleeper_id`→`player_key` link.
 6. ⬜ Add **Scenario Builder to the Home/intro page menu** (quick win).
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
 
-Extra (not on original list): SOS true opponent-quality metric (defense / Vegas win totals) instead of the current offense-only proxy; ~24 reg-season network gaps + preseason network/venue (Task 1 above).
+Extra (not on original list): SOS true opponent-quality metric (defense / Vegas win totals) instead of the current offense-only proxy; the ~24 reg-season network gaps remain TBD on ESPN (re-run `enrich_schedule_espn.mjs` once they're assigned).
 
 ---
 

@@ -1638,6 +1638,17 @@ tr:hover td {
 .sched-loc { color: var(--text-secondary); }
 .sched-net { color: var(--text-secondary); white-space: nowrap; }
 .sched-strength { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+
+/* Sleeper league import */
+.sl-page { margin-bottom: 12px; }
+.sl-roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.sl-roster-col { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.sl-col-head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+.sl-player { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; border-bottom: 1px solid var(--bg-tertiary); }
+.sl-player:last-child { border-bottom: none; }
+.sl-slot { font-size: 9px; font-weight: 700; color: var(--text-muted); min-width: 42px; text-transform: uppercase; }
+.sl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-team { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
 .sched-empty { color: var(--text-muted); text-align: center; padding: 16px; }
 
 /* Collapsible current-roster reference panel */
