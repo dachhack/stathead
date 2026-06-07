@@ -9,6 +9,7 @@ export function isScenarioEmpty(s: ScenarioConfig): boolean {
     s.volumeOverrides.length === 0 &&
     (s.playerAvailability ?? []).length === 0 &&
     (s.pointsOverrides ?? []).length === 0 &&
+    (s.statOverrides ?? []).length === 0 &&
     s.movements.length === 0 &&
     s.customPlayers.length === 0 &&
     (s.freeAgentSignings ?? []).length === 0
@@ -239,6 +240,28 @@ export function applyScenario(
     }
   }
 
+  // 3.4. Stat overrides — set specific absolute counting-stat values.
+  // Applied before availability/points so a games haircut and a PPR target
+  // still layer on top of the user's exact numbers. Non-zero-sum.
+  const STAT_OVERRIDE_KEYS: (keyof SDIOProjection)[] = [
+    'PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
+    'RushingAttempts', 'RushingYards', 'RushingTouchdowns',
+    'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
+  ];
+  for (const so of (scenario.statOverrides ?? [])) {
+    const player = result.find((p) => p.PlayerID === so.playerId);
+    if (!player) continue;
+    let changed = false;
+    for (const k of STAT_OVERRIDE_KEYS) {
+      const v = (so as unknown as Record<string, number | undefined>)[k];
+      if (v !== undefined) { (player as unknown as Record<string, number>)[k] = v; changed = true; }
+    }
+    if (!changed) continue;
+    const { ppr, std } = recalcPoints(player);
+    player.FantasyPointsPPR = ppr;
+    player.FantasyPoints = std;
+  }
+
   // 3.5. Player availability — per-player games haircut (non-zero-sum)
   // Scale a player's counting stats by games/17. Unlike volume overrides this
   // does NOT redistribute to teammates: the games are simply lost (an injury
@@ -428,5 +451,6 @@ export function createEmptyScenario(): ScenarioConfig {
     freeAgentSignings: [],
     playerAvailability: [],
     pointsOverrides: [],
+    statOverrides: [],
   };
 }

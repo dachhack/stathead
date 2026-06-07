@@ -1619,6 +1619,43 @@ tr:hover td {
   color: #64c8ff;
 }
 
+/* Stats grid (exact-number editor) */
+
+.scenario-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  width: 100%;
+  margin-top: 4px;
+  align-items: flex-end;
+}
+
+.scenario-stat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scenario-stat-field > span {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.scenario-stat-field input {
+  width: 52px;
+}
+
+.scenario-stat-share > span { color: var(--accent); }
+
+.scenario-stat-share input {
+  border-color: rgba(0, 212, 170, 0.4);
+}
+
+.scenario-stat-reset { align-self: center; font-size: 10px; }
+
 /* Add button */
 
 .scenario-add-btn {

@@ -1026,6 +1026,28 @@ export interface PointsOverride {
   ppr: number; // target PPR fantasy points
 }
 
+// Set specific absolute counting-stat values for a player (the Roster Editor's
+// "Stats" view — edit exact carries/yards/TDs/catches, or a team-pool share %
+// that maps to them). Any provided field overrides that stat; omitted fields
+// keep the player's projected value. Non-zero-sum; points recompute.
+export interface PlayerStatOverride {
+  playerId: number;
+  playerName: string;
+  team: string;
+  position: string;
+  PassingAttempts?: number;
+  PassingCompletions?: number;
+  PassingYards?: number;
+  PassingTouchdowns?: number;
+  PassingInterceptions?: number;
+  RushingAttempts?: number;
+  RushingYards?: number;
+  RushingTouchdowns?: number;
+  Receptions?: number;
+  ReceivingYards?: number;
+  ReceivingTouchdowns?: number;
+}
+
 // Per-player games/availability haircut (e.g. "Injury skeptic").
 // `games` is projected games played out of 17; counting stats are scaled
 // by games/17. Non-zero-sum — lost games are not redistributed to teammates.
@@ -1101,4 +1123,5 @@ export interface ScenarioConfig {
   freeAgentSignings: FreeAgentSigning[];
   playerAvailability: PlayerAvailability[];
   pointsOverrides: PointsOverride[];
+  statOverrides: PlayerStatOverride[];
 }
