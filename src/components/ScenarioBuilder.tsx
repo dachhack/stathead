@@ -2,8 +2,6 @@ import { useState, useMemo, useEffect, Fragment } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
-  TeamTendency,
-  TeamVolume,
   TeamStatAdjustment,
   TeamStatKey,
   PlayerMovement,
@@ -85,16 +83,6 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
 export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [] }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
-
-  // Team tendency add form
-  const [addingTeam, setAddingTeam] = useState(false);
-  const [newTeam, setNewTeam] = useState('');
-  const [newTeamDelta, setNewTeamDelta] = useState(0);
-
-  // Team volume add form
-  const [addingTeamVol, setAddingTeamVol] = useState(false);
-  const [newTeamVolTeam, setNewTeamVolTeam] = useState('');
-  const [newTeamVolDelta, setNewTeamVolDelta] = useState(0);
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
@@ -196,6 +184,24 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     return m;
   }, [rankings]);
 
+  // Current team's total PPR change vs. baseline (captures all scenario levers,
+  // since `rankings` are the fully scenario-adjusted projections).
+  const teamDelta = useMemo(() => {
+    if (!editTeam) return 0;
+    let adj = 0, base = 0;
+    for (const r of rankings) if (r.team === editTeam) adj += r.ppr;
+    for (const p of projections) if (p.Team === editTeam) base += p.FantasyPointsPPR || 0;
+    return Math.round(adj - base);
+  }, [rankings, projections, editTeam]);
+  // Only show the delta when the team is actually targeted (avoids tiny model
+  // drift on untouched teams from league-wide recompute).
+  const teamHasEdits = useMemo(() => {
+    if (!editTeam) return false;
+    const has = (arr?: { team: string }[]) => (arr ?? []).some((x) => x.team === editTeam);
+    return has(scenario.teamTendencies) || has(scenario.teamVolumes) || has(scenario.teamStatAdjustments) ||
+      has(scenario.volumeOverrides) || has(scenario.statOverrides) || has(scenario.playerAvailability) || has(scenario.pointsOverrides);
+  }, [scenario, editTeam]);
+
   // Roster editor: selected team's players grouped by position, each group
   // sorted by projected PPR (so the depth order reads top-down).
   const editRoster = useMemo(() => {
@@ -235,49 +241,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
 
   const update = (patch: Partial<ScenarioConfig>) => onChange({ ...scenario, ...patch });
 
-  // --- Team tendency actions ---
-  const addTeamTendency = () => {
-    if (!newTeam || newTeamDelta === 0) return;
-    if (scenario.teamTendencies.find((t) => t.team === newTeam)) return;
-    const tendency: TeamTendency = { team: newTeam, passRatioDelta: newTeamDelta };
-    update({ teamTendencies: [...scenario.teamTendencies, tendency] });
-    setNewTeam('');
-    setNewTeamDelta(0);
-    setAddingTeam(false);
+  // --- Team tendency / volume actions (upsert; 0 clears) for the current team ---
+  const setTeamTendencyFor = (team: string, delta: number) => {
+    const rest = scenario.teamTendencies.filter((t) => t.team !== team);
+    update({ teamTendencies: delta === 0 ? rest : [...rest, { team, passRatioDelta: delta }] });
   };
-  const removeTeamTendency = (team: string) =>
-    update({ teamTendencies: scenario.teamTendencies.filter((t) => t.team !== team) });
-  const updateTeamDelta = (team: string, delta: number) =>
-    update({
-      teamTendencies: scenario.teamTendencies.map((t) =>
-        t.team === team ? { ...t, passRatioDelta: delta } : t
-      ),
-    });
-
-  // --- Team volume actions ---
-  const addTeamVolume = () => {
-    if (!newTeamVolTeam || newTeamVolDelta === 0) return;
-    if ((scenario.teamVolumes ?? []).find((t) => t.team === newTeamVolTeam)) return;
-    const tv: TeamVolume = { team: newTeamVolTeam, volumeDelta: newTeamVolDelta };
-    update({ teamVolumes: [...(scenario.teamVolumes ?? []), tv] });
-    setNewTeamVolTeam('');
-    setNewTeamVolDelta(0);
-    setAddingTeamVol(false);
+  const setTeamVolumeFor = (team: string, delta: number) => {
+    const rest = (scenario.teamVolumes ?? []).filter((t) => t.team !== team);
+    update({ teamVolumes: delta === 0 ? rest : [...rest, { team, volumeDelta: delta }] });
   };
-  const removeTeamVolume = (team: string) =>
-    update({ teamVolumes: (scenario.teamVolumes ?? []).filter((t) => t.team !== team) });
-  const updateTeamVolumeDelta = (team: string, delta: number) =>
-    update({
-      teamVolumes: (scenario.teamVolumes ?? []).map((t) =>
-        t.team === team ? { ...t, volumeDelta: delta } : t
-      ),
-    });
 
   // --- Team stat adjustment actions ---
   const addTeamStat = () => {
-    if (!newStatTeam || newStatDelta === 0) return;
-    if ((scenario.teamStatAdjustments ?? []).find((a) => a.team === newStatTeam && a.stat === newStatKey)) return;
-    const adj: TeamStatAdjustment = { team: newStatTeam, stat: newStatKey, delta: newStatDelta };
+    const statTeam = newStatTeam || editTeam;
+    if (!statTeam || newStatDelta === 0) return;
+    if ((scenario.teamStatAdjustments ?? []).find((a) => a.team === statTeam && a.stat === newStatKey)) return;
+    const adj: TeamStatAdjustment = { team: statTeam, stat: newStatKey, delta: newStatDelta };
     update({ teamStatAdjustments: [...(scenario.teamStatAdjustments ?? []), adj] });
     setNewStatTeam('');
     setNewStatDelta(0);
@@ -611,196 +590,6 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             </div>
           </div>
 
-          {/* 2. Team Tendencies */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Team Tendencies</span>
-              <button
-                className="scenario-add-btn"
-                onClick={() => setAddingTeam((v) => !v)}
-              >
-                {addingTeam ? '✕' : '+ Add'}
-              </button>
-            </div>
-            <p className="scenario-section-hint">Adjust pass/run ratio per team.</p>
-
-            {addingTeam && (
-              <div className="scenario-add-form">
-                <select
-                  value={newTeam}
-                  onChange={(e) => setNewTeam(e.target.value)}
-                  className="scenario-select"
-                >
-                  <option value="">Select team...</option>
-                  {teams
-                    .filter((t) => !scenario.teamTendencies.find((x) => x.team === t))
-                    .map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
-                <div className="scenario-slider-row">
-                  <span className="scenario-slider-label scenario-label-run">Run</span>
-                  <input
-                    type="range"
-                    min={-30}
-                    max={30}
-                    value={newTeamDelta}
-                    onChange={(e) => setNewTeamDelta(Number(e.target.value))}
-                    className="scenario-slider"
-                  />
-                  <span className="scenario-slider-label scenario-label-pass">Pass</span>
-                </div>
-                <div className="scenario-slider-value-row">
-                  <span
-                    className={`scenario-slider-value ${
-                      newTeamDelta > 0 ? 'positive' : newTeamDelta < 0 ? 'negative' : ''
-                    }`}
-                  >
-                    {deltaLabel(newTeamDelta, 'pass')}
-                  </span>
-                </div>
-                <button
-                  className="scenario-confirm-btn"
-                  onClick={addTeamTendency}
-                  disabled={!newTeam || newTeamDelta === 0}
-                >
-                  Add Adjustment
-                </button>
-              </div>
-            )}
-
-            {scenario.teamTendencies.map((t) => (
-              <div key={t.team} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className="scenario-item-name">{t.team}</span>
-                  <span
-                    className={`scenario-item-delta ${
-                      t.passRatioDelta > 0 ? 'positive' : 'negative'
-                    }`}
-                  >
-                    {deltaLabel(t.passRatioDelta, 'pass')}
-                  </span>
-                </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="range"
-                    min={-30}
-                    max={30}
-                    value={t.passRatioDelta}
-                    onChange={(e) => updateTeamDelta(t.team, Number(e.target.value))}
-                    className="scenario-slider-inline"
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removeTeamTendency(t.team)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {scenario.teamTendencies.length === 0 && !addingTeam && (
-              <div className="scenario-section-empty">No team adjustments</div>
-            )}
-          </div>
-
-          {/* 3. Team Volume */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Team Volume</span>
-              <button
-                className="scenario-add-btn"
-                onClick={() => setAddingTeamVol((v) => !v)}
-              >
-                {addingTeamVol ? '✕' : '+ Add'}
-              </button>
-            </div>
-            <p className="scenario-section-hint">
-              Scale total volume for all players on a team (total pie size, not the split).
-            </p>
-
-            {addingTeamVol && (
-              <div className="scenario-add-form">
-                <select
-                  value={newTeamVolTeam}
-                  onChange={(e) => setNewTeamVolTeam(e.target.value)}
-                  className="scenario-select"
-                >
-                  <option value="">Select team...</option>
-                  {teams
-                    .filter((t) => !(scenario.teamVolumes ?? []).find((x) => x.team === t))
-                    .map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
-                <div className="scenario-slider-row">
-                  <span className="scenario-slider-label scenario-label-run">−50%</span>
-                  <input
-                    type="range"
-                    min={-50}
-                    max={50}
-                    value={newTeamVolDelta}
-                    onChange={(e) => setNewTeamVolDelta(Number(e.target.value))}
-                    className="scenario-slider"
-                  />
-                  <span className="scenario-slider-label scenario-label-pass">+50%</span>
-                </div>
-                <div className="scenario-slider-value-row">
-                  <span
-                    className={`scenario-slider-value ${
-                      newTeamVolDelta > 0 ? 'positive' : newTeamVolDelta < 0 ? 'negative' : ''
-                    }`}
-                  >
-                    {deltaLabel(newTeamVolDelta, 'volume')}
-                  </span>
-                </div>
-                <button
-                  className="scenario-confirm-btn"
-                  onClick={addTeamVolume}
-                  disabled={!newTeamVolTeam || newTeamVolDelta === 0}
-                >
-                  Add Adjustment
-                </button>
-              </div>
-            )}
-
-            {(scenario.teamVolumes ?? []).map((tv) => (
-              <div key={tv.team} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className="scenario-item-name">{tv.team}</span>
-                  <span
-                    className={`scenario-item-delta ${
-                      tv.volumeDelta > 0 ? 'positive' : 'negative'
-                    }`}
-                  >
-                    {deltaLabel(tv.volumeDelta, 'volume')} volume
-                  </span>
-                </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="range"
-                    min={-50}
-                    max={50}
-                    value={tv.volumeDelta}
-                    onChange={(e) => updateTeamVolumeDelta(tv.team, Number(e.target.value))}
-                    className="scenario-slider-inline"
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removeTeamVolume(tv.team)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {(scenario.teamVolumes ?? []).length === 0 && !addingTeamVol && (
-              <div className="scenario-section-empty">No team volume adjustments</div>
-            )}
-          </div>
-
           {/* 4. Team Stat Adjustments */}
           <div className="scenario-section">
             <div className="scenario-section-header">
@@ -819,11 +608,10 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             {addingTeamStat && (
               <div className="scenario-add-form">
                 <select
-                  value={newStatTeam}
+                  value={newStatTeam || editTeam}
                   onChange={(e) => setNewStatTeam(e.target.value)}
                   className="scenario-select"
                 >
-                  <option value="">Select team...</option>
                   {teams.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
@@ -865,7 +653,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 <button
                   className="scenario-confirm-btn"
                   onClick={addTeamStat}
-                  disabled={!newStatTeam || newStatDelta === 0}
+                  disabled={!(newStatTeam || editTeam) || newStatDelta === 0}
                 >
                   Add Adjustment
                 </button>
@@ -913,7 +701,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
           <div className="scenario-section scenario-section--primary">
             <div className="scenario-section-header">
               <span className="scenario-section-title">Team Workspace</span>
-              {teamDivision[editTeam] && <span className="se-div-label">{teamDivision[editTeam]}</span>}
+              <span className="se-header-right">
+                {teamDivision[editTeam] && <span className="se-div-label">{teamDivision[editTeam]}</span>}
+                {teamHasEdits && teamDelta !== 0 && (
+                  <span className={`se-delta ${teamDelta > 0 ? 'pos' : 'neg'}`} title="Team total PPR change vs. baseline (all scenario adjustments)">
+                    {teamDelta > 0 ? '▲ +' : '▼ '}{teamDelta} PPR
+                  </span>
+                )}
+              </span>
             </div>
             <p className="scenario-section-hint">
               Cycle teams by division, then <strong>click a number and nudge it with ▲/▼</strong> to
@@ -939,6 +734,32 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               </select>
               <button className="se-cycle" onClick={() => cycleTeam(1)} aria-label="next team" title="Next team">▶</button>
             </div>
+
+            {/* Team-level levers for the selected team */}
+            {editTeam && (() => {
+              const tendency = scenario.teamTendencies.find((t) => t.team === editTeam)?.passRatioDelta ?? 0;
+              const teamVol = (scenario.teamVolumes ?? []).find((t) => t.team === editTeam)?.volumeDelta ?? 0;
+              return (
+                <div className="se-team-levers">
+                  <div className="se-lever">
+                    <span className="se-lever-label">Pass / Run</span>
+                    <input
+                      type="range" min={-30} max={30} value={tendency} className="scenario-slider-inline"
+                      onChange={(e) => setTeamTendencyFor(editTeam, Number(e.target.value))}
+                    />
+                    <span className={`se-lever-val ${tendency > 0 ? 'positive' : tendency < 0 ? 'negative' : ''}`}>{deltaLabel(tendency, 'pass')}</span>
+                  </div>
+                  <div className="se-lever">
+                    <span className="se-lever-label">Team Volume</span>
+                    <input
+                      type="range" min={-50} max={50} value={teamVol} className="scenario-slider-inline"
+                      onChange={(e) => setTeamVolumeFor(editTeam, Number(e.target.value))}
+                    />
+                    <span className={`se-lever-val ${teamVol > 0 ? 'positive' : teamVol < 0 ? 'negative' : ''}`}>{deltaLabel(teamVol, 'volume')}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {editTeam && (() => {
               const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
