@@ -23,20 +23,47 @@ const SECTIONS: Section[] = [
           'Full player projections with scenario builder — adjust team volume, pass rates, movements, and free-agent signings.',
       },
       {
+        label: 'Scenario Builder',
+        tab: 'scenario-builder',
+        blurb: 'Full-page team workspace: per-player target/carry adjustments, team levers, PPR deltas, and Excel export.',
+      },
+      {
+        label: 'Schedule & SOS',
+        tab: 'schedule',
+        blurb: '2026 schedule with strength of schedule, opponent defense grades, and per-game projected scores + win probability.',
+      },
+      {
         label: 'My Rankings',
         tab: 'my-rankings',
         blurb: 'Hand-edit rankings layered on top of the projections engine; persists in your browser.',
-      },
-      {
-        label: 'Rankings',
-        tab: 'stats',
-        blurb: 'Expert consensus rankings reconciled with our own model tiers.',
       },
       {
         label: 'Draft Optimizer',
         tab: 'draft-optimizer',
         blurb:
           'Find the pick that maximizes expected value given your league settings, roster slots, and positional scarcity.',
+      },
+    ],
+  },
+  {
+    title: 'Sleeper',
+    description:
+      'Connect your Sleeper account to browse leagues, analyze rosters, scout opponents, and get team projections.',
+    items: [
+      {
+        label: 'My Leagues',
+        tab: 'sleeper-league',
+        blurb: 'Enter your username to see all your leagues. Load any league for standings, rosters, power rankings, and win-now/rebuild scoring.',
+      },
+      {
+        label: 'User Snooper',
+        tab: 'sleeper-snooper',
+        blurb: 'Look up any Sleeper user — see their leagues, combined record, most-owned players, and roster tendencies.',
+      },
+      {
+        label: 'Trending & Projections',
+        tab: 'sleeper',
+        blurb: 'Sleeper trending adds/drops and weekly player projections from the Sleeper API.',
       },
     ],
   },
