@@ -3,6 +3,7 @@ dist
 .DS_Store
 *.local
 public/data/*
+!public/data/schedule-*.json
 !public/data/training-rows-cache-*.json
 !public/data/trained-models-cache-*.json
 !public/data/model-cache-*.json

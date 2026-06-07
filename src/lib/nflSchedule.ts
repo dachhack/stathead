@@ -58,7 +58,7 @@ function networkOf(comp: NonNullable<EspnEvent['competitions']>[number]): string
   return Array.from(new Set(fromGeo)).join('/');
 }
 
-interface CommittedSchedule { season: number; updated?: string; games?: Array<{ week: number; date: string; away: string; home: string; venue: string; neutral?: boolean }> }
+interface CommittedSchedule { season: number; updated?: string; games?: Array<{ week: number; date: string; away: string; home: string; venue: string; neutral?: boolean; network?: string }> }
 
 /** Best-effort ESPN overlay: fill TV network (and city) on regular-season games
  *  and populate the preseason. ESPN's host must be reachable from the browser;
@@ -110,8 +110,9 @@ export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; upda
     if (committed?.games?.length) {
       if (committed.updated) updated = Date.parse(committed.updated) || updated;
       for (const g of committed.games) {
-        ensure(g.home).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.away, home: true, venue: g.venue, city: '', network: '' });
-        ensure(g.away).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.home, home: false, venue: g.venue, city: '', network: '' });
+        const net = g.network ?? '';
+        ensure(g.home).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.away, home: true, venue: g.venue, city: '', network: net });
+        ensure(g.away).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.home, home: false, venue: g.venue, city: '', network: net });
       }
     }
   } catch {

@@ -58,6 +58,16 @@ for (let i = 1; i < lines.length; i++) {
     neutral: (r[iLoc] || '').toLowerCase() === 'neutral',
   });
 }
+// Merge committed TV networks (parsed from the NFL division-schedule PDF), keyed
+// by week + the sorted team pair. nflverse has no network column.
+const netPath = path.join('public', 'data', `schedule-networks-${SEASON}.json`);
+let networks = {};
+try { networks = JSON.parse(fs.readFileSync(netPath, 'utf8')); } catch { /* optional */ }
+for (const g of games) {
+  const [a, b] = [g.away, g.home].sort();
+  g.network = networks[`${g.week}|${a}|${b}`] || '';
+}
+
 games.sort((a, b) => a.week - b.week || a.home.localeCompare(b.home));
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
