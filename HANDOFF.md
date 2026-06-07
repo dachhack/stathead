@@ -51,7 +51,7 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
 
-Extra (not on original list): SOS true opponent-quality metric (defense / Vegas win totals) instead of the current offense-only proxy; the ~24 reg-season network gaps remain TBD on ESPN (re-run `enrich_schedule_espn.mjs` once they're assigned).
+Extra (not on original list): ✅ SOS true opponent-quality — now uses Consensus DEFENSE grades (PR #328: `scripts/extract_clay_unit_grades.py` → `public/data/clay-unit-grades-2026.json`; `nflSchedule.ts` `teamStrength`/`computeSOS` take optional grades, fall back to offense proxy when absent). The ~24 reg-season network gaps remain TBD on ESPN (re-run `enrich_schedule_espn.mjs` once assigned).
 
 ---
 
