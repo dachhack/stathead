@@ -185,6 +185,7 @@ export interface KTCPlayerHistory {
 export type Tab =
   | 'home'
   | 'projections'
+  | 'scenario-builder'
   | 'stats'
   | 'compare'
   | 'scoring'

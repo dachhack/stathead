@@ -69,6 +69,7 @@ const TAB_GROUPS: TabGroup[] = [
     label: 'Projections',
     tabs: [
       { id: 'projections', label: 'Projections' },
+      { id: 'scenario-builder', label: 'Scenario Builder' },
       { id: 'my-rankings', label: 'My Rankings' },
       { id: 'stats', label: 'Rankings' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
@@ -232,7 +233,8 @@ function App() {
         ) : (
           <>
         {tab === 'home' && <HomePage onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
-        {tab === 'projections' && <StatProjections season={season} onScenarioChange={setScenario} />}
+        {tab === 'projections' && <StatProjections season={season} scenario={scenario} onScenarioChange={setScenario} />}
+        {tab === 'scenario-builder' && <StatProjections season={season} scenario={scenario} onScenarioChange={setScenario} embedBuilder />}
         {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
           ? <ExternalRankings2026 scenario={scenario} />

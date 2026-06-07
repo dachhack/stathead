@@ -1255,6 +1255,27 @@ tr:hover td {
   animation: slideIn 0.2s ease-out;
 }
 
+/* Full-page (tab) variant of the Scenario Builder */
+.scenario-page {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.scenario-page .scenario-body {
+  overflow: visible;
+}
+
+.scenario-page .scenario-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
 .scenario-header {
   display: flex;
   align-items: flex-start;
