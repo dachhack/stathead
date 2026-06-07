@@ -34,28 +34,34 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
 
   const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, gameLog, gameLogSeason } = data;
 
+  const headshotUrl = gameLog[0]?.headshot_url
+    || (cw.espn_id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${cw.espn_id}.png&w=200&h=145` : null);
+
   return (
     <div style={{ padding: '16px 24px', maxWidth: 1100, margin: '0 auto' }}>
       <BackLink onBack={onBack} />
 
       {/* Identity header */}
-      <div style={{ marginTop: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 28 }}>{cw.display_name}</h1>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, fontSize: 13, color: 'var(--text-muted)' }}>
-          <span className={`pos-badge pos-${cw.position}`}>{cw.position}</span>
-          {ktcCurrent?.team && <span>{ktcCurrent.team}</span>}
-          {cw.college && <span>{cw.college}</span>}
-          {cw.birth_date && <span>DOB {cw.birth_date}</span>}
-          {cw.earliest_season && cw.latest_season && (
-            <span>{cw.earliest_season}–{cw.latest_season}</span>
-          )}
-          {cw.is_college_only && <span style={{ color: 'var(--accent)' }}>Pre-NFL</span>}
-        </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-          player_key <code>{cw.player_key}</code>
-          {cw.alias_keys?.length ? (
-            <> · alias_keys <code>{cw.alias_keys.join(', ')}</code></>
-          ) : null}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
+        <Headshot url={headshotUrl} name={cw.display_name} position={cw.position} />
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: 28 }}>{cw.display_name}</h1>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, fontSize: 13, color: 'var(--text-muted)' }}>
+            <span className={`pos-badge pos-${cw.position}`}>{cw.position}</span>
+            {ktcCurrent?.team && <span>{ktcCurrent.team}</span>}
+            {cw.college && <span>{cw.college}</span>}
+            {cw.birth_date && <span>DOB {cw.birth_date}</span>}
+            {cw.earliest_season && cw.latest_season && (
+              <span>{cw.earliest_season}–{cw.latest_season}</span>
+            )}
+            {cw.is_college_only && <span style={{ color: 'var(--accent)' }}>Pre-NFL</span>}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+            player_key <code>{cw.player_key}</code>
+            {cw.alias_keys?.length ? (
+              <> · alias_keys <code>{cw.alias_keys.join(', ')}</code></>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -82,6 +88,40 @@ function BackLink({ onBack }: { onBack: () => void }) {
     >
       ← Back
     </a>
+  );
+}
+
+function Headshot({ url, name, position }: { url: string | null; name: string; position: string }) {
+  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2);
+  const size = 72;
+  if (!url) {
+    return (
+      <div
+        className={`pos-${position}`}
+        style={{
+          width: size, height: size, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
+          fontSize: 22, fontWeight: 700, letterSpacing: 1,
+        }}
+      >
+        {initials}
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={name}
+      style={{
+        width: size, height: size, borderRadius: '50%', objectFit: 'cover',
+        flexShrink: 0, background: 'var(--bg-tertiary)',
+      }}
+      onError={(e) => {
+        const el = e.currentTarget;
+        el.style.display = 'none';
+      }}
+    />
   );
 }
 

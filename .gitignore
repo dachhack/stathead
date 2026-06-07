@@ -72,3 +72,7 @@ pdfs/
 # Local-only Clay projection set consumed at runtime by the "Consensus" preset.
 # Never committed — absent in the public deploy so Clay's numbers ship nowhere.
 /public/data/clay/
+
+# Downloaded headshot images
+headshots.zip
+headshots_part*.zip
