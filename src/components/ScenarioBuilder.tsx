@@ -290,7 +290,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   // merges a patch (undefined clears a field) and drops the entry when empty.
   const STAT_FIELDS = [
     'PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
-    'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
+    'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Targets', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
   ] as const;
   type StatField = typeof STAT_FIELDS[number];
   const statOf = (id: number) => (scenario.statOverrides ?? []).find((s) => s.playerId === id);
@@ -812,7 +812,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   onActivate: () => setEditCell({ id: p.PlayerID, field }),
                   onStep: (dir) => {
                     const next = Math.max(0, Math.round(v + dir));
-                    setStats(p, { [field]: next === base ? undefined : next });
+                    const patch: Partial<Record<StatField, number | undefined>> = { [field]: next === base ? undefined : next };
+                    // Volume drivers cascade to their dependents, preserving the
+                    // player's current efficiency rates (catch rate, yds/rec, yds/att).
+                    if (field === 'Targets') {
+                      const rec = adjStat(p, 'Receptions'), recYds = adjStat(p, 'ReceivingYards');
+                      const newRec = v > 0 ? Math.round(next * (rec / v)) : 0;
+                      patch.Receptions = newRec;
+                      patch.ReceivingYards = rec > 0 ? Math.round(newRec * (recYds / rec)) : 0;
+                    } else if (field === 'Receptions') {
+                      const recYds = adjStat(p, 'ReceivingYards');
+                      patch.ReceivingYards = v > 0 ? Math.round(next * (recYds / v)) : 0;
+                    } else if (field === 'RushingAttempts') {
+                      const rushYds = adjStat(p, 'RushingYards');
+                      patch.RushingYards = v > 0 ? Math.round(next * (rushYds / v)) : 0;
+                    }
+                    setStats(p, patch);
                   },
                 });
               };
@@ -859,11 +874,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                     {hasRush ? statTd(p, 'RushingAttempts', poolRushAtt) : blank('ra')}
                     {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
                     {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
-                    {isQB ? blank('tg') : (
-                      <td className="se-cell se-num se-readonly" title="Targets (read-only)">
-                        {fmt(tgtOf(p))}{poolTgt ? <span className="se-share">{share(tgtOf(p), poolTgt)}</span> : null}
-                      </td>
-                    )}
+                    {isQB ? blank('tg') : statTd(p, 'Targets', poolTgt)}
                     {isQB ? blank('rc') : statTd(p, 'Receptions', poolRec)}
                     {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', poolRecYds)}
                     {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
