@@ -377,6 +377,46 @@ function applyScenarioToProjections(
     return f === 1 ? p : applyTeStats(p, f);
   });
 
+  // Team stat adjustments — scale a specific team stat for the relevant players
+  // (mirrors scenarioEngine.applyScenario step 2.75, on this projection path).
+  const teamStatAdj = (sc.teamStatAdjustments ?? []).filter((a) => a.delta !== 0);
+  if (teamStatAdj.length > 0) {
+    const SDIO_TO_INT: Record<string, string> = {
+      PassingAttempts: 'passAtt', PassingCompletions: 'passComp', PassingYards: 'passYds',
+      PassingTouchdowns: 'passTD', PassingInterceptions: 'int',
+      RushingAttempts: 'rushAtt', RushingYards: 'rushYds', RushingTouchdowns: 'rushTD',
+      Receptions: 'rec', ReceivingYards: 'recYds', ReceivingTouchdowns: 'recTD',
+    };
+    const PASS = new Set(['passAtt', 'passComp', 'passYds', 'passTD', 'int']);
+    const RUSH = new Set(['rushAtt', 'rushYds', 'rushTD']);
+    const recomputeP = (o: Record<string, number>) => Math.round(computePPR({
+      passYds: o.passYds || 0, passTD: o.passTD || 0, int: o.int || 0,
+      rushYds: o.rushYds || 0, rushTD: o.rushTD || 0,
+      rec: o.rec || 0, recYds: o.recYds || 0, recTD: o.recTD || 0,
+    }));
+    const scaleArr = <T extends { team: string; pprPts: number }>(arr: T[], team: string, field: string, f: number) => {
+      arr.forEach((p, i) => {
+        if (p.team !== team) return;
+        const o = p as unknown as Record<string, number>;
+        if (o[field] === undefined) return;
+        const next = { ...(p as object), [field]: Math.round((o[field] || 0) * f) } as unknown as Record<string, number>;
+        arr[i] = { ...next, pprPts: recomputeP(next) } as unknown as T;
+      });
+    };
+    for (const adj of teamStatAdj) {
+      const field = SDIO_TO_INT[adj.stat];
+      if (!field) continue;
+      const f = 1 + adj.delta / 100;
+      if (PASS.has(field)) {
+        scaleArr(adjQbs, adj.team, field, f);
+      } else if (RUSH.has(field)) {
+        scaleArr(adjQbs, adj.team, field, f); scaleArr(adjRbs, adj.team, field, f); scaleArr(adjWrs, adj.team, field, f);
+      } else {
+        scaleArr(adjRbs, adj.team, field, f); scaleArr(adjWrs, adj.team, field, f); scaleArr(adjTes, adj.team, field, f);
+      }
+    }
+  }
+
   // Player availability — per-player games haircut (non-zero-sum).
   // Scale counting stats by games/17 and recompute pprPts. Mirrors the
   // PlayerAvailability lever in scenarioEngine.applyScenario; matched by name

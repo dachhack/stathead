@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, Fragment } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
-  TeamStatAdjustment,
   TeamStatKey,
   PlayerMovement,
   CustomPlayer,
@@ -107,12 +106,6 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const [movePlayer, setMovePlayer] = useState<SDIOProjection | null>(null);
   const [moveToTeam, setMoveToTeam] = useState('');
   const moveResults = usePlayerSearch(projections, moveSearch);
-
-  // Team stat adjustment add form
-  const [addingTeamStat, setAddingTeamStat] = useState(false);
-  const [newStatTeam, setNewStatTeam] = useState('');
-  const [newStatKey, setNewStatKey] = useState<TeamStatKey>('PassingYards');
-  const [newStatDelta, setNewStatDelta] = useState(0);
 
   // Custom player add form
   const [addingCustom, setAddingCustom] = useState(false);
@@ -238,25 +231,11 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     update({ teamVolumes: delta === 0 ? rest : [...rest, { team, volumeDelta: delta }] });
   };
 
-  // --- Team stat adjustment actions ---
-  const addTeamStat = () => {
-    const statTeam = newStatTeam || editTeam;
-    if (!statTeam || newStatDelta === 0) return;
-    if ((scenario.teamStatAdjustments ?? []).find((a) => a.team === statTeam && a.stat === newStatKey)) return;
-    const adj: TeamStatAdjustment = { team: statTeam, stat: newStatKey, delta: newStatDelta };
-    update({ teamStatAdjustments: [...(scenario.teamStatAdjustments ?? []), adj] });
-    setNewStatTeam('');
-    setNewStatDelta(0);
-    setAddingTeamStat(false);
+  // --- Team stat adjustment action (upsert; 0 clears) for the current team ---
+  const setTeamStatFor = (team: string, stat: TeamStatKey, delta: number) => {
+    const rest = (scenario.teamStatAdjustments ?? []).filter((a) => !(a.team === team && a.stat === stat));
+    update({ teamStatAdjustments: delta === 0 ? rest : [...rest, { team, stat, delta }] });
   };
-  const removeTeamStat = (team: string, stat: TeamStatKey) =>
-    update({ teamStatAdjustments: (scenario.teamStatAdjustments ?? []).filter((a) => !(a.team === team && a.stat === stat)) });
-  const updateTeamStatDelta = (team: string, stat: TeamStatKey, delta: number) =>
-    update({
-      teamStatAdjustments: (scenario.teamStatAdjustments ?? []).map((a) =>
-        a.team === team && a.stat === stat ? { ...a, delta } : a
-      ),
-    });
 
   // --- Roster editor: per-player upsert setters (volume / availability / projection) ---
   // Each looks up the player's current value and writes (or clears) the matching
@@ -589,113 +568,6 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             </div>
           </div>
 
-          {/* 4. Team Stat Adjustments */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Team Stat Adjustments</span>
-              <button
-                className="scenario-add-btn"
-                onClick={() => setAddingTeamStat((v) => !v)}
-              >
-                {addingTeamStat ? '✕' : '+ Add'}
-              </button>
-            </div>
-            <p className="scenario-section-hint">
-              Tweak specific team-level stats. Changes flow proportionally to all relevant players.
-            </p>
-
-            {addingTeamStat && (
-              <div className="scenario-add-form">
-                <select
-                  value={newStatTeam || editTeam}
-                  onChange={(e) => setNewStatTeam(e.target.value)}
-                  className="scenario-select"
-                >
-                  {teams.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <select
-                  value={newStatKey}
-                  onChange={(e) => setNewStatKey(e.target.value as TeamStatKey)}
-                  className="scenario-select"
-                >
-                  {STAT_GROUPS.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.stats.map((s) => (
-                        <option key={s} value={s}>{STAT_LABELS[s]}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <div className="scenario-slider-row">
-                  <span className="scenario-slider-label scenario-label-run">−50%</span>
-                  <input
-                    type="range"
-                    min={-50}
-                    max={50}
-                    value={newStatDelta}
-                    onChange={(e) => setNewStatDelta(Number(e.target.value))}
-                    className="scenario-slider"
-                  />
-                  <span className="scenario-slider-label scenario-label-pass">+50%</span>
-                </div>
-                <div className="scenario-slider-value-row">
-                  <span
-                    className={`scenario-slider-value ${
-                      newStatDelta > 0 ? 'positive' : newStatDelta < 0 ? 'negative' : ''
-                    }`}
-                  >
-                    {deltaLabel(newStatDelta, 'volume')}
-                  </span>
-                </div>
-                <button
-                  className="scenario-confirm-btn"
-                  onClick={addTeamStat}
-                  disabled={!(newStatTeam || editTeam) || newStatDelta === 0}
-                >
-                  Add Adjustment
-                </button>
-              </div>
-            )}
-
-            {(scenario.teamStatAdjustments ?? []).map((a) => (
-              <div key={`${a.team}-${a.stat}`} className="scenario-item">
-                <div className="scenario-item-left">
-                  <span className="scenario-item-name">{a.team}</span>
-                  <span className="scenario-item-stat-label">{STAT_LABELS[a.stat]}</span>
-                  <span
-                    className={`scenario-item-delta ${
-                      a.delta > 0 ? 'positive' : 'negative'
-                    }`}
-                  >
-                    {deltaLabel(a.delta, 'volume')}
-                  </span>
-                </div>
-                <div className="scenario-item-controls">
-                  <input
-                    type="range"
-                    min={-50}
-                    max={50}
-                    value={a.delta}
-                    onChange={(e) => updateTeamStatDelta(a.team, a.stat, Number(e.target.value))}
-                    className="scenario-slider-inline"
-                  />
-                  <button
-                    className="scenario-remove-btn"
-                    onClick={() => removeTeamStat(a.team, a.stat)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {(scenario.teamStatAdjustments ?? []).length === 0 && !addingTeamStat && (
-              <div className="scenario-section-empty">No stat adjustments</div>
-            )}
-          </div>
-
           {/* Team Workspace — primary interactive by-team editor */}
           <div className="scenario-section scenario-section--primary">
             <div className="scenario-section-header">
@@ -759,6 +631,33 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 </div>
               );
             })()}
+
+            {/* All team stat adjustments for the selected team (collapsible) */}
+            {editTeam && (
+              <details className="se-statadj" open>
+                <summary>Team stat adjustments</summary>
+                {STAT_GROUPS.map((group) => (
+                  <div key={group.label} className="se-statadj-group">
+                    <div className="se-statadj-grouptitle">{group.label}</div>
+                    <div className="se-team-levers">
+                      {group.stats.map((stat) => {
+                        const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
+                        return (
+                          <div key={stat} className="se-lever">
+                            <span className="se-lever-label">{STAT_LABELS[stat]}</span>
+                            <input
+                              type="range" min={-50} max={50} value={d} className="scenario-slider-inline"
+                              onChange={(e) => setTeamStatFor(editTeam, stat, Number(e.target.value))}
+                            />
+                            <span className={`se-lever-val ${d > 0 ? 'positive' : d < 0 ? 'negative' : ''}`}>{deltaLabel(d, 'volume')}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </details>
+            )}
 
             {editTeam && (() => {
               const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
