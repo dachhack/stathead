@@ -200,6 +200,7 @@ export type Tab =
   | 'pbp'
   | 'charts'
   | 'sleeper'
+  | 'sleeper-league'
   | 'ktc'
   | 'sportsdata'
   | 'prospects'

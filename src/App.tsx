@@ -18,6 +18,7 @@ import { PlayByPlayView } from './components/PlayByPlayView';
 import { FantasyADPView } from './components/FantasyADPView';
 import { StatProjections } from './components/StatProjections';
 import { ScheduleView } from './components/ScheduleView';
+import { SleeperLeagueView } from './components/SleeperLeagueView';
 import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
@@ -72,6 +73,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'projections', label: 'Projections' },
       { id: 'scenario-builder', label: 'Scenario Builder' },
       { id: 'schedule', label: 'Schedule & SOS' },
+      { id: 'sleeper-league', label: 'Sleeper League' },
       { id: 'my-rankings', label: 'My Rankings' },
       { id: 'stats', label: 'Rankings' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
@@ -295,6 +297,7 @@ function App() {
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
+        {tab === 'sleeper-league' && <SleeperLeagueView />}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
         {tab === 'sportsdata' && (
           <SportsDataIOView
