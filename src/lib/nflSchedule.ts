@@ -58,24 +58,22 @@ function networkOf(comp: NonNullable<EspnEvent['competitions']>[number]): string
   return Array.from(new Set(fromGeo)).join('/');
 }
 
-/** Fetch the full 2026 schedule (preseason + regular season) grouped by team. */
-export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number }> {
+interface CommittedSchedule { season: number; updated?: string; games?: Array<{ week: number; date: string; away: string; home: string; venue: string; neutral?: boolean }> }
+
+/** Best-effort ESPN overlay: fill TV network (and city) on regular-season games
+ *  and populate the preseason. ESPN's host must be reachable from the browser;
+ *  failures are swallowed so the committed regular season still renders. */
+async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSchedule): Promise<void> {
   const jobs: Promise<{ seasonType: 1 | 2; events: EspnEvent[] }>[] = [];
   for (let w = 1; w <= 4; w++) jobs.push(fetchWeek(1, w).then((events) => ({ seasonType: 1 as const, events })));
   for (let w = 1; w <= 18; w++) jobs.push(fetchWeek(2, w).then((events) => ({ seasonType: 2 as const, events })));
   const results = await Promise.all(jobs);
-
-  const byTeam: ScheduleByTeam = {};
-  const ensure = (t: string) => (byTeam[t] ??= { reg: [], pre: [] });
-
   for (const { seasonType, events } of results) {
     for (const ev of events) {
       const comp = ev.competitions?.[0];
       if (!comp) continue;
-      const home = comp.competitors?.find((c) => c.homeAway === 'home');
-      const away = comp.competitors?.find((c) => c.homeAway === 'away');
-      const ht = home?.team?.abbreviation;
-      const at = away?.team?.abbreviation;
+      const ht = comp.competitors?.find((c) => c.homeAway === 'home')?.team?.abbreviation;
+      const at = comp.competitors?.find((c) => c.homeAway === 'away')?.team?.abbreviation;
       if (!ht || !at) continue;
       const homeT = fixTeam(ht), awayT = fixTeam(at);
       const venue = comp.venue?.fullName ?? '';
@@ -84,16 +82,49 @@ export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; upda
       const network = networkOf(comp);
       const week = ev.week?.number ?? 0;
       const date = ev.date ?? '';
-      const list = (t: TeamSchedule) => (seasonType === 1 ? t.pre : t.reg);
-      list(ensure(homeT)).push({ week, seasonType, date, opp: awayT, home: true, venue, city, network });
-      list(ensure(awayT)).push({ week, seasonType, date, opp: homeT, home: false, venue, city, network });
+      if (seasonType === 1) {
+        ensure(homeT).pre.push({ week, seasonType: 1, date, opp: awayT, home: true, venue, city, network });
+        ensure(awayT).pre.push({ week, seasonType: 1, date, opp: homeT, home: false, venue, city, network });
+      } else {
+        // merge network/city onto the committed regular-season game
+        for (const [team, opp] of [[homeT, awayT], [awayT, homeT]] as const) {
+          const g = byTeam[team]?.reg.find((x) => x.week === week && x.opp === opp);
+          if (g) { if (network) g.network = network; if (city && !g.city) g.city = city; }
+        }
+      }
     }
   }
+}
+
+/** Full 2026 schedule by team. Regular season comes from the committed nflverse
+ *  snapshot (reliable, build-reachable); TV network + preseason are overlaid
+ *  live from ESPN when the browser can reach it. */
+export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number }> {
+  const byTeam: ScheduleByTeam = {};
+  const ensure = (t: string) => (byTeam[t] ??= { reg: [], pre: [] });
+
+  let updated = Date.now();
+  try {
+    const committed = await fetch(`${import.meta.env.BASE_URL}data/schedule-${SCHEDULE_SEASON}.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<CommittedSchedule>) : null));
+    if (committed?.games?.length) {
+      if (committed.updated) updated = Date.parse(committed.updated) || updated;
+      for (const g of committed.games) {
+        ensure(g.home).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.away, home: true, venue: g.venue, city: '', network: '' });
+        ensure(g.away).reg.push({ week: g.week, seasonType: 2, date: g.date, opp: g.home, home: false, venue: g.venue, city: '', network: '' });
+      }
+    }
+  } catch {
+    // committed file missing — fall through to ESPN-only overlay
+  }
+
+  try { await overlayEspn(byTeam, ensure); } catch { /* ESPN unreachable — keep committed reg season */ }
+
   for (const t of Object.values(byTeam)) {
     t.reg.sort((a, b) => a.week - b.week);
     t.pre.sort((a, b) => a.week - b.week);
   }
-  return { byTeam, updated: Date.now() };
+  return { byTeam, updated };
 }
 
 // ── Opponent strength + SOS (regular season only) ──
