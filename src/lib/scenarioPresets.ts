@@ -190,7 +190,7 @@ const CONSENSUS_CLAY_WEIGHT = 0.8;
 const consensus: ScenarioPreset = {
   id: 'preset-consensus',
   name: 'Consensus',
-  description: 'Blend 80% Clay / 20% our projection per player (local Clay data required).',
+  description: 'Blend 80% consensus / 20% our projection per player.',
   requiresClay: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus');

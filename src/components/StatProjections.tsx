@@ -41,7 +41,8 @@ const POS_COLORS: Record<string, string> = {
   QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444',
 };
 
-function normalizeName(name: string): string {
+function normalizeName(name: string | null | undefined): string {
+  if (!name) return '';
   return name.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 }
 
@@ -1045,24 +1046,26 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           if (!cancelled) setTeamRosterMap(trMap);
         }
 
-        // ── Local-only Clay projections for the "Consensus" preset ──
-        // Fetched from a gitignored runtime path; absent (→ empty map, preset
-        // hidden) in the public deploy. Clay's PPR is computed from its stat
-        // line with our scoring so it's consistent with our projections and
-        // sidesteps Clay's std-vs-PPR `pts` ambiguity.
+        // ── Consensus projections for the "Consensus" preset ──
+        // Committed at public/data/clay-projections-<season>.json (extracted by
+        // scripts/extract_clay_projections.py; surfaced only as "Consensus").
+        // PPR is recomputed from the stat line with our scoring so it's
+        // consistent with our projections and format-agnostic to the source's
+        // own points column.
         {
-          const clayRaw = await fetch(`${import.meta.env.BASE_URL}data/clay/clay-${PREDICT_SEASON}.json`)
+          const clayDoc = await fetch(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`)
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null);
+          const clayRaw = clayDoc?.players;
           if (!cancelled && Array.isArray(clayRaw)) {
             const clayMap = new Map<string, number>();
             for (const c of clayRaw as Array<Record<string, number | string>>) {
               const name = String(c.name ?? '');
               if (!name) continue;
               const ppr = computePPR({
-                passYds: Number(c.passYds) || 0, passTD: Number(c.passTD) || 0, int: Number(c.int) || 0,
-                rushYds: Number(c.rushYds) || 0, rushTD: Number(c.rushTD) || 0,
-                rec: Number(c.rec) || 0, recYds: Number(c.recYds) || 0, recTD: Number(c.recTD) || 0,
+                passYds: Number(c.pass_yds) || 0, passTD: Number(c.pass_td) || 0, int: Number(c.pass_int) || 0,
+                rushYds: Number(c.rush_yds) || 0, rushTD: Number(c.rush_td) || 0,
+                rec: Number(c.rec) || 0, recYds: Number(c.rec_yds) || 0, recTD: Number(c.rec_td) || 0,
               });
               if (ppr > 0) clayMap.set(normalizeName(name), Math.round(ppr));
             }
