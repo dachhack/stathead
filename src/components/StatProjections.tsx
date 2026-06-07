@@ -4,7 +4,7 @@ import {
   fetchDraftPicks, fetchRosters, fetchGames,
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer, PlayerStatOverride } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
@@ -659,6 +659,55 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     }
     return applyScenarioToProjections(qbProjections, rbProjections, wrProjections, teProjections, scenario);
   }, [isActuals, qbProjections, rbProjections, wrProjections, teProjections, scenario]);
+
+  // ── Inline editing for the by-team view ──
+  // Stable PlayerID per (normalized) name, matching the synthetic ids the
+  // Scenario Builder uses, so edits made here and there reconcile.
+  const searchIdByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of searchProjections) m.set(normalizeName(p.Name), p.PlayerID);
+    return m;
+  }, [searchProjections]);
+  // Internal projection field → SDIO stat-override field name.
+  const FIELD_TO_SDIO: Record<string, keyof PlayerStatOverride> = {
+    passAtt: 'PassingAttempts', passComp: 'PassingCompletions', passYds: 'PassingYards',
+    passTD: 'PassingTouchdowns', int: 'PassingInterceptions',
+    rushAtt: 'RushingAttempts', rushYds: 'RushingYards', rushTD: 'RushingTouchdowns',
+    rec: 'Receptions', recYds: 'ReceivingYards', recTD: 'ReceivingTouchdowns',
+  };
+  const STAT_SDIO_KEYS = Object.values(FIELD_TO_SDIO) as string[];
+  const commitScenario = (next: ScenarioConfig) => { setScenario(next); onScenarioChange?.(next); };
+  const idForName = (name: string) => searchIdByName.get(normalizeName(name)) ?? 0;
+  // Current absolute stat override value for a player's SDIO field (or undefined).
+  const teamStatVal = (name: string, sdio: keyof PlayerStatOverride): number | undefined => {
+    const id = idForName(name);
+    const o = (scenario.statOverrides ?? []).find((s) => s.playerId === id) as Record<string, number | undefined> | undefined;
+    return o ? o[sdio] : undefined;
+  };
+  const setTeamStat = (pos: string, p: { name: string; team: string }, field: string, value: number | undefined) => {
+    const sdio = FIELD_TO_SDIO[field];
+    if (!sdio) return;
+    const id = idForName(p.name);
+    const rest = (scenario.statOverrides ?? []).filter((s) => s.playerId !== id);
+    const existing = (scenario.statOverrides ?? []).find((s) => s.playerId === id);
+    const merged = { ...(existing ?? { playerId: id, playerName: p.name, team: p.team, position: pos }) } as Record<string, number | string | undefined>;
+    if (value === undefined || Number.isNaN(value)) delete merged[sdio];
+    else merged[sdio] = value;
+    const hasAny = STAT_SDIO_KEYS.some((k) => merged[k] !== undefined);
+    commitScenario({ ...scenario, statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest });
+  };
+  // Games / availability override (or undefined → full season).
+  const teamGamesVal = (name: string): number | undefined =>
+    (scenario.playerAvailability ?? []).find((a) => a.playerId === idForName(name))?.games;
+  const setTeamGames = (pos: string, p: { name: string; team: string }, games: number) => {
+    const id = idForName(p.name);
+    const rest = (scenario.playerAvailability ?? []).filter((a) => a.playerId !== id);
+    const g = Math.max(1, Math.min(17, Math.round(games)));
+    commitScenario({
+      ...scenario,
+      playerAvailability: g >= 17 ? rest : [...rest, { playerId: id, playerName: p.name, team: p.team, position: pos, games: g }],
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -2246,25 +2295,70 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               return `${Math.round(val / ref * 100)}%`;
             }
 
-            function playerRow(pos: string, name: string, gm: number, pAtt: number, pComp: number, pYds: number, pTD: number, pInt: number, rAtt: number, rYds: number, rTD: number, tgt: number, rec: number, recYds: number, recTD: number, ppr: number) {
+            const gv = (p: object, f: string) => (p as Record<string, number>)[f] || 0;
+            // Editable stat cell: shows override-or-projected value, writes an
+            // absolute stat override on change; the share % beside it re-derives.
+            const ecell = (pos: string, p: { name: string; team: string }, field: string, shareRef?: number, opts?: { red?: boolean }) => {
+              const sdio = FIELD_TO_SDIO[field];
+              const ov = teamStatVal(p.name, sdio);
+              const val = ov !== undefined ? ov : gv(p, field);
+              const shown = val ? Math.round(val) : (ov !== undefined ? 0 : '');
               return (
-                <tr key={name}>
+                <td style={{ ...tdStyle, textAlign: 'right', color: opts?.red && val ? '#ef4444' : undefined }}>
+                  <input
+                    className={`team-edit-input ${ov !== undefined ? 'edited' : ''}`}
+                    type="number"
+                    min={0}
+                    value={shown}
+                    onChange={(e) => setTeamStat(pos, p, field, e.target.value === '' ? undefined : Number(e.target.value))}
+                  />
+                  {shareRef ? <span style={shareStyle}>{pct(val, shareRef)}</span> : null}
+                </td>
+              );
+            };
+            const gmCell = (pos: string, p: { name: string; team: string; games: number }) => {
+              const ov = teamGamesVal(p.name);
+              const val = ov ?? p.games;
+              return (
+                <td style={{ ...tdStyle, textAlign: 'right' }}>
+                  <input
+                    className={`team-edit-input ${ov !== undefined && ov < 17 ? 'edited-neg' : ''}`}
+                    type="number"
+                    min={1}
+                    max={17}
+                    value={Math.round(val)}
+                    onChange={(e) => setTeamGames(pos, p, e.target.value === '' ? 17 : Number(e.target.value))}
+                  />
+                </td>
+              );
+            };
+            const empty = (key: string) => <td key={key} style={tdStyle} />;
+            function playerRow(pos: string, p: { name: string; team: string; games: number; pprPts: number }) {
+              const isQB = pos === 'QB';
+              const hasRush = pos !== 'TE';
+              return (
+                <tr key={p.name}>
                   <td style={{ ...tdStyle, color: POS_COLORS[pos], fontWeight: 700 }}>{pos}</td>
-                  <td style={{ ...tdStyle, minWidth: 130 }}><strong>{name}</strong></td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{gm}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pAtt || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pComp || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{pYds ? <>{pYds.toLocaleString()}<span style={shareStyle}>{pct(pYds, projTotal?.passYds)}</span></> : ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: pTD ? 700 : 400 }}>{pTD || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', color: pInt ? '#ef4444' : undefined }}>{pInt || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rAtt ? <>{rAtt}<span style={shareStyle}>{pct(rAtt, projTotal?.rushAtt)}</span></> : ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rYds ? rYds.toLocaleString() : ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: rTD ? 700 : 400 }}>{rTD || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{tgt ? <>{tgt}<span style={shareStyle}>{pct(tgt, projTotal?.tgt)}</span></> : ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{rec || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{recYds ? <>{recYds.toLocaleString()}<span style={shareStyle}>{pct(recYds, projTotal?.recYds)}</span></> : ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: recTD ? 700 : 400 }}>{recTD || ''}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: POS_COLORS[pos] }}>{ppr}</td>
+                  <td style={{ ...tdStyle, minWidth: 130 }}><strong>{p.name}</strong></td>
+                  {gmCell(pos, p)}
+                  {isQB ? ecell(pos, p, 'passAtt') : empty('pa')}
+                  {isQB ? ecell(pos, p, 'passComp') : empty('pc')}
+                  {isQB ? ecell(pos, p, 'passYds', projTotal?.passYds) : empty('py')}
+                  {isQB ? ecell(pos, p, 'passTD') : empty('pt')}
+                  {isQB ? ecell(pos, p, 'int', undefined, { red: true }) : empty('pi')}
+                  {hasRush ? ecell(pos, p, 'rushAtt', projTotal?.rushAtt) : empty('ra')}
+                  {hasRush ? ecell(pos, p, 'rushYds') : empty('ry')}
+                  {hasRush ? ecell(pos, p, 'rushTD') : empty('rt')}
+                  {/* Targets: display-only (no PPR weight; not an override field) */}
+                  {isQB ? empty('tg') : (
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                      {gv(p, 'tgt') ? <>{gv(p, 'tgt')}<span style={shareStyle}>{pct(gv(p, 'tgt'), projTotal?.tgt)}</span></> : ''}
+                    </td>
+                  )}
+                  {isQB ? empty('rc') : ecell(pos, p, 'rec')}
+                  {isQB ? empty('rcy') : ecell(pos, p, 'recYds', projTotal?.recYds)}
+                  {isQB ? empty('rct') : ecell(pos, p, 'recTD')}
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: POS_COLORS[pos] }}>{p.pprPts}</td>
                 </tr>
               );
             }
@@ -2337,13 +2431,13 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
                     </tr>
                   </thead>
                   <tbody>
-                    {g.qbs.map((p) => playerRow('QB', p.name, p.games, p.passAtt, p.passComp, p.passYds, p.passTD, p.int, p.rushAtt, p.rushYds, p.rushTD, 0, 0, 0, 0, p.pprPts))}
+                    {g.qbs.map((p) => playerRow('QB', p))}
                     {subtotalRow('QB Total', POS_COLORS.QB, sumQB)}
-                    {g.rbs.map((p) => playerRow('RB', p.name, p.games, 0, 0, 0, 0, 0, p.rushAtt, p.rushYds, p.rushTD, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {g.rbs.map((p) => playerRow('RB', p))}
                     {subtotalRow('RB Total', POS_COLORS.RB, sumRB)}
-                    {g.wrs.map((p) => playerRow('WR', p.name, p.games, 0, 0, 0, 0, 0, p.rushAtt, p.rushYds, p.rushTD, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {g.wrs.map((p) => playerRow('WR', p))}
                     {subtotalRow('WR Total', POS_COLORS.WR, sumWR)}
-                    {g.tes.map((p) => playerRow('TE', p.name, p.games, 0, 0, 0, 0, 0, 0, 0, 0, p.tgt, p.rec, p.recYds, p.recTD, p.pprPts))}
+                    {g.tes.map((p) => playerRow('TE', p))}
                     {subtotalRow('TE Total', POS_COLORS.TE, sumTE)}
                     <tr>
                       <td colSpan={2} style={{ ...totalStyle, fontSize: 12 }}>Total</td>
