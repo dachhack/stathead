@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { importLeague, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 
@@ -29,12 +30,113 @@ function rosterFormat(positions: string[]): string {
   return [...counts.entries()].map(([p, n]) => `${n} ${p}`).join(' · ');
 }
 
+function rankColor(rank: number): string {
+  if (!rank) return 'var(--text-muted)';
+  if (rank <= 8) return '#ef4444';
+  if (rank <= 16) return '#f59e0b';
+  if (rank <= 24) return '#a3e635';
+  return '#22c55e';
+}
+
+function winProbColor(wp: number): string {
+  if (wp >= 70) return '#22c55e';
+  if (wp >= 55) return '#a3e635';
+  if (wp >= 45) return 'var(--text-muted)';
+  if (wp >= 30) return '#f59e0b';
+  return '#ef4444';
+}
+
+interface TeamOutlookProps {
+  team: LeagueTeam;
+  teamProj: TeamProjByTeam | null;
+  matchups: MatchupsByKey;
+}
+
+function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
+  const nflTeams = useMemo(() => {
+    const all = [...team.starters, ...team.bench].filter((p) => p.team && p.position !== 'DEF');
+    const counts = new Map<string, number>();
+    for (const p of all) if (p.team) counts.set(p.team, (counts.get(p.team) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [team]);
+
+  if (!nflTeams.length || (!teamProj && !matchups.size)) return null;
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="sched-section-title">Team Projections &amp; Matchups</div>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+        NFL team outlook for players on this roster. Win prob and projected scores from Consensus (Clay).
+      </p>
+      <div className="table-container" style={{ maxHeight: 'none' }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Players</th>
+              <th>Proj W</th>
+              <th>Off</th>
+              <th>Def</th>
+              <th>Ovr</th>
+              <th colSpan={6} style={{ textAlign: 'center' }}>Upcoming Matchups (Wk 1–6)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {nflTeams.map(([code, count]) => {
+              const tp = teamProj?.[code];
+              const upcoming: { week: number; opp: string; home: boolean; proj: ReturnType<typeof matchupFor> }[] = [];
+              for (let w = 1; w <= 6; w++) {
+                for (const [, m] of matchups) {
+                  if (m.week === w && (m.home === code || m.away === code)) {
+                    const isHome = m.home === code;
+                    const opp = isHome ? m.away : m.home;
+                    upcoming.push({ week: w, opp, home: isHome, proj: matchupFor(matchups, w, code, opp, isHome) });
+                    break;
+                  }
+                }
+              }
+              return (
+                <tr key={code}>
+                  <td>
+                    <img src={teamLogoUrl(code)} alt="" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    {' '}<strong>{code}</strong>
+                  </td>
+                  <td>{count}</td>
+                  <td>{tp ? <><b>{tp.proj_wins.toFixed(1)}</b> <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>#{tp.wins_rank}</span></> : '—'}</td>
+                  <td>{tp ? <span style={{ color: rankColor(tp.off_rk) }}>#{tp.off_rk}</span> : '—'}</td>
+                  <td>{tp ? <span style={{ color: rankColor(tp.def_rk) }}>#{tp.def_rk}</span> : '—'}</td>
+                  <td>{tp ? <span style={{ color: rankColor(tp.ovr_rk) }}>#{tp.ovr_rk}</span> : '—'}</td>
+                  {upcoming.map((u) => (
+                    <td key={u.week} style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{u.home ? 'v' : '@'}</span>{u.opp}
+                      {u.proj && <span style={{ color: winProbColor(u.proj.winProb), marginLeft: 2 }}>{u.proj.winProb}%</span>}
+                    </td>
+                  ))}
+                  {Array.from({ length: Math.max(0, 6 - upcoming.length) }).map((_, i) => <td key={`e${i}`} />)}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SleeperLeagueView() {
   const [leagueId, setLeagueId] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
+  const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchMatchups(), fetchTeamProjections()]).then(([m, tp]) => {
+      setMatchups(m); setTeamProj(tp);
+    });
+  }, []);
 
   const run = (id: string) => {
     const trimmed = id.trim();
@@ -57,7 +159,7 @@ export function SleeperLeagueView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const team: LeagueTeam | undefined = useMemo(
+  const selectedTeam: LeagueTeam | undefined = useMemo(
     () => data?.teams.find((t) => t.rosterId === selected),
     [data, selected],
   );
@@ -126,22 +228,23 @@ export function SleeperLeagueView() {
             </table>
           </div>
 
-          {team && (
+          {selectedTeam && (
             <>
               <div className="sched-section-title" style={{ marginTop: 16 }}>
-                Roster — {team.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
+                Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
               <div className="sl-roster-grid">
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Starters</div>
-                  {team.starters.map((p, i) => <PlayerLine key={`s${i}`} p={p} />)}
+                  {selectedTeam.starters.map((p, i) => <PlayerLine key={`s${i}`} p={p} />)}
                 </div>
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Bench</div>
-                  {team.bench.length ? team.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} />)
+                  {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} />)
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
                 </div>
               </div>
+              <TeamOutlook team={selectedTeam} teamProj={teamProj} matchups={matchups} />
             </>
           )}
         </>

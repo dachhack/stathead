@@ -49,14 +49,40 @@ curl -s -o /dev/null -w '%{http_code}\n' "https://api.sleeper.app/v1/state/nfl"
 
 ### ▶ NEXT ROUND — Sleeper as its own main site section (user request 2026-06-07)
 Promote Sleeper from the single League-import tab to a **dedicated top-level site section** (its own nav group) covering: league import (have it), standings, per-team rosters, trending adds/drops + projections (exist in retired `SleeperView`), **a user's all-leagues view** (enter a Sleeper username → list every league), and per-league matchups/standings.
-The user suggests the **`sleeper_wrapper`** Python package (`pip install sleeper_wrapper`) for any Python-side pulls — wraps League / Players / User / Drafts. (The TS app can keep using the CORS-open REST API directly, as `data.ts`/`sleeper.ts` already do; `sleeper_wrapper` is for offline/Python pipelines.) Example the user provided:
+
+**`sleeper_wrapper` Python package** (`pip install sleeper_wrapper`) — use for any Python-side pulls. Wraps League / Players / User / Drafts.
 ```python
+import json, pandas as pd
 from sleeper_wrapper import League, Players, User
+
+# League rosters + standings
 league = League(1180266430665863168)
-rosters = league.get_rosters(); users = league.get_users()
-standings = league.get_standings(rosters, users)          # standings tuple list
-players = Players().get_all_players()                       # id -> {full_name, position, team, gsis_id, ...}
-lgs = User("dachhack").get_all_leagues('nfl', 2026)         # every league for a username/season
+rosters = league.get_rosters()
+users = league.get_users()
+standings = league.get_standings(rosters, users)  # [(name, wins, losses, pts), ...]
+
+# Per-team player lists
+teams = [d["roster_id"] for d in rosters]
+player_df_tot = pd.DataFrame()
+for x in teams:
+    team = x - 1
+    listout = rosters[team]["players"]
+    player_df = pd.DataFrame({'players': listout})
+    player_df['players'] = player_df['players'].astype(str)
+    player_df['Team'] = x
+    player_df_tot = pd.concat([player_df_tot, player_df])
+
+# All players (id → full_name, position, team, gsis_id)
+players = Players()
+plyrs = players.get_all_players()
+df_p = pd.DataFrame.from_dict(plyrs, orient='index')
+df_p['player_id'] = df_p['player_id'].astype(str)
+df_p_cut = df_p[['player_id', 'full_name', 'position', 'team', 'gsis_id']]
+
+# User's all leagues for a season
+user = User("dachhack")
+lgs = user.get_all_leagues('nfl', 2026)
+lgs_nm = [d["name"] for d in lgs]
 ```
 Key endpoints this implies for the TS side: `GET /v1/user/<name>` → user_id; `GET /v1/user/<user_id>/leagues/nfl/<season>` (all leagues); `GET /v1/league/<id>/matchups/<week>`. `get_all_players()` has `gsis_id` → join straight to our crosswalk by gsis for `player_key` (cleaner than the name match we use now).
 
@@ -80,7 +106,7 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 2. ✅ Team schedules + estimated SOS (PRs #318–#321; reg+preseason committed, SOS overall/thirds)
 3. ⬜ Clean up + test the **My Rankings** page (scope it with the user — bugs? layout?)
 4. 🟡 **Consensus Projections** = blend Clay + our base. Clay 2026 guide extracted: `scripts/extract_clay_projections.py <pdf>` → `public/data/clay-projections-2026.json` (448 offensive players QB/RB/WR/TE/K, 98% joined to player_key) (PR #326). ⚠️ PDF is a manual drop, NOT committed (ESPN's; surfaced only as "Consensus"); re-run the extractor on each new guide. The **80% Clay / 20% us blend now ships** as the "Consensus" preset in the Scenario Builder (PR #327): `StatProjections` loads the committed file → `clayPprMap`; the pre-existing `consensus` preset in `scenarioPresets.ts` blends per-player PPR via `pointsOverrides`. PR #327 also hardened `normalizeName` (was crashing the whole projections build on a missing-name data row). **Still open**: richer pipelines from the PDF — unit grades p63 → SOS opponent-quality, projected SOS p62, team projections pp2-33, IDP, win prob.
-5. ✅ **Sleeper API** features — league import (#323), `sleeper_id`→`player_key` PlayerDetail links (#324), Consensus ADP (#325); trending/projections already existed. (Note: Sleeper has no public ADP API — Consensus ADP uses FantasyCalc's Sleeper-inclusive redraft snapshot, already refreshed daily by `fetch-fantasycalc-snapshot.yml`. `maybeAdp` is null in offseason; the view shows live consensus value/rank and auto-reveals the ADP column in-season.)
+5. ✅ **Sleeper API** features — league import (#323), `sleeper_id`→`player_key` PlayerDetail links (#324), Consensus ADP (#325), **team projections + matchup win-prob on roster view**; trending/projections already existed. (Note: Sleeper has no public ADP API — Consensus ADP uses FantasyCalc's Sleeper-inclusive redraft snapshot, already refreshed daily by `fetch-fantasycalc-snapshot.yml`. `maybeAdp` is null in offseason; the view shows live consensus value/rank and auto-reveals the ADP column in-season.)
 6. ⬜ Add **Scenario Builder to the Home/intro page menu** (quick win).
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
