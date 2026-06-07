@@ -436,7 +436,7 @@ function applyScenarioToProjections(
       ['PassingAttempts', 'passAtt'], ['PassingCompletions', 'passComp'], ['PassingYards', 'passYds'],
       ['PassingTouchdowns', 'passTD'], ['PassingInterceptions', 'int'],
       ['RushingAttempts', 'rushAtt'], ['RushingYards', 'rushYds'], ['RushingTouchdowns', 'rushTD'],
-      ['Receptions', 'rec'], ['ReceivingYards', 'recYds'], ['ReceivingTouchdowns', 'recTD'],
+      ['Targets', 'tgt'], ['Receptions', 'rec'], ['ReceivingYards', 'recYds'], ['ReceivingTouchdowns', 'recTD'],
     ];
     for (const [sdio, internal] of map) {
       const v = (so as unknown as Record<string, number | undefined>)[sdio];
@@ -458,19 +458,19 @@ function applyScenarioToProjections(
       const o = statByName.get(normalizeName(p.name)); if (!o) return;
       const n = { ...p,
         rushAtt: num(o, 'rushAtt', p.rushAtt), rushYds: num(o, 'rushYds', p.rushYds), rushTD: num(o, 'rushTD', p.rushTD),
-        rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
+        tgt: num(o, 'tgt', p.tgt), rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
       adjRbs[i] = { ...n, pprPts: Math.round(computePPR({ rushYds: n.rushYds, rushTD: n.rushTD, rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
     });
     adjWrs.forEach((p, i) => {
       const o = statByName.get(normalizeName(p.name)); if (!o) return;
       const n = { ...p,
-        rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD),
+        tgt: num(o, 'tgt', p.tgt), rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD),
         rushAtt: num(o, 'rushAtt', p.rushAtt), rushYds: num(o, 'rushYds', p.rushYds), rushTD: num(o, 'rushTD', p.rushTD) };
       adjWrs[i] = { ...n, pprPts: Math.round(computePPR({ rushYds: n.rushYds, rushTD: n.rushTD, rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
     });
     adjTes.forEach((p, i) => {
       const o = statByName.get(normalizeName(p.name)); if (!o) return;
-      const n = { ...p, rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
+      const n = { ...p, tgt: num(o, 'tgt', p.tgt), rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
       adjTes[i] = { ...n, pprPts: Math.round(computePPR({ rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
     });
   }
