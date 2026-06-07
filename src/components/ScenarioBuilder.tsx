@@ -607,57 +607,31 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             </div>
 
             {/* Team-level levers for the selected team */}
+            {/* Team-level levers for the selected team — all in one slider band */}
             {editTeam && (() => {
               const tendency = scenario.teamTendencies.find((t) => t.team === editTeam)?.passRatioDelta ?? 0;
               const teamVol = (scenario.teamVolumes ?? []).find((t) => t.team === editTeam)?.volumeDelta ?? 0;
+              const lever = (label: string, value: number, min: number, max: number, onChange: (n: number) => void, kind: 'pass' | 'volume') => (
+                <div key={label} className="se-lever">
+                  <span className="se-lever-label">{label}</span>
+                  <input
+                    type="range" min={min} max={max} value={value} className="scenario-slider-inline"
+                    onChange={(e) => onChange(Number(e.target.value))}
+                  />
+                  <span className={`se-lever-val ${value > 0 ? 'positive' : value < 0 ? 'negative' : ''}`}>{deltaLabel(value, kind)}</span>
+                </div>
+              );
               return (
                 <div className="se-team-levers">
-                  <div className="se-lever">
-                    <span className="se-lever-label">Pass / Run</span>
-                    <input
-                      type="range" min={-30} max={30} value={tendency} className="scenario-slider-inline"
-                      onChange={(e) => setTeamTendencyFor(editTeam, Number(e.target.value))}
-                    />
-                    <span className={`se-lever-val ${tendency > 0 ? 'positive' : tendency < 0 ? 'negative' : ''}`}>{deltaLabel(tendency, 'pass')}</span>
-                  </div>
-                  <div className="se-lever">
-                    <span className="se-lever-label">Team Volume</span>
-                    <input
-                      type="range" min={-50} max={50} value={teamVol} className="scenario-slider-inline"
-                      onChange={(e) => setTeamVolumeFor(editTeam, Number(e.target.value))}
-                    />
-                    <span className={`se-lever-val ${teamVol > 0 ? 'positive' : teamVol < 0 ? 'negative' : ''}`}>{deltaLabel(teamVol, 'volume')}</span>
-                  </div>
+                  {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
+                  {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
+                  {STAT_GROUPS.flatMap((group) => group.stats).map((stat) => {
+                    const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
+                    return lever(STAT_LABELS[stat], d, -50, 50, (n) => setTeamStatFor(editTeam, stat, n), 'volume');
+                  })}
                 </div>
               );
             })()}
-
-            {/* All team stat adjustments for the selected team (collapsible) */}
-            {editTeam && (
-              <details className="se-statadj" open>
-                <summary>Team stat adjustments</summary>
-                {STAT_GROUPS.map((group) => (
-                  <div key={group.label} className="se-statadj-group">
-                    <div className="se-statadj-grouptitle">{group.label}</div>
-                    <div className="se-team-levers">
-                      {group.stats.map((stat) => {
-                        const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
-                        return (
-                          <div key={stat} className="se-lever">
-                            <span className="se-lever-label">{STAT_LABELS[stat]}</span>
-                            <input
-                              type="range" min={-50} max={50} value={d} className="scenario-slider-inline"
-                              onChange={(e) => setTeamStatFor(editTeam, stat, Number(e.target.value))}
-                            />
-                            <span className={`se-lever-val ${d > 0 ? 'positive' : d < 0 ? 'negative' : ''}`}>{deltaLabel(d, 'volume')}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </details>
-            )}
 
             {editTeam && (() => {
               const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
