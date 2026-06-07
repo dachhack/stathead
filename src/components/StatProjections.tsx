@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchDraftPicks, fetchRosters, fetchGames,
@@ -8,6 +8,7 @@ import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfi
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
+import { downloadCsv, csvTimestamp } from '../lib/csv';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import { TeamAccuracyChart } from './TeamAccuracyChart';
 import projectionConfig from '../generated/projection-config.json';
@@ -2088,6 +2089,28 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
   }, [dispQbs, dispRbs, dispWrs, dispTes, depthChart]);
 
+  // Export the by-team view (current scenario applied) to a CSV that opens in
+  // Excel / Sheets, so users can keep an editable offline copy.
+  const exportTeamView = useCallback(() => {
+    const cols = ['TeamRank', 'Team', 'Pos', 'Player', 'Gm', 'PassAtt', 'PassCmp', 'PassYds', 'PassTD', 'Int',
+      'RushAtt', 'RushYds', 'RushTD', 'Tgt', 'Rec', 'RecYds', 'RecTD', 'PPR'];
+    const num = (p: object, f: string) => (p as Record<string, number>)[f] ?? 0;
+    const rows: Record<string, unknown>[] = [];
+    teamGroups.forEach((g, ti) => {
+      const add = (pos: string, p: { name: string; games: number; pprPts: number }) => rows.push({
+        TeamRank: ti + 1, Team: g.team, Pos: pos, Player: p.name, Gm: p.games,
+        PassAtt: num(p, 'passAtt'), PassCmp: num(p, 'passComp'), PassYds: num(p, 'passYds'), PassTD: num(p, 'passTD'), Int: num(p, 'int'),
+        RushAtt: num(p, 'rushAtt'), RushYds: num(p, 'rushYds'), RushTD: num(p, 'rushTD'),
+        Tgt: num(p, 'tgt'), Rec: num(p, 'rec'), RecYds: num(p, 'recYds'), RecTD: num(p, 'recTD'), PPR: p.pprPts,
+      });
+      g.qbs.forEach((p) => add('QB', p));
+      g.rbs.forEach((p) => add('RB', p));
+      g.wrs.forEach((p) => add('WR', p));
+      g.tes.forEach((p) => add('TE', p));
+    });
+    downloadCsv(`stathead-by-team-${season}-${csvTimestamp()}.csv`, cols, rows);
+  }, [teamGroups, season]);
+
   // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
   const teamTotals = useMemo((): TeamTotalRow[] => {
     const byTeam = new Map<string, TeamTotalRow>();
@@ -2226,9 +2249,14 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
       {/* Team view */}
       {viewMode === 'team' && (
         <div style={{ marginBottom: 20 }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 12 }}>
-            Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
+              Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
+            </p>
+            <button className="export-btn" onClick={exportTeamView} title="Download every team's stat lines (current scenario applied) as a CSV you can open and edit in Excel or Google Sheets">
+              ⬇ Export to Excel
+            </button>
+          </div>
           {teamGroups.map((g, ti) => {
             // Compute position subtotals and team total
             const sumQB = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
