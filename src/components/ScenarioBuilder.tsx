@@ -31,6 +31,7 @@ interface Props {
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
   rankings?: RankedPlayer[];
+  adjusted?: Record<string, Record<string, number>>;
 }
 
 interface RankedPlayer { pos: string; name: string; team: string; ppr: number; }
@@ -80,7 +81,7 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
   'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
 ];
 
-export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [] }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [], adjusted = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -219,20 +220,6 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
       }));
   }, [projections, editTeam]);
 
-  // Base team pools for the "Stats" share % (carries / receptions). Kept on the
-  // base projection so the share readout is a stable reference.
-  const editPools = useMemo(() => {
-    let rushAtt = 0, passYds = 0, rec = 0, recYds = 0;
-    for (const p of projections) {
-      if (p.Team !== editTeam) continue;
-      rushAtt += p.RushingAttempts || 0;
-      passYds += p.PassingYards || 0;
-      rec += p.Receptions || 0;
-      recYds += p.ReceivingYards || 0;
-    }
-    return { rushAtt, passYds, rec, recYds };
-  }, [projections, editTeam]);
-
   useEffect(() => {
     if (open) setSavedList(loadAllScenarios());
   }, [open]);
@@ -346,6 +333,18 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const playerEdited = (p: SDIOProjection) =>
     !!statOf(p.PlayerID) || gamesOf(p.PlayerID) < 17 || pprOf(p.PlayerID) !== undefined ||
     scenario.volumeOverrides.some((v) => v.playerId === p.PlayerID);
+
+  // Fully scenario-adjusted value for display (reflects team tendency/volume/
+  // stat reshapes, availability, vegas). Falls back to the raw line if missing.
+  const adjLineFor = (p: SDIOProjection) => adjusted[(normalizeName ?? defaultNormalize)(p.Name)];
+  const adjStat = (p: SDIOProjection, field: StatField): number => {
+    const a = adjLineFor(p);
+    return a && a[field] !== undefined ? a[field] : statVal(p, field);
+  };
+  const adjPts = (p: SDIOProjection): number => {
+    const a = adjLineFor(p);
+    return a && a.pprPts !== undefined ? a.pprPts : computedPPR(p);
+  };
 
   // --- Player movement actions ---
   const addMovement = () => {
@@ -764,6 +763,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             {editTeam && (() => {
               const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
               const share = (v: number, ref: number) => (ref && v ? `${Math.round((v / ref) * 100)}%` : '');
+              // Share denominators = adjusted team pools, so they stay consistent
+              // when team-level reshapes scale everyone.
+              const teamPlayers = editRoster.flatMap((g) => g.players);
+              const pool = (f: StatField) => teamPlayers.reduce((s, p) => s + adjStat(p, f), 0);
+              const poolPassYds = pool('PassingYards');
+              const poolRushAtt = pool('RushingAttempts');
+              const poolRec = pool('Receptions');
+              const poolRecYds = pool('ReceivingYards');
               // Renders a cell that shows a plain number until clicked, then a
               // value with ▲/▼ arrows to nudge it (no typing).
               const stepCell = (opts: {
@@ -790,7 +797,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 );
               };
               const statTd = (p: SDIOProjection, field: StatField, ref?: number) => {
-                const v = statVal(p, field);
+                // Display the fully-adjusted value (team reshapes etc.); a stepper
+                // "takes manual control" from there by writing an absolute override.
+                const v = adjStat(p, field);
                 const base = (p as unknown as Record<string, number>)[field] || 0;
                 return stepCell({
                   active: editCell?.id === p.PlayerID && editCell.field === field,
@@ -816,7 +825,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               };
               const ptsTd = (p: SDIOProjection) => {
                 const ov = pprOf(p.PlayerID);
-                const v = ov ?? computedPPR(p);
+                const v = ov ?? adjPts(p);
                 return stepCell({
                   active: editCell?.id === p.PlayerID && editCell.field === 'ppr',
                   display: String(Math.round(v)),
@@ -841,22 +850,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                     {gamesTd(p)}
                     {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
                     {isQB ? statTd(p, 'PassingCompletions') : blank('pc')}
-                    {isQB ? statTd(p, 'PassingYards', editPools.passYds) : blank('py')}
+                    {isQB ? statTd(p, 'PassingYards', poolPassYds) : blank('py')}
                     {isQB ? statTd(p, 'PassingTouchdowns') : blank('pt')}
                     {isQB ? statTd(p, 'PassingInterceptions') : blank('pi')}
-                    {hasRush ? statTd(p, 'RushingAttempts', editPools.rushAtt) : blank('ra')}
+                    {hasRush ? statTd(p, 'RushingAttempts', poolRushAtt) : blank('ra')}
                     {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
                     {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
-                    {isQB ? blank('rc') : statTd(p, 'Receptions', editPools.rec)}
-                    {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', editPools.recYds)}
+                    {isQB ? blank('rc') : statTd(p, 'Receptions', poolRec)}
+                    {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', poolRecYds)}
                     {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
                     {ptsTd(p)}
                   </tr>
                 );
               };
-              // Read-only subtotal / total rows that sum the current (override-or-base) line.
-              const sumCol = (rows: SDIOProjection[], f: StatField) => rows.reduce((s, p) => s + statVal(p, f), 0);
-              const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + (pprOf(p.PlayerID) ?? computedPPR(p)), 0);
+              // Read-only subtotal / total rows that sum the fully-adjusted line.
+              const sumCol = (rows: SDIOProjection[], f: StatField) => rows.reduce((s, p) => s + adjStat(p, f), 0);
+              const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + (pprOf(p.PlayerID) ?? adjPts(p)), 0);
               const totalRow = (label: string, rows: SDIOProjection[], cls: string) => (
                 <tr className={cls}>
                   <td className="se-cell se-name" colSpan={2}>{label}</td>
@@ -865,7 +874,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   <td className="se-cell se-pts">{Math.round(sumPts(rows))}</td>
                 </tr>
               );
-              const allPlayers = editRoster.flatMap((g) => g.players);
+              const allPlayers = teamPlayers;
               return (
                 <div className="se-table-wrap">
                   <table className="se-table">
