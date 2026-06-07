@@ -1,6 +1,49 @@
 # StatHead — session handoff
 
-Last updated end of session 2026-04-23. Pick up where we left off.
+Last updated 2026-06-07. **Resume section below is the live one;** older notes follow.
+
+---
+
+## ⚡ Resume here (2026-06-07) — Scenario Builder / Schedule / Sleeper
+
+Working branch: **`claude/scenario-builder-presets-TgX5p`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). Many PRs merged (#294–#321).
+
+### First thing in the new session
+User added `site.api.espn.com` + `api.sleeper.app` to the env network allowlist; the prior session predated the change so it still got `403`. **Re-test:**
+```
+curl -s -o /dev/null -w '%{http_code}\n' "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=1&dates=2026"
+curl -s -o /dev/null -w '%{http_code}\n' "https://api.sleeper.app/v1/state/nfl"
+```
+- If `200` → do the two tasks below.
+- If `403` → env likely saved as **Custom** without "include default package managers" (also drops GitHub) or domains have stray `https://`/paths. Tell the user.
+
+### Task 1 — commit ESPN schedule data (now reachable)
+- Reg-season committed networks are **248/272** (`public/data/schedule-networks-2026.json`); gaps = holiday/international (Netflix Christmas, Amazon, NFL Net). Fetch ESPN scoreboard (`seasontype=2`, wk 1–18, `dates=2026`), merge network onto that file, then `node scripts/build_schedule.mjs 2026`.
+- Preseason network/venue: `public/data/schedule-preseason-2026.json` has matchups/times but empty `network`/`venue`; fill from ESPN `seasontype=1` wk 1–4.
+- Mirror the in-browser overlay logic in `src/lib/nflSchedule.ts` (`overlayEspn`) server-side; make it a script so it's reproducible.
+
+### Task 2 — Sleeper features (`https://docs.sleeper.com/`)
+Ask user which first (league import by league id → rosters/settings; trending adds/drops; ADP). New `src/lib/sleeper.ts` + a view + nav tab.
+
+### Conventions
+One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; verify UI with headless puppeteer (`npm i --no-save puppeteer`) against `npx vite preview` on a fresh port (don't `pkill`). Merge via GitHub MCP tools. Commit/PR footer = session URL; never commit the model id.
+
+### Gotchas
+- `public/data/*` is gitignored with `!` allowlist exceptions — new committed data files need a matching `!` line (`!public/data/schedule-*.json` already added).
+- ESPN abbrevs → ours: `LAR→LA`, `WSH→WAS` (`ESPN_TO_OURS`). Our codes == nflverse.
+- Committed-date ET offset heuristic: `-04:00` (Aug–Oct) else `-05:00`. Headless test browser is UTC so times display shifted there (fine in user's browser).
+- Build sandbox egress = curated allowlist (GitHub reachable). App also fetches live in the browser (KTC, schedule ESPN overlay) — not subject to the sandbox allowlist.
+
+### Shipped this stretch
+- Scenario Builder = full-page tab (`embedBuilder` on `StatProjections`; scenario in `App`). Team Workspace primary: division selector+logos, click ▲/▼ steppers (step 1), targets/carries cascade to rec/yds re-based off original rates, all team levers in one "Team adjustments" box (Pass/Run, Team Volume, 11 team-stat sliders), Tgt column, subtotals + Team Total + "Δ vs Base", PPR-delta badge, collapsible current roster, clickable names → PlayerDetail, Overall Rankings panel.
+- Excel export (`src/lib/exportTeamXlsx.ts`, exceljs, live formulas).
+- Schedule & SOS tab (`src/components/ScheduleView.tsx`, `src/lib/nflSchedule.ts`): committed nflverse reg season + committed networks (`scripts/parse_schedule_pdf.py`) + committed preseason (`scripts/build_preseason.mjs`) + ESPN runtime overlay. SOS = opponent offensive strength, reg-season only (overall + thirds + per-game).
+- Fixed player-card career chip 100× scaling; rookie-optimistic preset → +25%.
+
+### Backlog
+Sleeper (now unblocked) · Consensus = Clay ±10% of base + other sources (⚠️ Clay data local-only, not in env) · My Rankings cleanup · Draft Optimizer cleanup · Scenario Builder on Home menu (quick) · richer player cards (images) · SOS true opponent-quality metric (defense / Vegas win totals).
+
+---
 
 ## Where things stand
 
