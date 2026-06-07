@@ -2090,26 +2090,36 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   }, [dispQbs, dispRbs, dispWrs, dispTes, depthChart]);
 
   // Export the by-team view (current scenario applied) to a formatted .xlsx
-  // workbook, so users can keep a nice-looking editable offline copy.
+  // workbook laid out like the on-screen cards, so users can keep a
+  // nice-looking editable offline copy.
   const exportTeamView = useCallback(async () => {
     const num = (p: object, f: string) => (p as Record<string, number>)[f] ?? 0;
-    const toRow = (pos: string, p: { name: string; games: number }) => ({
-      pos, name: p.name, games: p.games,
+    const toRow = (p: { name: string; games: number }) => ({
+      name: p.name, games: p.games,
       passAtt: num(p, 'passAtt'), passComp: num(p, 'passComp'), passYds: num(p, 'passYds'), passTD: num(p, 'passTD'), int: num(p, 'int'),
       rushAtt: num(p, 'rushAtt'), rushYds: num(p, 'rushYds'), rushTD: num(p, 'rushTD'),
       tgt: num(p, 'tgt'), rec: num(p, 'rec'), recYds: num(p, 'recYds'), recTD: num(p, 'recTD'),
     });
-    const teams: XlsxTeam[] = teamGroups.map((g) => ({
-      team: g.team,
-      players: [
-        ...g.qbs.map((p) => toRow('QB', p)),
-        ...g.rbs.map((p) => toRow('RB', p)),
-        ...g.wrs.map((p) => toRow('WR', p)),
-        ...g.tes.map((p) => toRow('TE', p)),
-      ],
-    }));
+    const teams: XlsxTeam[] = teamGroups.map((g) => {
+      const pt = projTeamTotalsMap.get(g.team);
+      return {
+        team: g.team,
+        ppr: g.totalPPR,
+        groups: [
+          { pos: 'QB', players: g.qbs.map(toRow) },
+          { pos: 'RB', players: g.rbs.map(toRow) },
+          { pos: 'WR', players: g.wrs.map(toRow) },
+          { pos: 'TE', players: g.tes.map(toRow) },
+        ],
+        proj: pt ? {
+          passAtt: pt.passAtt, passComp: pt.passComp, passYds: pt.passYds, passTD: pt.passTD, int: pt.int,
+          rushAtt: pt.rushAtt, rushYds: pt.rushYds, rushTD: pt.rushTD,
+          tgt: pt.tgt, rec: pt.rec, recYds: pt.recYds, recTD: pt.recTD,
+        } : undefined,
+      };
+    });
     await exportTeamXlsx(teams, season);
-  }, [teamGroups, season]);
+  }, [teamGroups, projTeamTotalsMap, season]);
 
   // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
   const teamTotals = useMemo((): TeamTotalRow[] => {
