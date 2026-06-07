@@ -609,7 +609,9 @@ interface TeamGroup {
   tes: TEProjection[];
 }
 
-export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: { season?: number; onScenarioChange?: (sc: ScenarioConfig) => void }) {
+const EMPTY_SCENARIO = createEmptyScenario();
+
+export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioProp, onScenarioChange, embedBuilder = false }: { season?: number; scenario?: ScenarioConfig; onScenarioChange?: (sc: ScenarioConfig) => void; embedBuilder?: boolean }) {
   const isActuals = season < PREDICT_SEASON;
 
   const [loading, setLoading] = useState(true);
@@ -622,8 +624,8 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
   const [teProjections, setTEProjections] = useState<TEProjection[]>([]);
   const [, setOddsSource] = useState<'live' | 'historical' | ''>('');
-  const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
-  const [scenarioOpen, setScenarioOpen] = useState(false);
+  // Scenario is owned by App (shared across tabs); edits flow up via onScenarioChange.
+  const scenario = scenarioProp ?? EMPTY_SCENARIO;
   const [freeAgentList, setFreeAgentList] = useState<FreeAgentPlayer[]>([]);
   // Per-player metadata (rookie / years-exp / age / prior-season games) for
   // the Scenario Builder preset factories. Keyed by normalized name.
@@ -2172,6 +2174,33 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     );
   }
 
+  // Full-page Scenario Builder tab. Reuses this component's loaded projection
+  // data; edits flow up to App via onScenarioChange so the projection views and
+  // rankings stay in sync.
+  if (embedBuilder) {
+    if (isActuals) {
+      return (
+        <div className="empty-state">
+          <h3>Scenario Builder</h3>
+          <p>The Scenario Builder is only available for projected seasons.</p>
+        </div>
+      );
+    }
+    return (
+      <ScenarioBuilder
+        open
+        embedded
+        projections={searchProjections}
+        freeAgents={freeAgentList}
+        playerMeta={playerMetaMap}
+        clayPpr={clayPprMap}
+        normalizeName={normalizeName}
+        scenario={scenario}
+        onChange={(sc) => onScenarioChange?.(sc)}
+      />
+    );
+  }
+
   return (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
@@ -2244,15 +2273,6 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
               ))}
             </div>
           </div>
-        )}
-        {!isActuals && (
-          <button
-            className={`scenario-builder-btn ${!isScenarioEmpty(scenario) ? 'active' : ''}`}
-            onClick={() => setScenarioOpen(true)}
-          >
-            {!isScenarioEmpty(scenario) && <span className="scenario-active-dot" />}
-            Scenarios
-          </button>
         )}
       </div>
 
@@ -2779,20 +2799,6 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
 
       {/* Accuracy chart */}
       {viewMode === 'accuracy' && <TeamAccuracyChart />}
-
-      {!isActuals && (
-        <ScenarioBuilder
-          open={scenarioOpen}
-          onClose={() => setScenarioOpen(false)}
-          projections={searchProjections}
-          freeAgents={freeAgentList}
-          playerMeta={playerMetaMap}
-          clayPpr={clayPprMap}
-          normalizeName={normalizeName}
-          scenario={scenario}
-          onChange={(sc) => { setScenario(sc); onScenarioChange?.(sc); }}
-        />
-      )}
     </>
   );
 }

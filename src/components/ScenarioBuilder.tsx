@@ -23,7 +23,8 @@ import { SCENARIO_PRESETS, type PresetMeta } from '../lib/scenarioPresets';
 
 interface Props {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  embedded?: boolean;
   projections: SDIOProjection[];
   freeAgents?: FreeAgentPlayer[];
   playerMeta?: PresetMeta;
@@ -62,7 +63,7 @@ const defaultNormalize = (s: string) =>
 
 const POS_COLORS: Record<string, string> = { QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444' };
 
-export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -439,8 +440,8 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
 
   return (
     <>
-      <div className="scenario-overlay" onClick={onClose} />
-      <div className="scenario-drawer">
+      {!embedded && <div className="scenario-overlay" onClick={onClose} />}
+      <div className={embedded ? 'scenario-page' : 'scenario-drawer'}>
         {/* Header */}
         <div className="scenario-header">
           <div>
@@ -451,7 +452,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               </div>
             )}
           </div>
-          <button className="chat-close" onClick={onClose}>✕</button>
+          {!embedded && <button className="chat-close" onClick={onClose}>✕</button>}
         </div>
 
         <div className="scenario-body">
