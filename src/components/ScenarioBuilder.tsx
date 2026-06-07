@@ -880,13 +880,6 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
             {editTeam && (() => {
               const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
               const share = (v: number, ref: number) => (ref && v ? `${Math.round((v / ref) * 100)}%` : '');
-              // Per-stat step size for the up/down arrows.
-              const STEP: Record<string, number> = {
-                PassingYards: 25, RushingYards: 10, ReceivingYards: 10,
-                PassingAttempts: 5, PassingCompletions: 5, RushingAttempts: 5, Receptions: 2,
-                PassingTouchdowns: 1, RushingTouchdowns: 1, ReceivingTouchdowns: 1, PassingInterceptions: 1,
-                games: 1, ppr: 5,
-              };
               // Renders a cell that shows a plain number until clicked, then a
               // value with ▲/▼ arrows to nudge it (no typing).
               const stepCell = (opts: {
@@ -922,7 +915,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                   shareTxt: ref ? share(v, ref) : undefined,
                   onActivate: () => setEditCell({ id: p.PlayerID, field }),
                   onStep: (dir) => {
-                    const next = Math.max(0, Math.round(v + dir * (STEP[field] ?? 1)));
+                    const next = Math.max(0, Math.round(v + dir));
                     setStats(p, { [field]: next === base ? undefined : next });
                   },
                 });
@@ -945,7 +938,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                   display: String(Math.round(v)),
                   cls: `se-cell se-num se-pts ${ov !== undefined ? 'se-edited' : ''}`,
                   onActivate: () => setEditCell({ id: p.PlayerID, field: 'ppr' }),
-                  onStep: (dir) => setPlayerPpr(p, Math.max(0, Math.round(v + dir * STEP.ppr))),
+                  onStep: (dir) => setPlayerPpr(p, Math.max(0, Math.round(v + dir))),
                 });
               };
               const blank = (k: string) => <td key={k} className="se-cell" />;
