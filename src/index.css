@@ -1916,6 +1916,10 @@ tr:hover td {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
+/* Read-only cell (e.g. Targets) — not editable, no hover affordance */
+.se-readonly { cursor: default; color: var(--text-muted); }
+.se-readonly:hover { background: none; box-shadow: none; }
+
 .se-num:empty::after {
   content: '·';
   color: var(--border);

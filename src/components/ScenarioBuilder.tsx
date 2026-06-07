@@ -771,6 +771,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               const poolRushAtt = pool('RushingAttempts');
               const poolRec = pool('Receptions');
               const poolRecYds = pool('ReceivingYards');
+              // Targets are read-only (not scored / not an override field) — shown from the adjusted line.
+              const tgtOf = (p: SDIOProjection) => adjLineFor(p)?.Targets ?? 0;
+              const poolTgt = teamPlayers.reduce((s, p) => s + tgtOf(p), 0);
               // Renders a cell that shows a plain number until clicked, then a
               // value with ▲/▼ arrows to nudge it (no typing).
               const stepCell = (opts: {
@@ -856,6 +859,11 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                     {hasRush ? statTd(p, 'RushingAttempts', poolRushAtt) : blank('ra')}
                     {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
                     {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
+                    {isQB ? blank('tg') : (
+                      <td className="se-cell se-num se-readonly" title="Targets (read-only)">
+                        {fmt(tgtOf(p))}{poolTgt ? <span className="se-share">{share(tgtOf(p), poolTgt)}</span> : null}
+                      </td>
+                    )}
                     {isQB ? blank('rc') : statTd(p, 'Receptions', poolRec)}
                     {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', poolRecYds)}
                     {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
@@ -866,11 +874,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               // Read-only subtotal / total rows that sum the fully-adjusted line.
               const sumCol = (rows: SDIOProjection[], f: StatField) => rows.reduce((s, p) => s + adjStat(p, f), 0);
               const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + (pprOf(p.PlayerID) ?? adjPts(p)), 0);
+              const sumTgt = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + tgtOf(p), 0);
               const totalRow = (label: string, rows: SDIOProjection[], cls: string) => (
                 <tr className={cls}>
                   <td className="se-cell se-name" colSpan={2}>{label}</td>
                   <td className="se-cell" />
-                  {STAT_COLS.map((f) => <td key={f} className="se-cell">{fmt(sumCol(rows, f))}</td>)}
+                  {STAT_COLS.slice(0, 8).map((f) => <td key={f} className="se-cell">{fmt(sumCol(rows, f))}</td>)}
+                  <td className="se-cell">{fmt(sumTgt(rows))}</td>
+                  {STAT_COLS.slice(8).map((f) => <td key={f} className="se-cell">{fmt(sumCol(rows, f))}</td>)}
                   <td className="se-cell se-pts">{Math.round(sumPts(rows))}</td>
                 </tr>
               );
@@ -883,14 +894,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                         <th /><th /><th />
                         <th colSpan={5} style={{ color: POS_COLORS.QB }}>PASSING</th>
                         <th colSpan={3} style={{ color: POS_COLORS.RB }}>RUSHING</th>
-                        <th colSpan={3} style={{ color: POS_COLORS.WR }}>RECEIVING</th>
+                        <th colSpan={4} style={{ color: POS_COLORS.WR }}>RECEIVING</th>
                         <th />
                       </tr>
                       <tr className="se-head-row">
                         <th>Pos</th><th className="se-name">Player</th><th>Gm</th>
                         <th>Att</th><th>Cmp</th><th>Yds</th><th>TD</th><th>Int</th>
                         <th>Att</th><th>Yds</th><th>TD</th>
-                        <th>Rec</th><th>Yds</th><th>TD</th>
+                        <th>Tgt</th><th>Rec</th><th>Yds</th><th>TD</th>
                         <th>Pts</th>
                       </tr>
                     </thead>

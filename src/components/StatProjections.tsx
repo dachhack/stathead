@@ -683,7 +683,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           PassingAttempts: o.passAtt || 0, PassingCompletions: o.passComp || 0, PassingYards: o.passYds || 0,
           PassingTouchdowns: o.passTD || 0, PassingInterceptions: o.int || 0,
           RushingAttempts: o.rushAtt || 0, RushingYards: o.rushYds || 0, RushingTouchdowns: o.rushTD || 0,
-          Receptions: o.rec || 0, ReceivingYards: o.recYds || 0, ReceivingTouchdowns: o.recTD || 0,
+          Targets: o.tgt || 0, Receptions: o.rec || 0, ReceivingYards: o.recYds || 0, ReceivingTouchdowns: o.recTD || 0,
           pprPts: o.pprPts || 0,
         };
       }
