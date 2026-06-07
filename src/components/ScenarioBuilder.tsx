@@ -30,6 +30,7 @@ interface Props {
   freeAgents?: FreeAgentPlayer[];
   playerMeta?: PresetMeta;
   clayPpr?: Map<string, number>;
+  clayStats?: Map<string, import('../lib/scenarioPresets').ClayStats>;
   normalizeName?: (s: string) => string;
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
@@ -86,7 +87,7 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
   'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
 ];
 
-export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, clayStats, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -426,7 +427,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const applyPreset = (id: string) => {
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (!preset) return;
-    const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr });
+    const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr, clayStats });
     onChange({ ...next, id: scenario.id, name: preset.name });
   };
   const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });

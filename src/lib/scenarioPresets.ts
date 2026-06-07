@@ -19,12 +19,23 @@ export interface PlayerMeta {
 
 export type PresetMeta = Map<string, PlayerMeta>;
 
+// Per-player Clay stat line for stat-level blending (ML Optimized preset).
+export interface ClayStats {
+  position: string;
+  pos_rk: number;
+  pass_yds?: number; pass_td?: number; pass_int?: number;
+  rush_yds?: number; rush_td?: number;
+  rec?: number; rec_yds?: number; rec_td?: number;
+  ppr: number;
+}
+
 // Optional external inputs a preset may consult. `clayPpr` is the local-only
 // Clay projection set (PPR by normalized name) — present only when the
 // gitignored runtime file exists, so Clay-dependent presets are hidden in the
 // public deploy.
 export interface PresetContext {
   clayPpr?: Map<string, number>;
+  clayStats?: Map<string, ClayStats>;
 }
 
 // A preset is a factory: given the live projection pool + metadata it produces
@@ -224,10 +235,92 @@ const consensus: ScenarioPreset = {
   },
 };
 
+// ── Consensus ML Optimized (per-stat + tier-aware blend) ─────────────
+// Instead of blending at the PPR level, blends each counting stat
+// independently using weights optimized across 2021-2025 (n=704).
+// Key insight: Clay excels at TDs and role-based stats (RB rush yards)
+// but our baseline is better at volume stats (WR rec yards, QB pass yards).
+// Blending per-stat captures this — e.g. trust Clay on rush_td (w=1.0)
+// but lean toward us on pass_yds (w=0.38).
+// See scripts/clay_blend_study.py for derivation.
+const STAT_WEIGHTS: Record<string, Record<string, number>> = {
+  QB: { pass_yds: 0.38, pass_td: 0.90, pass_int: 0.00, rush_yds: 0.68, rush_td: 0.46 },
+  RB: { rush_yds: 0.94, rush_td: 1.00, rec: 0.65, rec_yds: 0.45, rec_td: 1.00 },
+  WR: { rec: 0.38, rec_yds: 0.25, rec_td: 0.84, rush_yds: 1.00 },
+  TE: { rec: 0.85, rec_yds: 0.68, rec_td: 1.00 },
+};
+
+const PPR_SCORING: Record<string, number> = {
+  pass_yds: 0.04, pass_td: 4, pass_int: -2,
+  rush_yds: 0.1, rush_td: 6,
+  rec: 1, rec_yds: 0.1, rec_td: 6,
+};
+
+// Mapping from Clay stat keys to our SDIOProjection field names
+const CLAY_TO_SDIO: Record<string, keyof SDIOProjection> = {
+  pass_yds: 'PassingYards', pass_td: 'PassingTouchdowns', pass_int: 'PassingInterceptions',
+  rush_yds: 'RushingYards', rush_td: 'RushingTouchdowns',
+  rec: 'Receptions', rec_yds: 'ReceivingYards', rec_td: 'ReceivingTouchdowns',
+};
+
+const consensusMlOptimized: ScenarioPreset = {
+  id: 'preset-consensus-ml',
+  name: 'Consensus ML Optimized',
+  description: 'Per-stat blend: trust Clay on TDs/rushing, lean on us for volume/yardage (5yr study, n=704).',
+  requiresClay: true,
+  build: (players, _meta, normalize, ctx) => {
+    const sc = base('Consensus ML Optimized');
+    const clayMap = ctx?.clayStats;
+    const clayPprFallback = ctx?.clayPpr;
+    if ((!clayMap || clayMap.size === 0) && (!clayPprFallback || clayPprFallback.size === 0)) return sc;
+    const overrides: PointsOverride[] = [];
+    for (const p of players) {
+      const key = normalize(p.Name);
+      const cs = clayMap?.get(key);
+      if (cs) {
+        const posWeights = STAT_WEIGHTS[p.Position];
+        if (!posWeights) continue;
+        let blendedPpr = 0;
+        for (const [stat, pprMult] of Object.entries(PPR_SCORING)) {
+          const clayVal = cs[stat as keyof ClayStats] as number | undefined;
+          const sdioField = CLAY_TO_SDIO[stat];
+          const oursVal = sdioField ? (p[sdioField] as number) || 0 : 0;
+          if (clayVal !== undefined && stat in posWeights) {
+            const w = posWeights[stat];
+            blendedPpr += (w * clayVal + (1 - w) * oursVal) * pprMult;
+          } else {
+            blendedPpr += oursVal * pprMult;
+          }
+        }
+        overrides.push({
+          playerId: p.PlayerID, playerName: p.Name,
+          team: p.Team, position: p.Position,
+          ppr: Math.round(blendedPpr),
+        });
+      } else {
+        // Fall back to PPR-level blend if no stat line
+        const cPpr = clayPprFallback?.get(key);
+        if (cPpr !== undefined && cPpr > 0) {
+          const ours = p.FantasyPointsPPR || 0;
+          const w = CONSENSUS_CLAY_WEIGHT[p.Position] ?? CONSENSUS_CLAY_WEIGHT_DEFAULT;
+          overrides.push({
+            playerId: p.PlayerID, playerName: p.Name,
+            team: p.Team, position: p.Position,
+            ppr: Math.round(w * cPpr + (1 - w) * ours),
+          });
+        }
+      }
+    }
+    sc.pointsOverrides = overrides;
+    return sc;
+  },
+};
+
 export const SCENARIO_PRESETS: ScenarioPreset[] = [
   rookieOptimistic,
   vetOptimistic,
   injurySkeptic,
   vegasWeighted,
   consensus,
+  consensusMlOptimized,
 ];
