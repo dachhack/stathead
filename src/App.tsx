@@ -75,12 +75,18 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'projections', label: 'Projections' },
       { id: 'scenario-builder', label: 'Scenario Builder' },
       { id: 'schedule', label: 'Schedule & SOS' },
-      { id: 'sleeper-league', label: 'Sleeper League' },
-      { id: 'sleeper-snooper', label: 'User Snooper' },
       { id: 'consensus-adp', label: 'Consensus ADP' },
       { id: 'my-rankings', label: 'My Rankings' },
       { id: 'stats', label: 'Rankings' },
       { id: 'draft-optimizer', label: 'Draft Optimizer' },
+    ],
+  },
+  {
+    label: 'Sleeper',
+    tabs: [
+      { id: 'sleeper-league', label: 'My Leagues' },
+      { id: 'sleeper-snooper', label: 'User Snooper' },
+      { id: 'sleeper', label: 'Trending & Projections' },
     ],
   },
   {
