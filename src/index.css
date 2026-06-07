@@ -1765,31 +1765,45 @@ tr:hover td {
   font-weight: 400;
 }
 
-.se-editing { padding: 1px 2px; }
+/* Active cell — value with ▲/▼ steppers (no typing) */
 
-.se-input {
-  width: 100%;
-  min-width: 46px;
-  box-sizing: border-box;
-  padding: 2px 4px;
-  text-align: right;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+.se-stepping {
   background: var(--bg-tertiary);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  -moz-appearance: textfield;
-  appearance: textfield;
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-.se-input:focus { outline: none; }
-
-.se-input::-webkit-outer-spin-button,
-.se-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.se-stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
 }
+
+.se-stepval {
+  min-width: 22px;
+  text-align: right;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.se-steparrows {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.se-arrow {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 7px;
+  line-height: 8px;
+  height: 9px;
+  padding: 0 1px;
+}
+
+.se-arrow:hover { color: var(--text-primary); }
 
 .se-clear {
   background: none;
