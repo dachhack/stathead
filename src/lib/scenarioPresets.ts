@@ -88,9 +88,11 @@ const rookieOptimistic: ScenarioPreset = {
     for (const p of players) {
       if (!isRookie(p, meta, norm)) continue;
       if (SKILL.has(p.Position)) {
-        overrides.push(vol(p, { volumeDelta: 20 }));
+        // Zero-sum volume boost: the engine scales rookie share up and trims
+        // veteran teammates, so rookies genuinely gain share of the pie.
+        overrides.push(vol(p, { volumeDelta: 25 }));
       } else if (p.Position === 'QB') {
-        overrides.push(vol(p, { passDelta: 10, rushDelta: 15 }));
+        overrides.push(vol(p, { passDelta: 10, rushDelta: 18 }));
       }
     }
     sc.volumeOverrides = overrides;

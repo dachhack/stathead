@@ -17,6 +17,10 @@ import {
   createEmptyScenario,
 } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta } from '../lib/scenarioPresets';
+import { teamLogoUrl } from '../lib/teamLogo';
+import { useCrosswalk } from '../hooks/useCrosswalk';
+import { lookupByNamePos } from '../lib/playerLookup';
+import { setPlayerHash } from '../lib/hashRoute';
 
 interface Props {
   open: boolean;
@@ -168,6 +172,16 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     const i = orderedTeams.indexOf(editTeam);
     setEditTeam(orderedTeams[(i + dir + orderedTeams.length) % orderedTeams.length]);
     setEditCell(null);
+  };
+
+  // Crosswalk → clickable player names that open the shareable player detail.
+  const { index: cwIndex } = useCrosswalk();
+  const playerKeyFor = (name: string, position?: string) =>
+    (cwIndex ? lookupByNamePos(cwIndex, name, position ?? null)?.player_key ?? null : null);
+  const nameEl = (name: string, position?: string) => {
+    const k = playerKeyFor(name, position);
+    if (!k) return <>{name}</>;
+    return <span className="se-player-link" title="View player detail" onClick={() => setPlayerHash(k)}>{name}</span>;
   };
 
   // Overall rankings grouped by position (scenario-adjusted, passed from parent).
@@ -587,6 +601,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             </p>
 
             <div className="scenario-roster-controls">
+              {editTeam && <img className="se-team-logo" src={teamLogoUrl(editTeam)} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />}
               <button className="se-cycle" onClick={() => cycleTeam(-1)} aria-label="previous team" title="Previous team">◀</button>
               <select
                 className="scenario-select"
@@ -750,7 +765,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                       {playerEdited(p) && (
                         <button className="se-clear" title="Reset player" onClick={() => clearPlayer(p)}>×</button>
                       )}
-                      {p.Name}
+                      {nameEl(p.Name, p.Position)}
                     </td>
                     {gamesTd(p)}
                     {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
@@ -865,7 +880,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                         {shown.map((r, i) => (
                           <li key={`${r.name}-${r.team}`} className={`se-rank-row ${r.team === editTeam ? 'se-rank-mine' : ''}`}>
                             <span className="se-rank-num">{i + 1}</span>
-                            <span className="se-rank-name">{r.name}</span>
+                            <span className="se-rank-name">{nameEl(r.name, r.pos)}</span>
                             <span className="se-rank-team">{r.team}</span>
                             <span className="se-rank-ppr">{r.ppr}</span>
                           </li>
