@@ -670,6 +670,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   // Per-player metadata (rookie / years-exp / age / prior-season games) for
   // the Scenario Builder preset factories. Keyed by normalized name.
   const [playerMetaMap, setPlayerMetaMap] = useState<PresetMeta>(new Map());
+  // Full current roster per team (for the Scenario Builder's collapsible roster view).
+  const [teamRosterMap, setTeamRosterMap] = useState<Record<string, { name: string; position: string; jersey: number; yearsExp: number; status: string }[]>>({});
   // Local-only Clay projection PPR by normalized name, for the "Consensus"
   // preset. Sourced from a gitignored runtime file (public/data/clay/) so Clay's
   // proprietary numbers are never committed — empty (preset hidden) in the
@@ -1027,6 +1029,20 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
             if (typeof p.games === 'number') m.priorGames = p.games;
           }
           if (!cancelled) setPlayerMetaMap(meta);
+
+          // Per-team current roster for the Scenario Builder's collapsible view.
+          const trMap: Record<string, { name: string; position: string; jersey: number; yearsExp: number; status: string }[]> = {};
+          for (const r of rosters) {
+            if (!r.full_name || !r.team) continue;
+            const t = normTeam(r.team);
+            (trMap[t] ??= []).push({
+              name: r.full_name, position: r.position || '',
+              jersey: r.jersey_number || 0,
+              yearsExp: typeof r.years_exp === 'number' ? r.years_exp : -1,
+              status: r.status || '',
+            });
+          }
+          if (!cancelled) setTeamRosterMap(trMap);
         }
 
         // ── Local-only Clay projections for the "Consensus" preset ──
@@ -2268,6 +2284,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         onChange={(sc) => onScenarioChange?.(sc)}
         rankings={builderRankings}
         adjusted={builderAdjusted}
+        teamRosters={teamRosterMap}
       />
     );
   }

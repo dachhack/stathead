@@ -35,9 +35,11 @@ interface Props {
   onChange: (s: ScenarioConfig) => void;
   rankings?: RankedPlayer[];
   adjusted?: Record<string, Record<string, number>>;
+  teamRosters?: Record<string, RosterEntry[]>;
 }
 
 interface RankedPlayer { pos: string; name: string; team: string; ppr: number; }
+interface RosterEntry { name: string; position: string; jersey: number; yearsExp: number; status: string; }
 
 function usePlayerSearch(projections: SDIOProjection[], query: string) {
   return useMemo(() => {
@@ -84,7 +86,7 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
   'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
 ];
 
-export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [], adjusted = {} }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -856,6 +858,30 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             {!editTeam && (
               <div className="scenario-section-empty">Select a team to edit its players</div>
             )}
+
+            {/* Collapsible full current roster for the selected team (reference) */}
+            {editTeam && (teamRosters[editTeam]?.length ?? 0) > 0 && (() => {
+              const ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'K', 'P', 'LS'];
+              const ord = (pos: string) => { const i = ORDER.indexOf(pos); return i < 0 ? 50 : i; };
+              const roster = [...teamRosters[editTeam]].sort((a, b) => ord(a.position) - ord(b.position) || a.name.localeCompare(b.name));
+              return (
+                <details className="se-roster">
+                  <summary>Current roster — {editTeam} ({roster.length})</summary>
+                  <div className="se-roster-list">
+                    {roster.map((r, i) => (
+                      <div key={`${r.name}-${i}`} className="se-roster-row">
+                        <span className="se-roster-pos" style={{ color: POS_COLORS[r.position] || 'var(--text-muted)' }}>{r.position || '—'}</span>
+                        <span className="se-roster-name">{nameEl(r.name, r.position)}</span>
+                        <span className="se-roster-meta">
+                          {r.jersey ? `#${r.jersey}` : ''}{r.yearsExp === 0 ? ' · R' : r.yearsExp > 0 ? ` · ${r.yearsExp}y` : ''}
+                          {r.status && !/^act/i.test(r.status) ? ` · ${r.status}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              );
+            })()}
           </div>
 
           {/* Overall Rankings — scenario-adjusted, top 5 per position (expandable) */}
