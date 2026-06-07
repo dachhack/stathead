@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
+import { fetchKTCRankings } from '../data';
+import type { KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 
@@ -124,6 +126,170 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
   );
 }
 
+// ── Win-Now / Rebuild scoring ──
+
+type WindowLabel = 'Win-Now' | 'Contender' | 'Balanced' | 'Retooling' | 'Rebuild';
+
+interface RosterScore {
+  label: WindowLabel;
+  totalValue: number;
+  avgAge: number;
+  youngPct: number; // % value in players ≤24
+  primePct: number; // % value in players 25-27
+  agingPct: number; // % value in players 28+
+  matchedCount: number;
+  topAssets: { name: string; value: number; age: number }[];
+}
+
+function normalizeForMatch(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
+}
+
+function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[]): RosterScore | null {
+  const ktcByName = new Map<string, KTCPlayer>();
+  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+
+  const allPlayers = [...team.starters, ...team.bench].filter((p) => p.position && p.position !== 'DEF' && p.name !== 'Empty');
+  let totalValue = 0;
+  let youngValue = 0;
+  let primeValue = 0;
+  let agingValue = 0;
+  let ageSum = 0;
+  let matchedCount = 0;
+  const assets: { name: string; value: number; age: number }[] = [];
+
+  for (const p of allPlayers) {
+    const k = ktcByName.get(normalizeForMatch(p.name));
+    if (!k || k.value <= 0) continue;
+    matchedCount++;
+    totalValue += k.value;
+    ageSum += k.age;
+    assets.push({ name: p.name, value: k.value, age: k.age });
+    if (k.age <= 24) youngValue += k.value;
+    else if (k.age <= 27) primeValue += k.value;
+    else agingValue += k.value;
+  }
+
+  if (!matchedCount) return null;
+
+  const avgAge = ageSum / matchedCount;
+  const youngPct = totalValue ? (youngValue / totalValue) * 100 : 0;
+  const primePct = totalValue ? (primeValue / totalValue) * 100 : 0;
+  const agingPct = totalValue ? (agingValue / totalValue) * 100 : 0;
+
+  // Heuristic: win-now has high aging+prime %, rebuild has high young %
+  let label: WindowLabel;
+  if (agingPct >= 40) label = 'Win-Now';
+  else if (agingPct + primePct >= 65 && youngPct < 35) label = 'Contender';
+  else if (youngPct >= 55) label = 'Rebuild';
+  else if (youngPct >= 40) label = 'Retooling';
+  else label = 'Balanced';
+
+  assets.sort((a, b) => b.value - a.value);
+  return { label, totalValue, avgAge, youngPct, primePct, agingPct, matchedCount, topAssets: assets.slice(0, 5) };
+}
+
+function windowColor(label: WindowLabel): string {
+  switch (label) {
+    case 'Win-Now': return '#ef4444';
+    case 'Contender': return '#f59e0b';
+    case 'Balanced': return 'var(--text-muted)';
+    case 'Retooling': return '#a3e635';
+    case 'Rebuild': return '#22c55e';
+  }
+}
+
+interface WindowBadgeProps { score: RosterScore }
+
+function WindowBadge({ score }: WindowBadgeProps) {
+  return (
+    <div style={{ margin: '12px 0', padding: 12, background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: windowColor(score.label) }}>{score.label}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          Dynasty Value: <b style={{ color: 'var(--text-primary)' }}>{score.totalValue.toLocaleString()}</b>
+          {' · '}Avg Age: <b style={{ color: 'var(--text-primary)' }}>{score.avgAge.toFixed(1)}</b>
+          {' · '}{score.matchedCount} players matched
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginTop: 8, height: 8, borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${score.youngPct}%`, background: '#22c55e' }} title={`Young (≤24): ${score.youngPct.toFixed(0)}%`} />
+        <div style={{ width: `${score.primePct}%`, background: '#f59e0b' }} title={`Prime (25-27): ${score.primePct.toFixed(0)}%`} />
+        <div style={{ width: `${score.agingPct}%`, background: '#ef4444' }} title={`Aging (28+): ${score.agingPct.toFixed(0)}%`} />
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#22c55e', borderRadius: 2, marginRight: 3 }} />Young ≤24: {score.youngPct.toFixed(0)}%</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#f59e0b', borderRadius: 2, marginRight: 3 }} />Prime 25-27: {score.primePct.toFixed(0)}%</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#ef4444', borderRadius: 2, marginRight: 3 }} />Aging 28+: {score.agingPct.toFixed(0)}%</span>
+      </div>
+      {score.topAssets.length > 0 && (
+        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+          <b>Top assets:</b>{' '}
+          {score.topAssets.map((a, i) => (
+            <span key={i}>
+              {i > 0 && ' · '}
+              {a.name} <span style={{ color: 'var(--text-primary)' }}>{a.value.toLocaleString()}</span>
+              <span style={{ color: a.age <= 24 ? '#22c55e' : a.age <= 27 ? '#f59e0b' : '#ef4444', marginLeft: 2 }}>({a.age})</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── League-wide power rankings ──
+
+interface LeaguePowerProps { teams: LeagueTeam[]; ktc: KTCPlayer[] }
+
+function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
+  const scores = useMemo(() => {
+    const out: { team: LeagueTeam; score: RosterScore }[] = [];
+    for (const t of teams) {
+      const s = scoreRoster(t, ktc);
+      if (s) out.push({ team: t, score: s });
+    }
+    out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    return out;
+  }, [teams, ktc]);
+
+  if (!scores.length) return null;
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div className="sched-section-title">League Power Rankings</div>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+        Roster dynasty value from KTC. Window = value distribution by age.
+      </p>
+      <div className="table-container" style={{ maxHeight: 'none' }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead>
+            <tr><th>#</th><th>Team</th><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 120 }}>Age Distribution</th></tr>
+          </thead>
+          <tbody>
+            {scores.map(({ team: t, score: s }, i) => (
+              <tr key={t.rosterId} style={{ cursor: 'pointer' }} onClick={() => {}}>
+                <td className="rank-cell">{i + 1}</td>
+                <td><strong>{t.teamName}</strong></td>
+                <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
+                <td>{s.totalValue.toLocaleString()}</td>
+                <td>{s.avgAge.toFixed(1)}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 80 }}>
+                    <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
+                    <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
+                    <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SleeperLeagueView() {
   const [leagueId, setLeagueId] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [data, setData] = useState<LeagueImport | null>(null);
@@ -132,6 +298,7 @@ export function SleeperLeagueView() {
   const [selected, setSelected] = useState<number | null>(null);
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
+  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -140,8 +307,8 @@ export function SleeperLeagueView() {
   const [userError, setUserError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchMatchups(), fetchTeamProjections()]).then(([m, tp]) => {
-      setMatchups(m); setTeamProj(tp);
+    Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
+      setMatchups(m); setTeamProj(tp); setKtc(k);
     });
   }, []);
 
@@ -302,11 +469,14 @@ export function SleeperLeagueView() {
             </table>
           </div>
 
+          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} />}
+
           {selectedTeam && (
             <>
               <div className="sched-section-title" style={{ marginTop: 16 }}>
                 Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
+              {ktc.length > 0 && (() => { const s = scoreRoster(selectedTeam, ktc); return s ? <WindowBadge score={s} /> : null; })()}
               <div className="sl-roster-grid">
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Starters</div>
