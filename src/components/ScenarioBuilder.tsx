@@ -10,6 +10,7 @@ import type {
   CustomPlayer,
   FreeAgentPlayer,
   FreeAgentSigning,
+  PlayerStatOverride,
 } from '../types';
 import {
   saveScenario,
@@ -75,7 +76,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
-  const [editMetric, setEditMetric] = useState<'volume' | 'games' | 'ppr'>('volume');
+  const [editMetric, setEditMetric] = useState<'volume' | 'stats' | 'games' | 'ppr'>('volume');
 
   // Player movement add form
   const [moveSearch, setMoveSearch] = useState('');
@@ -142,6 +143,18 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
         pos,
         players: byPos[pos].sort((a, b) => (b.FantasyPointsPPR || 0) - (a.FantasyPointsPPR || 0)),
       }));
+  }, [projections, editTeam]);
+
+  // Base team pools for the "Stats" share % (carries / receptions). Kept on the
+  // base projection so the share readout is a stable reference.
+  const editPools = useMemo(() => {
+    let rush = 0, rec = 0;
+    for (const p of projections) {
+      if (p.Team !== editTeam) continue;
+      rush += p.RushingAttempts || 0;
+      rec += p.Receptions || 0;
+    }
+    return { rush, rec };
   }, [projections, editTeam]);
 
   useEffect(() => {
@@ -246,6 +259,58 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
       ],
     });
   };
+
+  // Stat overrides (absolute counting stats). `statOf` returns the current
+  // override; `statVal` falls back to the player's base projection; `setStats`
+  // merges a patch (undefined clears a field) and drops the entry when empty.
+  const STAT_FIELDS = [
+    'PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
+    'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
+  ] as const;
+  type StatField = typeof STAT_FIELDS[number];
+  const statOf = (id: number) => (scenario.statOverrides ?? []).find((s) => s.playerId === id);
+  const statVal = (p: SDIOProjection, field: StatField): number => {
+    const o = statOf(p.PlayerID) as Record<string, number | undefined> | undefined;
+    const ov = o?.[field];
+    return ov !== undefined ? ov : ((p as unknown as Record<string, number>)[field] || 0);
+  };
+  const setStats = (p: SDIOProjection, patch: Partial<Record<StatField, number | undefined>>) => {
+    const rest = (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID);
+    const existing = (statOf(p.PlayerID) ?? {
+      playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
+    }) as unknown as Record<string, number | string | undefined>;
+    const merged: Record<string, number | string | undefined> = { ...existing };
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) delete merged[k];
+      else merged[k] = v;
+    }
+    const hasAny = STAT_FIELDS.some((f) => merged[f] !== undefined);
+    update({ statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest });
+  };
+  // Set a rush/receiving share % → scale that pool group (att/yds/td or
+  // rec/yds/td) from base proportionally, anchoring share ↔ stat.
+  const setRushShare = (p: SDIOProjection, pct: number) => {
+    const baseAtt = p.RushingAttempts || 0;
+    const att = Math.round((pct / 100) * editPools.rush);
+    const f = baseAtt > 0 ? att / baseAtt : 0;
+    setStats(p, {
+      RushingAttempts: att,
+      RushingYards: Math.round((p.RushingYards || 0) * f),
+      RushingTouchdowns: Math.round((p.RushingTouchdowns || 0) * f),
+    });
+  };
+  const setRecShare = (p: SDIOProjection, pct: number) => {
+    const baseRec = p.Receptions || 0;
+    const rec = Math.round((pct / 100) * editPools.rec);
+    const f = baseRec > 0 ? rec / baseRec : 0;
+    setStats(p, {
+      Receptions: rec,
+      ReceivingYards: Math.round((p.ReceivingYards || 0) * f),
+      ReceivingTouchdowns: Math.round((p.ReceivingTouchdowns || 0) * f),
+    });
+  };
+  const clearStats = (p: SDIOProjection) =>
+    update({ statOverrides: (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID) });
 
   // --- Player movement actions ---
   const addMovement = () => {
@@ -358,6 +423,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
     scenario.volumeOverrides.length +
     (scenario.playerAvailability ?? []).length +
     (scenario.pointsOverrides ?? []).length +
+    (scenario.statOverrides ?? []).length +
     scenario.movements.length +
     scenario.customPlayers.length +
     (scenario.freeAgentSignings ?? []).length;
@@ -793,8 +859,9 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               <span className="scenario-section-title">Roster Editor</span>
             </div>
             <p className="scenario-section-hint">
-              Pick a team and tap chips to tweak each player — no searching. Volume is
-              zero-sum within the team; availability scales games; projection sets PPR.
+              Pick a team, then tweak each player. <strong>Volume</strong> is quick zero-sum
+              % chips. <strong>Stats</strong> sets exact numbers — type a stat or a team share %
+              (they're anchored). <strong>Games</strong> scales availability; <strong>Points</strong> sets PPR.
             </p>
 
             <div className="scenario-roster-controls">
@@ -810,7 +877,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               </select>
               {editTeam && (
                 <div className="scenario-metric-toggle">
-                  {([['volume', 'Volume'], ['games', 'Availability'], ['ppr', 'Projection']] as const).map(([m, label]) => (
+                  {([['volume', 'Volume'], ['stats', 'Stats'], ['games', 'Games'], ['ppr', 'Points']] as const).map(([m, label]) => (
                     <button
                       key={m}
                       className={`scenario-metric-btn ${editMetric === m ? 'active' : ''}`}
@@ -830,7 +897,38 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                   const vol = volumeOf(p.PlayerID);
                   const games = gamesOf(p.PlayerID);
                   const ppr = pprOf(p.PlayerID);
-                  const touched = vol !== 0 || games < 17 || ppr !== undefined;
+                  const hasStat = !!statOf(p.PlayerID);
+                  const touched = vol !== 0 || games < 17 || ppr !== undefined || hasStat;
+                  const numField = (label: string, field: StatField) => (
+                    <label className="scenario-stat-field">
+                      <span>{label}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={Math.round(statVal(p, field))}
+                        onChange={(e) => setStats(p, { [field]: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="scenario-input-sm"
+                      />
+                    </label>
+                  );
+                  const shareField = (label: string, kind: 'rush' | 'rec') => {
+                    const pool = kind === 'rush' ? editPools.rush : editPools.rec;
+                    const cur = kind === 'rush' ? statVal(p, 'RushingAttempts') : statVal(p, 'Receptions');
+                    const pct = pool > 0 ? (cur / pool) * 100 : 0;
+                    return (
+                      <label className="scenario-stat-field scenario-stat-share">
+                        <span>{label}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={Math.round(pct)}
+                          onChange={(e) => (kind === 'rush' ? setRushShare(p, Number(e.target.value || 0)) : setRecShare(p, Number(e.target.value || 0)))}
+                          className="scenario-input-sm"
+                        />
+                      </label>
+                    );
+                  };
                   return (
                     <div key={p.PlayerID} className="scenario-roster-row">
                       <div className="scenario-roster-name">
@@ -838,6 +936,52 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                         <span className="scenario-roster-label">{p.Name}</span>
                         <span className="scenario-roster-base">{Math.round(p.FantasyPointsPPR || 0)}</span>
                       </div>
+                      {editMetric === 'stats' && (
+                        <div className="scenario-stat-grid">
+                          {p.Position === 'QB' && (
+                            <>
+                              {numField('Pass Att', 'PassingAttempts')}
+                              {numField('Cmp', 'PassingCompletions')}
+                              {numField('Pass Yd', 'PassingYards')}
+                              {numField('Pass TD', 'PassingTouchdowns')}
+                              {numField('Int', 'PassingInterceptions')}
+                              {numField('Rush Att', 'RushingAttempts')}
+                              {numField('Rush Yd', 'RushingYards')}
+                              {numField('Rush TD', 'RushingTouchdowns')}
+                            </>
+                          )}
+                          {p.Position === 'RB' && (
+                            <>
+                              {shareField('Rush %', 'rush')}
+                              {numField('Att', 'RushingAttempts')}
+                              {numField('Rush Yd', 'RushingYards')}
+                              {numField('Rush TD', 'RushingTouchdowns')}
+                              {shareField('Rec %', 'rec')}
+                              {numField('Rec', 'Receptions')}
+                              {numField('Rec Yd', 'ReceivingYards')}
+                              {numField('Rec TD', 'ReceivingTouchdowns')}
+                            </>
+                          )}
+                          {(p.Position === 'WR' || p.Position === 'TE') && (
+                            <>
+                              {shareField('Rec %', 'rec')}
+                              {numField('Rec', 'Receptions')}
+                              {numField('Rec Yd', 'ReceivingYards')}
+                              {numField('Rec TD', 'ReceivingTouchdowns')}
+                              {p.Position === 'WR' && (p.RushingAttempts || 0) > 0 && (
+                                <>
+                                  {numField('Rush Att', 'RushingAttempts')}
+                                  {numField('Rush Yd', 'RushingYards')}
+                                  {numField('Rush TD', 'RushingTouchdowns')}
+                                </>
+                              )}
+                            </>
+                          )}
+                          {hasStat && (
+                            <button className="scenario-link-btn scenario-stat-reset" onClick={() => clearStats(p)}>reset</button>
+                          )}
+                        </div>
+                      )}
                       <div className="scenario-chip-row">
                         {editMetric === 'volume' && [-25, -10, 10, 25].map((d) => (
                           <button
@@ -1208,6 +1352,7 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
                 volumeOverrides: [],
                 playerAvailability: [],
                 pointsOverrides: [],
+                statOverrides: [],
                 movements: [],
                 customPlayers: [],
                 freeAgentSignings: [],

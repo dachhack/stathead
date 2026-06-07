@@ -425,6 +425,55 @@ function applyScenarioToProjections(
     adjTes.forEach((p, i) => { adjTes[i] = hairTe(p); });
   }
 
+  // Player stat overrides — set specific absolute counting stats (Roster
+  // Editor "Stats" view). Matched by name; SDIO field names map to internal
+  // fields. Applied before availability/points; points recompute.
+  const statByName = new Map<string, Record<string, number>>();
+  for (const so of (sc.statOverrides ?? [])) {
+    const entry: Record<string, number> = {};
+    const map: [string, string][] = [
+      ['PassingAttempts', 'passAtt'], ['PassingCompletions', 'passComp'], ['PassingYards', 'passYds'],
+      ['PassingTouchdowns', 'passTD'], ['PassingInterceptions', 'int'],
+      ['RushingAttempts', 'rushAtt'], ['RushingYards', 'rushYds'], ['RushingTouchdowns', 'rushTD'],
+      ['Receptions', 'rec'], ['ReceivingYards', 'recYds'], ['ReceivingTouchdowns', 'recTD'],
+    ];
+    for (const [sdio, internal] of map) {
+      const v = (so as unknown as Record<string, number | undefined>)[sdio];
+      if (v !== undefined) entry[internal] = v;
+    }
+    if (Object.keys(entry).length) statByName.set(normalizeName(so.playerName), entry);
+  }
+  if (statByName.size > 0) {
+    const num = (o: Record<string, number>, k: string, fallback: number) => (o[k] !== undefined ? o[k] : fallback);
+    adjQbs.forEach((p, i) => {
+      const o = statByName.get(normalizeName(p.name)); if (!o) return;
+      const n = { ...p,
+        passAtt: num(o, 'passAtt', p.passAtt), passComp: num(o, 'passComp', p.passComp), passYds: num(o, 'passYds', p.passYds),
+        passTD: num(o, 'passTD', p.passTD), int: num(o, 'int', p.int),
+        rushAtt: num(o, 'rushAtt', p.rushAtt), rushYds: num(o, 'rushYds', p.rushYds), rushTD: num(o, 'rushTD', p.rushTD) };
+      adjQbs[i] = { ...n, pprPts: Math.round(computePPR({ passYds: n.passYds, passTD: n.passTD, int: n.int, rushYds: n.rushYds, rushTD: n.rushTD })) };
+    });
+    adjRbs.forEach((p, i) => {
+      const o = statByName.get(normalizeName(p.name)); if (!o) return;
+      const n = { ...p,
+        rushAtt: num(o, 'rushAtt', p.rushAtt), rushYds: num(o, 'rushYds', p.rushYds), rushTD: num(o, 'rushTD', p.rushTD),
+        rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
+      adjRbs[i] = { ...n, pprPts: Math.round(computePPR({ rushYds: n.rushYds, rushTD: n.rushTD, rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
+    });
+    adjWrs.forEach((p, i) => {
+      const o = statByName.get(normalizeName(p.name)); if (!o) return;
+      const n = { ...p,
+        rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD),
+        rushAtt: num(o, 'rushAtt', p.rushAtt), rushYds: num(o, 'rushYds', p.rushYds), rushTD: num(o, 'rushTD', p.rushTD) };
+      adjWrs[i] = { ...n, pprPts: Math.round(computePPR({ rushYds: n.rushYds, rushTD: n.rushTD, rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
+    });
+    adjTes.forEach((p, i) => {
+      const o = statByName.get(normalizeName(p.name)); if (!o) return;
+      const n = { ...p, rec: num(o, 'rec', p.rec), recYds: num(o, 'recYds', p.recYds), recTD: num(o, 'recTD', p.recTD) };
+      adjTes[i] = { ...n, pprPts: Math.round(computePPR({ rec: n.rec, recYds: n.recYds, recTD: n.recTD })) };
+    });
+  }
+
   // Player points overrides — set a player to an absolute PPR target.
   // Scale counting stats by target/current so columns stay consistent; matched
   // by name (consistent with the other overrides on this path). Non-zero-sum.
@@ -518,11 +567,20 @@ function buildSearchProjections(
     FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
   };
   let id = 1;
+  // Carry the real counting stats so the Roster Editor can show/anchor them
+  // (share % ↔ stat). Positions that lack a stat keep the zeroed default.
   return [
-    ...qbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'QB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
-    ...rbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'RB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
-    ...wrs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'WR', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
-    ...tes.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'TE', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts })),
+    ...qbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'QB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
+      PassingAttempts: p.passAtt, PassingCompletions: p.passComp, PassingYards: p.passYds, PassingTouchdowns: p.passTD, PassingInterceptions: p.int,
+      RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD })),
+    ...rbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'RB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
+      RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD,
+      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
+    ...wrs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'WR', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
+      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD,
+      RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD })),
+    ...tes.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'TE', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
+      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
   ] as SDIOProjection[];
 }
 
