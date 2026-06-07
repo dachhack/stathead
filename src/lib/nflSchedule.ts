@@ -107,7 +107,7 @@ async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSc
 /** Full 2026 schedule by team. Regular season comes from the committed nflverse
  *  snapshot (reliable, build-reachable); TV network + preseason are overlaid
  *  live from ESPN when the browser can reach it. */
-export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number }> {
+export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number; grades: UnitGradesByTeam | null }> {
   const byTeam: ScheduleByTeam = {};
   const ensure = (t: string) => (byTeam[t] ??= { reg: [], pre: [] });
 
@@ -143,33 +143,66 @@ export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; upda
 
   try { await overlayEspn(byTeam, ensure, hasPre); } catch { /* ESPN unreachable — keep committed data */ }
 
+  const grades = await fetchUnitGrades();
+
   for (const t of Object.values(byTeam)) {
     t.reg.sort((a, b) => a.week - b.week);
     t.pre.sort((a, b) => a.week - b.week);
   }
-  return { byTeam, updated };
+  return { byTeam, updated, grades };
+}
+
+// ── Consensus unit grades (opponent quality for SOS) ──
+export interface UnitGrades {
+  units: Record<string, number>;
+  overall: number; overall_rk: number;
+  offense: number; offense_rk: number;
+  defense: number; defense_rk: number;
+}
+export type UnitGradesByTeam = Record<string, UnitGrades>;
+
+/** Load the committed Consensus unit grades (scripts/extract_clay_unit_grades.py).
+ *  Returns null when absent so SOS falls back to the offense-only proxy. */
+export async function fetchUnitGrades(season = SCHEDULE_SEASON): Promise<UnitGradesByTeam | null> {
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL}data/clay-unit-grades-${season}.json`);
+    if (!r.ok) return null;
+    const d = (await r.json()) as { teams?: UnitGradesByTeam };
+    return d.teams ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Opponent strength + SOS (regular season only) ──
 const TP = (teamProjections as { teams: Record<string, { passTD: number; rushTD: number; passYds: number; rushYds: number }> }).teams;
 
-/** Offensive strength rating per team (proxy for opponent quality). */
-export function teamStrength(team: string): number {
+// Fallback opponent-quality proxy when Consensus unit grades are unavailable:
+// the opponent's own offensive output. Coarse, but build-reachable everywhere.
+function offenseProxy(team: string): number {
   const t = TP[team];
   if (!t) return 0;
   return (t.passTD + t.rushTD) + (t.passYds + t.rushYds) / 300;
 }
 
-// 0–100 normalized strength index for display.
-const strengthIndex: Record<string, number> = (() => {
-  const codes = Object.keys(TP);
-  const vals = codes.map(teamStrength);
+/** Opponent difficulty for SOS — how tough a team is to produce fantasy points
+ *  against. Uses the opponent's Consensus DEFENSE grade when available (higher =
+ *  harder), otherwise falls back to the offense-only proxy. */
+export function teamStrength(team: string, grades?: UnitGradesByTeam | null): number {
+  const g = grades?.[team];
+  return g ? g.defense : offenseProxy(team);
+}
+
+/** Build a 0–100 normalized difficulty index over the league, for display.
+ *  Normalizes against whichever metric `teamStrength` is using. */
+export function makeStrengthIndex(grades?: UnitGradesByTeam | null): (team: string) => number {
+  const codes = Object.keys(grades ?? TP);
+  const vals = codes.map((c) => teamStrength(c, grades));
   const min = Math.min(...vals), max = Math.max(...vals);
   const out: Record<string, number> = {};
   codes.forEach((c, i) => { out[c] = max > min ? Math.round(((vals[i] - min) / (max - min)) * 100) : 50; });
-  return out;
-})();
-export const teamStrengthIndex = (team: string) => strengthIndex[team] ?? 0;
+  return (team: string) => out[team] ?? 0;
+}
 
 export interface TeamSOS {
   overall: number; t1: number; t2: number; t3: number; // avg opponent strength
@@ -180,12 +213,12 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.le
 
 /** Compute SOS for every team from regular-season opponents. Thirds = weeks
  *  1–6, 7–12, 13–18. Rank 1 = hardest (highest avg opponent strength). */
-export function computeSOS(byTeam: ScheduleByTeam): Record<string, TeamSOS> {
+export function computeSOS(byTeam: ScheduleByTeam, grades?: UnitGradesByTeam | null): Record<string, TeamSOS> {
   const raw: Record<string, { overall: number; t1: number; t2: number; t3: number }> = {};
   for (const [team, sched] of Object.entries(byTeam)) {
-    const inThird = (lo: number, hi: number) => sched.reg.filter((g) => g.week >= lo && g.week <= hi).map((g) => teamStrength(g.opp));
+    const inThird = (lo: number, hi: number) => sched.reg.filter((g) => g.week >= lo && g.week <= hi).map((g) => teamStrength(g.opp, grades));
     raw[team] = {
-      overall: avg(sched.reg.map((g) => teamStrength(g.opp))),
+      overall: avg(sched.reg.map((g) => teamStrength(g.opp, grades))),
       t1: avg(inThird(1, 6)),
       t2: avg(inThird(7, 12)),
       t3: avg(inThird(13, 18)),

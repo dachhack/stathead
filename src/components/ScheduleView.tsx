@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchNflSchedule, computeSOS, teamStrengthIndex, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame } from '../lib/nflSchedule';
+import { fetchNflSchedule, computeSOS, makeStrengthIndex, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 
 const NFL_DIVISIONS: [string, string[]][] = [
@@ -40,12 +40,12 @@ function SosCard({ label, rank, idx }: { label: string; rank: number; idx: numbe
     <div className="sched-sos-card">
       <div className="sched-sos-label">{label}</div>
       <div className="sched-sos-rank" style={{ color: rankColor(rank) }}>#{rank || '—'}</div>
-      <div className="sched-sos-sub">of 32 · opp idx {Math.round(idx)}</div>
+      <div className="sched-sos-sub">of 32 · avg opp {idx.toFixed(1)}</div>
     </div>
   );
 }
 
-function GameRow({ g }: { g: SchedGame }) {
+function GameRow({ g, strengthIdx }: { g: SchedGame; strengthIdx: (team: string) => number }) {
   return (
     <tr>
       <td className="sched-wk">{g.seasonType === 1 ? `P${g.week}` : g.week}</td>
@@ -57,7 +57,7 @@ function GameRow({ g }: { g: SchedGame }) {
       <td>{fmtKick(g.date)}</td>
       <td className="sched-loc">{g.venue}{g.city ? ` · ${g.city}` : ''}</td>
       <td className="sched-net">{g.network || '—'}</td>
-      <td className="sched-strength" style={{ color: rankColor(0) }}>{g.seasonType === 2 ? teamStrengthIndex(g.opp) : ''}</td>
+      <td className="sched-strength" style={{ color: rankColor(0) }}>{g.seasonType === 2 ? strengthIdx(g.opp) : ''}</td>
     </tr>
   );
 }
@@ -65,6 +65,7 @@ function GameRow({ g }: { g: SchedGame }) {
 export function ScheduleView() {
   const [byTeam, setByTeam] = useState<ScheduleByTeam | null>(null);
   const [sos, setSos] = useState<Record<string, TeamSOS>>({});
+  const [grades, setGrades] = useState<UnitGradesByTeam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState('BUF');
@@ -72,17 +73,18 @@ export function ScheduleView() {
   useEffect(() => {
     let cancelled = false;
     fetchNflSchedule()
-      .then(({ byTeam }) => {
+      .then(({ byTeam, grades }) => {
         if (cancelled) return;
         const teams = Object.keys(byTeam);
         if (!teams.length) { setError('No schedule returned. ESPN may be unreachable right now.'); setLoading(false); return; }
-        setByTeam(byTeam); setSos(computeSOS(byTeam)); setLoading(false);
+        setByTeam(byTeam); setGrades(grades); setSos(computeSOS(byTeam, grades)); setLoading(false);
       })
       .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
 
   const teamsPresent = useMemo(() => new Set(byTeam ? Object.keys(byTeam) : []), [byTeam]);
+  const strengthIdx = useMemo(() => makeStrengthIndex(grades), [grades]);
   const cycle = (dir: number) => {
     const i = ORDERED.indexOf(team);
     setTeam(ORDERED[(i + dir + ORDERED.length) % ORDERED.length]);
@@ -96,7 +98,7 @@ export function ScheduleView() {
       <div className="sched-header">
         <h2 style={{ margin: 0, fontSize: 18 }}>{SCHEDULE_SEASON} Schedule &amp; Strength of Schedule</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0' }}>
-          Live from ESPN. SOS uses opponents' projected offensive strength (reg. season only). Rank #1 = hardest.
+          Live from ESPN. SOS uses each opponent&apos;s {grades ? 'Consensus defense grade' : 'projected offensive strength'} (reg. season only). Rank #1 = hardest.
         </p>
       </div>
 
@@ -131,10 +133,10 @@ export function ScheduleView() {
           <div className="sched-section-title">Regular season</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table">
-              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title="Opponent offensive strength index (0–100)">Opp</th></tr></thead>
+              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title={`Opponent ${grades ? 'defense' : 'offensive'} strength index (0–100, higher = tougher)`}>Opp</th></tr></thead>
               <tbody>
                 {sched && sched.reg.length > 0
-                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} />)
+                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} strengthIdx={strengthIdx} />)
                   : <tr><td colSpan={6} className="sched-empty">No regular-season games found.</td></tr>}
               </tbody>
             </table>
@@ -146,7 +148,7 @@ export function ScheduleView() {
               <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th /></tr></thead>
               <tbody>
                 {sched && sched.pre.length > 0
-                  ? sched.pre.map((g, i) => <GameRow key={`p${i}`} g={g} />)
+                  ? sched.pre.map((g, i) => <GameRow key={`p${i}`} g={g} strengthIdx={strengthIdx} />)
                   : <tr><td colSpan={6} className="sched-empty">No preseason games found.</td></tr>}
               </tbody>
             </table>
