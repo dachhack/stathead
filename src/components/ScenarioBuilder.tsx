@@ -771,6 +771,26 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   <td className="se-cell se-pts">{Math.round(sumPts(rows))}</td>
                 </tr>
               );
+              // "Δ vs Base" row: how far each team total has moved from the
+              // original projection. Sum per-player ROUNDED values on both sides
+              // so untouched stats read exactly 0 (no float-summation noise).
+              const sumR = (rows: SDIOProjection[], get: (p: SDIOProjection) => number) => rows.reduce((s, p) => s + Math.round(get(p)), 0);
+              const baseGet = (f: string) => (p: SDIOProjection) => (p as unknown as Record<string, number>)[f] || 0;
+              const dFmt = (d: number) => (d ? (d > 0 ? '+' : '−') + (Math.abs(d) >= 1000 ? Math.abs(d).toLocaleString() : Math.abs(d)) : '');
+              const dCell = (cur: number, b: number, key: string, pts = false) => {
+                const d = cur - b;
+                return <td key={key} className={`se-cell ${pts ? 'se-pts' : ''} ${d > 0 ? 'se-up' : d < 0 ? 'se-down' : ''}`}>{dFmt(d)}</td>;
+              };
+              const deltaRow = (rows: SDIOProjection[]) => (
+                <tr className="se-base-delta">
+                  <td className="se-cell se-name" colSpan={2}>Δ vs Base</td>
+                  <td className="se-cell" />
+                  {STAT_COLS.slice(0, 8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
+                  {dCell(sumR(rows, tgtOf), sumR(rows, baseGet('Targets')), 'tgt')}
+                  {STAT_COLS.slice(8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
+                  {dCell(sumR(rows, (p) => pprOf(p.PlayerID) ?? adjPts(p)), sumR(rows, baseGet('FantasyPointsPPR')), 'pts', true)}
+                </tr>
+              );
               const allPlayers = teamPlayers;
               return (
                 <div className="se-table-wrap">
@@ -799,6 +819,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                         </Fragment>
                       ))}
                       {allPlayers.length > 0 && totalRow('Team Total', allPlayers, 'se-total')}
+                      {allPlayers.length > 0 && deltaRow(allPlayers)}
                     </tbody>
                   </table>
                 </div>

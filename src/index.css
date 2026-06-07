@@ -1888,6 +1888,16 @@ tr:hover td {
   border-top: 2px solid var(--text-muted);
 }
 
+/* "Δ vs Base" row — team total movement from the original projection */
+.se-base-delta td {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.se-base-delta .se-name { font-weight: 600; }
+.se-base-delta .se-up { color: var(--accent); font-weight: 700; }
+.se-base-delta .se-down { color: #ef4444; font-weight: 700; }
+
 .se-cell {
   padding: 2px 5px;
   text-align: right;
