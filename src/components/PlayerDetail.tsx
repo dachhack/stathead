@@ -106,7 +106,8 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function CareerCard({ career }: { career: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['career'] }) {
   if (!career) return null;
-  const pct = career.percentile != null ? `${Math.round(career.percentile * 100)}` : '—';
+  // percentile / boom / bust are stored on a 0–100 scale already.
+  const pct = career.percentile != null ? `${Math.round(career.percentile)}` : '—';
   return (
     <Card title="Career Prediction">
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
@@ -114,8 +115,8 @@ function CareerCard({ career }: { career: NonNullable<ReturnType<typeof usePlaye
         <Stat label="Model Tier" value={career.modelTier || '—'} />
         <Stat label="Percentile" value={pct} />
         <Stat label="Combined Score" value={career.combinedScore?.toFixed(2) ?? '—'} />
-        {career.boomProb != null && <Stat label="Boom Prob" value={`${Math.round(career.boomProb * 100)}%`} />}
-        {career.bustProb != null && <Stat label="Bust Prob" value={`${Math.round(career.bustProb * 100)}%`} />}
+        {career.boomProb != null && <Stat label="Boom Prob" value={`${Math.round(career.boomProb)}%`} />}
+        {career.bustProb != null && <Stat label="Bust Prob" value={`${Math.round(career.bustProb)}%`} />}
         {career.actualPPG != null && <Stat label="Actual PPG" value={career.actualPPG.toFixed(2)} />}
         {career.draftSeason != null && <Stat label="Draft Class" value={String(career.draftSeason)} />}
         {career.projRound != null && <Stat label="Proj Round" value={String(career.projRound)} />}
