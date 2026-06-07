@@ -670,6 +670,28 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     return [...m(dispQbs, 'QB'), ...m(dispRbs, 'RB'), ...m(dispWrs, 'WR'), ...m(dispTes, 'TE')];
   }, [dispQbs, dispRbs, dispWrs, dispTes]);
 
+  // Fully scenario-adjusted per-player stat lines (incl. team tendency/volume/
+  // stat reshapes) keyed by normalized name, so the Scenario Builder workspace
+  // can display reshaped numbers. SDIO field names to match the builder.
+  const builderAdjusted = useMemo(() => {
+    const m: Record<string, Record<string, number>> = {};
+    const add = (arr: { name: string }[]) => {
+      for (const p of arr) {
+        const o = p as unknown as Record<string, number>;
+        m[normalizeName(p.name)] = {
+          games: o.games || 0,
+          PassingAttempts: o.passAtt || 0, PassingCompletions: o.passComp || 0, PassingYards: o.passYds || 0,
+          PassingTouchdowns: o.passTD || 0, PassingInterceptions: o.int || 0,
+          RushingAttempts: o.rushAtt || 0, RushingYards: o.rushYds || 0, RushingTouchdowns: o.rushTD || 0,
+          Receptions: o.rec || 0, ReceivingYards: o.recYds || 0, ReceivingTouchdowns: o.recTD || 0,
+          pprPts: o.pprPts || 0,
+        };
+      }
+    };
+    add(dispQbs); add(dispRbs); add(dispWrs); add(dispTes);
+    return m;
+  }, [dispQbs, dispRbs, dispWrs, dispTes]);
+
   // ── Inline editing for the by-team view ──
   // Highlight stat cells that have an active override so the read-only team view
   // shows at a glance where the scenario has changed a player's line.
@@ -2205,6 +2227,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         scenario={scenario}
         onChange={(sc) => onScenarioChange?.(sc)}
         rankings={builderRankings}
+        adjusted={builderAdjusted}
       />
     );
   }
