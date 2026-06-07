@@ -63,7 +63,7 @@ interface CommittedSchedule { season: number; updated?: string; games?: Array<{ 
 /** Best-effort ESPN overlay: fill TV network (and city) on regular-season games
  *  and populate the preseason. ESPN's host must be reachable from the browser;
  *  failures are swallowed so the committed regular season still renders. */
-async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSchedule): Promise<void> {
+async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSchedule, mergePre = false): Promise<void> {
   const jobs: Promise<{ seasonType: 1 | 2; events: EspnEvent[] }>[] = [];
   for (let w = 1; w <= 4; w++) jobs.push(fetchWeek(1, w).then((events) => ({ seasonType: 1 as const, events })));
   for (let w = 1; w <= 18; w++) jobs.push(fetchWeek(2, w).then((events) => ({ seasonType: 2 as const, events })));
@@ -83,8 +83,16 @@ async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSc
       const week = ev.week?.number ?? 0;
       const date = ev.date ?? '';
       if (seasonType === 1) {
-        ensure(homeT).pre.push({ week, seasonType: 1, date, opp: awayT, home: true, venue, city, network });
-        ensure(awayT).pre.push({ week, seasonType: 1, date, opp: homeT, home: false, venue, city, network });
+        if (mergePre) {
+          // merge network/venue/city onto committed preseason (match by opponent)
+          for (const [team, opp] of [[homeT, awayT], [awayT, homeT]] as const) {
+            const g = byTeam[team]?.pre.find((x) => x.opp === opp);
+            if (g) { if (network) g.network = network; if (venue && !g.venue) g.venue = venue; if (city && !g.city) g.city = city; }
+          }
+        } else {
+          ensure(homeT).pre.push({ week, seasonType: 1, date, opp: awayT, home: true, venue, city, network });
+          ensure(awayT).pre.push({ week, seasonType: 1, date, opp: homeT, home: false, venue, city, network });
+        }
       } else {
         // merge network/city onto the committed regular-season game
         for (const [team, opp] of [[homeT, awayT], [awayT, homeT]] as const) {
@@ -119,7 +127,21 @@ export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; upda
     // committed file missing — fall through to ESPN-only overlay
   }
 
-  try { await overlayEspn(byTeam, ensure); } catch { /* ESPN unreachable — keep committed reg season */ }
+  // Committed preseason (entered from published matchups; ESPN adds network/venue).
+  let hasPre = false;
+  try {
+    const pre = await fetch(`${import.meta.env.BASE_URL}data/schedule-preseason-${SCHEDULE_SEASON}.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<CommittedSchedule>) : null));
+    if (pre?.games?.length) {
+      hasPre = true;
+      for (const g of pre.games) {
+        ensure(g.home).pre.push({ week: g.week, seasonType: 1, date: g.date, opp: g.away, home: true, venue: g.venue, city: '', network: g.network ?? '' });
+        ensure(g.away).pre.push({ week: g.week, seasonType: 1, date: g.date, opp: g.home, home: false, venue: g.venue, city: '', network: g.network ?? '' });
+      }
+    }
+  } catch { /* optional */ }
+
+  try { await overlayEspn(byTeam, ensure, hasPre); } catch { /* ESPN unreachable — keep committed data */ }
 
   for (const t of Object.values(byTeam)) {
     t.reg.sort((a, b) => a.week - b.week);
