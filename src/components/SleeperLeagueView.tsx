@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 
 const LS_KEY = 'sleeper_league_id';
+const LS_USER_KEY = 'sleeper_username';
 
 function PlayerLine({ p }: { p: RosterPlayer }) {
   return (
@@ -132,11 +133,37 @@ export function SleeperLeagueView() {
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
 
+  // Username → all leagues
+  const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
+  const [userLeagues, setUserLeagues] = useState<SleeperLeagueSummary[]>([]);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+
   useEffect(() => {
     Promise.all([fetchMatchups(), fetchTeamProjections()]).then(([m, tp]) => {
       setMatchups(m); setTeamProj(tp);
     });
   }, []);
+
+  const lookupUser = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) { setUserError('Enter a Sleeper username.'); return; }
+    setUserLoading(true);
+    setUserError(null);
+    fetchSleeperUser(trimmed)
+      .then((u) => fetchUserLeagues(u.user_id))
+      .then((leagues) => {
+        setUserLeagues(leagues);
+        localStorage.setItem(LS_USER_KEY, trimmed);
+      })
+      .catch((e: unknown) => { setUserError(e instanceof Error ? e.message : String(e)); setUserLeagues([]); })
+      .finally(() => setUserLoading(false));
+  };
+
+  const selectLeague = (id: string) => {
+    setLeagueId(id);
+    run(id);
+  };
 
   const run = (id: string) => {
     const trimmed = id.trim();
@@ -153,6 +180,12 @@ export function SleeperLeagueView() {
       .finally(() => setLoading(false));
   };
 
+  // Auto-load saved user's leagues on mount.
+  useEffect(() => {
+    if (username) lookupUser(username);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-import the saved league on first mount.
   useEffect(() => {
     if (leagueId) run(leagueId);
@@ -167,28 +200,69 @@ export function SleeperLeagueView() {
   return (
     <div className="sl-page">
       <div className="sched-header">
-        <h2 style={{ margin: 0, fontSize: 18 }}>Sleeper League Import</h2>
+        <h2 style={{ margin: 0, fontSize: 18 }}>Sleeper Leagues</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0' }}>
-          Enter a Sleeper league ID to pull its rosters, standings, and settings live from{' '}
-          <a href="https://docs.sleeper.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Sleeper</a>.
-          Find the ID in your league URL: <code>sleeper.com/leagues/<b>&lt;league_id&gt;</b>/…</code>
+          Enter your Sleeper username to browse all your leagues, or paste a league ID directly.
         </p>
       </div>
 
+      {/* Username lookup */}
       <div className="controls" style={{ gap: 8 }}>
         <input
           type="text"
-          inputMode="numeric"
-          placeholder="Sleeper league ID, e.g. 1182033380414181376"
-          value={leagueId}
-          onChange={(e) => setLeagueId(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') run(leagueId); }}
-          style={{ minWidth: 280, flex: 1 }}
+          placeholder="Sleeper username, e.g. dachhack"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') lookupUser(username); }}
+          style={{ minWidth: 200, flex: 1 }}
         />
-        <button className="format-tab active" onClick={() => run(leagueId)} disabled={loading}>
-          {loading ? 'Importing…' : 'Import'}
+        <button className="format-tab active" onClick={() => lookupUser(username)} disabled={userLoading}>
+          {userLoading ? 'Looking up…' : 'Find Leagues'}
         </button>
       </div>
+
+      {userError && !userLoading && <p style={{ color: 'var(--danger)', fontSize: 12, margin: '4px 0' }}>{userError}</p>}
+
+      {userLeagues.length > 0 && (
+        <div style={{ margin: '12px 0' }}>
+          <div className="sched-section-title">My Leagues ({userLeagues.length})</div>
+          <div className="table-container" style={{ maxHeight: 260 }}>
+            <table className="sched-table" style={{ fontSize: 12 }}>
+              <thead><tr><th>League</th><th>Season</th><th>Teams</th><th>Status</th><th /></tr></thead>
+              <tbody>
+                {userLeagues.map((l) => (
+                  <tr key={l.league_id} style={{ cursor: 'pointer', background: l.league_id === leagueId ? 'var(--bg-tertiary)' : undefined }} onClick={() => selectLeague(l.league_id)}>
+                    <td><strong>{l.name}</strong></td>
+                    <td>{l.season}</td>
+                    <td>{l.total_rosters}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{l.status}</td>
+                    <td><button className="format-tab" style={{ padding: '2px 8px', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); selectLeague(l.league_id); }}>Load</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Direct league ID input */}
+      <details style={{ margin: '8px 0' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)' }}>Or enter a league ID directly</summary>
+        <div className="controls" style={{ gap: 8, marginTop: 6 }}>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Sleeper league ID, e.g. 1182033380414181376"
+            value={leagueId}
+            onChange={(e) => setLeagueId(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') run(leagueId); }}
+            style={{ minWidth: 280, flex: 1 }}
+          />
+          <button className="format-tab active" onClick={() => run(leagueId)} disabled={loading}>
+            {loading ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+      </details>
 
       {loading && <div className="loading"><div className="spinner" /><div className="loading-text">Importing league…</div></div>}
       {error && !loading && (

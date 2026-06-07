@@ -61,10 +61,39 @@ export interface LeagueImport {
   teams: LeagueTeam[]; // sorted by standings (wins, then points for)
 }
 
+export interface SleeperUser {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar: string | null;
+}
+
+export interface SleeperLeagueSummary {
+  league_id: string;
+  name: string;
+  season: string;
+  status: string;
+  total_rosters: number;
+  sport: string;
+  roster_positions: string[];
+  avatar: string | null;
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Sleeper API returned ${r.status} for ${url.replace(SLEEPER, '')}`);
   return r.json() as Promise<T>;
+}
+
+export async function fetchSleeperUser(username: string): Promise<SleeperUser> {
+  const u = await getJson<SleeperUser | null>(`${SLEEPER}/user/${username.trim()}`);
+  if (!u?.user_id) throw new Error(`No Sleeper user found for "${username}".`);
+  return u;
+}
+
+export async function fetchUserLeagues(userId: string, season = '2026'): Promise<SleeperLeagueSummary[]> {
+  const leagues = await getJson<SleeperLeagueSummary[]>(`${SLEEPER}/user/${userId}/leagues/nfl/${season}`);
+  return leagues.filter((l) => l.sport === 'nfl');
 }
 
 // Sleeper stores points as an integer part + hundredths (1802 + 8 → 1802.08).
