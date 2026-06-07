@@ -42,13 +42,16 @@ QB_COLS = ["pos_rk", "ff_pt", "games", "pass_att", "pass_comp", "pass_yds",
            "pass_td", "pass_int", "sacks", "rush_att", "rush_yds", "rush_td"]
 K_COLS = ["ff_pt", "fgm", "fga", "fg_pct", "xpm", "xpa", "xp_pct"]
 
-POSITION_PAGES = [
-    ("QB", range(35, 36), QB_COLS),
-    ("RB", range(36, 39), OFF_COLS),
-    ("WR", range(39, 44), OFF_COLS),
-    ("TE", range(44, 46), OFF_COLS),
-    ("K", range(57, 58), K_COLS),
-]
+# Detect the position from each page's title line, so page ranges don't have to
+# be hardcoded (they drift year to year: 2026 ends positional pages at p57,
+# 2023/24 at p55).
+TITLE_TO_POS = {
+    "Quarterback": ("QB", QB_COLS),
+    "Running Back": ("RB", OFF_COLS),
+    "Wide Receiver": ("WR", OFF_COLS),
+    "Tight End": ("TE", OFF_COLS),
+    "KICKER": ("K", K_COLS),
+}
 
 NUM_RE = re.compile(r"-?\d+(?:\.\d+)?%?$")
 
@@ -128,43 +131,48 @@ def main():
         sys.exit("usage: extract_clay_projections.py <pdf> [season]")
     pdf_path = sys.argv[1]
     season = int(sys.argv[2]) if len(sys.argv) > 2 else 2026
+    out_path = Path(sys.argv[3]) if len(sys.argv) > 3 else Path(f"public/data/clay-projections-{season}.json")
     doc = fitz.open(pdf_path)
     by_name_pos, by_name = load_crosswalk_index()
 
     players = []
     seen = set()  # (name, team, pos) de-dupe across page splits
     matched = 0
-    for pos, pages, cols in POSITION_PAGES:
-        for pg in pages:
-            if pg - 1 >= doc.page_count:
+    for pg in range(doc.page_count):
+        lines = lines_of(doc[pg])
+        if not lines:
+            continue
+        title = lines[0].strip()
+        if title not in TITLE_TO_POS:
+            continue
+        pos, cols = TITLE_TO_POS[title]
+        for name, clay_team, nums in parse_page(lines, len(cols)):
+            team = CLAY_TEAM_TO_OURS.get(clay_team, clay_team)
+            key = (normalize_name(name), team, pos)
+            if key in seen:
                 continue
-            for name, clay_team, nums in parse_page(lines_of(doc[pg - 1]), len(cols)):
-                team = CLAY_TEAM_TO_OURS.get(clay_team, clay_team)
-                key = (normalize_name(name), team, pos)
-                if key in seen:
-                    continue
-                seen.add(key)
-                stats = {c: to_num(v) for c, v in zip(cols, nums)}
-                pkey = resolve_key(name, pos, by_name_pos, by_name)
-                if pkey:
-                    matched += 1
-                players.append({
-                    "name": name,
-                    "team": team,
-                    "position": pos,
-                    "player_key": pkey,
-                    **stats,
-                })
+            seen.add(key)
+            stats = {c: to_num(v) for c, v in zip(cols, nums)}
+            pkey = resolve_key(name, pos, by_name_pos, by_name)
+            if pkey:
+                matched += 1
+            players.append({
+                "name": name,
+                "team": team,
+                "position": pos,
+                "player_key": pkey,
+                **stats,
+            })
 
     out = {
         "season": season,
         "label": "Consensus",
-        "source": "Mike Clay 2026 NFL Projection Guide (ESPN)",
+        "source": f"Mike Clay {season} NFL Projection Guide (ESPN)",
         "updated": datetime.now(timezone.utc).isoformat(),
         "note": "Surfaced as 'Consensus'. Numbers extracted from a manually-dropped PDF; the PDF is not committed.",
         "players": players,
     }
-    out_path = Path(f"public/data/clay-projections-{season}.json")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, separators=(",", ":")))
     by_pos = {}
     for p in players:
