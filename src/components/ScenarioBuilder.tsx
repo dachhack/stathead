@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
@@ -62,6 +62,22 @@ const defaultNormalize = (s: string) =>
   s.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 
 const POS_COLORS: Record<string, string> = { QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444' };
+
+// NFL divisions (in conference/division order) for the team selector.
+const NFL_DIVISIONS: [string, string[]][] = [
+  ['AFC East', ['BUF', 'MIA', 'NE', 'NYJ']],
+  ['AFC North', ['BAL', 'CIN', 'CLE', 'PIT']],
+  ['AFC South', ['HOU', 'IND', 'JAX', 'TEN']],
+  ['AFC West', ['DEN', 'KC', 'LV', 'LAC']],
+  ['NFC East', ['DAL', 'NYG', 'PHI', 'WAS']],
+  ['NFC North', ['CHI', 'DET', 'GB', 'MIN']],
+  ['NFC South', ['ATL', 'CAR', 'NO', 'TB']],
+  ['NFC West', ['ARI', 'LA', 'SF', 'SEA']],
+];
+const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'PassingTouchdowns' | 'PassingInterceptions' | 'RushingAttempts' | 'RushingYards' | 'RushingTouchdowns' | 'Receptions' | 'ReceivingYards' | 'ReceivingTouchdowns')[] = [
+  'PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
+  'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
+];
 
 export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
@@ -141,6 +157,31 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     const set = new Set(projections.map((p) => p.Team).filter(Boolean));
     return Array.from(set).sort();
   }, [projections]);
+
+  // Teams ordered by division (then any leftovers) for the cycle selector.
+  const orderedTeams = useMemo(() => {
+    const set = new Set(teams);
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const [, codes] of NFL_DIVISIONS) for (const c of codes) if (set.has(c)) { out.push(c); seen.add(c); }
+    for (const t of teams) if (!seen.has(t)) out.push(t);
+    return out;
+  }, [teams]);
+  const teamDivision = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const [div, codes] of NFL_DIVISIONS) for (const c of codes) m[c] = div;
+    return m;
+  }, []);
+  // Default to the first team so the builder opens on a team workspace.
+  useEffect(() => {
+    if (!editTeam && orderedTeams.length) setEditTeam(orderedTeams[0]);
+  }, [orderedTeams, editTeam]);
+  const cycleTeam = (dir: number) => {
+    if (!orderedTeams.length) return;
+    const i = orderedTeams.indexOf(editTeam);
+    setEditTeam(orderedTeams[(i + dir + orderedTeams.length) % orderedTeams.length]);
+    setEditCell(null);
+  };
 
   // Roster editor: selected team's players grouped by position, each group
   // sorted by projected PPR (so the depth order reads top-down).
@@ -855,27 +896,35 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             )}
           </div>
 
-          {/* Roster Editor — interactive by-team volume / availability / projection */}
-          <div className="scenario-section">
+          {/* Team Workspace — primary interactive by-team editor */}
+          <div className="scenario-section scenario-section--primary">
             <div className="scenario-section-header">
-              <span className="scenario-section-title">Roster Editor</span>
+              <span className="scenario-section-title">Team Workspace</span>
+              {teamDivision[editTeam] && <span className="se-div-label">{teamDivision[editTeam]}</span>}
             </div>
             <p className="scenario-section-hint">
-              Pick a team, then <strong>click a number and nudge it with ▲/▼</strong> — adjust a
-              stat, games (availability), or a PPR target. Edits flow straight to the projections.
+              Cycle teams by division, then <strong>click a number and nudge it with ▲/▼</strong> to
+              adjust a player's stat, games, or PPR. Totals update live and flow to the projections.
             </p>
 
             <div className="scenario-roster-controls">
+              <button className="se-cycle" onClick={() => cycleTeam(-1)} aria-label="previous team" title="Previous team">◀</button>
               <select
                 className="scenario-select"
                 value={editTeam}
                 onChange={(e) => { setEditTeam(e.target.value); setEditCell(null); }}
               >
-                <option value="">Select a team…</option>
-                {teams.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                {NFL_DIVISIONS.map(([div, codes]) => {
+                  const present = codes.filter((c) => teams.includes(c));
+                  if (!present.length) return null;
+                  return (
+                    <optgroup key={div} label={div}>
+                      {present.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </optgroup>
+                  );
+                })}
               </select>
+              <button className="se-cycle" onClick={() => cycleTeam(1)} aria-label="next team" title="Next team">▶</button>
             </div>
 
             {editTeam && (() => {
@@ -943,7 +992,46 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 });
               };
               const blank = (k: string) => <td key={k} className="se-cell" />;
-              const players = editRoster.flatMap((g) => g.players);
+              const playerRow = (p: SDIOProjection) => {
+                const isQB = p.Position === 'QB';
+                const hasRush = p.Position !== 'TE';
+                return (
+                  <tr key={p.PlayerID}>
+                    <td className="se-cell se-pos" style={{ color: POS_COLORS[p.Position] }}>{p.Position}</td>
+                    <td className="se-cell se-name">
+                      {playerEdited(p) && (
+                        <button className="se-clear" title="Reset player" onClick={() => clearPlayer(p)}>×</button>
+                      )}
+                      {p.Name}
+                    </td>
+                    {gamesTd(p)}
+                    {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
+                    {isQB ? statTd(p, 'PassingCompletions') : blank('pc')}
+                    {isQB ? statTd(p, 'PassingYards', editPools.passYds) : blank('py')}
+                    {isQB ? statTd(p, 'PassingTouchdowns') : blank('pt')}
+                    {isQB ? statTd(p, 'PassingInterceptions') : blank('pi')}
+                    {hasRush ? statTd(p, 'RushingAttempts', editPools.rushAtt) : blank('ra')}
+                    {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
+                    {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
+                    {isQB ? blank('rc') : statTd(p, 'Receptions', editPools.rec)}
+                    {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', editPools.recYds)}
+                    {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
+                    {ptsTd(p)}
+                  </tr>
+                );
+              };
+              // Read-only subtotal / total rows that sum the current (override-or-base) line.
+              const sumCol = (rows: SDIOProjection[], f: StatField) => rows.reduce((s, p) => s + statVal(p, f), 0);
+              const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + (pprOf(p.PlayerID) ?? computedPPR(p)), 0);
+              const totalRow = (label: string, rows: SDIOProjection[], cls: string) => (
+                <tr className={cls}>
+                  <td className="se-cell se-name" colSpan={2}>{label}</td>
+                  <td className="se-cell" />
+                  {STAT_COLS.map((f) => <td key={f} className="se-cell">{fmt(sumCol(rows, f))}</td>)}
+                  <td className="se-cell se-pts">{Math.round(sumPts(rows))}</td>
+                </tr>
+              );
+              const allPlayers = editRoster.flatMap((g) => g.players);
               return (
                 <div className="se-table-wrap">
                   <table className="se-table">
@@ -964,34 +1052,13 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                       </tr>
                     </thead>
                     <tbody>
-                      {players.map((p) => {
-                        const isQB = p.Position === 'QB';
-                        const hasRush = p.Position !== 'TE';
-                        return (
-                          <tr key={p.PlayerID}>
-                            <td className="se-cell se-pos" style={{ color: POS_COLORS[p.Position] }}>{p.Position}</td>
-                            <td className="se-cell se-name">
-                              {playerEdited(p) && (
-                                <button className="se-clear" title="Reset player" onClick={() => clearPlayer(p)}>×</button>
-                              )}
-                              {p.Name}
-                            </td>
-                            {gamesTd(p)}
-                            {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
-                            {isQB ? statTd(p, 'PassingCompletions') : blank('pc')}
-                            {isQB ? statTd(p, 'PassingYards', editPools.passYds) : blank('py')}
-                            {isQB ? statTd(p, 'PassingTouchdowns') : blank('pt')}
-                            {isQB ? statTd(p, 'PassingInterceptions') : blank('pi')}
-                            {hasRush ? statTd(p, 'RushingAttempts', editPools.rushAtt) : blank('ra')}
-                            {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
-                            {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
-                            {isQB ? blank('rc') : statTd(p, 'Receptions', editPools.rec)}
-                            {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', editPools.recYds)}
-                            {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
-                            {ptsTd(p)}
-                          </tr>
-                        );
-                      })}
+                      {editRoster.map((g) => (
+                        <Fragment key={g.pos}>
+                          {g.players.map((p) => playerRow(p))}
+                          {g.players.length > 0 && totalRow(`${g.pos} Total`, g.players, 'se-subtotal')}
+                        </Fragment>
+                      ))}
+                      {allPlayers.length > 0 && totalRow('Team Total', allPlayers, 'se-total')}
                     </tbody>
                   </table>
                 </div>

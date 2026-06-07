@@ -1304,7 +1304,12 @@ tr:hover td {
   flex: 1;
   overflow-y: auto;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Team Workspace floats to the top as the builder's primary view */
+.scenario-section--primary { order: -1; }
 
 .scenario-section {
   padding: 16px 20px;
@@ -1527,9 +1532,36 @@ tr:hover td {
 
 .scenario-roster-controls {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
   margin: 8px 0;
+}
+
+.scenario-roster-controls .scenario-select { flex: 1; min-width: 0; }
+
+.se-cycle {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.se-cycle:hover { border-color: var(--accent); color: var(--accent); }
+
+.se-div-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
 }
 
 .scenario-metric-toggle {
@@ -1741,6 +1773,19 @@ tr:hover td {
 .se-head-row th { border-bottom: 1px solid var(--border); }
 
 .se-table th.se-name { text-align: left; }
+
+/* Position subtotal + team total rows */
+.se-subtotal td {
+  background: var(--bg-tertiary);
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+}
+
+.se-total td {
+  background: var(--bg-tertiary);
+  font-weight: 700;
+  border-top: 2px solid var(--text-muted);
+}
 
 .se-cell {
   padding: 2px 5px;
