@@ -1638,6 +1638,9 @@ tr:hover td {
 .sched-loc { color: var(--text-secondary); }
 .sched-net { color: var(--text-secondary); white-space: nowrap; }
 .sched-strength { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.sched-proj { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 12px; }
+.sched-proj-strip { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-secondary); }
+.sched-rk { color: var(--accent); font-weight: 700; }
 
 /* Sleeper league import */
 .sl-page { margin-bottom: 12px; }

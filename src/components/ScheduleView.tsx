@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchNflSchedule, computeSOS, makeStrengthIndex, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam } from '../lib/nflSchedule';
+import { fetchNflSchedule, computeSOS, makeStrengthIndex, matchupFor, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 
 const NFL_DIVISIONS: [string, string[]][] = [
@@ -45,7 +45,7 @@ function SosCard({ label, rank, idx }: { label: string; rank: number; idx: numbe
   );
 }
 
-function GameRow({ g, strengthIdx }: { g: SchedGame; strengthIdx: (team: string) => number }) {
+function GameRow({ g, strengthIdx, proj }: { g: SchedGame; strengthIdx: (team: string) => number; proj: { teamPts: number; oppPts: number; winProb: number } | null }) {
   return (
     <tr>
       <td className="sched-wk">{g.seasonType === 1 ? `P${g.week}` : g.week}</td>
@@ -57,6 +57,15 @@ function GameRow({ g, strengthIdx }: { g: SchedGame; strengthIdx: (team: string)
       <td>{fmtKick(g.date)}</td>
       <td className="sched-loc">{g.venue}{g.city ? ` · ${g.city}` : ''}</td>
       <td className="sched-net">{g.network || '—'}</td>
+      <td className="sched-proj">
+        {proj ? (
+          <>
+            <span className={proj.teamPts >= proj.oppPts ? 'stat-positive' : ''}>{proj.teamPts.toFixed(1)}</span>
+            <span style={{ color: 'var(--text-muted)' }}>–{proj.oppPts.toFixed(1)}</span>
+            {' '}<span style={{ color: rankColor(proj.winProb >= 50 ? 8 : 28) }}>{proj.winProb}%</span>
+          </>
+        ) : ''}
+      </td>
       <td className="sched-strength" style={{ color: rankColor(0) }}>{g.seasonType === 2 ? strengthIdx(g.opp) : ''}</td>
     </tr>
   );
@@ -66,6 +75,8 @@ export function ScheduleView() {
   const [byTeam, setByTeam] = useState<ScheduleByTeam | null>(null);
   const [sos, setSos] = useState<Record<string, TeamSOS>>({});
   const [grades, setGrades] = useState<UnitGradesByTeam | null>(null);
+  const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
+  const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState('BUF');
@@ -73,11 +84,12 @@ export function ScheduleView() {
   useEffect(() => {
     let cancelled = false;
     fetchNflSchedule()
-      .then(({ byTeam, grades }) => {
+      .then(({ byTeam, grades, matchups, teamProj }) => {
         if (cancelled) return;
         const teams = Object.keys(byTeam);
         if (!teams.length) { setError('No schedule returned. ESPN may be unreachable right now.'); setLoading(false); return; }
-        setByTeam(byTeam); setGrades(grades); setSos(computeSOS(byTeam, grades)); setLoading(false);
+        setByTeam(byTeam); setGrades(grades); setMatchups(matchups); setTeamProj(teamProj);
+        setSos(computeSOS(byTeam, grades)); setLoading(false);
       })
       .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setLoading(false); } });
     return () => { cancelled = true; };
@@ -130,14 +142,26 @@ export function ScheduleView() {
             </div>
           )}
 
+          {teamProj?.[team] && (() => {
+            const tp = teamProj[team];
+            return (
+              <div className="sched-proj-strip">
+                <span><b>Consensus team outlook</b></span>
+                <span>Proj wins <b>{tp.proj_wins.toFixed(1)}</b> <span className="sched-rk">#{tp.wins_rank}</span></span>
+                <span>PF <b>{tp.points_for}</b> / PA <b>{tp.points_against}</b></span>
+                <span>Off <span className="sched-rk">#{tp.off_rk}</span> · Def <span className="sched-rk">#{tp.def_rk}</span> · Ovr <span className="sched-rk">#{tp.ovr_rk}</span></span>
+              </div>
+            );
+          })()}
+
           <div className="sched-section-title">Regular season</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table">
-              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title={`Opponent ${grades ? 'defense' : 'offensive'} strength index (0–100, higher = tougher)`}>Opp</th></tr></thead>
+              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title="Consensus projected score (team–opp) and win probability">Proj</th><th title={`Opponent ${grades ? 'defense' : 'offensive'} strength index (0–100, higher = tougher)`}>Opp</th></tr></thead>
               <tbody>
                 {sched && sched.reg.length > 0
-                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} strengthIdx={strengthIdx} />)
-                  : <tr><td colSpan={6} className="sched-empty">No regular-season games found.</td></tr>}
+                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} strengthIdx={strengthIdx} proj={matchupFor(matchups, g.week, team, g.opp, g.home)} />)
+                  : <tr><td colSpan={7} className="sched-empty">No regular-season games found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -145,11 +169,11 @@ export function ScheduleView() {
           <div className="sched-section-title">Preseason <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>— rookies' first looks on their new teams</span></div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table">
-              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th /></tr></thead>
+              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th /><th /></tr></thead>
               <tbody>
                 {sched && sched.pre.length > 0
-                  ? sched.pre.map((g, i) => <GameRow key={`p${i}`} g={g} strengthIdx={strengthIdx} />)
-                  : <tr><td colSpan={6} className="sched-empty">No preseason games found.</td></tr>}
+                  ? sched.pre.map((g, i) => <GameRow key={`p${i}`} g={g} strengthIdx={strengthIdx} proj={null} />)
+                  : <tr><td colSpan={7} className="sched-empty">No preseason games found.</td></tr>}
               </tbody>
             </table>
           </div>
