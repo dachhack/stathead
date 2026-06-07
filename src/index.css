@@ -1668,6 +1668,26 @@ tr:hover td {
 
 .scenario-stat-reset { align-self: center; font-size: 10px; }
 
+/* Export-to-Excel button (by-team view) */
+
+.export-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Roster Editor — click-to-edit by-team table */
 
 .se-table-wrap {
