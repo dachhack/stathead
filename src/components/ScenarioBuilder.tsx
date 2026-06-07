@@ -606,8 +606,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               <button className="se-cycle" onClick={() => cycleTeam(1)} aria-label="next team" title="Next team">▶</button>
             </div>
 
-            {/* Team-level levers for the selected team */}
-            {/* Team-level levers for the selected team — all in one slider band */}
+            {/* Team adjustments — Pass/Run + Volume + per-stat sliders, all in one box */}
             {editTeam && (() => {
               const tendency = scenario.teamTendencies.find((t) => t.team === editTeam)?.passRatioDelta ?? 0;
               const teamVol = (scenario.teamVolumes ?? []).find((t) => t.team === editTeam)?.volumeDelta ?? 0;
@@ -622,14 +621,27 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 </div>
               );
               return (
-                <div className="se-team-levers">
-                  {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
-                  {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
-                  {STAT_GROUPS.flatMap((group) => group.stats).map((stat) => {
-                    const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
-                    return lever(STAT_LABELS[stat], d, -50, 50, (n) => setTeamStatFor(editTeam, stat, n), 'volume');
-                  })}
-                </div>
+                <details className="se-statadj" open>
+                  <summary>Team adjustments</summary>
+                  <div className="se-statadj-group">
+                    <div className="se-statadj-grouptitle">Team</div>
+                    <div className="se-team-levers">
+                      {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
+                      {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
+                    </div>
+                  </div>
+                  {STAT_GROUPS.map((group) => (
+                    <div key={group.label} className="se-statadj-group">
+                      <div className="se-statadj-grouptitle">{group.label}</div>
+                      <div className="se-team-levers">
+                        {group.stats.map((stat) => {
+                          const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
+                          return lever(STAT_LABELS[stat], d, -50, 50, (n) => setTeamStatFor(editTeam, stat, n), 'volume');
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </details>
               );
             })()}
 
