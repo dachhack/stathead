@@ -868,6 +868,7 @@ export interface SDIOProjection {
   RushingAttempts: number;
   RushingYards: number;
   RushingTouchdowns: number;
+  Targets?: number;
   Receptions: number;
   ReceivingYards: number;
   ReceivingTouchdowns: number;

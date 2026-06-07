@@ -564,7 +564,7 @@ function buildSearchProjections(
   const zero = {
     PassingAttempts: 0, PassingCompletions: 0, PassingYards: 0, PassingTouchdowns: 0,
     PassingInterceptions: 0, RushingAttempts: 0, RushingYards: 0, RushingTouchdowns: 0,
-    Receptions: 0, ReceivingYards: 0, ReceivingTouchdowns: 0,
+    Targets: 0, Receptions: 0, ReceivingYards: 0, ReceivingTouchdowns: 0,
     FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
   };
   let id = 1;
@@ -576,12 +576,12 @@ function buildSearchProjections(
       RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD })),
     ...rbs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'RB', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
       RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD,
-      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
+      Targets: p.tgt, Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
     ...wrs.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'WR', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
-      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD,
+      Targets: p.tgt, Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD,
       RushingAttempts: p.rushAtt, RushingYards: p.rushYds, RushingTouchdowns: p.rushTD })),
     ...tes.map((p) => ({ ...zero, PlayerID: id++, Name: p.name, Team: p.team, Position: 'TE', FantasyPoints: p.pprPts - 5, FantasyPointsPPR: p.pprPts,
-      Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
+      Targets: p.tgt, Receptions: p.rec, ReceivingYards: p.recYds, ReceivingTouchdowns: p.recTD })),
   ] as SDIOProjection[];
 }
 

@@ -813,19 +813,21 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   onStep: (dir) => {
                     const next = Math.max(0, Math.round(v + dir));
                     const patch: Partial<Record<StatField, number | undefined>> = { [field]: next === base ? undefined : next };
-                    // Volume drivers cascade to their dependents, preserving the
-                    // player's current efficiency rates (catch rate, yds/rec, yds/att).
+                    // Volume drivers cascade to their dependents using the player's
+                    // ORIGINAL projection rates (catch rate, yds/rec, yds/att), so
+                    // repeated steps re-base off the same rate and never drift.
+                    const b = (f: StatField) => (p as unknown as Record<string, number>)[f] || 0;
                     if (field === 'Targets') {
-                      const rec = adjStat(p, 'Receptions'), recYds = adjStat(p, 'ReceivingYards');
-                      const newRec = v > 0 ? Math.round(next * (rec / v)) : 0;
+                      const baseTgt = b('Targets'), baseRec = b('Receptions'), baseRecYds = b('ReceivingYards');
+                      const newRec = baseTgt > 0 ? Math.round(next * (baseRec / baseTgt)) : 0;
                       patch.Receptions = newRec;
-                      patch.ReceivingYards = rec > 0 ? Math.round(newRec * (recYds / rec)) : 0;
+                      patch.ReceivingYards = baseRec > 0 ? Math.round(newRec * (baseRecYds / baseRec)) : 0;
                     } else if (field === 'Receptions') {
-                      const recYds = adjStat(p, 'ReceivingYards');
-                      patch.ReceivingYards = v > 0 ? Math.round(next * (recYds / v)) : 0;
+                      const baseRec = b('Receptions'), baseRecYds = b('ReceivingYards');
+                      patch.ReceivingYards = baseRec > 0 ? Math.round(next * (baseRecYds / baseRec)) : 0;
                     } else if (field === 'RushingAttempts') {
-                      const rushYds = adjStat(p, 'RushingYards');
-                      patch.RushingYards = v > 0 ? Math.round(next * (rushYds / v)) : 0;
+                      const baseAtt = b('RushingAttempts'), baseRushYds = b('RushingYards');
+                      patch.RushingYards = baseAtt > 0 ? Math.round(next * (baseRushYds / baseAtt)) : 0;
                     }
                     setStats(p, patch);
                   },
