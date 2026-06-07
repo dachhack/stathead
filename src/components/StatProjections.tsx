@@ -8,7 +8,7 @@ import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfi
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
-import { downloadCsv, csvTimestamp } from '../lib/csv';
+import { exportTeamXlsx, type XlsxTeam } from '../lib/exportTeamXlsx';
 import { ScenarioBuilder } from './ScenarioBuilder';
 import { TeamAccuracyChart } from './TeamAccuracyChart';
 import projectionConfig from '../generated/projection-config.json';
@@ -2089,26 +2089,26 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
     return [...byTeam.values()].sort((a, b) => b.totalPPR - a.totalPPR);
   }, [dispQbs, dispRbs, dispWrs, dispTes, depthChart]);
 
-  // Export the by-team view (current scenario applied) to a CSV that opens in
-  // Excel / Sheets, so users can keep an editable offline copy.
-  const exportTeamView = useCallback(() => {
-    const cols = ['TeamRank', 'Team', 'Pos', 'Player', 'Gm', 'PassAtt', 'PassCmp', 'PassYds', 'PassTD', 'Int',
-      'RushAtt', 'RushYds', 'RushTD', 'Tgt', 'Rec', 'RecYds', 'RecTD', 'PPR'];
+  // Export the by-team view (current scenario applied) to a formatted .xlsx
+  // workbook, so users can keep a nice-looking editable offline copy.
+  const exportTeamView = useCallback(async () => {
     const num = (p: object, f: string) => (p as Record<string, number>)[f] ?? 0;
-    const rows: Record<string, unknown>[] = [];
-    teamGroups.forEach((g, ti) => {
-      const add = (pos: string, p: { name: string; games: number; pprPts: number }) => rows.push({
-        TeamRank: ti + 1, Team: g.team, Pos: pos, Player: p.name, Gm: p.games,
-        PassAtt: num(p, 'passAtt'), PassCmp: num(p, 'passComp'), PassYds: num(p, 'passYds'), PassTD: num(p, 'passTD'), Int: num(p, 'int'),
-        RushAtt: num(p, 'rushAtt'), RushYds: num(p, 'rushYds'), RushTD: num(p, 'rushTD'),
-        Tgt: num(p, 'tgt'), Rec: num(p, 'rec'), RecYds: num(p, 'recYds'), RecTD: num(p, 'recTD'), PPR: p.pprPts,
-      });
-      g.qbs.forEach((p) => add('QB', p));
-      g.rbs.forEach((p) => add('RB', p));
-      g.wrs.forEach((p) => add('WR', p));
-      g.tes.forEach((p) => add('TE', p));
+    const toRow = (pos: string, p: { name: string; games: number }) => ({
+      pos, name: p.name, games: p.games,
+      passAtt: num(p, 'passAtt'), passComp: num(p, 'passComp'), passYds: num(p, 'passYds'), passTD: num(p, 'passTD'), int: num(p, 'int'),
+      rushAtt: num(p, 'rushAtt'), rushYds: num(p, 'rushYds'), rushTD: num(p, 'rushTD'),
+      tgt: num(p, 'tgt'), rec: num(p, 'rec'), recYds: num(p, 'recYds'), recTD: num(p, 'recTD'),
     });
-    downloadCsv(`stathead-by-team-${season}-${csvTimestamp()}.csv`, cols, rows);
+    const teams: XlsxTeam[] = teamGroups.map((g) => ({
+      team: g.team,
+      players: [
+        ...g.qbs.map((p) => toRow('QB', p)),
+        ...g.rbs.map((p) => toRow('RB', p)),
+        ...g.wrs.map((p) => toRow('WR', p)),
+        ...g.tes.map((p) => toRow('TE', p)),
+      ],
+    }));
+    await exportTeamXlsx(teams, season);
   }, [teamGroups, season]);
 
   // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
@@ -2253,7 +2253,7 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
               Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
             </p>
-            <button className="export-btn" onClick={exportTeamView} title="Download every team's stat lines (current scenario applied) as a CSV you can open and edit in Excel or Google Sheets">
+            <button className="export-btn" onClick={() => { void exportTeamView(); }} title="Download every team's stat lines (current scenario applied) as a formatted Excel workbook — PPR and team totals are live formulas, so it recomputes as you edit">
               ⬇ Export to Excel
             </button>
           </div>
