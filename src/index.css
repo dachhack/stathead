@@ -1632,17 +1632,44 @@ tr:hover td {
 .se-delta.neg { color: #64c8ff; background: rgba(100, 200, 255, 0.14); }
 
 /* Inline team-level levers in the workspace */
+/* Collapsible "Team adjustments" box in the workspace */
+.se-statadj {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px 10px;
+  margin: 6px 0 10px;
+  background: var(--bg-primary);
+}
+
+.se-statadj > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  list-style: revert;
+  margin-bottom: 2px;
+}
+
+.se-statadj-grouptitle {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 8px 0 2px;
+}
+
 .se-team-levers {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 6px 16px;
-  margin: 6px 0 10px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 28px;
+  margin: 0;
 }
 
 .se-lever {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .se-lever-label {
@@ -1650,17 +1677,19 @@ tr:hover td {
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
-  min-width: 78px;
+  min-width: 84px;
 }
 
-.se-lever .scenario-slider-inline { flex: 1; }
+.se-lever .scenario-slider-inline { flex: 1; min-width: 40px; }
 
 .se-lever-val {
   font-size: 11px;
   font-weight: 700;
-  min-width: 64px;
-  text-align: right;
+  width: 56px;
+  flex-shrink: 0;
+  text-align: center;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .se-lever-val.positive { color: var(--accent); }
 .se-lever-val.negative { color: #64c8ff; }
@@ -1887,6 +1916,16 @@ tr:hover td {
   font-weight: 700;
   border-top: 2px solid var(--text-muted);
 }
+
+/* "Δ vs Base" row — team total movement from the original projection */
+.se-base-delta td {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.se-base-delta .se-name { font-weight: 600; }
+.se-base-delta .se-up { color: var(--accent); font-weight: 700; }
+.se-base-delta .se-down { color: #ef4444; font-weight: 700; }
 
 .se-cell {
   padding: 2px 5px;

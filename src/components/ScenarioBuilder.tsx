@@ -606,8 +606,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               <button className="se-cycle" onClick={() => cycleTeam(1)} aria-label="next team" title="Next team">▶</button>
             </div>
 
-            {/* Team-level levers for the selected team */}
-            {/* Team-level levers for the selected team — all in one slider band */}
+            {/* Team adjustments — Pass/Run + Volume + per-stat sliders, all in one box */}
             {editTeam && (() => {
               const tendency = scenario.teamTendencies.find((t) => t.team === editTeam)?.passRatioDelta ?? 0;
               const teamVol = (scenario.teamVolumes ?? []).find((t) => t.team === editTeam)?.volumeDelta ?? 0;
@@ -622,14 +621,27 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 </div>
               );
               return (
-                <div className="se-team-levers">
-                  {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
-                  {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
-                  {STAT_GROUPS.flatMap((group) => group.stats).map((stat) => {
-                    const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
-                    return lever(STAT_LABELS[stat], d, -50, 50, (n) => setTeamStatFor(editTeam, stat, n), 'volume');
-                  })}
-                </div>
+                <details className="se-statadj" open>
+                  <summary>Team adjustments</summary>
+                  <div className="se-statadj-group">
+                    <div className="se-statadj-grouptitle">Team</div>
+                    <div className="se-team-levers">
+                      {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
+                      {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
+                    </div>
+                  </div>
+                  {STAT_GROUPS.map((group) => (
+                    <div key={group.label} className="se-statadj-group">
+                      <div className="se-statadj-grouptitle">{group.label}</div>
+                      <div className="se-team-levers">
+                        {group.stats.map((stat) => {
+                          const d = (scenario.teamStatAdjustments ?? []).find((a) => a.team === editTeam && a.stat === stat)?.delta ?? 0;
+                          return lever(STAT_LABELS[stat], d, -50, 50, (n) => setTeamStatFor(editTeam, stat, n), 'volume');
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </details>
               );
             })()}
 
@@ -771,6 +783,26 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   <td className="se-cell se-pts">{Math.round(sumPts(rows))}</td>
                 </tr>
               );
+              // "Δ vs Base" row: how far each team total has moved from the
+              // original projection. Sum per-player ROUNDED values on both sides
+              // so untouched stats read exactly 0 (no float-summation noise).
+              const sumR = (rows: SDIOProjection[], get: (p: SDIOProjection) => number) => rows.reduce((s, p) => s + Math.round(get(p)), 0);
+              const baseGet = (f: string) => (p: SDIOProjection) => (p as unknown as Record<string, number>)[f] || 0;
+              const dFmt = (d: number) => (d ? (d > 0 ? '+' : '−') + (Math.abs(d) >= 1000 ? Math.abs(d).toLocaleString() : Math.abs(d)) : '');
+              const dCell = (cur: number, b: number, key: string, pts = false) => {
+                const d = cur - b;
+                return <td key={key} className={`se-cell ${pts ? 'se-pts' : ''} ${d > 0 ? 'se-up' : d < 0 ? 'se-down' : ''}`}>{dFmt(d)}</td>;
+              };
+              const deltaRow = (rows: SDIOProjection[]) => (
+                <tr className="se-base-delta">
+                  <td className="se-cell se-name" colSpan={2}>Δ vs Base</td>
+                  <td className="se-cell" />
+                  {STAT_COLS.slice(0, 8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
+                  {dCell(sumR(rows, tgtOf), sumR(rows, baseGet('Targets')), 'tgt')}
+                  {STAT_COLS.slice(8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
+                  {dCell(sumR(rows, (p) => pprOf(p.PlayerID) ?? adjPts(p)), sumR(rows, baseGet('FantasyPointsPPR')), 'pts', true)}
+                </tr>
+              );
               const allPlayers = teamPlayers;
               return (
                 <div className="se-table-wrap">
@@ -799,6 +831,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                         </Fragment>
                       ))}
                       {allPlayers.length > 0 && totalRow('Team Total', allPlayers, 'se-total')}
+                      {allPlayers.length > 0 && deltaRow(allPlayers)}
                     </tbody>
                   </table>
                 </div>
