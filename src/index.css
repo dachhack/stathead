@@ -1634,40 +1634,10 @@ tr:hover td {
 /* Inline team-level levers in the workspace */
 .se-team-levers {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 6px 18px;
-  margin: 4px 0 8px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 6px 16px;
+  margin: 6px 0 10px;
 }
-
-/* Collapsible "Team stat adjustments" block in the workspace */
-.se-statadj {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 8px;
-  background: var(--bg-primary);
-}
-
-.se-statadj > summary {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  list-style: revert;
-}
-
-.se-statadj-group { margin-top: 4px; }
-
-.se-statadj-grouptitle {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin: 6px 0 2px;
-}
-
-.se-statadj .se-team-levers { margin: 0; }
 
 .se-lever {
   display: flex;
