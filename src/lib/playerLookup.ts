@@ -34,6 +34,7 @@ export interface CrosswalkIndex {
   byKey: Map<string, CrosswalkRec>;      // player_key → rec (+ alias_keys fan-out)
   byNamePos: Map<string, CrosswalkRec>;  // `${norm}|${position}` → rec
   byName: Map<string, CrosswalkRec[]>;   // norm → [rec, ...] for position-agnostic lookup
+  bySleeperId: Map<string, CrosswalkRec>; // sleeper_id → rec
 }
 
 let crosswalkPromise: Promise<CrosswalkIndex> | null = null;
@@ -54,9 +55,11 @@ function buildIndex(players: CrosswalkRec[]): CrosswalkIndex {
   const byKey = new Map<string, CrosswalkRec>();
   const byNamePos = new Map<string, CrosswalkRec>();
   const byName = new Map<string, CrosswalkRec[]>();
+  const bySleeperId = new Map<string, CrosswalkRec>();
   for (const rec of players) {
     byKey.set(rec.player_key, rec);
     for (const ak of rec.alias_keys || []) byKey.set(ak, rec);
+    if (rec.sleeper_id) bySleeperId.set(String(rec.sleeper_id), rec);
     const names = new Set<string>(rec.all_names || []);
     names.add(rec.display_name);
     for (const a of rec.aliases || []) if (a.name) names.add(a.name);
@@ -74,7 +77,16 @@ function buildIndex(players: CrosswalkRec[]): CrosswalkIndex {
       }
     }
   }
-  return { byKey, byNamePos, byName };
+  return { byKey, byNamePos, byName, bySleeperId };
+}
+
+/** Resolve a Sleeper player_id to the canonical record (exact id match). */
+export function lookupBySleeperId(
+  index: CrosswalkIndex,
+  sleeperId: string | null | undefined,
+): CrosswalkRec | null {
+  if (!sleeperId) return null;
+  return index.bySleeperId.get(String(sleeperId)) || null;
 }
 
 /** Resolve a player_key (or old alias_key) to the canonical record. */

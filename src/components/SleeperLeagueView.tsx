@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { importLeague, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
 import { teamLogoUrl } from '../lib/teamLogo';
+import { PlayerLink } from './PlayerLink';
 
 const LS_KEY = 'sleeper_league_id';
 
@@ -9,7 +10,10 @@ function PlayerLine({ p }: { p: RosterPlayer }) {
     <div className="sl-player">
       <span className="sl-slot">{p.slot}</span>
       {p.position && <span className={`pos-badge pos-${p.position}`}>{p.position}</span>}
-      <span className="sl-name">{p.name}</span>
+      <span className="sl-name">
+        {p.name}
+        <PlayerLink sleeperId={p.id} name={p.name} position={p.position} />
+      </span>
       {p.team && (
         <span className="sl-team">
           <img src={teamLogoUrl(p.team)} alt="" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> {p.team}

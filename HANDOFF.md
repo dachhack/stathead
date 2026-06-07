@@ -46,7 +46,7 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 2. ✅ Team schedules + estimated SOS (PRs #318–#321; reg+preseason committed, SOS overall/thirds)
 3. ⬜ Clean up + test the **My Rankings** page (scope it with the user — bugs? layout?)
 4. ⬜ **Consensus Projections** = Clay ±10% of base, + wire other projection sources. ⚠️ Clay data is local-only/gitignored — not present in this env; can scaffold generic multi-source consensus.
-5. 🟡 **Sleeper API** features — league import shipped (PR #323); trending/projections already existed. Remaining: Sleeper ADP consensus source, `sleeper_id`→`player_key` link.
+5. 🟡 **Sleeper API** features — league import (PR #323) + `sleeper_id`→`player_key` PlayerDetail links (PR #324) shipped; trending/projections already existed. Remaining: Sleeper ADP consensus source.
 6. ⬜ Add **Scenario Builder to the Home/intro page menu** (quick win).
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.

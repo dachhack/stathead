@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useCrosswalk } from '../hooks/useCrosswalk';
-import { lookupByNamePos, lookupByKey } from '../lib/playerLookup';
+import { lookupByNamePos, lookupByKey, lookupBySleeperId } from '../lib/playerLookup';
 import { setPlayerHash } from '../lib/hashRoute';
 
 interface Props {
   playerKey?: string | null;
+  sleeperId?: string | null;
   name?: string | null;
   position?: string | null;
   title?: string;
@@ -13,20 +14,24 @@ interface Props {
 /** Renders a tiny "↗" link next to a player name that navigates to the
  *  shareable player detail page. Existing click behaviors on the name
  *  itself are preserved — this is a sibling icon, not a wrapper. */
-export function PlayerLink({ playerKey, name, position, title }: Props) {
+export function PlayerLink({ playerKey, sleeperId, name, position, title }: Props) {
   const { index } = useCrosswalk();
   const resolvedKey = useMemo(() => {
     if (!index) return null;
     if (playerKey) {
       const rec = lookupByKey(index, playerKey);
-      return rec?.player_key || null;
+      if (rec) return rec.player_key;
+    }
+    if (sleeperId) {
+      const rec = lookupBySleeperId(index, sleeperId);
+      if (rec) return rec.player_key;
     }
     if (name) {
       const rec = lookupByNamePos(index, name, position ?? null);
       return rec?.player_key || null;
     }
     return null;
-  }, [index, playerKey, name, position]);
+  }, [index, playerKey, sleeperId, name, position]);
 
   if (!resolvedKey) return null;
   const href = `#/player/${resolvedKey}`;
