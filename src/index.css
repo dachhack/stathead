@@ -1616,6 +1616,55 @@ tr:hover td {
   letter-spacing: 0.02em;
 }
 
+.se-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.se-delta {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.se-delta.pos { color: var(--accent); background: rgba(0, 212, 170, 0.14); }
+.se-delta.neg { color: #64c8ff; background: rgba(100, 200, 255, 0.14); }
+
+/* Inline team-level levers in the workspace */
+.se-team-levers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 6px 18px;
+  margin: 4px 0 8px;
+}
+
+.se-lever {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.se-lever-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 78px;
+}
+
+.se-lever .scenario-slider-inline { flex: 1; }
+
+.se-lever-val {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 64px;
+  text-align: right;
+  color: var(--text-muted);
+}
+.se-lever-val.positive { color: var(--accent); }
+.se-lever-val.negative { color: #64c8ff; }
+
 .scenario-metric-toggle {
   display: flex;
   gap: 0;
