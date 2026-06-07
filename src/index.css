@@ -1616,6 +1616,30 @@ tr:hover td {
   flex-shrink: 0;
 }
 
+/* Schedule & SOS page */
+.sched-page { padding: 16px 20px 60px; max-width: 1080px; margin: 0 auto; }
+.sched-header { margin-bottom: 12px; }
+.sched-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.sched-controls .scenario-select { flex: 1; min-width: 0; }
+.sched-div { font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.sched-sos-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.sched-sos-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: center; }
+.sched-sos-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; }
+.sched-sos-rank { font-size: 26px; font-weight: 800; line-height: 1.1; margin: 2px 0; }
+.sched-sos-sub { font-size: 10px; color: var(--text-muted); }
+.sched-section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin: 16px 0 6px; }
+.sched-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sched-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.sched-table td { padding: 5px 8px; border-bottom: 1px solid var(--bg-tertiary); }
+.sched-wk { font-weight: 700; color: var(--text-muted); width: 32px; }
+.sched-opp { display: flex; align-items: center; gap: 6px; }
+.sched-vs { color: var(--text-muted); width: 18px; }
+.sched-opp-code { font-weight: 700; }
+.sched-loc { color: var(--text-secondary); }
+.sched-net { color: var(--text-secondary); white-space: nowrap; }
+.sched-strength { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.sched-empty { color: var(--text-muted); text-align: center; padding: 16px; }
+
 /* Collapsible current-roster reference panel */
 .se-roster {
   border: 1px solid var(--border);

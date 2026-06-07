@@ -186,6 +186,7 @@ export type Tab =
   | 'home'
   | 'projections'
   | 'scenario-builder'
+  | 'schedule'
   | 'stats'
   | 'compare'
   | 'scoring'
