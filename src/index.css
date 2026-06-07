@@ -1616,6 +1616,40 @@ tr:hover td {
   flex-shrink: 0;
 }
 
+/* Collapsible current-roster reference panel */
+.se-roster {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px 10px;
+  margin-top: 10px;
+  background: var(--bg-primary);
+}
+.se-roster > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  list-style: revert;
+}
+.se-roster-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px 18px;
+  margin-top: 8px;
+}
+.se-roster-row {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  padding: 2px 0;
+  border-top: 1px solid var(--bg-tertiary);
+}
+.se-roster-pos { font-weight: 700; font-size: 10px; }
+.se-roster-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.se-roster-meta { color: var(--text-muted); font-size: 10px; white-space: nowrap; }
+
 /* Clickable player names → shareable player detail */
 .se-player-link {
   cursor: pointer;
