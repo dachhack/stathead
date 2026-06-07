@@ -1308,8 +1308,60 @@ tr:hover td {
   flex-direction: column;
 }
 
-/* Team Workspace floats to the top as the builder's primary view */
+/* Team Workspace + rankings float to the top as the builder's primary view */
 .scenario-section--primary { order: -1; }
+.scenario-section--rankings { order: -1; }
+
+/* Overall rankings panel */
+.se-rank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.se-rank-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+}
+
+.se-rank-head {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.se-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.se-rank-row {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 12px;
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+.se-rank-row:first-child { border-top: none; }
+
+.se-rank-num { color: var(--text-muted); font-size: 10px; text-align: right; }
+.se-rank-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.se-rank-team { color: var(--text-muted); font-size: 10px; }
+.se-rank-ppr { color: var(--text-secondary); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.se-rank-mine {
+  background: rgba(0, 212, 170, 0.12);
+  border-radius: 4px;
+}
+.se-rank-mine .se-rank-name { color: var(--accent); font-weight: 700; }
 
 .scenario-section {
   padding: 16px 20px;

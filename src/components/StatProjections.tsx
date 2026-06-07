@@ -663,6 +663,13 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     return applyScenarioToProjections(qbProjections, rbProjections, wrProjections, teProjections, scenario);
   }, [isActuals, qbProjections, rbProjections, wrProjections, teProjections, scenario]);
 
+  // Scenario-adjusted overall rankings for the Scenario Builder's rankings panel.
+  const builderRankings = useMemo(() => {
+    const m = (arr: { name: string; team: string; pprPts: number }[], pos: string) =>
+      arr.map((p) => ({ pos, name: p.name, team: p.team, ppr: Math.round(p.pprPts) }));
+    return [...m(dispQbs, 'QB'), ...m(dispRbs, 'RB'), ...m(dispWrs, 'WR'), ...m(dispTes, 'TE')];
+  }, [dispQbs, dispRbs, dispWrs, dispTes]);
+
   // ── Inline editing for the by-team view ──
   // Highlight stat cells that have an active override so the read-only team view
   // shows at a glance where the scenario has changed a player's line.
@@ -2197,6 +2204,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         normalizeName={normalizeName}
         scenario={scenario}
         onChange={(sc) => onScenarioChange?.(sc)}
+        rankings={builderRankings}
       />
     );
   }

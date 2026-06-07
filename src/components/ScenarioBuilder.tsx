@@ -32,7 +32,10 @@ interface Props {
   normalizeName?: (s: string) => string;
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
+  rankings?: RankedPlayer[];
 }
+
+interface RankedPlayer { pos: string; name: string; team: string; ppr: number; }
 
 function usePlayerSearch(projections: SDIOProjection[], query: string) {
   return useMemo(() => {
@@ -79,7 +82,7 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
   'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
 ];
 
-export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange, rankings = [] }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -97,6 +100,8 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const [editTeam, setEditTeam] = useState('');
   // Which roster-table cell is currently in edit mode (click-to-edit stepper).
   const [editCell, setEditCell] = useState<{ id: number; field: string } | null>(null);
+  // Which positions in the Overall Rankings panel are expanded past the top 5.
+  const [expandedPos, setExpandedPos] = useState<Record<string, boolean>>({});
   // Close the active stepper when clicking away from any editable cell.
   useEffect(() => {
     if (!editCell) return;
@@ -182,6 +187,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     setEditTeam(orderedTeams[(i + dir + orderedTeams.length) % orderedTeams.length]);
     setEditCell(null);
   };
+
+  // Overall rankings grouped by position (scenario-adjusted, passed from parent).
+  const rankedByPos = useMemo(() => {
+    const m: Record<string, RankedPlayer[]> = { QB: [], RB: [], WR: [], TE: [] };
+    for (const r of rankings) (m[r.pos] ??= []).push(r);
+    for (const k of Object.keys(m)) m[k].sort((a, b) => b.ppr - a.ppr);
+    return m;
+  }, [rankings]);
 
   // Roster editor: selected team's players grouped by position, each group
   // sorted by projected PPR (so the depth order reads top-down).
@@ -1069,6 +1082,49 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               <div className="scenario-section-empty">Select a team to edit its players</div>
             )}
           </div>
+
+          {/* Overall Rankings — scenario-adjusted, top 5 per position (expandable) */}
+          {rankings.length > 0 && (
+            <div className="scenario-section scenario-section--rankings">
+              <div className="scenario-section-header">
+                <span className="scenario-section-title">Overall Rankings</span>
+              </div>
+              <p className="scenario-section-hint">
+                Scenario-adjusted PPR — top 5 per position. Expand for the full list; your
+                selected team is highlighted.
+              </p>
+              <div className="se-rank-grid">
+                {['QB', 'RB', 'WR', 'TE'].map((pos) => {
+                  const list = rankedByPos[pos] ?? [];
+                  const expanded = !!expandedPos[pos];
+                  const shown = expanded ? list.slice(0, 50) : list.slice(0, 5);
+                  return (
+                    <div key={pos} className="se-rank-card">
+                      <div className="se-rank-head" style={{ color: POS_COLORS[pos] }}>{pos}</div>
+                      <ol className="se-rank-list">
+                        {shown.map((r, i) => (
+                          <li key={`${r.name}-${r.team}`} className={`se-rank-row ${r.team === editTeam ? 'se-rank-mine' : ''}`}>
+                            <span className="se-rank-num">{i + 1}</span>
+                            <span className="se-rank-name">{r.name}</span>
+                            <span className="se-rank-team">{r.team}</span>
+                            <span className="se-rank-ppr">{r.ppr}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      {list.length > 5 && (
+                        <button
+                          className="scenario-link-btn"
+                          onClick={() => setExpandedPos((s) => ({ ...s, [pos]: !expanded }))}
+                        >
+                          {expanded ? 'Show top 5' : `Show all ${list.length}`}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* 5. Player Movement */}
           <div className="scenario-section">
