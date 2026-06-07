@@ -201,6 +201,7 @@ export type Tab =
   | 'charts'
   | 'sleeper'
   | 'sleeper-league'
+  | 'consensus-adp'
   | 'ktc'
   | 'sportsdata'
   | 'prospects'
@@ -704,6 +705,8 @@ export interface FantasyCalcPlayer {
   redraftDynastyValuePercDifference: number;
   displayTrend: string;
   maybeMovingStandardDeviation: number | null;
+  maybeAdp?: number | null;
+  maybeTier?: number | null;
   starter: boolean;
 }
 
