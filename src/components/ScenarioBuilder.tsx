@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type FocusEvent as RFocusEvent, type KeyboardEvent as RKeyboardEvent } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
@@ -60,6 +60,8 @@ function useFASearch(freeAgents: FreeAgentPlayer[], query: string) {
 const defaultNormalize = (s: string) =>
   s.toLowerCase().replace(/[.']/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').replace(/\s+/g, ' ').trim();
 
+const POS_COLORS: Record<string, string> = { QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444' };
+
 export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], playerMeta, clayPpr, normalizeName, scenario, onChange }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
@@ -76,7 +78,8 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
-  const [editMetric, setEditMetric] = useState<'volume' | 'stats' | 'games' | 'ppr'>('volume');
+  // Which roster-table cell is currently in edit mode (click-to-edit).
+  const [editCell, setEditCell] = useState<{ id: number; field: string } | null>(null);
 
   // Player movement add form
   const [moveSearch, setMoveSearch] = useState('');
@@ -148,13 +151,15 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
   // Base team pools for the "Stats" share % (carries / receptions). Kept on the
   // base projection so the share readout is a stable reference.
   const editPools = useMemo(() => {
-    let rush = 0, rec = 0;
+    let rushAtt = 0, passYds = 0, rec = 0, recYds = 0;
     for (const p of projections) {
       if (p.Team !== editTeam) continue;
-      rush += p.RushingAttempts || 0;
+      rushAtt += p.RushingAttempts || 0;
+      passYds += p.PassingYards || 0;
       rec += p.Receptions || 0;
+      recYds += p.ReceivingYards || 0;
     }
-    return { rush, rec };
+    return { rushAtt, passYds, rec, recYds };
   }, [projections, editTeam]);
 
   useEffect(() => {
@@ -225,22 +230,11 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
   // --- Roster editor: per-player upsert setters (volume / availability / projection) ---
   // Each looks up the player's current value and writes (or clears) the matching
   // override array entry, keyed by PlayerID.
-  const volumeOf = (id: number) =>
-    scenario.volumeOverrides.find((v) => v.playerId === id)?.volumeDelta ?? 0;
   const gamesOf = (id: number) =>
     (scenario.playerAvailability ?? []).find((a) => a.playerId === id)?.games ?? 17;
   const pprOf = (id: number) =>
     (scenario.pointsOverrides ?? []).find((o) => o.playerId === id)?.ppr;
 
-  const setPlayerVolume = (p: SDIOProjection, delta: number) => {
-    const rest = scenario.volumeOverrides.filter((v) => v.playerId !== p.PlayerID);
-    update({
-      volumeOverrides: delta === 0 ? rest : [
-        ...rest,
-        { playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, volumeDelta: delta },
-      ],
-    });
-  };
   const setPlayerGames = (p: SDIOProjection, games: number) => {
     const rest = (scenario.playerAvailability ?? []).filter((a) => a.playerId !== p.PlayerID);
     update({
@@ -287,30 +281,27 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
     const hasAny = STAT_FIELDS.some((f) => merged[f] !== undefined);
     update({ statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest });
   };
-  // Set a rush/receiving share % → scale that pool group (att/yds/td or
-  // rec/yds/td) from base proportionally, anchoring share ↔ stat.
-  const setRushShare = (p: SDIOProjection, pct: number) => {
-    const baseAtt = p.RushingAttempts || 0;
-    const att = Math.round((pct / 100) * editPools.rush);
-    const f = baseAtt > 0 ? att / baseAtt : 0;
-    setStats(p, {
-      RushingAttempts: att,
-      RushingYards: Math.round((p.RushingYards || 0) * f),
-      RushingTouchdowns: Math.round((p.RushingTouchdowns || 0) * f),
+  // Live PPR for a player from their current (override-or-base) stat line.
+  const computedPPR = (p: SDIOProjection) =>
+    Math.round(
+      statVal(p, 'PassingYards') * 0.04 + statVal(p, 'PassingTouchdowns') * 4 + statVal(p, 'PassingInterceptions') * -2 +
+      statVal(p, 'RushingYards') * 0.1 + statVal(p, 'RushingTouchdowns') * 6 +
+      statVal(p, 'Receptions') * 1 + statVal(p, 'ReceivingYards') * 0.1 + statVal(p, 'ReceivingTouchdowns') * 6,
+    );
+  // True when a stat field has an active absolute override.
+  const isStatEdited = (p: SDIOProjection, field: StatField) =>
+    (statOf(p.PlayerID) as Record<string, number | undefined> | undefined)?.[field] !== undefined;
+  // Clear every override for one player in a single update.
+  const clearPlayer = (p: SDIOProjection) =>
+    update({
+      statOverrides: (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID),
+      playerAvailability: (scenario.playerAvailability ?? []).filter((a) => a.playerId !== p.PlayerID),
+      pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID),
+      volumeOverrides: scenario.volumeOverrides.filter((v) => v.playerId !== p.PlayerID),
     });
-  };
-  const setRecShare = (p: SDIOProjection, pct: number) => {
-    const baseRec = p.Receptions || 0;
-    const rec = Math.round((pct / 100) * editPools.rec);
-    const f = baseRec > 0 ? rec / baseRec : 0;
-    setStats(p, {
-      Receptions: rec,
-      ReceivingYards: Math.round((p.ReceivingYards || 0) * f),
-      ReceivingTouchdowns: Math.round((p.ReceivingTouchdowns || 0) * f),
-    });
-  };
-  const clearStats = (p: SDIOProjection) =>
-    update({ statOverrides: (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID) });
+  const playerEdited = (p: SDIOProjection) =>
+    !!statOf(p.PlayerID) || gamesOf(p.PlayerID) < 17 || pprOf(p.PlayerID) !== undefined ||
+    scenario.volumeOverrides.some((v) => v.playerId === p.PlayerID);
 
   // --- Player movement actions ---
   const addMovement = () => {
@@ -859,181 +850,122 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               <span className="scenario-section-title">Roster Editor</span>
             </div>
             <p className="scenario-section-hint">
-              Pick a team, then tweak each player. <strong>Volume</strong> is quick zero-sum
-              % chips. <strong>Stats</strong> sets exact numbers — type a stat or a team share %
-              (they're anchored). <strong>Games</strong> scales availability; <strong>Points</strong> sets PPR.
+              Pick a team, then <strong>click any number to edit it</strong> — set an exact stat,
+              games (availability), or a PPR target. Edits flow straight to the projections.
             </p>
 
             <div className="scenario-roster-controls">
               <select
                 className="scenario-select"
                 value={editTeam}
-                onChange={(e) => setEditTeam(e.target.value)}
+                onChange={(e) => { setEditTeam(e.target.value); setEditCell(null); }}
               >
                 <option value="">Select a team…</option>
                 {teams.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
-              {editTeam && (
-                <div className="scenario-metric-toggle">
-                  {([['volume', 'Volume'], ['stats', 'Stats'], ['games', 'Games'], ['ppr', 'Points']] as const).map(([m, label]) => (
-                    <button
-                      key={m}
-                      className={`scenario-metric-btn ${editMetric === m ? 'active' : ''}`}
-                      onClick={() => setEditMetric(m)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {editTeam && editRoster.map((group) => (
-              <div key={group.pos} className="scenario-roster-group">
-                <div className="scenario-roster-pos">{group.pos}</div>
-                {group.players.map((p) => {
-                  const vol = volumeOf(p.PlayerID);
-                  const games = gamesOf(p.PlayerID);
-                  const ppr = pprOf(p.PlayerID);
-                  const hasStat = !!statOf(p.PlayerID);
-                  const touched = vol !== 0 || games < 17 || ppr !== undefined || hasStat;
-                  const numField = (label: string, field: StatField) => (
-                    <label className="scenario-stat-field">
-                      <span>{label}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={Math.round(statVal(p, field))}
-                        onChange={(e) => setStats(p, { [field]: e.target.value === '' ? undefined : Number(e.target.value) })}
-                        className="scenario-input-sm"
-                      />
-                    </label>
-                  );
-                  const shareField = (label: string, kind: 'rush' | 'rec') => {
-                    const pool = kind === 'rush' ? editPools.rush : editPools.rec;
-                    const cur = kind === 'rush' ? statVal(p, 'RushingAttempts') : statVal(p, 'Receptions');
-                    const pct = pool > 0 ? (cur / pool) * 100 : 0;
-                    return (
-                      <label className="scenario-stat-field scenario-stat-share">
-                        <span>{label}</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={Math.round(pct)}
-                          onChange={(e) => (kind === 'rush' ? setRushShare(p, Number(e.target.value || 0)) : setRecShare(p, Number(e.target.value || 0)))}
-                          className="scenario-input-sm"
-                        />
-                      </label>
-                    );
-                  };
-                  return (
-                    <div key={p.PlayerID} className="scenario-roster-row">
-                      <div className="scenario-roster-name">
-                        {touched && <span className="scenario-active-dot" />}
-                        <span className="scenario-roster-label">{p.Name}</span>
-                        <span className="scenario-roster-base">{Math.round(p.FantasyPointsPPR || 0)}</span>
-                      </div>
-                      {editMetric === 'stats' && (
-                        <div className="scenario-stat-grid">
-                          {p.Position === 'QB' && (
-                            <>
-                              {numField('Pass Att', 'PassingAttempts')}
-                              {numField('Cmp', 'PassingCompletions')}
-                              {numField('Pass Yd', 'PassingYards')}
-                              {numField('Pass TD', 'PassingTouchdowns')}
-                              {numField('Int', 'PassingInterceptions')}
-                              {numField('Rush Att', 'RushingAttempts')}
-                              {numField('Rush Yd', 'RushingYards')}
-                              {numField('Rush TD', 'RushingTouchdowns')}
-                            </>
-                          )}
-                          {p.Position === 'RB' && (
-                            <>
-                              {shareField('Rush %', 'rush')}
-                              {numField('Att', 'RushingAttempts')}
-                              {numField('Rush Yd', 'RushingYards')}
-                              {numField('Rush TD', 'RushingTouchdowns')}
-                              {shareField('Rec %', 'rec')}
-                              {numField('Rec', 'Receptions')}
-                              {numField('Rec Yd', 'ReceivingYards')}
-                              {numField('Rec TD', 'ReceivingTouchdowns')}
-                            </>
-                          )}
-                          {(p.Position === 'WR' || p.Position === 'TE') && (
-                            <>
-                              {shareField('Rec %', 'rec')}
-                              {numField('Rec', 'Receptions')}
-                              {numField('Rec Yd', 'ReceivingYards')}
-                              {numField('Rec TD', 'ReceivingTouchdowns')}
-                              {p.Position === 'WR' && (p.RushingAttempts || 0) > 0 && (
-                                <>
-                                  {numField('Rush Att', 'RushingAttempts')}
-                                  {numField('Rush Yd', 'RushingYards')}
-                                  {numField('Rush TD', 'RushingTouchdowns')}
-                                </>
+            {editTeam && (() => {
+              const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : Math.round(v)) : '');
+              const share = (v: number, ref: number) => (ref && v ? `${Math.round((v / ref) * 100)}%` : '');
+              const commit = (raw: string, apply: (n: number | undefined) => void) => {
+                apply(raw.trim() === '' ? undefined : Number(raw));
+                setEditCell(null);
+              };
+              const editProps = (apply: (n: number | undefined) => void) => ({
+                className: 'se-input',
+                type: 'number' as const,
+                autoFocus: true,
+                onFocus: (e: RFocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+                onBlur: (e: RFocusEvent<HTMLInputElement>) => commit(e.target.value, apply),
+                onKeyDown: (e: RKeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                  else if (e.key === 'Escape') setEditCell(null);
+                },
+              });
+              const statTd = (p: SDIOProjection, field: StatField, ref?: number) => {
+                const v = statVal(p, field);
+                if (editCell?.id === p.PlayerID && editCell.field === field) {
+                  return <td className="se-cell se-editing"><input {...editProps((n) => setStats(p, { [field]: n }))} defaultValue={v ? Math.round(v) : ''} /></td>;
+                }
+                return (
+                  <td className={`se-cell se-num ${isStatEdited(p, field) ? 'se-edited' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field })}>
+                    {fmt(v)}{ref ? <span className="se-share">{share(v, ref)}</span> : null}
+                  </td>
+                );
+              };
+              const gamesTd = (p: SDIOProjection) => {
+                const g = gamesOf(p.PlayerID);
+                if (editCell?.id === p.PlayerID && editCell.field === 'games') {
+                  return <td className="se-cell se-editing"><input {...editProps((n) => setPlayerGames(p, n === undefined ? 17 : n))} defaultValue={g} /></td>;
+                }
+                return <td className={`se-cell se-num ${g < 17 ? 'se-edited-neg' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field: 'games' })}>{g}</td>;
+              };
+              const ptsTd = (p: SDIOProjection) => {
+                const ov = pprOf(p.PlayerID);
+                const v = ov ?? computedPPR(p);
+                if (editCell?.id === p.PlayerID && editCell.field === 'ppr') {
+                  return <td className="se-cell se-editing"><input {...editProps((n) => setPlayerPpr(p, n))} defaultValue={Math.round(v)} /></td>;
+                }
+                return <td className={`se-cell se-num se-pts ${ov !== undefined ? 'se-edited' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field: 'ppr' })}>{Math.round(v)}</td>;
+              };
+              const blank = (k: string) => <td key={k} className="se-cell" />;
+              const players = editRoster.flatMap((g) => g.players);
+              return (
+                <div className="se-table-wrap">
+                  <table className="se-table">
+                    <thead>
+                      <tr className="se-grp-row">
+                        <th /><th /><th />
+                        <th colSpan={5} style={{ color: POS_COLORS.QB }}>PASSING</th>
+                        <th colSpan={3} style={{ color: POS_COLORS.RB }}>RUSHING</th>
+                        <th colSpan={3} style={{ color: POS_COLORS.WR }}>RECEIVING</th>
+                        <th />
+                      </tr>
+                      <tr className="se-head-row">
+                        <th>Pos</th><th className="se-name">Player</th><th>Gm</th>
+                        <th>Att</th><th>Cmp</th><th>Yds</th><th>TD</th><th>Int</th>
+                        <th>Att</th><th>Yds</th><th>TD</th>
+                        <th>Rec</th><th>Yds</th><th>TD</th>
+                        <th>Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {players.map((p) => {
+                        const isQB = p.Position === 'QB';
+                        const hasRush = p.Position !== 'TE';
+                        return (
+                          <tr key={p.PlayerID}>
+                            <td className="se-cell se-pos" style={{ color: POS_COLORS[p.Position] }}>{p.Position}</td>
+                            <td className="se-cell se-name">
+                              {playerEdited(p) && (
+                                <button className="se-clear" title="Reset player" onClick={() => clearPlayer(p)}>×</button>
                               )}
-                            </>
-                          )}
-                          {hasStat && (
-                            <button className="scenario-link-btn scenario-stat-reset" onClick={() => clearStats(p)}>reset</button>
-                          )}
-                        </div>
-                      )}
-                      <div className="scenario-chip-row">
-                        {editMetric === 'volume' && [-25, -10, 10, 25].map((d) => (
-                          <button
-                            key={d}
-                            className={`scenario-chip ${vol === d ? (d < 0 ? 'active-neg' : 'active-pos') : ''}`}
-                            onClick={() => setPlayerVolume(p, vol === d ? 0 : d)}
-                          >
-                            {d > 0 ? `+${d}` : d}%
-                          </button>
-                        ))}
-                        {editMetric === 'games' && [17, 14, 11, 8].map((g) => (
-                          <button
-                            key={g}
-                            className={`scenario-chip ${games === g ? (g < 17 ? 'active-neg' : 'active-pos') : ''}`}
-                            onClick={() => setPlayerGames(p, g)}
-                          >
-                            {g} gm
-                          </button>
-                        ))}
-                        {editMetric === 'ppr' && (
-                          <>
-                            {[-15, -5, 5, 15].map((pct) => {
-                              const base = Math.round(p.FantasyPointsPPR || 0);
-                              const target = Math.round(base * (1 + pct / 100));
-                              const active = ppr === target;
-                              return (
-                                <button
-                                  key={pct}
-                                  className={`scenario-chip ${active ? (pct < 0 ? 'active-neg' : 'active-pos') : ''}`}
-                                  onClick={() => setPlayerPpr(p, active ? undefined : target)}
-                                >
-                                  {pct > 0 ? `+${pct}` : pct}%
-                                </button>
-                              );
-                            })}
-                            <input
-                              type="number"
-                              min={0}
-                              placeholder={String(Math.round(p.FantasyPointsPPR || 0))}
-                              value={ppr ?? ''}
-                              onChange={(e) => setPlayerPpr(p, e.target.value === '' ? undefined : Number(e.target.value))}
-                              className="scenario-input-sm"
-                              style={{ width: 56 }}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                              {p.Name}
+                            </td>
+                            {gamesTd(p)}
+                            {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
+                            {isQB ? statTd(p, 'PassingCompletions') : blank('pc')}
+                            {isQB ? statTd(p, 'PassingYards', editPools.passYds) : blank('py')}
+                            {isQB ? statTd(p, 'PassingTouchdowns') : blank('pt')}
+                            {isQB ? statTd(p, 'PassingInterceptions') : blank('pi')}
+                            {hasRush ? statTd(p, 'RushingAttempts', editPools.rushAtt) : blank('ra')}
+                            {hasRush ? statTd(p, 'RushingYards') : blank('ry')}
+                            {hasRush ? statTd(p, 'RushingTouchdowns') : blank('rt')}
+                            {isQB ? blank('rc') : statTd(p, 'Receptions', editPools.rec)}
+                            {isQB ? blank('rcy') : statTd(p, 'ReceivingYards', editPools.recYds)}
+                            {isQB ? blank('rct') : statTd(p, 'ReceivingTouchdowns')}
+                            {ptsTd(p)}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
 
             {!editTeam && (
               <div className="scenario-section-empty">Select a team to edit its players</div>
