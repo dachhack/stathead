@@ -4,6 +4,27 @@ Last updated 2026-06-07. **Resume section below is the live one;** older notes f
 
 ---
 
+## ⚡ Latest session wrap (2026-06-07, PRs #322–#330)
+
+Working branch: **`claude/scenario-builder-presets-resume-rYlS1`** (PR base `claude/nfl-fantasy-workbench-6D1yd`).
+
+Shipped this session:
+- **#322** ESPN schedule enrich (preseason venues/networks; reg-season gaps still TBD on ESPN).
+- **#323** Sleeper **league import** (`sleeper.ts` + `SleeperLeagueView` + nav tab).
+- **#324** `sleeper_id`→`player_key` PlayerDetail links (`lookupBySleeperId`).
+- **#325** **Consensus ADP** tab (FantasyCalc redraft, daily-refreshed, Sleeper-inclusive).
+- **#326** Clay 2026 player projections → committed `clay-projections-2026.json`.
+- **#327** **Consensus 80/20 blend** preset wired live (+ fixed a `normalizeName` crash that broke the whole Scenario Builder).
+- **#328** **SOS** now uses Consensus **defense grades** (`clay-unit-grades-2026.json`).
+- **#329** **Team projections + matchup win-prob** on the Schedule view.
+- **#330** Year-agnostic Clay extractor + `clay_blend_study.py`.
+
+**Two things waiting on the user (next session):**
+1. **More historic Clay PDFs** (esp. 2025) to finalize per-position blend weights — user hit the upload limit; has ~5 more. Re-run per the "Blend-weight study" note below, then set per-position weights in `scenarioPresets.ts` (flat `0.8` today; QB ~0.4 is the exception). 2026 + 2023 + 2024 were processed; historic PDFs are NOT committed (re-upload to re-extract).
+2. **Sleeper as its own main site section** — see the "NEXT ROUND — Sleeper" note in Task 2 (sleeper_wrapper, all-leagues-by-username, matchups, gsis→player_key).
+
+---
+
 ## ⚡ Resume here (2026-06-07) — Scenario Builder / Schedule / Sleeper
 
 Working branch: **`claude/scenario-builder-presets-resume-rYlS1`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). Many PRs merged (#294–#322); Sleeper league import shipped in #323.
