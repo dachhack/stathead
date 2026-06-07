@@ -201,6 +201,7 @@ export type Tab =
   | 'charts'
   | 'sleeper'
   | 'sleeper-league'
+  | 'sleeper-waivers'
   | 'sleeper-snooper'
   | 'consensus-adp'
   | 'ktc'

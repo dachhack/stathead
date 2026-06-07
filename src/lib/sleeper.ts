@@ -143,6 +143,15 @@ export async function fetchUserRostersAcrossLeagues(
   return results;
 }
 
+export async function fetchLeagueRosteredIds(leagueId: string): Promise<Set<string>> {
+  const rosters = await getJson<RawRosterMinimal[]>(`${SLEEPER}/league/${leagueId}/rosters`);
+  const ids = new Set<string>();
+  for (const r of rosters) {
+    if (r.players) for (const pid of r.players) ids.add(pid);
+  }
+  return ids;
+}
+
 // Sleeper stores points as an integer part + hundredths (1802 + 8 → 1802.08).
 const toPoints = (whole?: number, dec?: number) => (whole ?? 0) + (dec ?? 0) / 100;
 

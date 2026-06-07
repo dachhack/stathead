@@ -56,6 +56,11 @@ const SECTIONS: Section[] = [
         blurb: 'Enter your username to see all your leagues. Load any league for standings, rosters, power rankings, and win-now/rebuild scoring.',
       },
       {
+        label: 'Waiver Wire',
+        tab: 'sleeper-waivers',
+        blurb: 'See which trending players and top projected scorers are available on waivers across all your leagues.',
+      },
+      {
         label: 'User Snooper',
         tab: 'sleeper-snooper',
         blurb: 'Look up any Sleeper user — see their leagues, combined record, most-owned players, and roster tendencies.',
