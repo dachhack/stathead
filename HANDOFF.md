@@ -40,8 +40,17 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 - Schedule & SOS tab (`src/components/ScheduleView.tsx`, `src/lib/nflSchedule.ts`): committed nflverse reg season + committed networks (`scripts/parse_schedule_pdf.py`) + committed preseason (`scripts/build_preseason.mjs`) + ESPN runtime overlay. SOS = opponent offensive strength, reg-season only (overall + thirds + per-game).
 - Fixed player-card career chip 100× scaling; rookie-optimistic preset → +25%.
 
-### Backlog
-Sleeper (now unblocked) · Consensus = Clay ±10% of base + other sources (⚠️ Clay data local-only, not in env) · My Rankings cleanup · Draft Optimizer cleanup · Scenario Builder on Home menu (quick) · richer player cards (images) · SOS true opponent-quality metric (defense / Vegas win totals).
+### To-do list (user's original 8, with status)
+1. ✅ Collapsible current-team rosters in Scenario Builder (PR #316)
+2. ✅ Team schedules + estimated SOS (PRs #318–#321; reg+preseason committed, SOS overall/thirds)
+3. ⬜ Clean up + test the **My Rankings** page (scope it with the user — bugs? layout?)
+4. ⬜ **Consensus Projections** = Clay ±10% of base, + wire other projection sources. ⚠️ Clay data is local-only/gitignored — not present in this env; can scaffold generic multi-source consensus.
+5. ⬜ **Sleeper API** features (now unblocked via allowlist) — ask which first.
+6. ⬜ Add **Scenario Builder to the Home/intro page menu** (quick win).
+7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
+8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
+
+Extra (not on original list): SOS true opponent-quality metric (defense / Vegas win totals) instead of the current offense-only proxy; ~24 reg-season network gaps + preseason network/venue (Task 1 above).
 
 ---
 
