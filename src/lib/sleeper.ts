@@ -96,6 +96,53 @@ export async function fetchUserLeagues(userId: string, season = '2026'): Promise
   return leagues.filter((l) => l.sport === 'nfl');
 }
 
+interface RawRosterMinimal {
+  roster_id: number;
+  owner_id: string | null;
+  players: string[] | null;
+  starters: string[] | null;
+  settings?: { wins?: number; losses?: number; fpts?: number; fpts_decimal?: number };
+}
+
+export interface UserLeagueRoster {
+  leagueId: string;
+  leagueName: string;
+  totalRosters: number;
+  rosterPositions: string[];
+  players: string[];
+  starters: string[];
+  wins: number;
+  losses: number;
+  pointsFor: number;
+}
+
+export async function fetchUserRostersAcrossLeagues(
+  userId: string,
+  leagues: SleeperLeagueSummary[],
+): Promise<UserLeagueRoster[]> {
+  const results: UserLeagueRoster[] = [];
+  const fetches = leagues.map(async (lg) => {
+    try {
+      const rosters = await getJson<RawRosterMinimal[]>(`${SLEEPER}/league/${lg.league_id}/rosters`);
+      const mine = rosters.find((r) => r.owner_id === userId);
+      if (!mine) return;
+      results.push({
+        leagueId: lg.league_id,
+        leagueName: lg.name,
+        totalRosters: lg.total_rosters,
+        rosterPositions: lg.roster_positions,
+        players: mine.players ?? [],
+        starters: mine.starters ?? [],
+        wins: mine.settings?.wins ?? 0,
+        losses: mine.settings?.losses ?? 0,
+        pointsFor: (mine.settings?.fpts ?? 0) + (mine.settings?.fpts_decimal ?? 0) / 100,
+      });
+    } catch { /* skip leagues that fail */ }
+  });
+  await Promise.all(fetches);
+  return results;
+}
+
 // Sleeper stores points as an integer part + hundredths (1802 + 8 → 1802.08).
 const toPoints = (whole?: number, dec?: number) => (whole ?? 0) + (dec ?? 0) / 100;
 
