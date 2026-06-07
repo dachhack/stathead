@@ -26,6 +26,19 @@ curl -s -o /dev/null -w '%{http_code}\n' "https://api.sleeper.app/v1/state/nfl"
 - Pre-existing (retired `'sleeper'` tab, `SleeperView.tsx`): **trending adds/drops + Sleeper projections** already shipped via `fetchSleeperTrending`/`fetchSleeperProjections` in `data.ts`.
 - Remaining Sleeper ideas: Sleeper **ADP** as a consensus source; sync `sleeper_id`→`player_key` so league rosters link to PlayerDetail/career model.
 
+### ▶ NEXT ROUND — Sleeper as its own main site section (user request 2026-06-07)
+Promote Sleeper from the single League-import tab to a **dedicated top-level site section** (its own nav group) covering: league import (have it), standings, per-team rosters, trending adds/drops + projections (exist in retired `SleeperView`), **a user's all-leagues view** (enter a Sleeper username → list every league), and per-league matchups/standings.
+The user suggests the **`sleeper_wrapper`** Python package (`pip install sleeper_wrapper`) for any Python-side pulls — wraps League / Players / User / Drafts. (The TS app can keep using the CORS-open REST API directly, as `data.ts`/`sleeper.ts` already do; `sleeper_wrapper` is for offline/Python pipelines.) Example the user provided:
+```python
+from sleeper_wrapper import League, Players, User
+league = League(1180266430665863168)
+rosters = league.get_rosters(); users = league.get_users()
+standings = league.get_standings(rosters, users)          # standings tuple list
+players = Players().get_all_players()                       # id -> {full_name, position, team, gsis_id, ...}
+lgs = User("dachhack").get_all_leagues('nfl', 2026)         # every league for a username/season
+```
+Key endpoints this implies for the TS side: `GET /v1/user/<name>` → user_id; `GET /v1/user/<user_id>/leagues/nfl/<season>` (all leagues); `GET /v1/league/<id>/matchups/<week>`. `get_all_players()` has `gsis_id` → join straight to our crosswalk by gsis for `player_key` (cleaner than the name match we use now).
+
 ### Conventions
 One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; verify UI with headless puppeteer (`npm i --no-save puppeteer`) against `npx vite preview` on a fresh port (don't `pkill`). Merge via GitHub MCP tools. Commit/PR footer = session URL; never commit the model id.
 
@@ -51,7 +64,9 @@ One PR per feature; `tsc -b` + eslint + `vite build` green before shipping; veri
 7. ⬜ Better **player cards** with stats + images (career-chip scaling already fixed; build a richer inline card).
 8. ⬜ Test + clean up the **Draft Optimizer** for the upcoming season.
 
-Extra (not on original list): ✅ SOS true opponent-quality — now uses Consensus DEFENSE grades (PR #328: `scripts/extract_clay_unit_grades.py` → `public/data/clay-unit-grades-2026.json`; `nflSchedule.ts` `teamStrength`/`computeSOS` take optional grades, fall back to offense proxy when absent). The ~24 reg-season network gaps remain TBD on ESPN (re-run `enrich_schedule_espn.mjs` once assigned).
+Extra (not on original list): ✅ SOS true opponent-quality — now uses Consensus DEFENSE grades (PR #328: `scripts/extract_clay_unit_grades.py` → `public/data/clay-unit-grades-2026.json`; `nflSchedule.ts` `teamStrength`/`computeSOS` take optional grades, fall back to offense proxy when absent). ✅ Team projections + matchup win-prob (PR #329: `scripts/extract_clay_team_pages.py` → `clay-matchups-2026.json` (272 games: proj score + win prob) + `clay-team-projections-2026.json` (32 teams: PF/PA, proj wins, Off/Def/Ovr rank); Schedule view shows a per-game Proj column + a "Consensus team outlook" strip; team pages identified by opponent-fingerprint match vs committed schedule). The ~24 reg-season network gaps remain TBD on ESPN (re-run `enrich_schedule_espn.mjs` once assigned).
+
+**Clay PDF pipeline status**: extractors = `extract_clay_projections.py` (players), `extract_clay_unit_grades.py` (p63 grades), `extract_clay_team_pages.py` (pp2-33 matchups + team proj). Re-run all three on each new PDF drop. Remaining unused: IDP defenders (pp46-55), category leaders (pp58-60), projected standings/draft order (p61), coaching staffs (p74), projected starters w/ ratings (pp75-82).
 
 ---
 

@@ -107,7 +107,7 @@ async function overlayEspn(byTeam: ScheduleByTeam, ensure: (t: string) => TeamSc
 /** Full 2026 schedule by team. Regular season comes from the committed nflverse
  *  snapshot (reliable, build-reachable); TV network + preseason are overlaid
  *  live from ESPN when the browser can reach it. */
-export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number; grades: UnitGradesByTeam | null }> {
+export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; updated: number; grades: UnitGradesByTeam | null; matchups: MatchupsByKey; teamProj: TeamProjByTeam | null }> {
   const byTeam: ScheduleByTeam = {};
   const ensure = (t: string) => (byTeam[t] ??= { reg: [], pre: [] });
 
@@ -143,13 +143,15 @@ export async function fetchNflSchedule(): Promise<{ byTeam: ScheduleByTeam; upda
 
   try { await overlayEspn(byTeam, ensure, hasPre); } catch { /* ESPN unreachable — keep committed data */ }
 
-  const grades = await fetchUnitGrades();
+  const [grades, matchups, teamProj] = await Promise.all([
+    fetchUnitGrades(), fetchMatchups(), fetchTeamProjections(),
+  ]);
 
   for (const t of Object.values(byTeam)) {
     t.reg.sort((a, b) => a.week - b.week);
     t.pre.sort((a, b) => a.week - b.week);
   }
-  return { byTeam, updated, grades };
+  return { byTeam, updated, grades, matchups, teamProj };
 }
 
 // ── Consensus unit grades (opponent quality for SOS) ──
@@ -168,6 +170,57 @@ export async function fetchUnitGrades(season = SCHEDULE_SEASON): Promise<UnitGra
     const r = await fetch(`${import.meta.env.BASE_URL}data/clay-unit-grades-${season}.json`);
     if (!r.ok) return null;
     const d = (await r.json()) as { teams?: UnitGradesByTeam };
+    return d.teams ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Consensus matchups (projected score + win prob) ──
+export interface Matchup {
+  week: number; home: string; away: string;
+  home_pts: number; away_pts: number; home_win_prob: number;
+}
+export type MatchupsByKey = Map<string, Matchup>; // `${week}|${home}|${away}`
+const matchupKey = (week: number, home: string, away: string) => `${week}|${home}|${away}`;
+
+export async function fetchMatchups(season = SCHEDULE_SEASON): Promise<MatchupsByKey> {
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL}data/clay-matchups-${season}.json`);
+    if (!r.ok) return new Map();
+    const d = (await r.json()) as { games?: Matchup[] };
+    return new Map((d.games ?? []).map((g) => [matchupKey(g.week, g.home, g.away), g]));
+  } catch {
+    return new Map();
+  }
+}
+
+/** Projected score + win prob for `team` in a given week vs `opp`, from team's
+ *  perspective. Returns null when no matchup data is loaded for that game. */
+export function matchupFor(
+  matchups: MatchupsByKey, week: number, team: string, opp: string, home: boolean,
+): { teamPts: number; oppPts: number; winProb: number } | null {
+  const [h, a] = home ? [team, opp] : [opp, team];
+  const g = matchups.get(matchupKey(week, h, a));
+  if (!g) return null;
+  return home
+    ? { teamPts: g.home_pts, oppPts: g.away_pts, winProb: g.home_win_prob }
+    : { teamPts: g.away_pts, oppPts: g.home_pts, winProb: 100 - g.home_win_prob };
+}
+
+// ── Consensus team season projections ──
+export interface TeamProjection {
+  points_for: number; points_against: number;
+  proj_wins: number; wins_rank: number; sos_rank: number;
+  off_rk: number; def_rk: number; ovr_rk: number;
+}
+export type TeamProjByTeam = Record<string, TeamProjection>;
+
+export async function fetchTeamProjections(season = SCHEDULE_SEASON): Promise<TeamProjByTeam | null> {
+  try {
+    const r = await fetch(`${import.meta.env.BASE_URL}data/clay-team-projections-${season}.json`);
+    if (!r.ok) return null;
+    const d = (await r.json()) as { teams?: TeamProjByTeam };
     return d.teams ?? null;
   } catch {
     return null;

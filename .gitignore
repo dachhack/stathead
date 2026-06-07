@@ -6,6 +6,8 @@ public/data/*
 !public/data/schedule-*.json
 !public/data/clay-projections-*.json
 !public/data/clay-unit-grades-*.json
+!public/data/clay-matchups-*.json
+!public/data/clay-team-projections-*.json
 !public/data/training-rows-cache-*.json
 !public/data/trained-models-cache-*.json
 !public/data/model-cache-*.json
