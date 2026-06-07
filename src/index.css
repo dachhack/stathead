@@ -1558,8 +1558,8 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 5px 0;
+  gap: 6px;
+  padding: 3px 0;
   flex-wrap: wrap;
 }
 
@@ -1624,7 +1624,7 @@ tr:hover td {
 .scenario-stat-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
+  gap: 4px 6px;
   width: 100%;
   margin-top: 4px;
   align-items: flex-end;
@@ -1645,7 +1645,19 @@ tr:hover td {
 }
 
 .scenario-stat-field input {
-  width: 52px;
+  width: 42px;
+  padding: 3px 5px;
+  font-size: 11px;
+  border-radius: 5px;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.scenario-stat-field input::-webkit-outer-spin-button,
+.scenario-stat-field input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .scenario-stat-share > span { color: var(--accent); }
@@ -1655,50 +1667,6 @@ tr:hover td {
 }
 
 .scenario-stat-reset { align-self: center; font-size: 10px; }
-
-/* Editable cells in the by-team projection view */
-
-.team-edit-input {
-  width: 46px;
-  padding: 1px 3px;
-  text-align: right;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: inherit;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.team-edit-input::-webkit-outer-spin-button,
-.team-edit-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.team-edit-input:hover {
-  border-color: var(--border);
-}
-
-.team-edit-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--bg-tertiary);
-}
-
-.team-edit-input.edited {
-  color: var(--accent);
-  font-weight: 700;
-  border-color: rgba(0, 212, 170, 0.35);
-}
-
-.team-edit-input.edited-neg {
-  color: #64c8ff;
-  font-weight: 700;
-  border-color: rgba(100, 200, 255, 0.35);
-}
 
 /* Add button */
 

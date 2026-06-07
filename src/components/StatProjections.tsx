@@ -4,7 +4,7 @@ import {
   fetchDraftPicks, fetchRosters, fetchGames,
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
-import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer, PlayerStatOverride } from '../types';
+import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
@@ -661,53 +661,18 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
   }, [isActuals, qbProjections, rbProjections, wrProjections, teProjections, scenario]);
 
   // ── Inline editing for the by-team view ──
-  // Stable PlayerID per (normalized) name, matching the synthetic ids the
-  // Scenario Builder uses, so edits made here and there reconcile.
+  // Highlight stat cells that have an active override so the read-only team view
+  // shows at a glance where the scenario has changed a player's line.
+  const overrideIdSet = useMemo(
+    () => new Set((scenario.statOverrides ?? []).map((s) => s.playerId)),
+    [scenario.statOverrides],
+  );
   const searchIdByName = useMemo(() => {
     const m = new Map<string, number>();
     for (const p of searchProjections) m.set(normalizeName(p.Name), p.PlayerID);
     return m;
   }, [searchProjections]);
-  // Internal projection field → SDIO stat-override field name.
-  const FIELD_TO_SDIO: Record<string, keyof PlayerStatOverride> = {
-    passAtt: 'PassingAttempts', passComp: 'PassingCompletions', passYds: 'PassingYards',
-    passTD: 'PassingTouchdowns', int: 'PassingInterceptions',
-    rushAtt: 'RushingAttempts', rushYds: 'RushingYards', rushTD: 'RushingTouchdowns',
-    rec: 'Receptions', recYds: 'ReceivingYards', recTD: 'ReceivingTouchdowns',
-  };
-  const STAT_SDIO_KEYS = Object.values(FIELD_TO_SDIO) as string[];
-  const commitScenario = (next: ScenarioConfig) => { setScenario(next); onScenarioChange?.(next); };
-  const idForName = (name: string) => searchIdByName.get(normalizeName(name)) ?? 0;
-  // Current absolute stat override value for a player's SDIO field (or undefined).
-  const teamStatVal = (name: string, sdio: keyof PlayerStatOverride): number | undefined => {
-    const id = idForName(name);
-    const o = (scenario.statOverrides ?? []).find((s) => s.playerId === id) as Record<string, number | undefined> | undefined;
-    return o ? o[sdio] : undefined;
-  };
-  const setTeamStat = (pos: string, p: { name: string; team: string }, field: string, value: number | undefined) => {
-    const sdio = FIELD_TO_SDIO[field];
-    if (!sdio) return;
-    const id = idForName(p.name);
-    const rest = (scenario.statOverrides ?? []).filter((s) => s.playerId !== id);
-    const existing = (scenario.statOverrides ?? []).find((s) => s.playerId === id);
-    const merged = { ...(existing ?? { playerId: id, playerName: p.name, team: p.team, position: pos }) } as Record<string, number | string | undefined>;
-    if (value === undefined || Number.isNaN(value)) delete merged[sdio];
-    else merged[sdio] = value;
-    const hasAny = STAT_SDIO_KEYS.some((k) => merged[k] !== undefined);
-    commitScenario({ ...scenario, statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest });
-  };
-  // Games / availability override (or undefined → full season).
-  const teamGamesVal = (name: string): number | undefined =>
-    (scenario.playerAvailability ?? []).find((a) => a.playerId === idForName(name))?.games;
-  const setTeamGames = (pos: string, p: { name: string; team: string }, games: number) => {
-    const id = idForName(p.name);
-    const rest = (scenario.playerAvailability ?? []).filter((a) => a.playerId !== id);
-    const g = Math.max(1, Math.min(17, Math.round(games)));
-    commitScenario({
-      ...scenario,
-      playerAvailability: g >= 17 ? rest : [...rest, { playerId: id, playerName: p.name, team: p.team, position: pos, games: g }],
-    });
-  };
+  const isEdited = (name: string) => overrideIdSet.has(searchIdByName.get(normalizeName(name)) ?? -1);
 
   useEffect(() => {
     let cancelled = false;
@@ -2296,68 +2261,39 @@ export function StatProjections({ season = PREDICT_SEASON, onScenarioChange }: {
             }
 
             const gv = (p: object, f: string) => (p as Record<string, number>)[f] || 0;
-            // Editable stat cell: shows override-or-projected value, writes an
-            // absolute stat override on change; the share % beside it re-derives.
-            const ecell = (pos: string, p: { name: string; team: string }, field: string, shareRef?: number, opts?: { red?: boolean }) => {
-              const sdio = FIELD_TO_SDIO[field];
-              const ov = teamStatVal(p.name, sdio);
-              const val = ov !== undefined ? ov : gv(p, field);
-              const shown = val ? Math.round(val) : (ov !== undefined ? 0 : '');
-              return (
-                <td style={{ ...tdStyle, textAlign: 'right', color: opts?.red && val ? '#ef4444' : undefined }}>
-                  <input
-                    className={`team-edit-input ${ov !== undefined ? 'edited' : ''}`}
-                    type="number"
-                    min={0}
-                    value={shown}
-                    onChange={(e) => setTeamStat(pos, p, field, e.target.value === '' ? undefined : Number(e.target.value))}
-                  />
-                  {shareRef ? <span style={shareStyle}>{pct(val, shareRef)}</span> : null}
-                </td>
-              );
-            };
-            const gmCell = (pos: string, p: { name: string; team: string; games: number }) => {
-              const ov = teamGamesVal(p.name);
-              const val = ov ?? p.games;
-              return (
-                <td style={{ ...tdStyle, textAlign: 'right' }}>
-                  <input
-                    className={`team-edit-input ${ov !== undefined && ov < 17 ? 'edited-neg' : ''}`}
-                    type="number"
-                    min={1}
-                    max={17}
-                    value={Math.round(val)}
-                    onChange={(e) => setTeamGames(pos, p, e.target.value === '' ? 17 : Number(e.target.value))}
-                  />
-                </td>
-              );
-            };
-            const empty = (key: string) => <td key={key} style={tdStyle} />;
+            // Read-only stat cell. Editing lives in the Scenario Builder; an
+            // overridden player's numbers are tinted so changes are visible here.
             function playerRow(pos: string, p: { name: string; team: string; games: number; pprPts: number }) {
               const isQB = pos === 'QB';
               const hasRush = pos !== 'TE';
+              const edited = isEdited(p.name);
+              const editColor = edited ? 'var(--accent)' : undefined;
+              const cell = (field: string, shareRef?: number, opts?: { bold?: boolean; red?: boolean }) => {
+                const v = gv(p, field);
+                return (
+                  <td style={{ ...tdStyle, textAlign: 'right', color: opts?.red && v ? '#ef4444' : editColor, fontWeight: opts?.bold && v ? 700 : undefined }}>
+                    {v ? <>{v >= 1000 ? v.toLocaleString() : v}{shareRef ? <span style={shareStyle}>{pct(v, shareRef)}</span> : null}</> : ''}
+                  </td>
+                );
+              };
+              const blank = (key: string) => <td key={key} style={tdStyle} />;
               return (
                 <tr key={p.name}>
                   <td style={{ ...tdStyle, color: POS_COLORS[pos], fontWeight: 700 }}>{pos}</td>
-                  <td style={{ ...tdStyle, minWidth: 130 }}><strong>{p.name}</strong></td>
-                  {gmCell(pos, p)}
-                  {isQB ? ecell(pos, p, 'passAtt') : empty('pa')}
-                  {isQB ? ecell(pos, p, 'passComp') : empty('pc')}
-                  {isQB ? ecell(pos, p, 'passYds', projTotal?.passYds) : empty('py')}
-                  {isQB ? ecell(pos, p, 'passTD') : empty('pt')}
-                  {isQB ? ecell(pos, p, 'int', undefined, { red: true }) : empty('pi')}
-                  {hasRush ? ecell(pos, p, 'rushAtt', projTotal?.rushAtt) : empty('ra')}
-                  {hasRush ? ecell(pos, p, 'rushYds') : empty('ry')}
-                  {hasRush ? ecell(pos, p, 'rushTD') : empty('rt')}
-                  {/* Targets: display-only (no PPR weight; not an override field) */}
-                  {isQB ? empty('tg') : (
-                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      {gv(p, 'tgt') ? <>{gv(p, 'tgt')}<span style={shareStyle}>{pct(gv(p, 'tgt'), projTotal?.tgt)}</span></> : ''}
-                    </td>
-                  )}
-                  {isQB ? empty('rc') : ecell(pos, p, 'rec')}
-                  {isQB ? empty('rcy') : ecell(pos, p, 'recYds', projTotal?.recYds)}
-                  {isQB ? empty('rct') : ecell(pos, p, 'recTD')}
+                  <td style={{ ...tdStyle, minWidth: 110, color: editColor }}><strong>{p.name}</strong></td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{p.games}</td>
+                  {isQB ? cell('passAtt') : blank('pa')}
+                  {isQB ? cell('passComp') : blank('pc')}
+                  {isQB ? cell('passYds', projTotal?.passYds) : blank('py')}
+                  {isQB ? cell('passTD', undefined, { bold: true }) : blank('pt')}
+                  {isQB ? cell('int', undefined, { red: true }) : blank('pi')}
+                  {hasRush ? cell('rushAtt', projTotal?.rushAtt) : blank('ra')}
+                  {hasRush ? cell('rushYds') : blank('ry')}
+                  {hasRush ? cell('rushTD', undefined, { bold: true }) : blank('rt')}
+                  {isQB ? blank('tg') : cell('tgt', projTotal?.tgt)}
+                  {isQB ? blank('rc') : cell('rec')}
+                  {isQB ? blank('rcy') : cell('recYds', projTotal?.recYds)}
+                  {isQB ? blank('rct') : cell('recTD', undefined, { bold: true })}
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: POS_COLORS[pos] }}>{p.pprPts}</td>
                 </tr>
               );
