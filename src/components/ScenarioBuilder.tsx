@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, type FocusEvent as RFocusEvent, type KeyboardEvent as RKeyboardEvent } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
@@ -78,8 +78,18 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
-  // Which roster-table cell is currently in edit mode (click-to-edit).
+  // Which roster-table cell is currently in edit mode (click-to-edit stepper).
   const [editCell, setEditCell] = useState<{ id: number; field: string } | null>(null);
+  // Close the active stepper when clicking away from any editable cell.
+  useEffect(() => {
+    if (!editCell) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest('.se-stepper') && !t.closest('.se-num')) setEditCell(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [editCell]);
 
   // Player movement add form
   const [moveSearch, setMoveSearch] = useState('');
@@ -850,8 +860,8 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
               <span className="scenario-section-title">Roster Editor</span>
             </div>
             <p className="scenario-section-hint">
-              Pick a team, then <strong>click any number to edit it</strong> — set an exact stat,
-              games (availability), or a PPR target. Edits flow straight to the projections.
+              Pick a team, then <strong>click a number and nudge it with ▲/▼</strong> — adjust a
+              stat, games (availability), or a PPR target. Edits flow straight to the projections.
             </p>
 
             <div className="scenario-roster-controls">
@@ -868,48 +878,75 @@ export function ScenarioBuilder({ open, onClose, projections, freeAgents = [], p
             </div>
 
             {editTeam && (() => {
-              const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : Math.round(v)) : '');
+              const fmt = (v: number) => (v ? (v >= 1000 ? v.toLocaleString() : String(Math.round(v))) : '');
               const share = (v: number, ref: number) => (ref && v ? `${Math.round((v / ref) * 100)}%` : '');
-              const commit = (raw: string, apply: (n: number | undefined) => void) => {
-                apply(raw.trim() === '' ? undefined : Number(raw));
-                setEditCell(null);
+              // Per-stat step size for the up/down arrows.
+              const STEP: Record<string, number> = {
+                PassingYards: 25, RushingYards: 10, ReceivingYards: 10,
+                PassingAttempts: 5, PassingCompletions: 5, RushingAttempts: 5, Receptions: 2,
+                PassingTouchdowns: 1, RushingTouchdowns: 1, ReceivingTouchdowns: 1, PassingInterceptions: 1,
+                games: 1, ppr: 5,
               };
-              const editProps = (apply: (n: number | undefined) => void) => ({
-                className: 'se-input',
-                type: 'number' as const,
-                autoFocus: true,
-                onFocus: (e: RFocusEvent<HTMLInputElement>) => e.currentTarget.select(),
-                onBlur: (e: RFocusEvent<HTMLInputElement>) => commit(e.target.value, apply),
-                onKeyDown: (e: RKeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                  else if (e.key === 'Escape') setEditCell(null);
-                },
-              });
-              const statTd = (p: SDIOProjection, field: StatField, ref?: number) => {
-                const v = statVal(p, field);
-                if (editCell?.id === p.PlayerID && editCell.field === field) {
-                  return <td className="se-cell se-editing"><input {...editProps((n) => setStats(p, { [field]: n }))} defaultValue={v ? Math.round(v) : ''} /></td>;
+              // Renders a cell that shows a plain number until clicked, then a
+              // value with ▲/▼ arrows to nudge it (no typing).
+              const stepCell = (opts: {
+                active: boolean; display: string; cls: string; shareTxt?: string;
+                onActivate: () => void; onStep: (dir: number) => void;
+              }) => {
+                if (!opts.active) {
+                  return (
+                    <td className={opts.cls} onClick={opts.onActivate}>
+                      {opts.display}{opts.shareTxt ? <span className="se-share">{opts.shareTxt}</span> : null}
+                    </td>
+                  );
                 }
                 return (
-                  <td className={`se-cell se-num ${isStatEdited(p, field) ? 'se-edited' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field })}>
-                    {fmt(v)}{ref ? <span className="se-share">{share(v, ref)}</span> : null}
+                  <td className={`${opts.cls} se-stepping`}>
+                    <div className="se-stepper">
+                      <span className="se-stepval" onClick={() => setEditCell(null)} title="Done">{opts.display || '0'}</span>
+                      <span className="se-steparrows">
+                        <button type="button" className="se-arrow" aria-label="increase" onClick={() => opts.onStep(1)}>▲</button>
+                        <button type="button" className="se-arrow" aria-label="decrease" onClick={() => opts.onStep(-1)}>▼</button>
+                      </span>
+                    </div>
                   </td>
                 );
               };
+              const statTd = (p: SDIOProjection, field: StatField, ref?: number) => {
+                const v = statVal(p, field);
+                const base = (p as unknown as Record<string, number>)[field] || 0;
+                return stepCell({
+                  active: editCell?.id === p.PlayerID && editCell.field === field,
+                  display: fmt(v),
+                  cls: `se-cell se-num ${isStatEdited(p, field) ? 'se-edited' : ''}`,
+                  shareTxt: ref ? share(v, ref) : undefined,
+                  onActivate: () => setEditCell({ id: p.PlayerID, field }),
+                  onStep: (dir) => {
+                    const next = Math.max(0, Math.round(v + dir * (STEP[field] ?? 1)));
+                    setStats(p, { [field]: next === base ? undefined : next });
+                  },
+                });
+              };
               const gamesTd = (p: SDIOProjection) => {
                 const g = gamesOf(p.PlayerID);
-                if (editCell?.id === p.PlayerID && editCell.field === 'games') {
-                  return <td className="se-cell se-editing"><input {...editProps((n) => setPlayerGames(p, n === undefined ? 17 : n))} defaultValue={g} /></td>;
-                }
-                return <td className={`se-cell se-num ${g < 17 ? 'se-edited-neg' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field: 'games' })}>{g}</td>;
+                return stepCell({
+                  active: editCell?.id === p.PlayerID && editCell.field === 'games',
+                  display: String(g),
+                  cls: `se-cell se-num ${g < 17 ? 'se-edited-neg' : ''}`,
+                  onActivate: () => setEditCell({ id: p.PlayerID, field: 'games' }),
+                  onStep: (dir) => setPlayerGames(p, Math.max(1, Math.min(17, g + dir))),
+                });
               };
               const ptsTd = (p: SDIOProjection) => {
                 const ov = pprOf(p.PlayerID);
                 const v = ov ?? computedPPR(p);
-                if (editCell?.id === p.PlayerID && editCell.field === 'ppr') {
-                  return <td className="se-cell se-editing"><input {...editProps((n) => setPlayerPpr(p, n))} defaultValue={Math.round(v)} /></td>;
-                }
-                return <td className={`se-cell se-num se-pts ${ov !== undefined ? 'se-edited' : ''}`} onClick={() => setEditCell({ id: p.PlayerID, field: 'ppr' })}>{Math.round(v)}</td>;
+                return stepCell({
+                  active: editCell?.id === p.PlayerID && editCell.field === 'ppr',
+                  display: String(Math.round(v)),
+                  cls: `se-cell se-num se-pts ${ov !== undefined ? 'se-edited' : ''}`,
+                  onActivate: () => setEditCell({ id: p.PlayerID, field: 'ppr' }),
+                  onStep: (dir) => setPlayerPpr(p, Math.max(0, Math.round(v + dir * STEP.ppr))),
+                });
               };
               const blank = (k: string) => <td key={k} className="se-cell" />;
               const players = editRoster.flatMap((g) => g.players);
