@@ -6,12 +6,13 @@ prior-year-rates baseline (a stand-in for our model — see caveat) against the
 ACTUAL season PPR from public/data/player_stats_<year>.csv.gz, then sweeps the
 blend weight w in `w*Clay + (1-w)*baseline` per position.
 
-Inputs are the extracted Clay JSONs produced by extract_clay_projections.py
-(run on each historic PDF to a scratch dir — the historic PDFs/outputs are NOT
-committed; only this tool + our public actuals are):
+Inputs are the extracted Clay JSONs produced by extract_clay_projections.py.
+Historic player projections are committed under public/data (so they persist
+across sessions without re-uploading the PDFs); the PDFs themselves stay out of
+the repo. To process a brand-new historic PDF first:
 
-    python3 scripts/extract_clay_projections.py 2024.pdf 2024 /tmp/clay/clay-2024.json
-    python3 scripts/clay_blend_study.py --clay-dir /tmp/clay --years 2023,2024,2025
+    python3 scripts/extract_clay_projections.py <hist.pdf> <year> public/data/clay-projections-<year>.json
+    python3 scripts/clay_blend_study.py --clay-dir public/data --years 2023,2024,2026
 
 Caveat: "baseline" is prior-year rates, not our full ensemble; our real model is
 stronger, so the optimal Clay weights here are upper bounds. More seasons tighten
@@ -117,14 +118,14 @@ def sweep(rs, score, maximize):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--clay-dir", required=True, help="dir of clay-<year>.json")
+    ap.add_argument("--clay-dir", default="public/data", help="dir of clay-projections-<year>.json")
     ap.add_argument("--years", required=True, help="comma list, e.g. 2023,2024,2025")
     args = ap.parse_args()
     years = [int(y) for y in args.years.split(",")]
 
     rows = []
     for Y in years:
-        clay = json.loads((Path(args.clay_dir) / f"clay-{Y}.json").read_text())["players"]
+        clay = json.loads((Path(args.clay_dir) / f"clay-projections-{Y}.json").read_text())["players"]
         act, _ = season_actuals(Y)
         base = baseline(Y)
         by_pos = collections.defaultdict(list)

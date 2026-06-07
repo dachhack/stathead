@@ -20,7 +20,7 @@ Shipped this session:
 - **#330** Year-agnostic Clay extractor + `clay_blend_study.py`.
 
 **Two things waiting on the user (next session):**
-1. **More historic Clay PDFs** (esp. 2025) to finalize per-position blend weights — user hit the upload limit; has ~5 more. Re-run per the "Blend-weight study" note below, then set per-position weights in `scenarioPresets.ts` (flat `0.8` today; QB ~0.4 is the exception). 2026 + 2023 + 2024 were processed; historic PDFs are NOT committed (re-upload to re-extract).
+1. **More historic Clay PDFs** (esp. 2025) to finalize per-position blend weights — user hit the upload limit; has ~5 more. Extracted **2023 + 2024 + 2026 player projections are now committed** to `public/data/clay-projections-<year>.json` (PR #332), so the study runs across sessions WITHOUT re-uploading: `python3 scripts/clay_blend_study.py --years 2023,2024`. Add new years by extracting their PDF to the same path, then re-run + set per-position weights in `scenarioPresets.ts` (flat `0.8` today; QB ~0.4 is the exception). (PDFs themselves stay out of the repo.)
 2. **Sleeper as its own main site section** — see the "NEXT ROUND — Sleeper" note in Task 2 (sleeper_wrapper, all-leagues-by-username, matchups, gsis→player_key).
 
 ---
@@ -89,10 +89,10 @@ Extra (not on original list): ✅ SOS true opponent-quality — now uses Consens
 
 **Clay PDF pipeline status**: extractors = `extract_clay_projections.py` (players; now year-agnostic — detects position by page title, takes optional out-path), `extract_clay_unit_grades.py` (p63 grades), `extract_clay_team_pages.py` (pp2-33 matchups + team proj). Re-run all three on each new PDF drop. Remaining unused: IDP defenders (pp46-55), category leaders (pp58-60), projected standings/draft order (p61), coaching staffs (p74), projected starters w/ ratings (pp75-82).
 
-**Blend-weight study** (`scripts/clay_blend_study.py`): scores Clay + a prior-year-rates baseline vs actual season PPR (`player_stats_<Y>`) and sweeps the per-position blend weight. Run on extracted historic Clay JSONs (historic PDFs/outputs NOT committed — extract to a scratch dir):
+**Blend-weight study** (`scripts/clay_blend_study.py`): scores Clay + a prior-year-rates baseline vs actual season PPR (`player_stats_<Y>`) and sweeps the per-position blend weight. Historic player projections are committed under `public/data/clay-projections-<year>.json` (2023/2024/2026 present); just run:
 ```
-python3 scripts/extract_clay_projections.py <hist.pdf> <year> /tmp/clay/clay-<year>.json
-python3 scripts/clay_blend_study.py --clay-dir /tmp/clay --years 2023,2024,2025
+python3 scripts/clay_blend_study.py --years 2023,2024          # add years as PDFs are processed
+# new PDF: python3 scripts/extract_clay_projections.py <hist.pdf> <year> public/data/clay-projections-<year>.json
 ```
 Findings so far (2023-2024, n=284, non-rookie): aggregate optimal ≈ **0.80 Clay** (validates the flat 80/20). By position: **QB ~0.40-0.45** (Clay no better than priors!), RB ~0.85-0.90, WR ~0.70-0.80, TE ~0.80-1.0. ⚠️ "baseline" is prior-year rates, not our real ensemble → these are UPPER BOUNDS on Clay weight; rookies excluded (a Clay strength — keep Clay high for them). **TODO when more historic PDFs arrive (user has 5, esp. 2025)**: re-run, then set per-position weights in `scenarioPresets.ts` (currently flat `CONSENSUS_CLAY_WEIGHT = 0.8`), mainly pulling QB down.
 
