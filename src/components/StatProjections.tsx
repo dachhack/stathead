@@ -678,6 +678,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   // proprietary numbers are never committed — empty (preset hidden) in the
   // public deploy where the file is absent.
   const [clayPprMap, setClayPprMap] = useState<Map<string, number>>(new Map());
+  const [clayStatsMap, setClayStatsMap] = useState<Map<string, import('../lib/scenarioPresets').ClayStats>>(new Map());
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
   // Lifted out of the projection effect so the by-team grouping memo can
   // consult Clay's depth ordering directly. Belt-and-suspenders against
@@ -1059,6 +1060,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           const clayRaw = clayDoc?.players;
           if (!cancelled && Array.isArray(clayRaw)) {
             const clayMap = new Map<string, number>();
+            const csMap = new Map<string, import('../lib/scenarioPresets').ClayStats>();
             for (const c of clayRaw as Array<Record<string, number | string>>) {
               const name = String(c.name ?? '');
               if (!name) continue;
@@ -1067,9 +1069,26 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                 rushYds: Number(c.rush_yds) || 0, rushTD: Number(c.rush_td) || 0,
                 rec: Number(c.rec) || 0, recYds: Number(c.rec_yds) || 0, recTD: Number(c.rec_td) || 0,
               });
-              if (ppr > 0) clayMap.set(normalizeName(name), Math.round(ppr));
+              const nk = normalizeName(name);
+              if (ppr > 0) {
+                clayMap.set(nk, Math.round(ppr));
+                csMap.set(nk, {
+                  position: String(c.position ?? ''),
+                  pos_rk: Number(c.pos_rk) || 999,
+                  ...(c.pass_yds != null && { pass_yds: Number(c.pass_yds) || 0 }),
+                  ...(c.pass_td != null && { pass_td: Number(c.pass_td) || 0 }),
+                  ...(c.pass_int != null && { pass_int: Number(c.pass_int) || 0 }),
+                  ...(c.rush_yds != null && { rush_yds: Number(c.rush_yds) || 0 }),
+                  ...(c.rush_td != null && { rush_td: Number(c.rush_td) || 0 }),
+                  ...(c.rec != null && { rec: Number(c.rec) || 0 }),
+                  ...(c.rec_yds != null && { rec_yds: Number(c.rec_yds) || 0 }),
+                  ...(c.rec_td != null && { rec_td: Number(c.rec_td) || 0 }),
+                  ppr: Math.round(ppr),
+                });
+              }
             }
             setClayPprMap(clayMap);
+            setClayStatsMap(csMap);
           }
         }
 
@@ -2282,6 +2301,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         freeAgents={freeAgentList}
         playerMeta={playerMetaMap}
         clayPpr={clayPprMap}
+        clayStats={clayStatsMap}
         normalizeName={normalizeName}
         scenario={scenario}
         onChange={(sc) => onScenarioChange?.(sc)}
