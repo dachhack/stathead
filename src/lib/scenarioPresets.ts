@@ -180,28 +180,37 @@ const vegasWeighted: ScenarioPreset = {
   },
 };
 
-// ── Consensus (80% Clay / 20% us) ──────────────────────────────────
-// Blend each player's projection toward Mike Clay's numbers: 0.8·Clay + 0.2·us
-// at the PPR level (counting stats keep our shape, scaled to the blended PPG).
+// ── Consensus (per-position Clay blend) ──────────────────────────────
+// Blend each player's projection toward Mike Clay's numbers at the PPR level
+// (counting stats keep our shape, scaled to the blended PPG).
+// Weights derived from 5-year blend study (2021-2025, n=704 non-rookie
+// player-seasons) averaging MAE-optimal and Spearman-optimal across
+// season-total and per-game normalization. See scripts/clay_blend_study.py.
 // LOCAL-ONLY: depends on the gitignored Clay set (ctx.clayPpr); this preset is
-// hidden in the public deploy where that data is absent, so Clay's licensed
-// numbers are never shipped. Falls back to a no-op if no Clay data is present.
-const CONSENSUS_CLAY_WEIGHT = 0.8;
+// hidden in the public deploy where that data is absent.
+const CONSENSUS_CLAY_WEIGHT: Record<string, number> = {
+  QB: 0.75,
+  RB: 0.75,
+  WR: 0.55,
+  TE: 0.85,
+};
+const CONSENSUS_CLAY_WEIGHT_DEFAULT = 0.70;
 const consensus: ScenarioPreset = {
   id: 'preset-consensus',
   name: 'Consensus',
-  description: 'Blend 80% consensus / 20% our projection per player.',
+  description: 'Per-position consensus blend (5yr study: QB/RB 75%, WR 55%, TE 85%).',
   requiresClay: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus');
     const clay = ctx?.clayPpr;
-    if (!clay || clay.size === 0) return sc; // no Clay data → no-op
+    if (!clay || clay.size === 0) return sc;
     const overrides: PointsOverride[] = [];
     for (const p of players) {
       const clayPpr = clay.get(normalize(p.Name));
       if (clayPpr === undefined || clayPpr <= 0) continue;
       const ours = p.FantasyPointsPPR || 0;
-      const blended = CONSENSUS_CLAY_WEIGHT * clayPpr + (1 - CONSENSUS_CLAY_WEIGHT) * ours;
+      const w = CONSENSUS_CLAY_WEIGHT[p.Position] ?? CONSENSUS_CLAY_WEIGHT_DEFAULT;
+      const blended = w * clayPpr + (1 - w) * ours;
       overrides.push({
         playerId: p.PlayerID,
         playerName: p.Name,
