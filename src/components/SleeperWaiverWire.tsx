@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, type SleeperLeagueSummary } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchSleeperTrending } from '../data';
 import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow } from '../types';
@@ -25,6 +25,7 @@ interface Candidate {
 }
 
 type SortMode = 'proj' | 'trend';
+type TypeFilter = 'all' | 'dynasty' | 'redraft';
 
 export function SleeperWaiverWire() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
@@ -35,6 +36,8 @@ export function SleeperWaiverWire() {
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
   const [sortMode, setSortMode] = useState<SortMode>('proj');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [includedIds, setIncludedIds] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -58,7 +61,11 @@ export function SleeperWaiverWire() {
             } catch { return null; }
           })
         );
-        setLeagues(avails.filter((a): a is LeagueAvailability => a !== null));
+        const valid = avails.filter((a): a is LeagueAvailability => a !== null);
+        setLeagues(valid);
+        // Default to leagues that have actually drafted (non-empty rosters) — an
+        // undrafted startup has zero rostered players, so everyone looks "open".
+        setIncludedIds(new Set(valid.filter((la) => la.rosteredIds.size > 0).map((la) => la.league.league_id)));
         localStorage.setItem(LS_KEY, trimmed);
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setLeagues([]); })
@@ -70,10 +77,18 @@ export function SleeperWaiverWire() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Leagues actually in scope: selected, and matching the dynasty/redraft filter.
+  const effectiveLeagues = useMemo(() => leagues.filter((la) => {
+    if (!includedIds.has(la.league.league_id)) return false;
+    if (typeFilter === 'dynasty') return isDynastyLeague(la.league);
+    if (typeFilter === 'redraft') return !isDynastyLeague(la.league);
+    return true;
+  }), [leagues, includedIds, typeFilter]);
+
   // Merge projections + trending into one candidate per player, then keep only
-  // those open in at least one of your leagues.
+  // those open in at least one of your in-scope leagues.
   const candidates = useMemo(() => {
-    if (!leagues.length) return [];
+    if (!effectiveLeagues.length) return [];
     const byId = new Map<string, Candidate>();
     for (const p of clayPlayers) {
       if (!p.sleeperId) continue;
@@ -94,11 +109,11 @@ export function SleeperWaiverWire() {
     }
     const out: Candidate[] = [];
     for (const c of byId.values()) {
-      c.availableIn = leagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
+      c.availableIn = effectiveLeagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
       if (c.availableIn.length > 0) out.push(c);
     }
     return out;
-  }, [leagues, clayPlayers, trending]);
+  }, [effectiveLeagues, clayPlayers, trending]);
 
   const rows = useMemo(() => {
     let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
@@ -117,15 +132,23 @@ export function SleeperWaiverWire() {
     });
   };
 
+  const toggleLeague = (id: string) => {
+    setIncludedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const availCell = (c: Candidate) => {
-    const all = c.availableIn.length === leagues.length;
+    const all = c.availableIn.length === effectiveLeagues.length;
     return (
       <button
         onClick={() => toggleExpand(c.sleeperId)}
         style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left', color: all ? '#22c55e' : 'var(--text-secondary)' }}
         title="Click to list leagues"
       >
-        {all ? 'All leagues' : `${c.availableIn.length}/${leagues.length}`}
+        {all ? 'All leagues' : `${c.availableIn.length}/${effectiveLeagues.length}`}
         <span style={{ color: 'var(--text-muted)', marginLeft: 4, fontSize: 9 }}>{expanded.has(c.sleeperId) ? '▲' : '▼'}</span>
       </button>
     );
@@ -160,8 +183,41 @@ export function SleeperWaiverWire() {
       {!loading && leagues.length > 0 && (
         <>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '8px 0' }}>
-            Scanning waivers across <b>{leagues.length}</b> leagues · <b>{candidates.length}</b> players open in ≥1 league
+            Scanning waivers across <b>{effectiveLeagues.length}</b> of {leagues.length} leagues · <b>{candidates.length}</b> players open in ≥1 league
           </p>
+
+          {/* League type + per-league filters */}
+          <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Type:</span>
+            {([['all', 'All'], ['dynasty', 'Dynasty'], ['redraft', 'Redraft']] as const).map(([v, label]) => (
+              <button key={v} className={`format-tab ${typeFilter === v ? 'active' : ''}`} onClick={() => setTypeFilter(v)} style={{ padding: '3px 10px', fontSize: 11 }}>{label}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 8px' }}>
+            {leagues.map((la) => {
+              const id = la.league.league_id;
+              const on = includedIds.has(id);
+              const undrafted = la.rosteredIds.size === 0;
+              const dyn = isDynastyLeague(la.league);
+              return (
+                <button
+                  key={id}
+                  onClick={() => toggleLeague(id)}
+                  title={undrafted ? 'Not drafted yet — no waivers' : undefined}
+                  style={{
+                    padding: '3px 9px', fontSize: 11, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                    background: on ? 'rgba(34,197,94,0.12)' : 'var(--bg-tertiary)',
+                    color: on ? 'var(--text-primary)' : 'var(--text-muted)',
+                  }}
+                >
+                  {on ? '✓ ' : ''}{la.league.name}
+                  <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 4 }}>{dyn ? 'Dyn' : 'Rd'}</span>
+                  {undrafted && <span style={{ fontSize: 9, color: '#f59e0b', marginLeft: 4 }}>undrafted</span>}
+                </button>
+              );
+            })}
+          </div>
 
           <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rank by:</span>
