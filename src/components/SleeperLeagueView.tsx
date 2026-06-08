@@ -69,7 +69,7 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
     <div style={{ marginTop: 16 }}>
       <div className="sched-section-title">Team Projections &amp; Matchups</div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-        NFL team outlook for players on this roster. Win prob and projected scores from Consensus (Clay).
+        NFL team outlook for players on this roster. Win prob and projected scores from Consensus projections.
       </p>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
