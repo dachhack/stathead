@@ -53,7 +53,7 @@ const SECTIONS: Section[] = [
       {
         label: 'My Leagues',
         tab: 'sleeper-league',
-        blurb: 'Enter your username to see all your leagues. Load any league for standings, rosters, power rankings, and win-now/rebuild scoring.',
+        blurb: 'Enter your username to see all your leagues. Load any league for standings, rosters, and power rankings — dynasty leagues add win-now/rebuild scoring, redraft leagues rank on projected season points.',
       },
       {
         label: 'Waiver Wire',

@@ -15,6 +15,15 @@ export interface SleeperLeagueInfo {
   total_rosters: number;
   roster_positions: string[];
   scoring_settings: Record<string, number>;
+  settings?: { type?: number };
+}
+
+// Sleeper encodes league format in settings.type: 0 = redraft, 1 = keeper,
+// 2 = dynasty. The rebuilding/contending framework (window labels, age curves,
+// dynasty value) is only meaningful for dynasty; everything else is judged on
+// projected score for the upcoming season.
+export function isDynastyLeague(league: { settings?: { type?: number } } | null | undefined): boolean {
+  return league?.settings?.type === 2;
 }
 
 interface RawRoster {
@@ -78,6 +87,7 @@ export interface SleeperLeagueSummary {
   sport: string;
   roster_positions: string[];
   avatar: string | null;
+  settings?: { type?: number };
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -110,6 +120,7 @@ export interface UserLeagueRoster {
   leagueName: string;
   totalRosters: number;
   rosterPositions: string[];
+  isDynasty: boolean;
   players: string[];
   starters: string[];
   wins: number;
@@ -132,6 +143,7 @@ export async function fetchUserRostersAcrossLeagues(
         leagueName: lg.name,
         totalRosters: lg.total_rosters,
         rosterPositions: lg.roster_positions,
+        isDynasty: isDynastyLeague(lg),
         players: mine.players ?? [],
         starters: mine.starters ?? [],
         wins: mine.settings?.wins ?? 0,

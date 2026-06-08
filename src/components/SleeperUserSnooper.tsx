@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
+import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../lib/waiverUtils';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -136,7 +137,7 @@ function windowColor(label: WindowLabel): string {
   }
 }
 
-function SnoopLeaguePanel({ leagueId, ktc, snoopedUserId, onSnoop }: { leagueId: string; ktc: KTCPlayer[]; snoopedUserId?: string; onSnoop: (name: string) => void }) {
+function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }: { leagueId: string; ktc: KTCPlayer[]; projections: ClayPlayer[]; snoopedUserId?: string; onSnoop: (name: string) => void }) {
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
@@ -152,17 +153,42 @@ function SnoopLeaguePanel({ leagueId, ktc, snoopedUserId, onSnoop }: { leagueId:
   }, [leagueId]);
 
   const selectedTeam = useMemo(() => data?.teams.find((t) => t.rosterId === selected), [data, selected]);
+  const isDynasty = isDynastyLeague(data?.league);
+
+  // Projected season points per team's optimal lineup — the redraft strength metric.
+  const projByTeam = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!data || !projections.length) return map;
+    const scoring = data.league.scoring_settings ?? {};
+    const byId = new Map(projections.filter((p) => p.sleeperId).map((p) => [p.sleeperId!, p]));
+    for (const t of data.teams) {
+      const rosterPlayers = [...t.starters, ...t.bench]
+        .filter((p) => p.name !== 'Empty')
+        .map((p) => byId.get(p.id))
+        .filter((p): p is ClayPlayer => !!p);
+      if (!rosterPlayers.length) continue;
+      const lineup = computeOptimalLineup(rosterPlayers, data.league.roster_positions, scoring);
+      map.set(t.rosterId, lineup.totalStarterPts);
+    }
+    return map;
+  }, [data, projections]);
 
   const powerRows = useMemo(() => {
-    if (!data || !ktc.length) return [];
-    const out: { team: LeagueTeam; score: RosterScore }[] = [];
+    if (!data) return [];
+    const out: { team: LeagueTeam; score: RosterScore | null; projPts: number }[] = [];
     for (const t of data.teams) {
-      const s = scoreRosterSimple(t, ktc);
-      if (s) out.push({ team: t, score: s });
+      const score = ktc.length ? scoreRosterSimple(t, ktc) : null;
+      const projPts = projByTeam.get(t.rosterId) ?? 0;
+      if (isDynasty) {
+        if (score) out.push({ team: t, score, projPts });
+      } else {
+        out.push({ team: t, score, projPts });
+      }
     }
-    out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    if (isDynasty) out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
+    else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [data, ktc]);
+  }, [data, ktc, isDynasty, projByTeam]);
 
   if (loading) return <div className="loading" style={{ padding: '12px 0' }}><div className="spinner" /><span className="loading-text">Loading league…</span></div>;
   if (error) return <p style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</p>;
@@ -171,7 +197,7 @@ function SnoopLeaguePanel({ leagueId, ktc, snoopedUserId, onSnoop }: { leagueId:
   return (
     <div style={{ padding: '8px 0' }}>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '0 0 8px' }}>
-        {data.league.season} · {data.league.status} · {data.league.total_rosters} teams
+        {data.league.season} · {data.league.status} · {data.league.total_rosters} teams · {isDynasty ? 'Dynasty' : 'Redraft'}
       </p>
 
       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Standings</div>
@@ -216,22 +242,33 @@ function SnoopLeaguePanel({ leagueId, ktc, snoopedUserId, onSnoop }: { leagueId:
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Power Rankings</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>#</th><th>Team</th><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 90 }}>Age Dist</th></tr></thead>
+              <thead><tr>
+                <th>#</th><th>Team</th>
+                {isDynasty
+                  ? <><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 90 }}>Age Dist</th></>
+                  : <th title="Projected PPR points (optimal lineup)">Proj Pts</th>}
+              </tr></thead>
               <tbody>
-                {powerRows.map(({ team: t, score: s }, i) => (
+                {powerRows.map(({ team: t, score: s, projPts }, i) => (
                   <tr key={t.rosterId}>
                     <td className="rank-cell">{i + 1}</td>
                     <td><strong>{t.teamName}</strong></td>
-                    <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
-                    <td>{s.totalValue.toLocaleString()}</td>
-                    <td>{s.avgAge.toFixed(1)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
-                        <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
-                        <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
-                        <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
-                      </div>
-                    </td>
+                    {isDynasty && s ? (
+                      <>
+                        <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
+                        <td>{s.totalValue.toLocaleString()}</td>
+                        <td>{s.avgAge.toFixed(1)}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
+                            <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
+                            <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
+                            <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <td style={{ fontWeight: 600 }}>{projPts > 0 ? projPts.toFixed(0) : '—'}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -303,11 +340,13 @@ export function SleeperUserSnooper() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [projections, setProjections] = useState<ClayPlayer[]>([]);
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
     fetchKTCRankings('1qb').then(setKtc);
+    loadClayProjections().then(setProjections);
   }, []);
 
   const snoop = (name: string) => {
@@ -372,10 +411,13 @@ export function SleeperUserSnooper() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [ownership]);
 
+  // Window labels (the rebuilding/contending framework) only apply to dynasty
+  // leagues; redraft/keeper leagues are judged on projected score instead.
   const rosterWindows = useMemo(() => {
     if (!result || !ktc.length || !players.size) return new Map<string, WindowLabel>();
     const map = new Map<string, WindowLabel>();
     for (const r of result.rosters) {
+      if (!r.isDynasty) continue;
       const w = computeRosterWindow(r.players, players, ktc);
       if (w) map.set(r.leagueId, w);
     }
@@ -450,7 +492,7 @@ export function SleeperUserSnooper() {
             </div>
             {windowBreakdown.size > 0 && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Team Objectives Across Leagues</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Team Objectives Across Dynasty Leagues</div>
                 <div style={{ display: 'flex', gap: 3, height: 14, borderRadius: 4, overflow: 'hidden', marginBottom: 4 }}>
                   {(['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'] as const).map((w) => {
                     const cnt = windowBreakdown.get(w) ?? 0;
@@ -555,12 +597,14 @@ export function SleeperUserSnooper() {
                         </button>
                         {isExpanded && (
                           <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} snoopedUserId={result.user.user_id} onSnoop={(name) => { setUsername(name); snoop(name); setExpandedLeague(null); }} />
+                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} projections={projections} snoopedUserId={result.user.user_id} onSnoop={(name) => { setUsername(name); snoop(name); setExpandedLeague(null); }} />
                           </div>
                         )}
                       </td>
                       <td>
-                        {rosterWindows.get(r.leagueId) ? (
+                        {!r.isDynasty ? (
+                          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Redraft</span>
+                        ) : rosterWindows.get(r.leagueId) ? (
                           <span style={{ color: windowColor(rosterWindows.get(r.leagueId)!), fontWeight: 600, fontSize: 11 }}>
                             {rosterWindows.get(r.leagueId)}
                           </span>
