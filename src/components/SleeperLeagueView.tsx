@@ -922,6 +922,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
 
 // Owned future rookie picks for a single roster, slotted + priced by projected
 // draft order. Picks acquired via trade are flagged with their original team.
+// Rendered inside the roster's Bench column to use the empty space there.
 function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
   picks: DraftPick[];
   teamNamesByRosterId: Map<number, string>;
@@ -933,14 +934,11 @@ function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
   );
   const total = sorted.reduce((s, p) => s + (p.value ?? 0), 0);
   return (
-    <div style={{ marginTop: 16 }}>
-      <div className="sched-section-title">
-        Draft Picks
-        <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11, marginLeft: 8 }}>
-          2027–2028 · slotted by projected finish · total {(total / 1000).toFixed(1)}k
-        </span>
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--bg-tertiary)' }}>
+      <div className="sl-col-head" title="2027–2028 rookie picks, slotted by projected finish">
+        Draft Picks · {(total / 1000).toFixed(1)}k
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
         {sorted.map((pk, i) => {
           const acquired = pk.originalOwnerId !== rosterId;
           const viaName = acquired ? teamNamesByRosterId.get(pk.originalOwnerId) : null;
@@ -950,16 +948,15 @@ function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
           return (
             <div
               key={`${pk.season}-${pk.round}-${pk.originalOwnerId}-${i}`}
+              title={viaName ? `Acquired from ${viaName}` : undefined}
               style={{
-                padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                borderRadius: 6, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 1,
+                padding: '2px 8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+                borderRadius: 6, fontSize: 11, whiteSpace: 'nowrap',
               }}
             >
-              <span style={{ fontWeight: 600 }}>
-                {label}
-                {pk.value != null && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>{(pk.value / 1000).toFixed(1)}k</span>}
-              </span>
-              {viaName && <span style={{ color: '#f59e0b', fontSize: 9 }}>via {viaName}</span>}
+              <span style={{ fontWeight: 600 }}>{label}</span>
+              {pk.value != null && <span style={{ color: 'var(--text-muted)', marginLeft: 5 }}>{(pk.value / 1000).toFixed(1)}k</span>}
+              {viaName && <span style={{ color: '#f59e0b', marginLeft: 5 }}>↤</span>}
             </div>
           );
         })}
@@ -1402,15 +1399,15 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                   <div className="sl-col-head">Bench</div>
                   {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} />)
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
+                  {isDynasty && (
+                    <RosterPicks
+                      picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
+                      teamNamesByRosterId={teamNamesByRosterId}
+                      rosterId={selectedTeam.rosterId}
+                    />
+                  )}
                 </div>
               </div>
-              {isDynasty && (
-                <RosterPicks
-                  picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
-                  teamNamesByRosterId={teamNamesByRosterId}
-                  rosterId={selectedTeam.rosterId}
-                />
-              )}
               <TeamOutlook team={selectedTeam} teamProj={teamProj} matchups={matchups} />
             </>
           )}
