@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
@@ -922,6 +922,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
 
 // Owned future rookie picks for a single roster, slotted + priced by projected
 // draft order. Picks acquired via trade are flagged with their original team.
+// Rendered inside the roster's Bench column to use the empty space there.
 function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
   picks: DraftPick[];
   teamNamesByRosterId: Map<number, string>;
@@ -933,14 +934,11 @@ function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
   );
   const total = sorted.reduce((s, p) => s + (p.value ?? 0), 0);
   return (
-    <div style={{ marginTop: 16 }}>
-      <div className="sched-section-title">
-        Draft Picks
-        <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11, marginLeft: 8 }}>
-          2027–2028 · slotted by projected finish · total {(total / 1000).toFixed(1)}k
-        </span>
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--bg-tertiary)' }}>
+      <div className="sl-col-head" title="2027–2028 rookie picks, slotted by projected finish">
+        Draft Picks · {(total / 1000).toFixed(1)}k
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
         {sorted.map((pk, i) => {
           const acquired = pk.originalOwnerId !== rosterId;
           const viaName = acquired ? teamNamesByRosterId.get(pk.originalOwnerId) : null;
@@ -950,16 +948,15 @@ function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
           return (
             <div
               key={`${pk.season}-${pk.round}-${pk.originalOwnerId}-${i}`}
+              title={viaName ? `Acquired from ${viaName}` : undefined}
               style={{
-                padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                borderRadius: 6, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 1,
+                padding: '2px 8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+                borderRadius: 6, fontSize: 11, whiteSpace: 'nowrap',
               }}
             >
-              <span style={{ fontWeight: 600 }}>
-                {label}
-                {pk.value != null && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>{(pk.value / 1000).toFixed(1)}k</span>}
-              </span>
-              {viaName && <span style={{ color: '#f59e0b', fontSize: 9 }}>via {viaName}</span>}
+              <span style={{ fontWeight: 600 }}>{label}</span>
+              {pk.value != null && <span style={{ color: 'var(--text-muted)', marginLeft: 5 }}>{(pk.value / 1000).toFixed(1)}k</span>}
+              {viaName && <span style={{ color: '#f59e0b', marginLeft: 5 }}>↤</span>}
             </div>
           );
         })}
@@ -989,6 +986,9 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [userLeagues, setUserLeagues] = useState<SleeperLeagueSummary[]>([]);
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState<string | null>(null);
+  // The looked-up user's id — used to default roster/trade views to their team.
+  const [lookedUpUserId, setLookedUpUserId] = useState<string | null>(null);
+  const lookedUpUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
@@ -1003,7 +1003,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     setUserLoading(true);
     setUserError(null);
     fetchSleeperUser(trimmed)
-      .then((u) => fetchUserLeagues(u.user_id))
+      .then((u) => { lookedUpUserIdRef.current = u.user_id; setLookedUpUserId(u.user_id); return fetchUserLeagues(u.user_id); })
       .then((leagues) => {
         setUserLeagues(leagues);
         localStorage.setItem(LS_USER_KEY, trimmed);
@@ -1026,7 +1026,11 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     importLeague(trimmed)
       .then((res) => {
         setData(res);
-        setSelected(res.teams[0]?.rosterId ?? null);
+        // Default to the looked-up user's team; fall back to the standings leader.
+        const mine = lookedUpUserIdRef.current
+          ? res.teams.find((t) => t.ownerId === lookedUpUserIdRef.current)
+          : undefined;
+        setSelected(mine?.rosterId ?? res.teams[0]?.rosterId ?? null);
         localStorage.setItem(LS_KEY, trimmed);
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setData(null); })
@@ -1045,6 +1049,15 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     if (leagueId) run(leagueId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When a league loads (or the looked-up user resolves after it), center the
+  // roster + trade views on that user's team. Only fires on load — manual team
+  // selection afterward sticks since neither dependency changes.
+  useEffect(() => {
+    if (!data || !lookedUpUserId) return;
+    const mine = data.teams.find((t) => t.ownerId === lookedUpUserId);
+    if (mine) setSelected(mine.rosterId);
+  }, [data, lookedUpUserId]);
 
   const scoring = data?.league.scoring_settings ?? {};
   const isDynasty = isDynastyLeague(data?.league);
@@ -1386,15 +1399,15 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                   <div className="sl-col-head">Bench</div>
                   {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} />)
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
+                  {isDynasty && (
+                    <RosterPicks
+                      picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
+                      teamNamesByRosterId={teamNamesByRosterId}
+                      rosterId={selectedTeam.rosterId}
+                    />
+                  )}
                 </div>
               </div>
-              {isDynasty && (
-                <RosterPicks
-                  picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
-                  teamNamesByRosterId={teamNamesByRosterId}
-                  rosterId={selectedTeam.rosterId}
-                />
-              )}
               <TeamOutlook team={selectedTeam} teamProj={teamProj} matchups={matchups} />
             </>
           )}
