@@ -1,24 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="none">
-  <!-- Football outline -->
-  <ellipse cx="40" cy="40" rx="32" ry="22" stroke="#4ade80" stroke-width="3" fill="none"/>
-  <!-- Football left accent -->
-  <path d="M12 30 Q20 40 12 50" stroke="#4ade80" stroke-width="3" fill="#4ade80" opacity="0.6"/>
-  <!-- Football right accent -->
-  <path d="M68 30 Q60 40 68 50" stroke="white" stroke-width="3" fill="white" opacity="0.6"/>
-  <!-- Laces -->
-  <line x1="32" y1="22" x2="48" y2="22" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="34" y1="22" x2="34" y2="18" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
-  <line x1="38" y1="22" x2="38" y2="18" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
-  <line x1="42" y1="22" x2="42" y2="18" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
-  <line x1="46" y1="22" x2="46" y2="18" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
-  <!-- Bar chart inside football -->
-  <rect x="28" y="42" width="6" height="14" rx="1" fill="#94a3b8"/>
-  <rect x="36" y="35" width="6" height="21" rx="1" fill="#cbd5e1"/>
-  <rect x="44" y="28" width="6" height="28" rx="1" fill="#e2e8f0"/>
-  <!-- Arrow on top bar -->
-  <polygon points="47,24 44,30 50,30" fill="#e2e8f0"/>
-  <!-- Text: Stat -->
-  <text x="80" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#4ade80">Stat</text>
-  <!-- Text: Head -->
-  <text x="137" y="48" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#94a3b8">Head</text>
+  <!-- StatHead football + bar-chart mark -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <!-- Football outline (pointed) -->
+    <path d="M6 40 Q38 17 70 40 Q38 63 6 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
+    <!-- Side panel seams -->
+    <path d="M17 33 Q12 40 17 47" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <path d="M59 33 Q64 40 59 47" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <!-- Laces -->
+    <line x1="29" y1="31" x2="47" y2="31" stroke="#4ade80" stroke-width="2.5"/>
+    <line x1="30" y1="30" x2="30" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="34" y1="30" x2="34" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="38" y1="30" x2="38" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="42" y1="30" x2="42" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="46" y1="30" x2="46" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+  </g>
+  <!-- Bar chart inside football (ascending, slate → white) -->
+  <rect x="25" y="45" width="5" height="6" rx="1" fill="#7c8aa0"/>
+  <rect x="32" y="42" width="5" height="9" rx="1" fill="#9fb0c4"/>
+  <rect x="39" y="39" width="5" height="12" rx="1" fill="#cbd5e1"/>
+  <rect x="46" y="36" width="5" height="15" rx="1" fill="#ffffff"/>
+  <!-- Wordmark -->
+  <text x="86" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#4ade80">Stat</text>
+  <text x="143" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#94a3b8">Head</text>
 </svg>

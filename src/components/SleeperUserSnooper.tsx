@@ -1,13 +1,43 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../lib/waiverUtils';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 
 const LS_KEY = 'sleeper_snoop_user';
+
+// Full-screen zoomed view of a clicked avatar. Click anywhere or press Escape
+// to dismiss.
+function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 12, cursor: 'zoom-out',
+      }}
+    >
+      <img
+        src={src}
+        alt={caption ?? ''}
+        style={{ maxWidth: '80vw', maxHeight: '78vh', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.6)' }}
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+      />
+      {caption && <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{caption}</div>}
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Click anywhere or press Esc to close</div>
+    </div>
+  );
+}
 
 interface SnoopResult {
   user: SleeperUser;
@@ -350,6 +380,128 @@ function finishColor(pct: number): string {
   return '#ef4444';
 }
 
+// Charts always span 2020 → current year so the x-axis is consistent.
+const CHART_START_YEAR = 2020;
+function chartSeasons(): string[] {
+  const end = new Date().getFullYear();
+  const out: string[] = [];
+  for (let y = CHART_START_YEAR; y <= end; y++) out.push(String(y));
+  return out;
+}
+
+// Reusable stacked bar chart of raw counts by season, with per-segment labels.
+function StackedYearChart({ title, subtitle, data, series }: {
+  title: string;
+  subtitle?: string;
+  data: Array<Record<string, string | number>>;
+  series: { key: string; color: string }[];
+}) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{subtitle}</div>}
+      <ResponsiveContainer width="100%" height={210}>
+        <BarChart data={data} margin={{ top: 16, right: 8, left: -18, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="season" stroke="var(--text-muted)" fontSize={11} />
+          <YAxis allowDecimals={false} stroke="var(--text-muted)" fontSize={11} width={28} />
+          <Tooltip
+            contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+            cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {series.map((s) => (
+            <Bar key={s.key} dataKey={s.key} stackId="a" fill={s.color} maxBarSize={54}>
+              <LabelList
+                dataKey={s.key}
+                position="center"
+                formatter={(v: number | string) => (Number(v) ? v : '')}
+                style={{ fill: '#fff', fontSize: 10, fontWeight: 600 }}
+              />
+            </Bar>
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Trade grading (hindsight, from the snooped user's side) ──
+const PICK_GRADE_VALUE: Record<number, number> = { 1: 6000, 2: 3000, 3: 1500, 4: 700 };
+const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+
+function sideValue(side: TradeSide, ktcByName: Map<string, number>, players: Map<string, SleeperPlayer>): number {
+  let v = 0;
+  for (const pid of side.players) {
+    const sp = players.get(pid);
+    if (sp) v += ktcByName.get(normalizeForMatch(sp.full_name)) ?? 0;
+  }
+  for (const pk of side.picks) v += PICK_GRADE_VALUE[pk.round] ?? 400;
+  return v;
+}
+
+function tradeGrade(received: number, gave: number): { letter: string; color: string } {
+  if (received <= 0 && gave <= 0) return { letter: '—', color: 'var(--text-muted)' };
+  const margin = (received - gave) / Math.max(received, gave, 1);
+  if (margin >= 0.35) return { letter: 'A', color: '#22c55e' };
+  if (margin >= 0.12) return { letter: 'B', color: '#a3e635' };
+  if (margin >= -0.12) return { letter: 'C', color: 'var(--text-secondary)' };
+  if (margin >= -0.35) return { letter: 'D', color: '#f59e0b' };
+  return { letter: 'F', color: '#ef4444' };
+}
+
+function SideAssets({ side, players }: { side: TradeSide; players: Map<string, SleeperPlayer> }) {
+  const parts: string[] = [];
+  for (const pid of side.players) parts.push(players.get(pid)?.full_name ?? `#${pid}`);
+  for (const pk of side.picks) parts.push(`${pk.season} ${ORDINAL[pk.round] ?? `R${pk.round}`}`);
+  if (side.faab > 0) parts.push(`$${side.faab} FAAB`);
+  if (!parts.length) return <span style={{ color: 'var(--text-muted)' }}>nothing</span>;
+  return <>{parts.join(', ')}</>;
+}
+
+function TradeList({ trades, players, ktcByName }: {
+  trades: TradeRecord[];
+  players: Map<string, SleeperPlayer>;
+  ktcByName: Map<string, number>;
+}) {
+  const MAX = 80;
+  const shown = trades.slice(0, MAX);
+  return (
+    <>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 4px' }}>
+        Grades are hindsight — current player/pick values from your side of each deal.
+      </div>
+      <div className="table-container" style={{ maxHeight: 420 }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead><tr><th>When</th><th>League</th><th>Got</th><th>Gave</th><th title="Hindsight grade from this manager's side">Grade</th></tr></thead>
+          <tbody>
+            {shown.map((t, i) => {
+              const recv = sideValue(t.received, ktcByName, players);
+              const gave = sideValue(t.gave, ktcByName, players);
+              const g = tradeGrade(recv, gave);
+              return (
+                <tr key={`${t.leagueId}-${t.created}-${i}`}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{t.season} Wk{t.week}</td>
+                  <td style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.leagueName}>{t.leagueName}</td>
+                  <td style={{ color: '#22c55e' }}><SideAssets side={t.received} players={players} /></td>
+                  <td style={{ color: 'var(--text-secondary)' }}><SideAssets side={t.gave} players={players} /></td>
+                  <td
+                    style={{ fontWeight: 800, color: g.color, textAlign: 'center' }}
+                    title={recv > 0 || gave > 0 ? `Got ${(recv / 1000).toFixed(1)}k vs gave ${(gave / 1000).toFixed(1)}k (current value)` : 'Not enough current value data to grade'}
+                  >{g.letter}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {trades.length > MAX && (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Showing 80 of {trades.length} trades.</div>
+      )}
+    </>
+  );
+}
+
 interface YearSummary {
   season: string;
   leagues: number;
@@ -364,12 +516,13 @@ interface YearSummary {
   champions: number;
 }
 
-function CareerHistorySection({ userId }: { userId: string }) {
+function CareerHistorySection({ userId, players, ktc }: { userId: string; players: Map<string, SleeperPlayer>; ktc: KTCPlayer[] }) {
   const [history, setHistory] = useState<LeagueSeasonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeActivity | null>(null);
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeProgress, setTradeProgress] = useState({ done: 0, total: 0 });
+  const [chartsOpen, setChartsOpen] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -452,6 +605,51 @@ function CareerHistorySection({ userId }: { userId: string }) {
     [history],
   );
 
+  const ktcByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const k of ktc) m.set(normalizeForMatch(k.playerName), k.value);
+    return m;
+  }, [ktc]);
+
+  // ── Stacked bar chart data (raw counts, fixed 2020 → current x-axis) ──
+  const seasons = useMemo(() => chartSeasons(), []);
+
+  const typeChartData = useMemo(() => seasons.map((season) => {
+    const recs = history.filter((r) => r.season === season);
+    return {
+      season,
+      Dynasty: recs.filter((r) => r.format.type === 'Dynasty').length,
+      Keeper: recs.filter((r) => r.format.type === 'Keeper').length,
+      Redraft: recs.filter((r) => r.format.type === 'Redraft').length,
+    };
+  }), [history, seasons]);
+
+  const bestBallChartData = useMemo(() => seasons.map((season) => {
+    const recs = history.filter((r) => r.season === season);
+    return {
+      season,
+      'Best Ball': recs.filter((r) => r.format.bestBall).length,
+      'Managed': recs.filter((r) => !r.format.bestBall).length,
+    };
+  }), [history, seasons]);
+
+  const hasDynasty = useMemo(() => history.some((r) => r.format.type === 'Dynasty'), [history]);
+
+  // Window classification uses current KTC values on each season's roster, so
+  // older years (retired players, missing values) are approximate.
+  const objectiveChartData = useMemo(() => {
+    if (!hasDynasty || !ktc.length || !players.size) return [];
+    return seasons.map((season) => {
+      const recs = history.filter((r) => r.season === season && r.format.type === 'Dynasty');
+      const row: Record<string, string | number> = { season, 'Win-Now': 0, Contender: 0, Balanced: 0, Retooling: 0, Rebuild: 0 };
+      for (const r of recs) {
+        const w = computeRosterWindow(r.players, players, ktc);
+        if (w) (row[w] as number)++;
+      }
+      return row;
+    });
+  }, [history, seasons, hasDynasty, players, ktc]);
+
   const analyzeTrades = () => {
     setTradeLoading(true);
     setTradeProgress({ done: 0, total: 0 });
@@ -501,8 +699,55 @@ function CareerHistorySection({ userId }: { userId: string }) {
         {career.avgFinishPct != null && stat('avg finish', `Top ${Math.round(career.avgFinishPct * 100)}%`, finishColor(career.avgFinishPct))}
       </div>
 
-      {/* By year */}
-      <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>By Year</div>
+      {/* By year — collapsible stacked bar charts (raw counts, 2020 → current) */}
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none', marginTop: 12 }}
+        onClick={() => setChartsOpen((o) => !o)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{chartsOpen ? '▼' : '▶'}</span>
+        By Year
+      </div>
+
+      {chartsOpen && (
+        <>
+          <StackedYearChart
+            title="Leagues by Type"
+            data={typeChartData}
+            series={[
+              { key: 'Dynasty', color: '#22c55e' },
+              { key: 'Keeper', color: '#f59e0b' },
+              { key: 'Redraft', color: '#64748b' },
+            ]}
+          />
+
+          {objectiveChartData.length > 0 && (
+            <StackedYearChart
+              title="Dynasty Team Objective by Year"
+              subtitle="Window classified from current player values applied to each season's roster — older years are approximate."
+              data={objectiveChartData}
+              series={[
+                { key: 'Win-Now', color: '#ef4444' },
+                { key: 'Contender', color: '#f59e0b' },
+                { key: 'Balanced', color: '#64748b' },
+                { key: 'Retooling', color: '#a3e635' },
+                { key: 'Rebuild', color: '#22c55e' },
+              ]}
+            />
+          )}
+
+          <StackedYearChart
+            title="Best Ball vs Managed by Year"
+            data={bestBallChartData}
+            series={[
+              { key: 'Best Ball', color: '#a78bfa' },
+              { key: 'Managed', color: '#64748b' },
+            ]}
+          />
+        </>
+      )}
+
+      <div style={{ fontSize: 11, fontWeight: 600, margin: '14px 0 4px', color: 'var(--text-secondary)' }}>Detail</div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead><tr><th>Year</th><th>Leagues</th><th>Formats</th><th>Win%</th><th title="Average regular-season standing (top % of the league)">Avg Finish</th><th title="Championships won">🏆</th></tr></thead>
@@ -558,6 +803,9 @@ function CareerHistorySection({ userId }: { userId: string }) {
           </span>
         </div>
       )}
+      {trades && trades.trades.length > 0 && (
+        <TradeList trades={trades.trades} players={players} ktcByName={ktcByName} />
+      )}
 
       {/* Per-league finishes */}
       <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>League Finishes</div>
@@ -601,6 +849,7 @@ export function SleeperUserSnooper() {
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [projections, setProjections] = useState<ClayPlayer[]>([]);
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
@@ -725,7 +974,10 @@ export function SleeperUserSnooper() {
               {result.user.avatar && (
                 <img
                   src={`https://sleepercdn.com/avatars/thumbs/${result.user.avatar}`}
-                  alt="" width={36} height={36} style={{ borderRadius: '50%' }}
+                  alt="" width={36} height={36}
+                  title="Click to zoom"
+                  style={{ borderRadius: '50%', cursor: 'zoom-in' }}
+                  onClick={() => setZoom({ src: `https://sleepercdn.com/avatars/${result.user.avatar}`, caption: result.user.display_name })}
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               )}
@@ -779,7 +1031,7 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Career history across seasons */}
-          <CareerHistorySection userId={result.user.user_id} />
+          <CareerHistorySection userId={result.user.user_id} players={players} ktc={ktc} />
 
           {/* Position breakdown */}
           {posBreakdown.length > 0 && (
@@ -885,6 +1137,8 @@ export function SleeperUserSnooper() {
           </div>
         </>
       )}
+
+      {zoom && <ImageLightbox src={zoom.src} caption={zoom.caption} onClose={() => setZoom(null)} />}
     </div>
   );
 }
