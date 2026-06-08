@@ -2,9 +2,9 @@
   <!-- Dark rounded background matching the masthead (--bg-secondary) -->
   <rect width="64" height="64" rx="13" fill="#1a2733"/>
   <!-- StatHead mark (football + bar chart), centered -->
-  <g transform="translate(1.6,0) scale(0.8)" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Football outline (pointed, ~1.8:1) -->
-    <path d="M6 40 Q38 4 70 40 Q38 76 6 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
+  <g transform="translate(0.84,-0.8) scale(0.82)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Football outline (rounded tips, ~1.85:1) -->
+    <path d="M10 40 C22 20 54 20 66 40 C54 60 22 60 10 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
     <!-- Side panel seams -->
     <path d="M16 30 Q11 40 16 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
     <path d="M60 30 Q65 40 60 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
