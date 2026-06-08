@@ -6,7 +6,7 @@ import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
-import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset } from '../lib/tradeEngine';
+import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats } from '../lib/tradeEngine';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -605,18 +605,75 @@ function scoreColor(score: number): string {
   return '#ef4444';
 }
 
-function TradeCard({ s }: { s: TradeSuggestion }) {
-  const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
+function TradeAssetCard({ a }: { a: TradeAsset }) {
+  if (a.type === 'pick') {
+    return (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '3px 0' }}>
+        <span style={{ fontWeight: 500 }}>{a.name}</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
+      </div>
+    );
+  }
 
-  const assetLine = (a: TradeAsset) => (
-    <div key={a.name} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <span>{a.name}</span>
-      {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
-      {a.age != null && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({a.age})</span>}
-      <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
-      {a.projPts != null && a.projPts > 0 && <span style={{ color: '#6366f1', fontSize: 10 }}>{a.projPts.toFixed(0)}pts</span>}
+  return (
+    <div style={{ padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <span style={{ fontWeight: 500 }}>{a.name}</span>
+        {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
+        {a.age != null && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>Age {a.age}</span>}
+        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 10, color: 'var(--text-muted)' }}>
+        {a.projStats && (
+          <>
+            <span style={{ color: '#6366f1', fontWeight: 600 }}>
+              2026: {a.projStats.projPts.toFixed(0)}pts ({a.position}{a.projStats.projPosRank})
+            </span>
+            {a.projStats.projPassYds != null && a.projStats.projPassYds > 0 && (
+              <span>{a.projStats.projPassYds.toFixed(0)}yds/{a.projStats.projPassTd?.toFixed(0)}td pass</span>
+            )}
+            {a.projStats.projRushYds != null && a.projStats.projRushYds > 0 && (
+              <span>{a.projStats.projRushYds.toFixed(0)}yds/{a.projStats.projRushTd?.toFixed(0)}td rush</span>
+            )}
+            {a.projStats.projRec != null && a.projStats.projRec > 0 && (
+              <span>{a.projStats.projRec.toFixed(0)}rec/{a.projStats.projRecYds?.toFixed(0)}yds/{a.projStats.projRecTd?.toFixed(0)}td</span>
+            )}
+          </>
+        )}
+        {!a.projStats && a.projPts != null && a.projPts > 0 && (
+          <span style={{ color: '#6366f1' }}>2026 proj: {a.projPts.toFixed(0)}pts</span>
+        )}
+        {a.lastSeasonPts != null && (
+          <span>2025: {a.lastSeasonPts.toFixed(0)}pts{a.lastSeasonPosRank ? ` (${a.position}${a.lastSeasonPosRank})` : ''}</span>
+        )}
+      </div>
     </div>
   );
+}
+
+function ScoreBreakdownBar({ breakdown, teamAName, teamBName }: { breakdown: TradeScoreBreakdown; teamAName: string; teamBName: string }) {
+  const checks = [
+    { label: 'Value Fairness', pass: breakdown.fairness >= 60, detail: `${breakdown.fairness}/100` },
+    { label: `${teamAName} goal met`, pass: breakdown.goalAlignmentA, detail: breakdown.goalAlignmentA ? 'Yes' : 'No' },
+    { label: `${teamBName} goal met`, pass: breakdown.goalAlignmentB, detail: breakdown.goalAlignmentB ? 'Yes' : 'No' },
+    { label: `Helps ${teamAName} weakness`, pass: breakdown.strengthensA, detail: breakdown.strengthensA ? 'Yes' : 'No' },
+    { label: `Helps ${teamBName} weakness`, pass: breakdown.strengthensB, detail: breakdown.strengthensB ? 'Yes' : 'No' },
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: 10, marginTop: 6 }}>
+      {checks.map((c) => (
+        <span key={c.label} style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '2px 6px', borderRadius: 4, background: c.pass ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${c.pass ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}` }}>
+          <span style={{ color: c.pass ? '#22c55e' : '#ef4444' }}>{c.pass ? '✓' : '✗'}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{c.label}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{c.detail}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TradeCard({ s }: { s: TradeSuggestion }) {
+  const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
 
   return (
     <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
@@ -636,14 +693,14 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You give:</div>
-          {s.teamA.gives.map(assetLine)}
+          {s.teamA.gives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
             Total: {(result.givesTotal / 1000).toFixed(1)}k
           </div>
         </div>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You get:</div>
-          {s.teamA.receives.map(assetLine)}
+          {s.teamA.receives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
             Total: {(result.receivesTotal / 1000).toFixed(1)}k
             {result.net !== 0 && (
@@ -654,7 +711,8 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{s.rationale}</div>
+      <ScoreBreakdownBar breakdown={s.scoreBreakdown} teamAName={s.teamA.teamName} teamBName={s.teamB.teamName} />
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{s.rationale}</div>
     </div>
   );
 }
@@ -666,9 +724,11 @@ interface TradeSectionProps {
   myRosterId?: number;
   myTeamName?: string;
   projBySleeperIdMap: Map<string, number>;
+  projStatsMap: Map<string, TradeAssetStats>;
+  lastSeasonMap: Map<string, { pts: number; posRank: number }>;
 }
 
-function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName, projBySleeperIdMap }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -683,7 +743,7 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
     try {
       const tradedPicks = await fetchTradedPicks(leagueId);
       const pickOwnership = buildPickOwnership(teams, tradedPicks, '2027');
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap);
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap);
       setSuggestions(results);
       setGenerated(true);
     } catch {
@@ -858,6 +918,96 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return map;
   }, [allProjections, scoring]);
 
+  const projStatsMap = useMemo(() => {
+    const map = new Map<string, TradeAssetStats>();
+    const hasCustomScoring = Object.keys(scoring).length > 0;
+    const byPos = new Map<string, { sleeperId: string; pts: number }[]>();
+    for (const p of allProjections) {
+      if (!p.sleeperId) continue;
+      const pts = hasCustomScoring ? computeCustomScore(p, scoring) : computePpr(p);
+      if (!byPos.has(p.position)) byPos.set(p.position, []);
+      byPos.get(p.position)!.push({ sleeperId: p.sleeperId, pts });
+    }
+    for (const entries of byPos.values()) entries.sort((a, b) => b.pts - a.pts);
+    for (const p of allProjections) {
+      if (!p.sleeperId) continue;
+      const pts = hasCustomScoring ? computeCustomScore(p, scoring) : computePpr(p);
+      const posEntries = byPos.get(p.position) ?? [];
+      const posRank = posEntries.findIndex((e) => e.sleeperId === p.sleeperId) + 1;
+      map.set(p.sleeperId, {
+        projPts: pts,
+        projPosRank: posRank,
+        projPassYds: p.pass_yds || undefined,
+        projPassTd: p.pass_td || undefined,
+        projRushYds: p.rush_yds || undefined,
+        projRushTd: p.rush_td || undefined,
+        projRec: p.rec || undefined,
+        projRecYds: p.rec_yds || undefined,
+        projRecTd: p.rec_td || undefined,
+      });
+    }
+    return map;
+  }, [allProjections, scoring]);
+
+  const [lastSeasonData, setLastSeasonData] = useState<ClayPlayer[]>([]);
+  useEffect(() => {
+    Promise.all([
+      fetch(`${import.meta.env.BASE_URL}data/clay-projections-2025.json`),
+      fetch(`${import.meta.env.BASE_URL}data/player-crosswalk.json`),
+    ]).then(async ([projRes, cwRes]) => {
+      if (!projRes.ok) return;
+      const projData = await projRes.json() as { players?: Record<string, unknown>[] };
+      const sleeperByKey = new Map<string, string>();
+      if (cwRes.ok) {
+        const cw = await cwRes.json() as { players?: { player_key: string; sleeper_id?: string }[] };
+        for (const rec of cw.players ?? []) {
+          if (rec.sleeper_id && rec.player_key) sleeperByKey.set(rec.player_key, rec.sleeper_id);
+        }
+      }
+      const players = (projData.players ?? [])
+        .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(String(p.position ?? '')))
+        .map((p) => ({
+          name: String(p.name ?? ''),
+          team: String(p.team ?? ''),
+          position: String(p.position ?? ''),
+          player_key: String(p.player_key ?? ''),
+          pos_rk: Number(p.pos_rk) || 0,
+          ff_pt: Number(p.ff_pt) || 0,
+          games: Number(p.games) || 0,
+          sleeperId: sleeperByKey.get(String(p.player_key ?? '')) ?? null,
+          pass_yds: Number(p.pass_yds) || 0,
+          pass_td: Number(p.pass_td) || 0,
+          rush_yds: Number(p.rush_yds) || 0,
+          rush_td: Number(p.rush_td) || 0,
+          rec: Number(p.rec) || 0,
+          rec_yds: Number(p.rec_yds) || 0,
+          rec_td: Number(p.rec_td) || 0,
+        }));
+      setLastSeasonData(players);
+    }).catch(() => {});
+  }, []);
+
+  const lastSeasonMap = useMemo(() => {
+    const map = new Map<string, { pts: number; posRank: number }>();
+    if (!lastSeasonData.length) return map;
+    const byPos = new Map<string, { sleeperId: string; pts: number }[]>();
+    for (const p of lastSeasonData) {
+      if (!p.sleeperId) continue;
+      const pts = computePpr(p);
+      if (!byPos.has(p.position)) byPos.set(p.position, []);
+      byPos.get(p.position)!.push({ sleeperId: p.sleeperId, pts });
+    }
+    for (const entries of byPos.values()) entries.sort((a, b) => b.pts - a.pts);
+    for (const p of lastSeasonData) {
+      if (!p.sleeperId) continue;
+      const pts = computePpr(p);
+      const posEntries = byPos.get(p.position) ?? [];
+      const posRank = posEntries.findIndex((e) => e.sleeperId === p.sleeperId) + 1;
+      map.set(p.sleeperId, { pts, posRank });
+    }
+    return map;
+  }, [lastSeasonData]);
+
   const selectedTeam: LeagueTeam | undefined = useMemo(
     () => data?.teams.find((t) => t.rosterId === selected),
     [data, selected],
@@ -1004,6 +1154,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               myRosterId={selected ?? undefined}
               myTeamName={selectedTeam?.teamName}
               projBySleeperIdMap={projBySleeperIdMap}
+              projStatsMap={projStatsMap}
+              lastSeasonMap={lastSeasonMap}
             />
           )}
 

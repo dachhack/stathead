@@ -10,6 +10,18 @@ export interface DraftPick {
   currentOwnerId: number;
 }
 
+export interface TradeAssetStats {
+  projPts: number;
+  projPosRank: number;
+  projPassYds?: number;
+  projPassTd?: number;
+  projRushYds?: number;
+  projRushTd?: number;
+  projRec?: number;
+  projRecYds?: number;
+  projRecTd?: number;
+}
+
 export interface TradeAsset {
   type: 'player' | 'pick';
   name: string;
@@ -19,6 +31,18 @@ export interface TradeAsset {
   sleeperId?: string;
   pick?: DraftPick;
   projPts?: number;
+  projStats?: TradeAssetStats;
+  lastSeasonPts?: number;
+  lastSeasonPosRank?: number;
+}
+
+export interface TradeScoreBreakdown {
+  fairness: number;
+  goalAlignmentA: boolean;
+  goalAlignmentB: boolean;
+  strengthensA: boolean;
+  strengthensB: boolean;
+  total: number;
 }
 
 export interface TradeSuggestion {
@@ -26,6 +50,7 @@ export interface TradeSuggestion {
   teamB: { rosterId: number; teamName: string; gives: TradeAsset[]; receives: TradeAsset[]; netValue: number };
   fairness: number;
   score: number;
+  scoreBreakdown: TradeScoreBreakdown;
   rationale: string;
 }
 
@@ -53,6 +78,8 @@ function buildTeamProfile(
   picks: DraftPick[],
   goal: TradeGoal,
   projMap?: Map<string, number>,
+  projStatsMap?: Map<string, TradeAssetStats>,
+  lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
 ): TeamProfile {
   const assets: TradeAsset[] = [];
   const posValues: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
@@ -70,6 +97,9 @@ function buildTeamProfile(
       position: p.position,
       sleeperId: p.id,
       projPts: projMap?.get(p.id),
+      projStats: projStatsMap?.get(p.id),
+      lastSeasonPts: lastSeasonMap?.get(p.id)?.pts,
+      lastSeasonPosRank: lastSeasonMap?.get(p.id)?.posRank,
     });
     if (posValues[p.position] !== undefined) {
       posValues[p.position] += k.value;
@@ -178,25 +208,34 @@ function scoreTrade(
   profileB: TeamProfile,
   givesB: TradeAsset[],
   receivesB: TradeAsset[],
-): number {
+): TradeScoreBreakdown {
   let score = 50;
 
-  // Fairness (value balance)
   const totalGiveA = givesA.reduce((s, a) => s + a.value, 0);
   const totalGiveB = givesB.reduce((s, a) => s + a.value, 0);
   const avg = (totalGiveA + totalGiveB) / 2 || 1;
   const imbalance = Math.abs(totalGiveA - totalGiveB) / avg;
-  score += Math.max(0, 20 - imbalance * 40);
+  const fairnessScore = Math.max(0, 20 - imbalance * 40);
+  score += fairnessScore;
 
-  // Goal alignment
-  if (meetsGoal(receivesA, profileA.goal)) score += 10;
-  if (meetsGoal(receivesB, profileB.goal)) score += 10;
+  const goalAlignmentA = meetsGoal(receivesA, profileA.goal);
+  const goalAlignmentB = meetsGoal(receivesB, profileB.goal);
+  if (goalAlignmentA) score += 10;
+  if (goalAlignmentB) score += 10;
 
-  // Strengthens weak positions
-  if (strengthensWeakness(receivesA, profileA.weakPositions)) score += 5;
-  if (strengthensWeakness(receivesB, profileB.weakPositions)) score += 5;
+  const strengthensA = strengthensWeakness(receivesA, profileA.weakPositions);
+  const strengthensB = strengthensWeakness(receivesB, profileB.weakPositions);
+  if (strengthensA) score += 5;
+  if (strengthensB) score += 5;
 
-  return Math.min(100, Math.max(0, Math.round(score)));
+  return {
+    fairness: Math.round(fairnessScore * 5),
+    goalAlignmentA,
+    goalAlignmentB,
+    strengthensA,
+    strengthensB,
+    total: Math.min(100, Math.max(0, Math.round(score))),
+  };
 }
 
 export function buildPickOwnership(
@@ -254,6 +293,8 @@ export function generateTradeSuggestions(
   myRosterId?: number,
   projMap?: Map<string, number>,
   maxSuggestions = 6,
+  projStatsMap?: Map<string, TradeAssetStats>,
+  lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
 ): TradeSuggestion[] {
   rngState = Date.now();
 
@@ -263,7 +304,7 @@ export function generateTradeSuggestions(
   const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
     const goal = goals.get(t.rosterId) ?? 'balanced';
-    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap));
+    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap));
   }
 
   const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;
@@ -348,7 +389,8 @@ export function generateTradeSuggestions(
               netValue: totalGiveA - totalGiveB,
             },
             fairness,
-            score: tradeScore,
+            score: tradeScore.total,
+            scoreBreakdown: tradeScore,
             rationale: parts.join(' · '),
           });
         }

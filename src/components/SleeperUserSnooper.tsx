@@ -136,7 +136,7 @@ function windowColor(label: WindowLabel): string {
   }
 }
 
-function SnoopLeaguePanel({ leagueId, ktc }: { leagueId: string; ktc: KTCPlayer[] }) {
+function SnoopLeaguePanel({ leagueId, ktc, snoopedUserId, onSnoop }: { leagueId: string; ktc: KTCPlayer[]; snoopedUserId?: string; onSnoop: (name: string) => void }) {
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
@@ -179,20 +179,34 @@ function SnoopLeaguePanel({ leagueId, ktc }: { leagueId: string; ktc: KTCPlayer[
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead><tr><th>#</th><th>Team</th><th>Owner</th><th>W-L-T</th><th>PF</th><th>PA</th></tr></thead>
           <tbody>
-            {data.teams.map((t, i) => (
-              <tr
-                key={t.rosterId}
-                onClick={() => setSelected(t.rosterId)}
-                style={{ cursor: 'pointer', background: t.rosterId === selected ? 'var(--bg-tertiary)' : undefined }}
-              >
-                <td className="rank-cell">{i + 1}</td>
-                <td><strong>{t.teamName}</strong></td>
-                <td style={{ color: 'var(--text-muted)' }}>{t.owner}</td>
-                <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
-                <td>{t.pointsFor.toFixed(1)}</td>
-                <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
-              </tr>
-            ))}
+            {data.teams.map((t, i) => {
+              const isSnooped = snoopedUserId && t.ownerId === snoopedUserId;
+              return (
+                <tr
+                  key={t.rosterId}
+                  onClick={() => setSelected(t.rosterId)}
+                  style={{ cursor: 'pointer', background: t.rosterId === selected ? 'var(--bg-tertiary)' : isSnooped ? 'rgba(99,102,241,0.08)' : undefined }}
+                >
+                  <td className="rank-cell">{i + 1}</td>
+                  <td><strong>{t.teamName}</strong>{isSnooped && <span style={{ color: '#6366f1', fontSize: 9, marginLeft: 4 }}>★</span>}</td>
+                  <td>
+                    <button
+                      style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
+                      title={`Snoop ${t.owner}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (t.owner && t.owner !== '—') onSnoop(t.owner);
+                      }}
+                    >
+                      {t.owner}
+                    </button>
+                  </td>
+                  <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
+                  <td>{t.pointsFor.toFixed(1)}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -247,6 +261,39 @@ function SnoopLeaguePanel({ leagueId, ktc }: { leagueId: string; ktc: KTCPlayer[
       )}
     </div>
   );
+}
+
+function computeRosterWindow(
+  playerIds: string[],
+  sleeperPlayers: Map<string, SleeperPlayer>,
+  ktc: KTCPlayer[],
+): WindowLabel | null {
+  const ktcByName = new Map<string, KTCPlayer>();
+  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+
+  let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, matched = 0;
+  for (const pid of playerIds) {
+    const sp = sleeperPlayers.get(pid);
+    if (!sp || !sp.position || sp.position === 'DEF') continue;
+    const k = ktcByName.get(normalizeForMatch(sp.full_name));
+    if (!k || k.value <= 0) continue;
+    matched++;
+    totalValue += k.value;
+    if (k.age <= 24) youngValue += k.value;
+    else if (k.age <= 27) primeValue += k.value;
+    else agingValue += k.value;
+  }
+  if (!matched) return null;
+
+  const youngPct = (youngValue / totalValue) * 100;
+  const primePct = (primeValue / totalValue) * 100;
+  const agingPct = (agingValue / totalValue) * 100;
+
+  if (agingPct >= 40) return 'Win-Now';
+  if (agingPct + primePct >= 65 && youngPct < 35) return 'Contender';
+  if (youngPct >= 55) return 'Rebuild';
+  if (youngPct >= 40) return 'Retooling';
+  return 'Balanced';
 }
 
 export function SleeperUserSnooper() {
@@ -325,6 +372,24 @@ export function SleeperUserSnooper() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [ownership]);
 
+  const rosterWindows = useMemo(() => {
+    if (!result || !ktc.length || !players.size) return new Map<string, WindowLabel>();
+    const map = new Map<string, WindowLabel>();
+    for (const r of result.rosters) {
+      const w = computeRosterWindow(r.players, players, ktc);
+      if (w) map.set(r.leagueId, w);
+    }
+    return map;
+  }, [result, ktc, players]);
+
+  const windowBreakdown = useMemo(() => {
+    const counts = new Map<WindowLabel, number>();
+    for (const w of rosterWindows.values()) {
+      counts.set(w, (counts.get(w) ?? 0) + 1);
+    }
+    return counts;
+  }, [rosterWindows]);
+
   return (
     <div className="sl-page">
       <div className="sched-header">
@@ -383,6 +448,33 @@ export function SleeperUserSnooper() {
                 <span key={size}>{cnt}× {size}-team</span>
               ))}
             </div>
+            {windowBreakdown.size > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Team Objectives Across Leagues</div>
+                <div style={{ display: 'flex', gap: 3, height: 14, borderRadius: 4, overflow: 'hidden', marginBottom: 4 }}>
+                  {(['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'] as const).map((w) => {
+                    const cnt = windowBreakdown.get(w) ?? 0;
+                    if (!cnt) return null;
+                    const pct = (cnt / rosterWindows.size) * 100;
+                    return <div key={w} style={{ width: `${pct}%`, background: windowColor(w), minWidth: cnt > 0 ? 2 : 0 }} title={`${w}: ${cnt} (${pct.toFixed(0)}%)`} />;
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11 }}>
+                  {(['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'] as const).map((w) => {
+                    const cnt = windowBreakdown.get(w) ?? 0;
+                    if (!cnt) return null;
+                    const pct = ((cnt / rosterWindows.size) * 100).toFixed(0);
+                    return (
+                      <span key={w} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, background: windowColor(w), borderRadius: 2 }} />
+                        <span style={{ color: windowColor(w), fontWeight: 600 }}>{w}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{cnt} ({pct}%)</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Position breakdown */}
@@ -446,7 +538,7 @@ export function SleeperUserSnooper() {
           </p>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>League</th><th>Type</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
+              <thead><tr><th>League</th><th>Objective</th><th>Type</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
               <tbody>
                 {result.rosters.sort((a, b) => b.pointsFor - a.pointsFor).map((r) => {
                   const lg = result.leagues.find((l) => l.league_id === r.leagueId);
@@ -463,9 +555,16 @@ export function SleeperUserSnooper() {
                         </button>
                         {isExpanded && (
                           <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} />
+                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} snoopedUserId={result.user.user_id} onSnoop={(name) => { setUsername(name); snoop(name); setExpandedLeague(null); }} />
                           </div>
                         )}
+                      </td>
+                      <td>
+                        {rosterWindows.get(r.leagueId) ? (
+                          <span style={{ color: windowColor(rosterWindows.get(r.leagueId)!), fontWeight: 600, fontSize: 11 }}>
+                            {rosterWindows.get(r.leagueId)}
+                          </span>
+                        ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </td>
                       <td>{leagueTypeLabel(r.rosterPositions)}</td>
                       <td>{r.totalRosters}</td>
