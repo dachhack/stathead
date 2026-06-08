@@ -148,10 +148,15 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
     setLoading(true);
     setError(null);
     importLeague(leagueId)
-      .then((res) => { setData(res); setSelected(res.teams[0]?.rosterId ?? null); })
+      .then((res) => {
+        setData(res);
+        // Default to the snooped user's team; fall back to the standings leader.
+        const mine = snoopedUserId ? res.teams.find((t) => t.ownerId === snoopedUserId) : undefined;
+        setSelected(mine?.rosterId ?? res.teams[0]?.rosterId ?? null);
+      })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
-  }, [leagueId]);
+  }, [leagueId, snoopedUserId]);
 
   const selectedTeam = useMemo(() => data?.teams.find((t) => t.rosterId === selected), [data, selected]);
   const isDynasty = isDynastyLeague(data?.league);

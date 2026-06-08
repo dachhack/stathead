@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
@@ -989,6 +989,9 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [userLeagues, setUserLeagues] = useState<SleeperLeagueSummary[]>([]);
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState<string | null>(null);
+  // The looked-up user's id — used to default roster/trade views to their team.
+  const [lookedUpUserId, setLookedUpUserId] = useState<string | null>(null);
+  const lookedUpUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
@@ -1003,7 +1006,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     setUserLoading(true);
     setUserError(null);
     fetchSleeperUser(trimmed)
-      .then((u) => fetchUserLeagues(u.user_id))
+      .then((u) => { lookedUpUserIdRef.current = u.user_id; setLookedUpUserId(u.user_id); return fetchUserLeagues(u.user_id); })
       .then((leagues) => {
         setUserLeagues(leagues);
         localStorage.setItem(LS_USER_KEY, trimmed);
@@ -1026,7 +1029,11 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     importLeague(trimmed)
       .then((res) => {
         setData(res);
-        setSelected(res.teams[0]?.rosterId ?? null);
+        // Default to the looked-up user's team; fall back to the standings leader.
+        const mine = lookedUpUserIdRef.current
+          ? res.teams.find((t) => t.ownerId === lookedUpUserIdRef.current)
+          : undefined;
+        setSelected(mine?.rosterId ?? res.teams[0]?.rosterId ?? null);
         localStorage.setItem(LS_KEY, trimmed);
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setData(null); })
@@ -1045,6 +1052,15 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     if (leagueId) run(leagueId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When a league loads (or the looked-up user resolves after it), center the
+  // roster + trade views on that user's team. Only fires on load — manual team
+  // selection afterward sticks since neither dependency changes.
+  useEffect(() => {
+    if (!data || !lookedUpUserId) return;
+    const mine = data.teams.find((t) => t.ownerId === lookedUpUserId);
+    if (mine) setSelected(mine.rosterId);
+  }, [data, lookedUpUserId]);
 
   const scoring = data?.league.scoring_settings ?? {};
   const isDynasty = isDynastyLeague(data?.league);
