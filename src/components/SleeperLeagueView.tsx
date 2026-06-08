@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchKTCRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
-import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats } from '../lib/tradeEngine';
+import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -789,7 +789,7 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
 interface TradeSectionProps {
   teams: LeagueTeam[];
   ktc: KTCPlayer[];
-  leagueId: string;
+  pickOwnership: Map<number, DraftPick[]>;
   myRosterId?: number;
   myTeamName?: string;
   projBySleeperIdMap: Map<string, number>;
@@ -798,7 +798,7 @@ interface TradeSectionProps {
   isDynasty: boolean;
 }
 
-function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -811,8 +811,6 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
   const doGenerate = async () => {
     setLoading(true);
     try {
-      const tradedPicks = await fetchTradedPicks(leagueId);
-      const pickOwnership = buildPickOwnership(teams, tradedPicks, '2027');
       const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap);
       setSuggestions(results);
       setGenerated(true);
@@ -853,9 +851,21 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
           )}
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             {isDynasty
-              ? 'Trades consider dynasty value, age, positional needs, and 2027 draft picks. Your top assets are protected.'
+              ? 'Trades consider dynasty value, age, positional needs, and 2027–2028 draft picks (slotted by projected finish). Your top assets are protected.'
               : 'Trades consider player value, projected points, and positional needs. Your top assets are protected.'}
           </p>
+
+          {!isDynasty && (
+            <div style={{
+              margin: '4px 0 10px', padding: '8px 12px', fontSize: 11, lineHeight: 1.5,
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: 6, color: 'var(--text-secondary)',
+            }}>
+              <b style={{ color: '#f59e0b' }}>Redraft league.</b> There's no future beyond this season, so the win-now/rebuild
+              framework and rookie-pick assets don't apply. The dynasty market values below are only a rough talent proxy —
+              judge each deal on this season's <b>projected points</b> (shown on every player), not long-term value.
+            </div>
+          )}
 
           <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
             {isDynasty && <>
@@ -904,6 +914,54 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
   );
 }
 
+// Owned future rookie picks for a single roster, slotted + priced by projected
+// draft order. Picks acquired via trade are flagged with their original team.
+function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
+  picks: DraftPick[];
+  teamNamesByRosterId: Map<number, string>;
+  rosterId: number;
+}) {
+  if (!picks.length) return null;
+  const sorted = [...picks].sort(
+    (a, b) => a.season.localeCompare(b.season) || a.round - b.round || (a.projectedSlot ?? 99) - (b.projectedSlot ?? 99),
+  );
+  const total = sorted.reduce((s, p) => s + (p.value ?? 0), 0);
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="sched-section-title">
+        Draft Picks
+        <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11, marginLeft: 8 }}>
+          2027–2028 · slotted by projected finish · total {(total / 1000).toFixed(1)}k
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+        {sorted.map((pk, i) => {
+          const acquired = pk.originalOwnerId !== rosterId;
+          const viaName = acquired ? teamNamesByRosterId.get(pk.originalOwnerId) : null;
+          const label = pk.projectedSlot != null
+            ? `${pk.season} ${pk.round}.${String(pk.projectedSlot).padStart(2, '0')}`
+            : `${pk.season} Rd ${pk.round}`;
+          return (
+            <div
+              key={`${pk.season}-${pk.round}-${pk.originalOwnerId}-${i}`}
+              style={{
+                padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 6, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 1,
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>
+                {label}
+                {pk.value != null && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>{(pk.value / 1000).toFixed(1)}k</span>}
+              </span>
+              {viaName && <span style={{ color: '#f59e0b', fontSize: 9 }}>via {viaName}</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface SleeperLeagueViewProps {
   onNavigate?: (tab: Tab) => void;
 }
@@ -918,6 +976,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
+  const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -957,6 +1016,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     if (!trimmed) { setError('Enter a Sleeper league ID.'); return; }
     setLoading(true);
     setError(null);
+    setTradedPicks([]);
     importLeague(trimmed)
       .then((res) => {
         setData(res);
@@ -965,6 +1025,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setData(null); })
       .finally(() => setLoading(false));
+    fetchTradedPicks(trimmed).then(setTradedPicks).catch(() => setTradedPicks([]));
   };
 
   // Auto-load saved user's leagues on mount.
@@ -992,6 +1053,34 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     }
     return map;
   }, [allProjections, scoring]);
+
+  // Total projected season points per roster — drives projected draft order
+  // (weakest team picks first) for pick valuation.
+  const projPointsByRosterId = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!data) return map;
+    for (const t of data.teams) {
+      let sum = 0;
+      for (const p of [...t.starters, ...t.bench]) sum += projBySleeperIdMap.get(p.id) ?? 0;
+      map.set(t.rosterId, sum);
+    }
+    return map;
+  }, [data, projBySleeperIdMap]);
+
+  // Each roster's owned future rookie picks, slotted + priced by projected draft
+  // order and league size. Dynasty only — redraft leagues carry no rookie picks.
+  const pickOwnership = useMemo(() => {
+    const merged = new Map<number, DraftPick[]>();
+    if (!data || !isDynasty) return merged;
+    for (const season of ['2027', '2028']) {
+      const m = buildPickOwnership(data.teams, tradedPicks, season, projPointsByRosterId);
+      for (const [rid, picks] of m) {
+        if (!merged.has(rid)) merged.set(rid, []);
+        merged.get(rid)!.push(...picks);
+      }
+    }
+    return merged;
+  }, [data, isDynasty, tradedPicks, projPointsByRosterId]);
 
   const projStatsMap = useMemo(() => {
     const map = new Map<string, TradeAssetStats>();
@@ -1087,6 +1176,12 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     () => data?.teams.find((t) => t.rosterId === selected),
     [data, selected],
   );
+
+  const teamNamesByRosterId = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const t of data?.teams ?? []) map.set(t.rosterId, t.teamName);
+    return map;
+  }, [data]);
 
   const optimalLineup: OptimalLineup | null = useMemo(() => {
     if (!selectedTeam || !allProjections.length || !data) return null;
@@ -1225,7 +1320,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             <TradeSuggestionsSection
               teams={data.teams}
               ktc={ktc}
-              leagueId={data.league.league_id}
+              pickOwnership={pickOwnership}
               myRosterId={selected ?? undefined}
               myTeamName={selectedTeam?.teamName}
               projBySleeperIdMap={projBySleeperIdMap}
@@ -1285,6 +1380,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
                 </div>
               </div>
+              {isDynasty && (
+                <RosterPicks
+                  picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
+                  teamNamesByRosterId={teamNamesByRosterId}
+                  rosterId={selectedTeam.rosterId}
+                />
+              )}
               <TeamOutlook team={selectedTeam} teamProj={teamProj} matchups={matchups} />
             </>
           )}
