@@ -5,7 +5,7 @@ import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
-import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../lib/waiverUtils';
+import { loadClayProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 
 const LS_KEY = 'sleeper_snoop_user';
@@ -369,6 +369,51 @@ function computeRosterWindow(
   return 'Balanced';
 }
 
+// Historical window proxy: we have no historical dynasty values, so approximate
+// each player's worth from their POSITION and current projected points (talent
+// signal), and bucket young/prime/aging by their reconstructed AGE at that
+// season (current age − years elapsed). Talent weights the value; age decides
+// the bucket — which is exactly the contender↔rebuild axis.
+const SNOOP_CURRENT_YEAR = new Date().getFullYear();
+const POS_BASE: Record<string, number> = { QB: 7, RB: 6, WR: 7, TE: 5 };
+
+function computeRosterWindowProxy(
+  playerIds: string[],
+  sleeperPlayers: Map<string, SleeperPlayer>,
+  projByPlayer: Map<string, number>,
+  season: string,
+): WindowLabel | null {
+  const yearsAgo = SNOOP_CURRENT_YEAR - Number(season);
+  let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, matched = 0;
+  for (const pid of playerIds) {
+    const sp = sleeperPlayers.get(pid);
+    if (!sp || !sp.position || !POS_BASE[sp.position] || !sp.age) continue;
+    const ageThen = sp.age - yearsAgo;
+    if (ageThen < 19 || ageThen > 44) continue; // implausible reconstruction
+    const proj = projByPlayer.get(pid);
+    // Talent multiplier: ~1.0 for a 150-PPR starter; 0.7 baseline when a player
+    // has no current projection (e.g. since retired) so they still count by age.
+    const talentMult = proj && proj > 0 ? Math.min(1.6, Math.max(0.3, proj / 150)) : 0.7;
+    const value = POS_BASE[sp.position] * talentMult;
+    matched++;
+    totalValue += value;
+    if (ageThen <= 24) youngValue += value;
+    else if (ageThen <= 27) primeValue += value;
+    else agingValue += value;
+  }
+  if (matched < 3 || totalValue <= 0) return null;
+
+  const youngPct = (youngValue / totalValue) * 100;
+  const primePct = (primeValue / totalValue) * 100;
+  const agingPct = (agingValue / totalValue) * 100;
+
+  if (agingPct >= 40) return 'Win-Now';
+  if (agingPct + primePct >= 65 && youngPct < 35) return 'Contender';
+  if (youngPct >= 55) return 'Rebuild';
+  if (youngPct >= 40) return 'Retooling';
+  return 'Balanced';
+}
+
 // ── Career History (multi-season) ──────────────────────────────────────────
 
 function finishColor(pct: number): string {
@@ -516,7 +561,7 @@ interface YearSummary {
   champions: number;
 }
 
-function CareerHistorySection({ userId, players, ktc }: { userId: string; players: Map<string, SleeperPlayer>; ktc: KTCPlayer[] }) {
+function CareerHistorySection({ userId, players, ktc, projections }: { userId: string; players: Map<string, SleeperPlayer>; ktc: KTCPlayer[]; projections: ClayPlayer[] }) {
   const [history, setHistory] = useState<LeagueSeasonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeActivity | null>(null);
@@ -611,6 +656,14 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
     return m;
   }, [ktc]);
 
+  // Current projected PPR points by sleeper id — the talent signal for the
+  // historical window proxy.
+  const projByPlayer = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of projections) if (p.sleeperId) m.set(p.sleeperId, computePpr(p));
+    return m;
+  }, [projections]);
+
   // ── Stacked bar chart data (raw counts, fixed 2020 → current x-axis) ──
   const seasons = useMemo(() => chartSeasons(), []);
 
@@ -638,17 +691,17 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
   // Window classification uses current KTC values on each season's roster, so
   // older years (retired players, missing values) are approximate.
   const objectiveChartData = useMemo(() => {
-    if (!hasDynasty || !ktc.length || !players.size) return [];
+    if (!hasDynasty || !players.size) return [];
     return seasons.map((season) => {
       const recs = history.filter((r) => r.season === season && r.format.type === 'Dynasty');
       const row: Record<string, string | number> = { season, 'Win-Now': 0, Contender: 0, Balanced: 0, Retooling: 0, Rebuild: 0 };
       for (const r of recs) {
-        const w = computeRosterWindow(r.players, players, ktc);
+        const w = computeRosterWindowProxy(r.players, players, projByPlayer, r.season);
         if (w) (row[w] as number)++;
       }
       return row;
     });
-  }, [history, seasons, hasDynasty, players, ktc]);
+  }, [history, seasons, hasDynasty, players, projByPlayer]);
 
   const analyzeTrades = () => {
     setTradeLoading(true);
@@ -724,7 +777,7 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
           {objectiveChartData.length > 0 && (
             <StackedYearChart
               title="Dynasty Team Objective by Year"
-              subtitle="Window classified from current player values applied to each season's roster — older years are approximate."
+              subtitle="No historical values exist, so each roster's window is proxied from age-at-season (reconstructed) weighted by position + current projections."
               data={objectiveChartData}
               series={[
                 { key: 'Win-Now', color: '#ef4444' },
@@ -1031,7 +1084,7 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Career history across seasons */}
-          <CareerHistorySection userId={result.user.user_id} players={players} ktc={ktc} />
+          <CareerHistorySection userId={result.user.user_id} players={players} ktc={ktc} projections={projections} />
 
           {/* Position breakdown */}
           {posBreakdown.length > 0 && (
