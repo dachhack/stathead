@@ -83,15 +83,6 @@ const TAB_GROUPS: TabGroup[] = [
     ],
   },
   {
-    label: 'Sleeper',
-    tabs: [
-      { id: 'sleeper-league', label: 'My Leagues' },
-      { id: 'sleeper-waivers', label: 'Waiver Wire' },
-      { id: 'sleeper-snooper', label: 'User Snooper' },
-      { id: 'sleeper', label: 'Trending & Projections' },
-    ],
-  },
-  {
     label: 'Dynasty',
     tabs: [
       { id: 'ktc', label: 'Dynasty Values' },
@@ -108,6 +99,15 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
+    ],
+  },
+  {
+    label: 'Sleeper Tools',
+    tabs: [
+      { id: 'sleeper-league', label: 'My Leagues' },
+      { id: 'sleeper-waivers', label: 'Waiver Wire' },
+      { id: 'sleeper-snooper', label: 'User Snooper' },
+      { id: 'sleeper', label: 'Trending & Projections' },
     ],
   },
 ];
@@ -168,7 +168,7 @@ function App() {
             const hasActive = !!activeTab;
             const displayLabel = hasActive ? activeTab.label : group.label;
             return (
-              <div key={group.label} style={{ position: 'relative' }}>
+              <div key={group.label} style={{ position: 'relative', display: 'flex', height: '100%' }}>
                 <button
                   className={`nav-tab ${hasActive ? 'active' : ''}`}
                   onClick={() => setOpenGroup(isOpen ? null : group.label)}

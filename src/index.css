@@ -58,6 +58,9 @@ body {
   letter-spacing: -0.5px;
   margin-right: 32px;
   white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .header-logo span {
@@ -88,6 +91,7 @@ body {
   transition: color 0.2s;
   display: flex;
   align-items: center;
+  height: 100%;
   white-space: nowrap;
   flex-shrink: 0;
 }

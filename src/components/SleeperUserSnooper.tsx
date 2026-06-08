@@ -446,6 +446,7 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
   const [trades, setTrades] = useState<TradeActivity | null>(null);
   const [tradeLoading, setTradeLoading] = useState(false);
   const [tradeProgress, setTradeProgress] = useState({ done: 0, total: 0 });
+  const [chartsOpen, setChartsOpen] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -616,42 +617,53 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
         {career.avgFinishPct != null && stat('avg finish', `Top ${Math.round(career.avgFinishPct * 100)}%`, finishColor(career.avgFinishPct))}
       </div>
 
-      {/* By year — stacked bar charts (raw counts, 2020 → current) */}
-      <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>By Year</div>
+      {/* By year — collapsible stacked bar charts (raw counts, 2020 → current) */}
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none', marginTop: 12 }}
+        onClick={() => setChartsOpen((o) => !o)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{chartsOpen ? '▼' : '▶'}</span>
+        By Year
+      </div>
 
-      <StackedYearChart
-        title="Leagues by Type"
-        data={typeChartData}
-        series={[
-          { key: 'Dynasty', color: '#22c55e' },
-          { key: 'Keeper', color: '#f59e0b' },
-          { key: 'Redraft', color: '#64748b' },
-        ]}
-      />
+      {chartsOpen && (
+        <>
+          <StackedYearChart
+            title="Leagues by Type"
+            data={typeChartData}
+            series={[
+              { key: 'Dynasty', color: '#22c55e' },
+              { key: 'Keeper', color: '#f59e0b' },
+              { key: 'Redraft', color: '#64748b' },
+            ]}
+          />
 
-      {objectiveChartData.length > 0 && (
-        <StackedYearChart
-          title="Dynasty Team Objective by Year"
-          subtitle="Window classified from current player values applied to each season's roster — older years are approximate."
-          data={objectiveChartData}
-          series={[
-            { key: 'Win-Now', color: '#ef4444' },
-            { key: 'Contender', color: '#f59e0b' },
-            { key: 'Balanced', color: '#64748b' },
-            { key: 'Retooling', color: '#a3e635' },
-            { key: 'Rebuild', color: '#22c55e' },
-          ]}
-        />
+          {objectiveChartData.length > 0 && (
+            <StackedYearChart
+              title="Dynasty Team Objective by Year"
+              subtitle="Window classified from current player values applied to each season's roster — older years are approximate."
+              data={objectiveChartData}
+              series={[
+                { key: 'Win-Now', color: '#ef4444' },
+                { key: 'Contender', color: '#f59e0b' },
+                { key: 'Balanced', color: '#64748b' },
+                { key: 'Retooling', color: '#a3e635' },
+                { key: 'Rebuild', color: '#22c55e' },
+              ]}
+            />
+          )}
+
+          <StackedYearChart
+            title="Best Ball vs Managed by Year"
+            data={bestBallChartData}
+            series={[
+              { key: 'Best Ball', color: '#a78bfa' },
+              { key: 'Managed', color: '#64748b' },
+            ]}
+          />
+        </>
       )}
-
-      <StackedYearChart
-        title="Best Ball vs Managed by Year"
-        data={bestBallChartData}
-        series={[
-          { key: 'Best Ball', color: '#a78bfa' },
-          { key: 'Managed', color: '#64748b' },
-        ]}
-      />
 
       <div style={{ fontSize: 11, fontWeight: 600, margin: '14px 0 4px', color: 'var(--text-secondary)' }}>Detail</div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
