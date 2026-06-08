@@ -2,23 +2,23 @@
   <!-- Dark rounded background matching the masthead (--bg-secondary) -->
   <rect width="64" height="64" rx="13" fill="#1a2733"/>
   <!-- StatHead mark (football + bar chart), centered -->
-  <g transform="translate(2.4,0.8) scale(0.78)" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Football outline (pointed) -->
-    <path d="M6 40 Q38 17 70 40 Q38 63 6 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
+  <g transform="translate(1.6,0) scale(0.8)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Football outline (pointed, ~1.8:1) -->
+    <path d="M6 40 Q38 4 70 40 Q38 76 6 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
     <!-- Side panel seams -->
-    <path d="M17 33 Q12 40 17 47" stroke="#4ade80" stroke-width="2.5" fill="none"/>
-    <path d="M59 33 Q64 40 59 47" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <path d="M16 30 Q11 40 16 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <path d="M60 30 Q65 40 60 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
     <!-- Laces -->
-    <line x1="29" y1="31" x2="47" y2="31" stroke="#4ade80" stroke-width="2.5"/>
-    <line x1="30" y1="30" x2="30" y2="34" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="34" y1="30" x2="34" y2="34" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="38" y1="30" x2="38" y2="34" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="42" y1="30" x2="42" y2="34" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="46" y1="30" x2="46" y2="34" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="29" y1="28" x2="47" y2="28" stroke="#4ade80" stroke-width="2.5"/>
+    <line x1="30" y1="25" x2="30" y2="31" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="34" y1="25" x2="34" y2="31" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="38" y1="25" x2="38" y2="31" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="42" y1="25" x2="42" y2="31" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="46" y1="25" x2="46" y2="31" stroke="#4ade80" stroke-width="1.8"/>
     <!-- Bar chart (ascending, slate → white) -->
-    <rect x="25" y="45" width="5" height="6" rx="1" fill="#7c8aa0"/>
-    <rect x="32" y="42" width="5" height="9" rx="1" fill="#9fb0c4"/>
-    <rect x="39" y="39" width="5" height="12" rx="1" fill="#cbd5e1"/>
-    <rect x="46" y="36" width="5" height="15" rx="1" fill="#ffffff"/>
+    <rect x="25" y="46" width="5" height="6" rx="1" fill="#7c8aa0"/>
+    <rect x="32" y="42" width="5" height="10" rx="1" fill="#9fb0c4"/>
+    <rect x="39" y="38" width="5" height="14" rx="1" fill="#cbd5e1"/>
+    <rect x="46" y="34" width="5" height="18" rx="1" fill="#ffffff"/>
   </g>
 </svg>
