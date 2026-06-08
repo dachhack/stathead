@@ -46,33 +46,6 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: 'Sleeper',
-    description:
-      'Connect your Sleeper account to browse leagues, analyze rosters, scout opponents, and get team projections.',
-    items: [
-      {
-        label: 'My Leagues',
-        tab: 'sleeper-league',
-        blurb: 'Enter your username to see all your leagues. Load any league for standings, rosters, and power rankings — dynasty leagues add win-now/rebuild scoring, redraft leagues rank on projected season points.',
-      },
-      {
-        label: 'Waiver Wire',
-        tab: 'sleeper-waivers',
-        blurb: 'See which trending players and top projected scorers are available on waivers across all your leagues.',
-      },
-      {
-        label: 'User Snooper',
-        tab: 'sleeper-snooper',
-        blurb: 'Look up any Sleeper user — see their leagues, combined record, most-owned players, and roster tendencies.',
-      },
-      {
-        label: 'Trending & Projections',
-        tab: 'sleeper',
-        blurb: 'Sleeper trending adds/drops and weekly player projections from the Sleeper API.',
-      },
-    ],
-  },
-  {
     title: 'Dynasty',
     description:
       'Long-term value, trade evaluation, and rookie evaluation. Combines dynasty market values with our forecast and prospect models.',
@@ -112,8 +85,18 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Research',
-    description: 'Raw data access and model documentation.',
+    description: 'Sleeper league analysis, opponent scouting, raw data access, and model documentation.',
     items: [
+      {
+        label: 'Sleeper Leagues',
+        tab: 'sleeper-league',
+        blurb: 'Enter your username to browse your leagues. Load any league for standings, rosters, power rankings, waivers, and trade ideas — dynasty leagues add win-now/rebuild scoring, redraft leagues rank on projected season points.',
+      },
+      {
+        label: 'Sleeper User Snooper',
+        tab: 'sleeper-snooper',
+        blurb: 'Look up any Sleeper user — leagues, combined record, most-owned players, multi-season career history, and trade grades.',
+      },
       {
         label: 'Data Query (SQL)',
         tab: 'data-query',
