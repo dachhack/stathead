@@ -98,6 +98,11 @@ const SECTIONS: Section[] = [
         blurb: 'Look up any Sleeper user — leagues, combined record, most-owned players, multi-season career history, and trade grades.',
       },
       {
+        label: 'Sleeper Waiver Wire',
+        tab: 'sleeper-waivers',
+        blurb: 'Valuable players on waivers across all your leagues, ranked by projected points or add trend, with which of your leagues each is open in.',
+      },
+      {
         label: 'Data Query (SQL)',
         tab: 'data-query',
         blurb: 'Run SQL against the full dataset in-browser (DuckDB WASM) — projections, backtest, ADP, dynasty values, prospect grades.',

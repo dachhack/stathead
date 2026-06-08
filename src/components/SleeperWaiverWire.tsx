@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchSleeperTrending } from '../data';
 import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
@@ -12,14 +12,19 @@ interface LeagueAvailability {
   rosteredIds: Set<string>;
 }
 
-interface TrendingAvail extends SleeperTrendingRow {
+// One row per player, merging projection + trending signals.
+interface Candidate {
+  sleeperId: string;
+  name: string;
+  position: string;
+  team: string;
+  projPpr: number;   // 0 when not projected
+  posRk: number;
+  adds: number;      // 0 when not trending
   availableIn: string[];
 }
 
-interface WaiverPick extends ClayPlayer {
-  availableIn: string[];
-  pprPts: number;
-}
+type SortMode = 'proj' | 'trend';
 
 export function SleeperWaiverWire() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
@@ -29,10 +34,12 @@ export function SleeperWaiverWire() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
+  const [sortMode, setSortMode] = useState<SortMode>('proj');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadClayProjections().then(setClayPlayers);
-    fetchSleeperTrending('add', 24, 75).then(setTrending).catch(() => {});
+    fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
   }, []);
 
   const loadLeagues = (name: string) => {
@@ -41,8 +48,8 @@ export function SleeperWaiverWire() {
     setLoading(true);
     setError(null);
     fetchSleeperUser(trimmed)
-      .then((u) => fetchUserLeagues(u.user_id).then((lgs) => ({ userId: u.user_id, lgs })))
-      .then(async ({ lgs }) => {
+      .then((u) => fetchUserLeagues(u.user_id))
+      .then(async (lgs) => {
         const avails = await Promise.all(
           lgs.map(async (lg) => {
             try {
@@ -63,43 +70,73 @@ export function SleeperWaiverWire() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const trendingAvail: TrendingAvail[] = useMemo(() => {
-    if (!leagues.length || !trending.length) return [];
-    return trending.map((t) => {
-      const availableIn = leagues
-        .filter((la) => !la.rosteredIds.has(t.player_id))
-        .map((la) => la.league.name);
-      return { ...t, availableIn };
-    }).filter((t) => t.availableIn.length > 0);
-  }, [leagues, trending]);
-
-  const waiverPicks: WaiverPick[] = useMemo(() => {
-    if (!leagues.length || !clayPlayers.length) return [];
-    const out: WaiverPick[] = [];
+  // Merge projections + trending into one candidate per player, then keep only
+  // those open in at least one of your leagues.
+  const candidates = useMemo(() => {
+    if (!leagues.length) return [];
+    const byId = new Map<string, Candidate>();
     for (const p of clayPlayers) {
       if (!p.sleeperId) continue;
-      const pprPts = computePpr(p);
-      if (pprPts <= 0) continue;
-      const availableIn = leagues
-        .filter((la) => !la.rosteredIds.has(p.sleeperId!))
-        .map((la) => la.league.name);
-      if (availableIn.length > 0) out.push({ ...p, availableIn, pprPts });
+      const ppr = computePpr(p);
+      if (ppr <= 0) continue;
+      byId.set(p.sleeperId, {
+        sleeperId: p.sleeperId, name: p.name, position: p.position, team: p.team,
+        projPpr: ppr, posRk: p.pos_rk, adds: 0, availableIn: [],
+      });
     }
-    out.sort((a, b) => b.pprPts - a.pprPts);
+    for (const t of trending) {
+      const ex = byId.get(t.player_id);
+      if (ex) ex.adds = t.count;
+      else byId.set(t.player_id, {
+        sleeperId: t.player_id, name: t.full_name, position: t.position, team: t.team,
+        projPpr: 0, posRk: 0, adds: t.count, availableIn: [],
+      });
+    }
+    const out: Candidate[] = [];
+    for (const c of byId.values()) {
+      c.availableIn = leagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
+      if (c.availableIn.length > 0) out.push(c);
+    }
     return out;
-  }, [leagues, clayPlayers]);
+  }, [leagues, clayPlayers, trending]);
 
-  const unmatchedCount = useMemo(() => clayPlayers.filter((p) => !p.sleeperId).length, [clayPlayers]);
+  const rows = useMemo(() => {
+    let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
+    list = [...list].sort((a, b) =>
+      sortMode === 'proj'
+        ? (b.projPpr - a.projPpr) || (b.adds - a.adds)
+        : (b.adds - a.adds) || (b.projPpr - a.projPpr));
+    return list.slice(0, 80);
+  }, [candidates, posFilter, sortMode]);
 
-  const filteredTrending = posFilter === 'ALL' ? trendingAvail : trendingAvail.filter((t) => t.position === posFilter);
-  const filteredWaivers = posFilter === 'ALL' ? waiverPicks : waiverPicks.filter((w) => w.position === posFilter);
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const availCell = (c: Candidate) => {
+    const all = c.availableIn.length === leagues.length;
+    return (
+      <button
+        onClick={() => toggleExpand(c.sleeperId)}
+        style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left', color: all ? '#22c55e' : 'var(--text-secondary)' }}
+        title="Click to list leagues"
+      >
+        {all ? 'All leagues' : `${c.availableIn.length}/${leagues.length}`}
+        <span style={{ color: 'var(--text-muted)', marginLeft: 4, fontSize: 9 }}>{expanded.has(c.sleeperId) ? '▲' : '▼'}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="sl-page">
       <div className="sched-header">
-        <h2 style={{ margin: 0, fontSize: 18 }}>Waiver Wire</h2>
+        <h2 style={{ margin: 0, fontSize: 18 }}>Sleeper Waiver Wire</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0' }}>
-          Find top projected scorers and trending adds available on waivers across your leagues.
+          Valuable players on waivers across all your leagues — ranked by projected points or add trend — and which of your leagues each is open in.
         </p>
       </div>
 
@@ -123,12 +160,14 @@ export function SleeperWaiverWire() {
       {!loading && leagues.length > 0 && (
         <>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '8px 0' }}>
-            Scanning waivers across <b>{leagues.length}</b> leagues
-            {clayPlayers.length > 0 && <> · <b>{clayPlayers.length}</b> projected players</>}
-            {unmatchedCount > 0 && <> · <span style={{ color: '#f59e0b', fontSize: 10 }}>{unmatchedCount} without Sleeper ID</span></>}
+            Scanning waivers across <b>{leagues.length}</b> leagues · <b>{candidates.length}</b> players open in ≥1 league
           </p>
 
-          <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
+          <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rank by:</span>
+            <button className={`format-tab ${sortMode === 'proj' ? 'active' : ''}`} onClick={() => setSortMode('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
+            <button className={`format-tab ${sortMode === 'trend' ? 'active' : ''}`} onClick={() => setSortMode('trend')} style={{ padding: '3px 10px', fontSize: 11 }}>Add Trend</button>
+            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Pos:</span>
             {['ALL', 'QB', 'RB', 'WR', 'TE'].map((pos) => (
               <button
                 key={pos}
@@ -141,88 +180,52 @@ export function SleeperWaiverWire() {
             ))}
           </div>
 
-          <div className="sched-section-title" style={{ marginTop: 12 }}>
-            Top Projected Scorers on Waivers
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            Highest Consensus projected PPR scorers (2026 full season) not rostered in at least one of your leagues.
-          </p>
-          {filteredWaivers.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No projected players available on waivers.</p>
+          {rows.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No players available on your waivers.</p>
           ) : (
-            <div className="table-container" style={{ maxHeight: 460 }}>
+            <div className="table-container" style={{ maxHeight: 560 }}>
               <table className="sched-table" style={{ fontSize: 12 }}>
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th title="Consensus PPR projection (full season)">PPR</th><th title="Consensus fantasy points">Pts</th><th title="Position rank">Pos Rk</th><th>Available In</th></tr>
+                  <tr>
+                    <th>#</th><th>Player</th><th>Pos</th><th>Team</th>
+                    <th title="Consensus PPR projection (full season)">Proj PPR</th>
+                    <th title="Sleeper adds, last 24h">Trend</th>
+                    <th title="Leagues where this player is unrostered">Available In</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {filteredWaivers.slice(0, 60).map((w, i) => (
-                    <tr key={w.player_key}>
-                      <td className="rank-cell">{i + 1}</td>
-                      <td><strong>{w.name}</strong></td>
-                      <td><span className={`pos-badge pos-${w.position}`}>{w.position}</span></td>
-                      <td>
-                        {w.team && <img src={teamLogoUrl(w.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-                        {' '}{w.team}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{w.pprPts.toFixed(1)}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{w.ff_pt}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{w.position}{w.pos_rk}</td>
-                      <td style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 200 }}>
-                        <span title={w.availableIn.join(', ')}>
-                          {w.availableIn.length === leagues.length
-                            ? <span style={{ color: '#22c55e' }}>All leagues</span>
-                            : `${w.availableIn.length}/${leagues.length} — ${w.availableIn.slice(0, 2).join(', ')}${w.availableIn.length > 2 ? '…' : ''}`}
-                        </span>
-                      </td>
-                    </tr>
+                  {rows.map((c, i) => (
+                    <Fragment key={c.sleeperId}>
+                      <tr>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong>{c.name}</strong></td>
+                        <td><span className={`pos-badge pos-${c.position}`}>{c.position}</span></td>
+                        <td>
+                          {c.team && c.team !== 'FA' && <img src={teamLogoUrl(c.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          {' '}{c.team}
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{c.projPpr > 0 ? c.projPpr.toFixed(1) : '—'}{c.projPpr > 0 && c.posRk ? <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 10 }}> {c.position}{c.posRk}</span> : null}</td>
+                        <td style={{ color: c.adds > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: c.adds > 0 ? 600 : 400 }}>{c.adds > 0 ? `+${c.adds}` : '—'}</td>
+                        <td style={{ fontSize: 11 }}>{availCell(c)}</td>
+                      </tr>
+                      {expanded.has(c.sleeperId) && (
+                        <tr>
+                          <td />
+                          <td colSpan={6} style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 0 8px' }}>
+                            Open in: {c.availableIn.join(' · ')}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-
-          <div className="sched-section-title" style={{ marginTop: 20 }}>
-            Trending Adds — Available in Your Leagues
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            Top Sleeper trending adds (last 24h) that are unrostered in at least one of your leagues.
-          </p>
-          {filteredTrending.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-              {trending.length === 0
-                ? 'Sleeper trending data is unavailable right now (common in the offseason).'
-                : 'No trending players available on your waivers.'}
+          {trending.length === 0 && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 6 }}>
+              Sleeper trending data is unavailable right now (common in the offseason) — ranking on projections only.
             </p>
-          ) : (
-            <div className="table-container" style={{ maxHeight: 320 }}>
-              <table className="sched-table" style={{ fontSize: 12 }}>
-                <thead>
-                  <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Adds</th><th>Available In</th></tr>
-                </thead>
-                <tbody>
-                  {filteredTrending.slice(0, 30).map((t, i) => (
-                    <tr key={t.player_id}>
-                      <td className="rank-cell">{i + 1}</td>
-                      <td><strong>{t.full_name}</strong></td>
-                      <td><span className={`pos-badge pos-${t.position}`}>{t.position}</span></td>
-                      <td>
-                        {t.team && t.team !== 'FA' && <img src={teamLogoUrl(t.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-                        {' '}{t.team}
-                      </td>
-                      <td style={{ color: 'var(--accent)', fontWeight: 600 }}>+{t.count}</td>
-                      <td style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 200 }}>
-                        <span title={t.availableIn.join(', ')}>
-                          {t.availableIn.length === leagues.length
-                            ? <span style={{ color: '#22c55e' }}>All leagues</span>
-                            : `${t.availableIn.length}/${leagues.length} — ${t.availableIn.slice(0, 2).join(', ')}${t.availableIn.length > 2 ? '…' : ''}`}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           )}
         </>
       )}
