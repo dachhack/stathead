@@ -598,61 +598,63 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
 
 // ── Win-Win Trade Suggestions ──
 
-function TradeCard({ s, defaultExpanded = false }: { s: TradeSuggestion; defaultExpanded?: boolean }) {
-  const [showEval, setShowEval] = useState(defaultExpanded);
+function scoreColor(score: number): string {
+  if (score >= 80) return '#22c55e';
+  if (score >= 65) return '#a3e635';
+  if (score >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+function TradeCard({ s }: { s: TradeSuggestion }) {
   const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
 
   const assetLine = (a: TradeAsset) => (
     <div key={a.name} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <span style={{ color: '#ef4444' }}>→</span>
       <span>{a.name}</span>
       {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
-      {a.age && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({a.age})</span>}
+      {a.age != null && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({a.age})</span>}
       <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
-      {a.projPts != null && <span style={{ color: '#6366f1', fontSize: 10 }}>{a.projPts.toFixed(0)} pts</span>}
+      {a.projPts != null && a.projPts > 0 && <span style={{ color: '#6366f1', fontSize: 10 }}>{a.projPts.toFixed(0)}pts</span>}
     </div>
   );
 
   return (
     <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 600 }}>
           {s.teamA.teamName} ↔ {s.teamB.teamName}
         </span>
-        <span style={{ fontSize: 10, color: s.fairness >= 80 ? '#22c55e' : s.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
-          {s.fairness.toFixed(0)}% fair
-        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor(s.score) }}>
+            {s.score}/100
+          </span>
+          <span style={{ fontSize: 10, color: s.fairness >= 80 ? '#22c55e' : s.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
+            {s.fairness.toFixed(0)}% fair
+          </span>
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
         <div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>You give:</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You give:</div>
           {s.teamA.gives.map(assetLine)}
-        </div>
-        <div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>You get:</div>
-          {s.teamA.receives.map(assetLine)}
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.rationale}</div>
-        <button
-          style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: 10, padding: 0 }}
-          onClick={() => setShowEval(!showEval)}
-        >
-          {showEval ? 'Hide' : 'Evaluate'} ▾
-        </button>
-      </div>
-      {showEval && (
-        <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-tertiary)', borderRadius: 4, fontSize: 11 }}>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <span>Give: <b>{(result.givesTotal / 1000).toFixed(1)}k</b></span>
-            <span>Get: <b>{(result.receivesTotal / 1000).toFixed(1)}k</b></span>
-            <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-              Net: {result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k
-            </span>
+          <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
+            Total: {(result.givesTotal / 1000).toFixed(1)}k
           </div>
         </div>
-      )}
+        <div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You get:</div>
+          {s.teamA.receives.map(assetLine)}
+          <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
+            Total: {(result.receivesTotal / 1000).toFixed(1)}k
+            {result.net !== 0 && (
+              <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', marginLeft: 6, fontWeight: 600 }}>
+                ({result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k)
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{s.rationale}</div>
     </div>
   );
 }
@@ -674,6 +676,8 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
 
   const myGoal = goals.get(myRosterId ?? -1) ?? 'balanced';
 
+  const [generated, setGenerated] = useState(false);
+
   const doGenerate = async () => {
     setLoading(true);
     try {
@@ -681,6 +685,7 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
       const pickOwnership = buildPickOwnership(teams, tradedPicks, '2027');
       const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap);
       setSuggestions(results);
+      setGenerated(true);
     } catch {
       setSuggestions([]);
     }
@@ -738,19 +743,25 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
               disabled={loading}
               style={{ marginLeft: 12, padding: '3px 12px', fontSize: 11 }}
             >
-              {loading ? 'Generating…' : 'Generate Trades'}
+              {loading ? 'Generating…' : generated ? 'Refresh Suggestions' : 'Generate Trades'}
             </button>
           </div>
 
           {suggestions.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-              {suggestions.map((s, i) => <TradeCard key={i} s={s} />)}
+              {suggestions.map((s, i) => <TradeCard key={`${i}-${s.teamB.rosterId}`} s={s} />)}
             </div>
           )}
 
-          {!loading && suggestions.length === 0 && (
+          {!loading && generated && suggestions.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
-              Click "Generate Trades" to find win-win deals.
+              No viable 2-3 player trades found. Try changing your goal or selecting a different team.
+            </p>
+          )}
+
+          {!loading && !generated && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
+              Click "Generate Trades" to find win-win deals with 2-3 player packages.
             </p>
           )}
         </>
