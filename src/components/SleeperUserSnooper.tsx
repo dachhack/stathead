@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -339,6 +339,259 @@ function computeRosterWindow(
   return 'Balanced';
 }
 
+// ── Career History (multi-season) ──────────────────────────────────────────
+
+function finishColor(pct: number): string {
+  // pct = finish percentile from the top (0 = champion-ish, 1 = last)
+  if (pct <= 0.15) return '#22c55e';
+  if (pct <= 0.4) return '#a3e635';
+  if (pct <= 0.6) return 'var(--text-secondary)';
+  if (pct <= 0.85) return '#f59e0b';
+  return '#ef4444';
+}
+
+interface YearSummary {
+  season: string;
+  leagues: number;
+  dynasty: number;
+  keeper: number;
+  redraft: number;
+  superflex: number;
+  bestBall: number;
+  idp: number;
+  winPct: number | null;
+  avgFinishPct: number | null; // 0 = best, 1 = worst
+  champions: number;
+}
+
+function CareerHistorySection({ userId }: { userId: string }) {
+  const [history, setHistory] = useState<LeagueSeasonRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trades, setTrades] = useState<TradeActivity | null>(null);
+  const [tradeLoading, setTradeLoading] = useState(false);
+  const [tradeProgress, setTradeProgress] = useState({ done: 0, total: 0 });
+
+  useEffect(() => {
+    setLoading(true);
+    setHistory([]);
+    setTrades(null);
+    fetchUserHistory(userId, recentSeasons())
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  // Records that actually played games — used for win% and finish.
+  const played = useMemo(
+    () => history.filter((r) => r.regSeasonRank > 0 && r.totalRosters > 1 && (r.wins + r.losses + r.ties) > 0),
+    [history],
+  );
+
+  const career = useMemo(() => {
+    if (!history.length) return null;
+    const seasons = new Set(history.map((r) => r.season));
+    const earliest = history.reduce((min, r) => (r.season < min ? r.season : min), history[0].season);
+    let w = 0, l = 0, t = 0;
+    for (const r of played) { w += r.wins; l += r.losses; t += r.ties; }
+    const games = w + l + t;
+    const completed = history.filter((r) => r.status === 'complete');
+    const championships = history.filter((r) => r.champion).length;
+    const runnerUps = history.filter((r) => r.runnerUp).length;
+    const top3 = played.filter((r) => r.regSeasonRank <= 3).length;
+    const finishPcts = played.map((r) => (r.regSeasonRank - 1) / (r.totalRosters - 1));
+    const avgFinishPct = finishPcts.length ? finishPcts.reduce((a, b) => a + b, 0) / finishPcts.length : null;
+    return {
+      earliest,
+      seasonsActive: seasons.size,
+      totalLeagues: history.length,
+      completedCount: completed.length,
+      championships,
+      runnerUps,
+      top3,
+      winPct: games ? (w + t * 0.5) / games : null,
+      record: { w, l, t },
+      avgFinishPct,
+    };
+  }, [history, played]);
+
+  const byYear = useMemo(() => {
+    const map = new Map<string, LeagueSeasonRecord[]>();
+    for (const r of history) {
+      if (!map.has(r.season)) map.set(r.season, []);
+      map.get(r.season)!.push(r);
+    }
+    const out: YearSummary[] = [];
+    for (const [season, recs] of map) {
+      const playedRecs = recs.filter((r) => r.regSeasonRank > 0 && r.totalRosters > 1 && (r.wins + r.losses + r.ties) > 0);
+      let w = 0, l = 0, t = 0;
+      for (const r of playedRecs) { w += r.wins; l += r.losses; t += r.ties; }
+      const games = w + l + t;
+      const finishPcts = playedRecs.map((r) => (r.regSeasonRank - 1) / (r.totalRosters - 1));
+      out.push({
+        season,
+        leagues: recs.length,
+        dynasty: recs.filter((r) => r.format.type === 'Dynasty').length,
+        keeper: recs.filter((r) => r.format.type === 'Keeper').length,
+        redraft: recs.filter((r) => r.format.type === 'Redraft').length,
+        superflex: recs.filter((r) => r.format.qb === 'Superflex').length,
+        bestBall: recs.filter((r) => r.format.bestBall).length,
+        idp: recs.filter((r) => r.format.idp).length,
+        winPct: games ? (w + t * 0.5) / games : null,
+        avgFinishPct: finishPcts.length ? finishPcts.reduce((a, b) => a + b, 0) / finishPcts.length : null,
+        champions: recs.filter((r) => r.champion).length,
+      });
+    }
+    out.sort((a, b) => b.season.localeCompare(a.season));
+    return out;
+  }, [history]);
+
+  const leagueRows = useMemo(
+    () => [...history].sort((a, b) =>
+      b.season.localeCompare(a.season) ||
+      (a.regSeasonRank || 99) - (b.regSeasonRank || 99)),
+    [history],
+  );
+
+  const analyzeTrades = () => {
+    setTradeLoading(true);
+    setTradeProgress({ done: 0, total: 0 });
+    fetchUserTradeActivity(history, (done, total) => setTradeProgress({ done, total }))
+      .then(setTrades)
+      .catch(() => setTrades(null))
+      .finally(() => setTradeLoading(false));
+  };
+
+  if (loading && !history.length) {
+    return (
+      <div style={{ margin: '16px 0' }}>
+        <div className="sched-section-title">Career History</div>
+        <div className="loading" style={{ padding: '12px 0' }}><div className="spinner" /><span className="loading-text">Scanning past seasons…</span></div>
+      </div>
+    );
+  }
+  if (!career) {
+    return (
+      <div style={{ margin: '16px 0' }}>
+        <div className="sched-section-title">Career History</div>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No past-season leagues found.</p>
+      </div>
+    );
+  }
+
+  const stat = (label: string, value: React.ReactNode, color?: string) => (
+    <div><b style={{ color: color ?? 'var(--text-primary)' }}>{value}</b> <span style={{ color: 'var(--text-muted)' }}>{label}</span></div>
+  );
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div className="sched-section-title">Career History</div>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+        Across the last {recentSeasons().length} NFL seasons (Sleeper exposes no signup date or all-time list).
+      </p>
+
+      {/* Career overview */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        {stat(`on Sleeper since ${career.earliest} (${career.seasonsActive} seasons)`, '⏳')}
+        {stat('leagues all-time', career.totalLeagues)}
+        {career.winPct != null && stat('career win%', `${(career.winPct * 100).toFixed(1)}%`)}
+        {stat('record', `${career.record.w}-${career.record.l}${career.record.t ? `-${career.record.t}` : ''}`)}
+        {stat('🏆 titles', career.championships, '#fbbf24')}
+        {career.runnerUps > 0 && stat('runner-up', career.runnerUps)}
+        {stat('top-3 finishes', career.top3)}
+        {career.avgFinishPct != null && stat('avg finish', `Top ${Math.round(career.avgFinishPct * 100)}%`, finishColor(career.avgFinishPct))}
+      </div>
+
+      {/* By year */}
+      <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>By Year</div>
+      <div className="table-container" style={{ maxHeight: 'none' }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead><tr><th>Year</th><th>Leagues</th><th>Formats</th><th>Win%</th><th title="Average regular-season standing (top % of the league)">Avg Finish</th><th title="Championships won">🏆</th></tr></thead>
+          <tbody>
+            {byYear.map((y) => (
+              <tr key={y.season}>
+                <td><strong>{y.season}</strong></td>
+                <td>{y.leagues}</td>
+                <td style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  {[y.dynasty && `${y.dynasty} Dynasty`, y.keeper && `${y.keeper} Keeper`, y.redraft && `${y.redraft} Redraft`,
+                    y.superflex && `${y.superflex} SF`, y.bestBall && `${y.bestBall} BB`, y.idp && `${y.idp} IDP`]
+                    .filter(Boolean).join(' · ')}
+                </td>
+                <td>{y.winPct != null ? `${(y.winPct * 100).toFixed(0)}%` : '—'}</td>
+                <td style={{ color: y.avgFinishPct != null ? finishColor(y.avgFinishPct) : 'var(--text-muted)' }}>
+                  {y.avgFinishPct != null ? `Top ${Math.round(y.avgFinishPct * 100)}%` : '—'}
+                </td>
+                <td>{y.champions > 0 ? <span style={{ color: '#fbbf24' }}>{y.champions}</span> : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Trade activity */}
+      <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>Trade Activity</div>
+      {!trades && !tradeLoading && (
+        <button className="format-tab active" onClick={analyzeTrades} style={{ padding: '4px 12px', fontSize: 11 }}>
+          Analyze trade activity
+        </button>
+      )}
+      {!trades && !tradeLoading && (
+        <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)' }}>
+          Sweeps weekly transaction logs — may take a few seconds.
+        </span>
+      )}
+      {tradeLoading && (
+        <div className="loading" style={{ padding: '8px 0' }}>
+          <div className="spinner" />
+          <span className="loading-text">
+            Scanning transactions… {tradeProgress.total ? `${Math.round((tradeProgress.done / tradeProgress.total) * 100)}%` : ''}
+          </span>
+        </div>
+      )}
+      {trades && (
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, marginTop: 4 }}>
+          {stat('trades total', trades.totalTrades, '#a78bfa')}
+          {stat('across leagues', trades.leaguesAnalyzed)}
+          {career.seasonsActive > 0 && stat('trades / season', (trades.totalTrades / career.seasonsActive).toFixed(1))}
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
+            {Object.entries(trades.bySeason).sort((a, b) => b[0].localeCompare(a[0])).map(([s, n]) => `${s}: ${n}`).join(' · ')}
+            {trades.capped && ' · (recent seasons only)'}
+          </span>
+        </div>
+      )}
+
+      {/* Per-league finishes */}
+      <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>League Finishes</div>
+      <div className="table-container" style={{ maxHeight: 360 }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead><tr><th>Year</th><th>League</th><th>Format</th><th>Record</th><th title="Regular-season standing">Finish</th><th>Result</th></tr></thead>
+          <tbody>
+            {leagueRows.map((r) => {
+              const finishPct = r.regSeasonRank > 0 && r.totalRosters > 1 ? (r.regSeasonRank - 1) / (r.totalRosters - 1) : null;
+              return (
+                <tr key={`${r.season}-${r.leagueId}`}>
+                  <td>{r.season}</td>
+                  <td><strong>{r.leagueName}</strong></td>
+                  <td><LeagueFormatBadges info={r.format} /></td>
+                  <td>{r.wins}-{r.losses}{r.ties ? `-${r.ties}` : ''}</td>
+                  <td style={{ color: finishPct != null ? finishColor(finishPct) : 'var(--text-muted)' }}>
+                    {r.regSeasonRank > 0 ? `${r.regSeasonRank}/${r.totalRosters}` : '—'}
+                  </td>
+                  <td>
+                    {r.champion ? <span style={{ color: '#fbbf24', fontWeight: 600 }}>🏆 Champion</span>
+                      : r.runnerUp ? <span style={{ color: '#cbd5e1' }}>Runner-up</span>
+                      : r.status !== 'complete' ? <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{r.status === 'in_season' ? 'In season' : r.status === 'pre_draft' ? 'Pre-draft' : r.status}</span>
+                      : ''}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SleeperUserSnooper() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [result, setResult] = useState<SnoopResult | null>(null);
@@ -524,6 +777,9 @@ export function SleeperUserSnooper() {
               </div>
             )}
           </div>
+
+          {/* Career history across seasons */}
+          <CareerHistorySection userId={result.user.user_id} />
 
           {/* Position breakdown */}
           {posBreakdown.length > 0 && (

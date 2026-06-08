@@ -132,7 +132,7 @@ export interface SleeperLeagueSummary {
   sport: string;
   roster_positions: string[];
   avatar: string | null;
-  settings?: { type?: number };
+  settings?: { type?: number; best_ball?: number };
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -278,4 +278,151 @@ export async function importLeague(leagueId: string): Promise<LeagueImport> {
 
   teams.sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
   return { league, teams };
+}
+
+// ── Multi-season user history ────────────────────────────────────────────
+// Sleeper has no "all my leagues ever" or per-user transaction endpoint, so we
+// sweep a window of seasons and fan out per-league requests with bounded
+// concurrency.
+
+// Most recent `count` NFL seasons ending at `endYear` (inclusive), newest first.
+export function recentSeasons(count = 9, endYear = new Date().getFullYear()): string[] {
+  return Array.from({ length: count }, (_, i) => String(endYear - i));
+}
+
+// Run `fn` over `items` with at most `limit` in flight at once.
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) || 0 }, worker));
+  return results;
+}
+
+interface BracketMatch { r: number; m: number; w?: number | null; l?: number | null; p?: number }
+
+export interface LeagueSeasonRecord {
+  season: string;
+  leagueId: string;
+  leagueName: string;
+  status: string;
+  format: LeagueFormatInfo;
+  totalRosters: number;
+  rosterId: number | null;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  regSeasonRank: number; // 1 = best; 0 if the user's roster wasn't found
+  champion: boolean;
+  runnerUp: boolean;
+}
+
+// Every league the user fielded across the given seasons, with their record,
+// regular-season finish, and (for completed leagues) championship result.
+export async function fetchUserHistory(userId: string, seasons: string[]): Promise<LeagueSeasonRecord[]> {
+  const perSeason = await mapLimit(seasons, 6, async (season) => {
+    try {
+      const leagues = await fetchUserLeagues(userId, season);
+      return leagues.map((league) => ({ season, league }));
+    } catch { return []; }
+  });
+  const pairs = perSeason.flat();
+
+  const records = await mapLimit(pairs, 8, async ({ season, league }) => {
+    try {
+      const rosters = await getJson<RawRoster[]>(`${SLEEPER}/league/${league.league_id}/rosters`);
+      const mine = rosters.find((r) => r.owner_id === userId) ?? null;
+      const ranked = [...rosters].sort((a, b) =>
+        (b.settings?.wins ?? 0) - (a.settings?.wins ?? 0) ||
+        toPoints(b.settings?.fpts, b.settings?.fpts_decimal) - toPoints(a.settings?.fpts, a.settings?.fpts_decimal));
+      const regSeasonRank = mine ? ranked.findIndex((r) => r.roster_id === mine.roster_id) + 1 : 0;
+
+      let champion = false;
+      let runnerUp = false;
+      if (league.status === 'complete' && mine) {
+        try {
+          const bracket = await getJson<BracketMatch[]>(`${SLEEPER}/league/${league.league_id}/winners_bracket`);
+          const final = bracket.find((b) => b.p === 1);
+          if (final) {
+            champion = final.w === mine.roster_id;
+            runnerUp = final.l === mine.roster_id;
+          }
+        } catch { /* league without a bracket */ }
+      }
+
+      return {
+        season,
+        leagueId: league.league_id,
+        leagueName: league.name,
+        status: league.status,
+        format: leagueFormatInfo(league),
+        totalRosters: league.total_rosters,
+        rosterId: mine?.roster_id ?? null,
+        wins: mine?.settings?.wins ?? 0,
+        losses: mine?.settings?.losses ?? 0,
+        ties: mine?.settings?.ties ?? 0,
+        pointsFor: toPoints(mine?.settings?.fpts, mine?.settings?.fpts_decimal),
+        regSeasonRank,
+        champion,
+        runnerUp,
+      } as LeagueSeasonRecord;
+    } catch { return null; }
+  });
+
+  return records.filter((r): r is LeagueSeasonRecord => r !== null);
+}
+
+interface RawTransaction { type: string; status: string; roster_ids?: number[] }
+
+export interface TradeActivity {
+  totalTrades: number;
+  leaguesAnalyzed: number;
+  bySeason: Record<string, number>;
+  capped: boolean; // true if we hit the request cap and didn't scan everything
+}
+
+// Count completed trades the user was party to, sweeping weekly transaction
+// logs. There's no per-user endpoint, so this is bounded: newest seasons first,
+// capped at MAX_TASKS week-requests total.
+export async function fetchUserTradeActivity(
+  records: LeagueSeasonRecord[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<TradeActivity> {
+  const WEEKS = 18;
+  const MAX_TASKS = 700;
+  const usable = records
+    .filter((r) => r.rosterId != null && r.status !== 'pre_draft' && r.status !== 'drafting')
+    .sort((a, b) => b.season.localeCompare(a.season));
+
+  const tasks: { rec: LeagueSeasonRecord; week: number }[] = [];
+  let capped = false;
+  for (const rec of usable) {
+    if (tasks.length >= MAX_TASKS) { capped = true; break; }
+    for (let w = 1; w <= WEEKS; w++) tasks.push({ rec, week: w });
+  }
+
+  const bySeason: Record<string, number> = {};
+  const analyzed = new Set<string>();
+  let done = 0;
+  await mapLimit(tasks, 12, async ({ rec, week }) => {
+    try {
+      const txns = await getJson<RawTransaction[]>(`${SLEEPER}/league/${rec.leagueId}/transactions/${week}`);
+      analyzed.add(rec.leagueId);
+      for (const t of txns ?? []) {
+        if (t.type === 'trade' && t.status === 'complete' && rec.rosterId != null && (t.roster_ids ?? []).includes(rec.rosterId)) {
+          bySeason[rec.season] = (bySeason[rec.season] ?? 0) + 1;
+        }
+      }
+    } catch { /* ignore missing weeks */ }
+    onProgress?.(++done, tasks.length);
+  });
+
+  const totalTrades = Object.values(bySeason).reduce((a, b) => a + b, 0);
+  return { totalTrades, leaguesAnalyzed: analyzed.size, bySeason, capped };
 }
