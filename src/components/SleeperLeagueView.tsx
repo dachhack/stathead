@@ -256,45 +256,189 @@ function WindowBadge({ score }: WindowBadgeProps) {
 
 // ── League-wide power rankings ──
 
-interface LeaguePowerProps { teams: LeagueTeam[]; ktc: KTCPlayer[] }
+type ViewMode = 'starters' | 'starters-plus' | 'full';
 
-function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
-  const scores = useMemo(() => {
-    const out: { team: LeagueTeam; score: RosterScore }[] = [];
-    for (const t of teams) {
-      const s = scoreRoster(t, ktc);
-      if (s) out.push({ team: t, score: s });
+interface PositionalStrength {
+  qb: number;
+  rb: number;
+  wr: number;
+  te: number;
+}
+
+interface PowerRow {
+  team: LeagueTeam;
+  score: RosterScore;
+  posStrength: PositionalStrength;
+  projPts: number;
+}
+
+function computePositionalStrength(
+  team: LeagueTeam,
+  ktcByName: Map<string, KTCPlayer>,
+  mode: ViewMode,
+): PositionalStrength {
+  let players: RosterPlayer[];
+  if (mode === 'starters') {
+    players = team.starters.filter((p) => p.name !== 'Empty');
+  } else if (mode === 'starters-plus') {
+    const starterPositions = new Map<string, number>();
+    for (const p of team.starters) {
+      if (p.position) starterPositions.set(p.position, (starterPositions.get(p.position) ?? 0) + 1);
     }
-    out.sort((a, b) => b.score.totalValue - a.score.totalValue);
-    return out;
-  }, [teams, ktc]);
+    const benchByPos = new Map<string, RosterPlayer[]>();
+    for (const p of team.bench) {
+      if (p.position) {
+        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+        benchByPos.get(p.position)!.push(p);
+      }
+    }
+    players = [...team.starters.filter((p) => p.name !== 'Empty')];
+    for (const [pos, benched] of benchByPos) {
+      const starterCount = starterPositions.get(pos) ?? 0;
+      const replacements = benched.slice(0, Math.max(1, Math.ceil(starterCount * 0.5)));
+      players.push(...replacements);
+    }
+  } else {
+    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  }
 
-  if (!scores.length) return null;
+  const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
+  for (const p of players) {
+    const k = ktcByName.get(normalizeForMatch(p.name));
+    if (!k || k.value <= 0) continue;
+    const pos = p.position?.toUpperCase();
+    if (pos === 'QB') str.qb += k.value;
+    else if (pos === 'RB') str.rb += k.value;
+    else if (pos === 'WR') str.wr += k.value;
+    else if (pos === 'TE') str.te += k.value;
+  }
+  return str;
+}
+
+function computeTeamProjPts(
+  team: LeagueTeam,
+  projBySleeperIdMap: Map<string, number>,
+  mode: ViewMode,
+): number {
+  let players: RosterPlayer[];
+  if (mode === 'starters') {
+    players = team.starters.filter((p) => p.name !== 'Empty');
+  } else if (mode === 'full') {
+    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  } else {
+    players = [...team.starters.filter((p) => p.name !== 'Empty')];
+    const benchByPos = new Map<string, RosterPlayer[]>();
+    for (const p of team.bench) {
+      if (p.position) {
+        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+        benchByPos.get(p.position)!.push(p);
+      }
+    }
+    for (const [, benched] of benchByPos) {
+      players.push(...benched.slice(0, 1));
+    }
+  }
+  let total = 0;
+  for (const p of players) {
+    total += projBySleeperIdMap.get(p.id) ?? 0;
+  }
+  return total;
+}
+
+interface LeaguePowerProps {
+  teams: LeagueTeam[];
+  ktc: KTCPlayer[];
+  projBySleeperIdMap: Map<string, number>;
+}
+
+function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('starters');
+  const [sortBy, setSortBy] = useState<'value' | 'proj'>('value');
+
+  const rows: PowerRow[] = useMemo(() => {
+    const ktcByName = new Map<string, KTCPlayer>();
+    for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+
+    const out: PowerRow[] = [];
+    for (const t of teams) {
+      const score = scoreRoster(t, ktc);
+      if (!score) continue;
+      const posStrength = computePositionalStrength(t, ktcByName, viewMode);
+      const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
+      out.push({ team: t, score, posStrength, projPts });
+    }
+    if (sortBy === 'value') out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    else out.sort((a, b) => b.projPts - a.projPts);
+    return out;
+  }, [teams, ktc, projBySleeperIdMap, viewMode, sortBy]);
+
+  if (!rows.length) return null;
+
+  const maxPos = { qb: 0, rb: 0, wr: 0, te: 0 };
+  for (const r of rows) {
+    if (r.posStrength.qb > maxPos.qb) maxPos.qb = r.posStrength.qb;
+    if (r.posStrength.rb > maxPos.rb) maxPos.rb = r.posStrength.rb;
+    if (r.posStrength.wr > maxPos.wr) maxPos.wr = r.posStrength.wr;
+    if (r.posStrength.te > maxPos.te) maxPos.te = r.posStrength.te;
+  }
+
+  const posBar = (val: number, max: number, color: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ width: 50, height: 8, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${max ? (val / max) * 100 : 0}%`, height: '100%', background: color, borderRadius: 4 }} />
+      </div>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{val ? (val / 1000).toFixed(1) + 'k' : '—'}</span>
+    </div>
+  );
 
   return (
     <div style={{ margin: '16px 0' }}>
       <div className="sched-section-title">League Power Rankings</div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-        Roster dynasty value from KTC. Window = value distribution by age.
+        Positional strength by dynasty value and projected score.
       </p>
+      <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
+        {([['starters', 'Starters Only'], ['starters-plus', 'Starters + Replacements'], ['full', 'Full Roster']] as const).map(([mode, label]) => (
+          <button
+            key={mode}
+            className={`format-tab ${viewMode === mode ? 'active' : ''}`}
+            onClick={() => setViewMode(mode)}
+            style={{ padding: '3px 10px', fontSize: 11 }}
+          >
+            {label}
+          </button>
+        ))}
+        <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
+        <button className={`format-tab ${sortBy === 'value' ? 'active' : ''}`} onClick={() => setSortBy('value')} style={{ padding: '3px 10px', fontSize: 11 }}>Dynasty Value</button>
+        <button className={`format-tab ${sortBy === 'proj' ? 'active' : ''}`} onClick={() => setSortBy('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
+      </div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
-            <tr><th>#</th><th>Team</th><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 120 }}>Age Distribution</th></tr>
+            <tr>
+              <th>#</th><th>Team</th><th>Window</th><th>Value</th>
+              <th title="Projected PPR points (season)">Proj Pts</th>
+              <th>QB</th><th>RB</th><th>WR</th><th>TE</th>
+              <th style={{ width: 90 }}>Age Dist</th>
+            </tr>
           </thead>
           <tbody>
-            {scores.map(({ team: t, score: s }, i) => (
-              <tr key={t.rosterId} style={{ cursor: 'pointer' }} onClick={() => {}}>
+            {rows.map((r, i) => (
+              <tr key={r.team.rosterId}>
                 <td className="rank-cell">{i + 1}</td>
-                <td><strong>{t.teamName}</strong></td>
-                <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
-                <td>{s.totalValue.toLocaleString()}</td>
-                <td>{s.avgAge.toFixed(1)}</td>
+                <td><strong>{r.team.teamName}</strong></td>
+                <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
+                <td>{r.score.totalValue.toLocaleString()}</td>
+                <td style={{ fontWeight: 600 }}>{r.projPts > 0 ? r.projPts.toFixed(0) : '—'}</td>
+                <td>{posBar(r.posStrength.qb, maxPos.qb, '#6366f1')}</td>
+                <td>{posBar(r.posStrength.rb, maxPos.rb, '#22c55e')}</td>
+                <td>{posBar(r.posStrength.wr, maxPos.wr, '#f59e0b')}</td>
+                <td>{posBar(r.posStrength.te, maxPos.te, '#ef4444')}</td>
                 <td>
-                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 80 }}>
-                    <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
-                    <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
-                    <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
+                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
+                    <div style={{ width: `${r.score.youngPct}%`, background: '#22c55e' }} />
+                    <div style={{ width: `${r.score.primePct}%`, background: '#f59e0b' }} />
+                    <div style={{ width: `${r.score.agingPct}%`, background: '#ef4444' }} />
                   </div>
                 </td>
               </tr>
@@ -464,6 +608,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [projBySleeperIdMap, setProjBySleeperIdMap] = useState<Map<string, number>>(new Map());
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -474,6 +619,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   useEffect(() => {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
       setMatchups(m); setTeamProj(tp); setKtc(k);
+    });
+    loadClayProjections().then((players) => {
+      const map = new Map<string, number>();
+      for (const p of players) {
+        if (p.sleeperId) map.set(p.sleeperId, computePpr(p));
+      }
+      setProjBySleeperIdMap(map);
     });
   }, []);
 
@@ -648,7 +800,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             </table>
           </div>
 
-          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} />}
+          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} projBySleeperIdMap={projBySleeperIdMap} />}
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
