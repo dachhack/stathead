@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -426,6 +426,82 @@ function StackedYearChart({ title, subtitle, data, series }: {
   );
 }
 
+// ── Trade grading (hindsight, from the snooped user's side) ──
+const PICK_GRADE_VALUE: Record<number, number> = { 1: 6000, 2: 3000, 3: 1500, 4: 700 };
+const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
+
+function sideValue(side: TradeSide, ktcByName: Map<string, number>, players: Map<string, SleeperPlayer>): number {
+  let v = 0;
+  for (const pid of side.players) {
+    const sp = players.get(pid);
+    if (sp) v += ktcByName.get(normalizeForMatch(sp.full_name)) ?? 0;
+  }
+  for (const pk of side.picks) v += PICK_GRADE_VALUE[pk.round] ?? 400;
+  return v;
+}
+
+function tradeGrade(received: number, gave: number): { letter: string; color: string } {
+  if (received <= 0 && gave <= 0) return { letter: '—', color: 'var(--text-muted)' };
+  const margin = (received - gave) / Math.max(received, gave, 1);
+  if (margin >= 0.35) return { letter: 'A', color: '#22c55e' };
+  if (margin >= 0.12) return { letter: 'B', color: '#a3e635' };
+  if (margin >= -0.12) return { letter: 'C', color: 'var(--text-secondary)' };
+  if (margin >= -0.35) return { letter: 'D', color: '#f59e0b' };
+  return { letter: 'F', color: '#ef4444' };
+}
+
+function SideAssets({ side, players }: { side: TradeSide; players: Map<string, SleeperPlayer> }) {
+  const parts: string[] = [];
+  for (const pid of side.players) parts.push(players.get(pid)?.full_name ?? `#${pid}`);
+  for (const pk of side.picks) parts.push(`${pk.season} ${ORDINAL[pk.round] ?? `R${pk.round}`}`);
+  if (side.faab > 0) parts.push(`$${side.faab} FAAB`);
+  if (!parts.length) return <span style={{ color: 'var(--text-muted)' }}>nothing</span>;
+  return <>{parts.join(', ')}</>;
+}
+
+function TradeList({ trades, players, ktcByName }: {
+  trades: TradeRecord[];
+  players: Map<string, SleeperPlayer>;
+  ktcByName: Map<string, number>;
+}) {
+  const MAX = 80;
+  const shown = trades.slice(0, MAX);
+  return (
+    <>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 4px' }}>
+        Grades are hindsight — current player/pick values from your side of each deal.
+      </div>
+      <div className="table-container" style={{ maxHeight: 420 }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead><tr><th>When</th><th>League</th><th>Got</th><th>Gave</th><th title="Hindsight grade from this manager's side">Grade</th></tr></thead>
+          <tbody>
+            {shown.map((t, i) => {
+              const recv = sideValue(t.received, ktcByName, players);
+              const gave = sideValue(t.gave, ktcByName, players);
+              const g = tradeGrade(recv, gave);
+              return (
+                <tr key={`${t.leagueId}-${t.created}-${i}`}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{t.season} Wk{t.week}</td>
+                  <td style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.leagueName}>{t.leagueName}</td>
+                  <td style={{ color: '#22c55e' }}><SideAssets side={t.received} players={players} /></td>
+                  <td style={{ color: 'var(--text-secondary)' }}><SideAssets side={t.gave} players={players} /></td>
+                  <td
+                    style={{ fontWeight: 800, color: g.color, textAlign: 'center' }}
+                    title={recv > 0 || gave > 0 ? `Got ${(recv / 1000).toFixed(1)}k vs gave ${(gave / 1000).toFixed(1)}k (current value)` : 'Not enough current value data to grade'}
+                  >{g.letter}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {trades.length > MAX && (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Showing 80 of {trades.length} trades.</div>
+      )}
+    </>
+  );
+}
+
 interface YearSummary {
   season: string;
   leagues: number;
@@ -528,6 +604,12 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
       (a.regSeasonRank || 99) - (b.regSeasonRank || 99)),
     [history],
   );
+
+  const ktcByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const k of ktc) m.set(normalizeForMatch(k.playerName), k.value);
+    return m;
+  }, [ktc]);
 
   // ── Stacked bar chart data (raw counts, fixed 2020 → current x-axis) ──
   const seasons = useMemo(() => chartSeasons(), []);
@@ -720,6 +802,9 @@ function CareerHistorySection({ userId, players, ktc }: { userId: string; player
             {trades.capped && ' · (recent seasons only)'}
           </span>
         </div>
+      )}
+      {trades && trades.trades.length > 0 && (
+        <TradeList trades={trades.trades} players={players} ktcByName={ktcByName} />
       )}
 
       {/* Per-league finishes */}

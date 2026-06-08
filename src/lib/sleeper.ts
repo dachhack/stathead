@@ -380,18 +380,46 @@ export async function fetchUserHistory(userId: string, seasons: string[]): Promi
   return records.filter((r): r is LeagueSeasonRecord => r !== null);
 }
 
-interface RawTransaction { type: string; status: string; roster_ids?: number[] }
+interface RawTransaction {
+  type: string;
+  status: string;
+  roster_ids?: number[];
+  adds?: Record<string, number> | null;
+  drops?: Record<string, number> | null;
+  draft_picks?: { season: string; round: number; roster_id: number; previous_owner_id: number; owner_id: number }[];
+  waiver_budget?: { sender: number; receiver: number; amount: number }[];
+  created?: number;
+}
+
+export interface TradeSide {
+  players: string[];                       // sleeper player ids
+  picks: { season: string; round: number }[];
+  faab: number;
+}
+
+export interface TradeRecord {
+  leagueId: string;
+  leagueName: string;
+  season: string;
+  week: number;
+  created: number;
+  rosterId: number;     // the snooped user's roster in this league
+  partners: number[];   // other roster ids in the deal
+  received: TradeSide;
+  gave: TradeSide;
+}
 
 export interface TradeActivity {
   totalTrades: number;
   leaguesAnalyzed: number;
   bySeason: Record<string, number>;
+  trades: TradeRecord[];
   capped: boolean; // true if we hit the request cap and didn't scan everything
 }
 
-// Count completed trades the user was party to, sweeping weekly transaction
-// logs. There's no per-user endpoint, so this is bounded: newest seasons first,
-// capped at MAX_TASKS week-requests total.
+// List + count completed trades the user was party to, sweeping weekly
+// transaction logs. There's no per-user endpoint, so this is bounded: newest
+// seasons first, capped at MAX_TASKS week-requests total.
 export async function fetchUserTradeActivity(
   records: LeagueSeasonRecord[],
   onProgress?: (done: number, total: number) => void,
@@ -411,20 +439,50 @@ export async function fetchUserTradeActivity(
 
   const bySeason: Record<string, number> = {};
   const analyzed = new Set<string>();
+  const trades: TradeRecord[] = [];
   let done = 0;
   await mapLimit(tasks, 12, async ({ rec, week }) => {
+    const me = rec.rosterId;
     try {
       const txns = await getJson<RawTransaction[]>(`${SLEEPER}/league/${rec.leagueId}/transactions/${week}`);
       analyzed.add(rec.leagueId);
       for (const t of txns ?? []) {
-        if (t.type === 'trade' && t.status === 'complete' && rec.rosterId != null && (t.roster_ids ?? []).includes(rec.rosterId)) {
-          bySeason[rec.season] = (bySeason[rec.season] ?? 0) + 1;
+        if (t.type !== 'trade' || t.status !== 'complete' || me == null || !(t.roster_ids ?? []).includes(me)) continue;
+        bySeason[rec.season] = (bySeason[rec.season] ?? 0) + 1;
+
+        const received: TradeSide = { players: [], picks: [], faab: 0 };
+        const gave: TradeSide = { players: [], picks: [], faab: 0 };
+        for (const [pid, rid] of Object.entries(t.adds ?? {})) {
+          if (rid === me) received.players.push(pid);
         }
+        for (const [pid, rid] of Object.entries(t.drops ?? {})) {
+          if (rid === me) gave.players.push(pid);
+        }
+        for (const pk of t.draft_picks ?? []) {
+          if (pk.owner_id === me) received.picks.push({ season: pk.season, round: pk.round });
+          else if (pk.previous_owner_id === me) gave.picks.push({ season: pk.season, round: pk.round });
+        }
+        for (const wb of t.waiver_budget ?? []) {
+          if (wb.receiver === me) received.faab += wb.amount;
+          else if (wb.sender === me) gave.faab += wb.amount;
+        }
+        trades.push({
+          leagueId: rec.leagueId,
+          leagueName: rec.leagueName,
+          season: rec.season,
+          week,
+          created: t.created ?? 0,
+          rosterId: me,
+          partners: (t.roster_ids ?? []).filter((r) => r !== me),
+          received,
+          gave,
+        });
       }
     } catch { /* ignore missing weeks */ }
     onProgress?.(++done, tasks.length);
   });
 
+  trades.sort((a, b) => (b.created - a.created) || b.season.localeCompare(a.season) || b.week - a.week);
   const totalTrades = Object.values(bySeason).reduce((a, b) => a + b, 0);
-  return { totalTrades, leaguesAnalyzed: analyzed.size, bySeason, capped };
+  return { totalTrades, leaguesAnalyzed: analyzed.size, bySeason, trades, capped };
 }
