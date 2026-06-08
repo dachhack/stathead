@@ -228,13 +228,6 @@ function App() {
               </select>
             </>
           )}
-          <button
-            className="settings-gear"
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-          >
-            &#9881;
-          </button>
         </div>
       </header>
       <main className="main">
@@ -319,14 +312,8 @@ function App() {
         )}
       </main>
 
-      <button
-        className="chat-fab"
-        onClick={() => setChatOpen(true)}
-        title="Ask Claude"
-      >
-        C
-      </button>
-
+      {/* Claude chat + Settings triggers temporarily removed from the UI;
+          the drawer/modal stay wired (dormant) so they're easy to restore. */}
       <ChatDrawer
         open={chatOpen}
         onClose={() => setChatOpen(false)}
