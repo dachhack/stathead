@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster } from '../lib/sleeper';
-import { fetchSleeperPlayers } from '../data';
-import type { SleeperPlayer } from '../types';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
+import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
+import { PlayerLink } from './PlayerLink';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -60,15 +61,206 @@ function leagueTypeLabel(rosterPositions: string[]): string {
   return '1QB';
 }
 
+// ── Inline League Panel ──
+
+function SnoopPlayerLine({ p }: { p: RosterPlayer }) {
+  return (
+    <div className="sl-player">
+      <span className="sl-slot">{p.slot}</span>
+      {p.position && <span className={`pos-badge pos-${p.position}`}>{p.position}</span>}
+      <span className="sl-name">
+        {p.name}
+        <PlayerLink sleeperId={p.id} name={p.name} position={p.position} />
+      </span>
+      {p.team && (
+        <span className="sl-team">
+          <img src={teamLogoUrl(p.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> {p.team}
+        </span>
+      )}
+    </div>
+  );
+}
+
+type WindowLabel = 'Win-Now' | 'Contender' | 'Balanced' | 'Retooling' | 'Rebuild';
+
+function normalizeForMatch(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
+}
+
+interface RosterScore {
+  label: WindowLabel;
+  totalValue: number;
+  avgAge: number;
+  youngPct: number;
+  primePct: number;
+  agingPct: number;
+  matchedCount: number;
+}
+
+function scoreRosterSimple(team: LeagueTeam, ktc: KTCPlayer[]): RosterScore | null {
+  const ktcByName = new Map<string, KTCPlayer>();
+  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+  const allPlayers = [...team.starters, ...team.bench].filter((p) => p.position && p.position !== 'DEF' && p.name !== 'Empty');
+  let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, ageSum = 0, matchedCount = 0;
+  for (const p of allPlayers) {
+    const k = ktcByName.get(normalizeForMatch(p.name));
+    if (!k || k.value <= 0) continue;
+    matchedCount++;
+    totalValue += k.value;
+    ageSum += k.age;
+    if (k.age <= 24) youngValue += k.value;
+    else if (k.age <= 27) primeValue += k.value;
+    else agingValue += k.value;
+  }
+  if (!matchedCount) return null;
+  const avgAge = ageSum / matchedCount;
+  const youngPct = totalValue ? (youngValue / totalValue) * 100 : 0;
+  const primePct = totalValue ? (primeValue / totalValue) * 100 : 0;
+  const agingPct = totalValue ? (agingValue / totalValue) * 100 : 0;
+  let label: WindowLabel;
+  if (agingPct >= 40) label = 'Win-Now';
+  else if (agingPct + primePct >= 65 && youngPct < 35) label = 'Contender';
+  else if (youngPct >= 55) label = 'Rebuild';
+  else if (youngPct >= 40) label = 'Retooling';
+  else label = 'Balanced';
+  return { label, totalValue, avgAge, youngPct, primePct, agingPct, matchedCount };
+}
+
+function windowColor(label: WindowLabel): string {
+  switch (label) {
+    case 'Win-Now': return '#ef4444';
+    case 'Contender': return '#f59e0b';
+    case 'Balanced': return 'var(--text-muted)';
+    case 'Retooling': return '#a3e635';
+    case 'Rebuild': return '#22c55e';
+  }
+}
+
+function SnoopLeaguePanel({ leagueId, ktc }: { leagueId: string; ktc: KTCPlayer[] }) {
+  const [data, setData] = useState<LeagueImport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    importLeague(leagueId)
+      .then((res) => { setData(res); setSelected(res.teams[0]?.rosterId ?? null); })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoading(false));
+  }, [leagueId]);
+
+  const selectedTeam = useMemo(() => data?.teams.find((t) => t.rosterId === selected), [data, selected]);
+
+  const powerRows = useMemo(() => {
+    if (!data || !ktc.length) return [];
+    const out: { team: LeagueTeam; score: RosterScore }[] = [];
+    for (const t of data.teams) {
+      const s = scoreRosterSimple(t, ktc);
+      if (s) out.push({ team: t, score: s });
+    }
+    out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    return out;
+  }, [data, ktc]);
+
+  if (loading) return <div className="loading" style={{ padding: '12px 0' }}><div className="spinner" /><span className="loading-text">Loading league…</span></div>;
+  if (error) return <p style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</p>;
+  if (!data) return null;
+
+  return (
+    <div style={{ padding: '8px 0' }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '0 0 8px' }}>
+        {data.league.season} · {data.league.status} · {data.league.total_rosters} teams
+      </p>
+
+      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Standings</div>
+      <div className="table-container" style={{ maxHeight: 'none' }}>
+        <table className="sched-table" style={{ fontSize: 12 }}>
+          <thead><tr><th>#</th><th>Team</th><th>Owner</th><th>W-L-T</th><th>PF</th><th>PA</th></tr></thead>
+          <tbody>
+            {data.teams.map((t, i) => (
+              <tr
+                key={t.rosterId}
+                onClick={() => setSelected(t.rosterId)}
+                style={{ cursor: 'pointer', background: t.rosterId === selected ? 'var(--bg-tertiary)' : undefined }}
+              >
+                <td className="rank-cell">{i + 1}</td>
+                <td><strong>{t.teamName}</strong></td>
+                <td style={{ color: 'var(--text-muted)' }}>{t.owner}</td>
+                <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
+                <td>{t.pointsFor.toFixed(1)}</td>
+                <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {powerRows.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Power Rankings</div>
+          <div className="table-container" style={{ maxHeight: 'none' }}>
+            <table className="sched-table" style={{ fontSize: 12 }}>
+              <thead><tr><th>#</th><th>Team</th><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 90 }}>Age Dist</th></tr></thead>
+              <tbody>
+                {powerRows.map(({ team: t, score: s }, i) => (
+                  <tr key={t.rosterId}>
+                    <td className="rank-cell">{i + 1}</td>
+                    <td><strong>{t.teamName}</strong></td>
+                    <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
+                    <td>{s.totalValue.toLocaleString()}</td>
+                    <td>{s.avgAge.toFixed(1)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
+                        <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
+                        <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
+                        <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {selectedTeam && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+            Roster — {selectedTeam.teamName}
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 10, marginLeft: 6 }}>(click a team above)</span>
+          </div>
+          <div className="sl-roster-grid">
+            <div className="sl-roster-col">
+              <div className="sl-col-head">Starters</div>
+              {selectedTeam.starters.map((p, i) => <SnoopPlayerLine key={`s${i}`} p={p} />)}
+            </div>
+            <div className="sl-roster-col">
+              <div className="sl-col-head">Bench</div>
+              {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <SnoopPlayerLine key={`b${i}`} p={p} />)
+                : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SleeperUserSnooper() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [result, setResult] = useState<SnoopResult | null>(null);
   const [players, setPlayers] = useState<Map<string, SleeperPlayer>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
+    fetchKTCRankings('1qb').then(setKtc);
   }, []);
 
   const snoop = (name: string) => {
@@ -249,15 +441,32 @@ export function SleeperUserSnooper() {
 
           {/* Leagues list */}
           <div className="sched-section-title" style={{ marginTop: 16 }}>Leagues ({result.leagues.length})</div>
-          <div className="table-container" style={{ maxHeight: 300 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Click a league name to view standings, power rankings, and rosters.
+          </p>
+          <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
               <thead><tr><th>League</th><th>Type</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
               <tbody>
                 {result.rosters.sort((a, b) => b.pointsFor - a.pointsFor).map((r) => {
                   const lg = result.leagues.find((l) => l.league_id === r.leagueId);
+                  const isExpanded = expandedLeague === r.leagueId;
                   return (
-                    <tr key={r.leagueId}>
-                      <td><strong>{r.leagueName}</strong></td>
+                    <tr key={r.leagueId} style={{ verticalAlign: 'top' }}>
+                      <td>
+                        <button
+                          style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 600, fontSize: 'inherit', textAlign: 'left' }}
+                          onClick={() => setExpandedLeague(isExpanded ? null : r.leagueId)}
+                        >
+                          <span style={{ display: 'inline-block', width: 14, fontSize: 9 }}>{isExpanded ? '▼' : '▶'}</span>
+                          {r.leagueName}
+                        </button>
+                        {isExpanded && (
+                          <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} />
+                          </div>
+                        )}
+                      </td>
                       <td>{leagueTypeLabel(r.rosterPositions)}</td>
                       <td>{r.totalRosters}</td>
                       <td>{r.wins}-{r.losses}</td>

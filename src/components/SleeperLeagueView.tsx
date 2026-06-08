@@ -847,14 +847,6 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return map;
   }, [allProjections, scoring]);
 
-  const projBySleeperId = useMemo(() => {
-    const map = new Map<string, ClayPlayer>();
-    for (const p of allProjections) {
-      if (p.sleeperId) map.set(p.sleeperId, p);
-    }
-    return map;
-  }, [allProjections]);
-
   const selectedTeam: LeagueTeam | undefined = useMemo(
     () => data?.teams.find((t) => t.rosterId === selected),
     [data, selected],
