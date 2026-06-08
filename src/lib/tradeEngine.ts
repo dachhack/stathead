@@ -1,4 +1,4 @@
-import type { LeagueTeam, RosterPlayer, SleeperTradedPick } from './sleeper';
+import type { LeagueTeam, SleeperTradedPick } from './sleeper';
 import type { KTCPlayer } from '../types';
 
 export type TradeGoal = 'win-now' | 'rebuild' | 'balanced';
@@ -71,16 +71,7 @@ function getTeamAssets(
   return assets;
 }
 
-function desiredPositions(goal: TradeGoal, team: LeagueTeam): Set<string> {
-  if (goal === 'rebuild') return new Set(['QB', 'WR', 'RB', 'TE']);
-  const starterPositions = team.starters
-    .filter((p) => p.name !== 'Empty')
-    .map((p) => p.position);
-  const posCounts = new Map<string, number>();
-  for (const pos of starterPositions) posCounts.set(pos, (posCounts.get(pos) ?? 0) + 1);
-  // Win-now wants depth at positions with fewer starters
-  return new Set(['QB', 'RB', 'WR', 'TE']);
-}
+
 
 function isGoodFit(asset: TradeAsset, goal: TradeGoal): boolean {
   if (asset.type === 'pick') return goal === 'rebuild';
