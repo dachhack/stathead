@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
+import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchKTCRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
-import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats } from '../lib/tradeEngine';
+import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -268,7 +269,7 @@ interface PositionalStrength {
 
 interface PowerRow {
   team: LeagueTeam;
-  score: RosterScore;
+  score: RosterScore | null; // dynasty window/value scoring — null for redraft
   posStrength: PositionalStrength;
   projPts: number;
 }
@@ -316,6 +317,51 @@ function computePositionalStrength(
   return str;
 }
 
+// Positional strength measured by projected season points (for redraft leagues),
+// mirroring computePositionalStrength but using the projection map instead of value.
+function computePositionalProjStrength(
+  team: LeagueTeam,
+  projBySleeperIdMap: Map<string, number>,
+  mode: ViewMode,
+): PositionalStrength {
+  let players: RosterPlayer[];
+  if (mode === 'starters') {
+    players = team.starters.filter((p) => p.name !== 'Empty');
+  } else if (mode === 'starters-plus') {
+    const starterPositions = new Map<string, number>();
+    for (const p of team.starters) {
+      if (p.position) starterPositions.set(p.position, (starterPositions.get(p.position) ?? 0) + 1);
+    }
+    const benchByPos = new Map<string, RosterPlayer[]>();
+    for (const p of team.bench) {
+      if (p.position) {
+        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+        benchByPos.get(p.position)!.push(p);
+      }
+    }
+    players = [...team.starters.filter((p) => p.name !== 'Empty')];
+    for (const [pos, benched] of benchByPos) {
+      const starterCount = starterPositions.get(pos) ?? 0;
+      const replacements = benched.slice(0, Math.max(1, Math.ceil(starterCount * 0.5)));
+      players.push(...replacements);
+    }
+  } else {
+    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  }
+
+  const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
+  for (const p of players) {
+    const pts = projBySleeperIdMap.get(p.id) ?? 0;
+    if (pts <= 0) continue;
+    const pos = p.position?.toUpperCase();
+    if (pos === 'QB') str.qb += pts;
+    else if (pos === 'RB') str.rb += pts;
+    else if (pos === 'WR') str.wr += pts;
+    else if (pos === 'TE') str.te += pts;
+  }
+  return str;
+}
+
 function computeTeamProjPts(
   team: LeagueTeam,
   projBySleeperIdMap: Map<string, number>,
@@ -350,11 +396,14 @@ interface LeaguePowerProps {
   teams: LeagueTeam[];
   ktc: KTCPlayer[];
   projBySleeperIdMap: Map<string, number>;
+  isDynasty: boolean;
 }
 
-function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProps) {
+function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('starters');
-  const [sortBy, setSortBy] = useState<'value' | 'proj'>('value');
+  const [dynastySortBy, setDynastySortBy] = useState<'value' | 'proj'>('value');
+  // Redraft leagues are always ranked on projected season points.
+  const sortBy = isDynasty ? dynastySortBy : 'proj';
 
   const rows: PowerRow[] = useMemo(() => {
     const ktcByName = new Map<string, KTCPlayer>();
@@ -362,16 +411,21 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProp
 
     const out: PowerRow[] = [];
     for (const t of teams) {
-      const score = scoreRoster(t, ktc);
-      if (!score) continue;
-      const posStrength = computePositionalStrength(t, ktcByName, viewMode);
       const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
-      out.push({ team: t, score, posStrength, projPts });
+      if (isDynasty) {
+        const score = scoreRoster(t, ktc);
+        if (!score) continue;
+        const posStrength = computePositionalStrength(t, ktcByName, viewMode);
+        out.push({ team: t, score, posStrength, projPts });
+      } else {
+        const posStrength = computePositionalProjStrength(t, projBySleeperIdMap, viewMode);
+        out.push({ team: t, score: null, posStrength, projPts });
+      }
     }
-    if (sortBy === 'value') out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    if (sortBy === 'value') out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
     else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [teams, ktc, projBySleeperIdMap, viewMode, sortBy]);
+  }, [teams, ktc, projBySleeperIdMap, viewMode, sortBy, isDynasty]);
 
   if (!rows.length) return null;
 
@@ -383,12 +437,15 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProp
     if (r.posStrength.te > maxPos.te) maxPos.te = r.posStrength.te;
   }
 
+  // Dynasty bars carry KTC value (thousands); redraft bars carry projected points.
   const posBar = (val: number, max: number, color: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <div style={{ width: 50, height: 8, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ width: `${max ? (val / max) * 100 : 0}%`, height: '100%', background: color, borderRadius: 4 }} />
       </div>
-      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{val ? (val / 1000).toFixed(1) + 'k' : '—'}</span>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+        {val ? (isDynasty ? (val / 1000).toFixed(1) + 'k' : val.toFixed(0)) : '—'}
+      </span>
     </div>
   );
 
@@ -396,7 +453,9 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProp
     <div style={{ margin: '16px 0' }}>
       <div className="sched-section-title">League Power Rankings</div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-        Positional strength by dynasty value and projected score.
+        {isDynasty
+          ? 'Positional strength by dynasty value and projected score.'
+          : 'Positional strength by projected season points (redraft).'}
       </p>
       <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
         {([['starters', 'Starters Only'], ['starters-plus', 'Starters + Replacements'], ['full', 'Full Roster']] as const).map(([mode, label]) => (
@@ -409,18 +468,23 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProp
             {label}
           </button>
         ))}
-        <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
-        <button className={`format-tab ${sortBy === 'value' ? 'active' : ''}`} onClick={() => setSortBy('value')} style={{ padding: '3px 10px', fontSize: 11 }}>Dynasty Value</button>
-        <button className={`format-tab ${sortBy === 'proj' ? 'active' : ''}`} onClick={() => setSortBy('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
+        {isDynasty && (
+          <>
+            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
+            <button className={`format-tab ${sortBy === 'value' ? 'active' : ''}`} onClick={() => setDynastySortBy('value')} style={{ padding: '3px 10px', fontSize: 11 }}>Dynasty Value</button>
+            <button className={`format-tab ${sortBy === 'proj' ? 'active' : ''}`} onClick={() => setDynastySortBy('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
+          </>
+        )}
       </div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
             <tr>
-              <th>#</th><th>Team</th><th>Window</th><th>Value</th>
+              <th>#</th><th>Team</th>
+              {isDynasty && <><th>Window</th><th>Value</th></>}
               <th title="Projected PPR points (season)">Proj Pts</th>
               <th>QB</th><th>RB</th><th>WR</th><th>TE</th>
-              <th style={{ width: 90 }}>Age Dist</th>
+              {isDynasty && <th style={{ width: 90 }}>Age Dist</th>}
             </tr>
           </thead>
           <tbody>
@@ -428,20 +492,26 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProp
               <tr key={r.team.rosterId}>
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{r.team.teamName}</strong></td>
-                <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
-                <td>{r.score.totalValue.toLocaleString()}</td>
+                {isDynasty && r.score && (
+                  <>
+                    <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
+                    <td>{r.score.totalValue.toLocaleString()}</td>
+                  </>
+                )}
                 <td style={{ fontWeight: 600 }}>{r.projPts > 0 ? r.projPts.toFixed(0) : '—'}</td>
                 <td>{posBar(r.posStrength.qb, maxPos.qb, '#6366f1')}</td>
                 <td>{posBar(r.posStrength.rb, maxPos.rb, '#22c55e')}</td>
                 <td>{posBar(r.posStrength.wr, maxPos.wr, '#f59e0b')}</td>
                 <td>{posBar(r.posStrength.te, maxPos.te, '#ef4444')}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
-                    <div style={{ width: `${r.score.youngPct}%`, background: '#22c55e' }} />
-                    <div style={{ width: `${r.score.primePct}%`, background: '#f59e0b' }} />
-                    <div style={{ width: `${r.score.agingPct}%`, background: '#ef4444' }} />
-                  </div>
-                </td>
+                {isDynasty && r.score && (
+                  <td>
+                    <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
+                      <div style={{ width: `${r.score.youngPct}%`, background: '#22c55e' }} />
+                      <div style={{ width: `${r.score.primePct}%`, background: '#f59e0b' }} />
+                      <div style={{ width: `${r.score.agingPct}%`, background: '#ef4444' }} />
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -605,7 +675,12 @@ function scoreColor(score: number): string {
   return '#ef4444';
 }
 
-function TradeAssetCard({ a }: { a: TradeAsset }) {
+// Dynasty assets are priced in KTC value (thousands); redraft assets in
+// projected season points.
+const fmtAssetValue = (v: number, isDynasty: boolean) =>
+  isDynasty ? `${(v / 1000).toFixed(1)}k` : `${v.toFixed(0)} pts`;
+
+function TradeAssetCard({ a, isDynasty }: { a: TradeAsset; isDynasty: boolean }) {
   if (a.type === 'pick') {
     return (
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '3px 0' }}>
@@ -621,7 +696,7 @@ function TradeAssetCard({ a }: { a: TradeAsset }) {
         <span style={{ fontWeight: 500 }}>{a.name}</span>
         {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
         {a.age != null && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>Age {a.age}</span>}
-        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
+        {(isDynasty || !a.projStats) && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{fmtAssetValue(a.value, isDynasty)}</span>}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 10, color: 'var(--text-muted)' }}>
         {a.projStats && (
@@ -672,7 +747,7 @@ function ScoreBreakdownBar({ breakdown, teamAName, teamBName }: { breakdown: Tra
   );
 }
 
-function TradeCard({ s }: { s: TradeSuggestion }) {
+function TradeCard({ s, isDynasty }: { s: TradeSuggestion; isDynasty: boolean }) {
   const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
 
   return (
@@ -693,19 +768,19 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You give:</div>
-          {s.teamA.gives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
+          {s.teamA.gives.map((a) => <TradeAssetCard key={a.name} a={a} isDynasty={isDynasty} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-            Total: {(result.givesTotal / 1000).toFixed(1)}k
+            Total: {fmtAssetValue(result.givesTotal, isDynasty)}
           </div>
         </div>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You get:</div>
-          {s.teamA.receives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
+          {s.teamA.receives.map((a) => <TradeAssetCard key={a.name} a={a} isDynasty={isDynasty} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-            Total: {(result.receivesTotal / 1000).toFixed(1)}k
+            Total: {fmtAssetValue(result.receivesTotal, isDynasty)}
             {result.net !== 0 && (
               <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', marginLeft: 6, fontWeight: 600 }}>
-                ({result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k)
+                ({result.net >= 0 ? '+' : '−'}{fmtAssetValue(Math.abs(result.net), isDynasty)})
               </span>
             )}
           </div>
@@ -720,15 +795,16 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
 interface TradeSectionProps {
   teams: LeagueTeam[];
   ktc: KTCPlayer[];
-  leagueId: string;
+  pickOwnership: Map<number, DraftPick[]>;
   myRosterId?: number;
   myTeamName?: string;
   projBySleeperIdMap: Map<string, number>;
   projStatsMap: Map<string, TradeAssetStats>;
   lastSeasonMap: Map<string, { pts: number; posRank: number }>;
+  isDynasty: boolean;
 }
 
-function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -741,9 +817,7 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
   const doGenerate = async () => {
     setLoading(true);
     try {
-      const tradedPicks = await fetchTradedPicks(leagueId);
-      const pickOwnership = buildPickOwnership(teams, tradedPicks, '2027');
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap);
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty);
       setSuggestions(results);
       setGenerated(true);
     } catch {
@@ -782,21 +856,37 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
             </div>
           )}
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            Trades consider dynasty value, age, positional needs, and 2027 draft picks. Your top assets are protected.
+            {isDynasty
+              ? 'Trades consider dynasty value, age, positional needs, and 2027–2028 draft picks (slotted by projected finish). Your top assets are protected.'
+              : 'Trades consider projected season points and positional needs. Your top assets are protected.'}
           </p>
 
+          {!isDynasty && (
+            <div style={{
+              margin: '4px 0 10px', padding: '8px 12px', fontSize: 11, lineHeight: 1.5,
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: 6, color: 'var(--text-secondary)',
+            }}>
+              <b style={{ color: '#f59e0b' }}>Redraft league.</b> There's no future beyond this season, so the win-now/rebuild
+              framework and rookie-pick assets don't apply. Trades are valued, matched, and scored on this season's
+              <b> projected points</b> (shown on every player) rather than long-term dynasty value.
+            </div>
+          )}
+
           <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>My Goal:</span>
-            {(['win-now', 'balanced', 'rebuild'] as const).map((g) => (
-              <button
-                key={g}
-                className={`format-tab ${myGoal === g ? 'active' : ''}`}
-                onClick={() => setMyGoal(g)}
-                style={{ padding: '3px 10px', fontSize: 11 }}
-              >
-                {g === 'win-now' ? 'Win Now' : g === 'rebuild' ? 'Rebuild' : 'Balanced'}
-              </button>
-            ))}
+            {isDynasty && <>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>My Goal:</span>
+              {(['win-now', 'balanced', 'rebuild'] as const).map((g) => (
+                <button
+                  key={g}
+                  className={`format-tab ${myGoal === g ? 'active' : ''}`}
+                  onClick={() => setMyGoal(g)}
+                  style={{ padding: '3px 10px', fontSize: 11 }}
+                >
+                  {g === 'win-now' ? 'Win Now' : g === 'rebuild' ? 'Rebuild' : 'Balanced'}
+                </button>
+              ))}
+            </>}
             <button
               className="format-tab active"
               onClick={doGenerate}
@@ -809,13 +899,13 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
 
           {suggestions.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-              {suggestions.map((s, i) => <TradeCard key={`${i}-${s.teamB.rosterId}`} s={s} />)}
+              {suggestions.map((s, i) => <TradeCard key={`${i}-${s.teamB.rosterId}`} s={s} isDynasty={isDynasty} />)}
             </div>
           )}
 
           {!loading && generated && suggestions.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
-              No viable 2-3 player trades found. Try changing your goal or selecting a different team.
+              No viable 2-3 player trades found. Try {isDynasty ? 'changing your goal or ' : ''}selecting a different team.
             </p>
           )}
 
@@ -826,6 +916,54 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName,
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Owned future rookie picks for a single roster, slotted + priced by projected
+// draft order. Picks acquired via trade are flagged with their original team.
+function RosterPicks({ picks, teamNamesByRosterId, rosterId }: {
+  picks: DraftPick[];
+  teamNamesByRosterId: Map<number, string>;
+  rosterId: number;
+}) {
+  if (!picks.length) return null;
+  const sorted = [...picks].sort(
+    (a, b) => a.season.localeCompare(b.season) || a.round - b.round || (a.projectedSlot ?? 99) - (b.projectedSlot ?? 99),
+  );
+  const total = sorted.reduce((s, p) => s + (p.value ?? 0), 0);
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="sched-section-title">
+        Draft Picks
+        <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11, marginLeft: 8 }}>
+          2027–2028 · slotted by projected finish · total {(total / 1000).toFixed(1)}k
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+        {sorted.map((pk, i) => {
+          const acquired = pk.originalOwnerId !== rosterId;
+          const viaName = acquired ? teamNamesByRosterId.get(pk.originalOwnerId) : null;
+          const label = pk.projectedSlot != null
+            ? `${pk.season} ${pk.round}.${String(pk.projectedSlot).padStart(2, '0')}`
+            : `${pk.season} Rd ${pk.round}`;
+          return (
+            <div
+              key={`${pk.season}-${pk.round}-${pk.originalOwnerId}-${i}`}
+              style={{
+                padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 6, fontSize: 11, display: 'flex', flexDirection: 'column', gap: 1,
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>
+                {label}
+                {pk.value != null && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>{(pk.value / 1000).toFixed(1)}k</span>}
+              </span>
+              {viaName && <span style={{ color: '#f59e0b', fontSize: 9 }}>via {viaName}</span>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -844,6 +982,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
+  const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -883,6 +1022,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     if (!trimmed) { setError('Enter a Sleeper league ID.'); return; }
     setLoading(true);
     setError(null);
+    setTradedPicks([]);
     importLeague(trimmed)
       .then((res) => {
         setData(res);
@@ -891,6 +1031,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setData(null); })
       .finally(() => setLoading(false));
+    fetchTradedPicks(trimmed).then(setTradedPicks).catch(() => setTradedPicks([]));
   };
 
   // Auto-load saved user's leagues on mount.
@@ -906,6 +1047,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   }, []);
 
   const scoring = data?.league.scoring_settings ?? {};
+  const isDynasty = isDynastyLeague(data?.league);
 
   const projBySleeperIdMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -917,6 +1059,34 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     }
     return map;
   }, [allProjections, scoring]);
+
+  // Total projected season points per roster — drives projected draft order
+  // (weakest team picks first) for pick valuation.
+  const projPointsByRosterId = useMemo(() => {
+    const map = new Map<number, number>();
+    if (!data) return map;
+    for (const t of data.teams) {
+      let sum = 0;
+      for (const p of [...t.starters, ...t.bench]) sum += projBySleeperIdMap.get(p.id) ?? 0;
+      map.set(t.rosterId, sum);
+    }
+    return map;
+  }, [data, projBySleeperIdMap]);
+
+  // Each roster's owned future rookie picks, slotted + priced by projected draft
+  // order and league size. Dynasty only — redraft leagues carry no rookie picks.
+  const pickOwnership = useMemo(() => {
+    const merged = new Map<number, DraftPick[]>();
+    if (!data || !isDynasty) return merged;
+    for (const season of ['2027', '2028']) {
+      const m = buildPickOwnership(data.teams, tradedPicks, season, projPointsByRosterId);
+      for (const [rid, picks] of m) {
+        if (!merged.has(rid)) merged.set(rid, []);
+        merged.get(rid)!.push(...picks);
+      }
+    }
+    return merged;
+  }, [data, isDynasty, tradedPicks, projPointsByRosterId]);
 
   const projStatsMap = useMemo(() => {
     const map = new Map<string, TradeAssetStats>();
@@ -1013,6 +1183,12 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     [data, selected],
   );
 
+  const teamNamesByRosterId = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const t of data?.teams ?? []) map.set(t.rosterId, t.teamName);
+    return map;
+  }, [data]);
+
   const optimalLineup: OptimalLineup | null = useMemo(() => {
     if (!selectedTeam || !allProjections.length || !data) return null;
     const rosterPlayerIds = [...selectedTeam.starters, ...selectedTeam.bench]
@@ -1054,11 +1230,12 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
           <div className="sched-section-title">My Leagues ({userLeagues.length})</div>
           <div className="table-container" style={{ maxHeight: 260 }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>League</th><th>Season</th><th>Teams</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>League</th><th>Format</th><th>Season</th><th>Teams</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {userLeagues.map((l) => (
                   <tr key={l.league_id} style={{ cursor: 'pointer', background: l.league_id === leagueId ? 'var(--bg-tertiary)' : undefined }} onClick={() => selectLeague(l.league_id)}>
                     <td><strong>{l.name}</strong></td>
+                    <td><LeagueFormatBadges info={leagueFormatInfo(l)} /></td>
                     <td>{l.season}</td>
                     <td>{l.total_rosters}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{l.status}</td>
@@ -1102,6 +1279,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
         <>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 12px' }}>
             <b style={{ color: 'var(--text-primary)' }}>{data.league.name}</b> · {data.league.season} · {data.league.status} · {data.league.total_rosters} teams
+            {' '}<LeagueFormatBadges info={leagueFormatInfo(data.league)} />
             <br />Roster: {rosterFormat(data.league.roster_positions)}
           </p>
 
@@ -1142,7 +1320,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             </table>
           </div>
 
-          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} projBySleeperIdMap={projBySleeperIdMap} />}
+          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} projBySleeperIdMap={projBySleeperIdMap} isDynasty={isDynasty} />}
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
@@ -1150,12 +1328,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             <TradeSuggestionsSection
               teams={data.teams}
               ktc={ktc}
-              leagueId={data.league.league_id}
+              pickOwnership={pickOwnership}
               myRosterId={selected ?? undefined}
               myTeamName={selectedTeam?.teamName}
               projBySleeperIdMap={projBySleeperIdMap}
               projStatsMap={projStatsMap}
               lastSeasonMap={lastSeasonMap}
+              isDynasty={isDynasty}
             />
           )}
 
@@ -1164,7 +1343,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               <div className="sched-section-title" style={{ marginTop: 16 }}>
                 Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
-              {ktc.length > 0 && (() => { const s = scoreRoster(selectedTeam, ktc); return s ? <WindowBadge score={s} /> : null; })()}
+              {isDynasty && ktc.length > 0 && (() => { const s = scoreRoster(selectedTeam, ktc); return s ? <WindowBadge score={s} /> : null; })()}
 
               {optimalLineup && (
                 <div style={{ margin: '8px 0 12px', padding: '10px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
@@ -1209,6 +1388,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
                 </div>
               </div>
+              {isDynasty && (
+                <RosterPicks
+                  picks={pickOwnership.get(selectedTeam.rosterId) ?? []}
+                  teamNamesByRosterId={teamNamesByRosterId}
+                  rosterId={selectedTeam.rosterId}
+                />
+              )}
               <TeamOutlook team={selectedTeam} teamProj={teamProj} matchups={matchups} />
             </>
           )}

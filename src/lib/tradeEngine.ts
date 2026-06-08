@@ -8,6 +8,8 @@ export interface DraftPick {
   round: number;
   originalOwnerId: number;
   currentOwnerId: number;
+  value?: number;          // scaled dynasty value (set when projected context is supplied)
+  projectedSlot?: number;  // projected pick position within its round (1 = first off the board)
 }
 
 export interface TradeAssetStats {
@@ -54,8 +56,39 @@ export interface TradeSuggestion {
   rationale: string;
 }
 
+// Fallback round midpoint values (≈12-team) used when no projected draft order
+// is available. Prefer the scaled curve below whenever team strength is known.
 const PICK_VALUES: Record<number, number> = { 1: 7000, 2: 4500, 3: 2500, 4: 1500 };
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
+
+// Overall draft position of a pick: round and slot-within-round combine with
+// league size, so a 2nd-round pick in a 16-team league sits much later (and is
+// worth far less) than the same round in a 10-team league.
+export function overallPickNumber(round: number, slot: number, totalTeams: number): number {
+  return (round - 1) * totalTeams + slot;
+}
+
+// Smooth decay curve for rookie-pick value as a function of overall draft slot.
+// Calibrated to common 12-team valuations: 1.01 ≈ 8600, mid-1st ≈ 7000,
+// late-1st ≈ 5000, mid-2nd ≈ 4200, mid-3rd ≈ 2600, mid-4th ≈ 1700.
+export function dynastyPickValue(overall: number): number {
+  const v = 8200 * Math.exp(-0.045 * (overall - 1)) + 400;
+  return Math.round(v / 50) * 50;
+}
+
+// Resolve a pick's effective trade value: the scaled value if a projected draft
+// slot is known, otherwise the flat round midpoint.
+function pickValue(pick: DraftPick): number {
+  return pick.value ?? PICK_VALUES[pick.round] ?? 1000;
+}
+
+// "2027 1.04" when a projected slot is known, else "2027 Rd 1".
+function pickLabel(pick: DraftPick): string {
+  if (pick.projectedSlot != null) {
+    return `${pick.season} ${pick.round}.${String(pick.projectedSlot).padStart(2, '0')}`;
+  }
+  return `${pick.season} Rd ${pick.round}`;
+}
 
 function normalizeForMatch(name: string): string {
   return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
@@ -80,6 +113,9 @@ function buildTeamProfile(
   projMap?: Map<string, number>,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
+  // Redraft leagues value, compare, and rank everything on projected season
+  // points instead of dynasty (KTC) value.
+  useProjectedValue = false,
 ): TeamProfile {
   const assets: TradeAsset[] = [];
   const posValues: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
@@ -88,12 +124,16 @@ function buildTeamProfile(
   for (const p of [...team.starters, ...team.bench]) {
     if (p.name === 'Empty' || !p.position || p.position === 'DEF') continue;
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (!k || k.value <= 0) continue;
+    const proj = projMap?.get(p.id) ?? 0;
+    // In redraft mode the trade currency is projected points; include any player
+    // with a projection. In dynasty mode it's KTC value.
+    const value = useProjectedValue ? proj : (k?.value ?? 0);
+    if (value <= 0) continue;
     assets.push({
       type: 'player',
       name: p.name,
-      value: k.value,
-      age: k.age,
+      value,
+      age: k?.age,
       position: p.position,
       sleeperId: p.id,
       projPts: projMap?.get(p.id),
@@ -102,7 +142,7 @@ function buildTeamProfile(
       lastSeasonPosRank: lastSeasonMap?.get(p.id)?.posRank,
     });
     if (posValues[p.position] !== undefined) {
-      posValues[p.position] += k.value;
+      posValues[p.position] += value;
       posCount[p.position]++;
     }
   }
@@ -110,8 +150,8 @@ function buildTeamProfile(
   for (const pick of picks) {
     assets.push({
       type: 'pick',
-      name: `${pick.season} Rd ${pick.round}`,
-      value: PICK_VALUES[pick.round] ?? 1000,
+      name: pickLabel(pick),
+      value: pickValue(pick),
       pick,
     });
   }
@@ -131,7 +171,7 @@ function buildTeamProfile(
   return { team, goal, assets, posValues, posCount, totalValue, weakPositions, strongPositions };
 }
 
-function isTradableAsset(asset: TradeAsset, profile: TeamProfile): boolean {
+function isTradableAsset(asset: TradeAsset, profile: TeamProfile, useProjectedValue = false): boolean {
   if (asset.type === 'pick') return profile.goal === 'win-now' || profile.goal === 'balanced';
 
   // Never trade top 2 most valuable players
@@ -143,6 +183,9 @@ function isTradableAsset(asset: TradeAsset, profile: TeamProfile): boolean {
 
   // Don't trade if it would leave a position with only 1 player
   if (asset.position && (profile.posCount[asset.position] ?? 0) <= 2) return false;
+
+  // Redraft: no age/dynasty thresholds — any non-core, non-weak player is movable.
+  if (useProjectedValue) return true;
 
   if (!asset.age) return false;
 
@@ -242,6 +285,11 @@ export function buildPickOwnership(
   teams: LeagueTeam[],
   tradedPicks: SleeperTradedPick[],
   season = '2027',
+  // Projected season points per roster. When supplied, picks are slotted by the
+  // ORIGINAL owner's projected finish (weakest team picks first) and priced on
+  // the league-size-aware decay curve. Contenders' picks land late and cheap;
+  // rebuilding teams' picks land early and rich.
+  projectedPointsByRosterId?: Map<number, number>,
 ): Map<number, DraftPick[]> {
   const map = new Map<number, DraftPick[]>();
   for (const t of teams) map.set(t.rosterId, []);
@@ -263,6 +311,24 @@ export function buildPickOwnership(
     const ownerPicks = map.get(tp.roster_id);
     if (ownerPicks && !ownerPicks.find((p) => p.round === tp.round && p.originalOwnerId === tp.owner_id)) {
       ownerPicks.push({ season: tp.season, round: tp.round, originalOwnerId: tp.owner_id, currentOwnerId: tp.roster_id });
+    }
+  }
+
+  // Slot + price every pick by its original owner's projected draft position.
+  if (projectedPointsByRosterId && teams.length) {
+    const totalTeams = teams.length;
+    const ranked = [...teams].sort(
+      (a, b) => (projectedPointsByRosterId.get(a.rosterId) ?? 0) - (projectedPointsByRosterId.get(b.rosterId) ?? 0),
+    );
+    const slotByRoster = new Map<number, number>();
+    ranked.forEach((t, i) => slotByRoster.set(t.rosterId, i + 1)); // weakest projected = slot 1
+    const midSlot = Math.ceil(totalTeams / 2);
+    for (const picks of map.values()) {
+      for (const pick of picks) {
+        const slot = slotByRoster.get(pick.originalOwnerId) ?? midSlot;
+        pick.projectedSlot = slot;
+        pick.value = dynastyPickValue(overallPickNumber(pick.round, slot, totalTeams));
+      }
     }
   }
 
@@ -295,6 +361,8 @@ export function generateTradeSuggestions(
   maxSuggestions = 6,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
+  // Redraft: value, compare, and rank on projected points instead of KTC value.
+  useProjectedValue = false,
 ): TradeSuggestion[] {
   rngState = Date.now();
 
@@ -304,19 +372,19 @@ export function generateTradeSuggestions(
   const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
     const goal = goals.get(t.rosterId) ?? 'balanced';
-    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap));
+    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue));
   }
 
   const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;
   if (!myProfile) return [];
 
-  const tradableA = shuffle(myProfile.assets.filter((a) => isTradableAsset(a, myProfile)));
+  const tradableA = shuffle(myProfile.assets.filter((a) => isTradableAsset(a, myProfile, useProjectedValue)));
   const candidates: TradeSuggestion[] = [];
 
   for (const teamB of teams) {
     if (teamB.rosterId === myProfile.team.rosterId) continue;
     const profileB = profiles.get(teamB.rosterId)!;
-    const tradableB = shuffle(profileB.assets.filter((a) => isTradableAsset(a, profileB)));
+    const tradableB = shuffle(profileB.assets.filter((a) => isTradableAsset(a, profileB, useProjectedValue)));
 
     // Try 2-for-2 and 2-for-3 / 3-for-2 combinations
     for (let sizeA = 2; sizeA <= 3 && sizeA <= tradableA.length; sizeA++) {
@@ -371,7 +439,7 @@ export function generateTradeSuggestions(
             parts.push('Adds proven production');
           if (myProfile.goal === 'rebuild' && bestGivesB.some((a) => (a.age ?? 99) <= 25))
             parts.push('Acquires youth');
-          if (!parts.length) parts.push('Balanced value swap');
+          if (!parts.length) parts.push(useProjectedValue ? 'Even projected-points swap' : 'Balanced value swap');
 
           candidates.push({
             teamA: {
