@@ -1,24 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="none">
   <!-- StatHead football + bar-chart mark -->
   <g stroke-linecap="round" stroke-linejoin="round">
-    <!-- Football outline (rounded tips, ~1.85:1) -->
-    <path d="M10 40 C22 20 54 20 66 40 C54 60 22 60 10 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
-    <!-- Side panel seams -->
-    <path d="M16 30 Q11 40 16 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
-    <path d="M60 30 Q65 40 60 50" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <!-- Football outline (rounded tips, ~1.8:1) -->
+    <path d="M8 40 C20 18 56 18 68 40 C56 62 20 62 8 40 Z" stroke="#4ade80" stroke-width="3.5" fill="none"/>
+    <!-- Side panel seams (tucked inside the tips) -->
+    <path d="M22 31 Q17 40 22 49" stroke="#4ade80" stroke-width="2.5" fill="none"/>
+    <path d="M54 31 Q59 40 54 49" stroke="#4ade80" stroke-width="2.5" fill="none"/>
     <!-- Laces -->
-    <line x1="29" y1="28" x2="47" y2="28" stroke="#4ade80" stroke-width="2.5"/>
-    <line x1="30" y1="25" x2="30" y2="31" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="34" y1="25" x2="34" y2="31" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="38" y1="25" x2="38" y2="31" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="42" y1="25" x2="42" y2="31" stroke="#4ade80" stroke-width="1.8"/>
-    <line x1="46" y1="25" x2="46" y2="31" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="29" y1="30" x2="47" y2="30" stroke="#4ade80" stroke-width="2.5"/>
+    <line x1="30" y1="27" x2="30" y2="33" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="34" y1="27" x2="34" y2="33" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="38" y1="27" x2="38" y2="33" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="42" y1="27" x2="42" y2="33" stroke="#4ade80" stroke-width="1.8"/>
+    <line x1="46" y1="27" x2="46" y2="33" stroke="#4ade80" stroke-width="1.8"/>
   </g>
   <!-- Bar chart inside football (ascending, slate → white) -->
-  <rect x="25" y="46" width="5" height="6" rx="1" fill="#7c8aa0"/>
-  <rect x="32" y="42" width="5" height="10" rx="1" fill="#9fb0c4"/>
-  <rect x="39" y="38" width="5" height="14" rx="1" fill="#cbd5e1"/>
-  <rect x="46" y="34" width="5" height="18" rx="1" fill="#ffffff"/>
+  <rect x="25" y="46" width="5" height="7" rx="1" fill="#7c8aa0"/>
+  <rect x="32" y="42" width="5" height="11" rx="1" fill="#9fb0c4"/>
+  <rect x="39" y="38" width="5" height="15" rx="1" fill="#cbd5e1"/>
+  <rect x="46" y="34" width="5" height="19" rx="1" fill="#ffffff"/>
   <!-- Wordmark -->
   <text x="86" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#4ade80">Stat</text>
   <text x="143" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#94a3b8">Head</text>
