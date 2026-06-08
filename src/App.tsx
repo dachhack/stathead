@@ -99,6 +99,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'sleeper-league', label: 'Sleeper Leagues' },
       { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
+      { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
