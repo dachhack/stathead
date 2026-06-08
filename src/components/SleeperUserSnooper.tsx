@@ -9,6 +9,35 @@ import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../l
 
 const LS_KEY = 'sleeper_snoop_user';
 
+// Full-screen zoomed view of a clicked avatar. Click anywhere or press Escape
+// to dismiss.
+function ImageLightbox({ src, caption, onClose }: { src: string; caption?: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 12, cursor: 'zoom-out',
+      }}
+    >
+      <img
+        src={src}
+        alt={caption ?? ''}
+        style={{ maxWidth: '80vw', maxHeight: '78vh', borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.6)' }}
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+      />
+      {caption && <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{caption}</div>}
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>Click anywhere or press Esc to close</div>
+    </div>
+  );
+}
+
 interface SnoopResult {
   user: SleeperUser;
   leagues: SleeperLeagueSummary[];
@@ -601,6 +630,7 @@ export function SleeperUserSnooper() {
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
   const [projections, setProjections] = useState<ClayPlayer[]>([]);
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
@@ -725,7 +755,10 @@ export function SleeperUserSnooper() {
               {result.user.avatar && (
                 <img
                   src={`https://sleepercdn.com/avatars/thumbs/${result.user.avatar}`}
-                  alt="" width={36} height={36} style={{ borderRadius: '50%' }}
+                  alt="" width={36} height={36}
+                  title="Click to zoom"
+                  style={{ borderRadius: '50%', cursor: 'zoom-in' }}
+                  onClick={() => setZoom({ src: `https://sleepercdn.com/avatars/${result.user.avatar}`, caption: result.user.display_name })}
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               )}
@@ -885,6 +918,8 @@ export function SleeperUserSnooper() {
           </div>
         </>
       )}
+
+      {zoom && <ImageLightbox src={zoom.src} caption={zoom.caption} onClose={() => setZoom(null)} />}
     </div>
   );
 }
