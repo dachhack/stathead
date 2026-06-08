@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
-import { fetchSleeperTrending, fetchFantasyCalcRankings } from '../data';
+import { fetchSleeperTrending, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
 import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -36,7 +36,8 @@ export function SleeperWaiverWire() {
   const [leagues, setLeagues] = useState<LeagueAvailability[]>([]);
   const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
   const [clayPlayers, setClayPlayers] = useState<ClayPlayer[]>([]);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [blended, setBlended] = useState<KTCPlayer[]>([]); // KTC rescaled to FC scale (the app's canonical value)
+  const [fc, setFc] = useState<KTCPlayer[]>([]);           // FantasyCalc — used for the 30-day trend
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
@@ -49,14 +50,21 @@ export function SleeperWaiverWire() {
   useEffect(() => {
     loadClayProjections().then(setClayPlayers);
     fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
-    fetchFantasyCalcRankings('1qb').then(setKtc).catch(() => {});
+    fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
+    fetchFantasyCalcRankings('1qb').then(setFc).catch(() => {});
   }, []);
 
-  const ktcByName = useMemo(() => {
+  const valueByName = useMemo(() => {
     const m = new Map<string, KTCPlayer>();
-    for (const k of ktc) m.set(norm(k.playerName), k);
+    for (const k of blended) m.set(norm(k.playerName), k);
     return m;
-  }, [ktc]);
+  }, [blended]);
+
+  const trendByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of fc) if (p.trend30Day != null) m.set(norm(p.playerName), p.trend30Day);
+    return m;
+  }, [fc]);
 
   const loadLeagues = (name: string) => {
     const trimmed = name.trim();
@@ -122,13 +130,15 @@ export function SleeperWaiverWire() {
     }
     const out: Candidate[] = [];
     for (const c of byId.values()) {
-      const k = ktcByName.get(norm(c.name));
-      if (k) { c.ktcValue = sf ? k.superflexValue : k.value; c.ktcTrend = k.trend30Day ?? null; }
+      const v = valueByName.get(norm(c.name));
+      if (v) c.ktcValue = sf ? v.superflexValue : v.value;
+      const tr = trendByName.get(norm(c.name));
+      c.ktcTrend = tr ?? null;
       c.availableIn = effectiveLeagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
       if (c.availableIn.length > 0) out.push(c);
     }
     return out;
-  }, [effectiveLeagues, clayPlayers, trending, ktcByName, sf]);
+  }, [effectiveLeagues, clayPlayers, trending, valueByName, trendByName, sf]);
 
   const rows = useMemo(() => {
     let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
@@ -268,8 +278,8 @@ export function SleeperWaiverWire() {
                   <tr>
                     <th>#</th><th>Player</th><th>Pos</th><th>Team</th>
                     <th title="Consensus PPR projection (full season)">Proj PPR</th>
-                    <th title={`Dynasty market value (FantasyCalc, ${sf ? 'Superflex' : '1QB'})`}>Dyn Value{sf ? ' (SF)' : ''}</th>
-                    <th title="30-day change in dynasty value">Val Trend</th>
+                    <th title={`Blended dynasty value — KTC rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})`}>Dyn Value{sf ? ' (SF)' : ''}</th>
+                    <th title="30-day change in dynasty value (FantasyCalc)">Val Trend</th>
                     <th title="Sleeper adds, last 24h">Adds</th>
                     <th title="Leagues where this player is unrostered">Available In</th>
                   </tr>
