@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchKTCRankings } from '../data';
-import type { KTCPlayer } from '../types';
+import type { KTCPlayer, Tab } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 
@@ -56,6 +56,7 @@ interface TeamOutlookProps {
 }
 
 function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
+  const [expanded, setExpanded] = useState(false);
   const nflTeams = useMemo(() => {
     const all = [...team.starters, ...team.bench].filter((p) => p.team && p.position !== 'DEF');
     const counts = new Map<string, number>();
@@ -67,7 +68,20 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
 
   return (
     <div style={{ marginTop: 16 }}>
-      <div className="sched-section-title">Team Projections &amp; Matchups</div>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Team Projections &amp; Matchups
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to expand NFL team outlook and matchups.
+        </p>
+      )}
+      {expanded && <>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
         NFL team outlook for players on this roster. Win prob and projected scores from Consensus projections.
       </p>
@@ -122,6 +136,7 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
           </tbody>
         </table>
       </div>
+      </>}
     </div>
   );
 }
@@ -290,7 +305,11 @@ function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
   );
 }
 
-export function SleeperLeagueView() {
+interface SleeperLeagueViewProps {
+  onNavigate?: (tab: Tab) => void;
+}
+
+export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [leagueId, setLeagueId] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -459,7 +478,21 @@ export function SleeperLeagueView() {
                   >
                     <td className="rank-cell">{i + 1}</td>
                     <td><strong>{t.teamName}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{t.owner}</td>
+                    <td>
+                      <button
+                        style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
+                        title="View in User Snooper"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (t.owner && t.owner !== '—' && onNavigate) {
+                            localStorage.setItem('sleeper_snoop_user', t.owner);
+                            onNavigate('sleeper-snooper');
+                          }
+                        }}
+                      >
+                        {t.owner}
+                      </button>
+                    </td>
                     <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
                     <td>{t.pointsFor.toFixed(1)}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>

@@ -309,7 +309,7 @@ function App() {
         {tab === 'sleeper' && (
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
-        {tab === 'sleeper-league' && <SleeperLeagueView />}
+        {tab === 'sleeper-league' && <SleeperLeagueView onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'sleeper-waivers' && <SleeperWaiverWire />}
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
