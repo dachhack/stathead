@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, fetchSleeperUser, fetchUserLeagues, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchKTCRankings } from '../data';
-import type { KTCPlayer, Tab } from '../types';
+import { fetchKTCRankings, fetchSleeperTrending } from '../data';
+import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
+import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -305,6 +306,151 @@ function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
   );
 }
 
+// ── Inline Waiver Wire (per-league) ──
+
+interface LeagueWaiverSectionProps {
+  leagueId: string;
+}
+
+function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [rosteredIds, setRosteredIds] = useState<Set<string>>(new Set());
+  const [players, setPlayers] = useState<ClayPlayer[]>([]);
+  const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
+  const [posFilter, setPosFilter] = useState<string>('ALL');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || loaded) return;
+    setLoaded(true);
+    Promise.all([
+      fetchLeagueRosteredIds(leagueId),
+      loadClayProjections(),
+      fetchSleeperTrending('add', 24, 75).catch(() => [] as SleeperTrendingRow[]),
+    ]).then(([ids, proj, trend]) => {
+      setRosteredIds(ids);
+      setPlayers(proj);
+      setTrending(trend);
+    });
+  }, [expanded, loaded, leagueId]);
+
+  const waiverPicks = useMemo(() => {
+    if (!players.length || !rosteredIds.size) return [];
+    const out: (ClayPlayer & { pprPts: number })[] = [];
+    for (const p of players) {
+      if (!p.sleeperId || rosteredIds.has(p.sleeperId)) continue;
+      const pprPts = computePpr(p);
+      if (pprPts > 0) out.push({ ...p, pprPts });
+    }
+    out.sort((a, b) => b.pprPts - a.pprPts);
+    return out;
+  }, [players, rosteredIds]);
+
+  const trendingAvail = useMemo(() => {
+    if (!trending.length || !rosteredIds.size) return [];
+    return trending.filter((t) => !rosteredIds.has(t.player_id));
+  }, [trending, rosteredIds]);
+
+  const filteredWaivers = posFilter === 'ALL' ? waiverPicks : waiverPicks.filter((w) => w.position === posFilter);
+  const filteredTrending = posFilter === 'ALL' ? trendingAvail : trendingAvail.filter((t) => t.position === posFilter);
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Waiver Wire
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to see top projected scorers and trending adds available on waivers.
+        </p>
+      )}
+      {expanded && (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Highest Consensus projected PPR scorers and trending adds not rostered in this league.
+          </p>
+          <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
+            {['ALL', 'QB', 'RB', 'WR', 'TE'].map((pos) => (
+              <button
+                key={pos}
+                className={`format-tab ${posFilter === pos ? 'active' : ''}`}
+                onClick={() => setPosFilter(pos)}
+                style={{ padding: '3px 10px', fontSize: 11 }}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+
+          {filteredWaivers.length > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, margin: '8px 0 4px' }}>Top Projected Scorers on Waivers</div>
+              <div className="table-container" style={{ maxHeight: 340 }}>
+                <table className="sched-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th title="Consensus PPR projection">PPR</th><th>Pos Rk</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredWaivers.slice(0, 40).map((w, i) => (
+                      <tr key={w.player_key}>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong>{w.name}</strong></td>
+                        <td><span className={`pos-badge pos-${w.position}`}>{w.position}</span></td>
+                        <td>
+                          {w.team && <img src={teamLogoUrl(w.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          {' '}{w.team}
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{w.pprPts.toFixed(1)}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{w.position}{w.pos_rk}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {filteredTrending.length > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>Trending Adds (Last 24h)</div>
+              <div className="table-container" style={{ maxHeight: 260 }}>
+                <table className="sched-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Adds</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredTrending.slice(0, 25).map((t, i) => (
+                      <tr key={t.player_id}>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong>{t.full_name}</strong></td>
+                        <td><span className={`pos-badge pos-${t.position}`}>{t.position}</span></td>
+                        <td>
+                          {t.team && t.team !== 'FA' && <img src={teamLogoUrl(t.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          {' '}{t.team}
+                        </td>
+                        <td style={{ color: 'var(--accent)', fontWeight: 600 }}>+{t.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {!filteredWaivers.length && !filteredTrending.length && loaded && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No waiver data available.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 interface SleeperLeagueViewProps {
   onNavigate?: (tab: Tab) => void;
 }
@@ -503,6 +649,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
           </div>
 
           {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} />}
+
+          <LeagueWaiverSection leagueId={data.league.league_id} />
 
           {selectedTeam && (
             <>
