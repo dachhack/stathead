@@ -6,6 +6,7 @@ import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../lib/waiverUtils';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -379,6 +380,52 @@ function finishColor(pct: number): string {
   return '#ef4444';
 }
 
+// Charts always span 2020 → current year so the x-axis is consistent.
+const CHART_START_YEAR = 2020;
+function chartSeasons(): string[] {
+  const end = new Date().getFullYear();
+  const out: string[] = [];
+  for (let y = CHART_START_YEAR; y <= end; y++) out.push(String(y));
+  return out;
+}
+
+// Reusable stacked bar chart of raw counts by season, with per-segment labels.
+function StackedYearChart({ title, subtitle, data, series }: {
+  title: string;
+  subtitle?: string;
+  data: Array<Record<string, string | number>>;
+  series: { key: string; color: string }[];
+}) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{subtitle}</div>}
+      <ResponsiveContainer width="100%" height={210}>
+        <BarChart data={data} margin={{ top: 16, right: 8, left: -18, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="season" stroke="var(--text-muted)" fontSize={11} />
+          <YAxis allowDecimals={false} stroke="var(--text-muted)" fontSize={11} width={28} />
+          <Tooltip
+            contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}
+            cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {series.map((s) => (
+            <Bar key={s.key} dataKey={s.key} stackId="a" fill={s.color} maxBarSize={54}>
+              <LabelList
+                dataKey={s.key}
+                position="center"
+                formatter={(v: number | string) => (Number(v) ? v : '')}
+                style={{ fill: '#fff', fontSize: 10, fontWeight: 600 }}
+              />
+            </Bar>
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 interface YearSummary {
   season: string;
   leagues: number;
@@ -393,7 +440,7 @@ interface YearSummary {
   champions: number;
 }
 
-function CareerHistorySection({ userId }: { userId: string }) {
+function CareerHistorySection({ userId, players, ktc }: { userId: string; players: Map<string, SleeperPlayer>; ktc: KTCPlayer[] }) {
   const [history, setHistory] = useState<LeagueSeasonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeActivity | null>(null);
@@ -481,6 +528,45 @@ function CareerHistorySection({ userId }: { userId: string }) {
     [history],
   );
 
+  // ── Stacked bar chart data (raw counts, fixed 2020 → current x-axis) ──
+  const seasons = useMemo(() => chartSeasons(), []);
+
+  const typeChartData = useMemo(() => seasons.map((season) => {
+    const recs = history.filter((r) => r.season === season);
+    return {
+      season,
+      Dynasty: recs.filter((r) => r.format.type === 'Dynasty').length,
+      Keeper: recs.filter((r) => r.format.type === 'Keeper').length,
+      Redraft: recs.filter((r) => r.format.type === 'Redraft').length,
+    };
+  }), [history, seasons]);
+
+  const bestBallChartData = useMemo(() => seasons.map((season) => {
+    const recs = history.filter((r) => r.season === season);
+    return {
+      season,
+      'Best Ball': recs.filter((r) => r.format.bestBall).length,
+      'Managed': recs.filter((r) => !r.format.bestBall).length,
+    };
+  }), [history, seasons]);
+
+  const hasDynasty = useMemo(() => history.some((r) => r.format.type === 'Dynasty'), [history]);
+
+  // Window classification uses current KTC values on each season's roster, so
+  // older years (retired players, missing values) are approximate.
+  const objectiveChartData = useMemo(() => {
+    if (!hasDynasty || !ktc.length || !players.size) return [];
+    return seasons.map((season) => {
+      const recs = history.filter((r) => r.season === season && r.format.type === 'Dynasty');
+      const row: Record<string, string | number> = { season, 'Win-Now': 0, Contender: 0, Balanced: 0, Retooling: 0, Rebuild: 0 };
+      for (const r of recs) {
+        const w = computeRosterWindow(r.players, players, ktc);
+        if (w) (row[w] as number)++;
+      }
+      return row;
+    });
+  }, [history, seasons, hasDynasty, players, ktc]);
+
   const analyzeTrades = () => {
     setTradeLoading(true);
     setTradeProgress({ done: 0, total: 0 });
@@ -530,8 +616,44 @@ function CareerHistorySection({ userId }: { userId: string }) {
         {career.avgFinishPct != null && stat('avg finish', `Top ${Math.round(career.avgFinishPct * 100)}%`, finishColor(career.avgFinishPct))}
       </div>
 
-      {/* By year */}
+      {/* By year — stacked bar charts (raw counts, 2020 → current) */}
       <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>By Year</div>
+
+      <StackedYearChart
+        title="Leagues by Type"
+        data={typeChartData}
+        series={[
+          { key: 'Dynasty', color: '#22c55e' },
+          { key: 'Keeper', color: '#f59e0b' },
+          { key: 'Redraft', color: '#64748b' },
+        ]}
+      />
+
+      {objectiveChartData.length > 0 && (
+        <StackedYearChart
+          title="Dynasty Team Objective by Year"
+          subtitle="Window classified from current player values applied to each season's roster — older years are approximate."
+          data={objectiveChartData}
+          series={[
+            { key: 'Win-Now', color: '#ef4444' },
+            { key: 'Contender', color: '#f59e0b' },
+            { key: 'Balanced', color: '#64748b' },
+            { key: 'Retooling', color: '#a3e635' },
+            { key: 'Rebuild', color: '#22c55e' },
+          ]}
+        />
+      )}
+
+      <StackedYearChart
+        title="Best Ball vs Managed by Year"
+        data={bestBallChartData}
+        series={[
+          { key: 'Best Ball', color: '#a78bfa' },
+          { key: 'Managed', color: '#64748b' },
+        ]}
+      />
+
+      <div style={{ fontSize: 11, fontWeight: 600, margin: '14px 0 4px', color: 'var(--text-secondary)' }}>Detail</div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead><tr><th>Year</th><th>Leagues</th><th>Formats</th><th>Win%</th><th title="Average regular-season standing (top % of the league)">Avg Finish</th><th title="Championships won">🏆</th></tr></thead>
@@ -812,7 +934,7 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Career history across seasons */}
-          <CareerHistorySection userId={result.user.user_id} />
+          <CareerHistorySection userId={result.user.user_id} players={players} ktc={ktc} />
 
           {/* Position breakdown */}
           {posBreakdown.length > 0 && (

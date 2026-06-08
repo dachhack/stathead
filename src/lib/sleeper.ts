@@ -321,6 +321,7 @@ export interface LeagueSeasonRecord {
   regSeasonRank: number; // 1 = best; 0 if the user's roster wasn't found
   champion: boolean;
   runnerUp: boolean;
+  players: string[]; // the user's rostered player ids (for window classification)
 }
 
 // Every league the user fielded across the given seasons, with their record,
@@ -371,6 +372,7 @@ export async function fetchUserHistory(userId: string, seasons: string[]): Promi
         regSeasonRank,
         champion,
         runnerUp,
+        players: mine?.players ?? [],
       } as LeagueSeasonRecord;
     } catch { return null; }
   });
