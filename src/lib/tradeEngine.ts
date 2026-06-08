@@ -300,17 +300,34 @@ export function buildPickOwnership(
     }
   }
 
+  // Sleeper traded_picks: roster_id = the pick's ORIGINAL owner (its draft
+  // slot), owner_id = the CURRENT owner, previous_owner_id = prior holder. A
+  // pick traded several times yields several rows; the current owner is the end
+  // of the chain — an owner_id that never appears as a previous_owner_id.
+  const groups = new Map<string, SleeperTradedPick[]>();
   for (const tp of tradedPicks) {
     if (tp.season !== season) continue;
-    for (const [rosterId, picks] of map) {
-      const idx = picks.findIndex((p) => p.round === tp.round && p.originalOwnerId === tp.owner_id);
-      if (idx >= 0 && rosterId !== tp.roster_id) {
-        picks.splice(idx, 1);
-      }
+    const key = `${tp.round}-${tp.roster_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(tp);
+  }
+
+  for (const rows of groups.values()) {
+    const { round, roster_id: original } = rows[0];
+    const prevOwners = new Set(rows.map((r) => r.previous_owner_id));
+    const finalRow = rows.find((r) => !prevOwners.has(r.owner_id)) ?? rows[rows.length - 1];
+    const currentOwner = finalRow.owner_id;
+    if (currentOwner === original) continue; // net no-op (traded away and back)
+
+    // Take the pick from its original owner and hand it to the current owner.
+    const origPicks = map.get(original);
+    if (origPicks) {
+      const idx = origPicks.findIndex((p) => p.round === round && p.originalOwnerId === original);
+      if (idx >= 0) origPicks.splice(idx, 1);
     }
-    const ownerPicks = map.get(tp.roster_id);
-    if (ownerPicks && !ownerPicks.find((p) => p.round === tp.round && p.originalOwnerId === tp.owner_id)) {
-      ownerPicks.push({ season: tp.season, round: tp.round, originalOwnerId: tp.owner_id, currentOwnerId: tp.roster_id });
+    const ownerPicks = map.get(currentOwner);
+    if (ownerPicks && !ownerPicks.find((p) => p.round === round && p.originalOwnerId === original)) {
+      ownerPicks.push({ season, round, originalOwnerId: original, currentOwnerId: currentOwner });
     }
   }
 

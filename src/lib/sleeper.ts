@@ -213,9 +213,9 @@ export async function fetchLeagueRosteredIds(leagueId: string): Promise<Set<stri
 export interface SleeperTradedPick {
   season: string;
   round: number;
-  roster_id: number;     // who currently owns it
-  previous_owner_id: number;
-  owner_id: number;      // original owner
+  roster_id: number;        // the pick's ORIGINAL owner (defines its draft slot)
+  previous_owner_id: number; // the roster that gave it up in the latest trade
+  owner_id: number;          // the CURRENT owner (who holds it now)
 }
 
 export async function fetchTradedPicks(leagueId: string): Promise<SleeperTradedPick[]> {
