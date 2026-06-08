@@ -5,7 +5,7 @@ import { fetchKTCRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
-import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset } from '../lib/tradeEngine';
 
 const LS_KEY = 'sleeper_league_id';
@@ -598,14 +598,75 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
 
 // ── Win-Win Trade Suggestions ──
 
+function TradeCard({ s, defaultExpanded = false }: { s: TradeSuggestion; defaultExpanded?: boolean }) {
+  const [showEval, setShowEval] = useState(defaultExpanded);
+  const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
+
+  const assetLine = (a: TradeAsset) => (
+    <div key={a.name} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <span style={{ color: '#ef4444' }}>→</span>
+      <span>{a.name}</span>
+      {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
+      {a.age && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({a.age})</span>}
+      <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
+      {a.projPts != null && <span style={{ color: '#6366f1', fontSize: 10 }}>{a.projPts.toFixed(0)} pts</span>}
+    </div>
+  );
+
+  return (
+    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 600 }}>
+          {s.teamA.teamName} ↔ {s.teamB.teamName}
+        </span>
+        <span style={{ fontSize: 10, color: s.fairness >= 80 ? '#22c55e' : s.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
+          {s.fairness.toFixed(0)}% fair
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
+        <div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>You give:</div>
+          {s.teamA.gives.map(assetLine)}
+        </div>
+        <div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>You get:</div>
+          {s.teamA.receives.map(assetLine)}
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.rationale}</div>
+        <button
+          style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: 10, padding: 0 }}
+          onClick={() => setShowEval(!showEval)}
+        >
+          {showEval ? 'Hide' : 'Evaluate'} ▾
+        </button>
+      </div>
+      {showEval && (
+        <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-tertiary)', borderRadius: 4, fontSize: 11 }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span>Give: <b>{(result.givesTotal / 1000).toFixed(1)}k</b></span>
+            <span>Get: <b>{(result.receivesTotal / 1000).toFixed(1)}k</b></span>
+            <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+              Net: {result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface TradeSectionProps {
   teams: LeagueTeam[];
   ktc: KTCPlayer[];
   leagueId: string;
   myRosterId?: number;
+  myTeamName?: string;
+  projBySleeperIdMap: Map<string, number>;
 }
 
-function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId, myTeamName, projBySleeperIdMap }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -613,12 +674,12 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSect
 
   const myGoal = goals.get(myRosterId ?? -1) ?? 'balanced';
 
-  const generateSuggestions = async () => {
+  const doGenerate = async () => {
     setLoading(true);
     try {
       const tradedPicks = await fetchTradedPicks(leagueId);
-      const pickOwnership = buildPickOwnership(teams, tradedPicks);
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId);
+      const pickOwnership = buildPickOwnership(teams, tradedPicks, '2027');
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap);
       setSuggestions(results);
     } catch {
       setSuggestions([]);
@@ -649,8 +710,14 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSect
       )}
       {expanded && (
         <>
+          {myTeamName && (
+            <div style={{ fontSize: 13, fontWeight: 600, margin: '6px 0 4px', color: 'var(--text-primary)' }}>
+              Suggesting trades for: <span style={{ color: '#6366f1' }}>{myTeamName}</span>
+              <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>(select a team in standings to change)</span>
+            </div>
+          )}
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            Set your trade goal, then generate suggestions. Trades consider dynasty value, age, positional needs, and draft picks.
+            Trades consider dynasty value, age, positional needs, and 2027 draft picks. Your top assets are protected.
           </p>
 
           <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
@@ -667,43 +734,17 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSect
             ))}
             <button
               className="format-tab active"
-              onClick={generateSuggestions}
+              onClick={doGenerate}
               disabled={loading}
               style={{ marginLeft: 12, padding: '3px 12px', fontSize: 11 }}
             >
-              {loading ? 'Generating…' : '🔄 Generate Trades'}
+              {loading ? 'Generating…' : 'Generate Trades'}
             </button>
           </div>
 
           {suggestions.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-              {suggestions.map((s, i) => (
-                <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>
-                      {s.teamA.teamName} ↔ {s.teamB.teamName}
-                    </span>
-                    <span style={{ fontSize: 10, color: s.fairness >= 80 ? '#22c55e' : s.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
-                      {s.fairness.toFixed(0)}% fair
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>{s.teamA.teamName} gives:</div>
-                      {s.teamA.gives.map((a, j) => (
-                        <div key={j}><span style={{ color: '#ef4444' }}>→</span> {a.name} <span style={{ color: 'var(--text-muted)' }}>({(a.value / 1000).toFixed(1)}k)</span></div>
-                      ))}
-                    </div>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>{s.teamB.teamName} gives:</div>
-                      {s.teamB.gives.map((a, j) => (
-                        <div key={j}><span style={{ color: '#ef4444' }}>→</span> {a.name} <span style={{ color: 'var(--text-muted)' }}>({(a.value / 1000).toFixed(1)}k)</span></div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{s.rationale}</div>
-                </div>
-              ))}
+              {suggestions.map((s, i) => <TradeCard key={i} s={s} />)}
             </div>
           )}
 
@@ -711,157 +752,6 @@ function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSect
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
               Click "Generate Trades" to find win-win deals.
             </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Trade Evaluator ──
-
-interface TradeEvaluatorProps {
-  teams: LeagueTeam[];
-  ktc: KTCPlayer[];
-}
-
-function TradeEvaluatorSection({ teams, ktc }: TradeEvaluatorProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [giveSide, setGiveSide] = useState<TradeAsset[]>([]);
-  const [getSide, setGetSide] = useState<TradeAsset[]>([]);
-  const [searchGive, setSearchGive] = useState('');
-  const [searchGet, setSearchGet] = useState('');
-
-  const ktcByName = useMemo(() => {
-    const map = new Map<string, KTCPlayer>();
-    for (const p of ktc) map.set(p.playerName.toLowerCase(), p);
-    return map;
-  }, [ktc]);
-
-  const allPlayers = useMemo(() => {
-    const players: TradeAsset[] = [];
-    for (const t of teams) {
-      for (const p of [...t.starters, ...t.bench]) {
-        if (p.name === 'Empty' || p.position === 'DEF') continue;
-        const k = ktcByName.get(p.name.toLowerCase());
-        if (k) players.push({ type: 'player', name: p.name, value: k.value, age: k.age, position: p.position, sleeperId: p.id });
-      }
-    }
-    const seen = new Set<string>();
-    return players.filter((p) => { if (seen.has(p.name)) return false; seen.add(p.name); return true; });
-  }, [teams, ktcByName]);
-
-  const filteredGive = searchGive.length >= 2
-    ? allPlayers.filter((p) => p.name.toLowerCase().includes(searchGive.toLowerCase()) && !giveSide.find((g) => g.name === p.name)).slice(0, 8)
-    : [];
-  const filteredGet = searchGet.length >= 2
-    ? allPlayers.filter((p) => p.name.toLowerCase().includes(searchGet.toLowerCase()) && !getSide.find((g) => g.name === p.name)).slice(0, 8)
-    : [];
-
-  const result = useMemo(() => {
-    if (!giveSide.length && !getSide.length) return null;
-    return evaluateTrade(giveSide, getSide);
-  }, [giveSide, getSide]);
-
-  return (
-    <div style={{ margin: '16px 0' }}>
-      <div
-        className="sched-section-title"
-        style={{ cursor: 'pointer', userSelect: 'none' }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
-        Trade Evaluator
-      </div>
-      {!expanded && (
-        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
-          Click to evaluate a trade you're considering.
-        </p>
-      )}
-      {expanded && (
-        <>
-          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            Add players to each side to evaluate fairness using dynasty values.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>You Give</div>
-              <input
-                type="text"
-                placeholder="Search player…"
-                value={searchGive}
-                onChange={(e) => setSearchGive(e.target.value)}
-                style={{ width: '100%', marginBottom: 4, fontSize: 12, padding: '4px 8px' }}
-              />
-              {filteredGive.length > 0 && (
-                <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, maxHeight: 120, overflow: 'auto' }}>
-                  {filteredGive.map((p) => (
-                    <div
-                      key={p.name}
-                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
-                      onClick={() => { setGiveSide([...giveSide, p]); setSearchGive(''); }}
-                    >
-                      {p.name} <span style={{ color: 'var(--text-muted)' }}>({(p.value / 1000).toFixed(1)}k)</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {giveSide.map((a, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
-                  <span>{a.name}</span>
-                  <span>
-                    <span style={{ color: 'var(--text-muted)' }}>{(a.value / 1000).toFixed(1)}k</span>
-                    <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 4, fontSize: 10 }} onClick={() => setGiveSide(giveSide.filter((_, j) => j !== i))}>✕</button>
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>You Get</div>
-              <input
-                type="text"
-                placeholder="Search player…"
-                value={searchGet}
-                onChange={(e) => setSearchGet(e.target.value)}
-                style={{ width: '100%', marginBottom: 4, fontSize: 12, padding: '4px 8px' }}
-              />
-              {filteredGet.length > 0 && (
-                <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, maxHeight: 120, overflow: 'auto' }}>
-                  {filteredGet.map((p) => (
-                    <div
-                      key={p.name}
-                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
-                      onClick={() => { setGetSide([...getSide, p]); setSearchGet(''); }}
-                    >
-                      {p.name} <span style={{ color: 'var(--text-muted)' }}>({(p.value / 1000).toFixed(1)}k)</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {getSide.map((a, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
-                  <span>{a.name}</span>
-                  <span>
-                    <span style={{ color: 'var(--text-muted)' }}>{(a.value / 1000).toFixed(1)}k</span>
-                    <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 4, fontSize: 10 }} onClick={() => setGetSide(getSide.filter((_, j) => j !== i))}>✕</button>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {result && (
-            <div style={{ marginTop: 10, padding: 10, background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6 }}>
-              <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
-                <span>Give: <b>{(result.givesTotal / 1000).toFixed(1)}k</b></span>
-                <span>Get: <b>{(result.receivesTotal / 1000).toFixed(1)}k</b></span>
-                <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                  Net: {result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k
-                </span>
-                <span style={{ color: result.fairness >= 80 ? '#22c55e' : result.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
-                  {result.fairness.toFixed(0)}% fair
-                </span>
-              </div>
-            </div>
           )}
         </>
       )}
@@ -882,7 +772,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
-  const [projBySleeperIdMap, setProjBySleeperIdMap] = useState<Map<string, number>>(new Map());
+  const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -894,13 +784,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
       setMatchups(m); setTeamProj(tp); setKtc(k);
     });
-    loadClayProjections().then((players) => {
-      const map = new Map<string, number>();
-      for (const p of players) {
-        if (p.sleeperId) map.set(p.sleeperId, computePpr(p));
-      }
-      setProjBySleeperIdMap(map);
-    });
+    loadClayProjections().then(setAllProjections);
   }, []);
 
   const lookupUser = (name: string) => {
@@ -950,10 +834,41 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const scoring = data?.league.scoring_settings ?? {};
+
+  const projBySleeperIdMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const hasCustomScoring = Object.keys(scoring).length > 0;
+    for (const p of allProjections) {
+      if (p.sleeperId) {
+        map.set(p.sleeperId, hasCustomScoring ? computeCustomScore(p, scoring) : computePpr(p));
+      }
+    }
+    return map;
+  }, [allProjections, scoring]);
+
+  const projBySleeperId = useMemo(() => {
+    const map = new Map<string, ClayPlayer>();
+    for (const p of allProjections) {
+      if (p.sleeperId) map.set(p.sleeperId, p);
+    }
+    return map;
+  }, [allProjections]);
+
   const selectedTeam: LeagueTeam | undefined = useMemo(
     () => data?.teams.find((t) => t.rosterId === selected),
     [data, selected],
   );
+
+  const optimalLineup: OptimalLineup | null = useMemo(() => {
+    if (!selectedTeam || !allProjections.length || !data) return null;
+    const rosterPlayerIds = [...selectedTeam.starters, ...selectedTeam.bench]
+      .filter((p) => p.name !== 'Empty')
+      .map((p) => p.id);
+    const myPlayers = allProjections.filter((cp) => cp.sleeperId && rosterPlayerIds.includes(cp.sleeperId));
+    if (!myPlayers.length) return null;
+    return computeOptimalLineup(myPlayers, data.league.roster_positions, scoring);
+  }, [selectedTeam, allProjections, data, scoring]);
 
   return (
     <div className="sl-page">
@@ -1084,10 +999,10 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               ktc={ktc}
               leagueId={data.league.league_id}
               myRosterId={selected ?? undefined}
+              myTeamName={selectedTeam?.teamName}
+              projBySleeperIdMap={projBySleeperIdMap}
             />
           )}
-
-          {ktc.length > 0 && <TradeEvaluatorSection teams={data.teams} ktc={ktc} />}
 
           {selectedTeam && (
             <>
@@ -1095,6 +1010,39 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                 Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
               {ktc.length > 0 && (() => { const s = scoreRoster(selectedTeam, ktc); return s ? <WindowBadge score={s} /> : null; })()}
+
+              {optimalLineup && (
+                <div style={{ margin: '8px 0 12px', padding: '10px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                    Optimal Projected Lineup
+                    <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11, marginLeft: 8 }}>
+                      {Object.keys(scoring).length > 0 ? 'Using league scoring' : 'Standard PPR'} · Season total: <b style={{ color: '#6366f1' }}>{optimalLineup.totalStarterPts.toFixed(0)} pts</b>
+                    </span>
+                  </div>
+                  <div className="table-container" style={{ maxHeight: 'none' }}>
+                    <table className="sched-table" style={{ fontSize: 11 }}>
+                      <thead>
+                        <tr><th>Slot</th><th>Player</th><th>Pos</th><th>Team</th><th>Proj Pts</th></tr>
+                      </thead>
+                      <tbody>
+                        {optimalLineup.starters.map((s, i) => (
+                          <tr key={i}>
+                            <td style={{ color: 'var(--text-muted)', fontSize: 10 }}>{s.slot}</td>
+                            <td><strong>{s.player.name}</strong></td>
+                            <td><span className={`pos-badge pos-${s.player.position}`}>{s.player.position}</span></td>
+                            <td>
+                              {s.player.team && <img src={teamLogoUrl(s.player.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                              {' '}{s.player.team}
+                            </td>
+                            <td style={{ fontWeight: 600 }}>{s.pts.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <div className="sl-roster-grid">
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Starters</div>
