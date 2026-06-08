@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, fetchSleeperUser, fetchUserLeagues, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchKTCRankings } from '../data';
-import type { KTCPlayer } from '../types';
+import { fetchKTCRankings, fetchSleeperTrending } from '../data';
+import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
+import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset } from '../lib/tradeEngine';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -56,6 +58,7 @@ interface TeamOutlookProps {
 }
 
 function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
+  const [expanded, setExpanded] = useState(false);
   const nflTeams = useMemo(() => {
     const all = [...team.starters, ...team.bench].filter((p) => p.team && p.position !== 'DEF');
     const counts = new Map<string, number>();
@@ -67,9 +70,22 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
 
   return (
     <div style={{ marginTop: 16 }}>
-      <div className="sched-section-title">Team Projections &amp; Matchups</div>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Team Projections &amp; Matchups
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to expand NFL team outlook and matchups.
+        </p>
+      )}
+      {expanded && <>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-        NFL team outlook for players on this roster. Win prob and projected scores from Consensus (Clay).
+        NFL team outlook for players on this roster. Win prob and projected scores from Consensus projections.
       </p>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
@@ -122,6 +138,7 @@ function TeamOutlook({ team, teamProj, matchups }: TeamOutlookProps) {
           </tbody>
         </table>
       </div>
+      </>}
     </div>
   );
 }
@@ -240,45 +257,189 @@ function WindowBadge({ score }: WindowBadgeProps) {
 
 // ── League-wide power rankings ──
 
-interface LeaguePowerProps { teams: LeagueTeam[]; ktc: KTCPlayer[] }
+type ViewMode = 'starters' | 'starters-plus' | 'full';
 
-function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
-  const scores = useMemo(() => {
-    const out: { team: LeagueTeam; score: RosterScore }[] = [];
-    for (const t of teams) {
-      const s = scoreRoster(t, ktc);
-      if (s) out.push({ team: t, score: s });
+interface PositionalStrength {
+  qb: number;
+  rb: number;
+  wr: number;
+  te: number;
+}
+
+interface PowerRow {
+  team: LeagueTeam;
+  score: RosterScore;
+  posStrength: PositionalStrength;
+  projPts: number;
+}
+
+function computePositionalStrength(
+  team: LeagueTeam,
+  ktcByName: Map<string, KTCPlayer>,
+  mode: ViewMode,
+): PositionalStrength {
+  let players: RosterPlayer[];
+  if (mode === 'starters') {
+    players = team.starters.filter((p) => p.name !== 'Empty');
+  } else if (mode === 'starters-plus') {
+    const starterPositions = new Map<string, number>();
+    for (const p of team.starters) {
+      if (p.position) starterPositions.set(p.position, (starterPositions.get(p.position) ?? 0) + 1);
     }
-    out.sort((a, b) => b.score.totalValue - a.score.totalValue);
-    return out;
-  }, [teams, ktc]);
+    const benchByPos = new Map<string, RosterPlayer[]>();
+    for (const p of team.bench) {
+      if (p.position) {
+        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+        benchByPos.get(p.position)!.push(p);
+      }
+    }
+    players = [...team.starters.filter((p) => p.name !== 'Empty')];
+    for (const [pos, benched] of benchByPos) {
+      const starterCount = starterPositions.get(pos) ?? 0;
+      const replacements = benched.slice(0, Math.max(1, Math.ceil(starterCount * 0.5)));
+      players.push(...replacements);
+    }
+  } else {
+    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  }
 
-  if (!scores.length) return null;
+  const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
+  for (const p of players) {
+    const k = ktcByName.get(normalizeForMatch(p.name));
+    if (!k || k.value <= 0) continue;
+    const pos = p.position?.toUpperCase();
+    if (pos === 'QB') str.qb += k.value;
+    else if (pos === 'RB') str.rb += k.value;
+    else if (pos === 'WR') str.wr += k.value;
+    else if (pos === 'TE') str.te += k.value;
+  }
+  return str;
+}
+
+function computeTeamProjPts(
+  team: LeagueTeam,
+  projBySleeperIdMap: Map<string, number>,
+  mode: ViewMode,
+): number {
+  let players: RosterPlayer[];
+  if (mode === 'starters') {
+    players = team.starters.filter((p) => p.name !== 'Empty');
+  } else if (mode === 'full') {
+    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  } else {
+    players = [...team.starters.filter((p) => p.name !== 'Empty')];
+    const benchByPos = new Map<string, RosterPlayer[]>();
+    for (const p of team.bench) {
+      if (p.position) {
+        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+        benchByPos.get(p.position)!.push(p);
+      }
+    }
+    for (const [, benched] of benchByPos) {
+      players.push(...benched.slice(0, 1));
+    }
+  }
+  let total = 0;
+  for (const p of players) {
+    total += projBySleeperIdMap.get(p.id) ?? 0;
+  }
+  return total;
+}
+
+interface LeaguePowerProps {
+  teams: LeagueTeam[];
+  ktc: KTCPlayer[];
+  projBySleeperIdMap: Map<string, number>;
+}
+
+function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap }: LeaguePowerProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('starters');
+  const [sortBy, setSortBy] = useState<'value' | 'proj'>('value');
+
+  const rows: PowerRow[] = useMemo(() => {
+    const ktcByName = new Map<string, KTCPlayer>();
+    for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+
+    const out: PowerRow[] = [];
+    for (const t of teams) {
+      const score = scoreRoster(t, ktc);
+      if (!score) continue;
+      const posStrength = computePositionalStrength(t, ktcByName, viewMode);
+      const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
+      out.push({ team: t, score, posStrength, projPts });
+    }
+    if (sortBy === 'value') out.sort((a, b) => b.score.totalValue - a.score.totalValue);
+    else out.sort((a, b) => b.projPts - a.projPts);
+    return out;
+  }, [teams, ktc, projBySleeperIdMap, viewMode, sortBy]);
+
+  if (!rows.length) return null;
+
+  const maxPos = { qb: 0, rb: 0, wr: 0, te: 0 };
+  for (const r of rows) {
+    if (r.posStrength.qb > maxPos.qb) maxPos.qb = r.posStrength.qb;
+    if (r.posStrength.rb > maxPos.rb) maxPos.rb = r.posStrength.rb;
+    if (r.posStrength.wr > maxPos.wr) maxPos.wr = r.posStrength.wr;
+    if (r.posStrength.te > maxPos.te) maxPos.te = r.posStrength.te;
+  }
+
+  const posBar = (val: number, max: number, color: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ width: 50, height: 8, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${max ? (val / max) * 100 : 0}%`, height: '100%', background: color, borderRadius: 4 }} />
+      </div>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{val ? (val / 1000).toFixed(1) + 'k' : '—'}</span>
+    </div>
+  );
 
   return (
     <div style={{ margin: '16px 0' }}>
       <div className="sched-section-title">League Power Rankings</div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-        Roster dynasty value from KTC. Window = value distribution by age.
+        Positional strength by dynasty value and projected score.
       </p>
+      <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
+        {([['starters', 'Starters Only'], ['starters-plus', 'Starters + Replacements'], ['full', 'Full Roster']] as const).map(([mode, label]) => (
+          <button
+            key={mode}
+            className={`format-tab ${viewMode === mode ? 'active' : ''}`}
+            onClick={() => setViewMode(mode)}
+            style={{ padding: '3px 10px', fontSize: 11 }}
+          >
+            {label}
+          </button>
+        ))}
+        <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
+        <button className={`format-tab ${sortBy === 'value' ? 'active' : ''}`} onClick={() => setSortBy('value')} style={{ padding: '3px 10px', fontSize: 11 }}>Dynasty Value</button>
+        <button className={`format-tab ${sortBy === 'proj' ? 'active' : ''}`} onClick={() => setSortBy('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
+      </div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
-            <tr><th>#</th><th>Team</th><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 120 }}>Age Distribution</th></tr>
+            <tr>
+              <th>#</th><th>Team</th><th>Window</th><th>Value</th>
+              <th title="Projected PPR points (season)">Proj Pts</th>
+              <th>QB</th><th>RB</th><th>WR</th><th>TE</th>
+              <th style={{ width: 90 }}>Age Dist</th>
+            </tr>
           </thead>
           <tbody>
-            {scores.map(({ team: t, score: s }, i) => (
-              <tr key={t.rosterId} style={{ cursor: 'pointer' }} onClick={() => {}}>
+            {rows.map((r, i) => (
+              <tr key={r.team.rosterId}>
                 <td className="rank-cell">{i + 1}</td>
-                <td><strong>{t.teamName}</strong></td>
-                <td style={{ color: windowColor(s.label), fontWeight: 600 }}>{s.label}</td>
-                <td>{s.totalValue.toLocaleString()}</td>
-                <td>{s.avgAge.toFixed(1)}</td>
+                <td><strong>{r.team.teamName}</strong></td>
+                <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
+                <td>{r.score.totalValue.toLocaleString()}</td>
+                <td style={{ fontWeight: 600 }}>{r.projPts > 0 ? r.projPts.toFixed(0) : '—'}</td>
+                <td>{posBar(r.posStrength.qb, maxPos.qb, '#6366f1')}</td>
+                <td>{posBar(r.posStrength.rb, maxPos.rb, '#22c55e')}</td>
+                <td>{posBar(r.posStrength.wr, maxPos.wr, '#f59e0b')}</td>
+                <td>{posBar(r.posStrength.te, maxPos.te, '#ef4444')}</td>
                 <td>
-                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 80 }}>
-                    <div style={{ width: `${s.youngPct}%`, background: '#22c55e' }} />
-                    <div style={{ width: `${s.primePct}%`, background: '#f59e0b' }} />
-                    <div style={{ width: `${s.agingPct}%`, background: '#ef4444' }} />
+                  <div style={{ display: 'flex', gap: 1, height: 10, borderRadius: 3, overflow: 'hidden', minWidth: 60 }}>
+                    <div style={{ width: `${r.score.youngPct}%`, background: '#22c55e' }} />
+                    <div style={{ width: `${r.score.primePct}%`, background: '#f59e0b' }} />
+                    <div style={{ width: `${r.score.agingPct}%`, background: '#ef4444' }} />
                   </div>
                 </td>
               </tr>
@@ -290,7 +451,429 @@ function LeaguePowerRankings({ teams, ktc }: LeaguePowerProps) {
   );
 }
 
-export function SleeperLeagueView() {
+// ── Inline Waiver Wire (per-league) ──
+
+interface LeagueWaiverSectionProps {
+  leagueId: string;
+}
+
+function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [rosteredIds, setRosteredIds] = useState<Set<string>>(new Set());
+  const [players, setPlayers] = useState<ClayPlayer[]>([]);
+  const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
+  const [posFilter, setPosFilter] = useState<string>('ALL');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || loaded) return;
+    setLoaded(true);
+    Promise.all([
+      fetchLeagueRosteredIds(leagueId),
+      loadClayProjections(),
+      fetchSleeperTrending('add', 24, 75).catch(() => [] as SleeperTrendingRow[]),
+    ]).then(([ids, proj, trend]) => {
+      setRosteredIds(ids);
+      setPlayers(proj);
+      setTrending(trend);
+    });
+  }, [expanded, loaded, leagueId]);
+
+  const waiverPicks = useMemo(() => {
+    if (!players.length || !rosteredIds.size) return [];
+    const out: (ClayPlayer & { pprPts: number })[] = [];
+    for (const p of players) {
+      if (!p.sleeperId || rosteredIds.has(p.sleeperId)) continue;
+      const pprPts = computePpr(p);
+      if (pprPts > 0) out.push({ ...p, pprPts });
+    }
+    out.sort((a, b) => b.pprPts - a.pprPts);
+    return out;
+  }, [players, rosteredIds]);
+
+  const trendingAvail = useMemo(() => {
+    if (!trending.length || !rosteredIds.size) return [];
+    return trending.filter((t) => !rosteredIds.has(t.player_id));
+  }, [trending, rosteredIds]);
+
+  const filteredWaivers = posFilter === 'ALL' ? waiverPicks : waiverPicks.filter((w) => w.position === posFilter);
+  const filteredTrending = posFilter === 'ALL' ? trendingAvail : trendingAvail.filter((t) => t.position === posFilter);
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Waiver Wire
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to see top projected scorers and trending adds available on waivers.
+        </p>
+      )}
+      {expanded && (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Highest Consensus projected PPR scorers and trending adds not rostered in this league.
+          </p>
+          <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
+            {['ALL', 'QB', 'RB', 'WR', 'TE'].map((pos) => (
+              <button
+                key={pos}
+                className={`format-tab ${posFilter === pos ? 'active' : ''}`}
+                onClick={() => setPosFilter(pos)}
+                style={{ padding: '3px 10px', fontSize: 11 }}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+
+          {filteredWaivers.length > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, margin: '8px 0 4px' }}>Top Projected Scorers on Waivers</div>
+              <div className="table-container" style={{ maxHeight: 340 }}>
+                <table className="sched-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th title="Consensus PPR projection">PPR</th><th>Pos Rk</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredWaivers.slice(0, 40).map((w, i) => (
+                      <tr key={w.player_key}>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong>{w.name}</strong></td>
+                        <td><span className={`pos-badge pos-${w.position}`}>{w.position}</span></td>
+                        <td>
+                          {w.team && <img src={teamLogoUrl(w.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          {' '}{w.team}
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{w.pprPts.toFixed(1)}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>{w.position}{w.pos_rk}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {filteredTrending.length > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, margin: '12px 0 4px' }}>Trending Adds (Last 24h)</div>
+              <div className="table-container" style={{ maxHeight: 260 }}>
+                <table className="sched-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Adds</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredTrending.slice(0, 25).map((t, i) => (
+                      <tr key={t.player_id}>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong>{t.full_name}</strong></td>
+                        <td><span className={`pos-badge pos-${t.position}`}>{t.position}</span></td>
+                        <td>
+                          {t.team && t.team !== 'FA' && <img src={teamLogoUrl(t.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          {' '}{t.team}
+                        </td>
+                        <td style={{ color: 'var(--accent)', fontWeight: 600 }}>+{t.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {!filteredWaivers.length && !filteredTrending.length && loaded && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No waiver data available.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Win-Win Trade Suggestions ──
+
+interface TradeSectionProps {
+  teams: LeagueTeam[];
+  ktc: KTCPlayer[];
+  leagueId: string;
+  myRosterId?: number;
+}
+
+function TradeSuggestionsSection({ teams, ktc, leagueId, myRosterId }: TradeSectionProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
+  const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const myGoal = goals.get(myRosterId ?? -1) ?? 'balanced';
+
+  const generateSuggestions = async () => {
+    setLoading(true);
+    try {
+      const tradedPicks = await fetchTradedPicks(leagueId);
+      const pickOwnership = buildPickOwnership(teams, tradedPicks);
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId);
+      setSuggestions(results);
+    } catch {
+      setSuggestions([]);
+    }
+    setLoading(false);
+  };
+
+  const setMyGoal = (goal: TradeGoal) => {
+    const next = new Map(goals);
+    if (myRosterId) next.set(myRosterId, goal);
+    setGoals(next);
+  };
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Win-Win Trade Suggestions
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to get trade suggestions that benefit both sides.
+        </p>
+      )}
+      {expanded && (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Set your trade goal, then generate suggestions. Trades consider dynasty value, age, positional needs, and draft picks.
+          </p>
+
+          <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>My Goal:</span>
+            {(['win-now', 'balanced', 'rebuild'] as const).map((g) => (
+              <button
+                key={g}
+                className={`format-tab ${myGoal === g ? 'active' : ''}`}
+                onClick={() => setMyGoal(g)}
+                style={{ padding: '3px 10px', fontSize: 11 }}
+              >
+                {g === 'win-now' ? 'Win Now' : g === 'rebuild' ? 'Rebuild' : 'Balanced'}
+              </button>
+            ))}
+            <button
+              className="format-tab active"
+              onClick={generateSuggestions}
+              disabled={loading}
+              style={{ marginLeft: 12, padding: '3px 12px', fontSize: 11 }}
+            >
+              {loading ? 'Generating…' : '🔄 Generate Trades'}
+            </button>
+          </div>
+
+          {suggestions.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+              {suggestions.map((s, i) => (
+                <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>
+                      {s.teamA.teamName} ↔ {s.teamB.teamName}
+                    </span>
+                    <span style={{ fontSize: 10, color: s.fairness >= 80 ? '#22c55e' : s.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
+                      {s.fairness.toFixed(0)}% fair
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>{s.teamA.teamName} gives:</div>
+                      {s.teamA.gives.map((a, j) => (
+                        <div key={j}><span style={{ color: '#ef4444' }}>→</span> {a.name} <span style={{ color: 'var(--text-muted)' }}>({(a.value / 1000).toFixed(1)}k)</span></div>
+                      ))}
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2 }}>{s.teamB.teamName} gives:</div>
+                      {s.teamB.gives.map((a, j) => (
+                        <div key={j}><span style={{ color: '#ef4444' }}>→</span> {a.name} <span style={{ color: 'var(--text-muted)' }}>({(a.value / 1000).toFixed(1)}k)</span></div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{s.rationale}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && suggestions.length === 0 && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
+              Click "Generate Trades" to find win-win deals.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Trade Evaluator ──
+
+interface TradeEvaluatorProps {
+  teams: LeagueTeam[];
+  ktc: KTCPlayer[];
+}
+
+function TradeEvaluatorSection({ teams, ktc }: TradeEvaluatorProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [giveSide, setGiveSide] = useState<TradeAsset[]>([]);
+  const [getSide, setGetSide] = useState<TradeAsset[]>([]);
+  const [searchGive, setSearchGive] = useState('');
+  const [searchGet, setSearchGet] = useState('');
+
+  const ktcByName = useMemo(() => {
+    const map = new Map<string, KTCPlayer>();
+    for (const p of ktc) map.set(p.playerName.toLowerCase(), p);
+    return map;
+  }, [ktc]);
+
+  const allPlayers = useMemo(() => {
+    const players: TradeAsset[] = [];
+    for (const t of teams) {
+      for (const p of [...t.starters, ...t.bench]) {
+        if (p.name === 'Empty' || p.position === 'DEF') continue;
+        const k = ktcByName.get(p.name.toLowerCase());
+        if (k) players.push({ type: 'player', name: p.name, value: k.value, age: k.age, position: p.position, sleeperId: p.id });
+      }
+    }
+    const seen = new Set<string>();
+    return players.filter((p) => { if (seen.has(p.name)) return false; seen.add(p.name); return true; });
+  }, [teams, ktcByName]);
+
+  const filteredGive = searchGive.length >= 2
+    ? allPlayers.filter((p) => p.name.toLowerCase().includes(searchGive.toLowerCase()) && !giveSide.find((g) => g.name === p.name)).slice(0, 8)
+    : [];
+  const filteredGet = searchGet.length >= 2
+    ? allPlayers.filter((p) => p.name.toLowerCase().includes(searchGet.toLowerCase()) && !getSide.find((g) => g.name === p.name)).slice(0, 8)
+    : [];
+
+  const result = useMemo(() => {
+    if (!giveSide.length && !getSide.length) return null;
+    return evaluateTrade(giveSide, getSide);
+  }, [giveSide, getSide]);
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div
+        className="sched-section-title"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Trade Evaluator
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click to evaluate a trade you're considering.
+        </p>
+      )}
+      {expanded && (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Add players to each side to evaluate fairness using dynasty values.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>You Give</div>
+              <input
+                type="text"
+                placeholder="Search player…"
+                value={searchGive}
+                onChange={(e) => setSearchGive(e.target.value)}
+                style={{ width: '100%', marginBottom: 4, fontSize: 12, padding: '4px 8px' }}
+              />
+              {filteredGive.length > 0 && (
+                <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, maxHeight: 120, overflow: 'auto' }}>
+                  {filteredGive.map((p) => (
+                    <div
+                      key={p.name}
+                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
+                      onClick={() => { setGiveSide([...giveSide, p]); setSearchGive(''); }}
+                    >
+                      {p.name} <span style={{ color: 'var(--text-muted)' }}>({(p.value / 1000).toFixed(1)}k)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {giveSide.map((a, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
+                  <span>{a.name}</span>
+                  <span>
+                    <span style={{ color: 'var(--text-muted)' }}>{(a.value / 1000).toFixed(1)}k</span>
+                    <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 4, fontSize: 10 }} onClick={() => setGiveSide(giveSide.filter((_, j) => j !== i))}>✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>You Get</div>
+              <input
+                type="text"
+                placeholder="Search player…"
+                value={searchGet}
+                onChange={(e) => setSearchGet(e.target.value)}
+                style={{ width: '100%', marginBottom: 4, fontSize: 12, padding: '4px 8px' }}
+              />
+              {filteredGet.length > 0 && (
+                <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4, maxHeight: 120, overflow: 'auto' }}>
+                  {filteredGet.map((p) => (
+                    <div
+                      key={p.name}
+                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
+                      onClick={() => { setGetSide([...getSide, p]); setSearchGet(''); }}
+                    >
+                      {p.name} <span style={{ color: 'var(--text-muted)' }}>({(p.value / 1000).toFixed(1)}k)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {getSide.map((a, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
+                  <span>{a.name}</span>
+                  <span>
+                    <span style={{ color: 'var(--text-muted)' }}>{(a.value / 1000).toFixed(1)}k</span>
+                    <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 4, fontSize: 10 }} onClick={() => setGetSide(getSide.filter((_, j) => j !== i))}>✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {result && (
+            <div style={{ marginTop: 10, padding: 10, background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 6 }}>
+              <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+                <span>Give: <b>{(result.givesTotal / 1000).toFixed(1)}k</b></span>
+                <span>Get: <b>{(result.receivesTotal / 1000).toFixed(1)}k</b></span>
+                <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                  Net: {result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k
+                </span>
+                <span style={{ color: result.fairness >= 80 ? '#22c55e' : result.fairness >= 60 ? '#f59e0b' : '#ef4444' }}>
+                  {result.fairness.toFixed(0)}% fair
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+interface SleeperLeagueViewProps {
+  onNavigate?: (tab: Tab) => void;
+}
+
+export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [leagueId, setLeagueId] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -299,6 +882,7 @@ export function SleeperLeagueView() {
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [projBySleeperIdMap, setProjBySleeperIdMap] = useState<Map<string, number>>(new Map());
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -309,6 +893,13 @@ export function SleeperLeagueView() {
   useEffect(() => {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
       setMatchups(m); setTeamProj(tp); setKtc(k);
+    });
+    loadClayProjections().then((players) => {
+      const map = new Map<string, number>();
+      for (const p of players) {
+        if (p.sleeperId) map.set(p.sleeperId, computePpr(p));
+      }
+      setProjBySleeperIdMap(map);
     });
   }, []);
 
@@ -459,7 +1050,21 @@ export function SleeperLeagueView() {
                   >
                     <td className="rank-cell">{i + 1}</td>
                     <td><strong>{t.teamName}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{t.owner}</td>
+                    <td>
+                      <button
+                        style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
+                        title="View in User Snooper"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (t.owner && t.owner !== '—' && onNavigate) {
+                            localStorage.setItem('sleeper_snoop_user', t.owner);
+                            onNavigate('sleeper-snooper');
+                          }
+                        }}
+                      >
+                        {t.owner}
+                      </button>
+                    </td>
                     <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
                     <td>{t.pointsFor.toFixed(1)}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
@@ -469,7 +1074,20 @@ export function SleeperLeagueView() {
             </table>
           </div>
 
-          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} />}
+          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} projBySleeperIdMap={projBySleeperIdMap} />}
+
+          <LeagueWaiverSection leagueId={data.league.league_id} />
+
+          {ktc.length > 0 && (
+            <TradeSuggestionsSection
+              teams={data.teams}
+              ktc={ktc}
+              leagueId={data.league.league_id}
+              myRosterId={selected ?? undefined}
+            />
+          )}
+
+          {ktc.length > 0 && <TradeEvaluatorSection teams={data.teams} ktc={ktc} />}
 
           {selectedTeam && (
             <>

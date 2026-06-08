@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchSleeperTrending } from '../data';
+import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 
@@ -11,31 +12,6 @@ interface LeagueAvailability {
   rosteredIds: Set<string>;
 }
 
-interface ClayPlayer {
-  name: string;
-  team: string;
-  position: string;
-  player_key: string;
-  pos_rk: number;
-  ff_pt: number;
-  games: number;
-  sleeperId: string | null;
-  pass_yds?: number;
-  pass_td?: number;
-  rush_yds?: number;
-  rush_td?: number;
-  rec?: number;
-  rec_yds?: number;
-  rec_td?: number;
-}
-
-interface CrosswalkRec {
-  player_key: string;
-  display_name: string;
-  sleeper_id?: string;
-  position?: string;
-}
-
 interface TrendingAvail extends SleeperTrendingRow {
   availableIn: string[];
 }
@@ -43,57 +19,6 @@ interface TrendingAvail extends SleeperTrendingRow {
 interface WaiverPick extends ClayPlayer {
   availableIn: string[];
   pprPts: number;
-}
-
-function computePpr(p: ClayPlayer): number {
-  const passYd = p.pass_yds ?? 0;
-  const passTd = p.pass_td ?? 0;
-  const rushYd = p.rush_yds ?? 0;
-  const rushTd = p.rush_td ?? 0;
-  const rec = p.rec ?? 0;
-  const recYd = p.rec_yds ?? 0;
-  const recTd = p.rec_td ?? 0;
-  return passYd * 0.04 + passTd * 4 + rushYd * 0.1 + rushTd * 6 + recYd * 0.1 + recTd * 6 + rec;
-}
-
-async function loadClayProjections(): Promise<ClayPlayer[]> {
-  const [projRes, cwRes] = await Promise.all([
-    fetch(`${import.meta.env.BASE_URL}data/clay-projections-2026.json`),
-    fetch(`${import.meta.env.BASE_URL}data/player-crosswalk.json`),
-  ]);
-  if (!projRes.ok) return [];
-  const projData = (await projRes.json()) as { players?: Record<string, unknown>[] };
-  const players = projData.players ?? [];
-
-  const sleeperByKey = new Map<string, string>();
-  if (cwRes.ok) {
-    const cw = (await cwRes.json()) as { players?: CrosswalkRec[] };
-    for (const rec of cw.players ?? []) {
-      if (rec.sleeper_id && rec.player_key) {
-        sleeperByKey.set(rec.player_key, rec.sleeper_id);
-      }
-    }
-  }
-
-  return players
-    .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(String(p.position ?? '')))
-    .map((p) => ({
-      name: String(p.name ?? ''),
-      team: String(p.team ?? ''),
-      position: String(p.position ?? ''),
-      player_key: String(p.player_key ?? ''),
-      pos_rk: Number(p.pos_rk) || 0,
-      ff_pt: Number(p.ff_pt) || 0,
-      games: Number(p.games) || 0,
-      sleeperId: sleeperByKey.get(String(p.player_key ?? '')) ?? null,
-      pass_yds: Number(p.pass_yds) || 0,
-      pass_td: Number(p.pass_td) || 0,
-      rush_yds: Number(p.rush_yds) || 0,
-      rush_td: Number(p.rush_td) || 0,
-      rec: Number(p.rec) || 0,
-      rec_yds: Number(p.rec_yds) || 0,
-      rec_td: Number(p.rec_td) || 0,
-    }));
 }
 
 export function SleeperWaiverWire() {
@@ -175,7 +100,6 @@ export function SleeperWaiverWire() {
         <h2 style={{ margin: 0, fontSize: 18 }}>Waiver Wire</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0' }}>
           Find top projected scorers and trending adds available on waivers across your leagues.
-          Projections from Consensus (Clay 2026).
         </p>
       </div>
 
@@ -217,7 +141,6 @@ export function SleeperWaiverWire() {
             ))}
           </div>
 
-          {/* Top projected scorers on waivers */}
           <div className="sched-section-title" style={{ marginTop: 12 }}>
             Top Projected Scorers on Waivers
           </div>
@@ -230,7 +153,7 @@ export function SleeperWaiverWire() {
             <div className="table-container" style={{ maxHeight: 460 }}>
               <table className="sched-table" style={{ fontSize: 12 }}>
                 <thead>
-                  <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th title="Consensus PPR projection (full season)">PPR</th><th title="Consensus fantasy points (Clay)">Clay Pts</th><th title="Position rank">Pos Rk</th><th>Available In</th></tr>
+                  <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th title="Consensus PPR projection (full season)">PPR</th><th title="Consensus fantasy points">Pts</th><th title="Position rank">Pos Rk</th><th>Available In</th></tr>
                 </thead>
                 <tbody>
                   {filteredWaivers.slice(0, 60).map((w, i) => (
@@ -259,7 +182,6 @@ export function SleeperWaiverWire() {
             </div>
           )}
 
-          {/* Trending adds available on waivers */}
           <div className="sched-section-title" style={{ marginTop: 20 }}>
             Trending Adds — Available in Your Leagues
           </div>

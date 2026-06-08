@@ -52,6 +52,7 @@ export interface LeagueTeam {
   ties: number;
   pointsFor: number;
   pointsAgainst: number;
+  ownerId: string | null;
   starters: RosterPlayer[];
   bench: RosterPlayer[];
 }
@@ -152,6 +153,20 @@ export async function fetchLeagueRosteredIds(leagueId: string): Promise<Set<stri
   return ids;
 }
 
+export interface SleeperTradedPick {
+  season: string;
+  round: number;
+  roster_id: number;     // who currently owns it
+  previous_owner_id: number;
+  owner_id: number;      // original owner
+}
+
+export async function fetchTradedPicks(leagueId: string): Promise<SleeperTradedPick[]> {
+  try {
+    return await getJson<SleeperTradedPick[]>(`${SLEEPER}/league/${leagueId}/traded_picks`);
+  } catch { return []; }
+}
+
 // Sleeper stores points as an integer part + hundredths (1802 + 8 → 1802.08).
 const toPoints = (whole?: number, dec?: number) => (whole ?? 0) + (dec ?? 0) / 100;
 
@@ -193,6 +208,7 @@ export async function importLeague(leagueId: string): Promise<LeagueImport> {
       rosterId: r.roster_id,
       teamName: u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`,
       owner: u?.display_name || '—',
+      ownerId: r.owner_id ?? null,
       wins: r.settings?.wins ?? 0,
       losses: r.settings?.losses ?? 0,
       ties: r.settings?.ties ?? 0,
