@@ -571,26 +571,37 @@ tr:hover td {
 /* Responsive */
 @media (max-width: 768px) {
   .header {
-    padding: 0 12px;
+    padding: 6px 12px;
     flex-wrap: wrap;
     height: auto;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    gap: 4px;
+    row-gap: 6px;
+    column-gap: 4px;
+    align-items: center;
   }
 
   .header-logo {
+    order: 1;
+    flex: 1 1 auto;
+    width: auto;
     margin-right: 0;
-    width: 100%;
+    align-items: flex-start;
     font-size: 18px;
   }
 
+  /* Keep the season/settings controls on the top row, pushed to the right. */
+  .header > .control-group {
+    order: 2;
+  }
+
   .nav-tabs {
+    order: 3;
     width: 100%;
+    flex-wrap: wrap;
+    row-gap: 2px;
   }
 
   .nav-tab {
-    padding: 8px 12px;
+    padding: 6px 10px;
     font-size: 13px;
   }
 
