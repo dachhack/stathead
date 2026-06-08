@@ -25,88 +25,178 @@ export interface TradeSuggestion {
   teamA: { rosterId: number; teamName: string; gives: TradeAsset[]; receives: TradeAsset[]; netValue: number };
   teamB: { rosterId: number; teamName: string; gives: TradeAsset[]; receives: TradeAsset[]; netValue: number };
   fairness: number;
+  score: number;
   rationale: string;
 }
 
 const PICK_VALUES: Record<number, number> = { 1: 7000, 2: 4500, 3: 2500, 4: 1500 };
+const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 
 function normalizeForMatch(name: string): string {
   return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
 }
 
-function getTeamAssets(
+interface TeamProfile {
+  team: LeagueTeam;
+  goal: TradeGoal;
+  assets: TradeAsset[];
+  posValues: Record<string, number>;
+  posCount: Record<string, number>;
+  totalValue: number;
+  weakPositions: string[];
+  strongPositions: string[];
+}
+
+function buildTeamProfile(
   team: LeagueTeam,
   ktcByName: Map<string, KTCPlayer>,
   picks: DraftPick[],
-  projBySleeperIdMap?: Map<string, number>,
-): TradeAsset[] {
+  goal: TradeGoal,
+  projMap?: Map<string, number>,
+): TeamProfile {
   const assets: TradeAsset[] = [];
-  const allPlayers = [...team.starters, ...team.bench].filter(
-    (p) => p.name !== 'Empty' && p.position && p.position !== 'DEF',
-  );
+  const posValues: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+  const posCount: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
 
-  for (const p of allPlayers) {
+  for (const p of [...team.starters, ...team.bench]) {
+    if (p.name === 'Empty' || !p.position || p.position === 'DEF') continue;
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (k && k.value > 0) {
-      assets.push({
-        type: 'player',
-        name: p.name,
-        value: k.value,
-        age: k.age,
-        position: p.position,
-        sleeperId: p.id,
-        projPts: projBySleeperIdMap?.get(p.id),
-      });
+    if (!k || k.value <= 0) continue;
+    assets.push({
+      type: 'player',
+      name: p.name,
+      value: k.value,
+      age: k.age,
+      position: p.position,
+      sleeperId: p.id,
+      projPts: projMap?.get(p.id),
+    });
+    if (posValues[p.position] !== undefined) {
+      posValues[p.position] += k.value;
+      posCount[p.position]++;
     }
   }
 
   for (const pick of picks) {
-    const val = PICK_VALUES[pick.round] ?? 1000;
     assets.push({
       type: 'pick',
       name: `${pick.season} Rd ${pick.round}`,
-      value: val,
+      value: PICK_VALUES[pick.round] ?? 1000,
       pick,
     });
   }
 
   assets.sort((a, b) => b.value - a.value);
-  return assets;
+  const totalValue = Object.values(posValues).reduce((a, b) => a + b, 0);
+
+  // Determine weak/strong positions relative to team average
+  const avgPosValue = totalValue / 4;
+  const weakPositions: string[] = [];
+  const strongPositions: string[] = [];
+  for (const pos of POSITIONS) {
+    if (posValues[pos] < avgPosValue * 0.6) weakPositions.push(pos);
+    else if (posValues[pos] > avgPosValue * 1.4) strongPositions.push(pos);
+  }
+
+  return { team, goal, assets, posValues, posCount, totalValue, weakPositions, strongPositions };
 }
 
-function isTradableForGoal(asset: TradeAsset, goal: TradeGoal, teamAssets: TradeAsset[]): boolean {
-  if (asset.type === 'pick') {
-    // Rebuilders keep picks; win-now teams trade them away
-    return goal === 'win-now' || goal === 'balanced';
-  }
+function isTradableAsset(asset: TradeAsset, profile: TeamProfile): boolean {
+  if (asset.type === 'pick') return profile.goal === 'win-now' || profile.goal === 'balanced';
 
-  // Never trade your top 3 most valuable players if win-now
-  if (goal === 'win-now') {
-    const playerAssets = teamAssets.filter((a) => a.type === 'player');
-    const topN = playerAssets.slice(0, 3);
-    if (topN.find((a) => a.name === asset.name)) return false;
-  }
+  // Never trade top 2 most valuable players
+  const playerAssets = profile.assets.filter((a) => a.type === 'player');
+  if (playerAssets.indexOf(asset) < 2) return false;
+
+  // Don't trade from weak positions
+  if (asset.position && profile.weakPositions.includes(asset.position)) return false;
+
+  // Don't trade if it would leave a position with only 1 player
+  if (asset.position && (profile.posCount[asset.position] ?? 0) <= 2) return false;
 
   if (!asset.age) return false;
 
-  if (goal === 'win-now') {
-    // Win-now trades away young unproven guys (age ≤ 23) or aging depth (low-value aging)
-    return asset.age <= 23 || (asset.age >= 30 && asset.value < 3000);
+  if (profile.goal === 'win-now') {
+    return asset.age <= 23 || (asset.age >= 29 && asset.value < 4000);
   }
-  if (goal === 'rebuild') {
-    // Rebuild trades away prime/aging players for youth and picks
-    return asset.age >= 27;
+  if (profile.goal === 'rebuild') {
+    return asset.age >= 26;
   }
-  // Balanced: trade mid-value players
-  return asset.value < 5000;
+  return asset.value < 6000;
 }
 
-function isDesirableForGoal(asset: TradeAsset, goal: TradeGoal): boolean {
-  if (asset.type === 'pick') return goal === 'rebuild';
-  if (!asset.age) return true;
-  if (goal === 'win-now') return asset.age >= 24 && asset.age <= 30;
-  if (goal === 'rebuild') return asset.age <= 25;
+function wouldLeavePositionWeak(
+  profile: TeamProfile,
+  giving: TradeAsset[],
+  receiving: TradeAsset[],
+): boolean {
+  const afterPosValues = { ...profile.posValues };
+  const afterPosCount = { ...profile.posCount };
+
+  for (const a of giving) {
+    if (a.position && afterPosValues[a.position] !== undefined) {
+      afterPosValues[a.position] -= a.value;
+      afterPosCount[a.position]--;
+    }
+  }
+  for (const a of receiving) {
+    if (a.position && afterPosValues[a.position] !== undefined) {
+      afterPosValues[a.position] += a.value;
+      afterPosCount[a.position]++;
+    }
+  }
+
+  for (const pos of POSITIONS) {
+    if (afterPosCount[pos] < 1) return true;
+    if (afterPosValues[pos] < 1000 && profile.posValues[pos] >= 2000) return true;
+  }
+  return false;
+}
+
+function meetsGoal(receiving: TradeAsset[], goal: TradeGoal): boolean {
+  const players = receiving.filter((a) => a.type === 'player');
+  if (!players.length) return goal === 'rebuild';
+
+  if (goal === 'win-now') {
+    return players.some((p) => (p.age ?? 0) >= 24 && (p.age ?? 99) <= 30);
+  }
+  if (goal === 'rebuild') {
+    return players.some((p) => (p.age ?? 99) <= 25) || receiving.some((a) => a.type === 'pick');
+  }
   return true;
+}
+
+function strengthensWeakness(receiving: TradeAsset[], weakPositions: string[]): boolean {
+  if (!weakPositions.length) return true;
+  return receiving.some((a) => a.position && weakPositions.includes(a.position));
+}
+
+function scoreTrade(
+  profileA: TeamProfile,
+  givesA: TradeAsset[],
+  receivesA: TradeAsset[],
+  profileB: TeamProfile,
+  givesB: TradeAsset[],
+  receivesB: TradeAsset[],
+): number {
+  let score = 50;
+
+  // Fairness (value balance)
+  const totalGiveA = givesA.reduce((s, a) => s + a.value, 0);
+  const totalGiveB = givesB.reduce((s, a) => s + a.value, 0);
+  const avg = (totalGiveA + totalGiveB) / 2 || 1;
+  const imbalance = Math.abs(totalGiveA - totalGiveB) / avg;
+  score += Math.max(0, 20 - imbalance * 40);
+
+  // Goal alignment
+  if (meetsGoal(receivesA, profileA.goal)) score += 10;
+  if (meetsGoal(receivesB, profileB.goal)) score += 10;
+
+  // Strengthens weak positions
+  if (strengthensWeakness(receivesA, profileA.weakPositions)) score += 5;
+  if (strengthensWeakness(receivesB, profileB.weakPositions)) score += 5;
+
+  return Math.min(100, Math.max(0, Math.round(score)));
 }
 
 export function buildPickOwnership(
@@ -140,89 +230,146 @@ export function buildPickOwnership(
   return map;
 }
 
+// Seeded PRNG for shuffling — ensures different results each call
+let rngState = Date.now();
+function nextRng(): number {
+  rngState = (rngState * 1664525 + 1013904223) & 0x7fffffff;
+  return rngState / 0x7fffffff;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(nextRng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export function generateTradeSuggestions(
   teams: LeagueTeam[],
   ktc: KTCPlayer[],
   goals: Map<number, TradeGoal>,
   pickOwnership: Map<number, DraftPick[]>,
   myRosterId?: number,
-  projBySleeperIdMap?: Map<string, number>,
-  maxSuggestions = 8,
+  projMap?: Map<string, number>,
+  maxSuggestions = 6,
 ): TradeSuggestion[] {
+  rngState = Date.now();
+
   const ktcByName = new Map<string, KTCPlayer>();
   for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
 
-  const teamAssets = new Map<number, TradeAsset[]>();
+  const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
-    teamAssets.set(t.rosterId, getTeamAssets(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], projBySleeperIdMap));
+    const goal = goals.get(t.rosterId) ?? 'balanced';
+    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap));
   }
 
-  const suggestions: TradeSuggestion[] = [];
-  const myTeam = myRosterId ? teams.find((t) => t.rosterId === myRosterId) : undefined;
-  if (!myTeam) return [];
+  const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;
+  if (!myProfile) return [];
 
-  const goalA = goals.get(myTeam.rosterId) ?? 'balanced';
-  const assetsA = teamAssets.get(myTeam.rosterId) ?? [];
-  const tradableA = assetsA.filter((a) => isTradableForGoal(a, goalA, assetsA) && a.value >= 1500).slice(0, 8);
+  const tradableA = shuffle(myProfile.assets.filter((a) => isTradableAsset(a, myProfile)));
+  const candidates: TradeSuggestion[] = [];
 
   for (const teamB of teams) {
-    if (teamB.rosterId === myTeam.rosterId) continue;
-    const goalB = goals.get(teamB.rosterId) ?? 'balanced';
-    const assetsB = teamAssets.get(teamB.rosterId) ?? [];
-    const tradableB = assetsB.filter((a) => isTradableForGoal(a, goalB, assetsB) && a.value >= 1500).slice(0, 8);
+    if (teamB.rosterId === myProfile.team.rosterId) continue;
+    const profileB = profiles.get(teamB.rosterId)!;
+    const tradableB = shuffle(profileB.assets.filter((a) => isTradableAsset(a, profileB)));
 
-    for (const giveA of tradableA) {
-      for (const giveB of tradableB) {
-        const rawDiff = Math.abs(giveA.value - giveB.value);
-        const avgValue = (giveA.value + giveB.value) / 2;
-        if (rawDiff > avgValue * 0.35) continue;
+    // Try 2-for-2 and 2-for-3 / 3-for-2 combinations
+    for (let sizeA = 2; sizeA <= 3 && sizeA <= tradableA.length; sizeA++) {
+      for (let sizeB = 2; sizeB <= 3 && sizeB <= tradableB.length; sizeB++) {
+        // Try multiple combos from shuffled pools
+        const combosToTry = Math.min(8, Math.max(3, tradableA.length));
+        for (let attempt = 0; attempt < combosToTry; attempt++) {
+          const startA = (attempt * sizeA) % Math.max(1, tradableA.length - sizeA + 1);
+          const givesA = tradableA.slice(startA, startA + sizeA);
+          if (givesA.length < sizeA) continue;
 
-        // Both sides should want what they're getting
-        const aWantsB = isDesirableForGoal(giveB, goalA);
-        const bWantsA = isDesirableForGoal(giveA, goalB);
-        if (!aWantsB && !bWantsA) continue;
+          const totalGiveA = givesA.reduce((s, a) => s + a.value, 0);
 
-        const fairness = Math.max(0, 100 - (rawDiff / avgValue) * 100);
+          // Find matching package from B within 30% value
+          let bestGivesB: TradeAsset[] | null = null;
+          let bestDiff = Infinity;
 
-        let rationale = '';
-        if (giveA.type === 'pick' && giveB.type === 'player') {
-          rationale = `Trade future pick for immediate production`;
-        } else if (giveA.type === 'player' && giveB.type === 'pick') {
-          rationale = `Sell aging asset for rebuild capital`;
-        } else if (goalA === 'win-now' && (giveB.age ?? 0) >= 24) {
-          rationale = `Upgrade with proven talent for win-now push`;
-        } else if (goalA === 'rebuild' && (giveB.age ?? 99) <= 25) {
-          rationale = `Acquire youth for long-term rebuild`;
-        } else {
-          rationale = `Value swap — ${giveA.position ?? 'asset'} for ${giveB.position ?? 'asset'}`;
+          for (let bStart = 0; bStart <= tradableB.length - sizeB; bStart++) {
+            const tryB = tradableB.slice(bStart, bStart + sizeB);
+            const totalB = tryB.reduce((s, a) => s + a.value, 0);
+            const diff = Math.abs(totalGiveA - totalB);
+            const avg = (totalGiveA + totalB) / 2;
+            if (diff / avg > 0.30) continue;
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestGivesB = tryB;
+            }
+          }
+
+          if (!bestGivesB) continue;
+
+          // Validate: doesn't leave either team with a gutted position
+          if (wouldLeavePositionWeak(myProfile, givesA, bestGivesB)) continue;
+          if (wouldLeavePositionWeak(profileB, bestGivesB, givesA)) continue;
+
+          // Validate: meets both teams' goals
+          if (!meetsGoal(bestGivesB, myProfile.goal) && !meetsGoal(givesA, profileB.goal)) continue;
+
+          const totalGiveB = bestGivesB.reduce((s, a) => s + a.value, 0);
+          const avgVal = (totalGiveA + totalGiveB) / 2 || 1;
+          const fairness = Math.max(0, 100 - (Math.abs(totalGiveA - totalGiveB) / avgVal) * 100);
+
+          const tradeScore = scoreTrade(myProfile, givesA, bestGivesB, profileB, bestGivesB, givesA);
+
+          // Build rationale
+          const parts: string[] = [];
+          const aWeakFixed = bestGivesB.filter((a) => a.position && myProfile.weakPositions.includes(a.position));
+          const bWeakFixed = givesA.filter((a) => a.position && profileB.weakPositions.includes(a.position));
+          if (aWeakFixed.length) parts.push(`Strengthens your ${aWeakFixed.map((a) => a.position).join('/')}`);
+          if (bWeakFixed.length) parts.push(`Helps ${teamB.teamName} at ${bWeakFixed.map((a) => a.position).join('/')}`);
+          if (myProfile.goal === 'win-now' && bestGivesB.some((a) => (a.age ?? 0) >= 24))
+            parts.push('Adds proven production');
+          if (myProfile.goal === 'rebuild' && bestGivesB.some((a) => (a.age ?? 99) <= 25))
+            parts.push('Acquires youth');
+          if (!parts.length) parts.push('Balanced value swap');
+
+          candidates.push({
+            teamA: {
+              rosterId: myProfile.team.rosterId,
+              teamName: myProfile.team.teamName,
+              gives: givesA,
+              receives: bestGivesB,
+              netValue: totalGiveB - totalGiveA,
+            },
+            teamB: {
+              rosterId: teamB.rosterId,
+              teamName: teamB.teamName,
+              gives: bestGivesB,
+              receives: givesA,
+              netValue: totalGiveA - totalGiveB,
+            },
+            fairness,
+            score: tradeScore,
+            rationale: parts.join(' · '),
+          });
         }
-
-        suggestions.push({
-          teamA: { rosterId: myTeam.rosterId, teamName: myTeam.teamName, gives: [giveA], receives: [giveB], netValue: giveB.value - giveA.value },
-          teamB: { rosterId: teamB.rosterId, teamName: teamB.teamName, gives: [giveB], receives: [giveA], netValue: giveA.value - giveB.value },
-          fairness,
-          rationale,
-        });
       }
     }
   }
 
-  // Sort by: desirability for my goal first, then fairness
-  suggestions.sort((a, b) => {
-    const scoreA = (isDesirableForGoal(a.teamA.receives[0], goalA) ? 20 : 0) + a.fairness;
-    const scoreB = (isDesirableForGoal(b.teamA.receives[0], goalA) ? 20 : 0) + b.fairness;
-    return scoreB - scoreA;
-  });
+  // Sort by score then fairness
+  candidates.sort((a, b) => (b.score + b.fairness) - (a.score + a.fairness));
 
-  const seen = new Set<string>();
+  // Dedupe: don't repeat the same players in multiple suggestions
+  const usedPlayers = new Set<string>();
   const final: TradeSuggestion[] = [];
-  for (const s of suggestions) {
-    const key = [
-      ...s.teamA.gives.map((g) => g.name),
-      ...s.teamB.gives.map((g) => g.name),
-    ].sort().join('|');
-    if (seen.has(key)) continue;
-    seen.add(key);
+  for (const s of candidates) {
+    const playerNames = [
+      ...s.teamA.gives.map((a) => a.name),
+      ...s.teamB.gives.map((a) => a.name),
+    ];
+    const overlap = playerNames.filter((n) => usedPlayers.has(n)).length;
+    if (overlap > 0) continue;
+    for (const n of playerNames) usedPlayers.add(n);
     final.push(s);
     if (final.length >= maxSuggestions) break;
   }
