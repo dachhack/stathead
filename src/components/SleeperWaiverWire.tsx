@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
-import { fetchSleeperTrending, fetchKTCRankings } from '../data';
+import { fetchSleeperTrending, fetchFantasyCalcRankings } from '../data';
 import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -42,13 +42,14 @@ export function SleeperWaiverWire() {
   const [posFilter, setPosFilter] = useState<string>('ALL');
   const [sortMode, setSortMode] = useState<SortMode>('proj');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [sf, setSf] = useState(false); // superflex dynasty values
   const [includedIds, setIncludedIds] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadClayProjections().then(setClayPlayers);
     fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
-    fetchKTCRankings('1qb').then(setKtc).catch(() => {});
+    fetchFantasyCalcRankings('1qb').then(setKtc).catch(() => {});
   }, []);
 
   const ktcByName = useMemo(() => {
@@ -122,12 +123,12 @@ export function SleeperWaiverWire() {
     const out: Candidate[] = [];
     for (const c of byId.values()) {
       const k = ktcByName.get(norm(c.name));
-      if (k) { c.ktcValue = k.value; c.ktcTrend = k.trend30Day ?? null; }
+      if (k) { c.ktcValue = sf ? k.superflexValue : k.value; c.ktcTrend = k.trend30Day ?? null; }
       c.availableIn = effectiveLeagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
       if (c.availableIn.length > 0) out.push(c);
     }
     return out;
-  }, [effectiveLeagues, clayPlayers, trending, ktcByName]);
+  }, [effectiveLeagues, clayPlayers, trending, ktcByName, sf]);
 
   const rows = useMemo(() => {
     let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
@@ -210,6 +211,9 @@ export function SleeperWaiverWire() {
             {([['all', 'All'], ['dynasty', 'Dynasty'], ['redraft', 'Redraft']] as const).map(([v, label]) => (
               <button key={v} className={`format-tab ${typeFilter === v ? 'active' : ''}`} onClick={() => setTypeFilter(v)} style={{ padding: '3px 10px', fontSize: 11 }}>{label}</button>
             ))}
+            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Value:</span>
+            <button className={`format-tab ${!sf ? 'active' : ''}`} onClick={() => setSf(false)} style={{ padding: '3px 10px', fontSize: 11 }}>1QB</button>
+            <button className={`format-tab ${sf ? 'active' : ''}`} onClick={() => setSf(true)} style={{ padding: '3px 10px', fontSize: 11 }}>Superflex</button>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 8px' }}>
             {leagues.map((la) => {
@@ -264,7 +268,7 @@ export function SleeperWaiverWire() {
                   <tr>
                     <th>#</th><th>Player</th><th>Pos</th><th>Team</th>
                     <th title="Consensus PPR projection (full season)">Proj PPR</th>
-                    <th title="Dynasty market value (KeepTradeCut, 1QB)">Dyn Value</th>
+                    <th title={`Dynasty market value (FantasyCalc, ${sf ? 'Superflex' : '1QB'})`}>Dyn Value{sf ? ' (SF)' : ''}</th>
                     <th title="30-day change in dynasty value">Val Trend</th>
                     <th title="Sleeper adds, last 24h">Adds</th>
                     <th title="Leagues where this player is unrostered">Available In</th>
