@@ -15,7 +15,7 @@ export interface SleeperLeagueInfo {
   total_rosters: number;
   roster_positions: string[];
   scoring_settings: Record<string, number>;
-  settings?: { type?: number };
+  settings?: { type?: number; best_ball?: number };
 }
 
 // Sleeper encodes league format in settings.type: 0 = redraft, 1 = keeper,
@@ -24,6 +24,51 @@ export interface SleeperLeagueInfo {
 // projected score for the upcoming season.
 export function isDynastyLeague(league: { settings?: { type?: number } } | null | undefined): boolean {
   return league?.settings?.type === 2;
+}
+
+export function leagueTypeName(league: { settings?: { type?: number } } | null | undefined): 'Dynasty' | 'Keeper' | 'Redraft' {
+  const t = league?.settings?.type;
+  if (t === 2) return 'Dynasty';
+  if (t === 1) return 'Keeper';
+  return 'Redraft';
+}
+
+export function isBestBall(league: { settings?: { best_ball?: number } } | null | undefined): boolean {
+  return league?.settings?.best_ball === 1;
+}
+
+// IDP roster slots Sleeper uses. Presence of any means the league starts
+// defensive players individually (not just team D/ST).
+const IDP_SLOTS = new Set(['DL', 'LB', 'DB', 'IDP_FLEX', 'DE', 'DT', 'CB', 'S', 'SS', 'FS', 'IDP']);
+export function hasIDP(rosterPositions: string[] | undefined | null): boolean {
+  return (rosterPositions ?? []).some((p) => IDP_SLOTS.has(p));
+}
+
+// QB format from the roster slots: Superflex, 2QB, or single-QB.
+export function qbFormatLabel(rosterPositions: string[] | undefined | null): 'Superflex' | '2QB' | '1QB' {
+  const positions = rosterPositions ?? [];
+  if (positions.includes('SUPER_FLEX')) return 'Superflex';
+  if (positions.filter((p) => p === 'QB').length >= 2) return '2QB';
+  return '1QB';
+}
+
+export interface LeagueFormatInfo {
+  type: 'Dynasty' | 'Keeper' | 'Redraft';
+  qb: 'Superflex' | '2QB' | '1QB';
+  bestBall: boolean;
+  idp: boolean;
+}
+
+// One-stop format summary for league-listing rows.
+export function leagueFormatInfo(
+  league: { settings?: { type?: number; best_ball?: number }; roster_positions?: string[] } | null | undefined,
+): LeagueFormatInfo {
+  return {
+    type: leagueTypeName(league),
+    qb: qbFormatLabel(league?.roster_positions),
+    bestBall: isBestBall(league),
+    idp: hasIDP(league?.roster_positions),
+  };
 }
 
 interface RawRoster {

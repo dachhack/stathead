@@ -113,6 +113,9 @@ function buildTeamProfile(
   projMap?: Map<string, number>,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
+  // Redraft leagues value, compare, and rank everything on projected season
+  // points instead of dynasty (KTC) value.
+  useProjectedValue = false,
 ): TeamProfile {
   const assets: TradeAsset[] = [];
   const posValues: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
@@ -121,12 +124,16 @@ function buildTeamProfile(
   for (const p of [...team.starters, ...team.bench]) {
     if (p.name === 'Empty' || !p.position || p.position === 'DEF') continue;
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (!k || k.value <= 0) continue;
+    const proj = projMap?.get(p.id) ?? 0;
+    // In redraft mode the trade currency is projected points; include any player
+    // with a projection. In dynasty mode it's KTC value.
+    const value = useProjectedValue ? proj : (k?.value ?? 0);
+    if (value <= 0) continue;
     assets.push({
       type: 'player',
       name: p.name,
-      value: k.value,
-      age: k.age,
+      value,
+      age: k?.age,
       position: p.position,
       sleeperId: p.id,
       projPts: projMap?.get(p.id),
@@ -135,7 +142,7 @@ function buildTeamProfile(
       lastSeasonPosRank: lastSeasonMap?.get(p.id)?.posRank,
     });
     if (posValues[p.position] !== undefined) {
-      posValues[p.position] += k.value;
+      posValues[p.position] += value;
       posCount[p.position]++;
     }
   }
@@ -164,7 +171,7 @@ function buildTeamProfile(
   return { team, goal, assets, posValues, posCount, totalValue, weakPositions, strongPositions };
 }
 
-function isTradableAsset(asset: TradeAsset, profile: TeamProfile): boolean {
+function isTradableAsset(asset: TradeAsset, profile: TeamProfile, useProjectedValue = false): boolean {
   if (asset.type === 'pick') return profile.goal === 'win-now' || profile.goal === 'balanced';
 
   // Never trade top 2 most valuable players
@@ -176,6 +183,9 @@ function isTradableAsset(asset: TradeAsset, profile: TeamProfile): boolean {
 
   // Don't trade if it would leave a position with only 1 player
   if (asset.position && (profile.posCount[asset.position] ?? 0) <= 2) return false;
+
+  // Redraft: no age/dynasty thresholds — any non-core, non-weak player is movable.
+  if (useProjectedValue) return true;
 
   if (!asset.age) return false;
 
@@ -351,6 +361,8 @@ export function generateTradeSuggestions(
   maxSuggestions = 6,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
+  // Redraft: value, compare, and rank on projected points instead of KTC value.
+  useProjectedValue = false,
 ): TradeSuggestion[] {
   rngState = Date.now();
 
@@ -360,19 +372,19 @@ export function generateTradeSuggestions(
   const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
     const goal = goals.get(t.rosterId) ?? 'balanced';
-    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap));
+    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue));
   }
 
   const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;
   if (!myProfile) return [];
 
-  const tradableA = shuffle(myProfile.assets.filter((a) => isTradableAsset(a, myProfile)));
+  const tradableA = shuffle(myProfile.assets.filter((a) => isTradableAsset(a, myProfile, useProjectedValue)));
   const candidates: TradeSuggestion[] = [];
 
   for (const teamB of teams) {
     if (teamB.rosterId === myProfile.team.rosterId) continue;
     const profileB = profiles.get(teamB.rosterId)!;
-    const tradableB = shuffle(profileB.assets.filter((a) => isTradableAsset(a, profileB)));
+    const tradableB = shuffle(profileB.assets.filter((a) => isTradableAsset(a, profileB, useProjectedValue)));
 
     // Try 2-for-2 and 2-for-3 / 3-for-2 combinations
     for (let sizeA = 2; sizeA <= 3 && sizeA <= tradableA.length; sizeA++) {
@@ -427,7 +439,7 @@ export function generateTradeSuggestions(
             parts.push('Adds proven production');
           if (myProfile.goal === 'rebuild' && bestGivesB.some((a) => (a.age ?? 99) <= 25))
             parts.push('Acquires youth');
-          if (!parts.length) parts.push('Balanced value swap');
+          if (!parts.length) parts.push(useProjectedValue ? 'Even projected-points swap' : 'Balanced value swap');
 
           candidates.push({
             teamA: {

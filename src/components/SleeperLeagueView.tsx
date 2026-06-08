@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
+import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
+import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchKTCRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
@@ -674,7 +675,12 @@ function scoreColor(score: number): string {
   return '#ef4444';
 }
 
-function TradeAssetCard({ a }: { a: TradeAsset }) {
+// Dynasty assets are priced in KTC value (thousands); redraft assets in
+// projected season points.
+const fmtAssetValue = (v: number, isDynasty: boolean) =>
+  isDynasty ? `${(v / 1000).toFixed(1)}k` : `${v.toFixed(0)} pts`;
+
+function TradeAssetCard({ a, isDynasty }: { a: TradeAsset; isDynasty: boolean }) {
   if (a.type === 'pick') {
     return (
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '3px 0' }}>
@@ -690,7 +696,7 @@ function TradeAssetCard({ a }: { a: TradeAsset }) {
         <span style={{ fontWeight: 500 }}>{a.name}</span>
         {a.position && <span className={`pos-badge pos-${a.position}`} style={{ fontSize: 9, padding: '0 4px' }}>{a.position}</span>}
         {a.age != null && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>Age {a.age}</span>}
-        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{(a.value / 1000).toFixed(1)}k</span>
+        {(isDynasty || !a.projStats) && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{fmtAssetValue(a.value, isDynasty)}</span>}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 10, color: 'var(--text-muted)' }}>
         {a.projStats && (
@@ -741,7 +747,7 @@ function ScoreBreakdownBar({ breakdown, teamAName, teamBName }: { breakdown: Tra
   );
 }
 
-function TradeCard({ s }: { s: TradeSuggestion }) {
+function TradeCard({ s, isDynasty }: { s: TradeSuggestion; isDynasty: boolean }) {
   const result = evaluateTrade(s.teamA.gives, s.teamA.receives);
 
   return (
@@ -762,19 +768,19 @@ function TradeCard({ s }: { s: TradeSuggestion }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11 }}>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You give:</div>
-          {s.teamA.gives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
+          {s.teamA.gives.map((a) => <TradeAssetCard key={a.name} a={a} isDynasty={isDynasty} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-            Total: {(result.givesTotal / 1000).toFixed(1)}k
+            Total: {fmtAssetValue(result.givesTotal, isDynasty)}
           </div>
         </div>
         <div>
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 3 }}>You get:</div>
-          {s.teamA.receives.map((a) => <TradeAssetCard key={a.name} a={a} />)}
+          {s.teamA.receives.map((a) => <TradeAssetCard key={a.name} a={a} isDynasty={isDynasty} />)}
           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)' }}>
-            Total: {(result.receivesTotal / 1000).toFixed(1)}k
+            Total: {fmtAssetValue(result.receivesTotal, isDynasty)}
             {result.net !== 0 && (
               <span style={{ color: result.net >= 0 ? '#22c55e' : '#ef4444', marginLeft: 6, fontWeight: 600 }}>
-                ({result.net >= 0 ? '+' : ''}{(result.net / 1000).toFixed(1)}k)
+                ({result.net >= 0 ? '+' : '−'}{fmtAssetValue(Math.abs(result.net), isDynasty)})
               </span>
             )}
           </div>
@@ -811,7 +817,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
   const doGenerate = async () => {
     setLoading(true);
     try {
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap);
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty);
       setSuggestions(results);
       setGenerated(true);
     } catch {
@@ -852,7 +858,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             {isDynasty
               ? 'Trades consider dynasty value, age, positional needs, and 2027–2028 draft picks (slotted by projected finish). Your top assets are protected.'
-              : 'Trades consider player value, projected points, and positional needs. Your top assets are protected.'}
+              : 'Trades consider projected season points and positional needs. Your top assets are protected.'}
           </p>
 
           {!isDynasty && (
@@ -862,8 +868,8 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
               borderRadius: 6, color: 'var(--text-secondary)',
             }}>
               <b style={{ color: '#f59e0b' }}>Redraft league.</b> There's no future beyond this season, so the win-now/rebuild
-              framework and rookie-pick assets don't apply. The dynasty market values below are only a rough talent proxy —
-              judge each deal on this season's <b>projected points</b> (shown on every player), not long-term value.
+              framework and rookie-pick assets don't apply. Trades are valued, matched, and scored on this season's
+              <b> projected points</b> (shown on every player) rather than long-term dynasty value.
             </div>
           )}
 
@@ -893,13 +899,13 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
 
           {suggestions.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-              {suggestions.map((s, i) => <TradeCard key={`${i}-${s.teamB.rosterId}`} s={s} />)}
+              {suggestions.map((s, i) => <TradeCard key={`${i}-${s.teamB.rosterId}`} s={s} isDynasty={isDynasty} />)}
             </div>
           )}
 
           {!loading && generated && suggestions.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
-              No viable 2-3 player trades found. Try changing your goal or selecting a different team.
+              No viable 2-3 player trades found. Try {isDynasty ? 'changing your goal or ' : ''}selecting a different team.
             </p>
           )}
 
@@ -1224,11 +1230,12 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
           <div className="sched-section-title">My Leagues ({userLeagues.length})</div>
           <div className="table-container" style={{ maxHeight: 260 }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>League</th><th>Season</th><th>Teams</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>League</th><th>Format</th><th>Season</th><th>Teams</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {userLeagues.map((l) => (
                   <tr key={l.league_id} style={{ cursor: 'pointer', background: l.league_id === leagueId ? 'var(--bg-tertiary)' : undefined }} onClick={() => selectLeague(l.league_id)}>
                     <td><strong>{l.name}</strong></td>
+                    <td><LeagueFormatBadges info={leagueFormatInfo(l)} /></td>
                     <td>{l.season}</td>
                     <td>{l.total_rosters}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{l.status}</td>
@@ -1271,7 +1278,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
       {!loading && data && (
         <>
           <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 12px' }}>
-            <b style={{ color: 'var(--text-primary)' }}>{data.league.name}</b> · {data.league.season} · {data.league.status} · {data.league.total_rosters} teams · {isDynasty ? 'Dynasty' : 'Redraft'}
+            <b style={{ color: 'var(--text-primary)' }}>{data.league.name}</b> · {data.league.season} · {data.league.status} · {data.league.total_rosters} teams
+            {' '}<LeagueFormatBadges info={leagueFormatInfo(data.league)} />
             <br />Roster: {rosterFormat(data.league.roster_positions)}
           </p>
 

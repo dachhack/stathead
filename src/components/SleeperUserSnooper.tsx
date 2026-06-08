@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
+import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, type ClayPlayer } from '../lib/waiverUtils';
 
 const LS_KEY = 'sleeper_snoop_user';
@@ -580,7 +581,7 @@ export function SleeperUserSnooper() {
           </p>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>League</th><th>Objective</th><th>Type</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
+              <thead><tr><th>League</th><th>Objective</th><th>Format</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
               <tbody>
                 {result.rosters.sort((a, b) => b.pointsFor - a.pointsFor).map((r) => {
                   const lg = result.leagues.find((l) => l.league_id === r.leagueId);
@@ -603,14 +604,14 @@ export function SleeperUserSnooper() {
                       </td>
                       <td>
                         {!r.isDynasty ? (
-                          <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Redraft</span>
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
                         ) : rosterWindows.get(r.leagueId) ? (
                           <span style={{ color: windowColor(rosterWindows.get(r.leagueId)!), fontWeight: 600, fontSize: 11 }}>
                             {rosterWindows.get(r.leagueId)}
                           </span>
                         ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </td>
-                      <td>{leagueTypeLabel(r.rosterPositions)}</td>
+                      <td>{lg ? <LeagueFormatBadges info={leagueFormatInfo(lg)} /> : leagueTypeLabel(r.rosterPositions)}</td>
                       <td>{r.totalRosters}</td>
                       <td>{r.wins}-{r.losses}</td>
                       <td>{r.pointsFor.toFixed(1)}</td>
