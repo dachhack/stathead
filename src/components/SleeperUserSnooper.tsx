@@ -415,7 +415,7 @@ function StackedYearChart({ title, subtitle, data, series }: {
               <LabelList
                 dataKey={s.key}
                 position="center"
-                formatter={(v: number | string) => (Number(v) ? v : '')}
+                formatter={(v) => (Number(v) ? v : '')}
                 style={{ fill: '#fff', fontSize: 10, fontWeight: 600 }}
               />
             </Bar>
