@@ -30,6 +30,76 @@ export function computePpr(p: ClayPlayer): number {
   );
 }
 
+export function computeCustomScore(p: ClayPlayer, scoring: Record<string, number>): number {
+  return (
+    p.pass_yds * (scoring['pass_yd'] ?? 0.04) +
+    p.pass_td * (scoring['pass_td'] ?? 4) +
+    p.rush_yds * (scoring['rush_yd'] ?? 0.1) +
+    p.rush_td * (scoring['rush_td'] ?? 6) +
+    p.rec_yds * (scoring['rec_yd'] ?? 0.1) +
+    p.rec_td * (scoring['rec_td'] ?? 6) +
+    p.rec * (scoring['rec'] ?? 1)
+  );
+}
+
+export interface OptimalLineup {
+  starters: { player: ClayPlayer; slot: string; pts: number }[];
+  bench: { player: ClayPlayer; pts: number }[];
+  totalStarterPts: number;
+}
+
+const FLEX_ELIGIBLE = new Set(['RB', 'WR', 'TE']);
+const SUPER_FLEX_ELIGIBLE = new Set(['QB', 'RB', 'WR', 'TE']);
+
+export function computeOptimalLineup(
+  allPlayers: ClayPlayer[],
+  rosterPositions: string[],
+  scoring: Record<string, number>,
+): OptimalLineup {
+  const scored = allPlayers.map((p) => ({ player: p, pts: computeCustomScore(p, scoring) }));
+  scored.sort((a, b) => b.pts - a.pts);
+
+  const slots = rosterPositions.filter((s) => s !== 'BN');
+  const used = new Set<string>();
+  const starters: { player: ClayPlayer; slot: string; pts: number }[] = [];
+
+  // Fill fixed-position slots first (QB, RB, WR, TE)
+  for (const slot of slots) {
+    if (slot === 'FLEX' || slot === 'SUPER_FLEX' || slot === 'REC_FLEX') continue;
+    const best = scored.find((s) => !used.has(s.player.player_key) && s.player.position === slot);
+    if (best) {
+      used.add(best.player.player_key);
+      starters.push({ player: best.player, slot, pts: best.pts });
+    }
+  }
+
+  // Fill FLEX slots
+  for (const slot of slots) {
+    if (slot !== 'FLEX' && slot !== 'REC_FLEX') continue;
+    const eligible = slot === 'REC_FLEX' ? new Set(['WR', 'TE']) : FLEX_ELIGIBLE;
+    const best = scored.find((s) => !used.has(s.player.player_key) && eligible.has(s.player.position));
+    if (best) {
+      used.add(best.player.player_key);
+      starters.push({ player: best.player, slot, pts: best.pts });
+    }
+  }
+
+  // Fill SUPER_FLEX slots
+  for (const slot of slots) {
+    if (slot !== 'SUPER_FLEX') continue;
+    const best = scored.find((s) => !used.has(s.player.player_key) && SUPER_FLEX_ELIGIBLE.has(s.player.position));
+    if (best) {
+      used.add(best.player.player_key);
+      starters.push({ player: best.player, slot, pts: best.pts });
+    }
+  }
+
+  const bench = scored.filter((s) => !used.has(s.player.player_key));
+  const totalStarterPts = starters.reduce((sum, s) => sum + s.pts, 0);
+
+  return { starters, bench, totalStarterPts };
+}
+
 let clayCache: ClayPlayer[] | null = null;
 
 export async function loadClayProjections(): Promise<ClayPlayer[]> {
