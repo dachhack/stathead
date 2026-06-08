@@ -97,17 +97,10 @@ const TAB_GROUPS: TabGroup[] = [
   {
     label: 'Research',
     tabs: [
+      { id: 'sleeper-league', label: 'Sleeper Leagues' },
+      { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
-    ],
-  },
-  {
-    label: 'Sleeper Tools',
-    tabs: [
-      { id: 'sleeper-league', label: 'My Leagues' },
-      { id: 'sleeper-waivers', label: 'Waiver Wire' },
-      { id: 'sleeper-snooper', label: 'User Snooper' },
-      { id: 'sleeper', label: 'Trending & Projections' },
     ],
   },
 ];
