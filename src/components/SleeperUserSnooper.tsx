@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueTypeName, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -959,6 +959,24 @@ export function SleeperUserSnooper() {
     return computeOwnership(result.rosters, players);
   }, [result, players]);
 
+  // Most-Owned table filters: by league type (dynasty/keeper/redraft) and position.
+  const [ownLeagueType, setOwnLeagueType] = useState<'all' | 'Dynasty' | 'Keeper' | 'Redraft'>('all');
+  const [ownPos, setOwnPos] = useState('ALL');
+  const filteredRosters = useMemo(() => {
+    if (!result) return [];
+    if (ownLeagueType === 'all') return result.rosters;
+    const typeByLeague = new Map<string, string>();
+    for (const lg of result.leagues) typeByLeague.set(lg.league_id, leagueTypeName(lg));
+    return result.rosters.filter((r) => typeByLeague.get(r.leagueId) === ownLeagueType);
+  }, [result, ownLeagueType]);
+  const displayedOwnership = useMemo(() => {
+    if (!players.size) return [];
+    let list = ownLeagueType === 'all' ? ownership : computeOwnership(filteredRosters, players);
+    if (ownPos !== 'ALL') list = list.filter((p) => p.position === ownPos);
+    return list;
+  }, [players, ownership, filteredRosters, ownLeagueType, ownPos]);
+  const ownDenom = filteredRosters.length || 1;
+
   const leagueTypes = useMemo(() => {
     if (!result) return new Map<string, number>();
     const m = new Map<string, number>();
@@ -1134,13 +1152,44 @@ export function SleeperUserSnooper() {
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             Players rostered across multiple leagues. "Started" = in starter slot.
           </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 8px' }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Format:</span>
+              {(['all', 'Dynasty', 'Keeper', 'Redraft'] as const).map((t) => (
+                <button
+                  key={t}
+                  className={`pos-filter ${ownLeagueType === t ? 'active' : ''}`}
+                  onClick={() => setOwnLeagueType(t)}
+                  style={{ padding: '2px 8px', fontSize: 11 }}
+                >
+                  {t === 'all' ? 'All' : t}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pos:</span>
+              {(['ALL', 'QB', 'RB', 'WR', 'TE'] as const).map((pos) => (
+                <button
+                  key={pos}
+                  className={`pos-filter ${ownPos === pos ? 'active' : ''}`}
+                  onClick={() => setOwnPos(pos)}
+                  style={{ padding: '2px 8px', fontSize: 11 }}
+                >
+                  {pos === 'ALL' ? 'All' : pos}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {displayedOwnership.length} players · {ownDenom} {ownDenom === 1 ? 'roster' : 'rosters'}
+            </span>
+          </div>
           <div className="table-container" style={{ maxHeight: 400 }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
               <thead>
                 <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Owned</th><th>Started</th><th>% Owned</th><th>Leagues</th></tr>
               </thead>
               <tbody>
-                {ownership.slice(0, 50).map((p, i) => (
+                {displayedOwnership.slice(0, 50).map((p, i) => (
                   <tr key={p.id}>
                     <td className="rank-cell">{i + 1}</td>
                     <td><strong><PlayerName sleeperId={p.id} name={p.name} position={p.position} /></strong></td>
@@ -1149,14 +1198,14 @@ export function SleeperUserSnooper() {
                       {p.team && <img src={teamLogoUrl(p.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
                       {' '}{p.team}
                     </td>
-                    <td><b>{p.count}</b> / {result.rosters.length}</td>
+                    <td><b>{p.count}</b> / {ownDenom}</td>
                     <td>{p.starterCount}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <div style={{ width: 40, height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${(p.count / result.rosters.length) * 100}%`, height: '100%', background: 'var(--accent)', borderRadius: 3 }} />
+                          <div style={{ width: `${(p.count / ownDenom) * 100}%`, height: '100%', background: 'var(--accent)', borderRadius: 3 }} />
                         </div>
-                        <span style={{ color: 'var(--text-muted)' }}>{((p.count / result.rosters.length) * 100).toFixed(0)}%</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{((p.count / ownDenom) * 100).toFixed(0)}%</span>
                       </div>
                     </td>
                     <td style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

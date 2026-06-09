@@ -7,7 +7,8 @@ import {
   fetchOddsGameLines, aggregateOddsToTeamImplied,
 } from '../data';
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
-import { createEmptyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
+import { createEmptyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
+import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
 import { exportTeamXlsx, type XlsxTeam } from '../lib/exportTeamXlsx';
@@ -88,6 +89,12 @@ function computePPR(p: {
     (p.rushYds || 0) * 0.1 + (p.rushTD || 0) * 6 +
     (p.rec || 0) * 1 + (p.recYds || 0) * 0.1 + (p.recTD || 0) * 6
   );
+}
+
+// Round to 1 decimal for display — scenario scaling produces fractional TD
+// totals (e.g. 30.700000000000003); this keeps them clean.
+function round1(v: number): number {
+  return Math.round(v * 10) / 10;
 }
 
 // ── Scenario application ──
@@ -751,6 +758,33 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     return m;
   }, [searchProjections]);
   const isEdited = (name: string) => overrideIdSet.has(searchIdByName.get(normalizeName(name)) ?? -1);
+
+  // Quick scenario swap from the projection views: pick a preset or saved
+  // scenario and push it up as the active scenario (same materialization the
+  // Scenario Builder uses). Clay-only presets are hidden without Clay data.
+  const hasClay = clayPprMap.size > 0;
+  const projScenarioOptions = useMemo(() => {
+    const presets = SCENARIO_PRESETS
+      .filter((p) => !p.requiresClay || hasClay)
+      .map((p) => ({ id: p.id, name: p.name, kind: 'preset' as const }));
+    const saved = loadAllScenarios().map((s) => ({ id: s.id, name: s.name, kind: 'saved' as const }));
+    return [...presets, ...saved];
+  }, [hasClay]);
+  const activeScenarioVal = isScenarioEmpty(scenario)
+    ? ''
+    : (projScenarioOptions.find((o) => o.id === scenario.id)?.id ?? 'custom');
+  const applyScenarioById = (id: string) => {
+    if (!onScenarioChange || id === 'custom') return;
+    if (!id) { onScenarioChange(createEmptyScenario()); return; }
+    const preset = SCENARIO_PRESETS.find((p) => p.id === id);
+    if (preset) {
+      const next = preset.build(searchProjections, playerMetaMap ?? new Map(), normalizeName, { clayPpr: clayPprMap, clayStats: clayStatsMap });
+      onScenarioChange({ ...next, id: preset.id, name: preset.name });
+      return;
+    }
+    const saved = loadAllScenarios().find((s) => s.id === id);
+    if (saved) onScenarioChange(saved);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -2370,6 +2404,23 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
             </button>
           </div>
         </div>
+        {!isActuals && onScenarioChange && viewMode !== 'accuracy' && (
+          <div className="control-group">
+            <label className="control-label">Scenario</label>
+            <select
+              value={activeScenarioVal}
+              onChange={(e) => { if (e.target.value !== 'custom') applyScenarioById(e.target.value); }}
+              style={{ padding: '4px 8px', fontSize: 13, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--text-muted)', borderRadius: 6 }}
+              title="Apply a quick preset or saved scenario to these projections"
+            >
+              <option value="">None (base projection)</option>
+              {projScenarioOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.kind === 'preset' ? '★ ' : ''}{o.name}</option>
+              ))}
+              {activeScenarioVal === 'custom' && <option value="custom">Custom (edited in Builder)</option>}
+            </select>
+          </div>
+        )}
         {viewMode === 'position' && (
           <div className="control-group">
             <label className="control-label">Position</label>
@@ -2657,15 +2708,15 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                       <td style={tdS}>{r.passAtt.toLocaleString()}</td>
                       <td style={tdS}>{r.passComp.toLocaleString()}</td>
                       <td style={tdS}>{r.passYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{r.passTD}</td>
-                      <td style={{ ...tdS, color: '#ef4444' }}>{r.int}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.passTD).toLocaleString()}</td>
+                      <td style={{ ...tdS, color: '#ef4444' }}>{round1(r.int).toLocaleString()}</td>
                       <td style={tdS}>{r.rushAtt.toLocaleString()}</td>
                       <td style={tdS}>{r.rushYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{r.rushTD}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.rushTD).toLocaleString()}</td>
                       <td style={tdS}>{r.tgt.toLocaleString()}</td>
                       <td style={tdS}>{r.rec.toLocaleString()}</td>
                       <td style={tdS}>{r.recYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{r.recTD}</td>
+                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.recTD).toLocaleString()}</td>
                       <td style={{ ...tdS, fontWeight: 700, color: '#f59e0b' }}>{r.pprPts.toLocaleString()}</td>
                     </tr>
                   ))}
