@@ -677,6 +677,148 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
   );
 }
 
+// ── Suggested Waiver Moves (add/drop for the selected team) ──
+
+interface WaiverMove {
+  add: ClayPlayer;
+  addProj: number; addValue: number; addTrend: number | null;
+  drop: RosterPlayer;
+  dropProj: number; dropValue: number;
+  gain: number; // improvement in the league-appropriate metric
+}
+
+interface WaiverSuggestionsProps {
+  leagueId: string;
+  team: LeagueTeam;
+  projMap: Map<string, number>;
+  blendedByName: Map<string, KTCPlayer>;
+  trendByName: Map<string, number>;
+  allProjections: ClayPlayer[];
+  isDynasty: boolean;
+  isSuperflex: boolean;
+}
+
+const SKILL_POS = ['QB', 'RB', 'WR', 'TE'];
+
+function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, trendByName, allProjections, isDynasty, isSuperflex }: WaiverSuggestionsProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [rosteredIds, setRosteredIds] = useState<Set<string>>(new Set());
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || loaded) return;
+    setLoaded(true);
+    fetchLeagueRosteredIds(leagueId).then(setRosteredIds).catch(() => {});
+  }, [expanded, loaded, leagueId]);
+
+  const moves = useMemo<WaiverMove[]>(() => {
+    if (!rosteredIds.size) return [];
+    const dynVal = (name: string): number => {
+      const k = blendedByName.get(normalizeForMatch(name));
+      return k ? (isSuperflex ? k.superflexValue : k.value) : 0;
+    };
+    const rosterMetric = (p: RosterPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.id) ?? 0);
+    const availMetric = (p: ClayPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.sleeperId ?? '') ?? 0);
+
+    // Drop candidates: this team's skill players, worst-first.
+    const roster = [...team.starters, ...team.bench]
+      .filter((p) => p.name !== 'Empty' && SKILL_POS.includes(p.position || ''))
+      .map((p) => ({ p, m: rosterMetric(p) }))
+      .sort((a, b) => a.m - b.m);
+
+    // Add candidates: unrostered projected players, best-first by metric.
+    const avail = allProjections
+      .filter((p) => p.sleeperId && !rosteredIds.has(p.sleeperId) && SKILL_POS.includes(p.position))
+      .map((p) => ({ p, m: availMetric(p) }))
+      .filter((x) => x.m > 0)
+      .sort((a, b) => b.m - a.m);
+
+    const minGain = isDynasty ? 400 : 12; // KTC value vs projected points
+    const usedDrop = new Set<string>();
+    const out: WaiverMove[] = [];
+    for (const a of avail) {
+      // Same-position swap keeps roster counts balanced: drop your worst at that
+      // position if the pickup clearly beats them.
+      const drop = roster.find((d) => d.p.position === a.p.position && !usedDrop.has(d.p.id));
+      if (!drop || a.m - drop.m < minGain) continue;
+      usedDrop.add(drop.p.id);
+      out.push({
+        add: a.p,
+        addProj: projMap.get(a.p.sleeperId ?? '') ?? 0,
+        addValue: dynVal(a.p.name),
+        addTrend: trendByName.get(normalizeForMatch(a.p.name)) ?? null,
+        drop: drop.p,
+        dropProj: projMap.get(drop.p.id) ?? 0,
+        dropValue: dynVal(drop.p.name),
+        gain: a.m - drop.m,
+      });
+      if (out.length >= 8) break;
+    }
+    return out;
+  }, [rosteredIds, team, projMap, blendedByName, trendByName, allProjections, isDynasty, isSuperflex]);
+
+  const fmtVal = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`;
+  const fmtGain = (g: number) => isDynasty ? `+${fmtVal(g)}` : `+${g.toFixed(0)} pt`;
+
+  return (
+    <div style={{ margin: '16px 0' }}>
+      <div className="sched-section-title" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setExpanded(!expanded)}>
+        <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{expanded ? '▼' : '▶'}</span>
+        Suggested Waiver Moves — {team.teamName}
+      </div>
+      {!expanded && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 0', cursor: 'pointer' }} onClick={() => setExpanded(true)}>
+          Click for add/drop upgrades that raise your {isDynasty ? 'dynasty value' : 'projected points'}.
+        </p>
+      )}
+      {expanded && (
+        <>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+            Pick up an available player and drop your weakest at that position, ranked by {isDynasty ? `dynasty value${isSuperflex ? ' (SF)' : ''}` : 'projected season points'}.
+          </p>
+          {!loaded ? (
+            <div className="loading" style={{ padding: '8px 0' }}><div className="spinner" /><span className="loading-text">Scanning waivers…</span></div>
+          ) : moves.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No clear upgrades on waivers right now.</p>
+          ) : (
+            <div className="table-container" style={{ maxHeight: 'none' }}>
+              <table className="sched-table" style={{ fontSize: 12 }}>
+                <thead>
+                  <tr><th>Add</th><th>Drop</th><th title="Improvement in the ranking metric">Gain</th></tr>
+                </thead>
+                <tbody>
+                  {moves.map((m, i) => (
+                    <tr key={i}>
+                      <td>
+                        <span className={`pos-badge pos-${m.add.position}`} style={{ marginRight: 4 }}>{m.add.position}</span>
+                        <strong><PlayerName sleeperId={m.add.sleeperId} name={m.add.name} position={m.add.position} /></strong>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {m.addProj > 0 && <span style={{ color: '#6366f1' }}>{m.addProj.toFixed(0)}pt</span>}
+                          {m.addValue > 0 && <> · {fmtVal(m.addValue)}</>}
+                          {m.addTrend != null && m.addTrend !== 0 && <span style={{ color: m.addTrend > 0 ? '#22c55e' : '#ef4444' }}> · {m.addTrend > 0 ? '+' : ''}{m.addTrend.toLocaleString()}</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`pos-badge pos-${m.drop.position}`} style={{ marginRight: 4 }}>{m.drop.position}</span>
+                        <PlayerName sleeperId={m.drop.id} name={m.drop.name} position={m.drop.position} />
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {m.dropProj > 0 && <span>{m.dropProj.toFixed(0)}pt</span>}
+                          {m.dropValue > 0 && <> · {fmtVal(m.dropValue)}</>}
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 700, color: '#22c55e', whiteSpace: 'nowrap' }}>{fmtGain(m.gain)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Win-Win Trade Suggestions ──
 
 function scoreColor(score: number): string {
@@ -1428,6 +1570,17 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                   </div>
                 </div>
               )}
+
+              <WaiverSuggestionsSection
+                leagueId={data.league.league_id}
+                team={selectedTeam}
+                projMap={projBySleeperIdMap}
+                blendedByName={blendedByName}
+                trendByName={trendByName}
+                allProjections={allProjections}
+                isDynasty={isDynasty}
+                isSuperflex={isSuperflex}
+              />
 
               <div style={{ fontSize: 10, color: 'var(--text-muted)', margin: '2px 0 4px' }}>
                 Per player: <span style={{ color: '#6366f1' }}>projected pts</span> · dynasty value{isSuperflex ? ' (SF)' : ''} · <span style={{ color: '#22c55e' }}>30-day trend</span>
