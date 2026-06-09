@@ -339,7 +339,10 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
   for (const h of ktcHistory || []) {
     const info = ktcNameById.get(h.playerID);
     const sfMap = new Map((h.superflex?.valueHistory || []).map((p) => [p.d, p.v]));
+    const seenDates = new Set<string>();
     for (const p of h.oneQB?.valueHistory || []) {
+      if (seenDates.has(p.d)) continue;
+      seenDates.add(p.d);
       dynasty_value_history.push({
         playerID: h.playerID,
         name: info?.name ?? null,
