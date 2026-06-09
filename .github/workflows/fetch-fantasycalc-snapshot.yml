@@ -84,7 +84,8 @@ jobs:
           # .gitignore). They only change when the new snapshot introduced a
           # player; otherwise the diff guard below leaves them out.
           git add public/data/player-crosswalk.json public/data/player-aliases.json \
-                  public/data/player-promotions.json public/data/player-conflicts.json 2>/dev/null || true
+                  public/data/player-promotions.json public/data/player-conflicts.json \
+                  public/data/feature-store/key-index.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit — snapshot already matches the tree."
             exit 0

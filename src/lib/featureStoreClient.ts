@@ -176,10 +176,79 @@ export async function getPlayerHistory(
 }
 
 /**
+ * Additive player_key bridge (see scripts/build-player-crosswalk.py).
+ *
+ * The shards are keyed by `${normalizeName(name)}::${season}`, which can
+ * fragment a single player across name variants (e.g. "josh freeman" vs
+ * "joshua freeman") and collide distinct players who share a normalized name.
+ * `feature-store/key-index.json` maps those shard keys to the crosswalk's
+ * stable `player_key`, letting callers read features by canonical identity
+ * without re-keying the shards themselves.
+ */
+interface KeyIndex {
+  /** "<normalized_name>::<season>" -> "<player_key>" */
+  byNameKey: Record<string, string>;
+  /** "<player_key>::<season>" -> "<normalized_name>::<season>" */
+  byPlayerKey: Record<string, string>;
+}
+let keyIndexCache: KeyIndex | null = null;
+let keyIndexLoaded = false;
+
+/** Load the feature-store key index (cached). Returns null if unavailable. */
+export async function loadKeyIndex(): Promise<KeyIndex | null> {
+  if (keyIndexLoaded) return keyIndexCache;
+  try {
+    const resp = await fetch(`${storeBaseUrl()}/key-index.json`);
+    if (resp.ok) {
+      const data = await resp.json();
+      keyIndexCache = {
+        byNameKey: data.byNameKey || {},
+        byPlayerKey: data.byPlayerKey || {},
+      };
+    }
+  } catch {}
+  keyIndexLoaded = true;
+  return keyIndexCache;
+}
+
+/** Resolve a (name, season) shard observation to its stable player_key. */
+export async function playerKeyFor(name: string, season: number): Promise<string | null> {
+  const index = await loadKeyIndex();
+  return index?.byNameKey[makeKey(name, season)] ?? null;
+}
+
+/**
+ * Get all features for a player-season addressed by stable player_key.
+ * Falls back to null resolution (empty result) if the key isn't in the index.
+ */
+export async function getFeaturesByPlayerKey(
+  playerKey: string,
+  season: number,
+  groupIds: string[],
+): Promise<Record<string, number>> {
+  const index = await loadKeyIndex();
+  const nameKey = index?.byPlayerKey[`${playerKey}::${season}`];
+  if (!nameKey) return {};
+  const idx = nameKey.lastIndexOf('::');
+  const name = nameKey.slice(0, idx);
+  // makeKey re-normalizes, but the index stores already-normalized name keys,
+  // so pass the stored name straight through to the shards.
+  const features: Record<string, number> = {};
+  for (const groupId of groupIds) {
+    const shard = await loadShard(groupId);
+    const playerFeatures = shard[`${name}::${season}`];
+    if (playerFeatures) Object.assign(features, playerFeatures);
+  }
+  return features;
+}
+
+/**
  * Invalidate the shard cache (e.g., after a rebuild).
  */
 export function clearShardCache(): void {
   shardCache.clear();
   playerMetaCache.clear();
   metaLoaded = false;
+  keyIndexCache = null;
+  keyIndexLoaded = false;
 }
