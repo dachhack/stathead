@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { ROSTER_OVERRIDES_2026, ROSTER_OVERRIDES_2026_SEASON } from './rosterOverrides';
+import { normalizeNameSimple as normalizeName } from './lib/nameMatch';
 import type {
   PlayerStats,
   SeasonTotals,
@@ -601,13 +602,6 @@ export function buildSeasonResults(
   });
 }
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 // --- Fantasy Football Calculator ADP (free REST API) ---
 

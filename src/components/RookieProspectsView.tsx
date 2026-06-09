@@ -8,6 +8,7 @@ import { PlayerName } from './PlayerName';
 import { ModelCardButton } from './ModelCardButton';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
+import { normalizeNameUnicode as normalizeName } from '../lib/nameMatch';
 
 interface ProspectGrade {
   name: string;
@@ -73,20 +74,6 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const FANTASY_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const DRAFT_YEAR = 2026;
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    // Unicode-normalize then strip combining marks (é → e, ñ → n, etc.)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    // Strip all punctuation/apostrophe variants that might differ across
-    // data sources (combine/FP/KTC): ASCII ', curly ' ' ‛, prime ′, backtick,
-    // acute accent mark ´, period, hyphen.
-    .replace(/[.\-'\u2018\u2019\u201A\u201B\u2032`\u00B4]/g, '')
-    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 /**
  * TE Premium adjustment to predicted PPG. Returns the bonus to add on top

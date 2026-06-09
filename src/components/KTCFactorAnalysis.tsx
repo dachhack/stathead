@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import type { KTCPlayer, KTCPlayerHistory, PlayerStats } from '../types';
 import { fetchKTCRankings, fetchKTCHistory, fetchPlayerStats, fetchCombine, fetchDraftPicks } from '../data';
+import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
 
 interface RBFactorRow {
   name: string;
@@ -78,9 +79,6 @@ function pearson(xs: number[], ys: number[]): number {
   return denom === 0 ? 0 : num / denom;
 }
 
-function normalizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-}
 
 // Extract value closest to a target month from KTC history
 function getValueNearMonth(

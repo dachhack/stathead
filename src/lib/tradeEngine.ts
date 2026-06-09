@@ -1,5 +1,6 @@
 import type { LeagueTeam, SleeperTradedPick } from './sleeper';
 import type { KTCPlayer } from '../types';
+import { normalizeForMatch } from './nameMatch';
 
 export type TradeGoal = 'win-now' | 'rebuild' | 'balanced';
 
@@ -90,9 +91,6 @@ function pickLabel(pick: DraftPick): string {
   return `${pick.season} Rd ${pick.round}`;
 }
 
-function normalizeForMatch(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
-}
 
 interface TeamProfile {
   team: LeagueTeam;

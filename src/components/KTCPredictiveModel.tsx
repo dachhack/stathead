@@ -16,6 +16,7 @@ import { trainGBMWithCI, predictGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 import { loadAllScenarios } from '../lib/scenarioEngine';
 import { loadShards, KTC_MODEL_GROUPS } from '../lib/featureStoreClient';
+import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
 
 // ── Types ──
 
@@ -152,10 +153,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ── Helpers ──
 
-function normalizeName(name: string | null | undefined): string {
-  if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-}
 
 function getValueNearMonth(
   history: { d: string; v: number }[],

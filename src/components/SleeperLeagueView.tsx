@@ -9,6 +9,7 @@ import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
+import { normalizeForMatch } from '../lib/nameMatch';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -170,9 +171,6 @@ interface RosterScore {
   topAssets: { name: string; value: number; age: number }[];
 }
 
-function normalizeForMatch(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
-}
 
 /** Pick the dynasty value matching the league format. SF/2QB leagues use the
  *  superflex value (QBs are worth far more); 1QB leagues use the base value.

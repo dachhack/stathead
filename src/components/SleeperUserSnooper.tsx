@@ -7,6 +7,7 @@ import { PlayerName } from './PlayerName';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
+import { normalizeForMatch } from '../lib/nameMatch';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -114,9 +115,6 @@ function SnoopPlayerLine({ p }: { p: RosterPlayer }) {
 
 type WindowLabel = 'Win-Now' | 'Contender' | 'Balanced' | 'Retooling' | 'Rebuild';
 
-function normalizeForMatch(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
-}
 
 interface RosterScore {
   label: WindowLabel;
