@@ -37,6 +37,14 @@ for season in 2025; do
   echo "  Saved $outfile"
 done
 
+# ── ESPN NFL athlete ids (name -> espn_id from team rosters) ──
+# Feeds build-player-crosswalk.py's espn_id backfill so player-detail pages get
+# ESPN news + headshots, including current rookies that nflverse/Sleeper miss.
+# Non-fatal: an ESPN hiccup must never break the build (the script leaves any
+# existing file untouched on failure).
+echo "  Fetching ESPN NFL athlete ids..."
+node scripts/fetch-espn-nfl-ids.mjs "$OUT" || echo "  WARN: ESPN id fetch failed — keeping existing espn-nfl-ids.json"
+
 # ── FFC ADP ──
 # fantasyfootballcalculator.com 403s "Host not in allowlist" from many networks
 # but serves GitHub runners fine. A bare `curl -sL` exits 0 even on a 403 (it

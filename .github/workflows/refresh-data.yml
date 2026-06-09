@@ -99,7 +99,8 @@ jobs:
                   public/data/player-crosswalk.json \
                   public/data/player-aliases.json \
                   public/data/player-promotions.json \
-                  public/data/player-conflicts.json 2>/dev/null || true
+                  public/data/player-conflicts.json \
+                  public/data/espn-nfl-ids.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else

@@ -354,6 +354,7 @@ def match_one(
 
 FC_SNAPSHOT = ROOT / 'public/data/fantasycalc_dynasty_sf.json'
 SLEEPER_SNAPSHOT = ROOT / 'public/data/sleeper-players.json'
+ESPN_IDS_SNAPSHOT = ROOT / 'public/data/espn-nfl-ids.json'
 
 
 def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
@@ -440,6 +441,49 @@ def backfill_sleeper_ids_from_sleeper(records: list[dict[str, Any]]) -> int:
             sid = next(iter(cand))
             r['sleeper_id'] = sid
             assigned.add(sid)
+            n += 1
+    return n
+
+
+def backfill_espn_ids_from_espn(records: list[dict[str, Any]]) -> int:
+    """Fill espn_id from ESPN's own team rosters (public/data/espn-nfl-ids.json,
+    scraped by scripts/fetch-espn-nfl-ids.mjs). This is the authoritative id
+    source and, crucially, covers current rookies that nflverse rosters and
+    Sleeper both miss — which is what lets their player-detail pages show ESPN
+    Recent News + a headshot. Matched by a UNIQUE (normalized name, position),
+    same guardrails as the Sleeper passes: never overwrites an existing espn_id
+    and never assigns an id already used elsewhere. Run before the Sleeper espn
+    backfill so ESPN's own ids win."""
+    if not ESPN_IDS_SNAPSHOT.exists():
+        return 0
+    try:
+        raw = json.loads(ESPN_IDS_SNAPSHOT.read_text())
+    except Exception:
+        return 0
+    items = raw.get('players', []) if isinstance(raw, dict) else raw
+    idx: dict[tuple[str, str], set[str]] = {}
+    for it in items:
+        nm, pos, eid = it.get('name'), it.get('position'), it.get('espn_id')
+        if not (nm and eid):
+            continue
+        idx.setdefault((norm(nm), pos or ''), set()).add(str(eid))
+
+    assigned = {str(r['espn_id']) for r in records if r.get('espn_id')}
+    n = 0
+    for r in records:
+        if r.get('espn_id'):
+            continue
+        positions = set(r.get('all_positions') or [])
+        if r.get('position'):
+            positions.add(r['position'])
+        cand: set[str] = set()
+        for pos in positions:
+            cand |= idx.get((norm(r.get('display_name', '')), pos), set())
+        cand -= assigned
+        if len(cand) == 1:
+            eid = next(iter(cand))
+            r['espn_id'] = eid
+            assigned.add(eid)
             n += 1
     return n
 
@@ -851,6 +895,9 @@ def main():
     n_sl = backfill_sleeper_ids_from_sleeper(records)
     if n_sl:
         print(f'Backfilled sleeper_id on {n_sl} more records from Sleeper players list')
+    n_espn_e = backfill_espn_ids_from_espn(records)
+    if n_espn_e:
+        print(f'Backfilled espn_id on {n_espn_e} records from ESPN team rosters')
     n_espn = backfill_espn_ids_from_sleeper(records)
     if n_espn:
         print(f'Backfilled espn_id on {n_espn} records from Sleeper players list')
