@@ -43,7 +43,7 @@ Working branch: **`claude/sleeper-features-refinement-QxT6M`** (PR base `claude/
 
 ### 🔭 Known / optional to-dos
 - **Snooper per-season "Objective" column** (Win-Now/Rebuild in the Leagues table) still uses **current** KTC on past rosters → approximate for old years. The by-year *chart* already uses the better age+pos+proj proxy (`computeRosterWindowProxy`); could switch the table column to it too.
-- **gsis-less rookies**: Sleeper id is backfilled only for players in the **FantasyCalc** set; deeper rookies stay unresolved until they get a `gsis_id`. Could extend the backfill to the full Sleeper players list.
+- ~~**gsis-less rookies**: Sleeper id backfilled only from the FantasyCalc set~~ — ✅ done. A second backfill pass now runs off the full Sleeper players list (`public/data/sleeper-players.json`, refreshed by `fetch-sleeper-players.yml`); `build-player-crosswalk.py` matches gsis-less records by unique (name, position). Lifted sleeper_id coverage 4945→6101.
 - **Power-ranking value source**: league power rankings (`scoreRoster`) still use **raw 1QB KTC** (`fetchKTCRankings`), while waiver/roster stats use **blended** value + an SF toggle. Consider unifying power rankings to blended + SF for SF leagues.
 - **Historical window proxy** uses one age curve; QBs age slower — per-position age curves would sharpen old-year objective classification.
 - **Dormant features**: `ChatDrawer` (Ask Claude) + `SettingsModal` are mounted but have no triggers (FAB/gear removed in #355). SportsDataIO news/odds now need settings re-exposed. Re-add buttons to restore.
