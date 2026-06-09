@@ -52,11 +52,10 @@ rebuilds every 2h), Scenario Builder in the Home menu — all already shipped.
 ## 📋 Consolidated open to-do list
 
 **Needs the user / an unrestricted environment**
-1. **Verify ESPN news shape.** Worker is live but `*.workers.dev` + ESPN are
-   blocked from the sandbox. Open a player-detail page with an `espn_id` on the
-   live site → check Recent News. If blank, paste the JSON from
-   `https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3` and tune
-   `parseNews`/`parseFantasy` in `src/data.ts`.
+1. ~~**Verify ESPN news shape.**~~ — ✅ verified working on the live site
+   (2026-06-09). The worker, `fetchPlayerOverview` parser, and crosswalk
+   `espn_id` wiring all function; a blank Recent News section just means the
+   network is blocking `*.workers.dev` (e.g. a VPN/firewall), not a bug.
 2. **Refresh `adp_ffc` coverage** (2018-2024 + 2026) — FFC API firewalled from
    the sandbox; run `bash scripts/pull-all-data-sources.sh` from an
    unrestricted env. Only 2025 committed today.
