@@ -241,11 +241,11 @@ To release `0.2.0` (includes the three new helpers):
 
 4. **Refresh `adp_ffc` coverage** — only 2025 committed (sandbox firewall blocked FFC API). Run `bash scripts/pull-all-data-sources.sh` from an unrestricted environment to pull 2018-2024 + 2026.
 
-5. **Consolidate the 4 `normalizeName` copies** in UI components (RookieProspectsView, ZapComparison, MyProspectRankings, PlayerCard) into a single shared util that accepts `player_key` with name fallback.
+5. ~~**Consolidate the `normalizeName` copies**~~ — ✅ done. The nine byte-identical copies are now in `src/lib/nameMatch.ts` (three behavioral families: `normalizeForMatch`, `normalizeNameSimple`, `normalizeNameUnicode`). Behavior-preserving. Three genuinely-divergent one-offs (StatProjections, TradeCalculator, ADPOutcomes) + the smarter `featureTypes.normalizeName` left as-is. (The "accepts player_key with name fallback" idea — a crosswalk-aware resolver — was not built; lower value now that names route through the crosswalk anyway.)
 
-6. **Re-key `feature-store/*.json` shards** by `player_key::season` instead of `name::season`. Big refactor but cleaner long-term.
+6. **Re-key `feature-store/*.json` shards** by `player_key::season` instead of `name::season`. Big refactor but cleaner long-term. (Still open — confirm appetite first.)
 
-7. **Alias-conflict detection** — flag canonical crosswalk records whose alias entries disagree on DOB or college. No-op today, tripwire for future merges.
+7. ~~**Alias-conflict detection**~~ — ✅ done. `build-player-crosswalk.py` emits `player-conflicts.json` flagging any gsis_id with >1 distinct birth_date across roster rows (42 today, mostly minor nflverse date noise). College was dropped as a signal (~675 formatting/transfer false positives). Tripwire for future bad merges; committed by both refresh workflows.
 
 ## Known quirks / gotchas
 
