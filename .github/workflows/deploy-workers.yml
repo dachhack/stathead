@@ -1,0 +1,41 @@
+name: Deploy Cloudflare Workers
+
+# Deploys the Cloudflare Worker proxies (no local terminal required).
+#
+# Auto-deploys espn-news-proxy when its source changes on the base branch.
+# Use the "Run workflow" button (workflow_dispatch) to deploy any worker
+# on demand by name (espn-news-proxy / fc-proxy / ktc-proxy).
+#
+# One-time setup: add a repository secret CLOUDFLARE_API_TOKEN
+# (Cloudflare dashboard → My Profile → API Tokens → Create Token →
+# "Edit Cloudflare Workers" template). If your Cloudflare login has more
+# than one account, also add CLOUDFLARE_ACCOUNT_ID, or set account_id in
+# the worker's wrangler.toml.
+
+on:
+  push:
+    branches: [claude/nfl-fantasy-workbench-6D1yd]
+    paths:
+      - 'workers/espn-news-proxy/**'
+      - '.github/workflows/deploy-workers.yml'
+  workflow_dispatch:
+    inputs:
+      worker:
+        description: Worker directory under workers/ to deploy
+        type: choice
+        default: espn-news-proxy
+        options:
+          - espn-news-proxy
+          - fc-proxy
+          - ktc-proxy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/${{ github.event.inputs.worker || 'espn-news-proxy' }}
