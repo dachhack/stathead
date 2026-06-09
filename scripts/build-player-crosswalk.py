@@ -37,6 +37,7 @@ ROSTER_GLOB_CSV = str(ROOT / 'public/data/roster_*.csv')
 CROSSWALK_OUT = ROOT / 'public/data/player-crosswalk.json'
 ALIASES_OUT = ROOT / 'public/data/player-aliases.json'
 PROMOTIONS_OUT = ROOT / 'public/data/player-promotions.json'
+CONFLICTS_OUT = ROOT / 'public/data/player-conflicts.json'
 
 # ── Name normalization (mirrors src/lib/featureTypes.ts::nameVariants) ──
 
@@ -138,7 +139,7 @@ def roster_paths() -> list[str]:
     return [by_season[s] for s in sorted(by_season)]
 
 
-def build_spine() -> list[dict[str, Any]]:
+def build_spine() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Scan every roster_*.csv(.gz) and aggregate into one record per gsis_id.
 
     Keeps latest-season values for mutable fields, earliest birth_date +
@@ -146,6 +147,13 @@ def build_spine() -> list[dict[str, Any]]:
     held across their career — many players switch (RB↔WR like McCluster,
     DB↔WR like Travis Hunter) or get renamed (Dee ↔ D'Wayne Eskridge)."""
     by_gid: dict[str, dict[str, Any]] = {}
+    # Track every distinct birth_date a gsis_id reports across roster rows. One
+    # gsis is one nflverse identity, so >1 distinct birth_date is a tripwire for
+    # a bad upstream merge (two humans sharing an id). College is intentionally
+    # NOT tracked: it's dominated by formatting variants ("N.C. State" vs "North
+    # Carolina State") and transfer notation ("Michigan; Indiana"), so it yields
+    # hundreds of false positives that bury the signal.
+    distinct_bday: dict[str, set[str]] = defaultdict(set)
     for path in roster_paths():
         opener = gzip.open if path.endswith('.gz') else open
         with opener(path, 'rt') as f:
@@ -153,6 +161,9 @@ def build_spine() -> list[dict[str, Any]]:
                 gid = (r.get('gsis_id') or '').strip()
                 if not gid:
                     continue
+                bd = (r.get('birth_date') or '').strip()
+                if bd:
+                    distinct_bday[gid].add(bd)
                 existing = by_gid.get(gid)
                 season = int(r.get('season') or 0)
                 rec = {
@@ -188,7 +199,20 @@ def build_spine() -> list[dict[str, Any]]:
     for rec in by_gid.values():
         rec['all_positions'] = sorted(rec['all_positions'])
         rec['all_names'] = sorted(rec['all_names'])
-    return list(by_gid.values())
+
+    # Flag identities whose roster rows disagree on birth_date.
+    conflicts: list[dict[str, Any]] = []
+    for gid, rec in by_gid.items():
+        bdays = distinct_bday.get(gid, set())
+        if len(bdays) > 1:
+            conflicts.append({
+                'gsis_id': gid,
+                'display_name': rec['display_name'],
+                'position': rec['position'],
+                'birth_dates': sorted(bdays),
+            })
+    conflicts.sort(key=lambda c: c['display_name'])
+    return list(by_gid.values()), conflicts
 
 
 # ── Matching ──
@@ -325,6 +349,7 @@ def match_one(
 # ── Main ──
 
 FC_SNAPSHOT = ROOT / 'public/data/fantasycalc_dynasty_sf.json'
+SLEEPER_SNAPSHOT = ROOT / 'public/data/sleeper-players.json'
 
 
 def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
@@ -367,8 +392,56 @@ def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
     return n
 
 
+def backfill_sleeper_ids_from_sleeper(records: list[dict[str, Any]]) -> int:
+    """Fill sleeper_id on records that still lack one, from the full Sleeper
+    players list (public/data/sleeper-players.json). FantasyCalc only lists
+    dynasty-relevant players, so deeper rookies stay unresolved after the FC
+    pass; Sleeper's list is far broader. Matched by a UNIQUE (normalized name,
+    position), same guardrails as the FC pass: never overwrites an existing id,
+    and never assigns an id already used elsewhere. Run after the FC backfill so
+    the more curated source wins ties."""
+    if not SLEEPER_SNAPSHOT.exists():
+        return 0
+    try:
+        raw = json.loads(SLEEPER_SNAPSHOT.read_text())
+    except Exception:
+        return 0
+    items = raw.get('players', []) if isinstance(raw, dict) else raw
+    sl: dict[tuple[str, str], set[str]] = {}
+    for it in items:
+        nm, sid = it.get('name'), it.get('player_id')
+        if not (nm and sid):
+            continue
+        # Index under every position Sleeper lists for the player so a
+        # crosswalk record's position (which may differ in source) still hits.
+        poss = set(it.get('fantasy_positions') or [])
+        if it.get('position'):
+            poss.add(it['position'])
+        for pos in poss:
+            sl.setdefault((norm(nm), pos), set()).add(str(sid))
+
+    assigned = {str(r['sleeper_id']) for r in records if r.get('sleeper_id')}
+    n = 0
+    for r in records:
+        if r.get('sleeper_id'):
+            continue
+        positions = set(r.get('all_positions') or [])
+        if r.get('position'):
+            positions.add(r['position'])
+        cand: set[str] = set()
+        for pos in positions:
+            cand |= sl.get((norm(r.get('display_name', '')), pos), set())
+        cand -= assigned
+        if len(cand) == 1:
+            sid = next(iter(cand))
+            r['sleeper_id'] = sid
+            assigned.add(sid)
+            n += 1
+    return n
+
+
 def main():
-    spine = build_spine()
+    spine, spine_conflicts = build_spine()
     print(f'Spine: {len(spine)} players from nflverse rosters')
 
     by_normpos, by_norm = build_indexes(spine)
@@ -379,13 +452,23 @@ def main():
     # gsis_id this run. Downstream consumers that cached the old COL
     # hash need a back-reference so their lookups don't go cold.
     prev_col_records: list[dict[str, Any]] = []
+    prev_alias_keys: dict[str, list[str]] = {}
     if CROSSWALK_OUT.exists():
         try:
             prev_doc = json.loads(CROSSWALK_OUT.read_text())
-            prev_col_records = [
-                p for p in (prev_doc.get('players') or [])
-                if p.get('is_college_only')
-            ]
+            prev_players = prev_doc.get('players') or []
+            prev_col_records = [p for p in prev_players if p.get('is_college_only')]
+            # Preserve previously-stamped promotion back-references. alias_keys
+            # is rebuilt from scratch each run, and a promoted COL drops out of
+            # prev_col_records after its first promoted build, so without this
+            # carry-forward the back-reference would evaporate on the very next
+            # rebuild (now daily via fetch-sleeper-players.yml) and cached old
+            # COL keys would go cold again. Keyed by the stable player_key
+            # (hash of NFL:<gsis>).
+            for p in prev_players:
+                aks = p.get('alias_keys')
+                if aks and p.get('player_key'):
+                    prev_alias_keys[p['player_key']] = list(aks)
             print(f'Loaded {len(prev_col_records)} COL records from previous crosswalk')
         except Exception as e:
             print(f'  warning: could not load previous crosswalk: {e}')
@@ -702,11 +785,31 @@ def main():
                     ],
                 })
 
+    # Carry forward promotion back-references stamped in earlier builds so they
+    # accumulate permanently across rebuilds, rather than surviving only the one
+    # build in which the COL→spine transition was diffed (see prev_alias_keys).
+    carried = 0
+    if prev_alias_keys:
+        for rec in canonical.values():
+            prev_aks = prev_alias_keys.get(rec.get('player_key'))
+            if not prev_aks:
+                continue
+            existing = rec.setdefault('alias_keys', [])
+            for ak in prev_aks:
+                if ak not in existing:
+                    existing.append(ak)
+                    carried += 1
+        if carried:
+            print(f'Carried forward {carried} promotion back-reference(s) from previous crosswalk')
+
     # ── Emit crosswalk ──
     records = list(canonical.values())
     n_bf = backfill_sleeper_ids_from_fc(records)
     if n_bf:
         print(f'Backfilled sleeper_id on {n_bf} records from FantasyCalc snapshot')
+    n_sl = backfill_sleeper_ids_from_sleeper(records)
+    if n_sl:
+        print(f'Backfilled sleeper_id on {n_sl} more records from Sleeper players list')
     out = {'version': 1, 'generated_at': None, 'total': len(records),
            'players': records}
     CROSSWALK_OUT.write_text(json.dumps(out, separators=(',', ':')))
@@ -734,6 +837,26 @@ def main():
     PROMOTIONS_OUT.write_text(json.dumps(promotions_doc, separators=(',', ':'), indent=2))
     print(f'Wrote {PROMOTIONS_OUT} — {len(promotions_log)} promotions, '
           f'{len(unresolved_promotions)} unresolved')
+
+    # ── Emit identity-conflict tripwire ──
+    # One gsis_id is one nflverse identity, so a single id reporting multiple
+    # distinct birth_dates across roster rows signals a possible bad upstream
+    # merge (two humans collapsed into one key). Most current entries are minor
+    # nflverse data noise (a date off by a day or a year); the tripwire's real
+    # value is surfacing a NEW, glaring divergence introduced by a future merge.
+    conflicts_doc = {
+        '_about': (
+            'Identity-conflict tripwire. Each entry is a gsis_id whose nflverse '
+            'roster rows report more than one distinct birth_date — a sign two '
+            'distinct players may share one id upstream. Most entries are minor '
+            'date noise; watch for large gaps and for the list growing after a '
+            'crosswalk/merge change. Regenerated by build-player-crosswalk.py.'
+        ),
+        'version': 1,
+        'conflicts': spine_conflicts,
+    }
+    CONFLICTS_OUT.write_text(json.dumps(conflicts_doc, separators=(',', ':'), indent=2))
+    print(f'Wrote {CONFLICTS_OUT} — {len(spine_conflicts)} birth_date identity conflicts')
 
     # ── Emit unresolved seed for the manual aliases file ──
     # Only write if the file doesn't already exist OR is empty; don't

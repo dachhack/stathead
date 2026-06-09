@@ -1,12 +1,95 @@
 # StatHead — session handoff
 
-Last updated 2026-06-09. **Resume section below is the live one;** older notes follow.
+Last updated 2026-06-09 (refinement session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-06-09, branch `claude/sleeper-features-refinement-7bt52u`)
+
+Continuation of the Sleeper/refinement work. All changes merged to base
+`claude/nfl-fantasy-workbench-6D1yd`.
+
+### Shipped this session
+- **Rookie/ZAP tables → shared player detail.** `RookieProspectsView`,
+  `RookieCareerBacktest`, `ZapComparison` now render names as `PlayerName`
+  links to the shared detail page, with a `📊` `ModelCardButton` that still
+  opens the rich prospect `PlayerCard` (model features / boom-bust / threshold
+  probs). New `ModelCardButton.tsx`.
+- **Sleeper power rankings → blended value + SF.** `scoreRoster` +
+  `computePositionalStrength` now use the blended (FC-scale) values with the
+  league's `isSuperflex` flag, matching the per-player/waiver path (SF leagues
+  no longer under-rank QBs). Trade suggestions deliberately stay on raw KTC.
+- **Snooper "Objective" column → window proxy.** Switched the Leagues-table
+  column from current-KTC-on-past-rosters to `computeRosterWindowProxy`
+  (age-at-season + position + projections), so it matches the by-year chart and
+  is accurate on historical seasons. Shared `buildProjByPlayer`; dropped dead
+  `computeRosterWindow`.
+- **Per-position aging curves** in the window proxy (`POS_AGE_BUCKETS`:
+  RB 23/26, WR 24/28, TE 25/29, QB 26/32) — QB-heavy vs RB-heavy rosters now
+  classify correctly on the win-now↔rebuild axis.
+- **gsis-less rookie sleeper_id backfill.** New `fetch-sleeper-players.py` +
+  committed `sleeper-players.json`; `build-player-crosswalk.py` backfills from
+  the full Sleeper list (after FantasyCalc) by unique (name, pos). Coverage
+  4945→6101. Refreshed daily by `fetch-sleeper-players.yml` (also rebuilds the
+  crosswalk).
+- **Key-promotion persistence.** Carry `alias_keys` forward across rebuilds so
+  COL→NFL promotion back-references accumulate permanently (they previously
+  evaporated on the next daily rebuild).
+- **Normalizer consolidation.** Nine byte-identical name normalizers → one
+  `src/lib/nameMatch.ts` (`normalizeForMatch` / `normalizeNameSimple` /
+  `normalizeNameUnicode`), behavior-preserving.
+- **Identity-conflict tripwire.** `player-conflicts.json` flags any gsis_id
+  with >1 distinct birth_date (42 today; college dropped as too noisy).
+- **ESPN news worker** confirmed already deployed via `deploy-workers.yml`
+  (#380, 2026-06-09) — `deploy` follow-up was stale.
+
+### ✅ Verified already-done (handoff was stale)
+Player detail page (`/player/sh_<key>`), CI crosswalk rebuild (`refresh-data.yml`
+rebuilds every 2h), Scenario Builder in the Home menu — all already shipped.
+
+---
+
+## 📋 Consolidated open to-do list
+
+**Needs the user / an unrestricted environment**
+1. **Verify ESPN news shape.** Worker is live but `*.workers.dev` + ESPN are
+   blocked from the sandbox. Open a player-detail page with an `espn_id` on the
+   live site → check Recent News. If blank, paste the JSON from
+   `https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3` and tune
+   `parseNews`/`parseFantasy` in `src/data.ts`.
+2. **Refresh `adp_ffc` coverage** (2018-2024 + 2026) — FFC API firewalled from
+   the sandbox; run `bash scripts/pull-all-data-sources.sh` from an
+   unrestricted env. Only 2025 committed today.
+3. **Clay blend-weight tuning** — needs more historic Clay PDFs (have ~5, esp.
+   2025). Re-run `clay_blend_study.py`, then set per-position weights in
+   `scenarioPresets.ts` (flat 0.8 today; pull QB down ~0.4). Plus unused PDF
+   pages (IDP pp46-55, projected SOS p62, etc.).
+4. **Reg-season TV network gaps** (~24, weeks 16-18) — TBD on ESPN; re-run
+   `node scripts/enrich_schedule_espn.mjs 2026` once assigned.
+
+**Needs scoping with the user (tell me what's wrong / desired)**
+5. **My Rankings page** — clean up + test (bugs? layout?).
+6. **Draft Optimizer** — test + clean up for the upcoming season.
+7. **Richer player cards** — stats + images (career-chip scaling already fixed;
+   define what "richer" means).
+
+**Doable anytime (bigger / lower priority)**
+8. **Re-key `feature-store/*.json`** by `player_key::season` instead of
+   `name::season` — big refactor, cleaner long-term. Confirm appetite first.
+9. **CI rebuild remainder (minor):** `refresh-data.yml` already rebuilds the
+   crosswalk every 2h, so this is largely covered; optionally trigger a rebuild
+   from the KTC/FC fetch workflows too.
+
+**Dropped by the user**
+- Re-expose dormant `ChatDrawer` (Ask Claude) + `SettingsModal` (FAB/gear
+  removed in #355).
 
 ---
 
 ## ⚡ Latest session wrap (2026-06-09, PRs #346–#376)
 
 Working branch: **`claude/sleeper-features-refinement-QxT6M`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). All PRs squash-merged into the base.
+
 
 ### Shipped
 - **Dynasty vs redraft split**: rebuilding/contending framework (windows, age curves, dynasty value) is dynasty-only (`settings.type === 2`); redraft/keeper rank + trade on projected season points. (#346)
@@ -20,14 +103,30 @@ Working branch: **`claude/sleeper-features-refinement-QxT6M`** (PR base `claude/
 - Data integrity: crosswalk **merge guard** (don't merge same-name players w/ incompatible position), **FantasyCalc Sleeper-id backfill** for gsis-less rookies, **position-aware clay→Sleeper resolution**, and **cache-busting** of committed data files. (#363, #364, #367, #368)
 
 ### ⏳ Follow-ups waiting on action
-1. **Deploy the ESPN news worker** so the player-card **Recent News** section populates:
-   `cd workers/espn-news-proxy && npx wrangler deploy`
-   ESPN's host is **blocked from the sandbox**, so the exact endpoint/response shape is **unverified** — `fetchPlayerNews` parses defensively and the section hides when empty. If it stays blank after deploy, grab a sample (`https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3` = Josh Allen) and tune the parser/endpoint in `src/data.ts`.
-2. **Point the remaining in-page-card tables at the shared player detail** — `RookieProspectsView`, `RookieCareerBacktest`, `ZapComparison` still open their own internal `setSelectedPlayer` card instead of `PlayerName`→detail page. Left as-is to avoid changing existing behavior; convert if a single card experience is wanted.
+1. **ESPN news worker — DEPLOYED ✅ (verify shape in-browser).** The
+   `deploy-workers.yml` CI workflow (PR #380) published `espn-news-proxy` to
+   `https://espn-news-proxy.dachhack.workers.dev` on 2026-06-09 (run succeeded;
+   `CLOUDFLARE_API_TOKEN` secret is configured). No local terminal needed —
+   it auto-deploys on `workers/espn-news-proxy/**` changes to the base branch,
+   or via the workflow's "Run workflow" button. **Still unverified:** ESPN's
+   host is blocked from the sandbox *and so is `*.workers.dev`*, so the live
+   response shape was never confirmed end-to-end. The chain is wired
+   (`PlayerDetail` → `fetchPlayerOverview` → worker, keyed on crosswalk
+   `espn_id`) and `fetchPlayerOverview` parses defensively (handles the
+   worker-slimmed `{articles,rotowire,fantasy,awards,statistics}` shape *and* a
+   raw-overview passthrough). **To verify:** open any player-detail page with an
+   `espn_id` on the live site and check the Recent News section; if it's blank,
+   fetch `https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3`
+   (Josh Allen) from a browser/unrestricted shell and tune `parseNews` /
+   `parseFantasy` in `src/data.ts` to the real keys.
+2. **Point the remaining in-page-card tables at the shared player detail** — ✅
+   done. `RookieProspectsView`, `RookieCareerBacktest`, `ZapComparison` now use
+   `PlayerName` links to the shared detail page, with a `📊` `ModelCardButton`
+   that still opens the rich prospect `PlayerCard`.
 
 ### 🔭 Known / optional to-dos
 - **Snooper per-season "Objective" column** (Win-Now/Rebuild in the Leagues table) still uses **current** KTC on past rosters → approximate for old years. The by-year *chart* already uses the better age+pos+proj proxy (`computeRosterWindowProxy`); could switch the table column to it too.
-- **gsis-less rookies**: Sleeper id is backfilled only for players in the **FantasyCalc** set; deeper rookies stay unresolved until they get a `gsis_id`. Could extend the backfill to the full Sleeper players list.
+- ~~**gsis-less rookies**: Sleeper id backfilled only from the FantasyCalc set~~ — ✅ done. A second backfill pass now runs off the full Sleeper players list (`public/data/sleeper-players.json`, refreshed by `fetch-sleeper-players.yml`); `build-player-crosswalk.py` matches gsis-less records by unique (name, position). Lifted sleeper_id coverage 4945→6101.
 - **Power-ranking value source**: league power rankings (`scoreRoster`) still use **raw 1QB KTC** (`fetchKTCRankings`), while waiver/roster stats use **blended** value + an SF toggle. Consider unifying power rankings to blended + SF for SF leagues.
 - **Historical window proxy** uses one age curve; QBs age slower — per-position age curves would sharpen old-year objective classification.
 - **Dormant features**: `ChatDrawer` (Ask Claude) + `SettingsModal` are mounted but have no triggers (FAB/gear removed in #355). SportsDataIO news/odds now need settings re-exposed. Re-add buttons to restore.
@@ -217,19 +316,19 @@ To release `0.2.0` (includes the three new helpers):
 
 ## Open work items (ranked by leverage)
 
-1. **Post-draft rookie key-promotion** — time-sensitive (draft ~just happened). Script to diff nflverse rosters; when a 2026 rookie lands on an NFL roster, add their GSIS as an alias on the existing `COL:` synthetic crosswalk record (or promote canonical to the GSIS-based key and keep COL as alias). Otherwise KTC / ADP / career_2026 show the same player under two keys.
+1. ~~**Post-draft rookie key-promotion**~~ — ✅ done. `build-player-crosswalk.py` diffs the previous build's COL records; when a synthetic-COL rookie gains an nflverse gsis it rebinds to the spine record and stamps the old COL key into `alias_keys` (runtime `lookupByKey` fans `alias_keys` into `byKey`, so stale/bookmarked old keys still resolve). Back-references now also **carry forward across rebuilds** so they persist permanently (they previously evaporated on the next daily rebuild). Ambiguous/vanished cases fail-closed into `player-promotions.json`.
 
-2. **CI-run `scripts/build-player-crosswalk.py`** on every data refresh. Today it only runs when I invoke it; the daily KTC snapshot + weekly roster fetch don't rebuild the crosswalk. Add a step to `.github/workflows/refresh-data.yml` (or the auto-commit workflow).
+2. ~~**CI-run `scripts/build-player-crosswalk.py`**~~ — ✅ (partial). `fetch-sleeper-players.yml` now rebuilds + commits the crosswalk daily (06:45 UTC). Remaining: the KTC snapshot + weekly roster fetch still don't trigger a rebuild — fold a rebuild step into `refresh-data.yml` for full coverage.
 
-3. **Player detail page** at `/player/sh_<key>` that merges every table (career pred + ADP history chart + KTC trend + game logs + scout grades + all IDs). Biggest visible UX win; now trivially joinable via `player_key`.
+3. ~~**Player detail page** at `/player/sh_<key>`~~ — ✅ done (shipped pre-this-session; `PlayerDetail.tsx` merges crosswalk IDs + career pred + ADP + KTC trend + news + game logs). This session pointed the last in-page-card tables at it via `PlayerName`.
 
 4. **Refresh `adp_ffc` coverage** — only 2025 committed (sandbox firewall blocked FFC API). Run `bash scripts/pull-all-data-sources.sh` from an unrestricted environment to pull 2018-2024 + 2026.
 
-5. **Consolidate the 4 `normalizeName` copies** in UI components (RookieProspectsView, ZapComparison, MyProspectRankings, PlayerCard) into a single shared util that accepts `player_key` with name fallback.
+5. ~~**Consolidate the `normalizeName` copies**~~ — ✅ done. The nine byte-identical copies are now in `src/lib/nameMatch.ts` (three behavioral families: `normalizeForMatch`, `normalizeNameSimple`, `normalizeNameUnicode`). Behavior-preserving. Three genuinely-divergent one-offs (StatProjections, TradeCalculator, ADPOutcomes) + the smarter `featureTypes.normalizeName` left as-is. (The "accepts player_key with name fallback" idea — a crosswalk-aware resolver — was not built; lower value now that names route through the crosswalk anyway.)
 
-6. **Re-key `feature-store/*.json` shards** by `player_key::season` instead of `name::season`. Big refactor but cleaner long-term.
+6. **Re-key `feature-store/*.json` shards** by `player_key::season` instead of `name::season`. Big refactor but cleaner long-term. (Still open — confirm appetite first.)
 
-7. **Alias-conflict detection** — flag canonical crosswalk records whose alias entries disagree on DOB or college. No-op today, tripwire for future merges.
+7. ~~**Alias-conflict detection**~~ — ✅ done. `build-player-crosswalk.py` emits `player-conflicts.json` flagging any gsis_id with >1 distinct birth_date across roster rows (42 today, mostly minor nflverse date noise). College was dropped as a signal (~675 formatting/transfer false positives). Tripwire for future bad merges; committed by both refresh workflows.
 
 ## Known quirks / gotchas
 

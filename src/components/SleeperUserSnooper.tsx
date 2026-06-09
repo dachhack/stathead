@@ -7,6 +7,7 @@ import { PlayerName } from './PlayerName';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
+import { normalizeForMatch } from '../lib/nameMatch';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -114,9 +115,6 @@ function SnoopPlayerLine({ p }: { p: RosterPlayer }) {
 
 type WindowLabel = 'Win-Now' | 'Contender' | 'Balanced' | 'Retooling' | 'Rebuild';
 
-function normalizeForMatch(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
-}
 
 interface RosterScore {
   label: WindowLabel;
@@ -335,37 +333,12 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
   );
 }
 
-function computeRosterWindow(
-  playerIds: string[],
-  sleeperPlayers: Map<string, SleeperPlayer>,
-  ktc: KTCPlayer[],
-): WindowLabel | null {
-  const ktcByName = new Map<string, KTCPlayer>();
-  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
-
-  let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, matched = 0;
-  for (const pid of playerIds) {
-    const sp = sleeperPlayers.get(pid);
-    if (!sp || !sp.position || sp.position === 'DEF') continue;
-    const k = ktcByName.get(normalizeForMatch(sp.full_name));
-    if (!k || k.value <= 0) continue;
-    matched++;
-    totalValue += k.value;
-    if (k.age <= 24) youngValue += k.value;
-    else if (k.age <= 27) primeValue += k.value;
-    else agingValue += k.value;
-  }
-  if (!matched) return null;
-
-  const youngPct = (youngValue / totalValue) * 100;
-  const primePct = (primeValue / totalValue) * 100;
-  const agingPct = (agingValue / totalValue) * 100;
-
-  if (agingPct >= 40) return 'Win-Now';
-  if (agingPct + primePct >= 65 && youngPct < 35) return 'Contender';
-  if (youngPct >= 55) return 'Rebuild';
-  if (youngPct >= 40) return 'Retooling';
-  return 'Balanced';
+// PPR projection map (current-season talent signal) keyed by Sleeper id —
+// shared by the by-year Objective chart and the Leagues-table Objective column.
+function buildProjByPlayer(projections: ClayPlayer[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const p of projections) if (p.sleeperId) m.set(p.sleeperId, computePpr(p));
+  return m;
 }
 
 // Historical window proxy: we have no historical dynasty values, so approximate
@@ -375,6 +348,19 @@ function computeRosterWindow(
 // the bucket — which is exactly the contender↔rebuild axis.
 const SNOOP_CURRENT_YEAR = new Date().getFullYear();
 const POS_BASE: Record<string, number> = { QB: 7, RB: 6, WR: 7, TE: 5 };
+
+// Per-position young/prime/aging age cutoffs (inclusive upper bounds): a player
+// is "young" at age ≤ young, "prime" at young < age ≤ prime, "aging" above that.
+// Aging curves differ sharply by position — RBs cliff earliest, QBs latest — so
+// a single curve mislabels QB-heavy vs RB-heavy rosters on the win-now↔rebuild
+// axis. Roughly: RB peak ~24-26 / decline 27+, WR ~25-28 / 29+, TE ~26-29 / 30+,
+// QB ~27-32 / 33+.
+const POS_AGE_BUCKETS: Record<string, { young: number; prime: number }> = {
+  QB: { young: 26, prime: 32 },
+  RB: { young: 23, prime: 26 },
+  WR: { young: 24, prime: 28 },
+  TE: { young: 25, prime: 29 },
+};
 
 function computeRosterWindowProxy(
   playerIds: string[],
@@ -394,10 +380,11 @@ function computeRosterWindowProxy(
     // has no current projection (e.g. since retired) so they still count by age.
     const talentMult = proj && proj > 0 ? Math.min(1.6, Math.max(0.3, proj / 150)) : 0.7;
     const value = POS_BASE[sp.position] * talentMult;
+    const bucket = POS_AGE_BUCKETS[sp.position];
     matched++;
     totalValue += value;
-    if (ageThen <= 24) youngValue += value;
-    else if (ageThen <= 27) primeValue += value;
+    if (ageThen <= bucket.young) youngValue += value;
+    else if (ageThen <= bucket.prime) primeValue += value;
     else agingValue += value;
   }
   if (matched < 3 || totalValue <= 0) return null;
@@ -678,11 +665,7 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
 
   // Current projected PPR points by sleeper id — the talent signal for the
   // historical window proxy.
-  const projByPlayer = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of projections) if (p.sleeperId) m.set(p.sleeperId, computePpr(p));
-    return m;
-  }, [projections]);
+  const projByPlayer = useMemo(() => buildProjByPlayer(projections), [projections]);
 
   // ── Stacked bar chart data (raw counts, fixed 2020 → current x-axis) ──
   const seasons = useMemo(() => chartSeasons(), []);
@@ -708,8 +691,8 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
 
   const hasDynasty = useMemo(() => history.some((r) => r.format.type === 'Dynasty'), [history]);
 
-  // Window classification uses current KTC values on each season's roster, so
-  // older years (retired players, missing values) are approximate.
+  // Window classification uses the age+position+projection proxy (no historical
+  // dynasty values exist), reconstructing each player's age at that season.
   const objectiveChartData = useMemo(() => {
     if (!hasDynasty || !players.size) return [];
     return seasons.map((season) => {
@@ -797,7 +780,7 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
           {objectiveChartData.length > 0 && (
             <StackedYearChart
               title="Dynasty Team Objective by Year"
-              subtitle="No historical values exist, so each roster's window is proxied from age-at-season (reconstructed) weighted by position + current projections."
+              subtitle="No historical values exist, so each roster's window is proxied from age-at-season (reconstructed, per-position aging curves) weighted by position + current projections."
               data={objectiveChartData}
               series={[
                 { key: 'Win-Now', color: '#ef4444' },
@@ -1009,18 +992,26 @@ export function SleeperUserSnooper() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [ownership]);
 
+  // PPR talent signal feeding the historical window proxy below.
+  const projByPlayer = useMemo(() => buildProjByPlayer(projections), [projections]);
+
   // Window labels (the rebuilding/contending framework) only apply to dynasty
   // leagues; redraft/keeper leagues are judged on projected score instead.
+  // No historical dynasty values exist, so each roster's window is proxied from
+  // age-at-season (reconstructed) weighted by position + current projections —
+  // the same proxy the by-year Objective chart uses, so the table column and
+  // chart always agree (and it stays accurate on past seasons, where current
+  // KTC values/ages don't reflect the roster as it was then).
   const rosterWindows = useMemo(() => {
-    if (!result || !ktc.length || !players.size) return new Map<string, WindowLabel>();
+    if (!result || !players.size) return new Map<string, WindowLabel>();
     const map = new Map<string, WindowLabel>();
     for (const r of result.rosters) {
       if (!r.isDynasty) continue;
-      const w = computeRosterWindow(r.players, players, ktc);
+      const w = computeRosterWindowProxy(r.players, players, projByPlayer, season);
       if (w) map.set(r.leagueId, w);
     }
     return map;
-  }, [result, ktc, players]);
+  }, [result, players, projByPlayer, season]);
 
   const windowBreakdown = useMemo(() => {
     const counts = new Map<WindowLabel, number>();
@@ -1192,7 +1183,7 @@ export function SleeperUserSnooper() {
           </p>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
-              <thead><tr><th>League</th><th>Objective</th><th>Format</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
+              <thead><tr><th>League</th><th title="Win-Now ↔ Rebuild window. No historical dynasty values exist, so each roster is proxied from age-at-season (reconstructed, per-position aging curves) weighted by position + current projections — matching the by-year Objective chart.">Objective</th><th>Format</th><th>Teams</th><th>Record</th><th>PF</th><th>Status</th></tr></thead>
               <tbody>
                 {result.rosters.sort((a, b) => b.pointsFor - a.pointsFor).map((r) => {
                   const lg = result.leagues.find((l) => l.league_id === r.leagueId);

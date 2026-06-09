@@ -12,6 +12,7 @@ import {
   Label,
 } from 'recharts';
 import { fetchDraftPicks, fetchPlayerStats, aggregateToSeasonTotals, fetchEspnADP, fetchFfcADP } from '../data';
+import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
 
 
 interface RookieRBData {
@@ -419,10 +420,3 @@ export function RookieRBChart() {
   );
 }
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}

@@ -12,6 +12,7 @@ import type {
   SDIOProjection,
 } from '../types';
 import prospectGrades from '../data/prospect-grades-2026.json';
+import { normalizeNameUnicode as normalizeName } from '../lib/nameMatch';
 
 // ── Types ──
 
@@ -109,16 +110,6 @@ const MODEL_TIER_MAP: Record<number, { label: string; color: string }> = {
   6: { label: 'Longshot',    color: '#ef4444' },
 };
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[.\-'\u2018\u2019\u201A\u201B\u2032`\u00B4]/g, '')
-    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function makeId(name: string, pos: string): string {
   return `${normalizeName(name)}:${pos}`;
