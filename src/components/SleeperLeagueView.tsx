@@ -174,7 +174,15 @@ function normalizeForMatch(name: string): string {
   return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
 }
 
-function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[]): RosterScore | null {
+/** Pick the dynasty value matching the league format. SF/2QB leagues use the
+ *  superflex value (QBs are worth far more); 1QB leagues use the base value.
+ *  Mirrors the per-player + waiver value selection so power rankings,
+ *  Win-Now/Rebuild scoring, and roster stats all agree. */
+function ktcValue(k: KTCPlayer, isSuperflex: boolean): number {
+  return isSuperflex ? k.superflexValue : k.value;
+}
+
+function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[], isSuperflex: boolean): RosterScore | null {
   const ktcByName = new Map<string, KTCPlayer>();
   for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
 
@@ -189,14 +197,16 @@ function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[]): RosterScore | null {
 
   for (const p of allPlayers) {
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (!k || k.value <= 0) continue;
+    if (!k) continue;
+    const val = ktcValue(k, isSuperflex);
+    if (val <= 0) continue;
     matchedCount++;
-    totalValue += k.value;
+    totalValue += val;
     ageSum += k.age;
-    assets.push({ name: p.name, value: k.value, age: k.age });
-    if (k.age <= 24) youngValue += k.value;
-    else if (k.age <= 27) primeValue += k.value;
-    else agingValue += k.value;
+    assets.push({ name: p.name, value: val, age: k.age });
+    if (k.age <= 24) youngValue += val;
+    else if (k.age <= 27) primeValue += val;
+    else agingValue += val;
   }
 
   if (!matchedCount) return null;
@@ -289,6 +299,7 @@ function computePositionalStrength(
   team: LeagueTeam,
   ktcByName: Map<string, KTCPlayer>,
   mode: ViewMode,
+  isSuperflex: boolean,
 ): PositionalStrength {
   let players: RosterPlayer[];
   if (mode === 'starters') {
@@ -318,12 +329,14 @@ function computePositionalStrength(
   const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
   for (const p of players) {
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (!k || k.value <= 0) continue;
+    if (!k) continue;
+    const val = ktcValue(k, isSuperflex);
+    if (val <= 0) continue;
     const pos = p.position?.toUpperCase();
-    if (pos === 'QB') str.qb += k.value;
-    else if (pos === 'RB') str.rb += k.value;
-    else if (pos === 'WR') str.wr += k.value;
-    else if (pos === 'TE') str.te += k.value;
+    if (pos === 'QB') str.qb += val;
+    else if (pos === 'RB') str.rb += val;
+    else if (pos === 'WR') str.wr += val;
+    else if (pos === 'TE') str.te += val;
   }
   return str;
 }
@@ -406,6 +419,7 @@ function computeTeamProjPts(
 interface LeaguePowerProps {
   teams: LeagueTeam[];
   ktc: KTCPlayer[];
+  isSuperflex: boolean;
   projBySleeperIdMap: Map<string, number>;
   isDynasty: boolean;
   selected: number | null;
@@ -413,7 +427,7 @@ interface LeaguePowerProps {
   onNavigate?: (tab: Tab) => void;
 }
 
-function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
+function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('starters');
   const [dynastySortBy, setDynastySortBy] = useState<'value' | 'proj'>('value');
   // Redraft leagues are always ranked on projected season points.
@@ -427,9 +441,9 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty, select
     for (const t of teams) {
       const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
       if (isDynasty) {
-        const score = scoreRoster(t, ktc);
+        const score = scoreRoster(t, ktc, isSuperflex);
         if (!score) continue;
-        const posStrength = computePositionalStrength(t, ktcByName, viewMode);
+        const posStrength = computePositionalStrength(t, ktcByName, viewMode, isSuperflex);
         out.push({ team: t, score, posStrength, projPts });
       } else {
         const posStrength = computePositionalProjStrength(t, projBySleeperIdMap, viewMode);
@@ -439,7 +453,7 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty, select
     if (sortBy === 'value') out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
     else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [teams, ktc, projBySleeperIdMap, viewMode, sortBy, isDynasty]);
+  }, [teams, ktc, isSuperflex, projBySleeperIdMap, viewMode, sortBy, isDynasty]);
 
   if (!rows.length) return null;
 
@@ -1246,6 +1260,11 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return pos.includes('SUPER_FLEX') || pos.filter((p) => p === 'QB').length >= 2;
   }, [data]);
 
+  // Power rankings + Win-Now/Rebuild scoring run on the same blended (FC-scale)
+  // values shown per-player, falling back to raw KTC only if the rescaled list
+  // failed to load. SF awareness is handled downstream via isSuperflex.
+  const powerKtc = useMemo(() => (blended.length ? blended : ktc), [blended, ktc]);
+
   // Blended dynasty value + FantasyCalc 30-day trend, keyed by normalized name.
   const blendedByName = useMemo(() => {
     const m = new Map<string, KTCPlayer>();
@@ -1500,10 +1519,11 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             <br />Roster: {rosterFormat(data.league.roster_positions)}
           </p>
 
-          {ktc.length > 0 && (
+          {powerKtc.length > 0 && (
             <LeaguePowerRankings
               teams={data.teams}
-              ktc={ktc}
+              ktc={powerKtc}
+              isSuperflex={isSuperflex}
               projBySleeperIdMap={projBySleeperIdMap}
               isDynasty={isDynasty}
               selected={selected}
@@ -1575,7 +1595,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               <div className="sched-section-title" style={{ marginTop: 16 }}>
                 Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
-              {isDynasty && ktc.length > 0 && (() => { const s = scoreRoster(selectedTeam, ktc); return s ? <WindowBadge score={s} /> : null; })()}
+              {isDynasty && powerKtc.length > 0 && (() => { const s = scoreRoster(selectedTeam, powerKtc, isSuperflex); return s ? <WindowBadge score={s} /> : null; })()}
 
               {optimalLineup && (
                 <div style={{ margin: '8px 0 12px', padding: '10px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
