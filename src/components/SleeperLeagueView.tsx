@@ -3,7 +3,7 @@ import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchKTCRankings, fetchSleeperTrending } from '../data';
+import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerLink } from './PlayerLink';
@@ -13,7 +13,7 @@ import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type Trade
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
 
-function PlayerLine({ p }: { p: RosterPlayer }) {
+function PlayerLine({ p, proj, value, trend }: { p: RosterPlayer; proj?: number; value?: number; trend?: number | null }) {
   return (
     <div className="sl-player">
       <span className="sl-slot">{p.slot}</span>
@@ -27,6 +27,17 @@ function PlayerLine({ p }: { p: RosterPlayer }) {
           <img src={teamLogoUrl(p.team)} alt="" width={16} height={16} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> {p.team}
         </span>
       )}
+      <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, whiteSpace: 'nowrap' }}>
+        {proj != null && proj > 0 && (
+          <span title="Projected season points" style={{ color: '#6366f1', fontWeight: 600 }}>{proj.toFixed(0)}<span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>pt</span></span>
+        )}
+        {value != null && value > 0 && (
+          <span title="Dynasty value (blended)" style={{ color: 'var(--text-secondary)' }}>{value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}</span>
+        )}
+        {trend != null && trend !== 0 && (
+          <span title="30-day dynasty value trend" style={{ color: trend > 0 ? '#22c55e' : '#ef4444' }}>{trend > 0 ? '+' : ''}{trend.toLocaleString()}</span>
+        )}
+      </span>
     </div>
   );
 }
@@ -979,6 +990,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [blended, setBlended] = useState<KTCPlayer[]>([]); // blended dynasty value (KTC→FC scale)
+  const [fcTrend, setFcTrend] = useState<KTCPlayer[]>([]); // FantasyCalc, for 30-day value trend
   const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
   const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
 
@@ -995,6 +1008,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
       setMatchups(m); setTeamProj(tp); setKtc(k);
     });
+    fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
+    fetchFantasyCalcRankings('1qb').then(setFcTrend).catch(() => {});
     loadClayProjections().then(setAllProjections);
   }, []);
 
@@ -1062,6 +1077,30 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
 
   const scoring = data?.league.scoring_settings ?? {};
   const isDynasty = isDynastyLeague(data?.league);
+  const isSuperflex = useMemo(() => {
+    const pos = data?.league.roster_positions ?? [];
+    return pos.includes('SUPER_FLEX') || pos.filter((p) => p === 'QB').length >= 2;
+  }, [data]);
+
+  // Blended dynasty value + FantasyCalc 30-day trend, keyed by normalized name.
+  const blendedByName = useMemo(() => {
+    const m = new Map<string, KTCPlayer>();
+    for (const k of blended) m.set(normalizeForMatch(k.playerName), k);
+    return m;
+  }, [blended]);
+  const trendByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of fcTrend) if (p.trend30Day != null) m.set(normalizeForMatch(p.playerName), p.trend30Day);
+    return m;
+  }, [fcTrend]);
+  const playerStat = (p: RosterPlayer): { proj?: number; value?: number; trend?: number | null } => {
+    const k = blendedByName.get(normalizeForMatch(p.name));
+    return {
+      proj: projBySleeperIdMap.get(p.id),
+      value: k ? (isSuperflex ? k.superflexValue : k.value) : undefined,
+      trend: trendByName.get(normalizeForMatch(p.name)) ?? null,
+    };
+  };
 
   const projBySleeperIdMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -1391,14 +1430,17 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                 </div>
               )}
 
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', margin: '2px 0 4px' }}>
+                Per player: <span style={{ color: '#6366f1' }}>projected pts</span> · dynasty value{isSuperflex ? ' (SF)' : ''} · <span style={{ color: '#22c55e' }}>30-day trend</span>
+              </div>
               <div className="sl-roster-grid">
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Starters</div>
-                  {selectedTeam.starters.map((p, i) => <PlayerLine key={`s${i}`} p={p} />)}
+                  {selectedTeam.starters.map((p, i) => <PlayerLine key={`s${i}`} p={p} {...playerStat(p)} />)}
                 </div>
                 <div className="sl-roster-col">
                   <div className="sl-col-head">Bench</div>
-                  {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} />)
+                  {selectedTeam.bench.length ? selectedTeam.bench.map((p, i) => <PlayerLine key={`b${i}`} p={p} {...playerStat(p)} />)
                     : <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '6px 0' }}>No bench players.</div>}
                   {isDynasty && (
                     <RosterPicks
