@@ -5,6 +5,8 @@ import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
+import { PlayerName } from './PlayerName';
+import { ModelCardButton } from './ModelCardButton';
 import { normalizeName } from '../lib/featureTypes';
 import zapScores2026 from '../data/zap-scores-2026.json';
 import zapScores2025 from '../data/zap-scores-2025.json';
@@ -586,7 +588,7 @@ export function ZapComparison() {
             {filtered.map((r, i) => (
               <tr key={`${r.name}-${i}`}>
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{r.zapRank}</td>
-                <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
+                <td><PlayerName name={r.name} position={r.pos} style={{ fontWeight: 700 }} /><ModelCardButton onClick={() => setSelectedPlayer(r)} /></td>
                 <td><span style={{ color: POS_COLORS[r.pos], fontWeight: 600 }}>{r.pos}</span></td>
                 <td style={{ textAlign: 'right', fontWeight: 700, color: tierColor(r.zapScore) }}>
                   {r.zapScore.toFixed(1)}

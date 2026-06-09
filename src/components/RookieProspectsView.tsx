@@ -4,7 +4,8 @@ import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay } from '
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
+import { ModelCardButton } from './ModelCardButton';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
 
@@ -768,8 +769,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               <tr key={`${r.name}-${i}`}>
                 <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
                 <td>
-                  <strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong>
-                  <PlayerLink name={r.name} position={r.pos} />
+                  <PlayerName name={r.name} position={r.pos} style={{ fontWeight: 700 }} />
+                  <ModelCardButton onClick={() => setSelectedPlayer(r)} />
                 </td>
                 <td>
                   <span className={`pos-badge pos-${r.pos}`}>{r.pos}</span>

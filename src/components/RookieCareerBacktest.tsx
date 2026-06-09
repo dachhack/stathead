@@ -6,6 +6,8 @@ import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { normalizeName } from '../lib/featureTypes';
 import { PlayerCard } from './PlayerCard';
+import { PlayerName } from './PlayerName';
+import { ModelCardButton } from './ModelCardButton';
 import zapScores2023 from '../data/zap-scores-2023.json';
 import zapScores2026 from '../data/zap-scores-2026.json';
 
@@ -777,7 +779,7 @@ export function RookieCareerBacktest() {
               return (
                 <tr key={`${r.name}-${r.draftSeason}-${i}`}>
                   <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{i + 1}</td>
-                  <td><strong style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--border)' }} onClick={() => setSelectedPlayer(r)}>{r.name}</strong></td>
+                  <td><PlayerName name={r.name} position={r.position} style={{ fontWeight: 700 }} /><ModelCardButton onClick={() => setSelectedPlayer(r)} /></td>
                   <td><span style={{ color: POS_COLORS[r.position] || 'var(--text-secondary)', fontWeight: 600 }}>{r.position}</span></td>
                   <td>{r.draftSeason}</td>
                   <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
