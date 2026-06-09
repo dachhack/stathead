@@ -15,7 +15,7 @@ import type { ScenarioConfig, SDIOProjection, SleeperPlayer } from '../types';
 import type { ClayPlayer } from './waiverUtils';
 import { computePpr } from './waiverUtils';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from './scenarioEngine';
-import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from './scenarioPresets';
+import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ClayStats } from './scenarioPresets';
 import { normalizeForMatch } from './nameMatch';
 
 export interface ProjectionScenarioOption {
@@ -24,20 +24,9 @@ export interface ProjectionScenarioOption {
   kind: 'preset' | 'saved';
 }
 
-// The Consensus / Consensus-ML presets blend the base projection toward Clay —
-// but here the base already IS Clay, so they'd be no-ops. Offer only the presets
-// that genuinely reshape Clay projections, plus the user's saved scenarios.
-const CLAY_PRESET_IDS = new Set([
-  'preset-rookie-optimistic',
-  'preset-vet-optimistic',
-  'preset-injury-skeptic',
-  'preset-vegas-weighted',
-]);
-
-/** Quick presets (that apply to Clay projections) + saved scenarios. */
+/** All Scenario Builder quick presets + the user's saved scenarios. */
 export function listProjectionScenarios(): ProjectionScenarioOption[] {
   const presets: ProjectionScenarioOption[] = SCENARIO_PRESETS
-    .filter((p) => CLAY_PRESET_IDS.has(p.id))
     .map((p) => ({ id: p.id, name: p.name, kind: 'preset' as const }));
   const saved: ProjectionScenarioOption[] = loadAllScenarios()
     .map((s) => ({ id: s.id, name: s.name, kind: 'saved' as const }));
@@ -89,8 +78,18 @@ function resolveScenario(clay: ClayPlayer[], sdio: SDIOProjection[], optionId: s
   const preset = SCENARIO_PRESETS.find((p) => p.id === optionId);
   if (preset) {
     const clayPpr = new Map<string, number>();
-    for (const c of clay) clayPpr.set(normalizeForMatch(c.name), computePpr(c));
-    return preset.build(sdio, meta, normalizeForMatch, { clayPpr });
+    const clayStats = new Map<string, ClayStats>();
+    for (const c of clay) {
+      const key = normalizeForMatch(c.name);
+      clayPpr.set(key, computePpr(c));
+      clayStats.set(key, {
+        position: c.position, pos_rk: 0, ppr: computePpr(c),
+        pass_yds: c.pass_yds, pass_td: c.pass_td,
+        rush_yds: c.rush_yds, rush_td: c.rush_td,
+        rec: c.rec, rec_yds: c.rec_yds, rec_td: c.rec_td,
+      });
+    }
+    return preset.build(sdio, meta, normalizeForMatch, { clayPpr, clayStats });
   }
   return loadAllScenarios().find((s) => s.id === optionId) ?? null;
 }
