@@ -10,6 +10,7 @@ import {
 } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
+import { loadClayProjections, computePpr } from '../lib/waiverUtils';
 import type { PlayerStats, SleeperPlayer } from '../types';
 
 interface Props {
@@ -173,6 +174,12 @@ const NORM = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
 function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
   const [players, setPlayers] = useState<SleeperPlayer[]>([]);
+  // Consensus (Clay) projected PPR points, keyed by sleeper id and (fallback)
+  // normalized name, so each roster slot can show + sort by projection.
+  const [projById, setProjById] = useState<Map<string, number>>(new Map());
+  const [projByName, setProjByName] = useState<Map<string, number>>(new Map());
+  const [sortMode, setSortMode] = useState<'depth' | 'proj'>('depth');
+
   useEffect(() => {
     let alive = true;
     fetchSleeperPlayers().then((m) => {
@@ -186,11 +193,49 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
     return () => { alive = false; };
   }, [team]);
 
+  useEffect(() => {
+    let alive = true;
+    loadClayProjections().then((clay) => {
+      if (!alive) return;
+      const byId = new Map<string, number>();
+      const byName = new Map<string, number>();
+      for (const c of clay) {
+        const ppr = computePpr(c);
+        if (ppr <= 0) continue;
+        if (c.sleeperId) byId.set(c.sleeperId, ppr);
+        byName.set(NORM(c.name), ppr);
+      }
+      setProjById(byId);
+      setProjByName(byName);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   if (!players.length) return null;
   const self = NORM(selfName);
+  const projFor = (p: SleeperPlayer): number =>
+    projById.get(p.player_id) ?? projByName.get(NORM(p.full_name)) ?? 0;
+
   const groups = (['QB', 'RB', 'WR', 'TE'] as const)
-    .map((pos) => [pos, players.filter((p) => p.position === pos).sort((a, b) => a.full_name.localeCompare(b.full_name))] as const)
+    .map((pos) => {
+      const ps = players.filter((p) => p.position === pos).slice();
+      ps.sort((a, b) => {
+        if (sortMode === 'proj') return projFor(b) - projFor(a);
+        // Depth chart order (1 = starter); unranked players sort last, then name.
+        const da = a.depth_chart_order ?? 999;
+        const db = b.depth_chart_order ?? 999;
+        return da !== db ? da - db : a.full_name.localeCompare(b.full_name);
+      });
+      return [pos, ps] as const;
+    })
     .filter(([, ps]) => ps.length);
+
+  const tabStyle = (active: boolean) => ({
+    padding: '3px 10px', fontSize: 11, cursor: 'pointer', borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: active ? 'var(--accent)' : 'var(--bg-secondary)',
+    color: active ? '#fff' : 'var(--text-muted)',
+  });
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -198,17 +243,30 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
         <img src={teamLogoUrl(team)} alt="" width={20} height={20} style={{ objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         {team} Roster
       </h2>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 10px' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
+        <button style={tabStyle(sortMode === 'depth')} onClick={() => setSortMode('depth')}>Depth Chart</button>
+        <button style={tabStyle(sortMode === 'proj')} onClick={() => setSortMode('proj')}>Proj Pts</button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
         {groups.map(([pos, ps]) => (
           <div key={pos} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: 0.5 }}>{pos}</div>
             {ps.map((p) => {
               const isSelf = NORM(p.full_name) === self;
+              const proj = projFor(p);
               return (
-                <div key={p.player_id} style={{ fontSize: 13, padding: '2px 0' }}>
-                  {isSelf
-                    ? <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{p.full_name}</span>
-                    : <PlayerName sleeperId={p.player_id} name={p.full_name} position={p.position} />}
+                <div key={p.player_id} style={{ fontSize: 13, padding: '2px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isSelf
+                      ? <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{p.full_name}</span>
+                      : <PlayerName sleeperId={p.player_id} name={p.full_name} position={p.position} />}
+                  </span>
+                  {proj > 0 && (
+                    <span title="Projected PPR points (Consensus)" style={{ flexShrink: 0, color: '#6366f1', fontWeight: 600, fontSize: 12 }}>
+                      {proj.toFixed(0)}
+                    </span>
+                  )}
                 </div>
               );
             })}
