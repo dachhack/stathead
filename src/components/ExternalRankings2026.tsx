@@ -4,7 +4,7 @@ import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import { normName, boomPct, bustPct } from '../lib/nameUtils';
 import type { FfcADPPlayer, ScenarioConfig, SDIOProjection } from '../types';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K'];
 const GAMES = 17;
@@ -313,8 +313,8 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
               <tr key={`${r.name}-${r.position}`}>
                 <td className="rank-cell">{i + 1}</td>
                 <td>
-                  <strong>{r.name}</strong>
-                  <PlayerLink name={r.name} position={r.position} />
+                  <strong><PlayerName name={r.name} position={r.position} /></strong>
+                  
                 </td>
                 <td>
                   <span className={`pos-badge pos-${r.position}`}>{r.position}</span>

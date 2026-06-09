@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { PlayerName } from './PlayerName';
 import { bust } from '../lib/buildHash';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
@@ -2450,7 +2451,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               return (
                 <tr key={p.name}>
                   <td style={{ ...tdStyle, color: POS_COLORS[pos], fontWeight: 700 }}>{pos}</td>
-                  <td style={{ ...tdStyle, minWidth: 110, color: editColor }}><strong>{p.name}</strong></td>
+                  <td style={{ ...tdStyle, minWidth: 110, color: editColor }}><strong><PlayerName name={p.name} position={pos} /></strong></td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{p.games}</td>
                   {isQB ? cell('passAtt') : blank('pa')}
                   {isQB ? cell('passComp') : blank('pc')}
@@ -2809,7 +2810,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
-                  <td><strong>{p.name}</strong></td>
+                  <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
                   <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
@@ -2836,7 +2837,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
-                  <td><strong>{p.name}</strong></td>
+                  <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
                   <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
@@ -2862,7 +2863,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
-                  <td><strong>{p.name}</strong></td>
+                  <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
                   <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>
@@ -2888,7 +2889,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               return (
                 <tr key={p.name}>
                   <td className="rank-cell">{i + 1}</td>
-                  <td><strong>{p.name}</strong></td>
+                  <td><strong><PlayerName name={p.name} /></strong></td>
                   <td style={{ color: 'var(--text-muted)' }}>{p.team}</td>
                   <td>{fmtADP(lookupAdpFallback(p.name, p.adp))}</td>
                   <td>{p.games}</td>

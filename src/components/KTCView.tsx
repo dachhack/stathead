@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { KTCPlayer } from '../types';
 import { fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
 
 type FormatMode = '1qb' | 'superflex';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
@@ -197,8 +197,8 @@ export function KTCView({ onDataLoaded }: Props) {
               <tr key={p.slug || `${p.playerName}-${i}`}>
                 <td className="rank-cell">{i + 1}</td>
                 <td>
-                  <strong>{p.playerName}</strong>
-                  <PlayerLink name={p.playerName} position={p.position} />
+                  <strong><PlayerName name={p.playerName} position={p.position} /></strong>
+                  
                   {p.isRookie && (
                     <span
                       style={{

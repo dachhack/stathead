@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import type { Injury } from '../types';
 import { fetchInjuries } from '../data';
 
@@ -144,7 +145,7 @@ export function InjuriesView({ season, onDataLoaded }: { season: number; onDataL
               <tr key={`${r.gsis_id}-${r.week}-${i}`}>
                 <td>{r.week}</td>
                 <td>
-                  <strong>{r.full_name}</strong>
+                  <strong><PlayerName name={r.full_name} position={r.position} /></strong>
                 </td>
                 <td>
                   {r.position ? (
