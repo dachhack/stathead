@@ -233,11 +233,11 @@ To release `0.2.0` (includes the three new helpers):
 
 ## Open work items (ranked by leverage)
 
-1. **Post-draft rookie key-promotion** — time-sensitive (draft ~just happened). Script to diff nflverse rosters; when a 2026 rookie lands on an NFL roster, add their GSIS as an alias on the existing `COL:` synthetic crosswalk record (or promote canonical to the GSIS-based key and keep COL as alias). Otherwise KTC / ADP / career_2026 show the same player under two keys.
+1. ~~**Post-draft rookie key-promotion**~~ — ✅ done. `build-player-crosswalk.py` diffs the previous build's COL records; when a synthetic-COL rookie gains an nflverse gsis it rebinds to the spine record and stamps the old COL key into `alias_keys` (runtime `lookupByKey` fans `alias_keys` into `byKey`, so stale/bookmarked old keys still resolve). Back-references now also **carry forward across rebuilds** so they persist permanently (they previously evaporated on the next daily rebuild). Ambiguous/vanished cases fail-closed into `player-promotions.json`.
 
-2. **CI-run `scripts/build-player-crosswalk.py`** on every data refresh. Today it only runs when I invoke it; the daily KTC snapshot + weekly roster fetch don't rebuild the crosswalk. Add a step to `.github/workflows/refresh-data.yml` (or the auto-commit workflow).
+2. ~~**CI-run `scripts/build-player-crosswalk.py`**~~ — ✅ (partial). `fetch-sleeper-players.yml` now rebuilds + commits the crosswalk daily (06:45 UTC). Remaining: the KTC snapshot + weekly roster fetch still don't trigger a rebuild — fold a rebuild step into `refresh-data.yml` for full coverage.
 
-3. **Player detail page** at `/player/sh_<key>` that merges every table (career pred + ADP history chart + KTC trend + game logs + scout grades + all IDs). Biggest visible UX win; now trivially joinable via `player_key`.
+3. ~~**Player detail page** at `/player/sh_<key>`~~ — ✅ done (shipped pre-this-session; `PlayerDetail.tsx` merges crosswalk IDs + career pred + ADP + KTC trend + news + game logs). This session pointed the last in-page-card tables at it via `PlayerName`.
 
 4. **Refresh `adp_ffc` coverage** — only 2025 committed (sandbox firewall blocked FFC API). Run `bash scripts/pull-all-data-sources.sh` from an unrestricted environment to pull 2018-2024 + 2026.
 
