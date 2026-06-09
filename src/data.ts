@@ -101,6 +101,41 @@ const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 const FC_PROXY = 'https://fc-proxy.dachhack.workers.dev';
 const FC_BASE = IS_PROD ? FC_PROXY : 'https://api.fantasycalc.com';
 
+// CORS proxy for ESPN per-player news (Cloudflare Worker). Deploy
+// workers/espn-news-proxy/. Returns [] until the worker is deployed.
+const ESPN_NEWS_PROXY = 'https://espn-news-proxy.dachhack.workers.dev';
+
+export interface PlayerNewsItem {
+  headline: string;
+  description: string;
+  published: string;
+  link: string;
+}
+
+/** Recent ESPN news for a player by ESPN athlete id. Parses defensively across
+ *  ESPN's response shapes; returns [] on any failure (e.g. worker not deployed). */
+export async function fetchPlayerNews(espnId: string, limit = 8): Promise<PlayerNewsItem[]> {
+  try {
+    const r = await fetch(`${ESPN_NEWS_PROXY}/news/${espnId}?limit=${limit}`);
+    if (!r.ok) return [];
+    const d = (await r.json()) as Record<string, unknown>;
+    const arr = (d.articles ?? d.news ?? d.headlines ?? d.items ?? []) as Record<string, unknown>[];
+    return arr
+      .map((a) => {
+        const links = a.links as { web?: { href?: string } } | undefined;
+        return {
+          headline: String(a.headline ?? a.title ?? a.shortHeadline ?? ''),
+          description: String(a.description ?? a.story ?? a.content ?? ''),
+          published: String(a.published ?? a.lastModified ?? a.date ?? ''),
+          link: String(links?.web?.href ?? a.link ?? a.url ?? ''),
+        };
+      })
+      .filter((x) => x.headline);
+  } catch {
+    return [];
+  }
+}
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
   // In Node, try local file first

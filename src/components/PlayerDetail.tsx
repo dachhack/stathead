@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { usePlayerDetail } from '../hooks/usePlayerDetail';
-import { fetchSleeperPlayers } from '../data';
+import { fetchSleeperPlayers, fetchPlayerNews, type PlayerNewsItem } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import type { PlayerStats, SleeperPlayer } from '../types';
@@ -79,8 +79,58 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
         <GameLogSection season={gameLogSeason} rows={gameLog} position={cw.position} />
       )}
 
+      {cw.espn_id && <NewsSection espnId={cw.espn_id} />}
+
       {(ktcCurrent?.team || gameLog[0]?.recent_team) && (
         <TeamRoster team={(ktcCurrent?.team || gameLog[0]?.recent_team)!} selfName={cw.display_name} />
+      )}
+    </div>
+  );
+}
+
+function newsDate(s: string): string {
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function NewsSection({ espnId }: { espnId: string }) {
+  const [items, setItems] = useState<PlayerNewsItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setLoaded(false);
+    fetchPlayerNews(espnId)
+      .then((n) => { if (alive) { setItems(n); setLoaded(true); } })
+      .catch(() => { if (alive) setLoaded(true); });
+    return () => { alive = false; };
+  }, [espnId]);
+
+  if (loaded && !items.length) return null; // hide when there's no news (or worker not deployed)
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Recent News</h2>
+      {!loaded ? (
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading news…</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {items.map((n, i) => (
+            <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+                {n.link
+                  ? <a href={n.link} target="_blank" rel="noreferrer" style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textDecoration: 'none' }}>{n.headline}</a>
+                  : <span style={{ fontWeight: 700, fontSize: 14 }}>{n.headline}</span>}
+                {n.published && <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{newsDate(n.published)}</span>}
+              </div>
+              {n.description && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{n.description}</p>}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
