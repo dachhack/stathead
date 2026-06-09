@@ -444,6 +444,38 @@ def backfill_sleeper_ids_from_sleeper(records: list[dict[str, Any]]) -> int:
     return n
 
 
+def backfill_espn_ids_from_sleeper(records: list[dict[str, Any]]) -> int:
+    """Fill espn_id on records that lack one, from the Sleeper players list.
+    nflverse rosters only carry espn_id for ~42% of crosswalk players, and none
+    for pre-draft rookies who aren't on an NFL roster yet — but Sleeper ships
+    espn_id for many of them. The join is by the sleeper_id already resolved
+    onto the record (an exact id match, no name guessing), so it only touches
+    players that have a sleeper_id, and it never overwrites an existing espn_id.
+    Run after the sleeper_id backfills so freshly-assigned ids are covered.
+    espn_id is stored as a string to match the nflverse-sourced values."""
+    if not SLEEPER_SNAPSHOT.exists():
+        return 0
+    try:
+        raw = json.loads(SLEEPER_SNAPSHOT.read_text())
+    except Exception:
+        return 0
+    items = raw.get('players', []) if isinstance(raw, dict) else raw
+    sl_to_espn: dict[str, str] = {}
+    for it in items:
+        sid, eid = it.get('player_id'), it.get('espn_id')
+        if sid and eid:
+            sl_to_espn[str(sid)] = str(eid)
+    n = 0
+    for r in records:
+        if r.get('espn_id') or not r.get('sleeper_id'):
+            continue
+        eid = sl_to_espn.get(str(r['sleeper_id']))
+        if eid:
+            r['espn_id'] = eid
+            n += 1
+    return n
+
+
 def main():
     spine, spine_conflicts = build_spine()
     print(f'Spine: {len(spine)} players from nflverse rosters')
@@ -819,6 +851,9 @@ def main():
     n_sl = backfill_sleeper_ids_from_sleeper(records)
     if n_sl:
         print(f'Backfilled sleeper_id on {n_sl} more records from Sleeper players list')
+    n_espn = backfill_espn_ids_from_sleeper(records)
+    if n_espn:
+        print(f'Backfilled espn_id on {n_espn} records from Sleeper players list')
     out = {'version': 1, 'generated_at': None, 'total': len(records),
            'players': records}
     CROSSWALK_OUT.write_text(json.dumps(out, separators=(',', ':')))
