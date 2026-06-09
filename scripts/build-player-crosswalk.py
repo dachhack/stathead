@@ -270,7 +270,12 @@ def match_one(
             all_pos = set(direct[0].get('all_positions') or [cand_pos])
             if position in all_pos or cand_pos in COMPAT.get(position, set()):
                 return ('pos_free', direct)
-        cands = direct  # fall through to the disambiguation below
+            # A single same-name spine record but an incompatible position
+            # (e.g. retired RB Antonio Williams vs rookie WR Antonio Williams).
+            # These are different players — bounce to unresolved instead of
+            # falling through to a 'clean' single-candidate match below.
+            return ('none', [])
+        cands = direct  # >1 same-name records: disambiguate by year/era below
 
     if not cands:
         return ('none', [])
