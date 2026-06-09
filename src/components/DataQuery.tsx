@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDuckDB, runQuery, TABLE_DOCS, EXAMPLE_QUERIES } from '../lib/duckdb';
 import { AskData } from './AskData';
+import { PlayerName } from './PlayerName';
 
 type State =
   | { kind: 'idle' }
@@ -598,6 +599,10 @@ function TableDetailModal({
   );
 }
 
+const NAME_COL_RE = /^(name|player_?name|player)$/i;
+const POS_COL_RE = /^(pos|position)$/i;
+const PLAYER_KEY_COL_RE = /^player_?key$/i;
+
 function ResultTable({ columns, rows }: { columns: string[]; rows: Record<string, unknown>[] }) {
   if (!rows.length) {
     return (
@@ -607,6 +612,9 @@ function ResultTable({ columns, rows }: { columns: string[]; rows: Record<string
     );
   }
   const displayRows = rows.slice(0, 500);
+  const nameCol = columns.find((c) => NAME_COL_RE.test(c));
+  const posCol = columns.find((c) => POS_COL_RE.test(c));
+  const keyCol = columns.find((c) => PLAYER_KEY_COL_RE.test(c));
   return (
     <div style={{
       overflow: 'auto', maxHeight: '60vh',
@@ -632,18 +640,39 @@ function ResultTable({ columns, rows }: { columns: string[]; rows: Record<string
         <tbody>
           {displayRows.map((r, i) => (
             <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-              {columns.map((c) => (
-                <td
-                  key={c}
-                  style={{
-                    padding: '4px 10px', color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}
-                  title={formatVal(r[c])}
-                >
-                  {formatVal(r[c])}
-                </td>
-              ))}
+              {columns.map((c) => {
+                const val = formatVal(r[c]);
+                if (c === nameCol && val) {
+                  return (
+                    <td
+                      key={c}
+                      style={{
+                        padding: '4px 10px', color: 'var(--text-secondary)',
+                        whiteSpace: 'nowrap', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}
+                      title={val}
+                    >
+                      <PlayerName
+                        name={val}
+                        playerKey={keyCol ? formatVal(r[keyCol]) || undefined : undefined}
+                        position={posCol ? formatVal(r[posCol]) || undefined : undefined}
+                      />
+                    </td>
+                  );
+                }
+                return (
+                  <td
+                    key={c}
+                    style={{
+                      padding: '4px 10px', color: 'var(--text-secondary)',
+                      whiteSpace: 'nowrap', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}
+                    title={val}
+                  >
+                    {val}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
