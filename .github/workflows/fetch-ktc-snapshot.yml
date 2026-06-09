@@ -72,6 +72,16 @@ jobs:
           echo "=== history record count ==="
           node -e "const h = require('./public/data/ktc_history.json'); console.log('players:', h.length); console.log('first player history points:', h[0]?.oneQB?.valueHistory?.length); console.log('earliest date:', h[0]?.oneQB?.valueHistory?.[0]?.d); console.log('latest date:', h[0]?.oneQB?.valueHistory?.slice(-1)?.[0]?.d);"
 
+      - name: Rebuild player crosswalk
+        # Fold any new players from the fresh KTC snapshot into the crosswalk
+        # right away, instead of waiting up to 2h for refresh-data.yml to do it.
+        # build-player-crosswalk.py reads the just-fetched ktc_rankings_1qb.json
+        # (plus the committed rosters / feature store) and is pure stdlib Python.
+        # Non-fatal: a crosswalk hiccup must never cost the daily KTC snapshot —
+        # refresh-data.yml rebuilds it within the next 2h regardless.
+        continue-on-error: true
+        run: python3 scripts/build-player-crosswalk.py
+
       - name: Commit snapshot to triggering branch
         if: ${{ inputs.dry_run != 'true' }}
         run: |
@@ -81,6 +91,11 @@ jobs:
           # exceptions that should make a plain `git add` work, but force-add
           # is harmless and defends against any gitignore edge case.
           git add -f public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
+          # Commit the refreshed crosswalk sidecars too (allowlisted in
+          # .gitignore). They only change when the new snapshot introduced a
+          # player; otherwise the diff guard below leaves them out.
+          git add public/data/player-crosswalk.json public/data/player-aliases.json \
+                  public/data/player-promotions.json public/data/player-conflicts.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit — snapshot already matches the tree."
             exit 0
@@ -88,8 +103,9 @@ jobs:
           TARGET_BRANCH="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
           git commit -m "Fetch KTC snapshot ($(date -u +%Y-%m-%d))
 
-          Rankings + per-player value history for the dynasty value model.
-          Fetched by .github/workflows/fetch-ktc-snapshot.yml on branch ${TARGET_BRANCH}.
+          Rankings + per-player value history for the dynasty value model, plus
+          a refreshed player crosswalk. Fetched by
+          .github/workflows/fetch-ktc-snapshot.yml on branch ${TARGET_BRANCH}.
 
           [skip ci]"
           git push origin HEAD:${TARGET_BRANCH}

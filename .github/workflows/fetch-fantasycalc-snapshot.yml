@@ -63,6 +63,16 @@ jobs:
           echo "=== history depth (dynasty_1qb) ==="
           node -e "const h = require('./public/data/fantasycalc_history_dynasty_1qb.json'); console.log('players:', h.length); console.log('first player history points:', h[0]?.valueHistory?.length); console.log('earliest date:', h[0]?.valueHistory?.[0]?.d); console.log('latest date:', h[0]?.valueHistory?.slice(-1)?.[0]?.d);"
 
+      - name: Rebuild player crosswalk
+        # Fold any new players from the fresh FantasyCalc snapshot into the
+        # crosswalk right away, instead of waiting up to 2h for refresh-data.yml.
+        # build-player-crosswalk.py reads the just-fetched fantasycalc_dynasty_sf.json
+        # (plus the committed rosters / feature store) and is pure stdlib Python.
+        # Non-fatal: a crosswalk hiccup must never cost the daily FC snapshot —
+        # refresh-data.yml rebuilds it within the next 2h regardless.
+        continue-on-error: true
+        run: python3 scripts/build-player-crosswalk.py
+
       - name: Commit snapshot to triggering branch
         if: ${{ inputs.dry_run != 'true' }}
         run: |
@@ -70,6 +80,11 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add -f public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json
           git add -f public/data/fantasycalc_history_dynasty_1qb.json public/data/fantasycalc_history_dynasty_sf.json public/data/fantasycalc_history_redraft_1qb.json
+          # Commit the refreshed crosswalk sidecars too (allowlisted in
+          # .gitignore). They only change when the new snapshot introduced a
+          # player; otherwise the diff guard below leaves them out.
+          git add public/data/player-crosswalk.json public/data/player-aliases.json \
+                  public/data/player-promotions.json public/data/player-conflicts.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit — snapshot already matches the tree."
             exit 0
@@ -78,8 +93,8 @@ jobs:
           git commit -m "Fetch FantasyCalc snapshot ($(date -u +%Y-%m-%d))
 
           Current values + appended history point for dynasty 1QB, dynasty SF,
-          and redraft 1QB. Fetched by .github/workflows/fetch-fantasycalc-snapshot.yml
-          on branch ${TARGET_BRANCH}.
+          and redraft 1QB, plus a refreshed player crosswalk. Fetched by
+          .github/workflows/fetch-fantasycalc-snapshot.yml on branch ${TARGET_BRANCH}.
 
           [skip ci]"
           git push origin HEAD:${TARGET_BRANCH}
