@@ -1,9 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { usePlayerDetail } from '../hooks/usePlayerDetail';
-import type { PlayerStats } from '../types';
+import { fetchSleeperPlayers } from '../data';
+import { teamLogoUrl } from '../lib/teamLogo';
+import { PlayerName } from './PlayerName';
+import type { PlayerStats, SleeperPlayer } from '../types';
 
 interface Props {
   playerKey: string;
@@ -75,6 +78,60 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
       {gameLog.length > 0 && gameLogSeason && (
         <GameLogSection season={gameLogSeason} rows={gameLog} position={cw.position} />
       )}
+
+      {(ktcCurrent?.team || gameLog[0]?.recent_team) && (
+        <TeamRoster team={(ktcCurrent?.team || gameLog[0]?.recent_team)!} selfName={cw.display_name} />
+      )}
+    </div>
+  );
+}
+
+const NORM = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+
+function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
+  const [players, setPlayers] = useState<SleeperPlayer[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetchSleeperPlayers().then((m) => {
+      if (!alive) return;
+      const out: SleeperPlayer[] = [];
+      for (const p of m.values()) {
+        if (p.team === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)) out.push(p);
+      }
+      setPlayers(out);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [team]);
+
+  if (!players.length) return null;
+  const self = NORM(selfName);
+  const groups = (['QB', 'RB', 'WR', 'TE'] as const)
+    .map((pos) => [pos, players.filter((p) => p.position === pos).sort((a, b) => a.full_name.localeCompare(b.full_name))] as const)
+    .filter(([, ps]) => ps.length);
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 style={{ fontSize: 16, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <img src={teamLogoUrl(team)} alt="" width={20} height={20} style={{ objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        {team} Roster
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        {groups.map(([pos, ps]) => (
+          <div key={pos} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: 0.5 }}>{pos}</div>
+            {ps.map((p) => {
+              const isSelf = NORM(p.full_name) === self;
+              return (
+                <div key={p.player_id} style={{ fontSize: 13, padding: '2px 0' }}>
+                  {isSelf
+                    ? <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{p.full_name}</span>
+                    : <PlayerName sleeperId={p.player_id} name={p.full_name} position={p.position} />}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

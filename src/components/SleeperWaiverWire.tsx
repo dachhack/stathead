@@ -4,6 +4,7 @@ import { fetchSleeperTrending, fetchKTCRankingsForDisplay, fetchFantasyCalcRanki
 import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
+import { PlayerName } from './PlayerName';
 
 const LS_KEY = 'sleeper_waiver_user';
 
@@ -328,7 +329,7 @@ export function SleeperWaiverWire() {
                     <Fragment key={c.sleeperId}>
                       <tr>
                         <td className="rank-cell">{i + 1}</td>
-                        <td><strong>{c.name}</strong></td>
+                        <td><strong><PlayerName sleeperId={c.sleeperId} name={c.name} position={c.position} /></strong></td>
                         <td><span className={`pos-badge pos-${c.position}`}>{c.position}</span></td>
                         <td>
                           {c.team && c.team !== 'FA' && <img src={teamLogoUrl(c.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
