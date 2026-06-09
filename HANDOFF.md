@@ -56,6 +56,19 @@ rebuilds every 2h), Scenario Builder in the Home menu — all already shipped.
    (2026-06-09). The worker, `fetchPlayerOverview` parser, and crosswalk
    `espn_id` wiring all function; a blank Recent News section just means the
    network is blocking `*.workers.dev` (e.g. a VPN/firewall), not a bug.
+   - **espn_id coverage fix (2026-06-09, commits `2cf26f1`, `5e77d9b`):** news +
+     headshot are gated on `cw.espn_id`, but nflverse rosters only carry it for
+     ~42% of players and **none for pre-draft rookies** (e.g. KC Concepcion
+     showed no news). Two backfills added to `build-player-crosswalk.py`:
+     (a) from **ESPN team rosters** — `scripts/fetch-espn-nfl-ids.mjs` scrapes
+     all 32 rosters (only `site.api.espn.com` is reachable; search/core-api are
+     firewalled) into deterministic `public/data/espn-nfl-ids.json`, the
+     authoritative id source that covers current rookies; (b) from **Sleeper**'s
+     `espn_id` field by resolved `sleeper_id`. Coverage 42%→49%, 94 pre-NFL
+     rookies resolved, KC Concepcion → `4870653`. `download-api-data.sh`
+     refreshes the ESPN file each build (non-fatal) and `refresh-data.yml`
+     commits it, so the crosswalk auto-picks-up new rookie ids. Lands on the
+     live crosswalk within the next 2h `refresh-data` run.
 2. ~~**Refresh `adp_ffc` coverage** (2018-2024 + 2026)~~ — ✅ done (2026-06-09,
    commit `b2a9726`). Real FantasyFootballCalculator PPR ADP for **2018-2024 +
    2026** is now committed (≈157-211 players/season, fully populated
