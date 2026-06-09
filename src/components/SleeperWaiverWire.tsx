@@ -169,7 +169,7 @@ export function SleeperWaiverWire() {
       return cmp || (b.projPpr - a.projPpr); // proj as a stable tiebreak
     });
     return list.slice(0, 80);
-  }, [candidates, posFilter, sortMode]);
+  }, [candidates, posFilter, sortKey, sortDir]);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
