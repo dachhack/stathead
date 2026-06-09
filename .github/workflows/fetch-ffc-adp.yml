@@ -1,0 +1,90 @@
+name: Fetch FFC ADP
+
+# Fetches FantasyFootballCalculator PPR ADP for every covered season and commits
+# the per-season files back to the triggering branch. This is the git source of
+# truth for public/data/ffc_adp_ppr_<year>.json.
+#
+# Why a CI job: fantasyfootballcalculator.com serves these requests fine from
+# GitHub runners but 403s "Host not in allowlist" from the dev sandbox and many
+# other networks, so the fetch can't run locally there. See scripts/fetch-ffc-adp.sh.
+#
+# Historical seasons are immutable, so they're fetched once (when missing) and
+# then skipped; the current draft season (FFC_DYNAMIC_FROM, default 2026) is
+# re-fetched every run. The script never blanks an existing file on a failed or
+# empty response, and the commit step is a no-op when nothing changed.
+#
+# Trigger from the GitHub mobile app: repo -> Actions -> "Fetch FFC ADP" ->
+# "Run workflow" -> pick the branch. Use force_all=true for a one-time full
+# backfill of every season.
+
+on:
+  schedule:
+    # 7:00 AM UTC — after the KTC (6:00) and FantasyCalc (6:30) snapshots.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Re-fetch every season, even immutable historical ones'
+        required: false
+        default: 'false'
+      dry_run:
+        description: 'Fetch only, do not commit (for testing)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-ffc-adp-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Fetch FFC ADP (all covered seasons)
+        env:
+          FFC_FORCE: ${{ inputs.force_all == 'true' && '1' || '0' }}
+        run: bash scripts/fetch-ffc-adp.sh public/data
+
+      - name: Show fetched coverage
+        run: |
+          echo "=== ffc_adp_ppr files ==="
+          for f in public/data/ffc_adp_ppr_*.json; do
+            [ -e "$f" ] || continue
+            n=$(python3 -c "import json,sys;print(len(json.load(open(sys.argv[1])).get('players',[])))" "$f" 2>/dev/null || echo '?')
+            printf '  %s — %s players (%s bytes)\n' "$f" "$n" "$(wc -c < "$f")"
+          done
+
+      - name: Commit FFC ADP to triggering branch
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add public/data/ffc_adp_ppr_*.json
+          if git diff --cached --quiet; then
+            echo "No FFC ADP changes to commit."
+            exit 0
+          fi
+          TARGET_BRANCH="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
+          git commit -m "Fetch FFC PPR ADP ($(date -u +%Y-%m-%d))
+
+          Per-season FantasyFootballCalculator PPR ADP. Fetched by
+          .github/workflows/fetch-ffc-adp.yml on branch ${TARGET_BRANCH}.
+
+          [skip ci]"
+          for i in 1 2 3; do
+            if git push origin HEAD:${TARGET_BRANCH}; then
+              break
+            fi
+            echo "Push attempt $i failed, pulling + retrying..."
+            git pull --rebase origin ${TARGET_BRANCH} || true
+            sleep $((i * 2))
+          done

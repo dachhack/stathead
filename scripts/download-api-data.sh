@@ -8,6 +8,9 @@ set -e
 OUT="public/data"
 mkdir -p "$OUT"
 
+# Browser-ish UA for hosts that reject bare curl (e.g. FFC ADP).
+UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+
 echo "Fetching external API data..."
 
 # ── KTC (always refresh — values change daily) ──
@@ -35,25 +38,48 @@ for season in 2025; do
 done
 
 # ── FFC ADP ──
-# Static historical seasons: skip if cached
+# fantasyfootballcalculator.com 403s "Host not in allowlist" from many networks
+# but serves GitHub runners fine. A bare `curl -sL` exits 0 even on a 403 (it
+# just writes the error body), so use -f and a player-count check: only treat a
+# file as good when it actually parses to a non-empty players array, and never
+# overwrite a good file with an empty/error response.
+ffc_player_count() {
+  python3 -c "import json,sys
+try: print(len(json.load(open(sys.argv[1])).get('players',[])))
+except Exception: print(0)" "$1" 2>/dev/null || echo 0
+}
+fetch_ffc() {
+  local season="$1" outfile="$OUT/ffc_adp_ppr_${season}.json" tmp
+  tmp="$(mktemp)"
+  echo "  Fetching FFC ADP ($season)..."
+  if curl -fsSL -A "$UA" -H 'Accept: application/json' \
+       "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=12&year=${season}" \
+       -o "$tmp" && [ "$(ffc_player_count "$tmp")" -gt 0 ]; then
+    mv "$tmp" "$outfile"
+    echo "  Saved $outfile ($(ffc_player_count "$outfile") players)"
+  else
+    rm -f "$tmp"
+    if [ -s "$outfile" ]; then
+      echo "  WARN: FFC $season fetch failed/empty — keeping existing $outfile"
+    else
+      echo '{"players":[]}' > "$outfile"
+      echo "  WARN: FFC $season fetch failed/empty — wrote empty placeholder"
+    fi
+  fi
+}
+# Static historical seasons: skip only if a non-empty file is already cached
+# (a stale empty/error file from a past 403 gets re-fetched).
 for season in 2025 2024 2023 2022 2021 2020 2019 2018; do
   outfile="$OUT/ffc_adp_ppr_${season}.json"
-  if [ -s "$outfile" ]; then
-    echo "  [cached] $outfile"
+  if [ -s "$outfile" ] && [ "$(ffc_player_count "$outfile")" -gt 0 ]; then
+    echo "  [cached] $outfile ($(ffc_player_count "$outfile") players)"
   else
-    echo "  Fetching FFC ADP ($season)..."
-    curl -sL "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=12&year=${season}" \
-      -o "$outfile" || echo '{"players":[]}' > "$outfile"
-    echo "  Saved $outfile"
+    fetch_ffc "$season"
   fi
 done
 # Dynamic current seasons: always refresh
 for season in 2026; do
-  outfile="$OUT/ffc_adp_ppr_${season}.json"
-  echo "  Fetching FFC ADP ($season)..."
-  curl -sL "https://fantasyfootballcalculator.com/api/v1/adp/ppr?teams=12&year=${season}" \
-    -o "$outfile" || echo '{"players":[]}' > "$outfile"
-  echo "  Saved $outfile"
+  fetch_ffc "$season"
 done
 
 # ── Reddit Sentiment ──
