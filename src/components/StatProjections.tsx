@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { bust } from '../lib/buildHash';
 import {
   fetchFfcADP, fetchPlayerStats, aggregateToSeasonTotals,
   fetchDraftPicks, fetchRosters, fetchGames,
@@ -1054,7 +1055,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         // consistent with our projections and format-agnostic to the source's
         // own points column.
         {
-          const clayDoc = await fetch(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`)
+          const clayDoc = await fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`))
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null);
           const clayRaw = clayDoc?.players;

@@ -1,3 +1,4 @@
+import { bust } from './buildHash';
 export interface ClayPlayer {
   name: string;
   team: string;
@@ -106,8 +107,8 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
   if (clayCache) return clayCache;
 
   const [projRes, cwRes] = await Promise.all([
-    fetch(`${import.meta.env.BASE_URL}data/clay-projections-2026.json`),
-    fetch(`${import.meta.env.BASE_URL}data/player-crosswalk.json`),
+    fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-2026.json`)),
+    fetch(bust(`${import.meta.env.BASE_URL}data/player-crosswalk.json`)),
   ]);
   if (!projRes.ok) return [];
   const projData = (await projRes.json()) as { players?: Record<string, unknown>[] };

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
@@ -1135,8 +1136,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [lastSeasonData, setLastSeasonData] = useState<ClayPlayer[]>([]);
   useEffect(() => {
     Promise.all([
-      fetch(`${import.meta.env.BASE_URL}data/clay-projections-2025.json`),
-      fetch(`${import.meta.env.BASE_URL}data/player-crosswalk.json`),
+      fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-2025.json`)),
+      fetch(bust(`${import.meta.env.BASE_URL}data/player-crosswalk.json`)),
     ]).then(async ([projRes, cwRes]) => {
       if (!projRes.ok) return;
       const projData = await projRes.json() as { players?: Record<string, unknown>[] };
