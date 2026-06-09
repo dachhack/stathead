@@ -28,8 +28,21 @@ interface Candidate {
   availableIn: string[];
 }
 
-type SortMode = 'proj' | 'value' | 'valueTrend' | 'adds';
+type SortKey = 'name' | 'pos' | 'team' | 'proj' | 'value' | 'valueTrend' | 'adds' | 'avail';
+type SortDir = 'asc' | 'desc';
 type TypeFilter = 'all' | 'dynasty' | 'redraft';
+
+const NUMERIC_KEYS: SortKey[] = ['proj', 'value', 'valueTrend', 'adds', 'avail'];
+const SORT_ACCESSOR: Record<SortKey, (c: Candidate) => number | string> = {
+  name: (c) => c.name.toLowerCase(),
+  pos: (c) => c.position,
+  team: (c) => c.team,
+  proj: (c) => c.projPpr,
+  value: (c) => c.ktcValue,
+  valueTrend: (c) => c.ktcTrend ?? 0,
+  adds: (c) => c.adds,
+  avail: (c) => c.availableIn.length,
+};
 
 export function SleeperWaiverWire() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
@@ -41,7 +54,8 @@ export function SleeperWaiverWire() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
-  const [sortMode, setSortMode] = useState<SortMode>('proj');
+  const [sortKey, setSortKey] = useState<SortKey>('proj');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [sf, setSf] = useState(false); // superflex dynasty values
   const [includedIds, setIncludedIds] = useState<Set<string>>(new Set());
@@ -142,14 +156,18 @@ export function SleeperWaiverWire() {
 
   const rows = useMemo(() => {
     let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
-    const keyer: Record<SortMode, (c: Candidate) => number> = {
-      proj: (c) => c.projPpr,
-      value: (c) => c.ktcValue,
-      valueTrend: (c) => c.ktcTrend ?? -1e9,
-      adds: (c) => c.adds,
-    };
-    const k = keyer[sortMode];
-    list = [...list].sort((a, b) => (k(b) - k(a)) || (b.projPpr - a.projPpr));
+    const get = SORT_ACCESSOR[sortKey];
+    const mult = sortDir === 'asc' ? 1 : -1;
+    list = [...list].sort((a, b) => {
+      // Players with no value-trend always sort to the bottom, regardless of dir.
+      if (sortKey === 'valueTrend') {
+        const an = a.ktcTrend == null, bn = b.ktcTrend == null;
+        if (an !== bn) return an ? 1 : -1;
+      }
+      const av = get(a), bv = get(b);
+      const cmp = (typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)) * mult;
+      return cmp || (b.projPpr - a.projPpr); // proj as a stable tiebreak
+    });
     return list.slice(0, 80);
   }, [candidates, posFilter, sortMode]);
 
@@ -159,6 +177,11 @@ export function SleeperWaiverWire() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const onSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(k); setSortDir(NUMERIC_KEYS.includes(k) ? 'desc' : 'asc'); }
   };
 
   const toggleLeague = (id: string) => {
@@ -252,11 +275,7 @@ export function SleeperWaiverWire() {
           </div>
 
           <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Rank by:</span>
-            {([['proj', 'Projected Pts'], ['value', 'Dynasty Value'], ['valueTrend', 'Value Trend'], ['adds', 'Add Trend']] as const).map(([v, label]) => (
-              <button key={v} className={`format-tab ${sortMode === v ? 'active' : ''}`} onClick={() => setSortMode(v)} style={{ padding: '3px 10px', fontSize: 11 }}>{label}</button>
-            ))}
-            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Pos:</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pos:</span>
             {['ALL', 'QB', 'RB', 'WR', 'TE'].map((pos) => (
               <button
                 key={pos}
@@ -267,6 +286,7 @@ export function SleeperWaiverWire() {
                 {pos}
               </button>
             ))}
+            <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)' }}>Click a column to sort.</span>
           </div>
 
           {rows.length === 0 ? (
@@ -276,12 +296,31 @@ export function SleeperWaiverWire() {
               <table className="sched-table" style={{ fontSize: 12 }}>
                 <thead>
                   <tr>
-                    <th>#</th><th>Player</th><th>Pos</th><th>Team</th>
-                    <th title="Consensus PPR projection (full season)">Proj PPR</th>
-                    <th title={`Blended dynasty value — KTC rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})`}>Dyn Value{sf ? ' (SF)' : ''}</th>
-                    <th title="30-day change in dynasty value (FantasyCalc)">Val Trend</th>
-                    <th title="Sleeper adds, last 24h">Adds</th>
-                    <th title="Leagues where this player is unrostered">Available In</th>
+                    {(() => {
+                      const cols: { k: SortKey | null; label: string; title?: string }[] = [
+                        { k: null, label: '#' },
+                        { k: 'name', label: 'Player' },
+                        { k: 'pos', label: 'Pos' },
+                        { k: 'team', label: 'Team' },
+                        { k: 'proj', label: 'Proj PPR', title: 'Consensus PPR projection (full season)' },
+                        { k: 'value', label: `Dyn Value${sf ? ' (SF)' : ''}`, title: `Blended dynasty value — KTC rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})` },
+                        { k: 'valueTrend', label: 'Val Trend', title: '30-day change in dynasty value (FantasyCalc)' },
+                        { k: 'adds', label: 'Adds', title: 'Sleeper adds, last 24h' },
+                        { k: 'avail', label: 'Available In', title: 'Leagues where this player is unrostered' },
+                      ];
+                      return cols.map((col, idx) => col.k == null ? (
+                        <th key={idx}>{col.label}</th>
+                      ) : (
+                        <th
+                          key={idx}
+                          title={col.title}
+                          onClick={() => onSort(col.k!)}
+                          style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', color: sortKey === col.k ? 'var(--accent)' : undefined }}
+                        >
+                          {col.label}{sortKey === col.k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                        </th>
+                      ));
+                    })()}
                   </tr>
                 </thead>
                 <tbody>
