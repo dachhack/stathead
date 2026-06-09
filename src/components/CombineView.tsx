@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import type { CombineResult, SortDirection } from '../types';
 import { fetchCombine } from '../data';
 
@@ -163,7 +164,7 @@ export function CombineView({ onDataLoaded }: { onDataLoaded?: (data: unknown[])
               <tr key={`${r.pfr_id || r.player_name}-${i}`}>
                 <td>{r.season}</td>
                 <td>
-                  <strong>{r.player_name}</strong>
+                  <strong><PlayerName name={r.player_name} position={r.pos} /></strong>
                 </td>
                 <td>
                   <span className={`pos-badge pos-${r.pos}`}>{r.pos}</span>

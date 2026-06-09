@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import type { AdvancedStats, SortDirection } from '../types';
 import { fetchAdvancedStats } from '../data';
 
@@ -213,7 +214,7 @@ export function AdvancedStatsView({ season, onDataLoaded }: { season: number; on
               <tr key={`${r.pfr_player_id}-${r.week}-${i}`}>
                 <td>{r.week}</td>
                 <td>
-                  <strong>{r.pfr_player_name}</strong>
+                  <strong><PlayerName name={r.pfr_player_name} /></strong>
                 </td>
                 <td>{r.team}</td>
                 <td>{r.opponent}</td>

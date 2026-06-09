@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { PlayerName } from './PlayerName';
 import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay, fetchRosters } from '../data';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
@@ -787,7 +788,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
                   }}
                 >
                   <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>{r.rank}</td>
-                  <td style={{ ...td, fontWeight: 600 }}>{r.name}</td>
+                  <td style={{ ...td, fontWeight: 600 }}><PlayerName name={r.name} position={r.pos} /></td>
                   <td style={{ ...td, textAlign: 'center' }}>
                     <span className={`pos-badge pos-${r.pos}`} style={{ fontSize: 10 }}>{r.pos || '—'}</span>
                   </td>

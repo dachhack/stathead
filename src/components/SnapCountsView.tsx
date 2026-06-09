@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import type { SnapCount, SortDirection } from '../types';
 import { fetchSnapCounts } from '../data';
 
@@ -205,7 +206,7 @@ export function SnapCountsView({ season, onDataLoaded }: { season: number; onDat
             {filtered.map((s, i) => (
               <tr key={`${s.pfr_player_id}-${s.week}-${i}`}>
                 <td>
-                  <strong>{s.player}</strong>
+                  <strong><PlayerName name={s.player} position={s.position} /></strong>
                 </td>
                 <td>
                   <span className={`pos-badge pos-${s.position}`}>

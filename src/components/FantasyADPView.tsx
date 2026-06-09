@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import type { SeasonTotals, FantasyRanking, FantasySeasonResult, EspnADPPlayer, FfcADPPlayer, SortDirection, ScenarioConfig } from '../types';
 import { fetchFantasyRankings, buildSeasonResults, fetchEspnADP, fetchFfcADP } from '../data';
 import { ADPOutcomes } from './ADPOutcomes';
@@ -329,7 +330,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
                     {filteredFfc.map((p, i) => (
                       <tr key={`${p.name}-${i}`}>
                         <td className="rank-cell">{p.adp > 0 ? p.adp.toFixed(1) : '-'}</td>
-                        <td><strong>{p.name}</strong></td>
+                        <td><strong><PlayerName name={p.name} position={p.position} /></strong></td>
                         <td>
                           <span className={`pos-badge pos-${p.position}`}>
                             {p.position}
@@ -409,7 +410,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
                     {filteredEspn.map((p) => (
                       <tr key={p.espnId}>
                         <td className="rank-cell">{p.draftRankPpr || '-'}</td>
-                        <td><strong>{p.name}</strong></td>
+                        <td><strong><PlayerName name={p.name} position={p.position} /></strong></td>
                         <td>
                           <span className={`pos-badge pos-${p.position}`}>
                             {p.position}
@@ -610,7 +611,7 @@ export function FantasyADPView({ seasonTotals, loading: parentLoading, onDataLoa
                       {r.ecr != null ? Math.round(r.ecr) : '-'}
                     </td>
                     <td>
-                      <strong>{r.player}</strong>
+                      <strong><PlayerName name={r.player} /></strong>
                     </td>
                     <td>
                       <span className={`pos-badge pos-${r.pos}`}>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FantasyCalcPlayer } from '../types';
 import { fetchFantasyCalcValues } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -93,8 +93,8 @@ export function ConsensusAdpView() {
                   <tr key={r.player.id}>
                     <td className="rank-cell">{r.overallRank}</td>
                     <td>
-                      <strong>{r.player.name}</strong>
-                      <PlayerLink sleeperId={r.player.sleeperId} name={r.player.name} position={r.player.position} />
+                      <strong><PlayerName sleeperId={r.player.sleeperId} name={r.player.name} position={r.player.position} /></strong>
+                      
                     </td>
                     <td><span className={`pos-badge pos-${r.player.position}`}>{r.player.position}{r.positionRank}</span></td>
                     <td>

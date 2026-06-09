@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
@@ -395,7 +396,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <strong>{p.playerName}</strong>
+            <strong><PlayerName name={p.playerName} position={p.position} /></strong>
             <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)' }}>
               {p.position} · {p.team}{p.age ? ` · ${p.age}` : ''}
             </span>
@@ -512,7 +513,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                 onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
               >
                 <span>
-                  <strong>{p.playerName}</strong>
+                  <strong><PlayerName name={p.playerName} position={p.position} /></strong>
                   <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)' }}>
                     {p.position} · {p.team}
                   </span>
@@ -803,7 +804,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                   fontFamily: 'inherit',
                 }}
               >
-                <strong>{player.playerName}</strong>
+                <strong><PlayerName name={player.playerName} position={player.position} /></strong>
                 <span style={{ marginLeft: 4, color: valueColor(getValue(player)), fontWeight: 600 }}>
                   ({getValue(player).toLocaleString()})
                 </span>

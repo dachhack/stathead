@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { PlayerName } from './PlayerName';
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Label, ReferenceLine,
@@ -585,7 +586,7 @@ export function ADPOutcomes() {
             <tbody>
               {tableData.slice(0, 300).map((d, i) => (
                 <tr key={`${d.name}-${d.season}-${i}`}>
-                  <td><strong>{d.name}</strong></td>
+                  <td><strong><PlayerName name={d.name} position={d.position} /></strong></td>
                   <td style={{ color: POS_COLORS[d.position] }}>{d.position}</td>
                   <td>{d.team}</td>
                   <td>{d.season}</td>
