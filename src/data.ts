@@ -94,19 +94,21 @@ async function readLocalFile(filename: string): Promise<string | null> {
 
 // CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/
 // and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
-const KTC_PROXY = import.meta.env.VITE_KTC_PROXY ?? 'https://ktc-proxy.dachhack.workers.dev';
+// NB: `import.meta.env` is undefined outside Vite (e.g. when tsx runs
+// precompute-features.ts), so optional-chain it before reading the override.
+const KTC_PROXY = import.meta.env?.VITE_KTC_PROXY ?? 'https://ktc-proxy.dachhack.workers.dev';
 
 // CORS / allowlist proxy for FantasyCalc (Cloudflare Worker).
 // api.fantasycalc.com returns 403 host_not_allowed to most direct browser
 // requests; the worker fronts the call. Deploy workers/fc-proxy/ and set
 // VITE_FC_PROXY to your worker URL; defaults to the project's worker.
-const FC_PROXY = import.meta.env.VITE_FC_PROXY ?? 'https://fc-proxy.dachhack.workers.dev';
+const FC_PROXY = import.meta.env?.VITE_FC_PROXY ?? 'https://fc-proxy.dachhack.workers.dev';
 const FC_BASE = IS_PROD ? FC_PROXY : 'https://api.fantasycalc.com';
 
 // CORS proxy for ESPN per-player overview/news (Cloudflare Worker). Deploy
 // workers/espn-news-proxy/ and set VITE_ESPN_NEWS_PROXY to your worker URL;
 // defaults to the project's worker. Returns empty data if the worker is down.
-const ESPN_NEWS_PROXY = import.meta.env.VITE_ESPN_NEWS_PROXY ?? 'https://espn-news-proxy.dachhack.workers.dev';
+const ESPN_NEWS_PROXY = import.meta.env?.VITE_ESPN_NEWS_PROXY ?? 'https://espn-news-proxy.dachhack.workers.dev';
 
 export interface PlayerNewsItem {
   headline: string;
