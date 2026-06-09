@@ -1075,12 +1075,6 @@ export function SleeperUserSnooper() {
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{result.user.display_name}</div>
                 <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>@{result.user.username}</div>
               </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <label className="control-label" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Season</label>
-                <select value={season} onChange={(e) => changeSeason(e.target.value)} disabled={loading} style={{ fontSize: 12, padding: '3px 8px', fontFamily: 'inherit' }}>
-                  {recentSeasons(10).map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
             </div>
             <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap', fontSize: 13 }}>
               <div><b>{result.leagues.length}</b> <span style={{ color: 'var(--text-muted)' }}>leagues</span></div>
@@ -1184,7 +1178,15 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Leagues list */}
-          <div className="sched-section-title" style={{ marginTop: 16 }}>Leagues — {season} ({result.leagues.length})</div>
+          <div className="sched-section-title" style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span>Leagues ({result.leagues.length})</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+              <label className="control-label" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Season</label>
+              <select value={season} onChange={(e) => changeSeason(e.target.value)} disabled={loading} style={{ fontSize: 12, padding: '3px 8px', fontFamily: 'inherit' }}>
+                {recentSeasons(10).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </span>
+          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             Click a league name to view standings, power rankings, and rosters.
           </p>
