@@ -3,13 +3,15 @@ import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending } from '../data';
+import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
+import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
+import type { PresetMeta } from '../lib/scenarioPresets';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
@@ -1237,6 +1239,15 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [fcTrend, setFcTrend] = useState<KTCPlayer[]>([]); // FantasyCalc, for 30-day value trend
   const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
   const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
+  // Optional projection scenario (quick preset or saved) overlaid on proj pts.
+  const [projScenarioId, setProjScenarioId] = useState<string>('');
+  const projScenarios = useMemo(() => listProjectionScenarios(), []);
+  const [presetMeta, setPresetMeta] = useState<PresetMeta>(new Map());
+  useEffect(() => {
+    let alive = true;
+    fetchSleeperPlayers().then((m) => { if (alive) setPresetMeta(buildPresetMeta(m)); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // Username → all leagues
   const [username, setUsername] = useState(() => localStorage.getItem(LS_USER_KEY) ?? '');
@@ -1353,13 +1364,17 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const projBySleeperIdMap = useMemo(() => {
     const map = new Map<string, number>();
     const hasCustomScoring = Object.keys(scoring).length > 0;
+    // Scenario-adjusted PPR by name (null when no scenario selected). Custom
+    // scoring leagues keep their own scoring (scenario reshapes PPR only).
+    const adjByName = hasCustomScoring ? null : buildScenarioPprByName(allProjections, projScenarioId, presetMeta);
     for (const p of allProjections) {
-      if (p.sleeperId) {
-        map.set(p.sleeperId, hasCustomScoring ? computeCustomScore(p, scoring) : computePpr(p));
-      }
+      if (!p.sleeperId) continue;
+      const base = hasCustomScoring ? computeCustomScore(p, scoring) : computePpr(p);
+      const adj = adjByName?.get(normalizeForMatch(p.name));
+      map.set(p.sleeperId, adj ?? base);
     }
     return map;
-  }, [allProjections, scoring]);
+  }, [allProjections, scoring, projScenarioId, presetMeta]);
 
   // Total projected season points per roster — drives projected draft order
   // (weakest team picks first) for pick valuation.
@@ -1585,6 +1600,22 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
           </p>
 
           {powerKtc.length > 0 && (
+            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0 0' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Projection scenario:</span>
+              {projScenarios.length > 0 ? (
+                <select
+                  value={projScenarioId}
+                  onChange={(e) => setProjScenarioId(e.target.value)}
+                  style={{ fontSize: 11, padding: '2px 6px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6 }}
+                >
+                  <option value="">None (Consensus)</option>
+                  {projScenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              ) : (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>none saved — build one in Projections → Scenario Builder</span>
+              )}
+            </div>
             <LeaguePowerRankings
               teams={data.teams}
               ktc={powerKtc}
@@ -1595,6 +1626,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               onSelect={setSelected}
               onNavigate={onNavigate}
             />
+            </>
           )}
 
           <div className="sched-section-title" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setStandingsExpanded(!standingsExpanded)}>

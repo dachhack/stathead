@@ -10,7 +10,10 @@ import {
 } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { loadClayProjections, computePpr } from '../lib/waiverUtils';
+import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
+import { normalizeForMatch } from '../lib/nameMatch';
+import type { PresetMeta } from '../lib/scenarioPresets';
 import type { PlayerStats, SleeperPlayer } from '../types';
 
 interface Props {
@@ -174,11 +177,14 @@ const NORM = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
 function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
   const [players, setPlayers] = useState<SleeperPlayer[]>([]);
-  // Consensus (Clay) projected PPR points, keyed by sleeper id and (fallback)
-  // normalized name, so each roster slot can show + sort by projection.
+  // Base Consensus (Clay) projected PPR, keyed by sleeper id + (fallback) name.
   const [projById, setProjById] = useState<Map<string, number>>(new Map());
   const [projByName, setProjByName] = useState<Map<string, number>>(new Map());
+  const [clay, setClay] = useState<ClayPlayer[]>([]);
+  const [presetMeta, setPresetMeta] = useState<PresetMeta>(new Map());
   const [sortMode, setSortMode] = useState<'depth' | 'proj'>('depth');
+  const [projScenarioId, setProjScenarioId] = useState<string>('');
+  const projScenarios = useMemo(() => listProjectionScenarios(), []);
 
   useEffect(() => {
     let alive = true;
@@ -189,17 +195,18 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
         if (p.team === team && ['QB', 'RB', 'WR', 'TE'].includes(p.position)) out.push(p);
       }
       setPlayers(out);
+      setPresetMeta(buildPresetMeta(m));
     }).catch(() => {});
     return () => { alive = false; };
   }, [team]);
 
   useEffect(() => {
     let alive = true;
-    loadClayProjections().then((clay) => {
+    loadClayProjections().then((all) => {
       if (!alive) return;
       const byId = new Map<string, number>();
       const byName = new Map<string, number>();
-      for (const c of clay) {
+      for (const c of all) {
         const ppr = computePpr(c);
         if (ppr <= 0) continue;
         if (c.sleeperId) byId.set(c.sleeperId, ppr);
@@ -207,14 +214,23 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
       }
       setProjById(byId);
       setProjByName(byName);
+      setClay(all);
     }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
+  // Scenario-adjusted PPR by normalized name (null = no scenario selected).
+  const adjByName = useMemo(
+    () => buildScenarioPprByName(clay, projScenarioId, presetMeta),
+    [clay, projScenarioId, presetMeta],
+  );
+
   if (!players.length) return null;
   const self = NORM(selfName);
-  const projFor = (p: SleeperPlayer): number =>
-    projById.get(p.player_id) ?? projByName.get(NORM(p.full_name)) ?? 0;
+  const projFor = (p: SleeperPlayer): number => {
+    const base = projById.get(p.player_id) ?? projByName.get(NORM(p.full_name)) ?? 0;
+    return adjByName?.get(normalizeForMatch(p.full_name)) ?? base;
+  };
 
   const groups = (['QB', 'RB', 'WR', 'TE'] as const)
     .map((pos) => {
@@ -243,10 +259,19 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
         <img src={teamLogoUrl(team)} alt="" width={20} height={20} style={{ objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         {team} Roster
       </h2>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 10px' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 10px' }}>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
         <button style={tabStyle(sortMode === 'depth')} onClick={() => setSortMode('depth')}>Depth Chart</button>
         <button style={tabStyle(sortMode === 'proj')} onClick={() => setSortMode('proj')}>Proj Pts</button>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>Scenario:</span>
+        <select
+          value={projScenarioId}
+          onChange={(e) => setProjScenarioId(e.target.value)}
+          style={{ fontSize: 11, padding: '2px 6px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6 }}
+        >
+          <option value="">None (Consensus)</option>
+          {projScenarios.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
         {groups.map(([pos, ps]) => (
