@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
@@ -291,7 +291,13 @@ interface PowerRow {
   score: RosterScore | null; // dynasty window/value scoring — null for redraft
   posStrength: PositionalStrength;
   projPts: number;
+  avgPts: number; // projected points per predicted starter
+  avgAge: number; // average age of predicted starters (KTC)
 }
+
+type SortKey = 'team' | 'owner' | 'window' | 'value' | 'projPts' | 'avgPts' | 'avgAge' | 'qb' | 'rb' | 'wr' | 'te';
+// Win-now → rebuild ordering, so sorting the Window column groups contenders.
+const WINDOW_ORDER: WindowLabel[] = ['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'];
 
 function computePositionalStrength(
   team: LeagueTeam,
@@ -384,34 +390,58 @@ function computePositionalProjStrength(
   return str;
 }
 
+/** The player set a view mode counts toward a team's projected points: the
+ *  predicted starters, optionally plus the top bench player at each position,
+ *  or the full roster. Shared so projected points and the per-starter averages
+ *  always agree on which players count. */
+function selectPlayers(team: LeagueTeam, mode: ViewMode): RosterPlayer[] {
+  if (mode === 'starters') return team.starters.filter((p) => p.name !== 'Empty');
+  if (mode === 'full') return [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  // starters-plus: starters + the top bench player at each position
+  const out = team.starters.filter((p) => p.name !== 'Empty');
+  const benchByPos = new Map<string, RosterPlayer[]>();
+  for (const p of team.bench) {
+    if (p.position) {
+      if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
+      benchByPos.get(p.position)!.push(p);
+    }
+  }
+  for (const [, benched] of benchByPos) out.push(...benched.slice(0, 1));
+  return out;
+}
+
 function computeTeamProjPts(
   team: LeagueTeam,
   projBySleeperIdMap: Map<string, number>,
   mode: ViewMode,
 ): number {
-  let players: RosterPlayer[];
-  if (mode === 'starters') {
-    players = team.starters.filter((p) => p.name !== 'Empty');
-  } else if (mode === 'full') {
-    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
-  } else {
-    players = [...team.starters.filter((p) => p.name !== 'Empty')];
-    const benchByPos = new Map<string, RosterPlayer[]>();
-    for (const p of team.bench) {
-      if (p.position) {
-        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
-        benchByPos.get(p.position)!.push(p);
-      }
-    }
-    for (const [, benched] of benchByPos) {
-      players.push(...benched.slice(0, 1));
-    }
-  }
   let total = 0;
-  for (const p of players) {
-    total += projBySleeperIdMap.get(p.id) ?? 0;
-  }
+  for (const p of selectPlayers(team, mode)) total += projBySleeperIdMap.get(p.id) ?? 0;
   return total;
+}
+
+/** Per-starter averages for a team's predicted lineup: projected points per
+ *  player and average age (from KTC, matched by name). Uses the same player
+ *  set as computeTeamProjPts so the averages line up with the Proj Pts total. */
+function computeStarterAverages(
+  team: LeagueTeam,
+  projBySleeperIdMap: Map<string, number>,
+  ktcByName: Map<string, KTCPlayer>,
+  mode: ViewMode,
+): { avgPts: number; avgAge: number } {
+  const players = selectPlayers(team, mode);
+  let projTotal = 0;
+  let ageSum = 0;
+  let ageCount = 0;
+  for (const p of players) {
+    projTotal += projBySleeperIdMap.get(p.id) ?? 0;
+    const k = ktcByName.get(normalizeForMatch(p.name));
+    if (k && k.age > 0) { ageSum += k.age; ageCount++; }
+  }
+  return {
+    avgPts: players.length ? projTotal / players.length : 0,
+    avgAge: ageCount ? ageSum / ageCount : 0,
+  };
 }
 
 interface LeaguePowerProps {
@@ -427,9 +457,16 @@ interface LeaguePowerProps {
 
 function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('starters');
-  const [dynastySortBy, setDynastySortBy] = useState<'value' | 'proj'>('value');
-  // Redraft leagues are always ranked on projected season points.
-  const sortBy = isDynasty ? dynastySortBy : 'proj';
+  // Click any column header to sort by it; default ranks dynasty by value,
+  // redraft by projected points.
+  const [sortKey, setSortKey] = useState<SortKey>(isDynasty ? 'value' : 'projPts');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const toggleSort = (k: SortKey, defaultDir: 'asc' | 'desc' = 'desc') => {
+    if (sortKey === k) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(k); setSortDir(defaultDir); }
+  };
+  const sortArrow = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+  const thSort: CSSProperties = { cursor: 'pointer', userSelect: 'none' };
 
   const rows: PowerRow[] = useMemo(() => {
     const ktcByName = new Map<string, KTCPlayer>();
@@ -438,20 +475,44 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
     const out: PowerRow[] = [];
     for (const t of teams) {
       const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
+      const { avgPts, avgAge } = computeStarterAverages(t, projBySleeperIdMap, ktcByName, viewMode);
       if (isDynasty) {
         const score = scoreRoster(t, ktc, isSuperflex);
         if (!score) continue;
         const posStrength = computePositionalStrength(t, ktcByName, viewMode, isSuperflex);
-        out.push({ team: t, score, posStrength, projPts });
+        out.push({ team: t, score, posStrength, projPts, avgPts, avgAge });
       } else {
         const posStrength = computePositionalProjStrength(t, projBySleeperIdMap, viewMode);
-        out.push({ team: t, score: null, posStrength, projPts });
+        out.push({ team: t, score: null, posStrength, projPts, avgPts, avgAge });
       }
     }
-    if (sortBy === 'value') out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
-    else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [teams, ktc, isSuperflex, projBySleeperIdMap, viewMode, sortBy, isDynasty]);
+  }, [teams, ktc, isSuperflex, projBySleeperIdMap, viewMode, isDynasty]);
+
+  const sortedRows = useMemo(() => {
+    const keyVal = (r: PowerRow): number | string => {
+      switch (sortKey) {
+        case 'team': return r.team.teamName.toLowerCase();
+        case 'owner': return (r.team.owner || '').toLowerCase();
+        case 'window': return r.score ? WINDOW_ORDER.indexOf(r.score.label) : 99;
+        case 'value': return r.score?.totalValue ?? 0;
+        case 'projPts': return r.projPts;
+        case 'avgPts': return r.avgPts;
+        case 'avgAge': return r.avgAge;
+        case 'qb': return r.posStrength.qb;
+        case 'rb': return r.posStrength.rb;
+        case 'wr': return r.posStrength.wr;
+        case 'te': return r.posStrength.te;
+      }
+    };
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const av = keyVal(a);
+      const bv = keyVal(b);
+      if (typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv)) * dir;
+      return (av - bv) * dir;
+    });
+  }, [rows, sortKey, sortDir]);
 
   if (!rows.length) return null;
 
@@ -494,27 +555,31 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
             {label}
           </button>
         ))}
-        {isDynasty && (
-          <>
-            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Sort:</span>
-            <button className={`format-tab ${sortBy === 'value' ? 'active' : ''}`} onClick={() => setDynastySortBy('value')} style={{ padding: '3px 10px', fontSize: 11 }}>Dynasty Value</button>
-            <button className={`format-tab ${sortBy === 'proj' ? 'active' : ''}`} onClick={() => setDynastySortBy('proj')} style={{ padding: '3px 10px', fontSize: 11 }}>Projected Pts</button>
-          </>
-        )}
+        <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Click a column to sort.</span>
       </div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
             <tr>
-              <th>#</th><th>Team</th><th>Owner</th>
-              {isDynasty && <><th>Window</th><th>Value</th></>}
-              <th title="Projected PPR points (season)">Proj Pts</th>
-              <th>QB</th><th>RB</th><th>WR</th><th>TE</th>
+              <th>#</th>
+              <th style={thSort} onClick={() => toggleSort('team', 'asc')}>Team{sortArrow('team')}</th>
+              <th style={thSort} onClick={() => toggleSort('owner', 'asc')}>Owner{sortArrow('owner')}</th>
+              {isDynasty && <>
+                <th style={thSort} onClick={() => toggleSort('window', 'asc')}>Window{sortArrow('window')}</th>
+                <th style={thSort} onClick={() => toggleSort('value')}>Value{sortArrow('value')}</th>
+              </>}
+              <th style={thSort} onClick={() => toggleSort('projPts')} title="Projected PPR points (season)">Proj Pts{sortArrow('projPts')}</th>
+              <th style={thSort} onClick={() => toggleSort('avgPts')} title="Average projected points per predicted starter">Avg Pts{sortArrow('avgPts')}</th>
+              <th style={thSort} onClick={() => toggleSort('avgAge', 'asc')} title="Average age of predicted starters (KTC)">Avg Age{sortArrow('avgAge')}</th>
+              <th style={thSort} onClick={() => toggleSort('qb')}>QB{sortArrow('qb')}</th>
+              <th style={thSort} onClick={() => toggleSort('rb')}>RB{sortArrow('rb')}</th>
+              <th style={thSort} onClick={() => toggleSort('wr')}>WR{sortArrow('wr')}</th>
+              <th style={thSort} onClick={() => toggleSort('te')}>TE{sortArrow('te')}</th>
               {isDynasty && <th style={{ width: 90 }}>Age Dist</th>}
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {sortedRows.map((r, i) => (
               <tr
                 key={r.team.rosterId}
                 onClick={() => onSelect(r.team.rosterId)}
@@ -544,6 +609,8 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
                   </>
                 )}
                 <td style={{ fontWeight: 600 }}>{r.projPts > 0 ? r.projPts.toFixed(0) : '—'}</td>
+                <td>{r.avgPts > 0 ? r.avgPts.toFixed(1) : '—'}</td>
+                <td>{r.avgAge > 0 ? r.avgAge.toFixed(1) : '—'}</td>
                 <td>{posBar(r.posStrength.qb, maxPos.qb, '#6366f1')}</td>
                 <td>{posBar(r.posStrength.rb, maxPos.rb, '#22c55e')}</td>
                 <td>{posBar(r.posStrength.wr, maxPos.wr, '#f59e0b')}</td>
