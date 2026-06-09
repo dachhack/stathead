@@ -117,10 +117,33 @@ const FEATURE_RENAME: Record<string, string> = {
   pdfSentimentNet: 'guideSentimentNet',
 };
 
+/** Derive scoutTierOrdinal from the DOT score when the tier ordinal is
+ *  missing. The PDF-merged tier strings aren't always available in the
+ *  training cache, so many rows have rspDotDraft populated but
+ *  rspTierOrdinal stuck at 0. These DOT→tier boundaries mirror the
+ *  _RSP_TIER_ORDINAL mapping in train_career_models.py. */
+function deriveTierFromDot(dot: number): number {
+  if (dot >= 95) return 10;
+  if (dot >= 90) return 9;
+  if (dot >= 85) return 8;
+  if (dot >= 80) return 7;
+  if (dot >= 75) return 6;
+  if (dot >= 70) return 5;
+  if (dot >= 65) return 4;
+  if (dot >= 60) return 3;
+  if (dot >= 55) return 2;
+  if (dot > 0) return 1;
+  return 0;
+}
+
 function renameVendorKeys(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
     out[FEATURE_RENAME[k] ?? k] = v;
+  }
+  // Back-fill scoutTierOrdinal from DOT when the tier is missing/zero.
+  if (!out.scoutTierOrdinal && typeof out.scoutGradeDraft === 'number' && out.scoutGradeDraft > 0) {
+    out.scoutTierOrdinal = deriveTierFromDot(out.scoutGradeDraft as number);
   }
   return out;
 }
