@@ -3,7 +3,11 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { usePlayerDetail } from '../hooks/usePlayerDetail';
-import { fetchSleeperPlayers, fetchPlayerNews, type PlayerNewsItem } from '../data';
+import {
+  fetchSleeperPlayers, fetchPlayerOverview,
+  type PlayerNewsItem, type PlayerOverview, type PlayerFantasy,
+  type PlayerRotowire, type PlayerStatistics,
+} from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import type { PlayerStats, SleeperPlayer } from '../types';
@@ -15,6 +19,17 @@ interface Props {
 
 export function PlayerDetail({ playerKey, onBack }: Props) {
   const { data, loading, error } = usePlayerDetail(playerKey);
+  const espnId = data?.crosswalk.espn_id;
+  const [overview, setOverview] = useState<PlayerOverview | null>(null);
+  useEffect(() => {
+    setOverview(null);
+    if (!espnId) return;
+    let alive = true;
+    fetchPlayerOverview(espnId)
+      .then((o) => { if (alive) setOverview(o); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [espnId]);
 
   if (loading) {
     return (
@@ -58,6 +73,15 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
               <span>{cw.earliest_season}–{cw.latest_season}</span>
             )}
             {cw.is_college_only && <span style={{ color: 'var(--accent)' }}>Pre-NFL</span>}
+            {overview?.awards.map((a) => (
+              <span
+                key={a.name}
+                title={a.seasons?.length ? a.seasons.join(', ') : undefined}
+                style={{ color: 'var(--accent)', fontWeight: 600 }}
+              >
+                {a.displayCount ? `${a.displayCount} ` : ''}{a.name}
+              </span>
+            ))}
           </div>
           <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
             player_key <code>{cw.player_key}</code>
@@ -72,6 +96,7 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
         {career && <CareerCard career={career} />}
         {ktcCurrent && <KtcCard current={ktcCurrent} history={ktcHistory} />}
         {adpHistory.length > 0 && <AdpCard rows={adpHistory} />}
+        {overview?.fantasy && <FantasyCard fantasy={overview.fantasy} />}
         <IdsCard cw={cw} />
       </Cards>
 
@@ -79,7 +104,9 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
         <GameLogSection season={gameLogSeason} rows={gameLog} position={cw.position} />
       )}
 
-      {cw.espn_id && <NewsSection espnId={cw.espn_id} />}
+      {overview?.statistics && <StatSplitsSection stats={overview.statistics} />}
+      {overview?.rotowire && <RotowireSection ro={overview.rotowire} />}
+      {espnId && <NewsList items={overview?.news ?? []} loading={overview === null} />}
 
       {(ktcCurrent?.team || gameLog[0]?.recent_team) && (
         <TeamRoster team={(ktcCurrent?.team || gameLog[0]?.recent_team)!} selfName={cw.display_name} />
@@ -98,24 +125,13 @@ function newsDate(s: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function NewsSection({ espnId }: { espnId: string }) {
-  const [items, setItems] = useState<PlayerNewsItem[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    setLoaded(false);
-    fetchPlayerNews(espnId)
-      .then((n) => { if (alive) { setItems(n); setLoaded(true); } })
-      .catch(() => { if (alive) setLoaded(true); });
-    return () => { alive = false; };
-  }, [espnId]);
-
-  if (loaded && !items.length) return null; // hide when there's no news (or worker not deployed)
+function NewsList({ items, loading }: { items: PlayerNewsItem[]; loading: boolean }) {
+  if (!loading && !items.length) return null; // hide when there's no news (or worker not deployed)
 
   return (
     <div style={{ marginTop: 24 }}>
       <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Recent News</h2>
-      {!loaded ? (
+      {loading ? (
         <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading news…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -132,6 +148,23 @@ function NewsSection({ espnId }: { espnId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function RotowireSection({ ro }: { ro: PlayerRotowire }) {
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Latest Status</h2>
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{ro.headline}</span>
+          {ro.published && <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{newsDate(ro.published)}</span>}
+        </div>
+        {ro.story && ro.story !== ro.headline && (
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{ro.story}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -361,6 +394,23 @@ function AdpCard({ rows }: { rows: NonNullable<ReturnType<typeof usePlayerDetail
   );
 }
 
+function FantasyCard({ fantasy }: { fantasy: PlayerFantasy }) {
+  return (
+    <Card title="ESPN Fantasy (Redraft)">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
+        <Stat label="Position Rank" value={fantasy.positionRank ? `#${fantasy.positionRank}` : undefined} />
+        <Stat label="% Rostered" value={fantasy.percentOwned ? `${fantasy.percentOwned}%` : undefined} />
+        <Stat label="Draft Rank" value={fantasy.draftRank ? `#${fantasy.draftRank}` : undefined} />
+      </div>
+      {fantasy.projection && (
+        <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          {fantasy.projection}
+        </p>
+      )}
+    </Card>
+  );
+}
+
 function IdsCard({ cw }: { cw: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['crosswalk'] }) {
   const ids: Array<[string, string | number | undefined]> = [
     ['gsis', cw.gsis_id],
@@ -466,9 +516,9 @@ function GameLogSection({ season, rows, position }: { season: number; rows: Play
   );
 }
 
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
+function Th({ children, right, title }: { children: React.ReactNode; right?: boolean; title?: string }) {
   return (
-    <th style={{
+    <th title={title} style={{
       padding: '6px 10px',
       textAlign: right ? 'right' : 'left',
       fontWeight: 600,
@@ -477,6 +527,36 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     }}>{children}</th>
+  );
+}
+
+function StatSplitsSection({ stats }: { stats: PlayerStatistics }) {
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{stats.displayName || 'Statistics'}</h2>
+      <div style={{ overflowX: 'auto', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: 'var(--bg-tertiary)' }}>
+              <Th>Split</Th>
+              {stats.labels.map((l, i) => (
+                <Th key={i} right title={stats.displayNames?.[i]}>{l}</Th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {stats.splits.map((s, i) => (
+              <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                <Td>{s.displayName}</Td>
+                {stats.labels.map((_, j) => (
+                  <Td key={j} right>{s.stats[j] ?? ''}</Td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

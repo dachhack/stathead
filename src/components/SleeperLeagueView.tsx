@@ -1150,6 +1150,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [standingsExpanded, setStandingsExpanded] = useState(false);
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
   const [ktc, setKtc] = useState<KTCPlayer[]>([]);
@@ -1511,42 +1512,47 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             />
           )}
 
-          <div className="sched-section-title">Standings</div>
-          <div className="table-container" style={{ maxHeight: 'none' }}>
-            <table className="sched-table">
-              <thead><tr><th>#</th><th>Team</th><th>Owner</th><th>W-L-T</th><th>PF</th><th>PA</th></tr></thead>
-              <tbody>
-                {data.teams.map((t, i) => (
-                  <tr
-                    key={t.rosterId}
-                    onClick={() => setSelected(t.rosterId)}
-                    style={{ cursor: 'pointer', background: t.rosterId === selected ? 'var(--bg-tertiary)' : undefined }}
-                  >
-                    <td className="rank-cell">{i + 1}</td>
-                    <td><strong>{t.teamName}</strong></td>
-                    <td>
-                      <button
-                        style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
-                        title="View in User Snooper"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (t.owner && t.owner !== '—' && onNavigate) {
-                            localStorage.setItem('sleeper_snoop_user', t.owner);
-                            onNavigate('sleeper-snooper');
-                          }
-                        }}
-                      >
-                        {t.owner}
-                      </button>
-                    </td>
-                    <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
-                    <td>{t.pointsFor.toFixed(1)}</td>
-                    <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="sched-section-title" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => setStandingsExpanded(!standingsExpanded)}>
+            <span style={{ display: 'inline-block', width: 16, fontSize: 10 }}>{standingsExpanded ? '▼' : '▶'}</span>
+            Standings
           </div>
+          {standingsExpanded && (
+            <div className="table-container" style={{ maxHeight: 'none' }}>
+              <table className="sched-table">
+                <thead><tr><th>#</th><th>Team</th><th>Owner</th><th>W-L-T</th><th>PF</th><th>PA</th></tr></thead>
+                <tbody>
+                  {data.teams.map((t, i) => (
+                    <tr
+                      key={t.rosterId}
+                      onClick={() => setSelected(t.rosterId)}
+                      style={{ cursor: 'pointer', background: t.rosterId === selected ? 'var(--bg-tertiary)' : undefined }}
+                    >
+                      <td className="rank-cell">{i + 1}</td>
+                      <td><strong>{t.teamName}</strong></td>
+                      <td>
+                        <button
+                          style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
+                          title="View in User Snooper"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (t.owner && t.owner !== '—' && onNavigate) {
+                              localStorage.setItem('sleeper_snoop_user', t.owner);
+                              onNavigate('sleeper-snooper');
+                            }
+                          }}
+                        >
+                          {t.owner}
+                        </button>
+                      </td>
+                      <td>{t.wins}-{t.losses}{t.ties ? `-${t.ties}` : ''}</td>
+                      <td>{t.pointsFor.toFixed(1)}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{t.pointsAgainst.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 

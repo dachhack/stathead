@@ -101,8 +101,8 @@ const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
 const FC_PROXY = 'https://fc-proxy.dachhack.workers.dev';
 const FC_BASE = IS_PROD ? FC_PROXY : 'https://api.fantasycalc.com';
 
-// CORS proxy for ESPN per-player news (Cloudflare Worker). Deploy
-// workers/espn-news-proxy/. Returns [] until the worker is deployed.
+// CORS proxy for ESPN per-player overview/news (Cloudflare Worker). Deploy
+// workers/espn-news-proxy/. Returns empty data until the worker is deployed.
 const ESPN_NEWS_PROXY = 'https://espn-news-proxy.dachhack.workers.dev';
 
 export interface PlayerNewsItem {
@@ -112,27 +112,131 @@ export interface PlayerNewsItem {
   link: string;
 }
 
-/** Recent ESPN news for a player by ESPN athlete id. Parses defensively across
- *  ESPN's response shapes; returns [] on any failure (e.g. worker not deployed). */
-export async function fetchPlayerNews(espnId: string, limit = 8): Promise<PlayerNewsItem[]> {
+export interface PlayerRotowire {
+  headline: string;
+  story: string;
+  published: string;
+}
+
+export interface PlayerFantasy {
+  draftRank?: string;
+  positionRank?: string;
+  percentOwned?: string;
+  projection?: string;
+}
+
+export interface PlayerAward {
+  name: string;
+  displayCount?: string;
+  seasons?: string[];
+}
+
+/** A stat table: `labels`/`displayNames` are columns; each split (e.g. Regular
+ *  Season / Postseason / Career) is a row of `stats` aligned to the labels. */
+export interface PlayerStatistics {
+  displayName?: string;
+  labels: string[];
+  displayNames?: string[];
+  splits: { displayName: string; stats: string[] }[];
+}
+
+export interface PlayerOverview {
+  news: PlayerNewsItem[];
+  rotowire?: PlayerRotowire;
+  fantasy?: PlayerFantasy;
+  awards: PlayerAward[];
+  statistics?: PlayerStatistics;
+}
+
+const optStr = (v: unknown): string | undefined => (v == null ? undefined : String(v));
+
+function parseNews(raw: unknown): PlayerNewsItem[] {
+  const arr = (Array.isArray(raw) ? raw : []) as Record<string, unknown>[];
+  return arr
+    .map((a) => {
+      const links = a.links as { web?: { href?: string } } | undefined;
+      return {
+        headline: String(a.headline ?? a.title ?? a.shortHeadline ?? ''),
+        description: String(a.description ?? a.story ?? a.content ?? ''),
+        published: String(a.published ?? a.lastModified ?? a.date ?? ''),
+        link: String(links?.web?.href ?? a.link ?? a.url ?? ''),
+      };
+    })
+    .filter((x) => x.headline);
+}
+
+function parseRotowire(raw: unknown): PlayerRotowire | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const headline = String(r.headline ?? '');
+  const story = String(r.story ?? r.description ?? '');
+  if (!headline && !story) return undefined;
+  return { headline, story, published: String(r.published ?? '') };
+}
+
+function parseFantasy(raw: unknown): PlayerFantasy | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const f = raw as Record<string, unknown>;
+  const out: PlayerFantasy = {
+    draftRank: optStr(f.draftRank),
+    positionRank: optStr(f.positionRank),
+    percentOwned: optStr(f.percentOwned),
+    projection: optStr(f.projection),
+  };
+  return Object.values(out).some((v) => v != null) ? out : undefined;
+}
+
+function parseAwards(raw: unknown): PlayerAward[] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as Record<string, unknown>[])
+    .map((a) => ({
+      name: String(a.name ?? ''),
+      displayCount: optStr(a.displayCount),
+      seasons: Array.isArray(a.seasons) ? (a.seasons as unknown[]).map(String) : undefined,
+    }))
+    .filter((a) => a.name);
+}
+
+function parseStatistics(raw: unknown): PlayerStatistics | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const s = raw as Record<string, unknown>;
+  if (!Array.isArray(s.labels) || !Array.isArray(s.splits)) return undefined;
+  const labels = (s.labels as unknown[]).map(String);
+  const splits = (s.splits as Record<string, unknown>[])
+    .map((sp) => ({
+      displayName: String(sp.displayName ?? ''),
+      stats: Array.isArray(sp.stats) ? (sp.stats as unknown[]).map(String) : [],
+    }))
+    .filter((sp) => sp.stats.length);
+  if (!labels.length || !splits.length) return undefined;
+  return {
+    displayName: optStr(s.displayName),
+    labels,
+    displayNames: Array.isArray(s.displayNames) ? (s.displayNames as unknown[]).map(String) : undefined,
+    splits,
+  };
+}
+
+const EMPTY_OVERVIEW: PlayerOverview = { news: [], awards: [] };
+
+/** ESPN player overview (recent news, latest status, fantasy outlook, awards,
+ *  season/career stat splits) by ESPN athlete id, via the CORS-proxy worker.
+ *  Parses defensively; returns empty data on any failure (e.g. worker not
+ *  deployed). */
+export async function fetchPlayerOverview(espnId: string, limit = 8): Promise<PlayerOverview> {
   try {
     const r = await fetch(`${ESPN_NEWS_PROXY}/news/${espnId}?limit=${limit}`);
-    if (!r.ok) return [];
+    if (!r.ok) return EMPTY_OVERVIEW;
     const d = (await r.json()) as Record<string, unknown>;
-    const arr = (d.articles ?? d.news ?? d.headlines ?? d.items ?? []) as Record<string, unknown>[];
-    return arr
-      .map((a) => {
-        const links = a.links as { web?: { href?: string } } | undefined;
-        return {
-          headline: String(a.headline ?? a.title ?? a.shortHeadline ?? ''),
-          description: String(a.description ?? a.story ?? a.content ?? ''),
-          published: String(a.published ?? a.lastModified ?? a.date ?? ''),
-          link: String(links?.web?.href ?? a.link ?? a.url ?? ''),
-        };
-      })
-      .filter((x) => x.headline);
+    return {
+      news: parseNews(d.articles ?? d.news ?? d.headlines ?? d.items),
+      rotowire: parseRotowire(d.rotowire),
+      fantasy: parseFantasy(d.fantasy),
+      awards: parseAwards(d.awards),
+      statistics: parseStatistics(d.statistics),
+    };
   } catch {
-    return [];
+    return EMPTY_OVERVIEW;
   }
 }
 
