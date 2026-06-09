@@ -408,9 +408,12 @@ interface LeaguePowerProps {
   ktc: KTCPlayer[];
   projBySleeperIdMap: Map<string, number>;
   isDynasty: boolean;
+  selected: number | null;
+  onSelect: (rosterId: number) => void;
+  onNavigate?: (tab: Tab) => void;
 }
 
-function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty }: LeaguePowerProps) {
+function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('starters');
   const [dynastySortBy, setDynastySortBy] = useState<'value' | 'proj'>('value');
   // Redraft leagues are always ranked on projected season points.
@@ -462,7 +465,7 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty }: Leag
 
   return (
     <div style={{ margin: '16px 0' }}>
-      <div className="sched-section-title">League Power Rankings</div>
+      <div className="sched-section-title">League View</div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
         {isDynasty
           ? 'Positional strength by dynasty value and projected score.'
@@ -491,7 +494,7 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty }: Leag
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
             <tr>
-              <th>#</th><th>Team</th>
+              <th>#</th><th>Team</th><th>Owner</th>
               {isDynasty && <><th>Window</th><th>Value</th></>}
               <th title="Projected PPR points (season)">Proj Pts</th>
               <th>QB</th><th>RB</th><th>WR</th><th>TE</th>
@@ -500,9 +503,28 @@ function LeaguePowerRankings({ teams, ktc, projBySleeperIdMap, isDynasty }: Leag
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={r.team.rosterId}>
+              <tr
+                key={r.team.rosterId}
+                onClick={() => onSelect(r.team.rosterId)}
+                style={{ cursor: 'pointer', background: r.team.rosterId === selected ? 'var(--bg-tertiary)' : undefined }}
+              >
                 <td className="rank-cell">{i + 1}</td>
                 <td><strong>{r.team.teamName}</strong></td>
+                <td>
+                  <button
+                    style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: 'inherit' }}
+                    title="View in User Snooper"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (r.team.owner && r.team.owner !== '—' && onNavigate) {
+                        localStorage.setItem('sleeper_snoop_user', r.team.owner);
+                        onNavigate('sleeper-snooper');
+                      }
+                    }}
+                  >
+                    {r.team.owner}
+                  </button>
+                </td>
                 {isDynasty && r.score && (
                   <>
                     <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
@@ -1477,6 +1499,18 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             <br />Roster: {rosterFormat(data.league.roster_positions)}
           </p>
 
+          {ktc.length > 0 && (
+            <LeaguePowerRankings
+              teams={data.teams}
+              ktc={ktc}
+              projBySleeperIdMap={projBySleeperIdMap}
+              isDynasty={isDynasty}
+              selected={selected}
+              onSelect={setSelected}
+              onNavigate={onNavigate}
+            />
+          )}
+
           <div className="sched-section-title">Standings</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table">
@@ -1513,8 +1547,6 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               </tbody>
             </table>
           </div>
-
-          {ktc.length > 0 && <LeaguePowerRankings teams={data.teams} ktc={ktc} projBySleeperIdMap={projBySleeperIdMap} isDynasty={isDynasty} />}
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
