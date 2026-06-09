@@ -1,6 +1,42 @@
 # StatHead — session handoff
 
-Last updated 2026-06-07. **Resume section below is the live one;** older notes follow.
+Last updated 2026-06-09. **Resume section below is the live one;** older notes follow.
+
+---
+
+## ⚡ Latest session wrap (2026-06-09, PRs #346–#376)
+
+Working branch: **`claude/sleeper-features-refinement-QxT6M`** (PR base `claude/nfl-fantasy-workbench-6D1yd`). All PRs squash-merged into the base.
+
+### Shipped
+- **Dynasty vs redraft split**: rebuilding/contending framework (windows, age curves, dynasty value) is dynasty-only (`settings.type === 2`); redraft/keeper rank + trade on projected season points. (#346)
+- **Draft picks**: shown on rosters; values scaled by league size + projected finish; **traded-pick ownership bug fixed** (Sleeper `roster_id`=original owner, `owner_id`=current owner — code had them swapped). (#348, #363)
+- **User Snooper**: career history (multi-season record/finishes/champs), by-year **stacked charts**, **age+position+proj window proxy** for historical objective (no historical KTC), **trade list + hindsight grades**, avatar zoom, league filter, and a **Season selector** (in the Leagues section header). (#347, #351, #375, #376)
+- **Waiver Wire** (Research): cross-league tool — blended dynasty value + FC trend, **1QB/SF toggle**, sort by every column, **excludes undrafted leagues**, per-league + type filters. (#354, #358–#362)
+- **My Leagues**: per-player **proj pts / dynasty value / trend**; **Suggested Waiver Moves** (add/drop) per team; page now **leads with "League View"** (power rankings w/ team selection + owner). (#369, #372, #374)
+- **Branding**: matching logo + favicon (rounded-tip football), cache-busted favicon. (#350, #356, #357)
+- **Clickable player names** everywhere via `PlayerName` (Sleeper surfaces + ~12 non-Sleeper tables) + **Team Roster** + **Recent News** sections on player cards. (#370, #371, #373)
+- IA/UX: Sleeper tools folded into **Research**, redundant Waiver/Trending tabs dropped, **mobile header alignment**, removed Claude chat FAB + settings gear (dormant, easy to restore). (#352, #353, #355)
+- Data integrity: crosswalk **merge guard** (don't merge same-name players w/ incompatible position), **FantasyCalc Sleeper-id backfill** for gsis-less rookies, **position-aware clay→Sleeper resolution**, and **cache-busting** of committed data files. (#363, #364, #367, #368)
+
+### ⏳ Follow-ups waiting on action
+1. **Deploy the ESPN news worker** so the player-card **Recent News** section populates:
+   `cd workers/espn-news-proxy && npx wrangler deploy`
+   ESPN's host is **blocked from the sandbox**, so the exact endpoint/response shape is **unverified** — `fetchPlayerNews` parses defensively and the section hides when empty. If it stays blank after deploy, grab a sample (`https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3` = Josh Allen) and tune the parser/endpoint in `src/data.ts`.
+2. **Point the remaining in-page-card tables at the shared player detail** — `RookieProspectsView`, `RookieCareerBacktest`, `ZapComparison` still open their own internal `setSelectedPlayer` card instead of `PlayerName`→detail page. Left as-is to avoid changing existing behavior; convert if a single card experience is wanted.
+
+### 🔭 Known / optional to-dos
+- **Snooper per-season "Objective" column** (Win-Now/Rebuild in the Leagues table) still uses **current** KTC on past rosters → approximate for old years. The by-year *chart* already uses the better age+pos+proj proxy (`computeRosterWindowProxy`); could switch the table column to it too.
+- **gsis-less rookies**: Sleeper id is backfilled only for players in the **FantasyCalc** set; deeper rookies stay unresolved until they get a `gsis_id`. Could extend the backfill to the full Sleeper players list.
+- **Power-ranking value source**: league power rankings (`scoreRoster`) still use **raw 1QB KTC** (`fetchKTCRankings`), while waiver/roster stats use **blended** value + an SF toggle. Consider unifying power rankings to blended + SF for SF leagues.
+- **Historical window proxy** uses one age curve; QBs age slower — per-position age curves would sharpen old-year objective classification.
+- **Dormant features**: `ChatDrawer` (Ask Claude) + `SettingsModal` are mounted but have no triggers (FAB/gear removed in #355). SportsDataIO news/odds now need settings re-exposed. Re-add buttons to restore.
+
+### 🛠 Dev gotchas (important)
+- **Type-check with the app project**, not the root: `npx tsc --noEmit` **no-ops** (root `tsconfig.json` is a solution file). Use `npx tsc -p tsconfig.app.json --noEmit` (ignore the env-only `vite/client`/`node` lib errors). This is what CI's `tsc -b` actually checks — two CI breaks this session (`LabelList` formatter #349, stale `sortMode` #365) slipped past `--noEmit`.
+- `vite`/`eslint`/`tsx` dev deps aren't installed in the web container, so `npm run build`/`eslint` can't run here — CI is the real gate.
+- **Squash-merge rebase dance**: after each squash merge the branch diverges; reland new work with
+  `git rebase --onto origin/claude/nfl-fantasy-workbench-6D1yd <lastShippedCommit> claude/sleeper-features-refinement-QxT6M`, force-push, PR, merge.
 
 ---
 
