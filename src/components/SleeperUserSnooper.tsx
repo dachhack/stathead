@@ -923,6 +923,7 @@ export function SleeperUserSnooper() {
   const [projections, setProjections] = useState<ClayPlayer[]>([]);
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
   const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
+  const [season, setSeason] = useState(String(new Date().getFullYear()));
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
@@ -930,21 +931,37 @@ export function SleeperUserSnooper() {
     loadClayProjections().then(setProjections);
   }, []);
 
-  const snoop = (name: string) => {
+  const snoop = (name: string, seasonArg: string = season) => {
     const trimmed = name.trim();
     if (!trimmed) { setError('Enter a Sleeper username.'); return; }
     setLoading(true);
     setError(null);
+    setExpandedLeague(null);
     let user: SleeperUser;
     let leagues: SleeperLeagueSummary[];
     fetchSleeperUser(trimmed)
-      .then((u) => { user = u; return fetchUserLeagues(u.user_id); })
+      .then((u) => { user = u; return fetchUserLeagues(u.user_id, seasonArg); })
       .then((lgs) => { leagues = lgs; return fetchUserRostersAcrossLeagues(user.user_id, lgs); })
       .then((rosters) => {
         setResult({ user, leagues, rosters });
         localStorage.setItem(LS_KEY, trimmed);
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setResult(null); })
+      .finally(() => setLoading(false));
+  };
+
+  // Reload the snapshot (leagues + rosters) for a different season, reusing the
+  // already-resolved user. Each Sleeper season has distinct league ids.
+  const changeSeason = (s: string) => {
+    setSeason(s);
+    if (!result) return;
+    const user = result.user;
+    setLoading(true);
+    setError(null);
+    setExpandedLeague(null);
+    fetchUserLeagues(user.user_id, s)
+      .then((lgs) => fetchUserRostersAcrossLeagues(user.user_id, lgs).then((rosters) => setResult({ user, leagues: lgs, rosters })))
+      .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); })
       .finally(() => setLoading(false));
   };
 
@@ -1058,6 +1075,12 @@ export function SleeperUserSnooper() {
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{result.user.display_name}</div>
                 <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>@{result.user.username}</div>
               </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label className="control-label" style={{ fontSize: 11, color: 'var(--text-muted)' }}>Season</label>
+                <select value={season} onChange={(e) => changeSeason(e.target.value)} disabled={loading} style={{ fontSize: 12, padding: '3px 8px', fontFamily: 'inherit' }}>
+                  {recentSeasons(10).map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap', fontSize: 13 }}>
               <div><b>{result.leagues.length}</b> <span style={{ color: 'var(--text-muted)' }}>leagues</span></div>
@@ -1161,7 +1184,7 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Leagues list */}
-          <div className="sched-section-title" style={{ marginTop: 16 }}>Leagues ({result.leagues.length})</div>
+          <div className="sched-section-title" style={{ marginTop: 16 }}>Leagues — {season} ({result.leagues.length})</div>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             Click a league name to view standings, power rankings, and rosters.
           </p>
