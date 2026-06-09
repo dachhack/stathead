@@ -324,6 +324,49 @@ def match_one(
 
 # ── Main ──
 
+FC_SNAPSHOT = ROOT / 'public/data/fantasycalc_dynasty_sf.json'
+
+
+def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
+    """Fill sleeper_id on records that lack one (gsis-less rookies who only
+    exist as synthetic college records) from FantasyCalc's authoritative
+    sleeperId, matched by a UNIQUE (normalized name, position). Never
+    overwrites an existing id, and never assigns an id already used elsewhere."""
+    if not FC_SNAPSHOT.exists():
+        return 0
+    try:
+        raw = json.loads(FC_SNAPSHOT.read_text())
+    except Exception:
+        return 0
+    items = raw if isinstance(raw, list) else raw.get('players', [])
+    fc: dict[tuple[str, str], set[str]] = {}
+    for it in items:
+        pl = it.get('player', it)
+        nm, pos = pl.get('name'), pl.get('position')
+        sid = pl.get('sleeperId') or pl.get('sleeper_id')
+        if nm and pos and sid:
+            fc.setdefault((norm(nm), pos), set()).add(str(sid))
+
+    assigned = {str(r['sleeper_id']) for r in records if r.get('sleeper_id')}
+    n = 0
+    for r in records:
+        if r.get('sleeper_id'):
+            continue
+        positions = set(r.get('all_positions') or [])
+        if r.get('position'):
+            positions.add(r['position'])
+        cand: set[str] = set()
+        for pos in positions:
+            cand |= fc.get((norm(r.get('display_name', '')), pos), set())
+        cand -= assigned
+        if len(cand) == 1:
+            sid = next(iter(cand))
+            r['sleeper_id'] = sid
+            assigned.add(sid)
+            n += 1
+    return n
+
+
 def main():
     spine = build_spine()
     print(f'Spine: {len(spine)} players from nflverse rosters')
@@ -661,6 +704,9 @@ def main():
 
     # ── Emit crosswalk ──
     records = list(canonical.values())
+    n_bf = backfill_sleeper_ids_from_fc(records)
+    if n_bf:
+        print(f'Backfilled sleeper_id on {n_bf} records from FantasyCalc snapshot')
     out = {'version': 1, 'generated_at': None, 'total': len(records),
            'players': records}
     CROSSWALK_OUT.write_text(json.dumps(out, separators=(',', ':')))
