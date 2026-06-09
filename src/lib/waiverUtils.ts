@@ -20,7 +20,11 @@ export interface ClayPlayer {
 interface CrosswalkRec {
   player_key: string;
   sleeper_id?: string;
+  display_name?: string;
+  position?: string;
 }
+
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
 export function computePpr(p: ClayPlayer): number {
   return (
@@ -114,15 +118,31 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
   const projData = (await projRes.json()) as { players?: Record<string, unknown>[] };
   const players = projData.players ?? [];
 
-  const sleeperByKey = new Map<string, string>();
+  // Resolve a clay projection's Sleeper id from the crosswalk. Prefer the
+  // record the projection is keyed to, but if that record's position
+  // contradicts the projection (e.g. the rookie WR Antonio Williams is keyed to
+  // the retired RB's record), fall back to a UNIQUE name+position match — which
+  // points at the correct split-out record.
+  const recByKey = new Map<string, CrosswalkRec>();
+  const sleeperByNamePos = new Map<string, string | null>(); // null = ambiguous
   if (cwRes.ok) {
     const cw = (await cwRes.json()) as { players?: CrosswalkRec[] };
     for (const rec of cw.players ?? []) {
-      if (rec.sleeper_id && rec.player_key) {
-        sleeperByKey.set(rec.player_key, rec.sleeper_id);
+      if (rec.player_key) recByKey.set(rec.player_key, rec);
+      if (rec.sleeper_id && rec.display_name && rec.position) {
+        const k = `${normName(rec.display_name)}|${rec.position}`;
+        if (!sleeperByNamePos.has(k)) sleeperByNamePos.set(k, rec.sleeper_id);
+        else if (sleeperByNamePos.get(k) !== rec.sleeper_id) sleeperByNamePos.set(k, null);
       }
     }
   }
+  const resolveSleeper = (name: string, position: string, key: string): string | null => {
+    const rec = recByKey.get(key);
+    if (rec?.sleeper_id && (!rec.position || rec.position === position)) return rec.sleeper_id;
+    const alt = sleeperByNamePos.get(`${normName(name)}|${position}`);
+    if (alt) return alt;
+    return rec?.sleeper_id ?? null;
+  };
 
   clayCache = players
     .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(String(p.position ?? '')))
@@ -134,7 +154,7 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
       pos_rk: Number(p.pos_rk) || 0,
       ff_pt: Number(p.ff_pt) || 0,
       games: Number(p.games) || 0,
-      sleeperId: sleeperByKey.get(String(p.player_key ?? '')) ?? null,
+      sleeperId: resolveSleeper(String(p.name ?? ''), String(p.position ?? ''), String(p.player_key ?? '')),
       pass_yds: Number(p.pass_yds) || 0,
       pass_td: Number(p.pass_td) || 0,
       rush_yds: Number(p.rush_yds) || 0,
