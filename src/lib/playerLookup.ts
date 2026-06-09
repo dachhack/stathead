@@ -1,4 +1,5 @@
 import { normalizeName } from './featureTypes';
+import { bust } from './buildHash';
 
 export interface CrosswalkRec {
   player_key: string;
@@ -42,7 +43,7 @@ let crosswalkPromise: Promise<CrosswalkIndex> | null = null;
 export function loadCrosswalk(): Promise<CrosswalkIndex> {
   if (crosswalkPromise) return crosswalkPromise;
   crosswalkPromise = (async () => {
-    const url = `${import.meta.env.BASE_URL}data/player-crosswalk.json`;
+    const url = bust(`${import.meta.env.BASE_URL}data/player-crosswalk.json`);
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`crosswalk fetch ${resp.status}`);
     const doc = (await resp.json()) as { players?: CrosswalkRec[] };
