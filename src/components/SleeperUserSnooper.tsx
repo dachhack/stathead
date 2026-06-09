@@ -510,11 +510,29 @@ function TradeList({ trades, players, ktcByName }: {
   ktcByName: Map<string, number>;
 }) {
   const MAX = 80;
-  const shown = trades.slice(0, MAX);
+  const [leagueFilter, setLeagueFilter] = useState('all');
+
+  const leagueOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of trades) if (!m.has(t.leagueId)) m.set(t.leagueId, t.leagueName);
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [trades]);
+
+  const filtered = leagueFilter === 'all' ? trades : trades.filter((t) => t.leagueId === leagueFilter);
+  const shown = filtered.slice(0, MAX);
   return (
     <>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 4px' }}>
-        Grades are hindsight — current player/pick values from your side of each deal.
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '8px 0 4px' }}>
+        <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>League:</label>
+        <select value={leagueFilter} onChange={(e) => setLeagueFilter(e.target.value)} style={{ fontSize: 11, padding: '2px 6px', fontFamily: 'inherit' }}>
+          <option value="all">All leagues ({trades.length})</option>
+          {leagueOptions.map(([id, name]) => (
+            <option key={id} value={id}>{name} ({trades.filter((t) => t.leagueId === id).length})</option>
+          ))}
+        </select>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          Grades are hindsight — current player/pick values from your side of each deal.
+        </span>
       </div>
       <div className="table-container" style={{ maxHeight: 420 }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
@@ -540,8 +558,8 @@ function TradeList({ trades, players, ktcByName }: {
           </tbody>
         </table>
       </div>
-      {trades.length > MAX && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Showing 80 of {trades.length} trades.</div>
+      {filtered.length > MAX && (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>Showing {MAX} of {filtered.length} trades.</div>
       )}
     </>
   );
