@@ -428,13 +428,23 @@ def main():
     # gsis_id this run. Downstream consumers that cached the old COL
     # hash need a back-reference so their lookups don't go cold.
     prev_col_records: list[dict[str, Any]] = []
+    prev_alias_keys: dict[str, list[str]] = {}
     if CROSSWALK_OUT.exists():
         try:
             prev_doc = json.loads(CROSSWALK_OUT.read_text())
-            prev_col_records = [
-                p for p in (prev_doc.get('players') or [])
-                if p.get('is_college_only')
-            ]
+            prev_players = prev_doc.get('players') or []
+            prev_col_records = [p for p in prev_players if p.get('is_college_only')]
+            # Preserve previously-stamped promotion back-references. alias_keys
+            # is rebuilt from scratch each run, and a promoted COL drops out of
+            # prev_col_records after its first promoted build, so without this
+            # carry-forward the back-reference would evaporate on the very next
+            # rebuild (now daily via fetch-sleeper-players.yml) and cached old
+            # COL keys would go cold again. Keyed by the stable player_key
+            # (hash of NFL:<gsis>).
+            for p in prev_players:
+                aks = p.get('alias_keys')
+                if aks and p.get('player_key'):
+                    prev_alias_keys[p['player_key']] = list(aks)
             print(f'Loaded {len(prev_col_records)} COL records from previous crosswalk')
         except Exception as e:
             print(f'  warning: could not load previous crosswalk: {e}')
@@ -750,6 +760,23 @@ def main():
                         for c in cands[:5]
                     ],
                 })
+
+    # Carry forward promotion back-references stamped in earlier builds so they
+    # accumulate permanently across rebuilds, rather than surviving only the one
+    # build in which the COL→spine transition was diffed (see prev_alias_keys).
+    carried = 0
+    if prev_alias_keys:
+        for rec in canonical.values():
+            prev_aks = prev_alias_keys.get(rec.get('player_key'))
+            if not prev_aks:
+                continue
+            existing = rec.setdefault('alias_keys', [])
+            for ak in prev_aks:
+                if ak not in existing:
+                    existing.append(ak)
+                    carried += 1
+        if carried:
+            print(f'Carried forward {carried} promotion back-reference(s) from previous crosswalk')
 
     # ── Emit crosswalk ──
     records = list(canonical.values())
