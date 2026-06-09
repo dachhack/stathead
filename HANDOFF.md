@@ -20,10 +20,26 @@ Working branch: **`claude/sleeper-features-refinement-QxT6M`** (PR base `claude/
 - Data integrity: crosswalk **merge guard** (don't merge same-name players w/ incompatible position), **FantasyCalc Sleeper-id backfill** for gsis-less rookies, **position-aware clay→Sleeper resolution**, and **cache-busting** of committed data files. (#363, #364, #367, #368)
 
 ### ⏳ Follow-ups waiting on action
-1. **Deploy the ESPN news worker** so the player-card **Recent News** section populates:
-   `cd workers/espn-news-proxy && npx wrangler deploy`
-   ESPN's host is **blocked from the sandbox**, so the exact endpoint/response shape is **unverified** — `fetchPlayerNews` parses defensively and the section hides when empty. If it stays blank after deploy, grab a sample (`https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3` = Josh Allen) and tune the parser/endpoint in `src/data.ts`.
-2. **Point the remaining in-page-card tables at the shared player detail** — `RookieProspectsView`, `RookieCareerBacktest`, `ZapComparison` still open their own internal `setSelectedPlayer` card instead of `PlayerName`→detail page. Left as-is to avoid changing existing behavior; convert if a single card experience is wanted.
+1. **ESPN news worker — DEPLOYED ✅ (verify shape in-browser).** The
+   `deploy-workers.yml` CI workflow (PR #380) published `espn-news-proxy` to
+   `https://espn-news-proxy.dachhack.workers.dev` on 2026-06-09 (run succeeded;
+   `CLOUDFLARE_API_TOKEN` secret is configured). No local terminal needed —
+   it auto-deploys on `workers/espn-news-proxy/**` changes to the base branch,
+   or via the workflow's "Run workflow" button. **Still unverified:** ESPN's
+   host is blocked from the sandbox *and so is `*.workers.dev`*, so the live
+   response shape was never confirmed end-to-end. The chain is wired
+   (`PlayerDetail` → `fetchPlayerOverview` → worker, keyed on crosswalk
+   `espn_id`) and `fetchPlayerOverview` parses defensively (handles the
+   worker-slimmed `{articles,rotowire,fantasy,awards,statistics}` shape *and* a
+   raw-overview passthrough). **To verify:** open any player-detail page with an
+   `espn_id` on the live site and check the Recent News section; if it's blank,
+   fetch `https://espn-news-proxy.dachhack.workers.dev/news/3918298?limit=3`
+   (Josh Allen) from a browser/unrestricted shell and tune `parseNews` /
+   `parseFantasy` in `src/data.ts` to the real keys.
+2. **Point the remaining in-page-card tables at the shared player detail** — ✅
+   done. `RookieProspectsView`, `RookieCareerBacktest`, `ZapComparison` now use
+   `PlayerName` links to the shared detail page, with a `📊` `ModelCardButton`
+   that still opens the rich prospect `PlayerCard`.
 
 ### 🔭 Known / optional to-dos
 - **Snooper per-season "Objective" column** (Win-Now/Rebuild in the Leagues table) still uses **current** KTC on past rosters → approximate for old years. The by-year *chart* already uses the better age+pos+proj proxy (`computeRosterWindowProxy`); could switch the table column to it too.
