@@ -9,10 +9,11 @@
  *   .../athletes/<id>/news path 404s on ESPN's backend):
  *   https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/<id>/overview
  *
- * The overview payload is large (statistics, gamelog, fantasy, etc.), so we
- * extract just the `news` array (sliced to `limit`) and return it as
- * { articles: [...] }. If the shape is unexpected we fall back to passing the
- * raw upstream body through, so the (defensive) client parser still has a shot.
+ * The overview payload is large (full gamelog/events dominate it), so we keep
+ * only the lightweight, card-relevant slices and return them as
+ * { articles, rotowire, fantasy, awards, statistics }. If the shape is
+ * unexpected we fall back to passing the raw upstream body through, so the
+ * (defensive) client parser still has a shot.
  *
  * Deploy:  npx wrangler deploy   (from workers/espn-news-proxy/)
  */
@@ -71,11 +72,17 @@ export default {
         });
       }
 
-      // Slim the (large) overview payload down to just the news array.
+      // Slim the (large) overview payload down to the card-relevant slices.
       try {
-        const data = JSON.parse(text) as { news?: unknown[] };
+        const data = JSON.parse(text) as Record<string, unknown>;
         if (Array.isArray(data.news)) {
-          return jsonResponse({ articles: data.news.slice(0, limit) });
+          return jsonResponse({
+            articles: (data.news as unknown[]).slice(0, limit),
+            rotowire: data.rotowire,
+            fantasy: data.fantasy,
+            awards: data.awards,
+            statistics: data.statistics,
+          });
         }
       } catch {
         // fall through to raw passthrough
