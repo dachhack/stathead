@@ -56,26 +56,28 @@ rebuilds every 2h), Scenario Builder in the Home menu — all already shipped.
    (2026-06-09). The worker, `fetchPlayerOverview` parser, and crosswalk
    `espn_id` wiring all function; a blank Recent News section just means the
    network is blocking `*.workers.dev` (e.g. a VPN/firewall), not a bug.
-2. **Refresh `adp_ffc` coverage** (2018-2024 + 2026) — ⚙️ infra landed, needs a
-   merge to activate. Corrected diagnosis: FFC is **not** firewalled from GitHub
-   runners (the `refresh-data` runner fetches `year=2026` fresh every run); it
-   only 403s "Host not in allowlist" from the dev sandbox. The real gap was that
-   nothing **commits** the per-season files — `refresh-data.yml`'s `git add`
-   list omits `ffc_adp_ppr_*.json` (the `.gitignore` already allowlists them),
-   so 2018-2024 live in the runner cache + the live deploy but never reach git.
-   The committed 2026 file was also a stale byte-copy of 2025.
-   - Added `scripts/fetch-ffc-adp.sh` (non-destructive: only overwrites on a
-     non-empty response, never blanks good data on a 403) +
-     `.github/workflows/fetch-ffc-adp.yml` (branch-aware fetch+commit, daily +
-     dispatch, mirrors `fetch-ktc`/`fetch-fantasycalc`). Also hardened
-     `download-api-data.sh` (curl `-f` + player-count check so a 403 body can't
-     masquerade as cached, and empty historical files self-heal).
-   - **Activate:** merge `claude/wizardly-cori-hi01vp` → default branch, then
-     either let the 7:00 UTC daily schedule run, or Actions → "Fetch FFC ADP" →
-     Run workflow with `force_all=true` for an immediate full backfill.
-     (`workflow_dispatch` only appears once the workflow is on the default
-     branch; the session's GitHub token also lacked `actions: write`, so it
-     couldn't be triggered from here.)
+2. ~~**Refresh `adp_ffc` coverage** (2018-2024 + 2026)~~ — ✅ done (2026-06-09,
+   commit `b2a9726`). Real FantasyFootballCalculator PPR ADP for **2018-2024 +
+   2026** is now committed (≈157-211 players/season, fully populated
+   `stdev`/`timesDrafted`). 2026 is no longer a stale clone of 2025.
+   - Corrected diagnosis: FFC is **not** firewalled from GitHub runners (only
+     from the dev sandbox, which 403s "Host not in allowlist"). The real gap was
+     that nothing **committed** the per-season files — `refresh-data.yml`'s
+     `git add` list omits `ffc_adp_ppr_*.json` (`.gitignore` already allowlists
+     them), so historical years lived only in the runner cache + live deploy.
+   - Mechanism: `scripts/fetch-ffc-adp.sh` (non-destructive — only overwrites on
+     a non-empty response, never blanks good data on a 403) +
+     `.github/workflows/fetch-ffc-adp.yml` (branch-aware fetch+commit, **daily
+     07:00 UTC** + dispatch with a `force_all` backfill toggle; mirrors
+     `fetch-ktc`/`fetch-fantasycalc`). Also hardened `download-api-data.sh`
+     (curl `-f` + player-count check so a 403 body can't masquerade as cached;
+     empty historical files self-heal).
+   - ⚠️ **2025 caveat:** FFC's `?year=2025` endpoint now returns **0 players**
+     (off-season; FFC rolled current ADP to 2026), so the committed
+     `ffc_adp_ppr_2025.json` is **not** FFC data — it's a 448-player,
+     zeroed-`stdev`/`timesDrafted` placeholder from some other source, force-added
+     2026-06-07. The fetcher correctly leaves it untouched. If a real 2025 ADP is
+     wanted, source it elsewhere (FFC won't serve it) or delete the placeholder.
 3. **Clay blend-weight tuning** — needs more historic Clay PDFs (have ~5, esp.
    2025). Re-run `clay_blend_study.py`, then set per-position weights in
    `scenarioPresets.ts` (flat 0.8 today; pull QB down ~0.4). Plus unused PDF
