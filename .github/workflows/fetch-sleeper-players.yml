@@ -56,7 +56,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add -f public/data/sleeper-players.json public/data/player-crosswalk.json \
-            public/data/player-aliases.json public/data/player-promotions.json
+            public/data/player-aliases.json public/data/player-promotions.json \
+            public/data/player-conflicts.json
           if git diff --cached --quiet; then
             echo "No changes to commit — snapshot + crosswalk already match the tree."
             exit 0
