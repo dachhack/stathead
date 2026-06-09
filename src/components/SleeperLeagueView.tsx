@@ -279,7 +279,7 @@ function WindowBadge({ score }: WindowBadgeProps) {
 
 // ── League-wide power rankings ──
 
-type ViewMode = 'starters' | 'starters-plus' | 'full';
+type ViewMode = 'optimal' | 'starters' | 'starters-plus' | 'full';
 
 interface PositionalStrength {
   qb: number;
@@ -295,43 +295,19 @@ interface PowerRow {
   projPts: number;
   avgPts: number; // projected points per predicted starter
   avgAge: number; // average age of predicted starters (KTC)
+  pickVal: number; // total dynasty value of owned rookie picks
 }
 
 type SortKey = 'team' | 'owner' | 'window' | 'value' | 'projPts' | 'avgPts' | 'avgAge' | 'qb' | 'rb' | 'wr' | 'te';
 // Win-now → rebuild ordering, so sorting the Window column groups contenders.
 const WINDOW_ORDER: WindowLabel[] = ['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'];
 
+// Positional strength by dynasty value (KTC) over a resolved player set.
 function computePositionalStrength(
-  team: LeagueTeam,
+  players: RosterPlayer[],
   ktcByName: Map<string, KTCPlayer>,
-  mode: ViewMode,
   isSuperflex: boolean,
 ): PositionalStrength {
-  let players: RosterPlayer[];
-  if (mode === 'starters') {
-    players = team.starters.filter((p) => p.name !== 'Empty');
-  } else if (mode === 'starters-plus') {
-    const starterPositions = new Map<string, number>();
-    for (const p of team.starters) {
-      if (p.position) starterPositions.set(p.position, (starterPositions.get(p.position) ?? 0) + 1);
-    }
-    const benchByPos = new Map<string, RosterPlayer[]>();
-    for (const p of team.bench) {
-      if (p.position) {
-        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
-        benchByPos.get(p.position)!.push(p);
-      }
-    }
-    players = [...team.starters.filter((p) => p.name !== 'Empty')];
-    for (const [pos, benched] of benchByPos) {
-      const starterCount = starterPositions.get(pos) ?? 0;
-      const replacements = benched.slice(0, Math.max(1, Math.ceil(starterCount * 0.5)));
-      players.push(...replacements);
-    }
-  } else {
-    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
-  }
-
   const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
   for (const p of players) {
     const k = ktcByName.get(normalizeForMatch(p.name));
@@ -347,38 +323,12 @@ function computePositionalStrength(
   return str;
 }
 
-// Positional strength measured by projected season points (for redraft leagues),
+// Positional strength by projected season points (for redraft leagues),
 // mirroring computePositionalStrength but using the projection map instead of value.
 function computePositionalProjStrength(
-  team: LeagueTeam,
+  players: RosterPlayer[],
   projBySleeperIdMap: Map<string, number>,
-  mode: ViewMode,
 ): PositionalStrength {
-  let players: RosterPlayer[];
-  if (mode === 'starters') {
-    players = team.starters.filter((p) => p.name !== 'Empty');
-  } else if (mode === 'starters-plus') {
-    const starterPositions = new Map<string, number>();
-    for (const p of team.starters) {
-      if (p.position) starterPositions.set(p.position, (starterPositions.get(p.position) ?? 0) + 1);
-    }
-    const benchByPos = new Map<string, RosterPlayer[]>();
-    for (const p of team.bench) {
-      if (p.position) {
-        if (!benchByPos.has(p.position)) benchByPos.set(p.position, []);
-        benchByPos.get(p.position)!.push(p);
-      }
-    }
-    players = [...team.starters.filter((p) => p.name !== 'Empty')];
-    for (const [pos, benched] of benchByPos) {
-      const starterCount = starterPositions.get(pos) ?? 0;
-      const replacements = benched.slice(0, Math.max(1, Math.ceil(starterCount * 0.5)));
-      players.push(...replacements);
-    }
-  } else {
-    players = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
-  }
-
   const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
   for (const p of players) {
     const pts = projBySleeperIdMap.get(p.id) ?? 0;
@@ -392,11 +342,51 @@ function computePositionalProjStrength(
   return str;
 }
 
+// Roster slots that are not part of a scoring lineup (skip when optimizing).
+const LINEUP_SKIP = new Set(['BN', 'BENCH', 'IR', 'TAXI', 'K', 'DEF', 'DST']);
+
+/** The best legal starting lineup by projected points: fill fixed QB/RB/WR/TE
+ *  slots with the top player at each position, then FLEX/REC_FLEX/SUPER_FLEX
+ *  from whoever is left. Uses the full roster, ignoring Sleeper's set starters,
+ *  so a team's projection reflects its optimal lineup. */
+function optimalStarters(
+  team: LeagueTeam,
+  projBySleeperIdMap: Map<string, number>,
+  rosterPositions: string[],
+): RosterPlayer[] {
+  const slots = rosterPositions.filter((s) => !LINEUP_SKIP.has(s));
+  const all = [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
+  if (!slots.length) return all; // unknown slots → fall back to whole roster
+  const scored = all
+    .map((p) => ({ p, pts: projBySleeperIdMap.get(p.id) ?? 0 }))
+    .sort((a, b) => b.pts - a.pts);
+  const used = new Set<string>();
+  const out: RosterPlayer[] = [];
+  const take = (eligible: (pos: string) => boolean) => {
+    const best = scored.find((s) => !used.has(s.p.id) && eligible((s.p.position || '').toUpperCase()));
+    if (best) { used.add(best.p.id); out.push(best.p); }
+  };
+  const FIXED = ['QB', 'RB', 'WR', 'TE'];
+  for (const slot of slots) if (FIXED.includes(slot)) take((pos) => pos === slot);
+  for (const slot of slots) {
+    if (slot === 'FLEX') take((pos) => pos === 'RB' || pos === 'WR' || pos === 'TE');
+    else if (slot === 'REC_FLEX') take((pos) => pos === 'WR' || pos === 'TE');
+    else if (slot === 'SUPER_FLEX') take((pos) => pos === 'QB' || pos === 'RB' || pos === 'WR' || pos === 'TE');
+  }
+  return out;
+}
+
 /** The player set a view mode counts toward a team's projected points: the
- *  predicted starters, optionally plus the top bench player at each position,
- *  or the full roster. Shared so projected points and the per-starter averages
- *  always agree on which players count. */
-function selectPlayers(team: LeagueTeam, mode: ViewMode): RosterPlayer[] {
+ *  optimal lineup, the predicted starters, those plus the top bench player at
+ *  each position, or the full roster. Shared so projected points, per-starter
+ *  averages, and positional strength always agree on which players count. */
+function selectPlayers(
+  team: LeagueTeam,
+  mode: ViewMode,
+  projBySleeperIdMap: Map<string, number>,
+  rosterPositions: string[],
+): RosterPlayer[] {
+  if (mode === 'optimal') return optimalStarters(team, projBySleeperIdMap, rosterPositions);
   if (mode === 'starters') return team.starters.filter((p) => p.name !== 'Empty');
   if (mode === 'full') return [...team.starters, ...team.bench].filter((p) => p.name !== 'Empty');
   // starters-plus: starters + the top bench player at each position
@@ -412,26 +402,19 @@ function selectPlayers(team: LeagueTeam, mode: ViewMode): RosterPlayer[] {
   return out;
 }
 
-function computeTeamProjPts(
-  team: LeagueTeam,
-  projBySleeperIdMap: Map<string, number>,
-  mode: ViewMode,
-): number {
+function computeTeamProjPts(players: RosterPlayer[], projBySleeperIdMap: Map<string, number>): number {
   let total = 0;
-  for (const p of selectPlayers(team, mode)) total += projBySleeperIdMap.get(p.id) ?? 0;
+  for (const p of players) total += projBySleeperIdMap.get(p.id) ?? 0;
   return total;
 }
 
-/** Per-starter averages for a team's predicted lineup: projected points per
- *  player and average age (from KTC, matched by name). Uses the same player
- *  set as computeTeamProjPts so the averages line up with the Proj Pts total. */
+/** Per-starter averages for a resolved player set: projected points per player
+ *  and average age (from KTC, matched by name). */
 function computeStarterAverages(
-  team: LeagueTeam,
+  players: RosterPlayer[],
   projBySleeperIdMap: Map<string, number>,
   ktcByName: Map<string, KTCPlayer>,
-  mode: ViewMode,
 ): { avgPts: number; avgAge: number } {
-  const players = selectPlayers(team, mode);
   let projTotal = 0;
   let ageSum = 0;
   let ageCount = 0;
@@ -451,14 +434,18 @@ interface LeaguePowerProps {
   ktc: KTCPlayer[];
   isSuperflex: boolean;
   projBySleeperIdMap: Map<string, number>;
+  rosterPositions: string[];
+  pickValueByRosterId: Map<number, number>;
   isDynasty: boolean;
   selected: number | null;
   onSelect: (rosterId: number) => void;
   onNavigate?: (tab: Tab) => void;
 }
 
-function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('starters');
+function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('optimal');
+  // Dynasty only: fold owned rookie-pick value into the Value column + sort.
+  const [includePicks, setIncludePicks] = useState(false);
   // Click any column header to sort by it; default ranks dynasty by value,
   // redraft by projected points.
   const [sortKey, setSortKey] = useState<SortKey>(isDynasty ? 'value' : 'projPts');
@@ -476,20 +463,22 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
 
     const out: PowerRow[] = [];
     for (const t of teams) {
-      const projPts = computeTeamProjPts(t, projBySleeperIdMap, viewMode);
-      const { avgPts, avgAge } = computeStarterAverages(t, projBySleeperIdMap, ktcByName, viewMode);
+      const players = selectPlayers(t, viewMode, projBySleeperIdMap, rosterPositions);
+      const projPts = computeTeamProjPts(players, projBySleeperIdMap);
+      const { avgPts, avgAge } = computeStarterAverages(players, projBySleeperIdMap, ktcByName);
+      const pickVal = pickValueByRosterId.get(t.rosterId) ?? 0;
       if (isDynasty) {
         const score = scoreRoster(t, ktc, isSuperflex);
         if (!score) continue;
-        const posStrength = computePositionalStrength(t, ktcByName, viewMode, isSuperflex);
-        out.push({ team: t, score, posStrength, projPts, avgPts, avgAge });
+        const posStrength = computePositionalStrength(players, ktcByName, isSuperflex);
+        out.push({ team: t, score, posStrength, projPts, avgPts, avgAge, pickVal });
       } else {
-        const posStrength = computePositionalProjStrength(t, projBySleeperIdMap, viewMode);
-        out.push({ team: t, score: null, posStrength, projPts, avgPts, avgAge });
+        const posStrength = computePositionalProjStrength(players, projBySleeperIdMap);
+        out.push({ team: t, score: null, posStrength, projPts, avgPts, avgAge, pickVal });
       }
     }
     return out;
-  }, [teams, ktc, isSuperflex, projBySleeperIdMap, viewMode, isDynasty]);
+  }, [teams, ktc, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, viewMode, isDynasty]);
 
   const sortedRows = useMemo(() => {
     const keyVal = (r: PowerRow): number | string => {
@@ -497,7 +486,7 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
         case 'team': return r.team.teamName.toLowerCase();
         case 'owner': return (r.team.owner || '').toLowerCase();
         case 'window': return r.score ? WINDOW_ORDER.indexOf(r.score.label) : 99;
-        case 'value': return r.score?.totalValue ?? 0;
+        case 'value': return (r.score?.totalValue ?? 0) + (includePicks ? r.pickVal : 0);
         case 'projPts': return r.projPts;
         case 'avgPts': return r.avgPts;
         case 'avgAge': return r.avgAge;
@@ -514,7 +503,7 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
       if (typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv)) * dir;
       return (av - bv) * dir;
     });
-  }, [rows, sortKey, sortDir]);
+  }, [rows, sortKey, sortDir, includePicks]);
 
   if (!rows.length) return null;
 
@@ -546,17 +535,24 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
           ? 'Positional strength by dynasty value and projected score.'
           : 'Positional strength by projected season points (redraft).'}
       </p>
-      <div className="controls" style={{ gap: 6, margin: '8px 0' }}>
-        {([['starters', 'Starters Only'], ['starters-plus', 'Starters + Replacements'], ['full', 'Full Roster']] as const).map(([mode, label]) => (
+      <div className="controls" style={{ gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
+        {([['optimal', 'Optimal Lineup'], ['starters', 'Starters Only'], ['starters-plus', 'Starters + Replacements'], ['full', 'Full Roster']] as const).map(([mode, label]) => (
           <button
             key={mode}
             className={`format-tab ${viewMode === mode ? 'active' : ''}`}
             onClick={() => setViewMode(mode)}
             style={{ padding: '3px 10px', fontSize: 11 }}
+            title={mode === 'optimal' ? 'Best legal lineup by projected points (ignores Sleeper-set starters)' : undefined}
           >
             {label}
           </button>
         ))}
+        {isDynasty && (
+          <label style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} title="Add owned rookie-pick value to each team's dynasty Value">
+            <input type="checkbox" checked={includePicks} onChange={(e) => setIncludePicks(e.target.checked)} />
+            Include pick value
+          </label>
+        )}
         <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Click a column to sort.</span>
       </div>
       <div className="table-container" style={{ maxHeight: 'none' }}>
@@ -607,7 +603,9 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, isDy
                 {isDynasty && r.score && (
                   <>
                     <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
-                    <td>{r.score.totalValue.toLocaleString()}</td>
+                    <td title={includePicks ? `Roster ${r.score.totalValue.toLocaleString()} + picks ${r.pickVal.toLocaleString()}` : undefined}>
+                      {(r.score.totalValue + (includePicks ? r.pickVal : 0)).toLocaleString()}
+                    </td>
                   </>
                 )}
                 <td style={{ fontWeight: 600 }}>{r.projPts > 0 ? r.projPts.toFixed(0) : '—'}</td>
@@ -1404,6 +1402,16 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return merged;
   }, [data, isDynasty, tradedPicks, projPointsByRosterId]);
 
+  // Total dynasty value of each roster's owned rookie picks (for the optional
+  // "include pick value" toggle in the power rankings Value column).
+  const pickValueByRosterId = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const [rid, picks] of pickOwnership) {
+      m.set(rid, picks.reduce((s, p) => s + (p.value ?? 0), 0));
+    }
+    return m;
+  }, [pickOwnership]);
+
   const projStatsMap = useMemo(() => {
     const map = new Map<string, TradeAssetStats>();
     const hasCustomScoring = Object.keys(scoring).length > 0;
@@ -1621,6 +1629,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               ktc={powerKtc}
               isSuperflex={isSuperflex}
               projBySleeperIdMap={projBySleeperIdMap}
+              rosterPositions={data.league.roster_positions ?? []}
+              pickValueByRosterId={pickValueByRosterId}
               isDynasty={isDynasty}
               selected={selected}
               onSelect={setSelected}
