@@ -92,19 +92,21 @@ async function readLocalFile(filename: string): Promise<string | null> {
   return null;
 }
 
-// CORS proxy for KeepTradeCut (Cloudflare Worker).
-// Deploy workers/ktc-proxy/ and set this to your worker URL.
-const KTC_PROXY = 'https://ktc-proxy.dachhack.workers.dev';
+// CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/
+// and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
+const KTC_PROXY = import.meta.env.VITE_KTC_PROXY ?? 'https://ktc-proxy.dachhack.workers.dev';
 
 // CORS / allowlist proxy for FantasyCalc (Cloudflare Worker).
 // api.fantasycalc.com returns 403 host_not_allowed to most direct browser
-// requests; the worker fronts the call. Deploy workers/fc-proxy/.
-const FC_PROXY = 'https://fc-proxy.dachhack.workers.dev';
+// requests; the worker fronts the call. Deploy workers/fc-proxy/ and set
+// VITE_FC_PROXY to your worker URL; defaults to the project's worker.
+const FC_PROXY = import.meta.env.VITE_FC_PROXY ?? 'https://fc-proxy.dachhack.workers.dev';
 const FC_BASE = IS_PROD ? FC_PROXY : 'https://api.fantasycalc.com';
 
 // CORS proxy for ESPN per-player overview/news (Cloudflare Worker). Deploy
-// workers/espn-news-proxy/. Returns empty data until the worker is deployed.
-const ESPN_NEWS_PROXY = 'https://espn-news-proxy.dachhack.workers.dev';
+// workers/espn-news-proxy/ and set VITE_ESPN_NEWS_PROXY to your worker URL;
+// defaults to the project's worker. Returns empty data if the worker is down.
+const ESPN_NEWS_PROXY = import.meta.env.VITE_ESPN_NEWS_PROXY ?? 'https://espn-news-proxy.dachhack.workers.dev';
 
 export interface PlayerNewsItem {
   headline: string;
