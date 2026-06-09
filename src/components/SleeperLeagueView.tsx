@@ -6,7 +6,7 @@ import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, ty
 import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending } from '../data';
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
 import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 
@@ -19,8 +19,7 @@ function PlayerLine({ p, proj, value, trend }: { p: RosterPlayer; proj?: number;
       <span className="sl-slot">{p.slot}</span>
       {p.position && <span className={`pos-badge pos-${p.position}`}>{p.position}</span>}
       <span className="sl-name">
-        {p.name}
-        <PlayerLink sleeperId={p.id} name={p.name} position={p.position} />
+        <PlayerName sleeperId={p.id} name={p.name} position={p.position} />
       </span>
       {p.team && (
         <span className="sl-team">
@@ -626,7 +625,7 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
                     {filteredWaivers.slice(0, 40).map((w, i) => (
                       <tr key={w.player_key}>
                         <td className="rank-cell">{i + 1}</td>
-                        <td><strong>{w.name}</strong></td>
+                        <td><strong><PlayerName sleeperId={w.sleeperId} name={w.name} position={w.position} /></strong></td>
                         <td><span className={`pos-badge pos-${w.position}`}>{w.position}</span></td>
                         <td>
                           {w.team && <img src={teamLogoUrl(w.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
@@ -654,7 +653,7 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
                     {filteredTrending.slice(0, 25).map((t, i) => (
                       <tr key={t.player_id}>
                         <td className="rank-cell">{i + 1}</td>
-                        <td><strong>{t.full_name}</strong></td>
+                        <td><strong><PlayerName sleeperId={t.player_id} name={t.full_name} position={t.position} /></strong></td>
                         <td><span className={`pos-badge pos-${t.position}`}>{t.position}</span></td>
                         <td>
                           {t.team && t.team !== 'FA' && <img src={teamLogoUrl(t.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
@@ -1415,7 +1414,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
                         {optimalLineup.starters.map((s, i) => (
                           <tr key={i}>
                             <td style={{ color: 'var(--text-muted)', fontSize: 10 }}>{s.slot}</td>
-                            <td><strong>{s.player.name}</strong></td>
+                            <td><strong><PlayerName sleeperId={s.player.sleeperId} name={s.player.name} position={s.player.position} /></strong></td>
                             <td><span className={`pos-badge pos-${s.player.position}`}>{s.player.position}</span></td>
                             <td>
                               {s.player.team && <img src={teamLogoUrl(s.player.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}

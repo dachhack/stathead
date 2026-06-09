@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
-import { PlayerLink } from './PlayerLink';
+import { PlayerName } from './PlayerName';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadClayProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
@@ -101,8 +101,7 @@ function SnoopPlayerLine({ p }: { p: RosterPlayer }) {
       <span className="sl-slot">{p.slot}</span>
       {p.position && <span className={`pos-badge pos-${p.position}`}>{p.position}</span>}
       <span className="sl-name">
-        {p.name}
-        <PlayerLink sleeperId={p.id} name={p.name} position={p.position} />
+        <PlayerName sleeperId={p.id} name={p.name} position={p.position} />
       </span>
       {p.team && (
         <span className="sl-team">
@@ -496,12 +495,15 @@ function tradeGrade(received: number, gave: number): { letter: string; color: st
 }
 
 function SideAssets({ side, players }: { side: TradeSide; players: Map<string, SleeperPlayer> }) {
-  const parts: string[] = [];
-  for (const pid of side.players) parts.push(players.get(pid)?.full_name ?? `#${pid}`);
-  for (const pk of side.picks) parts.push(`${pk.season} ${ORDINAL[pk.round] ?? `R${pk.round}`}`);
-  if (side.faab > 0) parts.push(`$${side.faab} FAAB`);
-  if (!parts.length) return <span style={{ color: 'var(--text-muted)' }}>nothing</span>;
-  return <>{parts.join(', ')}</>;
+  const nodes: ReactNode[] = [];
+  for (const pid of side.players) {
+    const sp = players.get(pid);
+    nodes.push(<PlayerName key={`p${pid}`} sleeperId={pid} name={sp?.full_name ?? `#${pid}`} position={sp?.position} />);
+  }
+  for (const pk of side.picks) nodes.push(<span key={`k${pk.season}-${pk.round}`}>{pk.season} {ORDINAL[pk.round] ?? `R${pk.round}`}</span>);
+  if (side.faab > 0) nodes.push(<span key="faab">${side.faab} FAAB</span>);
+  if (!nodes.length) return <span style={{ color: 'var(--text-muted)' }}>nothing</span>;
+  return <>{nodes.map((n, i) => <span key={i}>{i > 0 ? ', ' : ''}{n}</span>)}</>;
 }
 
 function TradeList({ trades, players, ktcByName }: {
@@ -1133,7 +1135,7 @@ export function SleeperUserSnooper() {
                 {ownership.slice(0, 50).map((p, i) => (
                   <tr key={p.id}>
                     <td className="rank-cell">{i + 1}</td>
-                    <td><strong>{p.name}</strong></td>
+                    <td><strong><PlayerName sleeperId={p.id} name={p.name} position={p.position} /></strong></td>
                     <td><span className={`pos-badge pos-${p.position}`}>{p.position}</span></td>
                     <td>
                       {p.team && <img src={teamLogoUrl(p.team)} alt="" width={14} height={14} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
