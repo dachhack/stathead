@@ -92,11 +92,28 @@ rebuilds every 2h), Scenario Builder in the Home menu — all already shipped.
    define what "richer" means).
 
 **Doable anytime (bigger / lower priority)**
-8. **Re-key `feature-store/*.json`** by `player_key::season` instead of
-   `name::season` — big refactor, cleaner long-term. Confirm appetite first.
-9. **CI rebuild remainder (minor):** `refresh-data.yml` already rebuilds the
-   crosswalk every 2h, so this is largely covered; optionally trigger a rebuild
-   from the KTC/FC fetch workflows too.
+8. ~~**Re-key `feature-store/*.json`** by `player_key::season`~~ — ✅ done the
+   *additive* way (2026-06-09, commit `d0e8bb0`), not a full re-key. A full
+   re-key touches ~25 files + the build pipeline and **can't be validated
+   locally** (`npm run build:features` needs `tsx`, absent here), so instead
+   `build-player-crosswalk.py` now emits `feature-store/key-index.json`
+   (`byNameKey` + `byPlayerKey`, 4507 mappings, 100% coverage) from the exact
+   resolution it already runs on the `players.json` source — so it can never
+   drift from the crosswalk and auto-refreshes wherever the crosswalk rebuilds.
+   `featureStoreClient.ts` gained `loadKeyIndex` / `playerKeyFor` /
+   `getFeaturesByPlayerKey` so consumers can read features by canonical
+   identity. Surfaced ~94 same-player name-variant fragments (e.g. josh vs
+   joshua freeman) with zero false merges. The full key-swap remains optional
+   if/when the build can run locally. *(Note: `tsc -b` not runnable here either;
+   the small `featureStoreClient.ts` change was hand-reviewed — watch CI.)*
+9. ~~**CI rebuild remainder (minor)**~~ — ✅ done (commit `775f8cf`). The KTC
+   (`fetch-ktc-snapshot.yml`) and FantasyCalc (`fetch-fantasycalc-snapshot.yml`)
+   daily workflows now run `build-player-crosswalk.py` right after fetching
+   (the crosswalk resolves against exactly the `ktc_rankings_1qb.json` /
+   `fantasycalc_dynasty_sf.json` they refresh) and commit the crosswalk +
+   `key-index.json`. Non-fatal step, no-op-guarded, deterministic — verified
+   locally. Keeps the committed crosswalk in sync with the committed snapshot
+   instead of drifting until the next `refresh-data` run.
 
 **Dropped by the user**
 - Re-expose dormant `ChatDrawer` (Ask Claude) + `SettingsModal` (FAB/gear
