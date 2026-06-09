@@ -56,6 +56,7 @@ public/data/*
 !public/data/espn_adp_*.json
 !public/data/fantasycalc_*.json
 !public/data/fantasycalc_history_*.json
+!public/data/sleeper-players.json
 !public/data/ktc-fc-rescale.json
 .claude/*
 !.claude/commands/

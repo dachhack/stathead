@@ -1,0 +1,72 @@
+name: Fetch Sleeper Players
+
+# Refreshes the slim Sleeper players snapshot (public/data/sleeper-players.json)
+# and rebuilds the player crosswalk so newly-listed rookies pick up a
+# sleeper_id. Sleeper's /v1/players/nfl is reachable directly from GitHub
+# runners (no proxy needed). The crosswalk builder is pure-stdlib Python and
+# reads only committed inputs, so this stays a fast, self-contained job.
+#
+# Runs after the FantasyCalc snapshot (06:30) so the crosswalk rebuild sees the
+# freshest FC values too. Commits the snapshot + regenerated crosswalk files.
+#
+# Trigger from the GitHub mobile app: repo -> Actions -> "Fetch Sleeper
+# Players" -> "Run workflow" -> pick the branch.
+
+on:
+  schedule:
+    - cron: '45 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch only, do not commit (for testing)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-sleeper-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Refresh Sleeper players snapshot
+        run: python3 scripts/fetch-sleeper-players.py public/data
+
+      - name: Rebuild player crosswalk
+        run: python3 scripts/build-player-crosswalk.py
+
+      - name: Commit snapshot + crosswalk to triggering branch
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -f public/data/sleeper-players.json public/data/player-crosswalk.json \
+            public/data/player-aliases.json public/data/player-promotions.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit — snapshot + crosswalk already match the tree."
+            exit 0
+          fi
+          TARGET_BRANCH="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
+          git commit -m "Fetch Sleeper players + rebuild crosswalk ($(date -u +%Y-%m-%d))
+
+          Refreshed slim Sleeper players snapshot and rebuilt the player
+          crosswalk so newly-listed rookies pick up a sleeper_id. Fetched by
+          .github/workflows/fetch-sleeper-players.yml on branch ${TARGET_BRANCH}.
+
+          [skip ci]"
+          git push origin HEAD:${TARGET_BRANCH}

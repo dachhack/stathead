@@ -325,6 +325,7 @@ def match_one(
 # ── Main ──
 
 FC_SNAPSHOT = ROOT / 'public/data/fantasycalc_dynasty_sf.json'
+SLEEPER_SNAPSHOT = ROOT / 'public/data/sleeper-players.json'
 
 
 def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
@@ -358,6 +359,54 @@ def backfill_sleeper_ids_from_fc(records: list[dict[str, Any]]) -> int:
         cand: set[str] = set()
         for pos in positions:
             cand |= fc.get((norm(r.get('display_name', '')), pos), set())
+        cand -= assigned
+        if len(cand) == 1:
+            sid = next(iter(cand))
+            r['sleeper_id'] = sid
+            assigned.add(sid)
+            n += 1
+    return n
+
+
+def backfill_sleeper_ids_from_sleeper(records: list[dict[str, Any]]) -> int:
+    """Fill sleeper_id on records that still lack one, from the full Sleeper
+    players list (public/data/sleeper-players.json). FantasyCalc only lists
+    dynasty-relevant players, so deeper rookies stay unresolved after the FC
+    pass; Sleeper's list is far broader. Matched by a UNIQUE (normalized name,
+    position), same guardrails as the FC pass: never overwrites an existing id,
+    and never assigns an id already used elsewhere. Run after the FC backfill so
+    the more curated source wins ties."""
+    if not SLEEPER_SNAPSHOT.exists():
+        return 0
+    try:
+        raw = json.loads(SLEEPER_SNAPSHOT.read_text())
+    except Exception:
+        return 0
+    items = raw.get('players', []) if isinstance(raw, dict) else raw
+    sl: dict[tuple[str, str], set[str]] = {}
+    for it in items:
+        nm, sid = it.get('name'), it.get('player_id')
+        if not (nm and sid):
+            continue
+        # Index under every position Sleeper lists for the player so a
+        # crosswalk record's position (which may differ in source) still hits.
+        poss = set(it.get('fantasy_positions') or [])
+        if it.get('position'):
+            poss.add(it['position'])
+        for pos in poss:
+            sl.setdefault((norm(nm), pos), set()).add(str(sid))
+
+    assigned = {str(r['sleeper_id']) for r in records if r.get('sleeper_id')}
+    n = 0
+    for r in records:
+        if r.get('sleeper_id'):
+            continue
+        positions = set(r.get('all_positions') or [])
+        if r.get('position'):
+            positions.add(r['position'])
+        cand: set[str] = set()
+        for pos in positions:
+            cand |= sl.get((norm(r.get('display_name', '')), pos), set())
         cand -= assigned
         if len(cand) == 1:
             sid = next(iter(cand))
@@ -707,6 +756,9 @@ def main():
     n_bf = backfill_sleeper_ids_from_fc(records)
     if n_bf:
         print(f'Backfilled sleeper_id on {n_bf} records from FantasyCalc snapshot')
+    n_sl = backfill_sleeper_ids_from_sleeper(records)
+    if n_sl:
+        print(f'Backfilled sleeper_id on {n_sl} more records from Sleeper players list')
     out = {'version': 1, 'generated_at': None, 'total': len(records),
            'players': records}
     CROSSWALK_OUT.write_text(json.dumps(out, separators=(',', ':')))
