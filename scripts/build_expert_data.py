@@ -237,10 +237,12 @@ def main() -> int:
         'nodes': nodes, 'edges': sorted(edges.values(), key=lambda e: -e['total']),
     }, separators=(',', ':')))
 
-    # ── expert candidates (anonymized): non-expert co-members ranked by how many
+    # ── expert connections (anonymized): non-expert co-members ranked by how many
     # distinct experts they share leagues with — likely experts we haven't listed.
-    # Published rows carry only an index + counts; usernames go in the name map.
-    cand_stats: dict[str, dict] = {}  # owner_id -> {experts:set, leagues, dynasty, redraft}
+    # Published rows carry only an index + counts, and edges pair candidate and
+    # expert *indices* so the UI can draw the social graph; usernames go in the
+    # name map.
+    cand_stats: dict[str, dict] = {}  # owner_id -> {experts:{eidx:counts}, leagues, dynasty, redraft}
     for lid, members in league_members.items():
         le = league_experts.get(lid)
         if not le:
@@ -248,27 +250,36 @@ def main() -> int:
         for oid in members:
             if oid in expert_uids:
                 continue
-            c = cand_stats.setdefault(oid, {'experts': set(), 'leagues': 0, 'dynasty': 0, 'redraft': 0})
-            c['experts'] |= le['experts']
+            c = cand_stats.setdefault(oid, {'experts': {}, 'leagues': 0, 'dynasty': 0, 'redraft': 0})
+            for eidx in le['experts']:
+                m = c['experts'].setdefault(eidx, {'total': 0, 'dynasty': 0, 'redraft': 0})
+                m['total'] += 1
+                m['dynasty' if le['dynasty'] else 'redraft'] += 1
             c['leagues'] += 1
             c['dynasty' if le['dynasty'] else 'redraft'] += 1
     ranked = sorted(
         (kv for kv in cand_stats.items() if len(kv[1]['experts']) >= 2),
         key=lambda kv: (-len(kv[1]['experts']), -kv[1]['leagues']))[:30]
     cand_rows = []
+    cand_edges = []
     cand_names: dict[str, str] = {}
     for ci, (oid, c) in enumerate(ranked):
         u = get(f"{API}/user/{oid}") or {}
         cand_names[str(ci)] = u.get('username') or u.get('display_name') or ''
         cand_rows.append({'i': ci, 'experts': len(c['experts']), 'leagues': c['leagues'],
                           'dynasty': c['dynasty'], 'redraft': c['redraft']})
+        for eidx in sorted(c['experts']):
+            m = c['experts'][eidx]
+            cand_edges.append({'c': ci, 'e': eidx, **m})
     (OUT_DIR / 'expert-candidates.json').write_text(json.dumps({
         'generated': generated, 'season': args.season, 'expert_count': len(usernames),
-        'candidates': cand_rows,
+        'candidates': cand_rows, 'edges': cand_edges,
     }, separators=(',', ':')))
 
-    # ── league graph (anonymized): leagues with ≥2 experts as nodes; edges =
-    # experts two leagues have in common. League names go in the name map only.
+    # ── league graph (anonymized): leagues with ≥2 experts as nodes, each
+    # carrying its expert-index members so the UI can draw the expert↔league
+    # social graph; league-league edges = experts two leagues have in common.
+    # League names go in the name map only.
     hub_ids = sorted((lid for lid, le in league_experts.items() if len(le['experts']) >= 2),
                      key=lambda lid: -len(league_experts[lid]['experts']))
     lg_nodes = []
@@ -276,7 +287,8 @@ def main() -> int:
     for li, lid in enumerate(hub_ids):
         le = league_experts[lid]
         lg_nodes.append({'i': li, 'experts': len(le['experts']), 'size': le['size'],
-                         'dynasty': 1 if le['dynasty'] else 0, 'sf': 1 if le['sf'] else 0})
+                         'dynasty': 1 if le['dynasty'] else 0, 'sf': 1 if le['sf'] else 0,
+                         'members': sorted(le['experts'])})
         lg_names[str(li)] = le['name']
     lg_edges = []
     for i in range(len(hub_ids)):
