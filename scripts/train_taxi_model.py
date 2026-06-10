@@ -1,37 +1,41 @@
 #!/usr/bin/env python3
-"""Train the taxi ramp model and emit public/data/score-store/taxi.json.
+"""Train the taxi ramp models and emit public/data/score-store/taxi.json.
 
-The model scores YEAR-2 taxi decisions (player drafted in class C, decision
-made entering season C+1) with three calibrated-ish probabilities:
+Two model families, three probability heads each:
 
+YEAR-2 (player drafted in class C, decision entering season C+1):
     p1    — P(streamable in season C+1)   "his value is NOW"
     p2    — P(streamable in season C+2)   "his value is NEXT year"
     pEver — P(streamable within 4 years)  "his value ever comes"
 
+ROOKIE (decision entering season C, before any NFL games):
+    p1    — P(streamable in season C)
+    p2    — P(streamable in season C+1)
+    pEver — P(streamable in C..C+3)
+    Rookie features add the LANDING SPOT, computed from committed roster
+    + weekly-stat files for ~98% of the population: best/total prior-year
+    PPG of same-position roster mates (is he blocked?), count of
+    startable incumbents, room size, other same-position rookies, the
+    team's best QB prior-year PPG, and team offensive PPR. Ablation:
+    landing spot adds +.013 AUC on p1/pEver over the prospect profile
+    alone. Rookie heads are weaker than year-2 (no NFL production):
+    LOSO AUC ≈ .78/.75/.80, and p_ever beats the career-model startProb
+    baseline (.796 vs .779). The advisor uses rookie scores for
+    Roster/Taxi only — rookie DROPS stay on the conservative rule tree
+    (model-driven rookie drops ran 17% regret in validation; too hot).
+
 "Streamable" = the QB32 / RB60 / WR72 / TE36 season-PPG line (QB 11.5 /
 RB 6.0 / WR 7.5 / TE 5.5 PPR PPG, >=6 games) — see DraftKitValidation.
 
-Features come from the committed feature store at the decision season
-(::C+1): rookie-year production (priorStats + weekly truth), year-2 market
-ADP (profile / momentum), situation shards where available (competition
-depth rank, new teammates drafted, routes YPRR, injuries, coaching, vegas
-win totals — ~33% coverage, NaN elsewhere; HistGradientBoosting treats
-missingness as signal, and "no year-2 ADP row" IS signal), plus the
-draft-time career-model profile (capital, combine, college percentile,
-threshold probs).
-
-Validation: leave-one-class-out across 2010-2023 (no class predicts
-itself). Verdict thresholds (p1 >= 0.50 -> Roster; pEver <= 0.12 -> Drop;
-else Taxi) were chosen so the Taxi bucket is forward-loaded (streamable %
-rises from the stash season to the next) while drop regret stays at/below
-the hand-tuned rule tree it replaces. Headline LOSO numbers live in the
-emitted meta and on the Model Docs page.
+Validation is leave-one-class-out (no class predicts itself). Year-2
+verdict thresholds (p1 >= 0.50 -> Roster; pEver <= 0.12 -> Drop) were
+chosen so the Taxi bucket is forward-loaded at low drop regret; rookie
+Roster threshold matches (p1 >= 0.50).
 
 Rerun after a data refresh:
     pip install scikit-learn pandas
     python3 scripts/train_taxi_model.py
-Then commit public/data/score-store/taxi.json. Rookie verdicts are NOT
-model-scored (no NFL data yet) — the advisor keeps the rule tree for them.
+Then commit public/data/score-store/taxi.json.
 """
 import json
 import re
@@ -153,6 +157,93 @@ def make_model():
         min_samples_leaf=25, l2_regularization=1.0, random_state=SEED)
 
 
+# ── Rookie decision (landing-spot features from committed rosters/stats) ──
+
+def load_rosters():
+    rosters = {}
+    for season in range(2010, CURRENT_SEASON + 1):
+        try:
+            ro = pd.read_csv(ROOT / f'public/data/roster_{season}.csv.gz', low_memory=False)
+        except FileNotFoundError:
+            continue
+        namec = 'full_name' if 'full_name' in ro.columns else 'player_name'
+        cols = [namec, 'team', 'position'] + (['entry_year'] if 'entry_year' in ro.columns else [])
+        ro = ro[cols].dropna(subset=[namec]).copy()
+        ro['n'] = ro[namec].map(norm)
+        rosters[season] = ro
+    return rosters
+
+
+def load_team_context():
+    """(team, season) -> best-QB prior PPG / team offensive PPR, from weekly stats."""
+    qb_best, team_off = {}, {}
+    for season in range(2010, LAST_PLAYED_SEASON + 1):
+        df = pd.read_csv(ROOT / f'public/data/player_stats_{season}.csv.gz', low_memory=False)
+        if 'season_type' in df.columns:
+            df = df[df.season_type == 'REG']
+        namec = 'player_display_name' if 'player_display_name' in df.columns else 'player_name'
+        posc = 'position' if 'position' in df.columns else 'position_group'
+        teamc = 'recent_team' if 'recent_team' in df.columns else 'team'
+        if teamc not in df.columns:
+            continue
+        for t, row in df.groupby(teamc).agg(ppr=('fantasy_points_ppr', 'sum')).iterrows():
+            team_off[(t, season)] = float(row.ppr)
+        qb = df[df[posc] == 'QB'].groupby([teamc, namec]).agg(
+            pts=('fantasy_points_ppr', 'sum'), g=('fantasy_points_ppr', 'count')).reset_index()
+        qb['ppgv'] = qb.pts / qb.g.clip(lower=1)
+        for t, grp in qb.groupby(teamc):
+            sub = grp[grp.g >= 6]
+            qb_best[(t, season)] = float((sub if len(sub) else grp).ppgv.max())
+    return qb_best, team_off
+
+
+def build_rookie_rows(career, truth, rosters, qb_best, team_off, classes):
+    rows = []
+    for r in career:
+        C = r['draftSeason']
+        if C not in classes:
+            continue
+        n = norm(r['name'])
+        pos = r['position']
+        if pos not in CUT:
+            continue
+        f = r.get('features', {})
+        ro = rosters.get(C)
+        me = ro[ro.n == n] if ro is not None else None
+        team = me.team.iloc[0] if me is not None and len(me) else None
+        inc_best = inc_n = room_sum = room_size = rook_same = np.nan
+        qbq = toff = np.nan
+        if team is not None:
+            mates = ro[(ro.team == team) & (ro.position == pos) & (ro.n != n)]
+            uniq = mates.n.unique()
+            room_size = float(len(uniq))
+            vals = [p for p, g in (truth.get((m, pos, C - 1), (0.0, 0)) for m in uniq) if g >= 4]
+            inc_best = max(vals) if vals else 0.0
+            room_sum = float(sum(vals)) if vals else 0.0
+            inc_n = float(sum(1 for v in vals if v >= CUT[pos]))
+            if 'entry_year' in mates.columns:
+                rook_same = float((mates.entry_year == C).sum())
+            qbq = qb_best.get((team, C - 1), np.nan)
+            toff = team_off.get((team, C - 1), np.nan)
+        rows.append(dict(
+            name=r['name'], pos=pos, C=C,
+            draftRound=f.get('nflDraftRound', 8), logPick=f.get('logDraftPick', np.nan),
+            age=f.get('age', np.nan), weight=f.get('weight', np.nan), forty=f.get('forty', np.nan),
+            adp=f.get('adp', np.nan), pct=r['percentile'],
+            sp=r.get('thresholdProbs', {}).get(SK[pos], np.nan),
+            boom=r['boomProb'], bust=r['bustProb'], predPPG=r['predictedPPG'],
+            isQB=int(pos == 'QB'), isRB=int(pos == 'RB'), isWR=int(pos == 'WR'), isTE=int(pos == 'TE'),
+            incBest=inc_best, incBestGap=(inc_best - CUT[pos]) if inc_best == inc_best else np.nan,
+            incStartable=inc_n, roomSum=room_sum, roomSize=room_size, samePosRookies=rook_same,
+            qbQuality=qbq, teamOffPPR=toff, hasTeam=int(team is not None),
+            s1=int(streamable(truth, n, pos, C)) if C <= LAST_PLAYED_SEASON else np.nan,
+            s2=int(streamable(truth, n, pos, C + 1)) if C + 1 <= LAST_PLAYED_SEASON else np.nan,
+            ever=int(any(streamable(truth, n, pos, C + k) for k in (0, 1, 2, 3)))
+                if C + 3 <= LAST_PLAYED_SEASON else np.nan,
+        ))
+    return pd.DataFrame(rows)
+
+
 def main():
     truth = load_truth()
     shards = {f: json.load(open(FS / f'{f}.json')) for f in
@@ -209,8 +300,46 @@ def main():
         })
     meta['scoredClass'] = CURRENT_SEASON - 1
     meta['scored'] = len(players)
-    OUT.write_text(json.dumps({'meta': meta, 'players': players}) + '\n')
-    print(f"wrote {OUT.relative_to(ROOT)}: {len(players)} players, meta={meta['loso']}")
+
+    # ── Rookie decision models ──
+    rosters = load_rosters()
+    qb_best, team_off = load_team_context()
+    rtrain = build_rookie_rows(career, truth, rosters, qb_best, team_off,
+                               classes=set(range(2010, CURRENT_SEASON)))
+    rfeats = [c for c in rtrain.columns if c not in ('name', 'pos', 'C', 's1', 's2', 'ever')]
+    meta['rookie'] = {'loso': {}, 'features': len(rfeats)}
+    rmodels = {}
+    for target in ('s1', 's2', 'ever'):
+        d = rtrain.dropna(subset=[target])
+        preds = np.full(len(d), np.nan)
+        idx = d.reset_index(drop=True)
+        for C in sorted(idx.C.unique()):
+            tr, te = idx[idx.C != C], idx[idx.C == C]
+            if te.empty or tr[target].nunique() < 2:
+                continue
+            m = make_model().fit(tr[rfeats], tr[target].astype(int))
+            preds[idx.C == C] = m.predict_proba(te[rfeats])[:, 1]
+        mask = ~np.isnan(preds)
+        auc = roc_auc_score(idx[target].astype(int)[mask], preds[mask])
+        meta['rookie']['loso'][target] = {'auc': round(float(auc), 3), 'n': int(len(d))}
+        rmodels[target] = make_model().fit(d[rfeats], d[target].astype(int))
+        print(f"rookie {target}: n={len(d)} LOSO AUC={auc:.3f}")
+    rlive = build_rookie_rows(career, truth, rosters, qb_best, team_off, classes={CURRENT_SEASON})
+    rookies = []
+    for i, r in rlive.iterrows():
+        x = rlive.loc[[i], rfeats]
+        rookies.append({
+            'name': r['name'], 'position': r['pos'],
+            'p1': round(float(rmodels['s1'].predict_proba(x)[0, 1]), 3),
+            'p2': round(float(rmodels['s2'].predict_proba(x)[0, 1]), 3),
+            'pEver': round(float(rmodels['ever'].predict_proba(x)[0, 1]), 3),
+        })
+    meta['rookie']['scoredClass'] = CURRENT_SEASON
+    meta['rookie']['scored'] = len(rookies)
+
+    OUT.write_text(json.dumps({'meta': meta, 'players': players, 'rookies': rookies}) + '\n')
+    print(f"wrote {OUT.relative_to(ROOT)}: {len(players)} year-2 + {len(rookies)} rookies, "
+          f"meta={meta['loso']} rookie={meta['rookie']['loso']}")
 
 
 if __name__ == '__main__':

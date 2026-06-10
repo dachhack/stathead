@@ -162,6 +162,20 @@ export function DraftKitValidation() {
           and only 3 of 68 delayed-ramp players (not streamable next season → streamable the
           season after) labeled Drop.
         </p>
+        <p style={{ ...p13, margin: '12px 0 0' }}>
+          <strong>Rookie landing-spot model.</strong> A second model family scores the{' '}
+          <em>rookie</em> decision (entering season C, before any NFL games): same three heads,
+          24 features — the prospect profile plus the landing spot computed from committed
+          roster + weekly-stat files for ~98% of the population (best and total prior-year PPG
+          of same-position roster mates, count of startable incumbents, room size, other
+          same-position rookies, best-QB quality, team offensive PPR). LOSO AUC:{' '}
+          <strong>.77 / .75 / .79</strong> (p1/p2/pEver) — weaker than year-2 (no production
+          signal), but pEver beats the career-model startProb baseline (.796 vs .779) and the
+          landing-spot features add +.013 AUC over the profile alone. Scored rookies get model{' '}
+          <strong>Roster/Taxi</strong> verdicts (p1 ≥ .50 → Roster); rookie <strong>Drops stay
+          on the strict rule tree</strong> — model-driven rookie drops ran 17% regret in
+          validation, too hot for a decision made before a single NFL snap.
+        </p>
         <p style={{ ...p13, margin: '12px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
           <strong>Negative result, for the record:</strong> a classifier trained directly on the
           composite ramp target (<em>not</em> streamable next season AND streamable the season
