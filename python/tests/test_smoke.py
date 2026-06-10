@@ -114,6 +114,133 @@ def test_manual_overrides_keyed_by_name_pos():
     assert any("|" in k for k in keys)
 
 
+def test_player_stats_weekly_box_scores():
+    df = stathead.load_player_stats(2024)
+    assert not df.empty
+    assert {"player_key", "player_id", "season", "week",
+            "fantasy_points_ppr"}.issubset(df.columns)
+    assert (df.season == 2024).all()
+    # player_key should resolve for the vast majority of rows (every NFL
+    # player with a GSIS ID is in the crosswalk).
+    assert df.player_key.notna().mean() > 0.9
+
+
+def test_redraft_projections():
+    df = stathead.load_redraft_projections()
+    assert not df.empty
+    assert {"player_key", "name", "position", "ppg", "recPG"}.issubset(df.columns)
+
+
+def test_ppg_and_adp_value_model():
+    ppg = stathead.load_ppg_projections()
+    adp = stathead.load_adp_value_model()
+    assert {"name", "position", "predictedPPG"}.issubset(ppg.columns)
+    assert {"name", "position", "adp", "predictedVor", "hitProb"}.issubset(adp.columns)
+    # headshot URLs are stripped from the public surface.
+    assert "headshotUrl" not in adp.columns
+
+
+def test_volume_and_share_projections():
+    vol = stathead.load_volume_projections()
+    shr = stathead.load_share_projections()
+    assert {"name", "teamPassAtt", "teamTargets", "projPlayerPPG"}.issubset(vol.columns)
+    assert {"name", "predTargetShare", "predRushShare"}.issubset(shr.columns)
+
+
+def test_taxi_predictions_carry_meta():
+    df = stathead.load_taxi_predictions()
+    assert {"name", "position", "p1", "p2", "pEver"}.issubset(df.columns)
+    assert isinstance(df.attrs.get("meta"), dict)
+    assert "thresholds" in df.attrs["meta"]
+
+
+def test_career_2027_class():
+    df = stathead.load_career_2027()
+    assert not df.empty
+    assert {"name", "pos", "grade"}.issubset(df.columns)
+
+
+def test_dynasty_values_match_app_blend():
+    df = stathead.load_dynasty_values()
+    assert not df.empty
+    assert {"name", "position", "value_1qb", "value_superflex",
+            "positionRank", "isRookie"}.issubset(df.columns)
+    # Sorted by 1QB value, descending.
+    top = df.value_1qb.dropna().tolist()
+    assert top == sorted(top, reverse=True)
+    # Values are rescaled onto FantasyCalc's scale, so the top asset no
+    # longer sits at KTC's hard 9999 ceiling (it maps up into FC's range).
+    assert df.value_1qb.max() != 9999
+    assert df.value_1qb.min() >= 0
+
+
+def test_dynasty_value_history_rescaled():
+    df = stathead.load_dynasty_value_history()
+    assert not df.empty
+    assert {"name", "position", "date", "value_1qb",
+            "value_superflex"}.issubset(df.columns)
+
+
+def test_query_runs_a_join():
+    df = stathead.query("""
+        SELECT c.name, c.predictedCareerPPG, d.value_1qb
+        FROM career_2026 c
+        JOIN dynasty_values d USING (player_key)
+        WHERE c.percentile >= 80
+        ORDER BY d.value_1qb DESC
+        LIMIT 10
+    """)
+    assert not df.empty
+    assert list(df.columns) == ["name", "predictedCareerPPG", "value_1qb"]
+    # value_1qb is sorted descending.
+    vals = df.value_1qb.dropna().tolist()
+    assert vals == sorted(vals, reverse=True)
+
+
+def test_list_tables_covers_core_loaders():
+    names = set(stathead.list_tables())
+    assert {"career_2026", "backtest", "player_stats", "dynasty_values",
+            "adp_historical", "prospects"}.issubset(names)
+
+
+def test_register_user_table_and_join():
+    import pandas as pd
+    # Pick a real 2026-class name so the join is guaranteed to resolve.
+    rookie = stathead.load_career_predictions_2026().iloc[0]["name"]
+    roster = pd.DataFrame({"name": [rookie], "slot": ["pick"]})
+    stathead.register("my_roster", roster)
+    assert "my_roster" in stathead.list_tables()
+    df = stathead.query("""
+        SELECT c.name, r.slot, c.percentile
+        FROM career_2026 c JOIN my_roster r USING (name)
+    """)
+    assert (df.name == rookie).any()
+
+
+def test_query_only_loads_referenced_tables():
+    from stathead import sql
+    # A query that names only career_2026 must not materialize player_stats.
+    sql._connection()
+    sql._registered.discard("player_stats")
+    stathead.query("SELECT COUNT(*) AS n FROM career_2026")
+    assert "player_stats" not in sql._registered
+
+
+def test_query_without_duckdb_gives_install_hint(monkeypatch):
+    import builtins
+    from stathead import sql
+    real_import = builtins.__import__
+
+    def _no_duckdb(name, *args, **kwargs):
+        if name == "duckdb":
+            raise ImportError("No module named 'duckdb'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_duckdb)
+    with pytest.raises(ImportError, match=r"stathead\[duckdb\]"):
+        sql._duckdb()
+
+
 def test_no_vendor_named_columns_leak():
     """Source-agnostic feature naming — no rsp*/pdf* columns reach users."""
     pred = stathead.load_career_predictions_2026()

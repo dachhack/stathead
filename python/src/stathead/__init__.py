@@ -24,11 +24,23 @@ from .crosswalk import (
     load_player_profile,
     resolve_player,
 )
+from .dynasty import load_dynasty_value_history, load_dynasty_values
 from .features import load_feature_matrix, load_manual_overrides
 from .predictions import load_career_backtest, load_career_predictions_2026
+from .projections import (
+    load_adp_value_model,
+    load_career_2027,
+    load_ppg_projections,
+    load_redraft_projections,
+    load_share_projections,
+    load_taxi_predictions,
+    load_volume_projections,
+)
 from .prospects import load_prospect_grades
+from .sql import list_tables, query, register
+from .stats import load_player_stats
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 __all__ = [
     "__version__",
@@ -37,13 +49,26 @@ __all__ = [
     "set_ref",
     "load_adp_ffc",
     "load_adp_historical",
+    "load_adp_value_model",
+    "load_career_2027",
     "load_career_backtest",
     "load_career_predictions_2026",
+    "load_dynasty_value_history",
+    "load_dynasty_values",
     "load_feature_matrix",
     "load_manual_overrides",
     "load_player_crosswalk",
     "load_player_profile",
+    "load_player_stats",
+    "load_ppg_projections",
     "load_prospect_grades",
+    "load_redraft_projections",
+    "load_share_projections",
+    "load_taxi_predictions",
+    "load_volume_projections",
     "get_player",
     "resolve_player",
+    "query",
+    "register",
+    "list_tables",
 ]

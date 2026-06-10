@@ -1315,6 +1315,33 @@ tr:hover td {
   font-weight: 500;
 }
 
+/* Header right cluster: auto-save status + close button */
+.se-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.se-autosave {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.se-autosave--pending { color: var(--text-muted); background: var(--bg-tertiary); }
+.se-autosave--saved { color: var(--accent); background: rgba(0, 212, 170, 0.12); }
+
+/* Transient confirmation after an explicit Save into the named library */
+.se-save-flash {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  animation: se-fade-in 0.15s ease;
+}
+@keyframes se-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
 .scenario-body {
   flex: 1;
   overflow-y: auto;
@@ -1326,6 +1353,35 @@ tr:hover td {
 /* Team Workspace + rankings float to the top as the builder's primary view */
 .scenario-section--primary { order: -1; }
 .scenario-section--rankings { order: -1; }
+
+/* Scenario selector (name/save/load + presets) sits above everything —
+   order:-2 beats the order:-1 Team Workspace/Rankings. Collapsed by default. */
+.scenario-selector { order: -2; }
+.scenario-selector > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  list-style: revert;
+}
+.scenario-selector-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.scenario-selector-current {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.scenario-selector-count {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.scenario-selector-body { margin-top: 10px; }
 
 /* Overall rankings panel */
 .se-rank-grid {

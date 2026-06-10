@@ -204,6 +204,7 @@ export type Tab =
   | 'sleeper-waivers'
   | 'sleeper-snooper'
   | 'expert-tracker'
+  | 'buzz-tracker'
   | 'consensus-adp'
   | 'ktc'
   | 'sportsdata'

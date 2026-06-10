@@ -72,6 +72,42 @@ def _crosswalk_cached() -> list[dict[str, Any]]:
     return fetch_json("public/data/player-crosswalk.json").get("players") or []
 
 
+@lru_cache(maxsize=1)
+def key_by_name_pos() -> dict[tuple[str, str], str]:
+    """``(_norm(name), position) -> player_key`` for every name a player has
+    gone by (display name, ``all_names``, aliases) crossed with every
+    position they've held. First writer wins so the canonical record is
+    preferred over an alias. Used by loaders that only carry name+position
+    (dynasty blend, projections) to stamp the canonical ``player_key``."""
+    out: dict[tuple[str, str], str] = {}
+    for rec in _crosswalk_cached():
+        key = rec.get("player_key")
+        if not key:
+            continue
+        names = {rec.get("display_name", "")}
+        names.update(rec.get("all_names") or [])
+        names.update(a.get("name", "") for a in rec.get("aliases") or [])
+        positions = set(rec.get("all_positions") or []) | {rec.get("position") or ""}
+        for nm in names:
+            n = _norm(nm)
+            if not n:
+                continue
+            for pos in positions:
+                out.setdefault((n, pos), key)
+    return out
+
+
+@lru_cache(maxsize=1)
+def key_by_gsis() -> dict[str, str]:
+    """``gsis_id -> player_key``. Used to stamp the canonical key onto
+    weekly ``player_stats`` rows (whose ``player_id`` is the GSIS ID)."""
+    return {
+        str(rec["gsis_id"]): rec["player_key"]
+        for rec in _crosswalk_cached()
+        if rec.get("gsis_id") and rec.get("player_key")
+    }
+
+
 def resolve_player(name: str, position: str | None = None) -> str:
     """Return the canonical ``player_key`` for a player name.
 

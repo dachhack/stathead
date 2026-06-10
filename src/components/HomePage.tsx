@@ -132,20 +132,32 @@ const PY_QUICKSTART = `import stathead as sh
 rookies = sh.load_career_predictions_2026()
 rookies.nlargest(10, "percentile")[["name", "position", "predictedCareerPPG", "modelTier"]]
 
-# Historical backtest — predicted vs actual PPG for every drafted rookie 2010-2025
-backtest = sh.load_career_backtest()
+# Seasonal redraft projections + per-week NFL box scores (2010-present)
+proj = sh.load_redraft_projections()
+weekly = sh.load_player_stats(2024)
 
-# Historical ADP (2010-2025) joined to scouting-report grades
+# In-house blended dynasty value (1QB + Superflex), and historical ADP
+dynasty = sh.load_dynasty_values()
 adp = sh.load_adp_historical()
-grades = sh.load_prospect_grades(year=2026)
 `;
 
 const LOADERS: { fn: string; desc: string }[] = [
   { fn: 'load_career_predictions_2026()', desc: '2026 rookie predictions (~77 × ~80 cols)' },
   { fn: 'load_career_backtest()', desc: 'Historical rookies with pred + actual PPG (~1087 × ~100)' },
+  { fn: 'load_career_2027()', desc: '2027 draft-class early board (~200 × ~30)' },
+  { fn: 'load_redraft_projections()', desc: 'Seasonal redraft PPG + rec/game (~250 × 7)' },
+  { fn: 'load_ppg_projections()', desc: 'Model-predicted PPG, established players (~250)' },
+  { fn: 'load_adp_value_model()', desc: 'VOR vs ADP, hit prob, conf. interval (~153 × 10)' },
+  { fn: 'load_volume_projections()', desc: 'Team pass/rush/target volumes w/ bands (~153)' },
+  { fn: 'load_share_projections()', desc: 'Predicted target + rush share (~153)' },
+  { fn: 'load_taxi_predictions()', desc: 'Taxi-squad roster/drop probabilities (~96)' },
+  { fn: 'load_player_stats(season=None)', desc: 'Per-week NFL box scores 2010-present (~400k)' },
+  { fn: 'load_dynasty_values()', desc: 'In-house blended dynasty value, 1QB + SF (~500)' },
+  { fn: 'load_dynasty_value_history()', desc: 'Blended daily dynasty value history' },
   { fn: 'load_adp_historical()', desc: 'Model-training ADP 2010-2025 (~4507 × 10)' },
   { fn: 'load_adp_ffc(season=None)', desc: 'Raw community PPR ADP (per season)' },
   { fn: 'load_prospect_grades(year=2026)', desc: 'Scouting-report grades (~200 × 7)' },
+  { fn: 'load_player_crosswalk()', desc: 'Canonical cross-source player IDs (~10k)' },
   { fn: 'load_feature_matrix()', desc: 'Raw feature-matrix.json' },
   { fn: 'load_manual_overrides()', desc: 'Manual CFBD usage overrides' },
 ];
@@ -254,6 +266,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+          Prefer SQL? <code>pip install &quot;stathead[duckdb]&quot;</code> and{' '}
+          <code>sh.query(&quot;SELECT … FROM career_2026 JOIN dynasty_values USING (player_key)&quot;)</code>{' '}
+          runs the same tables as the Data Query tab, in Python.
+          <br />
           Pin a specific commit with <code>sh.pin_version(&quot;a6720e5&quot;)</code> for reproducibility.
           Data is cached at <code>~/.cache/stathead/</code> after first download; call{' '}
           <code>sh.clear_cache()</code> to refresh. Source:{' '}

@@ -51,6 +51,7 @@ public/data/*
 !public/data/player-aliases.json
 !public/data/player-promotions.json
 !public/data/player-conflicts.json
+!public/data/player-buzz.json
 # Raw upstream sources committed as .csv.gz (~35 MB vs ~200 MB raw).
 # TS readLocalFile auto-decompresses; Python runs `bash scripts/extract-data.sh`
 # once to materialize the .csv. See scripts/pull-all-data-sources.sh.

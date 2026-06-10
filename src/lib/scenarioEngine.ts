@@ -467,6 +467,28 @@ export function deleteScenario(id: string): void {
   localStorage.setItem('stathead-scenarios', JSON.stringify(all));
 }
 
+// Working-draft persistence — the in-progress scenario (named or not) is
+// auto-saved here so edits survive a reload/crash. Separate from the named
+// saved-scenarios list above; restored on app load.
+const DRAFT_KEY = 'stathead-scenario-draft';
+
+export function saveScenarioDraft(scenario: ScenarioConfig): void {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(scenario));
+  } catch {
+    // ignore quota / private-mode write failures
+  }
+}
+
+export function loadScenarioDraft(): ScenarioConfig | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as ScenarioConfig) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createEmptyScenario(): ScenarioConfig {
   return {
     id: `scenario-${Date.now()}`,

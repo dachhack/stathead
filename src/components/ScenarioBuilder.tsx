@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
@@ -90,6 +90,26 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
 export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, clayStats, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+
+  // Undo/redo stacks — snapshots of the scenario taken around each change.
+  // Local to the builder session (cleared on unmount); see commit/undo/redo.
+  const historyRef = useRef<ScenarioConfig[]>([]);
+  const redoRef = useRef<ScenarioConfig[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Save signals: `autoStatus` mirrors App's debounced draft auto-save;
+  // `savedFlash` confirms an explicit Save into the named library.
+  const [autoStatus, setAutoStatus] = useState<'idle' | 'pending' | 'saved'>('idle');
+  const [savedFlash, setSavedFlash] = useState(false);
+  const firstChange = useRef(true);
+  useEffect(() => {
+    // Skip the initial mount so opening the builder doesn't flash "Saving…".
+    if (firstChange.current) { firstChange.current = false; return; }
+    setAutoStatus('pending');
+    const t = setTimeout(() => setAutoStatus('saved'), 500);
+    return () => clearTimeout(t);
+  }, [scenario]);
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
@@ -236,7 +256,34 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
 
   if (!open) return null;
 
-  const update = (patch: Partial<ScenarioConfig>) => onChange({ ...scenario, ...patch });
+  // Every scenario mutation funnels through `commit`: it snapshots the
+  // current scenario onto the undo stack, then applies the change. `undo`
+  // restores the last snapshot directly (without re-recording it).
+  const commit = (next: ScenarioConfig) => {
+    historyRef.current.push(scenario);
+    if (historyRef.current.length > 50) historyRef.current.shift();
+    redoRef.current = []; // a fresh change invalidates the redo stack
+    setCanUndo(true);
+    setCanRedo(false);
+    onChange(next);
+  };
+  const undo = () => {
+    const prev = historyRef.current.pop();
+    if (!prev) return;
+    redoRef.current.push(scenario);
+    setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
+    onChange(prev);
+  };
+  const redo = () => {
+    const next = redoRef.current.pop();
+    if (!next) return;
+    historyRef.current.push(scenario);
+    setCanUndo(true);
+    setCanRedo(redoRef.current.length > 0);
+    onChange(next);
+  };
+  const update = (patch: Partial<ScenarioConfig>) => commit({ ...scenario, ...patch });
 
   // --- Team tendency / volume actions (upsert; 0 clears) for the current team ---
   const setTeamTendencyFor = (team: string, delta: number) => {
@@ -446,17 +493,19 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (!preset) return;
     const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr, clayStats });
-    onChange({ ...next, id: scenario.id, name: preset.name });
+    commit({ ...next, id: scenario.id, name: preset.name });
   };
-  const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
+  const resetToBase = () => commit({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
 
   // --- Save/load ---
   const handleSave = () => {
     saveScenario(scenario);
     setSavedList(loadAllScenarios());
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2000);
   };
   const handleLoad = (s: ScenarioConfig) => {
-    onChange(s);
+    commit(s);
     setShowSaved(false);
   };
   const handleDelete = (id: string) => {
@@ -498,88 +547,109 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               </div>
             )}
           </div>
-          {!embedded && <button className="chat-close" onClick={onClose}>✕</button>}
+          <div className="se-header-actions">
+            {!isScenarioEmpty(scenario) && (
+              <span className={`se-autosave se-autosave--${autoStatus === 'pending' ? 'pending' : 'saved'}`}
+                title="Your working scenario is auto-saved to this browser and restored on reload">
+                {autoStatus === 'pending' ? 'Saving…' : 'Auto-saved ✓'}
+              </span>
+            )}
+            {!embedded && <button className="chat-close" onClick={onClose}>✕</button>}
+          </div>
         </div>
 
         <div className="scenario-body">
 
-          {/* Scenario name + save/load */}
-          <div className="scenario-section">
-            <div className="scenario-name-row">
-              <input
-                className="scenario-name-input"
-                value={scenario.name}
-                onChange={(e) => update({ name: e.target.value })}
-                placeholder="Scenario name..."
-              />
-              <button className="scenario-action-btn" onClick={handleSave}>Save</button>
+          {/* Scenario selector — name/save/load + quick presets in one
+              collapsible panel. order:-2 (see CSS) floats it above the
+              Team Workspace / Rankings (which use order:-1), so it's the
+              very top of the builder. Collapsed by default. */}
+          <details className="scenario-section scenario-selector">
+            <summary className="scenario-selector-summary">
+              <span className="scenario-selector-label">Scenario</span>
+              <span className="scenario-selector-current">{scenario.name || 'New Scenario'}</span>
+              {activeCount > 0 && (
+                <span className="scenario-selector-count">{activeCount} adj</span>
+              )}
+            </summary>
+
+            <div className="scenario-selector-body">
+              {/* Scenario name + save/load */}
+              <div className="scenario-name-row">
+                <input
+                  className="scenario-name-input"
+                  value={scenario.name}
+                  onChange={(e) => update({ name: e.target.value })}
+                  placeholder="Scenario name..."
+                />
+                <button className="scenario-action-btn" onClick={handleSave}>Save</button>
+                <button
+                  className={`scenario-action-btn ${showSaved ? 'active' : ''}`}
+                  onClick={() => setShowSaved((v) => !v)}
+                >
+                  Load
+                </button>
+                {savedFlash && <span className="se-save-flash">Saved ✓</span>}
+              </div>
+              {showSaved && (
+                <div className="scenario-saved-list">
+                  {savedList.length === 0 ? (
+                    <div className="scenario-empty-msg">No saved scenarios yet</div>
+                  ) : (
+                    savedList.map((s) => (
+                      <div key={s.id} className="scenario-saved-item">
+                        <span className="scenario-saved-name">{s.name}</span>
+                        <div className="scenario-saved-actions">
+                          <button
+                            className="scenario-link-btn"
+                            onClick={() => handleLoad(s)}
+                          >
+                            Load
+                          </button>
+                          <button
+                            className="scenario-link-btn danger"
+                            onClick={() => handleDelete(s.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Quick presets — one-click opinionated tilts */}
+              <div className="scenario-section-header" style={{ marginTop: 14 }}>
+                <span className="scenario-section-title">Quick Presets</span>
+              </div>
+              <p className="scenario-section-hint">
+                One click fills the scenario with an opinionated tilt built from the levers below.
+                Apply one, then fine-tune any section. Presets replace the current adjustments.
+              </p>
+              <div className="scenario-preset-grid">
+                {availablePresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    className="scenario-preset-btn"
+                    onClick={() => applyPreset(preset.id)}
+                    title={preset.description}
+                  >
+                    <span className="scenario-preset-name">{preset.name}</span>
+                    <span className="scenario-preset-desc">{preset.description}</span>
+                  </button>
+                ))}
+              </div>
               <button
-                className={`scenario-action-btn ${showSaved ? 'active' : ''}`}
-                onClick={() => setShowSaved((v) => !v)}
+                className="scenario-add-btn"
+                onClick={resetToBase}
+                disabled={isScenarioEmpty(scenario)}
+                style={{ marginTop: 8 }}
               >
-                Load
+                ↺ Reset to base
               </button>
             </div>
-            {showSaved && (
-              <div className="scenario-saved-list">
-                {savedList.length === 0 ? (
-                  <div className="scenario-empty-msg">No saved scenarios yet</div>
-                ) : (
-                  savedList.map((s) => (
-                    <div key={s.id} className="scenario-saved-item">
-                      <span className="scenario-saved-name">{s.name}</span>
-                      <div className="scenario-saved-actions">
-                        <button
-                          className="scenario-link-btn"
-                          onClick={() => handleLoad(s)}
-                        >
-                          Load
-                        </button>
-                        <button
-                          className="scenario-link-btn danger"
-                          onClick={() => handleDelete(s.id)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Quick presets — one-click opinionated tilts */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Quick Presets</span>
-            </div>
-            <p className="scenario-section-hint">
-              One click fills the scenario with an opinionated tilt built from the levers below.
-              Apply one, then fine-tune any section. Presets replace the current adjustments.
-            </p>
-            <div className="scenario-preset-grid">
-              {availablePresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  className="scenario-preset-btn"
-                  onClick={() => applyPreset(preset.id)}
-                  title={preset.description}
-                >
-                  <span className="scenario-preset-name">{preset.name}</span>
-                  <span className="scenario-preset-desc">{preset.description}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              className="scenario-add-btn"
-              onClick={resetToBase}
-              disabled={isScenarioEmpty(scenario)}
-              style={{ marginTop: 8 }}
-            >
-              ↺ Reset to base
-            </button>
-          </div>
+          </details>
 
           {/* 1. Vegas Line Weighting */}
           <div className="scenario-section">
@@ -1248,8 +1318,24 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
         <div className="scenario-footer">
           <button
             className="scenario-clear-btn"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo the last change"
+          >
+            ↶ Undo
+          </button>
+          <button
+            className="scenario-clear-btn"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo the last undone change"
+          >
+            ↷ Redo
+          </button>
+          <button
+            className="scenario-clear-btn"
             onClick={() =>
-              onChange({
+              commit({
                 ...scenario,
                 vegasWeighting: 0,
                 teamTendencies: [],

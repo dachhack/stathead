@@ -98,6 +98,20 @@ function round1(v: number): number {
   return Math.round(v * 10) / 10;
 }
 
+/** Empirical-Bayes shrinkage of a per-player rate toward a positional prior.
+ *  Small prior samples otherwise produce absurd derived stats — e.g. a 1-for-7
+ *  prior catch rate (0.14) applied to a projected 71 targets yields 10 catches.
+ *  `k` is the pseudo-count: how many league-average observations to blend in
+ *  before the player's own sample dominates. With den=0 this returns `prior`,
+ *  preserving the old zero-sample fallbacks exactly. */
+function shrinkRate(num: number, den: number, prior: number, k: number): number {
+  return (num + k * prior) / (den + k);
+}
+// Pseudo-counts: ~40 targets before a player's catch rate dominates the
+// positional prior, ~18 receptions before yards-per-reception does.
+const CATCH_RATE_K = 40;
+const YPR_K = 18;
+
 // ── Scenario application ──
 
 // Scale factor for FA signings: project to FA_PROJ_GAMES with regression
@@ -1755,9 +1769,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                     tgt = Math.round(rbTgtPool * tgtShare * vetShareScaler * af * gamesScale);
                     recTD = Math.max(0, Math.round(rbRecTDPool * tgtShare * vetShareScaler));
                   }
-                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.75;
+                  const catchRate = shrinkRate(prior.receptions || 0, prior.targets || 0, 0.75, CATCH_RATE_K);
                   rec = Math.round(tgt * catchRate);
-                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 7.5;
+                  const ypr = shrinkRate(prior.receiving_yards || 0, prior.receptions || 0, 7.5, YPR_K);
                   recYds = Math.round(rec * ypr);
                 } else {
                   // No prior NFL stats: 2026 rookies use draft-pick-based
@@ -1865,9 +1879,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                     tgt = Math.round(wrTgtPool * tgtShare * vetShareScaler * af * gamesScale);
                     recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * vetShareScaler));
                   }
-                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.65;
+                  const catchRate = shrinkRate(prior.receptions || 0, prior.targets || 0, 0.65, CATCH_RATE_K);
                   rec = Math.round(tgt * catchRate);
-                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 12.5;
+                  const ypr = shrinkRate(prior.receiving_yards || 0, prior.receptions || 0, 12.5, YPR_K);
                   recYds = Math.round(rec * ypr);
 
                   // Rush: WR rush shares are negligible, use prior-year pool allocation
@@ -1959,9 +1973,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                     tgt = Math.round(teTgtPool * tgtShare * vetShareScaler * af * gamesScale);
                     recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * vetShareScaler));
                   }
-                  const catchRate = (prior.targets || 0) > 0 ? (prior.receptions || 0) / prior.targets : 0.68;
+                  const catchRate = shrinkRate(prior.receptions || 0, prior.targets || 0, 0.68, CATCH_RATE_K);
                   rec = Math.round(tgt * catchRate);
-                  const ypr = (prior.receptions || 0) > 0 ? (prior.receiving_yards || 0) / prior.receptions : 11.0;
+                  const ypr = shrinkRate(prior.receiving_yards || 0, prior.receptions || 0, 11.0, YPR_K);
                   recYds = Math.round(rec * ypr);
                 } else {
                   // No prior NFL stats: 2026 rookies use draft-pick-based
