@@ -38,6 +38,22 @@ jobs:
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
 
+      # Refresh anonymized expert activity. The username list comes from the
+      # EXPERT_USERNAMES repo secret (newline-separated) so it's never committed.
+      # Skipped when the secret is unset. Runs before the build so the output
+      # ships in dist/.
+      - name: Build expert data
+        env:
+          EXPERT_USERNAMES: ${{ secrets.EXPERT_USERNAMES }}
+        run: |
+          if [ -n "$EXPERT_USERNAMES" ]; then
+            mkdir -p private
+            printf '%s\n' "$EXPERT_USERNAMES" > private/expert-usernames.txt
+            python3 scripts/build_expert_data.py --weeks 1 || echo "expert build failed (non-fatal)"
+          else
+            echo "EXPERT_USERNAMES secret not set — skipping expert data build"
+          fi
+
       # Remove stale precomputed output so a failed precompute is never silently masked
       - run: rm -f public/data/feature-matrix.json
       - run: npm run build
@@ -100,7 +116,10 @@ jobs:
                   public/data/player-aliases.json \
                   public/data/player-promotions.json \
                   public/data/player-conflicts.json \
-                  public/data/espn-nfl-ids.json 2>/dev/null || true
+                  public/data/espn-nfl-ids.json \
+                  public/data/expert-ownership.json \
+                  public/data/expert-adds.json \
+                  public/data/expert-trades.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else
