@@ -30,12 +30,12 @@ const SECTIONS: Section[] = [
       {
         label: 'Schedule & SOS',
         tab: 'schedule',
-        blurb: '2026 schedule with strength of schedule, opponent defense grades, and per-game projected scores + win probability.',
+        blurb: '2026 schedule with strength of schedule, opponent defense grades and sub-unit strength (D-line / linebackers / secondary), and per-game projected scores + win probability.',
       },
       {
         label: 'My Rankings',
         tab: 'my-rankings',
-        blurb: 'Hand-edit rankings layered on top of the projections engine; persists in your browser.',
+        blurb: 'Hand-edit rankings layered on the projections engine, with projection-scenario presets, league scoring (PPR/Half/Standard), and current ADP; persists in your browser.',
       },
       {
         label: 'Draft Optimizer',
@@ -53,7 +53,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Dynasty Values',
         tab: 'ktc',
-        blurb: 'Current 1QB and superflex values, value history, and factor model for why a player is valued the way they are.',
+        blurb: 'Current 1QB and superflex values (with optional TE-premium), value history, and factor model for why a player is valued the way they are.',
       },
       {
         label: 'Trade Calculator',
@@ -96,6 +96,11 @@ const SECTIONS: Section[] = [
         label: 'Sleeper User Snooper',
         tab: 'sleeper-snooper',
         blurb: 'Look up any Sleeper user — leagues, combined record, most-owned players, multi-season career history, and trade grades.',
+      },
+      {
+        label: 'Expert Tracker',
+        tab: 'expert-tracker',
+        blurb: 'Aggregate a private list of expert managers — what they roster at the highest rates (by dynasty/redraft, SF/1QB), their recent adds and trades with letter grades, an expert trade-grade leaderboard you can rank yourself against, and a social graph of who shares leagues.',
       },
       {
         label: 'Sleeper Waiver Wire',
