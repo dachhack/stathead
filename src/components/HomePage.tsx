@@ -41,7 +41,7 @@ const SECTIONS: Section[] = [
         label: 'Draft Optimizer',
         tab: 'draft-optimizer',
         blurb:
-          'The full redraft kit: model-vs-ADP edge board, BeerSheets-style VBD value board with tiers and scarcity, an optimal-team simulator from your draft slot, rookie/vet market mispricings, and a round-by-round plan — all under your league settings, saved rankings, and projection scenarios.',
+          'The full redraft kit as a four-step workflow: ① VBD cheat sheet with tiers and scarcity, ② model-vs-ADP edges (targets, fades, rookie/vet mispricings), ③ a full-draft simulator from your seat, and ④ live draft-day sync — connect your Sleeper draft (auto-configures your league) or track any platform manually for need-aware best-available picks.',
       },
     ],
   },

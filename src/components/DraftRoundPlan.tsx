@@ -6,6 +6,9 @@ import {
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
 import { PlayerName } from './PlayerName';
+import { PlayerAvatar } from './PlayerAvatar';
+import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 
 // Round-by-Round Plan section. For each of the user's picks across the
 // first 12 rounds, show the pick number, recommended position(s), 3
@@ -123,12 +126,13 @@ export function DraftRoundPlan({ rows, settings }: Props) {
     <section style={{ marginTop: 32 }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Round-by-Round Plan</h2>
+        <DocsLink section="draft-kit" title="Survival + edge methodology — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           From your seat at pick {settings.pickSlot} of {settings.numTeams} ·{' '}
           {settings.draftType} · 12 rounds
         </span>
       </header>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.55 }}>
+      <MethodNote id="round-plan">
         For each of your picks, the top-PickEdge targets filtered to (a)
         players ≥55% likely to be available (likely) or 20–55% likely
         (coin flip), and (b) within ±1 round of the pick — without that
@@ -137,7 +141,7 @@ export function DraftRoundPlan({ rows, settings }: Props) {
         Recommendation is whichever position has the strongest edge in
         the likely bucket; ties within 0.5 PPG show both. Survival uses
         Gaussian on FFC ADP stdev (σ=8 fallback when stdev=0).
-      </p>
+      </MethodNote>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
         {cards.map((c) => (
@@ -190,7 +194,7 @@ function RoundList({ title, rows, muted }: { title: string; rows: EdgeBoardRow[]
           None at this threshold.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto', columnGap: 8, rowGap: 3, alignItems: 'baseline', opacity: muted ? 0.85 : 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto auto 1fr auto auto auto', columnGap: 8, rowGap: 3, alignItems: 'center', opacity: muted ? 0.85 : 1 }}>
           {rows.map((r) => (
             <PlayerLine key={`${r.name}:${r.position}`} row={r} />
           ))}
@@ -203,6 +207,7 @@ function RoundList({ title, rows, muted }: { title: string; rows: EdgeBoardRow[]
 function PlayerLine({ row }: { row: EdgeBoardRow }) {
   return (
     <>
+      <PlayerAvatar name={row.name} position={row.position} size={18} />
       <span className={`pos-badge pos-${row.position}`} style={{ fontSize: 9 }}>{row.position}</span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>
         <PlayerName name={row.name} position={row.position} />
@@ -215,7 +220,7 @@ function PlayerLine({ row }: { row: EdgeBoardRow }) {
       <span style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: pBeatColor(row.pBeat) }}>
         {fmtPct(row.pBeat)}
       </span>
-      <span style={{ gridColumn: '2 / -1', marginTop: -2, marginBottom: 2 }}>
+      <span style={{ gridColumn: '3 / -1', marginTop: -2, marginBottom: 2 }}>
         <span style={{
           display: 'inline-block', fontSize: 9, fontWeight: 700,
           padding: '1px 6px', borderRadius: 8,

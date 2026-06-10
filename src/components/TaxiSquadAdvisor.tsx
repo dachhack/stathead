@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
+import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 import { normName } from '../lib/nameUtils';
 
 // Taxi Squad Advisor — for dynasty rosters: which rookies and year-2
@@ -46,6 +48,7 @@ interface CareerEntry {
   boomProb: number;
   bustProb: number;
   thresholdProbs: Record<string, number>;
+  features?: { nflDraftRound?: number };
 }
 
 interface FcDynastyEntry {
@@ -90,6 +93,7 @@ interface TaxiRow {
   startProb: number;        // NaN if missing
   boomProb: number;
   bustProb: number;
+  draftRound: number;       // NFL draft round; 8 when unknown/UDFA
   dynValue: number;         // FantasyCalc value under active format; 0 if unranked
   dynRank: number;          // 9999 if unranked
   isDC1: boolean;           // listed #1 at his position on his NFL team's depth chart
@@ -104,20 +108,31 @@ interface TaxiRow {
 //   DC1          — listed #1 at his position on his NFL depth chart →
 //                  immediate ROSTER pass, caveated when the projection
 //                  doesn't back the listing up.
-//   This season  — projection (or actual rookie-year production) within
-//                  ~1 PPG of streamable, or within ~2 with strong model
-//                  conviction. → ROSTER.
-//   Next season  — not streamable now, but live future-starter odds
-//                  from the career model. → TAXI.
-//   Never        — model ≤5% to ever reach starter PPG, bottom-third
-//                  profile, AND no production signal anywhere. → DROP.
+//   This season  — projection within ~1 PPG of streamable (or ~2 with
+//                  model conviction), or rookie-year production within
+//                  ~2.5. → ROSTER. The yr-1 margin is deliberately wide:
+//                  near-streamable producers deliver their value
+//                  IMMEDIATELY (35% streamable next season vs 32% the
+//                  one after) — they belong active, not stashed.
+//   Next season  — quiet so far but a RAMP profile. → TAXI. The bucket
+//                  is built to be forward-loaded: high-capital players
+//                  with quiet rookie years are the classic delayed
+//                  breakout (R1-2 + quiet yr1 hit streamable 24% the
+//                  next season but 31% the season after; R1-2 WRs
+//                  21% → 38%).
+//   Never        — falling-hazard profiles: the model's bottom tail
+//                  with a weak profile and no production signal, plus
+//                  two fade patterns whose hazard only declines — late
+//                  capital (R5+) with a quiet rookie year and <6% model
+//                  starter odds (9% → 7%), and R3+ QBs with quiet
+//                  rookie years (6% → 0%). → DROP.
 //
-// Margins + thresholds validated by backtest on the 2010–2022 classes
-// (full weekly-stats ground truth at the streamable bar): Roster = 68%
-// streamable that season / 80% within 4yr; Taxi pays off 39% within
-// 4yr; Drop regret 13% — and the regret names are fringe streamers
-// (one-month wonders), not stars. Of 126 true year-2 breakouts, only 6
-// were labeled Drop.
+// Validated by backtest on the 2010–2022 classes (full weekly-stats
+// ground truth at the streamable bar): Roster = 63% streamable that
+// season / 76% within 4yr; the Taxi bucket is forward-loaded (19%
+// streamable next season → 20% the season after, 36% within 4yr);
+// Drop regret 14% with the misses being journeyman streamers. 116 of
+// 126 true year-2 breakouts retained.
 function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; why: string } {
   const cutoff = STREAM_CUTOFF[r.position] ?? 6;
 
@@ -133,42 +148,55 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
     };
   }
 
-  // — Streamable THIS season? —
+  // — Streamable THIS season? Near-streamable rookie-year production is
+  // an IMMEDIATE-value signal (it predicts this season better than
+  // next), so the yr-1 margin is wide. —
   const nowClose = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 1;
-  const provenYr1 = r.isYear2 && Number.isFinite(r.rookieYearPpg) && r.rookieYearPpg >= cutoff - 1;
+  const provenYr1 = r.isYear2 && Number.isFinite(r.rookieYearPpg) && r.rookieYearPpg >= cutoff - 2.5;
   const nearWithConviction = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 2
     && Number.isFinite(r.startProb) && r.startProb >= 30;
   if (nowClose || provenYr1 || nearWithConviction) {
     const why = provenYr1 && !nowClose
-      ? `Already produced ${r.rookieYearPpg.toFixed(1)} PPG as a rookie (streamable ≈ ${cutoff}) — lineup-worthy stretches are live, keep him active.`
+      ? `Produced ${r.rookieYearPpg.toFixed(1)} PPG as a rookie — within streaming range (≈ ${cutoff}), and that kind of role pays off NOW, not later. Keep him active.`
       : nowClose
         ? `Projected ${r.nowPpg.toFixed(1)} PPG this season vs streamable ≈ ${cutoff} — an owner can already start him for stretches; you want him available, not on taxi.`
         : `Projected ${r.nowPpg.toFixed(1)} PPG with ${r.startProb.toFixed(0)}% starter odds — close enough this season that hiding him on taxi risks missing the window.`;
     return { verdict: 'Roster', why };
   }
 
-  // — Probably NEVER startable? — Requires the model's bottom tail AND
-  // a weak profile AND silence in every production signal. Year-2s must
-  // also have shown nothing as rookies; for rookies the projection
-  // floor does that work (they haven't played yet, so the bar is the
-  // same evidence we have).
-  const neverOdds = Number.isFinite(r.startProb) ? r.startProb <= 5 : r.percentile <= 20;
+  // — Probably NEVER startable? Three falling-hazard patterns. —
+  const quietRookieYr = r.isYear2 && (!Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 3);
   const noNowSignal = !Number.isFinite(r.nowPpg) || r.nowPpg < cutoff - 3;
-  const quietYr1 = !r.isYear2 || !Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 4;
-  if (neverOdds && r.percentile <= 35 && noNowSignal && quietYr1) {
-    return {
-      verdict: 'Drop',
-      why: `${Number.isFinite(r.startProb) ? `${r.startProb.toFixed(0)}% odds of ever reaching starter PPG` : `p${r.percentile} profile`}${r.isYear2 ? ', quiet rookie year' : ''}, no current-season role — the spot is worth more than the lottery ticket.`,
-    };
+  // (a) Model bottom tail + weak profile + silence everywhere.
+  const neverOdds = Number.isFinite(r.startProb) ? r.startProb <= 5 : r.percentile <= 20;
+  const quietYr1Strict = !r.isYear2 || !Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 4;
+  const bottomTail = neverOdds && r.percentile <= 35 && noNowSignal && quietYr1Strict;
+  // (b) Late capital, quiet rookie year, model out — hazard only falls
+  // (9% next season → 7% after; the spot beats the fade).
+  const lateFade = quietRookieYr && noNowSignal
+    && r.draftRound >= 5 && Number.isFinite(r.startProb) && r.startProb < 6 && r.percentile <= 40;
+  // (c) Day-2+ QBs who didn't play as rookies almost never emerge
+  // (6% → 0% historically) — high-capital QBs sitting a year do.
+  const qbFade = quietRookieYr && noNowSignal && r.position === 'QB' && r.draftRound >= 3;
+  if (bottomTail || lateFade || qbFade) {
+    const why = qbFade && !bottomTail
+      ? `Day-${r.draftRound >= 4 ? '3' : '2'} QB with a silent rookie year — historically this profile almost never becomes startable (6% → 0% by year). The spot beats the wait.`
+      : lateFade && !bottomTail
+        ? `Round-${r.draftRound >= 8 ? 'UDFA' : r.draftRound} capital, quiet rookie year, ${Number.isFinite(r.startProb) ? r.startProb.toFixed(0) : '—'}% starter odds — this profile's odds only fall from here (9% → 7% by season). The spot is worth more.`
+        : `${Number.isFinite(r.startProb) ? `${r.startProb.toFixed(0)}% odds of ever reaching starter PPG` : `p${r.percentile} profile`}${r.isYear2 ? ', quiet rookie year' : ''}, no current-season role — the spot is worth more than the lottery ticket.`;
+    return { verdict: 'Drop', why };
   }
 
-  // — Otherwise: the taxi case — future starter odds without this-year value.
+  // — Otherwise: the taxi case — ramp profiles without this-year value.
+  const rampCapital = r.draftRound <= 2 && (!r.isYear2 || quietRookieYr);
   const prime = Number.isFinite(r.startProb) && r.startProb >= 20;
   return {
     verdict: 'Taxi',
-    why: prime
-      ? `${r.startProb.toFixed(0)}% odds of reaching starter PPG (${r.tierLabel}, p${r.percentile}) but only ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} projected PPG this season — prime taxi stash: next-year starter odds with no this-year value to lose.`
-      : `Not streamable this season (proj ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} vs ≈ ${cutoff})${Number.isFinite(r.startProb) ? ` and ${r.startProb.toFixed(0)}% starter odds` : ''} — speculative stash; hold while the taxi spot is free.`,
+    why: rampCapital && r.isYear2
+      ? `Round-${r.draftRound} capital buried as a rookie — the classic delayed-breakout profile (historically these hit streamable MORE in the season after next than next season; R1-2 WRs 21% → 38%). Prime stash.`
+      : prime
+        ? `${r.startProb.toFixed(0)}% odds of reaching starter PPG (${r.tierLabel}, p${r.percentile}) but only ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} projected PPG this season — prime taxi stash: next-year starter odds with no this-year value to lose.`
+        : `Not streamable this season (proj ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} vs ≈ ${cutoff})${Number.isFinite(r.startProb) ? ` and ${r.startProb.toFixed(0)}% starter odds` : ''} — speculative stash; hold while the taxi spot is free.`,
   };
 }
 
@@ -277,6 +305,7 @@ export function TaxiSquadAdvisor() {
           startProb: c.thresholdProbs?.[START_KEY[c.position]] ?? NaN,
           boomProb: c.boomProb,
           bustProb: c.bustProb,
+          draftRound: c.features?.nflDraftRound ?? 8,
           dynValue: market?.value ?? 0,
           dynRank: market?.rank ?? 9999,
           isDC1: dcTeam !== undefined,
@@ -370,12 +399,13 @@ export function TaxiSquadAdvisor() {
         }}>
           {CURRENT_SEASON} rookies + {CURRENT_SEASON - 1} class
         </span>
+        <DocsLink section="draft-kit" title="Verdict tree, streamable cutoffs, and backtest — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {displayRows.length} players
         </span>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
+      <MethodNote id="taxi-advisor">
         The taxi call is a question about <em>when</em> a player will be
         startable — where "startable" means <em>streamable</em>: enough
         PPG that an owner can confidently start him for a couple of
@@ -399,7 +429,7 @@ export function TaxiSquadAdvisor() {
         (year-2 players); <strong>Value</strong> = FantasyCalc dynasty
         market. Hover any verdict for the player-specific reasoning.
         Names link to the full player page.
-      </p>
+      </MethodNote>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map((p) => (
@@ -586,10 +616,13 @@ export function TaxiSquadAdvisor() {
         <strong>Backtested on the 2010–2022 classes</strong> (verdicts
         replayed at the year-2 decision against full weekly-stats
         outcomes at the streamable bar): Roster hit streamable that
-        season 68% of the time (80% within 4 years), Taxi stashes paid
-        off 39% within 4 years, and only 13% of Drops ever had a
-        streamable season — mostly one-month wonders, and just 6 of 126
-        true year-2 breakouts were mislabeled Drop.
+        season 63% of the time (76% within 4 years); the Taxi bucket is
+        deliberately <em>forward-loaded</em> — 19% streamable next
+        season rising to 20% the season after (36% within 4 years),
+        because immediate producers go to Roster and falling-hazard
+        profiles go to Drop; 14% of Drops ever had a streamable season —
+        mostly journeyman streamers — and 116 of 126 true year-2
+        breakouts were retained.
       </p>
     </div>
   );

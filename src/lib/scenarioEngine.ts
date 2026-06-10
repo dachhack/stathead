@@ -1,4 +1,5 @@
 import type { SDIOProjection, ScenarioConfig, TeamStatKey } from '../types';
+import { normName } from './nameUtils';
 
 export function isScenarioEmpty(s: ScenarioConfig): boolean {
   return (
@@ -48,9 +49,34 @@ export function applyScenario(
 
   let result = projections.map((p) => ({ ...p }));
 
+  // Player-specific levers are stored with the PlayerID of whichever
+  // surface created them (Projections tab ids, SDIO ids, synthetic kit
+  // ids — all different id spaces). Resolve by id first, then fall back
+  // to normalized name + position (then unambiguous name) so a scenario
+  // saved on one surface still hits its players on another.
+  const byNamePos = new Map<string, SDIOProjection>();
+  const byNameOnly = new Map<string, SDIOProjection | null>(); // null = ambiguous
+  for (const p of result) {
+    const n = normName(p.Name);
+    if (!n) continue;
+    byNamePos.set(`${n}|${p.Position}`, p);
+    byNameOnly.set(n, byNameOnly.has(n) ? null : p);
+  }
+  const findPlayer = (playerId: number, playerName?: string, position?: string): SDIOProjection | undefined => {
+    const byId = result.find((p) => p.PlayerID === playerId);
+    if (byId) return byId;
+    if (!playerName) return undefined;
+    const n = normName(playerName);
+    if (position) {
+      const hit = byNamePos.get(`${n}|${position}`);
+      if (hit) return hit;
+    }
+    return byNameOnly.get(n) ?? undefined;
+  };
+
   // 1. Player movements — reassign team before applying tendencies
   for (const move of scenario.movements) {
-    const player = result.find((p) => p.PlayerID === move.playerId);
+    const player = findPlayer(move.playerId, move.playerName);
     if (player) player.Team = move.toTeam;
   }
 
@@ -125,7 +151,7 @@ export function applyScenario(
         (isRushStat && player.Position !== 'K') ||
         (isRecStat && (player.Position === 'RB' || player.Position === 'WR' || player.Position === 'TE'));
       if (!applies) continue;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       (player as unknown as Record<string, number>)[adj.stat] = ((player as unknown as Record<string, number>)[adj.stat] || 0) * f;
       const { ppr, std } = recalcPoints(player);
       player.FantasyPointsPPR = ppr;
@@ -138,6 +164,10 @@ export function applyScenario(
   const teamRushPool = new Map<string, number>();
   const teamRecPool = new Map<string, number>();
   for (const p of result) {
+    // Players without a team (e.g. synthetic rows that couldn't resolve
+    // one) must not pool together as a giant '' pseudo-team — their
+    // overrides still apply directly, just without redistribution.
+    if (!p.Team) continue;
     if (p.Position === 'RB') {
       teamRushPool.set(p.Team, (teamRushPool.get(p.Team) ?? 0) + (p.RushingAttempts || 0));
     }
@@ -151,9 +181,11 @@ export function applyScenario(
   const rushNewOvr = new Map<string, number>();
   const recOrigOvr = new Map<string, number>();
   const recNewOvr = new Map<string, number>();
+  const overriddenPlayers = new Set<SDIOProjection>();
   for (const override of scenario.volumeOverrides) {
-    const player = result.find((p) => p.PlayerID === override.playerId);
+    const player = findPlayer(override.playerId, override.playerName, override.position);
     if (!player) continue;
+    overriddenPlayers.add(player);
     const rushF = 1 + (override.rushDelta ?? override.volumeDelta) / 100;
     const recF = 1 + (override.recDelta ?? override.volumeDelta) / 100;
     if (player.Position === 'RB') {
@@ -166,11 +198,9 @@ export function applyScenario(
     }
   }
 
-  const overriddenIds = new Set(scenario.volumeOverrides.map((v) => v.playerId));
-
   // Boost overridden players (per-stat deltas override the blanket volumeDelta)
   for (const override of scenario.volumeOverrides) {
-    const player = result.find((p) => p.PlayerID === override.playerId);
+    const player = findPlayer(override.playerId, override.playerName, override.position);
     if (!player) continue;
     const rushF = 1 + (override.rushDelta ?? override.volumeDelta) / 100;
     const recF = 1 + (override.recDelta ?? override.volumeDelta) / 100;
@@ -200,7 +230,7 @@ export function applyScenario(
 
   // Scale down non-overridden players to keep team totals the same
   for (const player of result) {
-    if (overriddenIds.has(player.PlayerID)) continue;
+    if (overriddenPlayers.has(player)) continue;
     if (player.Position === 'QB' || player.Position === 'K') continue;
 
     let rushSc = 1;
@@ -249,7 +279,7 @@ export function applyScenario(
     'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
   ];
   for (const so of (scenario.statOverrides ?? [])) {
-    const player = result.find((p) => p.PlayerID === so.playerId);
+    const player = findPlayer(so.playerId, so.playerName, so.position);
     if (!player) continue;
     let changed = false;
     for (const k of STAT_OVERRIDE_KEYS) {
@@ -269,7 +299,7 @@ export function applyScenario(
   for (const avail of (scenario.playerAvailability ?? [])) {
     if (avail.games >= 17) continue;
     const f = Math.max(0, Math.min(1, avail.games / 17));
-    const player = result.find((p) => p.PlayerID === avail.playerId);
+    const player = findPlayer(avail.playerId, avail.playerName, avail.position);
     if (!player) continue;
     player.PassingAttempts = (player.PassingAttempts || 0) * f;
     player.PassingCompletions = (player.PassingCompletions || 0) * f;
@@ -292,7 +322,7 @@ export function applyScenario(
   // internally consistent and PPR lands on the target. Non-zero-sum (used by
   // the "Consensus" preset to blend toward an external projection set).
   for (const po of (scenario.pointsOverrides ?? [])) {
-    const player = result.find((p) => p.PlayerID === po.playerId);
+    const player = findPlayer(po.playerId, po.playerName, po.position);
     if (!player) continue;
     const cur = recalcPoints(player).ppr;
     if (cur <= 0 || po.ppr < 0) continue;

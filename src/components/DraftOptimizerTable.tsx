@@ -19,9 +19,14 @@ import { DraftTargetsFades } from './DraftTargetsFades';
 import { DraftValueBoard } from './DraftValueBoard';
 import { DraftRosterSim } from './DraftRosterSim';
 import { DraftRookieVetEdges } from './DraftRookieVetEdges';
+import { DraftLiveAssistant } from './DraftLiveAssistant';
+import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
-import { buildKitPool, kitKey } from '../lib/draftKit';
+import { buildKitPool, buildSyntheticSdio, kitKey } from '../lib/draftKit';
+import type { ClayStats, PlayerMeta } from '../lib/scenarioPresets';
+import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
 // the user's saved league settings.
@@ -127,10 +132,26 @@ interface SavedRankingBoard {
   name: string;
   savedAt: string;
   order: string[];
+  /** Projection scenario the board was built under (My Rankings links
+   *  boards to scenarios so the ranks reflect those projections). */
+  scenarioId?: string;
 }
 
 const MY_RANKINGS_KEY = 'stathead-my-rankings';
 const CURRENT_SEASON = 2026;
+
+// Workflow steps. The page is a draft-prep progression: configure the
+// league (settings header, always visible), then 1 study the cheat
+// sheet, 2 mark your edges, 3 simulate the plan from your seat, and
+// 4 run it live on draft day.
+const VIEWS = [
+  { id: 'sheet', label: '1 · Cheat Sheet', caption: 'where the value is' },
+  { id: 'edges', label: '2 · Edges', caption: 'targets & fades vs ADP' },
+  { id: 'plan', label: '3 · My Plan', caption: 'simulate from your seat' },
+  { id: 'live', label: '4 · Draft Day', caption: 'live draft sync' },
+] as const;
+type ViewId = typeof VIEWS[number]['id'];
+const VIEW_KEY = 'draft-kit-view';
 
 function loadSavedBoards(): SavedRankingBoard[] {
   try {
@@ -273,8 +294,20 @@ export function DraftOptimizerTable() {
   const [ffcEntries, setFfcEntries] = useState<FfcAdpEntry[]>([]);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
+  const [clayPpr, setClayPpr] = useState<Map<string, number>>(new Map());
+  const [clayStats, setClayStats] = useState<Map<string, ClayStats>>(new Map());
   const [savedBoards, setSavedBoards] = useState<SavedRankingBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [view, setView] = useState<ViewId>(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY) as ViewId | null;
+      return v && VIEWS.some((x) => x.id === v) ? v : 'sheet';
+    } catch { return 'sheet'; }
+  });
+  const switchView = (v: ViewId) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* quota */ }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
@@ -343,7 +376,12 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : []))
         .then((d) => (Array.isArray(d) ? d : []) as CareerScoreEntry[])
         .catch(() => [] as CareerScoreEntry[]),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData]: [
+      // Consensus stat lines — power the two Consensus presets.
+      fetch(`${BASE}data/clay-projections-${CURRENT_SEASON}.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<Record<string, number | string>>)
+        .catch(() => [] as Array<Record<string, number | string>>),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData, clayRaw]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -353,6 +391,7 @@ export function DraftOptimizerTable() {
       RedraftProjEntry[],
       FcRedraftEntry[],
       CareerScoreEntry[],
+      Array<Record<string, number | string>>,
     ]) => {
       if (cancelled) return;
       setSdio(sdioData);
@@ -360,6 +399,37 @@ export function DraftOptimizerTable() {
       setFfcEntries(ffcData ?? []);
       setFcRedraft(fcData ?? []);
       setCareerScores(careerData ?? []);
+      // Consensus maps for the requiresClay presets. PPR recomputed from
+      // the stat line with our scoring (same as the Projections tab).
+      {
+        const pprMap = new Map<string, number>();
+        const statsMap = new Map<string, ClayStats>();
+        for (const c of clayRaw ?? []) {
+          const name = String(c.name ?? '');
+          if (!name) continue;
+          const ppr = (Number(c.pass_yds) || 0) * 0.04 + (Number(c.pass_td) || 0) * 4 + (Number(c.pass_int) || 0) * -2
+            + (Number(c.rush_yds) || 0) * 0.1 + (Number(c.rush_td) || 0) * 6
+            + (Number(c.rec) || 0) + (Number(c.rec_yds) || 0) * 0.1 + (Number(c.rec_td) || 0) * 6;
+          if (ppr <= 0) continue;
+          const nk = normName(name);
+          pprMap.set(nk, Math.round(ppr));
+          statsMap.set(nk, {
+            position: String(c.position ?? ''),
+            pos_rk: Number(c.pos_rk) || 999,
+            ...(c.pass_yds != null && { pass_yds: Number(c.pass_yds) || 0 }),
+            ...(c.pass_td != null && { pass_td: Number(c.pass_td) || 0 }),
+            ...(c.pass_int != null && { pass_int: Number(c.pass_int) || 0 }),
+            ...(c.rush_yds != null && { rush_yds: Number(c.rush_yds) || 0 }),
+            ...(c.rush_td != null && { rush_td: Number(c.rush_td) || 0 }),
+            ...(c.rec != null && { rec: Number(c.rec) || 0 }),
+            ...(c.rec_yds != null && { rec_yds: Number(c.rec_yds) || 0 }),
+            ...(c.rec_td != null && { rec_td: Number(c.rec_td) || 0 }),
+            ppr: Math.round(ppr),
+          });
+        }
+        setClayPpr(pprMap);
+        setClayStats(statsMap);
+      }
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
         setLoading(false);
@@ -475,21 +545,89 @@ export function DraftOptimizerTable() {
     return () => { cancelled = true; };
   }, []);
 
-  // Active scenario — user-selected from the saved-scenarios dropdown.
-  // Falls back to "no scenario" when nothing is selected.
+  // Base projection rows the scenario engine runs on. Real SDIO rows
+  // when an API key is configured; otherwise synthetic SDIO-shaped rows
+  // decomposed from the base projections — so scenarios AND presets
+  // work for every user, not just SDIO-key holders.
+  const baseSdio = useMemo<SDIOProjection[]>(() => {
+    if (sdio.length) return sdio;
+    if (!redraftEntries.length) return [];
+    const teamByKey = new Map<string, string>();
+    for (const r of rawRows) {
+      if (r.team) teamByKey.set(kitKey(r.name, r.position), r.team);
+    }
+    for (const v of fcRedraft) {
+      const p = v?.player;
+      if (p?.name && p.maybeTeam) {
+        const k = kitKey(p.name, p.position);
+        if (!teamByKey.has(k)) teamByKey.set(k, p.maybeTeam);
+      }
+    }
+    return buildSyntheticSdio(redraftEntries.map((p) => ({
+      name: p.name,
+      position: p.position,
+      ppg: p.ppg,
+      recPG: p.recPG,
+      team: teamByKey.get(kitKey(p.name, p.position)),
+    })));
+  }, [sdio, redraftEntries, rawRows, fcRedraft]);
+
+  // Player metadata for the preset factories (rookie/vet tilts need
+  // isRookie / yearsExp / age).
+  const presetMeta = useMemo<Map<string, PlayerMeta>>(() => {
+    const m = new Map<string, PlayerMeta>();
+    for (const v of fcRedraft) {
+      const p = v?.player;
+      if (!p?.name) continue;
+      m.set(normName(p.name), {
+        isRookie: false,
+        yearsExp: Number.isFinite(p.maybeYoe as number) ? (p.maybeYoe as number) : null,
+        age: Number.isFinite(p.maybeAge as number) ? (p.maybeAge as number) : null,
+        priorGames: null,
+      });
+    }
+    for (const c of careerScores) {
+      if (c.draftSeason !== CURRENT_SEASON) continue;
+      const k = normName(c.name);
+      const prev = m.get(k);
+      m.set(k, { isRookie: true, yearsExp: 0, age: prev?.age ?? null, priorGames: null });
+    }
+    return m;
+  }, [fcRedraft, careerScores]);
+
+  // Presets offered in the dropdown — the Consensus pair needs the
+  // committed consensus stat file; hide them if it failed to load.
+  const availablePresets = useMemo(
+    () => SCENARIO_PRESETS.filter((p) => !p.requiresClay || clayPpr.size > 0),
+    [clayPpr],
+  );
+
+  // Active scenario — a built-in preset (id 'preset-*', built fresh
+  // against the current base rows) or a saved custom scenario.
   const activeScenario = useMemo<ScenarioConfig | null>(() => {
     if (!selectedScenarioId) return null;
+    if (selectedScenarioId.startsWith('preset-')) {
+      const preset = SCENARIO_PRESETS.find((p) => p.id === selectedScenarioId);
+      if (!preset || !baseSdio.length) return null;
+      return preset.build(baseSdio, presetMeta, normName, { clayPpr, clayStats });
+    }
     return scenarios.find((s) => s.id === selectedScenarioId) ?? null;
-  }, [selectedScenarioId, scenarios]);
+  }, [selectedScenarioId, scenarios, baseSdio, presetMeta, clayPpr, clayStats]);
 
-  // Apply scenario to SDIO projections. When no scenario is active or
-  // SDIO data isn't loaded, returns SDIO unchanged (so the
-  // scenarioPpgByName map below is empty and the score-store base PPG
-  // wins for every player).
+  // Run the scenario engine over the base rows.
   const scenarioSdio = useMemo<SDIOProjection[]>(() => {
-    if (!sdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return sdio;
-    return applyScenario(sdio, activeScenario);
-  }, [sdio, activeScenario]);
+    if (!baseSdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return baseSdio;
+    return applyScenario(baseSdio, activeScenario);
+  }, [baseSdio, activeScenario]);
+
+  // Display name for the active projection set (preset / saved / base).
+  const activeScenarioName = useMemo<string | null>(() => {
+    if (!selectedScenarioId) return null;
+    if (selectedScenarioId.startsWith('preset-')) {
+      return SCENARIO_PRESETS.find((p) => p.id === selectedScenarioId)?.name ?? null;
+    }
+    return scenarios.find((s) => s.id === selectedScenarioId)?.name ?? null;
+  }, [selectedScenarioId, scenarios]);
 
   // Scenario-derived PPG per player. SDIO `FantasyPointsPPR` is a season
   // total; divide by 17 to align with our per-game PPG convention.
@@ -550,6 +688,17 @@ export function DraftOptimizerTable() {
     return m;
   }, [myBoard]);
 
+  // A board saved on My Rankings can be linked to the scenario it was
+  // built under. If a different scenario is active, the MY column's
+  // ranks reflect projections the page is no longer showing — surface
+  // the mismatch with a one-click fix.
+  const boardScenarioMismatch = useMemo<{ id: string; name: string } | null>(() => {
+    if (!myBoard?.scenarioId || myBoard.scenarioId === selectedScenarioId) return null;
+    const sc = scenarios.find((s) => s.id === myBoard.scenarioId);
+    if (!sc) return null; // linked scenario no longer exists — nothing to apply
+    return { id: sc.id, name: sc.name || 'Untitled' };
+  }, [myBoard, selectedScenarioId, scenarios]);
+
   // Per-position target-share %ile lookup. Doesn't depend on scenario;
   // computed once over the raw share data.
   const tsharePctile = useMemo(() => {
@@ -607,7 +756,12 @@ export function DraftOptimizerTable() {
       const upsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciUpper - r.ciCenter) : NaN;
       const downsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciCenter - r.ciLower) : NaN;
       const curve = curves[r.position];
-      const adpBaselinePPG = curve && r.adp < 999 && pred > 0
+      // The ADP curve is fit on real drafts (ADP ≲ 250). Beyond ~300 the
+      // √ADP extrapolation collapses toward zero and ANY prediction
+      // reads as a monster edge — that's how a phantom deep-ADP entry
+      // (Al Riles, "ADP 363") once cracked the board's top 20. No
+      // market signal, no edge.
+      const adpBaselinePPG = curve && r.adp <= 300 && pred > 0
         ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(r.adp) + (curve.poolOffset ?? 0)
         : NaN;
       const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
@@ -742,15 +896,9 @@ export function DraftOptimizerTable() {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Prep</h1>
-        <span style={{
-          fontSize: 11, background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
-          border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
-        }}>
-          Edge Board
-        </span>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {displayRows.length} players
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Kit</h1>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          Set your league below — every number on this page recomputes around it.
         </span>
       </div>
 
@@ -758,11 +906,93 @@ export function DraftOptimizerTable() {
         settings={settings}
         onChange={setSettings}
         scenarios={scenarios}
+        presets={availablePresets.map((p) => ({ id: p.id, name: p.name, description: p.description }))}
         selectedScenarioId={selectedScenarioId}
         onScenarioChange={setSelectedScenarioId}
       />
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
+      {/* Workflow steps */}
+      <div style={{ display: 'flex', gap: 8, margin: '4px 0 16px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => switchView(v.id)}
+            style={{
+              flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+              background: view === v.id ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+              border: view === v.id ? '1px solid var(--accent, #00d4aa)' : '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 12px',
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 800, color: view === v.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+              {v.label}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{v.caption}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Active inputs — one line that says exactly what's driving the
+          numbers (scenario → projections everywhere) vs what's overlay
+          (your board → MY column / "you #N" chips / next-on-board). */}
+      <div style={{
+        display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+        fontSize: 11, color: 'var(--text-muted)', margin: '-8px 0 16px', padding: '0 2px',
+      }}>
+        <span>
+          <strong style={{ color: 'var(--text-secondary)' }}>Projections:</strong>{' '}
+          {activeScenarioName ?? 'Base'}
+          <span style={{ opacity: 0.8 }}> — drives every number (PPG, VBD, edges, sims, live picks)</span>
+        </span>
+        <span style={{ opacity: 0.5 }}>·</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <strong style={{ color: 'var(--text-secondary)' }}>My board:</strong>
+          {savedBoards.length > 0 ? (
+            <select
+              value={selectedBoardId}
+              onChange={(e) => setSelectedBoardId(e.target.value)}
+              style={{
+                background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4,
+                color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, padding: '1px 4px',
+              }}
+              title="Overlay a board saved on the My Rankings tab — MY column, “you #N” chips, next-on-board, and the Team Builder's draft-by-my-board mode"
+            >
+              <option value="">none</option>
+              {savedBoards.map((b) => (
+                <option key={b.id} value={b.id}>{b.name || 'Untitled'}</option>
+              ))}
+            </select>
+          ) : (
+            <span title="Save a board on the My Rankings tab to overlay it here">none saved</span>
+          )}
+          <span style={{ opacity: 0.8 }}> — your order as overlay (MY column, “you #N”, draft-by-board)</span>
+        </span>
+        {boardScenarioMismatch && (
+          <span style={{ color: '#facc15' }}>
+            ⚠ board “{myBoard?.name}” was built under scenario “{boardScenarioMismatch.name}” —{' '}
+            <button
+              onClick={() => setSelectedScenarioId(boardScenarioMismatch.id)}
+              style={{
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                color: '#facc15', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, textDecoration: 'underline',
+              }}
+            >
+              apply it
+            </button>
+          </span>
+        )}
+      </div>
+
+      {view === 'edges' && (
+        <>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Edge Board</h2>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          model vs market, player by player · {displayRows.length} players
+        </span>
+        <DocsLink section="projection" title="PPG / VOR model validation — Model Docs" />
+      </div>
+      <MethodNote id="edge-board">
         <strong>Model</strong> = our ADP-free ensemble's predicted PPG
         (Stathead, score-store/ppg.json).{' '}
         <strong>Proj</strong> = base projections from{' '}
@@ -797,13 +1027,13 @@ export function DraftOptimizerTable() {
             new distribution.
           </>
         )}
-        {Object.keys(curves).length === 0 && (
-          <span style={{ color: '#fb923c', marginLeft: 6 }}>
-            ADP curve unavailable — Pick Edge / Beat % / Verdict will
-            show as “—” until the next score-store build.
-          </span>
-        )}
-      </p>
+      </MethodNote>
+      {Object.keys(curves).length === 0 && (
+        <p style={{ fontSize: 12, color: '#fb923c', marginBottom: 12 }}>
+          ADP curve unavailable — Pick Edge / Beat % / Verdict will
+          show as “—” until the next score-store build.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map((p) => (
@@ -859,27 +1089,6 @@ export function DraftOptimizerTable() {
             (≥15% survival)
           </span>
         </label>
-        {savedBoards.length > 0 && (
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
-            background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
-            borderRadius: 6, padding: '3px 10px',
-          }}>
-            My board{' '}
-            <select
-              value={selectedBoardId}
-              onChange={(e) => setSelectedBoardId(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
-              title="Overlay a board saved on the My Rankings tab — your rank shows on the Value Board next to market ADP"
-            >
-              <option value="">None</option>
-              {savedBoards.map((b) => (
-                <option key={b.id} value={b.id}>{b.name || 'Untitled'}</option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -1029,46 +1238,53 @@ export function DraftOptimizerTable() {
         </div>
       )}
 
-      {/* Section 2: Value Board. BeerSheets-style VBD cheat sheet over
-          the wide projection pool (rookie-inclusive), with tier colors,
-          scarcity bars, and ADP-arbitrage deltas. */}
-      <DraftValueBoard
-        pool={kitPool}
-        settings={settings}
-        myRankByKey={myRankByKey}
-        myBoardName={myBoard?.name}
-      />
-
-      {/* Section 3: Optimal Team Builder. Simulates the user's draft
-          from their seat (survival-aware, roster-aware greedy VBD) and
-          quantifies the edge vs an ADP-chalk roster. */}
-      <DraftRosterSim pool={kitPool} settings={settings} />
-
-      {/* Section 4: Rookie & Veteran Edges. Market mispricings on the
-          rookie class (career-model boom/startable probs) and on boring
-          4+-year vets the community fades. */}
+      {/* Step 2 continued: Targets & Fades + Rookie/Vet market
+          mispricings live with the Edge Board. */}
+      <DraftTargetsFades rows={enrichedRows} />
       <DraftRookieVetEdges
         pool={kitPool}
         settings={settings}
         career={careerScores}
         currentSeason={CURRENT_SEASON}
       />
+        </>
+      )}
 
-      {/* Section 5: Round-by-Round Plan. Reads enrichedRows so verdict
-          + survival reflect the user's current settings header. */}
-      <DraftRoundPlan rows={enrichedRows} settings={settings} />
+      {view === 'sheet' && (
+        <>
+          {/* Step 1: the market study — BeerSheets-style VBD cheat
+              sheet (rookie-inclusive pool, tier colors, scarcity bars,
+              ADP-arbitrage deltas) + the tier-cliff scatter. */}
+          <DraftValueBoard
+            pool={kitPool}
+            settings={settings}
+            myRankByKey={myRankByKey}
+            myBoardName={myBoard?.name}
+          />
+          <DraftTierMap rows={enrichedRows} settings={settings} />
+        </>
+      )}
 
-      {/* Section 6: Tier Map. Per-position scatter (ADP × Pred PPG)
-          with cliff lines at tier boundaries. Production tiers — by
-          predicted PPG — answer the "where do positions run out?"
-          question; verdict color overlays the value signal. */}
-      <DraftTierMap rows={enrichedRows} settings={settings} />
+      {view === 'plan' && (
+        <>
+          {/* Step 3: the plan from the user's seat — full-draft sim vs
+              an ADP-chalk roster, then the round-by-round pick guide. */}
+          <DraftRosterSim pool={kitPool} settings={settings} myRankByKey={myRankByKey} />
+          <DraftRoundPlan rows={enrichedRows} settings={settings} />
+        </>
+      )}
 
-      {/* Section 7: Targets & Fades. Top-N undervalued and overvalued
-          per position, scored by edge × confidence. Filtered to
-          ADP ≤ 200 by default to keep the lists in actionable
-          territory; toggle off for sleepers. */}
-      <DraftTargetsFades rows={enrichedRows} />
+      {view === 'live' && (
+        /* Step 4: draft day — Sleeper draft sync (or manual tracking
+           for other platforms) with need-aware best-available. */
+        <DraftLiveAssistant
+          pool={kitPool}
+          settings={settings}
+          onSettingsChange={setSettings}
+          myRankByKey={myRankByKey}
+          myBoardName={myBoard?.name}
+        />
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { ModelCardButton } from './ModelCardButton';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
 import { normalizeNameUnicode as normalizeName } from '../lib/nameMatch';
+import { DocsLink } from './DocsLink';
 
 interface ProspectGrade {
   name: string;
@@ -594,6 +595,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   return (
     <>
       <div className="controls">
+        <DocsLink section="rookie" title="Rookie career model validation — Model Docs" />
         <input
           type="text"
           placeholder="Search players, schools, or tiers..."
