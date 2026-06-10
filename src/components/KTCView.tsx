@@ -1,21 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { KTCPlayer } from '../types';
 import { fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
+import { TEP_MULTIPLIERS, TEP_LABELS, type TepLevel } from '../lib/ktcForecast';
 import { PlayerName } from './PlayerName';
 
 type FormatMode = '1qb' | 'superflex';
-type TepMode = 'std' | 'half' | 'full';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
-// TE Premium: KTC/FantasyCalc don't publish TEP-adjusted values, so approximate
-// the dynasty bump from the scoring boost. TEP adds bonusPerRec points per TE
-// reception, lifting a TE's PPR scoring by ~TE_REC_PER_PPG × bonusPerRec (0.38
-// receptions per PPR PPG for fantasy-relevant TEs — the same ratio the rookie
-// projections use); scale TE dynasty value by the same factor.
-const TE_REC_PER_PPG = 0.38;
-function tepValueFactor(position: string, mode: TepMode): number {
-  if (mode === 'std' || position !== 'TE') return 1;
-  return 1 + TE_REC_PER_PPG * (mode === 'half' ? 0.5 : 1.0);
+// TE Premium: scale TE dynasty values by the same empirical KTC multipliers the
+// Trade Calculator uses (TE+ 1.11x, TE++ 1.215x, TE+++ 1.32x).
+function tepValueFactor(position: string, level: TepLevel): number {
+  return position === 'TE' ? TEP_MULTIPLIERS[level] : 1;
 }
 
 interface Props {
@@ -31,16 +26,15 @@ export function KTCView({ onDataLoaded }: Props) {
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [showRookies, setShowRookies] = useState(false);
-  // TE Premium toggle — shared with the rookie view via the 'tepMode' key so a
-  // league's TEP setting sticks across both surfaces.
-  const [tepMode, setTepMode] = useState<TepMode>(
-    () => (typeof localStorage !== 'undefined'
-      ? ((localStorage.getItem('tepMode') as TepMode) || 'std')
-      : 'std'),
-  );
+  // TE Premium level (matches the Trade Calculator's 0–3 scale); persisted.
+  const [tepLevel, setTepLevel] = useState<TepLevel>(() => {
+    if (typeof localStorage === 'undefined') return 0;
+    const v = Number(localStorage.getItem('ktcTepLevel'));
+    return v === 1 || v === 2 || v === 3 ? v : 0;
+  });
   useEffect(() => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem('tepMode', tepMode);
-  }, [tepMode]);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('ktcTepLevel', String(tepLevel));
+  }, [tepLevel]);
 
   useEffect(() => {
     setLoading(true);
@@ -70,18 +64,18 @@ export function KTCView({ onDataLoaded }: Props) {
   }, [players, posFilter, search, showRookies]);
 
   const displayVal = (p: KTCPlayer) =>
-    Math.round((format === 'superflex' ? p.superflexValue : p.value) * tepValueFactor(p.position, tepMode));
+    Math.round((format === 'superflex' ? p.superflexValue : p.value) * tepValueFactor(p.position, tepLevel));
 
   const sortedFiltered = useMemo(
     () => [...filtered].sort((a, b) => displayVal(b) - displayVal(a)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtered, format, tepMode],
+    [filtered, format, tepLevel],
   );
 
   const maxValue = useMemo(
     () => (sortedFiltered.length > 0 ? Math.max(...sortedFiltered.map(displayVal)) : 9999),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sortedFiltered, format, tepMode]
+    [sortedFiltered, format, tepLevel]
   );
 
   if (loading) {
@@ -170,14 +164,14 @@ export function KTCView({ onDataLoaded }: Props) {
           />
           Rookies only
         </label>
-        <div className="scoring-format-tabs" title="Tight End Premium — boosts TE dynasty values to approximate TEP scoring">
-          {(['std', 'half', 'full'] as const).map((m) => (
+        <div className="scoring-format-tabs" title="Tight End Premium — boosts TE dynasty values (same multipliers as the Trade Calculator)">
+          {([0, 1, 2, 3] as TepLevel[]).map((lv) => (
             <button
-              key={m}
-              className={`format-tab ${tepMode === m ? 'active' : ''}`}
-              onClick={() => setTepMode(m)}
+              key={lv}
+              className={`format-tab ${tepLevel === lv ? 'active' : ''}`}
+              onClick={() => setTepLevel(lv)}
             >
-              {m === 'std' ? 'No TEP' : m === 'half' ? '½ TEP' : 'Full TEP'}
+              {lv === 0 ? 'No TEP' : TEP_LABELS[lv]}
             </button>
           ))}
         </div>
@@ -278,8 +272,8 @@ export function KTCView({ onDataLoaded }: Props) {
                     })()
                   ) : (
                     format === '1qb'
-                      ? (p.superflexValue > 0 ? Math.round(p.superflexValue * tepValueFactor(p.position, tepMode)).toLocaleString() : '-')
-                      : (p.value > 0 ? Math.round(p.value * tepValueFactor(p.position, tepMode)).toLocaleString() : '-')
+                      ? (p.superflexValue > 0 ? Math.round(p.superflexValue * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')
+                      : (p.value > 0 ? Math.round(p.value * tepValueFactor(p.position, tepLevel)).toLocaleString() : '-')
                   )}
                 </td>
               </tr>

@@ -35,6 +35,21 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
     return () => { alive = false; };
   }, [espnId]);
 
+  // Rookies/incoming players have no KTC team or NFL game log yet, but Sleeper
+  // assigns them an NFL team once drafted — use it for the team line + depth chart.
+  const sleeperId = data?.crosswalk.sleeper_id;
+  const [sleeperTeam, setSleeperTeam] = useState<string | null>(null);
+  useEffect(() => {
+    setSleeperTeam(null);
+    if (!sleeperId) return;
+    let alive = true;
+    fetchSleeperPlayers().then((m) => {
+      const sp = m.get(sleeperId);
+      if (alive && sp?.team) setSleeperTeam(sp.team);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [sleeperId]);
+
   if (loading) {
     return (
       <div style={{ padding: 24 }}>
@@ -56,6 +71,9 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
 
   const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, gameLog, gameLogSeason } = data;
 
+  // Best available current NFL team: KTC → most recent game → Sleeper (rookies).
+  const nflTeam = ktcCurrent?.team || gameLog[0]?.recent_team || sleeperTeam || null;
+
   const headshotUrl = gameLog[0]?.headshot_url
     || (cw.espn_id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${cw.espn_id}.png&w=200&h=145` : null);
 
@@ -70,13 +88,13 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
           <h1 style={{ margin: 0, fontSize: 28 }}>{cw.display_name}</h1>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6, fontSize: 13, color: 'var(--text-muted)' }}>
             <span className={`pos-badge pos-${cw.position}`}>{cw.position}</span>
-            {ktcCurrent?.team && <span>{ktcCurrent.team}</span>}
+            {nflTeam && <span>{nflTeam}</span>}
             {cw.college && <span>{cw.college}</span>}
             {cw.birth_date && <span>DOB {cw.birth_date}</span>}
             {cw.earliest_season && cw.latest_season && (
               <span>{cw.earliest_season}–{cw.latest_season}</span>
             )}
-            {cw.is_college_only && <span style={{ color: 'var(--accent)' }}>Pre-NFL</span>}
+            {cw.is_college_only && !nflTeam && <span style={{ color: 'var(--accent)' }}>Pre-NFL</span>}
             {overview?.awards.map((a) => (
               <span
                 key={a.name}
@@ -112,8 +130,8 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
       {overview?.rotowire && <RotowireSection ro={overview.rotowire} />}
       {espnId && <NewsList items={overview?.news ?? []} loading={overview === null} />}
 
-      {(ktcCurrent?.team || gameLog[0]?.recent_team) && (
-        <TeamRoster team={(ktcCurrent?.team || gameLog[0]?.recent_team)!} selfName={cw.display_name} />
+      {nflTeam && (
+        <TeamRoster team={nflTeam} selfName={cw.display_name} />
       )}
     </div>
   );
