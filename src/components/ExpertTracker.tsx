@@ -11,7 +11,7 @@ import { dynastyPickValue } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
 import {
   fetchEncryptedNames, decryptExpertNames, loadCachedUnlockedNames, cacheUnlockedNames,
-  type EncryptedNames,
+  type EncryptedNames, type ExpertNamesDoc,
 } from '../lib/expertNames';
 
 const SLEEPER = 'https://api.sleeper.app/v1';
@@ -34,6 +34,11 @@ const pickOverall = (round: number) => Math.max(1, (round - 0.5) * 12); // 12-te
 interface GraphNode { i: number; leagues: number; dynasty: number; redraft: number }
 interface GraphEdge { a: number; b: number; dynasty: number; redraft: number; total: number }
 interface GenGraph { generated: string; expert_count: number; nodes: GraphNode[]; edges: GraphEdge[] }
+interface LeagueNode { i: number; experts: number; size: number; dynasty: 0 | 1; sf: 0 | 1 }
+interface LeagueEdge { a: number; b: number; shared: number }
+interface GenLeagueGraph { generated: string; nodes: LeagueNode[]; edges: LeagueEdge[] }
+interface CandidateRow { i: number; experts: number; leagues: number; dynasty: number; redraft: number }
+interface GenCandidates { generated: string; expert_count: number; candidates: CandidateRow[] }
 interface RankRow { label: string; isUser: boolean; avg: number; grade: string; trades: number }
 
 // The expert username list lives ONLY in the browser (localStorage). It is never
@@ -101,10 +106,12 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const [gOwn, setGOwn] = useState<GenOwnership | null>(null);
   const [gAdds, setGAdds] = useState<GenAdds | null>(null);
   const [gTrades, setGTrades] = useState<GenTrades | null>(null);
-  const [dataView, setDataView] = useState<'ownership' | 'adds' | 'trades' | 'rank' | 'graph'>('ownership');
+  const [dataView, setDataView] = useState<'ownership' | 'adds' | 'trades' | 'rank' | 'graph' | 'leagues' | 'candidates'>('ownership');
   const [fmt, setFmt] = useState<FmtFilter>('all');
   const [graph, setGraph] = useState<GenGraph | null>(null);
-  const [names, setNames] = useState<Record<string, string> | null>(null); // local dev file, or unlocked
+  const [lgGraph, setLgGraph] = useState<GenLeagueGraph | null>(null);
+  const [gCands, setGCands] = useState<GenCandidates | null>(null);
+  const [nameDoc, setNameDoc] = useState<ExpertNamesDoc | null>(null); // local dev file, or unlocked
   const [encNames, setEncNames] = useState<EncryptedNames | null>(null); // deployed encrypted blob
   const [ktcByName, setKtcByName] = useState<Map<string, KTCPlayer>>(new Map());
   const [graphFmt, setGraphFmt] = useState<'all' | 'dynasty' | 'redraft'>('all');
@@ -123,9 +130,11 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     load<GenAdds>('expert-adds.json', setGAdds);
     load<GenTrades>('expert-trades.json', setGTrades);
     load<GenGraph>('expert-graph.json', setGraph);
+    load<GenLeagueGraph>('expert-league-graph.json', setLgGraph);
+    load<GenCandidates>('expert-candidates.json', setGCands);
     // Plaintext name map exists only in local dev; deployed sites fall back to
     // a previously unlocked copy (sessionStorage) or the encrypted blob.
-    load<{ names: Record<string, string> }>('expert-names.json', (v) => setNames(v?.names ?? loadCachedUnlockedNames()));
+    load<ExpertNamesDoc>('expert-names.json', (v) => setNameDoc(v?.names ? v : loadCachedUnlockedNames()));
     fetchEncryptedNames().then(setEncNames).catch(() => {});
     fetchKTCRankings('superflex').then((ks) => {
       const m = new Map<string, KTCPlayer>();
@@ -134,12 +143,14 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     }).catch(() => {});
   }, []);
   const hasPipeline = !!(gOwn?.players?.length || gAdds?.adds?.length || gTrades?.trades?.length);
-  const expertLabel = (i: number) => names?.[String(i)] ?? `Expert #${i + 1}`;
+  const expertLabel = (i: number) => nameDoc?.names?.[String(i)] ?? `Expert #${i + 1}`;
+  const candidateLabel = (i: number) => nameDoc?.candidates?.[String(i)] || `Candidate #${i + 1}`;
+  const leagueLabel = (i: number) => nameDoc?.leagues?.[String(i)] || `League #${i + 1}`;
   const unlockNames = useCallback(async (passphrase: string): Promise<boolean> => {
     if (!encNames) return false;
     const m = await decryptExpertNames(encNames, passphrase);
     if (!m) return false;
-    setNames(m);
+    setNameDoc(m);
     cacheUnlockedNames(m);
     return true;
   }, [encNames]);
@@ -178,7 +189,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     }
     return rows.sort((x, y) => y.avg - x.avg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gTrades, ktcByName, gradeTrade, names]);
+  }, [gTrades, ktcByName, gradeTrade, nameDoc]);
 
   const rankedWithUser = useMemo(() => {
     const rows = [...expertRanking];
@@ -364,9 +375,11 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
       {hasPipeline ? (
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-            {(['ownership', 'adds', 'trades', 'rank', 'graph'] as const).map((v) => (
+            {(['ownership', 'adds', 'trades', 'rank', 'graph', 'leagues', 'candidates'] as const).map((v) => (
               <button key={v} onClick={() => setDataView(v)} style={{ ...btn(dataView === v), padding: '4px 12px', fontSize: 12 }}>
-                {v === 'ownership' ? 'Ownership' : v === 'adds' ? 'Adds' : v === 'trades' ? 'Trades' : v === 'rank' ? 'Compare & Rank' : 'Social Graph'}
+                {v === 'ownership' ? 'Ownership' : v === 'adds' ? 'Adds' : v === 'trades' ? 'Trades'
+                  : v === 'rank' ? 'Compare & Rank' : v === 'graph' ? 'Social Graph'
+                  : v === 'leagues' ? 'League Graph' : 'Candidates'}
               </button>
             ))}
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -496,9 +509,58 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
 
           {dataView === 'graph' && graph && (
             <SocialGraph
-              graph={graph} fmt={graphFmt} setFmt={setGraphFmt} label={expertLabel} hasNames={!!names}
+              graph={graph} fmt={graphFmt} setFmt={setGraphFmt} label={expertLabel} hasNames={!!nameDoc?.names}
               onUnlock={encNames ? unlockNames : undefined}
             />
+          )}
+
+          {dataView === 'leagues' && (
+            lgGraph?.nodes.length ? (
+              <LeagueGraph
+                graph={lgGraph} fmt={graphFmt} setFmt={setGraphFmt} label={leagueLabel}
+                hasNames={!!nameDoc?.leagues} onUnlock={encNames && !nameDoc ? unlockNames : undefined}
+              />
+            ) : (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                No league graph yet — it appears after the next data update regenerates the expert data.
+              </p>
+            )
+          )}
+
+          {dataView === 'candidates' && (
+            gCands?.candidates.length ? (
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
+                  Sleeper users who share leagues with the most tracked experts — they run in the same
+                  circles, so they may be experts worth adding to the list.
+                  {!nameDoc && encNames && <UnlockNames onUnlock={unlockNames} />}
+                  {nameDoc && !nameDoc.candidates && ' Usernames for candidates arrive with the next data update.'}
+                </p>
+                <div className="table-container" style={{ maxHeight: 600 }}>
+                  <table className="sched-table" style={{ fontSize: 12 }}>
+                    <thead><tr><th>#</th><th>User</th><th>Experts shared</th><th>Shared leagues</th><th>Dynasty</th><th>Redraft</th></tr></thead>
+                    <tbody>
+                      {gCands.candidates.map((c, i) => (
+                        <tr key={c.i}>
+                          <td className="rank-cell">{i + 1}</td>
+                          <td><strong>{candidateLabel(c.i)}</strong></td>
+                          <td title={`shares a league with ${c.experts} of ${gCands.expert_count} experts`}>
+                            <b>{c.experts}</b> / {gCands.expert_count}
+                          </td>
+                          <td>{c.leagues}</td>
+                          <td>{c.dynasty}</td>
+                          <td>{c.redraft}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                No candidates yet — they appear after the next data update regenerates the expert data.
+              </p>
+            )
           )}
         </div>
       ) : (
@@ -714,6 +776,73 @@ function SocialGraph({ graph, fmt, setFmt, label, hasNames, onUnlock }: {
             <g key={nd.i} onMouseEnter={() => setHover(nd.i)} onMouseLeave={() => setHover(null)}>
               <circle cx={p.x} cy={p.y} r={r} fill="#6366f1" fillOpacity={active ? 0.9 : 0.25} stroke="var(--bg-tertiary)" strokeWidth={1} />
               {(hover === nd.i || hasNames) && (
+                <text x={p.x} y={p.y - r - 3} fontSize={9} fill="var(--text-secondary)" textAnchor="middle">{label(nd.i)}</text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// Circular-layout league graph: nodes = leagues with ≥2 tracked experts (size ∝
+// expert count, color = dynasty/redraft), edges = experts two leagues share.
+// League names render on hover, or for the bigger hubs when unlocked/in dev.
+function LeagueGraph({ graph, fmt, setFmt, label, hasNames, onUnlock }: {
+  graph: GenLeagueGraph;
+  fmt: 'all' | 'dynasty' | 'redraft';
+  setFmt: (f: 'all' | 'dynasty' | 'redraft') => void;
+  label: (i: number) => string;
+  hasNames: boolean;
+  onUnlock?: (passphrase: string) => Promise<boolean>;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 760, H = 600, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 70;
+  const nodes = graph.nodes.filter((nd) =>
+    fmt === 'all' || (fmt === 'dynasty' ? nd.dynasty === 1 : nd.dynasty === 0));
+  const N = nodes.length || 1;
+  const pos = new Map<number, { x: number; y: number }>();
+  nodes.forEach((nd, i) => {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    pos.set(nd.i, { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) });
+  });
+  const edges = graph.edges.filter((e) => pos.has(e.a) && pos.has(e.b));
+  const maxW = Math.max(1, ...edges.map((e) => e.shared));
+  const maxExperts = Math.max(1, ...nodes.map((nd) => nd.experts));
+  const nodeColor = (nd: LeagueNode) => (nd.dynasty ? '#6366f1' : '#f59e0b');
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>League type:</span>
+        {(['all', 'dynasty', 'redraft'] as const).map((f) => (
+          <button key={f} onClick={() => setFmt(f)} style={gbtn(fmt === f)}>{f === 'all' ? 'All' : f === 'dynasty' ? 'Dynasty' : 'Redraft'}</button>
+        ))}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
+          {nodes.length} leagues with 2+ experts · {edges.length} shared-expert links
+          · <span style={{ color: '#6366f1' }}>●</span> dynasty <span style={{ color: '#f59e0b' }}>●</span> redraft
+          {hasNames ? '' : ' · anonymized'}
+        </span>
+        {!hasNames && onUnlock && <UnlockNames onUnlock={onUnlock} />}
+      </div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        {edges.map((e, i) => {
+          const a = pos.get(e.a)!, b = pos.get(e.b)!;
+          const active = hover == null || hover === e.a || hover === e.b;
+          return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#64748b"
+            strokeWidth={0.5 + (e.shared / maxW) * 3.5} strokeOpacity={active ? 0.5 : 0.07} />;
+        })}
+        {nodes.map((nd) => {
+          const p = pos.get(nd.i)!;
+          const active = hover == null || hover === nd.i;
+          const r = 4 + (nd.experts / maxExperts) * 11;
+          // Always label on hover; when names are unlocked, label the busiest hubs too.
+          const showLabel = hover === nd.i || (hasNames && nd.experts >= 3);
+          return (
+            <g key={nd.i} onMouseEnter={() => setHover(nd.i)} onMouseLeave={() => setHover(null)}>
+              <title>{`${label(nd.i)} — ${nd.experts} experts · ${nd.size}-team ${nd.dynasty ? 'dynasty' : 'redraft'}${nd.sf ? ' SF' : ''}`}</title>
+              <circle cx={p.x} cy={p.y} r={r} fill={nodeColor(nd)} fillOpacity={active ? 0.9 : 0.25} stroke="var(--bg-tertiary)" strokeWidth={1} />
+              {showLabel && (
                 <text x={p.x} y={p.y - r - 3} fontSize={9} fill="var(--text-secondary)" textAnchor="middle">{label(nd.i)}</text>
               )}
             </g>
