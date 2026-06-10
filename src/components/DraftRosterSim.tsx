@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
+import { PlayerAvatar, TeamLogo } from './PlayerAvatar';
+import { kitKey } from '../lib/draftKit';
 import type { DraftPrepSettings, Position } from '../lib/draftPrepSettings';
 import { startersPerTeam } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
@@ -31,6 +33,10 @@ const MAX_ROUNDS = 15;
 interface Props {
   pool: KitPlayer[];
   settings: DraftPrepSettings;
+  /** Optional custom board (My Rankings): kitKey -> 1-based rank. Shown
+   *  as a "my #N" chip on picks so you can see where the sim's choices
+   *  sit on YOUR board — the sim itself optimizes VBD. */
+  myRankByKey?: Map<string, number>;
 }
 
 interface SimPick {
@@ -116,7 +122,7 @@ function simulate(
   return { picks, lineupPts: lineupPoints(roster, settings) };
 }
 
-export function DraftRosterSim({ pool, settings }: Props) {
+export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
   const [open, setOpen] = useState(true);
 
   const rounds = Math.min(MAX_ROUNDS, startersPerTeam(settings) + BENCH_SPOTS);
@@ -174,7 +180,7 @@ export function DraftRosterSim({ pool, settings }: Props) {
 
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 10 }}>
-          {mine.picks.map((pk) => <PickCard key={pk.round} pick={pk} />)}
+          {mine.picks.map((pk) => <PickCard key={pk.round} pick={pk} myRankByKey={myRankByKey} />)}
         </div>
       )}
     </section>
@@ -190,22 +196,30 @@ function Stat({ label, value, muted, color }: { label: string; value: string; mu
   );
 }
 
-function PickCard({ pick }: { pick: SimPick }) {
+function PickCard({ pick, myRankByKey }: { pick: SimPick; myRankByKey?: Map<string, number> }) {
   const p = pick.player;
   const steal = p.adp < 999 ? pick.pickN - p.adp : NaN;
+  const myRank = myRankByKey?.get(kitKey(p.name, p.position));
   return (
     <div style={{
       background: 'var(--bg-secondary)', border: '1px solid var(--border)',
       borderRadius: 8, padding: '8px 12px',
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 800 }}>R{pick.round}</span>
         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>pick #{pick.pickN}</span>
+        <PlayerAvatar name={p.name} position={p.position} size={22} />
         <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 10 }}>{p.position}</span>
         <span style={{ fontSize: 13, fontWeight: 700 }}>
           <PlayerName name={p.name} position={p.position} />
           {p.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
         </span>
+        {p.team && <TeamLogo team={p.team} size={14} />}
+        {myRank !== undefined && (
+          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }} title="This player's rank on your selected My Rankings board">
+            my #{myRank}
+          </span>
+        )}
         <span style={{
           marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
           background: pick.slot === 'BN' ? 'var(--bg-tertiary)' : '#13343b',

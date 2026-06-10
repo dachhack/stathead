@@ -131,6 +131,9 @@ interface SavedRankingBoard {
   name: string;
   savedAt: string;
   order: string[];
+  /** Projection scenario the board was built under (My Rankings links
+   *  boards to scenarios so the ranks reflect those projections). */
+  scenarioId?: string;
 }
 
 const MY_RANKINGS_KEY = 'stathead-my-rankings';
@@ -616,6 +619,15 @@ export function DraftOptimizerTable() {
     return applyScenario(baseSdio, activeScenario);
   }, [baseSdio, activeScenario]);
 
+  // Display name for the active projection set (preset / saved / base).
+  const activeScenarioName = useMemo<string | null>(() => {
+    if (!selectedScenarioId) return null;
+    if (selectedScenarioId.startsWith('preset-')) {
+      return SCENARIO_PRESETS.find((p) => p.id === selectedScenarioId)?.name ?? null;
+    }
+    return scenarios.find((s) => s.id === selectedScenarioId)?.name ?? null;
+  }, [selectedScenarioId, scenarios]);
+
   // Scenario-derived PPG per player. SDIO `FantasyPointsPPR` is a season
   // total; divide by 17 to align with our per-game PPG convention.
   const scenarioPpgByName = useMemo<Map<string, number>>(() => {
@@ -675,6 +687,17 @@ export function DraftOptimizerTable() {
     return m;
   }, [myBoard]);
 
+  // A board saved on My Rankings can be linked to the scenario it was
+  // built under. If a different scenario is active, the MY column's
+  // ranks reflect projections the page is no longer showing — surface
+  // the mismatch with a one-click fix.
+  const boardScenarioMismatch = useMemo<{ id: string; name: string } | null>(() => {
+    if (!myBoard?.scenarioId || myBoard.scenarioId === selectedScenarioId) return null;
+    const sc = scenarios.find((s) => s.id === myBoard.scenarioId);
+    if (!sc) return null; // linked scenario no longer exists — nothing to apply
+    return { id: sc.id, name: sc.name || 'Untitled' };
+  }, [myBoard, selectedScenarioId, scenarios]);
+
   // Per-position target-share %ile lookup. Doesn't depend on scenario;
   // computed once over the raw share data.
   const tsharePctile = useMemo(() => {
@@ -732,7 +755,12 @@ export function DraftOptimizerTable() {
       const upsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciUpper - r.ciCenter) : NaN;
       const downsidePPG = haveCI && Number.isFinite(r.ciCenter) ? Math.max(0, r.ciCenter - r.ciLower) : NaN;
       const curve = curves[r.position];
-      const adpBaselinePPG = curve && r.adp < 999 && pred > 0
+      // The ADP curve is fit on real drafts (ADP ≲ 250). Beyond ~300 the
+      // √ADP extrapolation collapses toward zero and ANY prediction
+      // reads as a monster edge — that's how a phantom deep-ADP entry
+      // (Al Riles, "ADP 363") once cracked the board's top 20. No
+      // market signal, no edge.
+      const adpBaselinePPG = curve && r.adp <= 300 && pred > 0
         ? curve.sqrtIntercept + curve.sqrtSlope * Math.sqrt(r.adp) + (curve.poolOffset ?? 0)
         : NaN;
       const pickEdge = Number.isFinite(adpBaselinePPG) ? pred - adpBaselinePPG : NaN;
@@ -901,6 +929,40 @@ export function DraftOptimizerTable() {
             <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{v.caption}</div>
           </button>
         ))}
+      </div>
+
+      {/* Active inputs — one line that says exactly what's driving the
+          numbers (scenario → projections everywhere) vs what's overlay
+          (your board → MY column / "you #N" chips / next-on-board). */}
+      <div style={{
+        display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+        fontSize: 11, color: 'var(--text-muted)', margin: '-8px 0 16px', padding: '0 2px',
+      }}>
+        <span>
+          <strong style={{ color: 'var(--text-secondary)' }}>Projections:</strong>{' '}
+          {activeScenarioName ?? 'Base'}
+          <span style={{ opacity: 0.8 }}> — drives every number (PPG, VBD, edges, sims, live picks)</span>
+        </span>
+        <span style={{ opacity: 0.5 }}>·</span>
+        <span>
+          <strong style={{ color: 'var(--text-secondary)' }}>My board:</strong>{' '}
+          {myBoard ? myBoard.name || 'Untitled' : 'none'}
+          <span style={{ opacity: 0.8 }}> — your order as overlay (MY column, “you #N”, next-on-board)</span>
+        </span>
+        {boardScenarioMismatch && (
+          <span style={{ color: '#facc15' }}>
+            ⚠ board “{myBoard?.name}” was built under scenario “{boardScenarioMismatch.name}” —{' '}
+            <button
+              onClick={() => setSelectedScenarioId(boardScenarioMismatch.id)}
+              style={{
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                color: '#facc15', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, textDecoration: 'underline',
+              }}
+            >
+              apply it
+            </button>
+          </span>
+        )}
       </div>
 
       {view === 'edges' && (
@@ -1209,7 +1271,7 @@ export function DraftOptimizerTable() {
         <>
           {/* Step 3: the plan from the user's seat — full-draft sim vs
               an ADP-chalk roster, then the round-by-round pick guide. */}
-          <DraftRosterSim pool={kitPool} settings={settings} />
+          <DraftRosterSim pool={kitPool} settings={settings} myRankByKey={myRankByKey} />
           <DraftRoundPlan rows={enrichedRows} settings={settings} />
         </>
       )}
@@ -1217,7 +1279,13 @@ export function DraftOptimizerTable() {
       {view === 'live' && (
         /* Step 4: draft day — Sleeper draft sync (or manual tracking
            for other platforms) with need-aware best-available. */
-        <DraftLiveAssistant pool={kitPool} settings={settings} onSettingsChange={setSettings} />
+        <DraftLiveAssistant
+          pool={kitPool}
+          settings={settings}
+          onSettingsChange={setSettings}
+          myRankByKey={myRankByKey}
+          myBoardName={myBoard?.name}
+        />
       )}
     </div>
   );
