@@ -23,7 +23,9 @@ import { DraftLiveAssistant } from './DraftLiveAssistant';
 import { MethodNote } from './MethodNote';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
-import { buildKitPool, kitKey } from '../lib/draftKit';
+import { buildKitPool, buildSyntheticSdio, kitKey } from '../lib/draftKit';
+import type { ClayStats, PlayerMeta } from '../lib/scenarioPresets';
+import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
 // the user's saved league settings.
@@ -288,6 +290,8 @@ export function DraftOptimizerTable() {
   const [ffcEntries, setFfcEntries] = useState<FfcAdpEntry[]>([]);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
+  const [clayPpr, setClayPpr] = useState<Map<string, number>>(new Map());
+  const [clayStats, setClayStats] = useState<Map<string, ClayStats>>(new Map());
   const [savedBoards, setSavedBoards] = useState<SavedRankingBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [view, setView] = useState<ViewId>(() => {
@@ -368,7 +372,12 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : []))
         .then((d) => (Array.isArray(d) ? d : []) as CareerScoreEntry[])
         .catch(() => [] as CareerScoreEntry[]),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData]: [
+      // Consensus stat lines — power the two Consensus presets.
+      fetch(`${BASE}data/clay-projections-${CURRENT_SEASON}.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<Record<string, number | string>>)
+        .catch(() => [] as Array<Record<string, number | string>>),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData, clayRaw]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -378,6 +387,7 @@ export function DraftOptimizerTable() {
       RedraftProjEntry[],
       FcRedraftEntry[],
       CareerScoreEntry[],
+      Array<Record<string, number | string>>,
     ]) => {
       if (cancelled) return;
       setSdio(sdioData);
@@ -385,6 +395,37 @@ export function DraftOptimizerTable() {
       setFfcEntries(ffcData ?? []);
       setFcRedraft(fcData ?? []);
       setCareerScores(careerData ?? []);
+      // Consensus maps for the requiresClay presets. PPR recomputed from
+      // the stat line with our scoring (same as the Projections tab).
+      {
+        const pprMap = new Map<string, number>();
+        const statsMap = new Map<string, ClayStats>();
+        for (const c of clayRaw ?? []) {
+          const name = String(c.name ?? '');
+          if (!name) continue;
+          const ppr = (Number(c.pass_yds) || 0) * 0.04 + (Number(c.pass_td) || 0) * 4 + (Number(c.pass_int) || 0) * -2
+            + (Number(c.rush_yds) || 0) * 0.1 + (Number(c.rush_td) || 0) * 6
+            + (Number(c.rec) || 0) + (Number(c.rec_yds) || 0) * 0.1 + (Number(c.rec_td) || 0) * 6;
+          if (ppr <= 0) continue;
+          const nk = normName(name);
+          pprMap.set(nk, Math.round(ppr));
+          statsMap.set(nk, {
+            position: String(c.position ?? ''),
+            pos_rk: Number(c.pos_rk) || 999,
+            ...(c.pass_yds != null && { pass_yds: Number(c.pass_yds) || 0 }),
+            ...(c.pass_td != null && { pass_td: Number(c.pass_td) || 0 }),
+            ...(c.pass_int != null && { pass_int: Number(c.pass_int) || 0 }),
+            ...(c.rush_yds != null && { rush_yds: Number(c.rush_yds) || 0 }),
+            ...(c.rush_td != null && { rush_td: Number(c.rush_td) || 0 }),
+            ...(c.rec != null && { rec: Number(c.rec) || 0 }),
+            ...(c.rec_yds != null && { rec_yds: Number(c.rec_yds) || 0 }),
+            ...(c.rec_td != null && { rec_td: Number(c.rec_td) || 0 }),
+            ppr: Math.round(ppr),
+          });
+        }
+        setClayPpr(pprMap);
+        setClayStats(statsMap);
+      }
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
         setLoading(false);
@@ -500,21 +541,80 @@ export function DraftOptimizerTable() {
     return () => { cancelled = true; };
   }, []);
 
-  // Active scenario — user-selected from the saved-scenarios dropdown.
-  // Falls back to "no scenario" when nothing is selected.
+  // Base projection rows the scenario engine runs on. Real SDIO rows
+  // when an API key is configured; otherwise synthetic SDIO-shaped rows
+  // decomposed from the base projections — so scenarios AND presets
+  // work for every user, not just SDIO-key holders.
+  const baseSdio = useMemo<SDIOProjection[]>(() => {
+    if (sdio.length) return sdio;
+    if (!redraftEntries.length) return [];
+    const teamByKey = new Map<string, string>();
+    for (const r of rawRows) {
+      if (r.team) teamByKey.set(kitKey(r.name, r.position), r.team);
+    }
+    for (const v of fcRedraft) {
+      const p = v?.player;
+      if (p?.name && p.maybeTeam) {
+        const k = kitKey(p.name, p.position);
+        if (!teamByKey.has(k)) teamByKey.set(k, p.maybeTeam);
+      }
+    }
+    return buildSyntheticSdio(redraftEntries.map((p) => ({
+      name: p.name,
+      position: p.position,
+      ppg: p.ppg,
+      recPG: p.recPG,
+      team: teamByKey.get(kitKey(p.name, p.position)),
+    })));
+  }, [sdio, redraftEntries, rawRows, fcRedraft]);
+
+  // Player metadata for the preset factories (rookie/vet tilts need
+  // isRookie / yearsExp / age).
+  const presetMeta = useMemo<Map<string, PlayerMeta>>(() => {
+    const m = new Map<string, PlayerMeta>();
+    for (const v of fcRedraft) {
+      const p = v?.player;
+      if (!p?.name) continue;
+      m.set(normName(p.name), {
+        isRookie: false,
+        yearsExp: Number.isFinite(p.maybeYoe as number) ? (p.maybeYoe as number) : null,
+        age: Number.isFinite(p.maybeAge as number) ? (p.maybeAge as number) : null,
+        priorGames: null,
+      });
+    }
+    for (const c of careerScores) {
+      if (c.draftSeason !== CURRENT_SEASON) continue;
+      const k = normName(c.name);
+      const prev = m.get(k);
+      m.set(k, { isRookie: true, yearsExp: 0, age: prev?.age ?? null, priorGames: null });
+    }
+    return m;
+  }, [fcRedraft, careerScores]);
+
+  // Presets offered in the dropdown — the Consensus pair needs the
+  // committed consensus stat file; hide them if it failed to load.
+  const availablePresets = useMemo(
+    () => SCENARIO_PRESETS.filter((p) => !p.requiresClay || clayPpr.size > 0),
+    [clayPpr],
+  );
+
+  // Active scenario — a built-in preset (id 'preset-*', built fresh
+  // against the current base rows) or a saved custom scenario.
   const activeScenario = useMemo<ScenarioConfig | null>(() => {
     if (!selectedScenarioId) return null;
+    if (selectedScenarioId.startsWith('preset-')) {
+      const preset = SCENARIO_PRESETS.find((p) => p.id === selectedScenarioId);
+      if (!preset || !baseSdio.length) return null;
+      return preset.build(baseSdio, presetMeta, normName, { clayPpr, clayStats });
+    }
     return scenarios.find((s) => s.id === selectedScenarioId) ?? null;
-  }, [selectedScenarioId, scenarios]);
+  }, [selectedScenarioId, scenarios, baseSdio, presetMeta, clayPpr, clayStats]);
 
-  // Apply scenario to SDIO projections. When no scenario is active or
-  // SDIO data isn't loaded, returns SDIO unchanged (so the
-  // scenarioPpgByName map below is empty and the score-store base PPG
-  // wins for every player).
+  // Run the scenario engine over the base rows.
   const scenarioSdio = useMemo<SDIOProjection[]>(() => {
-    if (!sdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return sdio;
-    return applyScenario(sdio, activeScenario);
-  }, [sdio, activeScenario]);
+    if (!baseSdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return baseSdio;
+    return applyScenario(baseSdio, activeScenario);
+  }, [baseSdio, activeScenario]);
 
   // Scenario-derived PPG per player. SDIO `FantasyPointsPPR` is a season
   // total; divide by 17 to align with our per-game PPG convention.
@@ -777,6 +877,7 @@ export function DraftOptimizerTable() {
         settings={settings}
         onChange={setSettings}
         scenarios={scenarios}
+        presets={availablePresets.map((p) => ({ id: p.id, name: p.name, description: p.description }))}
         selectedScenarioId={selectedScenarioId}
         onScenarioChange={setSelectedScenarioId}
       />

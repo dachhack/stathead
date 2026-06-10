@@ -25,6 +25,7 @@
 
 import { normName } from './nameUtils';
 import type { DraftPrepSettings, Position, Scoring } from './draftPrepSettings';
+import type { SDIOProjection } from '../types';
 
 export const KIT_POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE'];
 export const SEASON_GAMES = 17;
@@ -330,4 +331,107 @@ export function assignSlot(slots: OpenSlots, pos: Position): string {
 /** True while the position can still fill a starting slot (incl. flex). */
 export function starterSlotOpen(slots: OpenSlots, pos: Position): boolean {
   return slots[pos] > 0 || (pos !== 'QB' && slots.FLEX > 0) || slots.SF > 0;
+}
+
+// ── Synthetic SDIO-shaped rows (scenario support without an SDIO key) ──
+
+/** Deterministic positive id from a kit key — stable across loads so a
+ *  preset built against these rows always matches its own ids. */
+function syntheticId(key: string): number {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = ((h * 31) + key.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 1_000_000_000) + 1_000_000_000;
+}
+
+export interface SyntheticInput {
+  name: string;
+  position: string;
+  /** Season PPR PPG (base projection). */
+  ppg: number;
+  /** Projected receptions per game (real data where present). */
+  recPG?: number;
+  team?: string;
+}
+
+/**
+ * Build SDIOProjection-shaped season rows from the base projections so
+ * the scenario engine (and the scenario presets) can run without a
+ * SportsDataIO key. The stat decomposition uses positional archetypes
+ * (receptions from real recPG; yards/TD splits at typical rates) and is
+ * EXACTLY self-consistent: recomputing PPR from the synthetic stat line
+ * reproduces ppg × 17. Scenario levers are multiplicative on stats, so
+ * an approximate decomposition still yields the right relative PPG
+ * moves — which is all the kit consumes.
+ */
+export function buildSyntheticSdio(entries: SyntheticInput[]): SDIOProjection[] {
+  const out: SDIOProjection[] = [];
+  for (const e of entries) {
+    const pos = e.position;
+    const P = (Number(e.ppg) || 0) * SEASON_GAMES;
+    if (P <= 0 || !['QB', 'RB', 'WR', 'TE'].includes(pos)) continue;
+    const row: SDIOProjection = {
+      PlayerID: syntheticId(kitKey(e.name, pos)),
+      Name: e.name,
+      Team: e.team ?? '',
+      Position: pos,
+      FantasyPoints: 0,
+      FantasyPointsPPR: P,
+      PassingAttempts: 0, PassingCompletions: 0, PassingYards: 0, PassingTouchdowns: 0,
+      PassingInterceptions: 0, RushingAttempts: 0, RushingYards: 0, RushingTouchdowns: 0,
+      Targets: 0, Receptions: 0, ReceivingYards: 0, ReceivingTouchdowns: 0,
+      FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
+    } as SDIOProjection;
+
+    if (pos === 'QB') {
+      // ~15% of QB fantasy value from rushing (85/15 yards-to-TD split
+      // inside each bucket), the rest passing at a 62/38 yds/TD split.
+      const rushPts = P * 0.15;
+      row.RushingYards = (rushPts * 0.85) / 0.1;
+      row.RushingTouchdowns = (rushPts * 0.15) / 6;
+      row.RushingAttempts = row.RushingYards / 5.5;
+      const passPts = P - rushPts;
+      row.PassingYards = (passPts * 0.62) / 0.04;
+      row.PassingTouchdowns = (passPts * 0.38) / 4;
+      row.PassingAttempts = row.PassingYards / 7.1;
+      row.PassingCompletions = row.PassingAttempts * 0.655;
+    } else {
+      // Receptions are real where recPG exists; otherwise estimate from
+      // the position's typical share of PPR value.
+      const recShare: Record<string, number> = { RB: 0.14, WR: 0.36, TE: 0.4 };
+      let rec = (Number(e.recPG) || 0) * SEASON_GAMES;
+      if (rec <= 0) rec = P * recShare[pos];
+      const ypr: Record<string, number> = { RB: 7.5, WR: 11.5, TE: 10 };
+      let recYds = rec * ypr[pos];
+      // Points already claimed by the receiving line (rec + yds).
+      let claimed = rec + recYds * 0.1;
+      if (claimed > P) {
+        // Projection lighter than the reception line implies — compress
+        // the line proportionally so the row stays self-consistent.
+        const f = P / claimed;
+        rec *= f; recYds *= f; claimed = P;
+      }
+      const remaining = P - claimed;
+      if (pos === 'RB') {
+        // Remainder is mostly rushing (90%) plus a little receiving TD.
+        const rushPts = remaining * 0.9;
+        row.RushingYards = (rushPts * 0.72) / 0.1;
+        row.RushingTouchdowns = (rushPts * 0.28) / 6;
+        row.RushingAttempts = row.RushingYards / 4.3;
+        row.ReceivingTouchdowns = (remaining * 0.1) / 6;
+      } else {
+        // WR/TE remainder splits yards-bump vs TDs.
+        const extraYds = (remaining * 0.45) / 0.1;
+        recYds += extraYds;
+        row.ReceivingTouchdowns = (remaining * 0.55) / 6;
+      }
+      row.Receptions = rec;
+      row.ReceivingYards = recYds;
+      row.Targets = rec / 0.72;
+    }
+
+    // Standard points = PPR minus receptions (1 pt each) by construction.
+    row.FantasyPoints = P - (row.Receptions || 0);
+    out.push(row);
+  }
+  return out;
 }
