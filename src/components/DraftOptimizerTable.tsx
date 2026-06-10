@@ -16,6 +16,12 @@ import {
 import { DraftRoundPlan } from './DraftRoundPlan';
 import { DraftTierMap } from './DraftTierMap';
 import { DraftTargetsFades } from './DraftTargetsFades';
+import { DraftValueBoard } from './DraftValueBoard';
+import { DraftRosterSim } from './DraftRosterSim';
+import { DraftRookieVetEdges } from './DraftRookieVetEdges';
+import { PlayerName } from './PlayerName';
+import type { KitPlayer } from '../lib/draftKit';
+import { buildKitPool, kitKey } from '../lib/draftKit';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
 // the user's saved league settings.
@@ -74,6 +80,7 @@ interface ShareScoreEntry {
 interface FfcAdpEntry {
   name: string;
   position: string;
+  team?: string;
   adp: number;
   stdev: number;
 }
@@ -83,6 +90,57 @@ interface RedraftProjEntry {
   position: string;
   ppg: number;
   recPG?: number;
+}
+
+// FantasyCalc redraft snapshot — daily-refreshed consensus. Covers
+// current rookies (which FFC's offseason ADP and the score-store pool
+// don't), plus age / years-of-experience for the vet-edge logic.
+interface FcRedraftEntry {
+  player: {
+    name: string;
+    position: string;
+    maybeTeam?: string | null;
+    maybeAge?: number | null;
+    maybeYoe?: number | null;
+  };
+  overallRank: number;
+}
+
+// score-store/career.json — rookie career-model scores. Used by the
+// Rookie & Veteran Edges section for boom/startable probabilities.
+interface CareerScoreEntry {
+  name: string;
+  position: string;
+  draftSeason: number;
+  predictedPPG: number;
+  percentile: number;
+  tierLabel: string;
+  boomProb: number;
+  bustProb: number;
+  thresholdProbs: Record<string, number>;
+}
+
+// Saved custom boards from the My Rankings tab (localStorage). `order`
+// holds `${normName}:${pos}` ids in the user's preferred draft order.
+interface SavedRankingBoard {
+  id: string;
+  name: string;
+  savedAt: string;
+  order: string[];
+}
+
+const MY_RANKINGS_KEY = 'stathead-my-rankings';
+const CURRENT_SEASON = 2026;
+
+function loadSavedBoards(): SavedRankingBoard[] {
+  try {
+    const raw = localStorage.getItem(MY_RANKINGS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 // Row + verdict types live in lib/edgeBoardRow.ts so multiple sections
@@ -208,6 +266,15 @@ export function DraftOptimizerTable() {
   const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [scenarios, setScenarios] = useState<ScenarioConfig[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
+  // Wide-pool inputs for the VBD sections (Value Board / Team Builder /
+  // Rookie & Vet Edges). The Edge Board's score-store pool is model-only
+  // (153 vets, no rookies); these sections need full projection depth.
+  const [redraftEntries, setRedraftEntries] = useState<RedraftProjEntry[]>([]);
+  const [ffcEntries, setFfcEntries] = useState<FfcAdpEntry[]>([]);
+  const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
+  const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
+  const [savedBoards, setSavedBoards] = useState<SavedRankingBoard[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
@@ -230,7 +297,11 @@ export function DraftOptimizerTable() {
   // saved on the Projections page shows up here without a hard reload.
   useEffect(() => {
     setScenarios(loadAllScenarios());
-    const onFocus = () => setScenarios(loadAllScenarios());
+    setSavedBoards(loadSavedBoards());
+    const onFocus = () => {
+      setScenarios(loadAllScenarios());
+      setSavedBoards(loadSavedBoards());
+    };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
@@ -262,7 +333,17 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : { players: [] }))
         .then((d) => (Array.isArray(d) ? d : (d?.players ?? [])) as RedraftProjEntry[])
         .catch(() => [] as RedraftProjEntry[]),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData]: [
+      // FantasyCalc redraft consensus — rookie-inclusive rank + age/yoe.
+      fetch(`${BASE}data/fantasycalc_redraft_1qb.json`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d) => (Array.isArray(d) ? d : []) as FcRedraftEntry[])
+        .catch(() => [] as FcRedraftEntry[]),
+      // Career model scores — rookie boom/startable probabilities.
+      fetch(`${BASE}data/score-store/career.json`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d) => (Array.isArray(d) ? d : []) as CareerScoreEntry[])
+        .catch(() => [] as CareerScoreEntry[]),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -270,9 +351,15 @@ export function DraftOptimizerTable() {
       Awaited<ReturnType<typeof loadScoreManifest>>,
       SDIOProjection[],
       RedraftProjEntry[],
+      FcRedraftEntry[],
+      CareerScoreEntry[],
     ]) => {
       if (cancelled) return;
       setSdio(sdioData);
+      setRedraftEntries(redraftData ?? []);
+      setFfcEntries(ffcData ?? []);
+      setFcRedraft(fcData ?? []);
+      setCareerScores(careerData ?? []);
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
         setLoading(false);
@@ -369,6 +456,53 @@ export function DraftOptimizerTable() {
     }
     return m;
   }, [scenarioSdio, activeScenario]);
+
+  // Wide kit pool for the VBD sections. Spine = base projections (416
+  // players incl. all rookies); scenario PPG overrides per player when a
+  // scenario is active, so the Value Board / Team Builder / Edges all
+  // respect the same projection assumptions as the Edge Board.
+  const kitPool = useMemo<KitPlayer[]>(() => {
+    if (redraftEntries.length === 0) return [];
+    const rookieNames = new Set<string>();
+    for (const c of careerScores) {
+      if (c.draftSeason === CURRENT_SEASON) rookieNames.add(normName(c.name));
+    }
+    const projections = redraftEntries.map((p) => {
+      const scen = scenarioPpgByName.get(normName(p.name));
+      return scen !== undefined && scen > 0 ? { ...p, ppg: scen } : p;
+    });
+    const teams = new Map<string, string>();
+    for (const r of rawRows) {
+      if (r.team) teams.set(kitKey(r.name, r.position), r.team);
+    }
+    return buildKitPool({
+      projections,
+      ffc: ffcEntries,
+      fcRedraft,
+      modelPpg: rawRows.map((r) => ({ name: r.name, position: r.position, predictedPPG: r.basePpg })),
+      rookieNames,
+      teams,
+      scoring: settings.scoring,
+    });
+  }, [redraftEntries, ffcEntries, fcRedraft, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
+
+  // Selected My Rankings board → kitKey → 1-based rank. Saved order ids
+  // are `${normName}:${pos}` (see MyRankings.makeId); kitKey is
+  // `${normName}::${pos}`.
+  const myBoard = useMemo(
+    () => savedBoards.find((b) => b.id === selectedBoardId) ?? null,
+    [savedBoards, selectedBoardId],
+  );
+  const myRankByKey = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!myBoard?.order) return m;
+    myBoard.order.forEach((id, i) => {
+      const sep = id.lastIndexOf(':');
+      if (sep <= 0) return;
+      m.set(`${id.slice(0, sep)}::${id.slice(sep + 1)}`, i + 1);
+    });
+    return m;
+  }, [myBoard]);
 
   // Per-position target-share %ile lookup. Doesn't depend on scenario;
   // computed once over the raw share data.
@@ -676,6 +810,27 @@ export function DraftOptimizerTable() {
             (≥15% survival)
           </span>
         </label>
+        {savedBoards.length > 0 && (
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
+            background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '3px 10px',
+          }}>
+            My board{' '}
+            <select
+              value={selectedBoardId}
+              onChange={(e) => setSelectedBoardId(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
+              title="Overlay a board saved on the My Rankings tab — your rank shows on the Value Board next to market ADP"
+            >
+              <option value="">None</option>
+              {savedBoards.map((b) => (
+                <option key={b.id} value={b.id}>{b.name || 'Untitled'}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -724,7 +879,7 @@ export function DraftOptimizerTable() {
                   {i + 1}
                 </td>
                 <td style={{ ...td, fontWeight: 600 }}>
-                  {r.name}
+                  <PlayerName name={r.name} position={r.position} />
                   {r.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
                 </td>
                 <td style={{ ...td, textAlign: 'center' }}>
@@ -825,17 +980,42 @@ export function DraftOptimizerTable() {
         </div>
       )}
 
-      {/* Section 2: Round-by-Round Plan. Reads enrichedRows so verdict
+      {/* Section 2: Value Board. BeerSheets-style VBD cheat sheet over
+          the wide projection pool (rookie-inclusive), with tier colors,
+          scarcity bars, and ADP-arbitrage deltas. */}
+      <DraftValueBoard
+        pool={kitPool}
+        settings={settings}
+        myRankByKey={myRankByKey}
+        myBoardName={myBoard?.name}
+      />
+
+      {/* Section 3: Optimal Team Builder. Simulates the user's draft
+          from their seat (survival-aware, roster-aware greedy VBD) and
+          quantifies the edge vs an ADP-chalk roster. */}
+      <DraftRosterSim pool={kitPool} settings={settings} />
+
+      {/* Section 4: Rookie & Veteran Edges. Market mispricings on the
+          rookie class (career-model boom/startable probs) and on boring
+          4+-year vets the community fades. */}
+      <DraftRookieVetEdges
+        pool={kitPool}
+        settings={settings}
+        career={careerScores}
+        currentSeason={CURRENT_SEASON}
+      />
+
+      {/* Section 5: Round-by-Round Plan. Reads enrichedRows so verdict
           + survival reflect the user's current settings header. */}
       <DraftRoundPlan rows={enrichedRows} settings={settings} />
 
-      {/* Section 3: Tier Map. Per-position scatter (ADP × Pred PPG)
+      {/* Section 6: Tier Map. Per-position scatter (ADP × Pred PPG)
           with cliff lines at tier boundaries. Production tiers — by
           predicted PPG — answer the "where do positions run out?"
           question; verdict color overlays the value signal. */}
       <DraftTierMap rows={enrichedRows} settings={settings} />
 
-      {/* Section 4: Targets & Fades. Top-N undervalued and overvalued
+      {/* Section 7: Targets & Fades. Top-N undervalued and overvalued
           per position, scored by edge × confidence. Filtered to
           ADP ≤ 200 by default to keep the lists in actionable
           territory; toggle off for sleepers. */}

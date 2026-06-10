@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { EdgeBoardRow } from '../lib/edgeBoardRow';
 import { VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct } from '../lib/edgeBoardRow';
+import { PlayerName } from './PlayerName';
 
 // Targets & Fades section. For each position, two compact lists:
 //
@@ -160,7 +161,7 @@ function PlayerRow({ row, rank, kind }: { row: EdgeBoardRow; rank: number; kind:
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {row.name}
+          <PlayerName name={row.name} position={row.position} />
           {row.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
