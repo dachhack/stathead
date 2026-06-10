@@ -9,6 +9,7 @@ import {
   loadForecastsForDisplay, getPlayerForecasts,
   type ForecastCache, type ForecastResult,
 } from '../lib/ktcForecast';
+import { DocsLink } from './DocsLink';
 
 // ── Forecast types ───────────────────────────────────────────────────
 
@@ -283,7 +284,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ padding: '16px 16px 8px' }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast</h2>
+        <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast <DocsLink section="ktc-forecast" title="Forecast model validation — Model Docs" /></h2>
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
           GBM time-series models predict dynasty value changes at 7/30/60/90 day horizons.
           Signal is a within-position z-score of composite momentum (higher = rising faster than peers).

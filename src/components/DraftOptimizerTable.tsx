@@ -21,6 +21,7 @@ import { DraftRosterSim } from './DraftRosterSim';
 import { DraftRookieVetEdges } from './DraftRookieVetEdges';
 import { DraftLiveAssistant } from './DraftLiveAssistant';
 import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
 import { buildKitPool, buildSyntheticSdio, kitKey } from '../lib/draftKit';
@@ -944,10 +945,27 @@ export function DraftOptimizerTable() {
           <span style={{ opacity: 0.8 }}> — drives every number (PPG, VBD, edges, sims, live picks)</span>
         </span>
         <span style={{ opacity: 0.5 }}>·</span>
-        <span>
-          <strong style={{ color: 'var(--text-secondary)' }}>My board:</strong>{' '}
-          {myBoard ? myBoard.name || 'Untitled' : 'none'}
-          <span style={{ opacity: 0.8 }}> — your order as overlay (MY column, “you #N”, next-on-board)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <strong style={{ color: 'var(--text-secondary)' }}>My board:</strong>
+          {savedBoards.length > 0 ? (
+            <select
+              value={selectedBoardId}
+              onChange={(e) => setSelectedBoardId(e.target.value)}
+              style={{
+                background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 4,
+                color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, padding: '1px 4px',
+              }}
+              title="Overlay a board saved on the My Rankings tab — MY column, “you #N” chips, next-on-board, and the Team Builder's draft-by-my-board mode"
+            >
+              <option value="">none</option>
+              {savedBoards.map((b) => (
+                <option key={b.id} value={b.id}>{b.name || 'Untitled'}</option>
+              ))}
+            </select>
+          ) : (
+            <span title="Save a board on the My Rankings tab to overlay it here">none saved</span>
+          )}
+          <span style={{ opacity: 0.8 }}> — your order as overlay (MY column, “you #N”, draft-by-board)</span>
         </span>
         {boardScenarioMismatch && (
           <span style={{ color: '#facc15' }}>
@@ -972,6 +990,7 @@ export function DraftOptimizerTable() {
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           model vs market, player by player · {displayRows.length} players
         </span>
+        <DocsLink section="projection" title="PPG / VOR model validation — Model Docs" />
       </div>
       <MethodNote id="edge-board">
         <strong>Model</strong> = our ADP-free ensemble's predicted PPG
@@ -1070,27 +1089,6 @@ export function DraftOptimizerTable() {
             (≥15% survival)
           </span>
         </label>
-        {savedBoards.length > 0 && (
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 11, fontWeight: 600, color: 'var(--text-primary)',
-            background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
-            borderRadius: 6, padding: '3px 10px',
-          }}>
-            My board{' '}
-            <select
-              value={selectedBoardId}
-              onChange={(e) => setSelectedBoardId(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
-              title="Overlay a board saved on the My Rankings tab — your rank shows on the Value Board next to market ADP"
-            >
-              <option value="">None</option>
-              {savedBoards.map((b) => (
-                <option key={b.id} value={b.id}>{b.name || 'Untitled'}</option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
 
       <div style={{ overflowX: 'auto' }}>

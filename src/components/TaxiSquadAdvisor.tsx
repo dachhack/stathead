@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
+import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 import { normName } from '../lib/nameUtils';
 
 // Taxi Squad Advisor — for dynasty rosters: which rookies and year-2
@@ -370,12 +372,13 @@ export function TaxiSquadAdvisor() {
         }}>
           {CURRENT_SEASON} rookies + {CURRENT_SEASON - 1} class
         </span>
+        <DocsLink section="draft-kit" title="Verdict tree, streamable cutoffs, and backtest — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {displayRows.length} players
         </span>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
+      <MethodNote id="taxi-advisor">
         The taxi call is a question about <em>when</em> a player will be
         startable — where "startable" means <em>streamable</em>: enough
         PPG that an owner can confidently start him for a couple of
@@ -399,7 +402,7 @@ export function TaxiSquadAdvisor() {
         (year-2 players); <strong>Value</strong> = FantasyCalc dynasty
         market. Hover any verdict for the player-specific reasoning.
         Names link to the full player page.
-      </p>
+      </MethodNote>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map((p) => (

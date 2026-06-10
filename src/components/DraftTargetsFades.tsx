@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { EdgeBoardRow } from '../lib/edgeBoardRow';
 import { VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct } from '../lib/edgeBoardRow';
 import { PlayerName } from './PlayerName';
+import { DocsLink } from './DocsLink';
 
 // Targets & Fades section. For each position, two compact lists:
 //
@@ -70,6 +71,7 @@ export function DraftTargetsFades({ rows }: Props) {
     <section style={{ marginTop: 32 }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Targets &amp; Fades</h2>
+        <DocsLink section="projection" title="Edge / Beat % methodology — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           Top {TOP_N} per position. Targets ranked by{' '}
           <code>edge × beat</code>; fades ranked by{' '}

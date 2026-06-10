@@ -8,6 +8,8 @@ import {
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
 import { InfoTip, PipelineDiagram, STAT_DEFS } from './ModelDocsHelpers';
+import { DraftKitValidation } from './DraftKitValidation';
+import { DOCS_SECTION_KEY } from '../lib/navigate';
 import projectionConfig from '../generated/projection-config.json';
 
 // Human-readable labels for the gap-feature vocabulary used by the rookie boom
@@ -347,7 +349,19 @@ export function ModelDocumentation() {
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
-  const [section, setSection] = useState<'projection' | 'rookie' | 'ktc-forecast'>('projection');
+  const [section, setSection] = useState<'projection' | 'rookie' | 'ktc-forecast' | 'draft-kit'>(() => {
+    // One-shot deep link from DocsLink (set just before navigating here).
+    try {
+      const target = localStorage.getItem(DOCS_SECTION_KEY);
+      if (target) {
+        localStorage.removeItem(DOCS_SECTION_KEY);
+        if (['projection', 'rookie', 'ktc-forecast', 'draft-kit'].includes(target)) {
+          return target as 'projection' | 'rookie' | 'ktc-forecast' | 'draft-kit';
+        }
+      }
+    } catch { /* ignore */ }
+    return 'projection';
+  });
   const [ktcModels, setKtcModels] = useState<Record<string, {
     position: string; horizon: number; n: number;
     cvR2: number | null; cvMae: number | null; cvScheme: string;
@@ -514,6 +528,7 @@ export function ModelDocumentation() {
             { key: 'projection' as const, label: 'Projection Validation', desc: 'Veteran VOR / PPG / Hit-Bust' },
             { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
             { key: 'ktc-forecast' as const, label: 'Dynasty Forecast Validation', desc: 'Dynasty value time-series models' },
+            { key: 'draft-kit' as const, label: 'Draft Kit & Taxi Validation', desc: 'VBD engine + taxi verdict backtests' },
           ]).map(({ key, label, desc }) => (
             <button
               key={key}
@@ -540,7 +555,9 @@ export function ModelDocumentation() {
           <KTCForecastValidation models={ktcModels} />
         )}
 
-        {section !== 'ktc-forecast' && (<>
+        {section === 'draft-kit' && <DraftKitValidation />}
+
+        {(section === 'projection' || section === 'rookie') && (<>
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>
             {section === 'projection' ? 'Projection Pipeline Overview' : 'Rookie Career Pipeline Overview'}

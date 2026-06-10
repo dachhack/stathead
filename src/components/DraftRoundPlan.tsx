@@ -8,6 +8,7 @@ import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
 import { PlayerName } from './PlayerName';
 import { PlayerAvatar } from './PlayerAvatar';
 import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 
 // Round-by-Round Plan section. For each of the user's picks across the
 // first 12 rounds, show the pick number, recommended position(s), 3
@@ -125,6 +126,7 @@ export function DraftRoundPlan({ rows, settings }: Props) {
     <section style={{ marginTop: 32 }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Round-by-Round Plan</h2>
+        <DocsLink section="draft-kit" title="Survival + edge methodology — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           From your seat at pick {settings.pickSlot} of {settings.numTeams} ·{' '}
           {settings.draftType} · 12 rounds
