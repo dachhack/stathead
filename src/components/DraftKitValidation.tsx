@@ -162,6 +162,16 @@ export function DraftKitValidation() {
           and only 3 of 68 delayed-ramp players (not streamable next season → streamable the
           season after) labeled Drop.
         </p>
+        <p style={{ ...p13, margin: '12px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+          <strong>Negative result, for the record:</strong> a classifier trained directly on the
+          composite ramp target (<em>not</em> streamable next season AND streamable the season
+          after — 73 positives, 8% base rate) topped out at LOSO AUC ≈ 0.56 across tunings, and
+          within the Taxi bucket added no discrimination over raw p2 (AUC 0.545 vs 0.550). Its
+          top features were the same quality axis the two horizon heads already learn, and its
+          live top picks were mostly Roster-grade players just under the p1 line. The two-head
+          design (separate this-season / next-season probabilities, combined by the verdict
+          logic) keeps ~13× the training signal per head and is what ships.
+        </p>
       </div>
 
       {/* ── Taxi rule-tree backtest (rookies + unscored fallback) ── */}
