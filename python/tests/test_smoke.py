@@ -160,26 +160,25 @@ def test_career_2027_class():
     assert {"name", "pos", "grade"}.issubset(df.columns)
 
 
-def test_dynasty_blend_is_consensus():
+def test_dynasty_values_match_app_blend():
     df = stathead.load_dynasty_values()
     assert not df.empty
     assert {"name", "position", "value_1qb", "value_superflex",
-            "n_sources_1qb", "n_sources_superflex"}.issubset(df.columns)
-    # Blended values live on the rescaled 0-10000 scale.
-    assert df.value_1qb.max() <= 10000
-    # At least some players are covered by more than one source.
-    assert (df.n_sources_1qb >= 2).any()
+            "positionRank", "isRookie"}.issubset(df.columns)
     # Sorted by 1QB value, descending.
     top = df.value_1qb.dropna().tolist()
     assert top == sorted(top, reverse=True)
+    # Values are rescaled onto FantasyCalc's scale, so the top asset no
+    # longer sits at KTC's hard 9999 ceiling (it maps up into FC's range).
+    assert df.value_1qb.max() != 9999
+    assert df.value_1qb.min() >= 0
 
 
-def test_dynasty_value_history_blend():
+def test_dynasty_value_history_rescaled():
     df = stathead.load_dynasty_value_history()
     assert not df.empty
     assert {"name", "position", "date", "value_1qb",
             "value_superflex"}.issubset(df.columns)
-    assert df.value_1qb.dropna().max() <= 10000
 
 
 def test_no_vendor_named_columns_leak():

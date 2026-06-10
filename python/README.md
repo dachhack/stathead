@@ -102,13 +102,14 @@ available here as a pandas DataFrame.
 Every row-shaped loader carries a `player_key` column that joins to
 `load_player_crosswalk()`.
 
-### Dynasty values are an in-house blend
+### Dynasty values are the app's in-house blend
 
-`load_dynasty_values()` does **not** republish any single vendor's rankings.
-Each source (KeepTradeCut, FantasyCalc — 1QB and Superflex) is rescaled to a
-common 0-10000 scale and the sources covering a player are averaged into a
-derived consensus value; `n_sources_*` records the coverage. No raw vendor
-value is exposed.
+`load_dynasty_values()` returns the same blended value the web app displays:
+KTC rankings rescaled into FantasyCalc's scale via a per-player ratio
+(`fc_value / ktc_value`, with a positional-median fallback below a value
+floor). The ratio snapshot is built offline and committed as
+`public/data/ktc-fc-rescale.json`; the loader just applies it. No raw KTC
+value is exposed — only the rescaled blend.
 
 ## Feature columns
 

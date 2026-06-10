@@ -1,21 +1,20 @@
-"""In-house dynasty value blend.
+"""In-house dynasty value — the same blended value the web app shows.
 
-Rather than re-publishing any single vendor's dynasty rankings verbatim
-(some vendors' terms don't permit third-party redistribution), this module
-derives a *consensus* value: each available source is rescaled to a common
-0-10000 scale, then the sources that cover a given player are averaged. No
-raw vendor value is exposed — only the blended, normalized result, plus an
-``n_sources_*`` coverage count.
+The app is built on a KTC-trained forecast but displays every value on
+FantasyCalc's scale. The bridge is a per-player ratio ``fc_value /
+ktc_value`` (with a positional-median fallback for players below a value
+floor or missing from FantasyCalc), precomputed offline into
+``public/data/ktc-fc-rescale.json`` by ``scripts/build-rescale-snapshot.cjs``.
 
-Sources blended (both 1QB and Superflex formats):
+These loaders apply that existing snapshot to the KTC values — they do not
+invent a new blend. The output is the canonical "blended dynasty value"
+(KTC rescaled to FC scale); no raw KTC value is exposed.
 
-- KeepTradeCut  (``ktc_rankings_1qb.json`` / ``ktc_history.json``)
-- FantasyCalc   (``fantasycalc_dynasty_{1qb,sf}.json`` and the matching
-                 ``fantasycalc_history_*`` files)
+Mirrors ``src/lib/valueRescale.ts``. Keep in sync.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from statistics import median
 from typing import Any
 
 import pandas as pd
@@ -23,93 +22,123 @@ import pandas as pd
 from ._fetch import fetch_json
 from .crosswalk import _norm, key_by_name_pos
 
-
-def _rescale_to_10k(values: list[float]) -> list[float]:
-    """Linear rescale so the source's max maps to 10000 (sources already
-    start at 0). Returns the input unchanged if the max is non-positive."""
-    hi = max(values) if values else 0.0
-    if hi <= 0:
-        return values
-    factor = 10000.0 / hi
-    return [v * factor for v in values]
+_SUPPORTED_POS = ("QB", "RB", "WR", "TE")
+# KTC values below this fall back to the positional-median ratio (mirrors
+# RESCALE_FLOOR in valueRescale.ts).
+_RESCALE_FLOOR = 500
 
 
-def _blend(samples: list[float]) -> float | None:
-    return round(sum(samples) / len(samples), 1) if samples else None
+class _Rescaler:
+    """Resolve and apply per-player / positional KTC->FC ratios."""
+
+    def __init__(self, snap: dict[str, Any]):
+        self._floor = snap.get("floor", _RESCALE_FLOOR)
+        self._per_player: dict[int, dict[str, float]] = {
+            int(pid): v for pid, v in (snap.get("perPlayer") or {}).items()
+        }
+        self._positional: dict[str, dict[str, float]] = snap.get("positional") or {}
+
+    def ratio(self, player_id: int, ktc_value: float, position: str,
+              fmt: str) -> float | None:
+        if position not in _SUPPORTED_POS:
+            return None
+        key = "oneQB" if fmt == "1qb" else "sf"
+        player = self._per_player.get(player_id)
+        if player and player.get(key) is not None and ktc_value >= self._floor:
+            return player[key]
+        return (self._positional.get(position) or {}).get(key)
+
+    def value(self, player_id: int, ktc_value: float, position: str,
+              fmt: str) -> float:
+        r = self.ratio(player_id, ktc_value, position, fmt)
+        return ktc_value if r is None else round(ktc_value * r)
 
 
-def load_dynasty_values() -> pd.DataFrame:
-    """Blended in-house dynasty market value, 1QB + Superflex.
+def _load_rescaler() -> _Rescaler:
+    """Load the committed snapshot; if absent, derive one from the current
+    KTC + FantasyCalc snapshots (mirrors buildRescaleSnapshot)."""
+    try:
+        return _Rescaler(fetch_json("public/data/ktc-fc-rescale.json"))
+    except Exception:
+        return _Rescaler(_build_snapshot())
 
-    Each source is rescaled to 0-10000 and the sources covering a player are
-    averaged, so a player ranked by more sources gets a steadier number. The
-    output is a derived consensus — no single vendor's raw value appears.
 
-    Columns: ``player_key``, ``name``, ``position``, ``team``, ``age``,
-    ``value_1qb``, ``value_superflex``, ``n_sources_1qb``,
-    ``n_sources_superflex``, ``isRookie``. Sorted by ``value_1qb`` desc.
-    """
+def _build_snapshot() -> dict[str, Any]:
+    """Fallback: build the KTC->FC ratio snapshot from live values, exactly
+    as scripts/build-rescale-snapshot.cjs does."""
     ktc = fetch_json("public/data/ktc_rankings_1qb.json") or []
     fc_1qb = fetch_json("public/data/fantasycalc_dynasty_1qb.json") or []
     fc_sf = fetch_json("public/data/fantasycalc_dynasty_sf.json") or []
 
-    # Pre-rescale each source so every contribution is on the same 0-10000
-    # footing before averaging.
-    ktc_1qb_n = _rescale_to_10k([float(r.get("value") or 0) for r in ktc])
-    ktc_sf_n = _rescale_to_10k([float(r.get("superflexValue") or 0) for r in ktc])
-    fc_1qb_n = _rescale_to_10k([float(r.get("value") or 0) for r in fc_1qb])
-    fc_sf_n = _rescale_to_10k([float(r.get("value") or 0) for r in fc_sf])
-
-    # (norm_name, position) -> accumulator
-    acc: dict[tuple[str, str], dict[str, Any]] = {}
-
-    def _slot(name: str, position: str) -> dict[str, Any]:
-        key = (_norm(name), position or "")
-        rec = acc.get(key)
-        if rec is None:
-            rec = {
-                "name": name, "position": position,
-                "team": None, "age": None, "isRookie": None,
-                "onq": [], "sf": [],
-            }
-            acc[key] = rec
-        return rec
-
-    for r, v1, vsf in zip(ktc, ktc_1qb_n, ktc_sf_n):
-        rec = _slot(r.get("playerName", ""), r.get("position", ""))
-        rec["team"] = rec["team"] or r.get("team")
-        rec["age"] = rec["age"] if rec["age"] is not None else r.get("age")
-        if rec["isRookie"] is None:
-            rec["isRookie"] = r.get("isRookie")
-        if v1 > 0:
-            rec["onq"].append(v1)
-        if vsf > 0:
-            rec["sf"].append(vsf)
-
-    for src, normed, bucket in ((fc_1qb, fc_1qb_n, "onq"), (fc_sf, fc_sf_n, "sf")):
-        for r, val in zip(src, normed):
+    def fc_map(src: list[dict]) -> dict[tuple[str, str], float]:
+        out: dict[tuple[str, str], float] = {}
+        for r in src:
             p = r.get("player") or {}
-            rec = _slot(p.get("name", ""), p.get("position", ""))
-            rec["team"] = rec["team"] or p.get("maybeTeam")
-            if rec["age"] is None:
-                rec["age"] = p.get("maybeAge")
-            if val > 0:
-                rec[bucket].append(val)
+            out[(_norm(p.get("name", "")), p.get("position", ""))] = r.get("value")
+        return out
 
+    fc1q, fcsf = fc_map(fc_1qb), fc_map(fc_sf)
+    per_player: dict[str, dict[str, float]] = {}
+    samples: dict[str, dict[str, list[float]]] = {
+        pos: {"oneQB": [], "sf": []} for pos in _SUPPORTED_POS
+    }
+    for k in ktc:
+        pos = k.get("position", "")
+        if pos not in _SUPPORTED_POS:
+            continue
+        key = (_norm(k.get("playerName", "")), pos)
+        entry: dict[str, float] = {}
+        fc1 = fc1q.get(key)
+        fcs = fcsf.get(key)
+        if fc1 is not None and (k.get("value") or 0) >= _RESCALE_FLOOR:
+            entry["oneQB"] = fc1 / k["value"]
+            samples[pos]["oneQB"].append(entry["oneQB"])
+        if fcs is not None and (k.get("superflexValue") or 0) >= _RESCALE_FLOOR:
+            entry["sf"] = fcs / k["superflexValue"]
+            samples[pos]["sf"].append(entry["sf"])
+        if entry:
+            per_player[str(k["playerID"])] = entry
+
+    positional = {
+        pos: {
+            "oneQB": median(samples[pos]["oneQB"]) if samples[pos]["oneQB"] else 1,
+            "sf": median(samples[pos]["sf"]) if samples[pos]["sf"] else 1,
+        }
+        for pos in _SUPPORTED_POS
+    }
+    return {"floor": _RESCALE_FLOOR, "perPlayer": per_player, "positional": positional}
+
+
+def load_dynasty_values() -> pd.DataFrame:
+    """Blended dynasty market value (1QB + Superflex) — the value the web
+    app displays.
+
+    KTC rankings rescaled into FantasyCalc's scale via the in-house
+    per-player ratio snapshot. Unsupported positions (K, picks) keep their
+    raw value; everything else is the rescaled blend.
+
+    Columns: ``player_key``, ``name``, ``position``, ``team``, ``age``,
+    ``value_1qb``, ``value_superflex``, ``positionRank``, ``isRookie``.
+    Sorted by ``value_1qb`` desc.
+    """
+    ktc = fetch_json("public/data/ktc_rankings_1qb.json") or []
+    rescaler = _load_rescaler()
     keymap = key_by_name_pos()
+
     rows: list[dict[str, Any]] = []
-    for (norm_name, pos), rec in acc.items():
+    for r in ktc:
+        pid, pos = r.get("playerID"), r.get("position", "")
+        name = r.get("playerName", "")
         rows.append({
-            "player_key": keymap.get((norm_name, pos)),
-            "name": rec["name"],
-            "position": rec["position"],
-            "team": rec["team"],
-            "age": rec["age"],
-            "value_1qb": _blend(rec["onq"]),
-            "value_superflex": _blend(rec["sf"]),
-            "n_sources_1qb": len(rec["onq"]),
-            "n_sources_superflex": len(rec["sf"]),
-            "isRookie": rec["isRookie"],
+            "player_key": keymap.get((_norm(name), pos)),
+            "name": name,
+            "position": pos,
+            "team": r.get("team"),
+            "age": r.get("age"),
+            "value_1qb": rescaler.value(pid, r.get("value") or 0, pos, "1qb"),
+            "value_superflex": rescaler.value(pid, r.get("superflexValue") or 0, pos, "superflex"),
+            "positionRank": r.get("positionRank"),
+            "isRookie": r.get("isRookie"),
         })
     df = pd.DataFrame(rows)
     return df.sort_values("value_1qb", ascending=False,
@@ -117,81 +146,47 @@ def load_dynasty_values() -> pd.DataFrame:
 
 
 def load_dynasty_value_history() -> pd.DataFrame:
-    """Blended daily dynasty value history, 1QB + Superflex.
+    """Daily dynasty value history (1QB + Superflex), rescaled to FC scale.
 
-    Same blend as :func:`load_dynasty_values`, applied per (player, date):
-    each source's history is rescaled to 0-10000 and averaged across the
-    sources present on that date.
+    Same per-player ratio as :func:`load_dynasty_values`, applied to KTC's
+    daily history. One row per (player, date) with both formats side-by-side.
 
     Columns: ``player_key``, ``name``, ``position``, ``date``,
-    ``value_1qb``, ``value_superflex``, ``n_sources_1qb``,
-    ``n_sources_superflex``. Sorted by ``name``, ``date``.
+    ``value_1qb``, ``value_superflex``. Sorted by ``name``, ``date``.
     """
-    ktc_rank = fetch_json("public/data/ktc_rankings_1qb.json") or []
-    ktc_hist = fetch_json("public/data/ktc_history.json") or []
-    fc_hist_1qb = fetch_json("public/data/fantasycalc_history_dynasty_1qb.json") or []
-    fc_hist_sf = fetch_json("public/data/fantasycalc_history_dynasty_sf.json") or []
+    ktc = fetch_json("public/data/ktc_rankings_1qb.json") or []
+    history = fetch_json("public/data/ktc_history.json") or []
+    rescaler = _load_rescaler()
+    keymap = key_by_name_pos()
 
-    # KTC history is keyed by playerID; map it back to name + position.
-    ktc_info = {
+    # KTC history is keyed by playerID; map it back to name/position/team.
+    info = {
         r.get("playerID"): (r.get("playerName", ""), r.get("position", ""))
-        for r in ktc_rank
+        for r in ktc
     }
 
-    # Gather raw (name, pos, date, value) tuples per source + format, then
-    # rescale each source as a whole so a day's blend mixes comparable units.
-    def _ktc_points(field: str) -> list[tuple[str, str, str, float]]:
-        pts: list[tuple[str, str, str, float]] = []
-        for h in ktc_hist:
-            name, pos = ktc_info.get(h.get("playerID"), ("", ""))
-            if not name:
-                continue
-            for p in (h.get(field) or {}).get("valueHistory") or []:
-                pts.append((name, pos, p.get("d"), float(p.get("v") or 0)))
-        return pts
-
-    def _fc_points(src: list[dict]) -> list[tuple[str, str, str, float]]:
-        pts: list[tuple[str, str, str, float]] = []
-        for r in src:
-            name, pos = r.get("name", ""), r.get("position", "")
-            for p in r.get("valueHistory") or []:
-                pts.append((name, pos, p.get("d"), float(p.get("v") or 0)))
-        return pts
-
-    sources = [
-        (_ktc_points("oneQB"), "onq"),
-        (_ktc_points("superflex"), "sf"),
-        (_fc_points(fc_hist_1qb), "onq"),
-        (_fc_points(fc_hist_sf), "sf"),
-    ]
-
-    # (norm_name, pos, date) -> {"onq": [...], "sf": [...], name, position}
-    acc: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for pts, bucket in sources:
-        normed = _rescale_to_10k([v for *_, v in pts])
-        for (name, pos, date, _raw), val in zip(pts, normed):
-            if not date or val <= 0:
-                continue
-            key = (_norm(name), pos or "", date)
-            rec = acc.get(key)
-            if rec is None:
-                rec = {"name": name, "position": pos, "date": date,
-                       "onq": [], "sf": []}
-                acc[key] = rec
-            rec[bucket].append(val)
-
-    keymap = key_by_name_pos()
     rows: list[dict[str, Any]] = []
-    for (norm_name, pos, _date), rec in acc.items():
-        rows.append({
-            "player_key": keymap.get((norm_name, pos)),
-            "name": rec["name"],
-            "position": rec["position"],
-            "date": rec["date"],
-            "value_1qb": _blend(rec["onq"]),
-            "value_superflex": _blend(rec["sf"]),
-            "n_sources_1qb": len(rec["onq"]),
-            "n_sources_superflex": len(rec["sf"]),
-        })
+    for h in history:
+        pid = h.get("playerID")
+        name, pos = info.get(pid, ("", ""))
+        if not name:
+            continue
+        key = keymap.get((_norm(name), pos))
+        sf_by_date = {
+            p.get("d"): p.get("v")
+            for p in (h.get("superflex") or {}).get("valueHistory") or []
+        }
+        for p in (h.get("oneQB") or {}).get("valueHistory") or []:
+            date, v1 = p.get("d"), p.get("v")
+            vsf = sf_by_date.get(date)
+            rows.append({
+                "player_key": key,
+                "name": name,
+                "position": pos,
+                "date": date,
+                "value_1qb": rescaler.value(pid, v1 or 0, pos, "1qb"),
+                "value_superflex": (rescaler.value(pid, vsf, pos, "superflex")
+                                    if vsf is not None else None),
+            })
     df = pd.DataFrame(rows)
     return df.sort_values(["name", "date"]).reset_index(drop=True)
