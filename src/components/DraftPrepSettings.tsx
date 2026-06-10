@@ -17,6 +17,9 @@ interface Props {
   settings: DraftPrepSettings;
   onChange: (next: DraftPrepSettings) => void;
   scenarios?: ScenarioConfig[];
+  /** Built-in projection presets (scenarioPresets.ts), offered alongside
+   *  the user's saved scenarios. */
+  presets?: Array<{ id: string; name: string; description: string }>;
   selectedScenarioId?: string;
   onScenarioChange?: (id: string) => void;
 }
@@ -24,7 +27,7 @@ interface Props {
 const TEAM_OPTIONS = [8, 10, 12, 14] as const;
 const ROSTER_KEYS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SF'] as const;
 
-export function DraftPrepSettings({ settings, onChange, scenarios, selectedScenarioId, onScenarioChange }: Props) {
+export function DraftPrepSettings({ settings, onChange, scenarios, presets, selectedScenarioId, onScenarioChange }: Props) {
   const [open, setOpen] = useState(false);
 
   const update = (next: DraftPrepSettings) => {
@@ -116,15 +119,27 @@ export function DraftPrepSettings({ settings, onChange, scenarios, selectedScena
               onChange={(e) => onScenarioChange(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
               title={
-                scenarios.length === 0
-                  ? 'No saved scenarios yet — create one from the Projections tab'
-                  : 'Apply a saved projection scenario; PickEdge / Beat % / Verdict recompute against scenario PPG'
+                (presets?.find((p) => p.id === selectedScenarioId)?.description)
+                ?? (scenarios.length === 0 && !presets?.length
+                  ? 'No saved scenarios yet — create one from the Projections tab, or pick a preset'
+                  : 'Apply a projection preset or a saved scenario; every number on the page recomputes against its PPG')
               }
             >
-              <option value="">Default model</option>
-              {scenarios.map((s) => (
-                <option key={s.id} value={s.id}>{s.name || 'Untitled'}</option>
-              ))}
+              <option value="">Base projections</option>
+              {!!presets?.length && (
+                <optgroup label="Presets">
+                  {presets.map((p) => (
+                    <option key={p.id} value={p.id} title={p.description}>{p.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {scenarios.length > 0 && (
+                <optgroup label="My scenarios">
+                  {scenarios.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name || 'Untitled'}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </label>
         )}
