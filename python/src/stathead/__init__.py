@@ -37,6 +37,7 @@ from .projections import (
     load_volume_projections,
 )
 from .prospects import load_prospect_grades
+from .sql import list_tables, query, register
 from .stats import load_player_stats
 
 __version__ = "0.3.0"
@@ -67,4 +68,7 @@ __all__ = [
     "load_volume_projections",
     "get_player",
     "resolve_player",
+    "query",
+    "register",
+    "list_tables",
 ]

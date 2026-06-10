@@ -181,6 +181,66 @@ def test_dynasty_value_history_rescaled():
             "value_superflex"}.issubset(df.columns)
 
 
+def test_query_runs_a_join():
+    df = stathead.query("""
+        SELECT c.name, c.predictedCareerPPG, d.value_1qb
+        FROM career_2026 c
+        JOIN dynasty_values d USING (player_key)
+        WHERE c.percentile >= 80
+        ORDER BY d.value_1qb DESC
+        LIMIT 10
+    """)
+    assert not df.empty
+    assert list(df.columns) == ["name", "predictedCareerPPG", "value_1qb"]
+    # value_1qb is sorted descending.
+    vals = df.value_1qb.dropna().tolist()
+    assert vals == sorted(vals, reverse=True)
+
+
+def test_list_tables_covers_core_loaders():
+    names = set(stathead.list_tables())
+    assert {"career_2026", "backtest", "player_stats", "dynasty_values",
+            "adp_historical", "prospects"}.issubset(names)
+
+
+def test_register_user_table_and_join():
+    import pandas as pd
+    # Pick a real 2026-class name so the join is guaranteed to resolve.
+    rookie = stathead.load_career_predictions_2026().iloc[0]["name"]
+    roster = pd.DataFrame({"name": [rookie], "slot": ["pick"]})
+    stathead.register("my_roster", roster)
+    assert "my_roster" in stathead.list_tables()
+    df = stathead.query("""
+        SELECT c.name, r.slot, c.percentile
+        FROM career_2026 c JOIN my_roster r USING (name)
+    """)
+    assert (df.name == rookie).any()
+
+
+def test_query_only_loads_referenced_tables():
+    from stathead import sql
+    # A query that names only career_2026 must not materialize player_stats.
+    sql._connection()
+    sql._registered.discard("player_stats")
+    stathead.query("SELECT COUNT(*) AS n FROM career_2026")
+    assert "player_stats" not in sql._registered
+
+
+def test_query_without_duckdb_gives_install_hint(monkeypatch):
+    import builtins
+    from stathead import sql
+    real_import = builtins.__import__
+
+    def _no_duckdb(name, *args, **kwargs):
+        if name == "duckdb":
+            raise ImportError("No module named 'duckdb'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_duckdb)
+    with pytest.raises(ImportError, match=r"stathead\[duckdb\]"):
+        sql._duckdb()
+
+
 def test_no_vendor_named_columns_leak():
     """Source-agnostic feature naming — no rsp*/pdf* columns reach users."""
     pred = stathead.load_career_predictions_2026()

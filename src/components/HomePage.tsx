@@ -266,6 +266,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+          Prefer SQL? <code>pip install &quot;stathead[duckdb]&quot;</code> and{' '}
+          <code>sh.query(&quot;SELECT … FROM career_2026 JOIN dynasty_values USING (player_key)&quot;)</code>{' '}
+          runs the same tables as the Data Query tab, in Python.
+          <br />
           Pin a specific commit with <code>sh.pin_version(&quot;a6720e5&quot;)</code> for reproducibility.
           Data is cached at <code>~/.cache/stathead/</code> after first download; call{' '}
           <code>sh.clear_cache()</code> to refresh. Source:{' '}

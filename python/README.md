@@ -34,6 +34,40 @@ adp = sh.load_adp_historical()
 adp[(adp.season == 2023) & (adp.adp <= 24)]
 ```
 
+## SQL querying
+
+With the `duckdb` extra, `sh.query()` runs SQL over the loaders — the same
+surface as the site's Data Query tab, in Python. Every table joins on
+`player_key`.
+
+```bash
+pip install "stathead[duckdb]"
+```
+
+```python
+import stathead as sh
+
+sh.query("""
+    SELECT c.name, c.position, c.predictedCareerPPG, d.value_1qb
+    FROM career_2026 c
+    JOIN dynasty_values d USING (player_key)
+    WHERE c.percentile >= 80
+    ORDER BY d.value_1qb DESC
+""")
+
+sh.list_tables()   # every queryable table name
+```
+
+Tables load lazily — only the ones a query references are materialized, so a
+query that never touches `player_stats` (~400k rows) doesn't pay for it.
+Register your own DataFrame (a roster, a league export) to join against the
+model tables:
+
+```python
+sh.register("my_roster", roster_df)
+sh.query("SELECT * FROM career_2026 c JOIN my_roster r USING (player_key)")
+```
+
 ## Pinning to a specific version
 
 Loaders resolve against the upstream GitHub repo. Pin to a commit SHA, tag,
