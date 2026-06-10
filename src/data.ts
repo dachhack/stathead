@@ -680,7 +680,13 @@ export async function fetchFfcADP(
   // upcoming-draft data with deeper coverage. Prefer it when it is
   // meaningfully larger than the primary response. Swallow fallback errors
   // so a sparse-but-valid primary still wins over a failed fallback.
-  const fallback = await fetchFfcADPRaw(season - 1, scoring, teams).catch(() => [] as FfcADPPlayer[]);
+  // Placeholder guard: real FFC rows always carry market signal
+  // (timesDrafted/stdev). A committed placeholder file with zeroed
+  // fields once leaked phantom deep ADPs (e.g. Al Riles at "363") into
+  // the ADP-model pool through this fallback — drop signal-less rows so
+  // it can never happen again.
+  const fallbackRaw = await fetchFfcADPRaw(season - 1, scoring, teams).catch(() => [] as FfcADPPlayer[]);
+  const fallback = fallbackRaw.filter((p) => p.timesDrafted > 0 || p.stdev > 0);
   return fallback.length > primary.length ? fallback : primary;
 }
 

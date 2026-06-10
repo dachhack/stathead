@@ -6,6 +6,7 @@ import {
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
 import { PlayerName } from './PlayerName';
+import { PlayerAvatar } from './PlayerAvatar';
 import { MethodNote } from './MethodNote';
 
 // Round-by-Round Plan section. For each of the user's picks across the
@@ -191,7 +192,7 @@ function RoundList({ title, rows, muted }: { title: string; rows: EdgeBoardRow[]
           None at this threshold.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto', columnGap: 8, rowGap: 3, alignItems: 'baseline', opacity: muted ? 0.85 : 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto auto 1fr auto auto auto', columnGap: 8, rowGap: 3, alignItems: 'center', opacity: muted ? 0.85 : 1 }}>
           {rows.map((r) => (
             <PlayerLine key={`${r.name}:${r.position}`} row={r} />
           ))}
@@ -204,6 +205,7 @@ function RoundList({ title, rows, muted }: { title: string; rows: EdgeBoardRow[]
 function PlayerLine({ row }: { row: EdgeBoardRow }) {
   return (
     <>
+      <PlayerAvatar name={row.name} position={row.position} size={18} />
       <span className={`pos-badge pos-${row.position}`} style={{ fontSize: 9 }}>{row.position}</span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>
         <PlayerName name={row.name} position={row.position} />
@@ -216,7 +218,7 @@ function PlayerLine({ row }: { row: EdgeBoardRow }) {
       <span style={{ fontSize: 11, fontWeight: 600, textAlign: 'right', color: pBeatColor(row.pBeat) }}>
         {fmtPct(row.pBeat)}
       </span>
-      <span style={{ gridColumn: '2 / -1', marginTop: -2, marginBottom: 2 }}>
+      <span style={{ gridColumn: '3 / -1', marginTop: -2, marginBottom: 2 }}>
         <span style={{
           display: 'inline-block', fontSize: 9, fontWeight: 700,
           padding: '1px 6px', borderRadius: 8,

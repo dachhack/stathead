@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PlayerName } from './PlayerName';
+import { PlayerAvatar, TeamLogo } from './PlayerAvatar';
 import type { DraftPrepSettings, Position, Scoring } from '../lib/draftPrepSettings';
 import { saveSettings } from '../lib/draftPrepSettings';
 import type { KitPlayer, OpenSlots, ValuedPlayer } from '../lib/draftKit';
@@ -36,6 +37,10 @@ interface Props {
   pool: KitPlayer[];
   settings: DraftPrepSettings;
   onSettingsChange: (next: DraftPrepSettings) => void;
+  /** Optional custom board (My Rankings): kitKey -> 1-based rank. Adds
+   *  "you #N" chips to best-available and a "next on my board" strip. */
+  myRankByKey?: Map<string, number>;
+  myBoardName?: string;
 }
 
 interface TrackedPick {
@@ -54,7 +59,7 @@ function scoringFromSleeper(t: string | undefined): Scoring | null {
   return null;
 }
 
-export function DraftLiveAssistant({ pool, settings, onSettingsChange }: Props) {
+export function DraftLiveAssistant({ pool, settings, onSettingsChange, myRankByKey, myBoardName }: Props) {
   // — Sleeper connection state —
   const [username, setUsername] = useState<string>(() => {
     try { return localStorage.getItem(LS_USERNAME) ?? ''; } catch { return ''; }
@@ -433,16 +438,23 @@ export function DraftLiveAssistant({ pool, settings, onSettingsChange }: Props) 
             <div
               key={`${p.name}:${p.position}`}
               style={{
-                display: 'grid', gridTemplateColumns: '18px auto 1fr auto auto auto', columnGap: 8,
-                alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid var(--border)',
+                display: 'grid', gridTemplateColumns: '18px auto auto 1fr auto auto auto', columnGap: 8,
+                alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border)',
               }}
             >
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }}>{i + 1}</span>
+              <PlayerAvatar name={p.name} position={p.position} size={20} />
               <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 9 }}>{p.position}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <PlayerName name={p.name} position={p.position} />
-                {p.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
-                {!fillsStarter && <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 6 }}>bench</span>}
+                {p.team && <TeamLogo team={p.team} size={13} />}
+                {p.isRookie && <span style={{ fontSize: 9, color: '#6366f1' }}>R</span>}
+                {!fillsStarter && <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>bench</span>}
+                {myRankByKey?.has(kitKey(p.name, p.position)) && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#93c5fd' }} title={`Rank on your board "${myBoardName ?? 'My Rankings'}"`}>
+                    you #{myRankByKey.get(kitKey(p.name, p.position))}
+                  </span>
+                )}
               </span>
               <span style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }} title={`${p.ppg.toFixed(1)} projected PPG`}>
                 VBD {Math.round(p.vbd)}
@@ -501,6 +513,35 @@ export function DraftLiveAssistant({ pool, settings, onSettingsChange }: Props) 
             })}
           </div>
 
+          {/* Next on my board — the user's own order, untouched by VBD.
+              Side by side with best-available so "the math's pick" and
+              "my pick" are both visible on the clock. */}
+          {!!myRankByKey?.size && (
+            <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>
+                Next on my board
+                {myBoardName && <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}> · {myBoardName}</span>}
+              </div>
+              {[...available]
+                .filter((p) => myRankByKey.has(kitKey(p.name, p.position)))
+                .sort((a, b) => (myRankByKey.get(kitKey(a.name, a.position)) ?? 9999) - (myRankByKey.get(kitKey(b.name, b.position)) ?? 9999))
+                .slice(0, 4)
+                .map((p) => (
+                  <div key={`${p.name}:${p.position}`} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', minWidth: 28 }}>
+                      #{myRankByKey.get(kitKey(p.name, p.position))}
+                    </span>
+                    <PlayerAvatar name={p.name} position={p.position} size={18} />
+                    <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 9 }}>{p.position}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>
+                      <PlayerName name={p.name} position={p.position} />
+                    </span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>VBD {Math.round(p.vbd)}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+
           {/* My roster */}
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
             <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>
@@ -516,8 +557,9 @@ export function DraftLiveAssistant({ pool, settings, onSettingsChange }: Props) 
               </div>
             ) : (
               myPicks.map((p) => (
-                <div key={p.pickNo} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '3px 0' }}>
+                <div key={p.pickNo} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '3px 0' }}>
                   <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 36 }}>{roundPick(p.pickNo, settings.numTeams)}</span>
+                  <PlayerAvatar name={p.label} position={p.position} size={18} />
                   <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 9 }}>{p.position}</span>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>
                     <PlayerName name={p.label} position={p.position} />
