@@ -10,7 +10,7 @@ import {
 } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadBlendedProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
 import { normalizeForMatch } from '../lib/nameMatch';
 import type { PresetMeta } from '../lib/scenarioPresets';
@@ -226,7 +226,7 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
 
   useEffect(() => {
     let alive = true;
-    loadClayProjections().then((all) => { if (alive) setClay(all); }).catch(() => {});
+    loadBlendedProjections().then((all) => { if (alive) setClay(all); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 

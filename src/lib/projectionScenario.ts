@@ -60,18 +60,23 @@ function claysToSdio(clay: ClayPlayer[]): SDIOProjection[] {
     FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
   };
   let id = 1;
-  return clay.map((c) => ({
-    ...zero,
-    PlayerID: id++,
-    Name: c.name,
-    Team: c.team,
-    Position: c.position,
-    FantasyPoints: 0,
-    FantasyPointsPPR: computePpr(c),
-    PassingYards: c.pass_yds, PassingTouchdowns: c.pass_td,
-    RushingYards: c.rush_yds, RushingTouchdowns: c.rush_td,
-    Receptions: c.rec, ReceivingYards: c.rec_yds, ReceivingTouchdowns: c.rec_td,
-  })) as SDIOProjection[];
+  return clay.map((c) => {
+    // Scale stat components to the blended total so applyScenario's recompute
+    // stays consistent with computePpr (which already returns the blend).
+    const s = c.blendScale ?? 1;
+    return {
+      ...zero,
+      PlayerID: id++,
+      Name: c.name,
+      Team: c.team,
+      Position: c.position,
+      FantasyPoints: 0,
+      FantasyPointsPPR: computePpr(c),
+      PassingYards: c.pass_yds * s, PassingTouchdowns: c.pass_td * s,
+      RushingYards: c.rush_yds * s, RushingTouchdowns: c.rush_td * s,
+      Receptions: c.rec * s, ReceivingYards: c.rec_yds * s, ReceivingTouchdowns: c.rec_td * s,
+    };
+  }) as SDIOProjection[];
 }
 
 function resolveScenario(clay: ClayPlayer[], sdio: SDIOProjection[], optionId: string, meta: PresetMeta): ScenarioConfig | null {

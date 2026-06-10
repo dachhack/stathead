@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
 import { fetchSleeperTrending, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
-import { loadClayProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadBlendedProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import type { SleeperTrendingRow, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
@@ -63,7 +63,7 @@ export function SleeperWaiverWire() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadClayProjections().then(setClayPlayers);
+    loadBlendedProjections().then(setClayPlayers);
     fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
     fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
     fetchFantasyCalcRankings('1qb').then(setFc).catch(() => {});

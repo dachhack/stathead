@@ -5,7 +5,7 @@ import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
-import { loadClayProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadBlendedProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 import { normalizeForMatch } from '../lib/nameMatch';
 
@@ -911,7 +911,7 @@ export function SleeperUserSnooper() {
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
     fetchKTCRankings('1qb').then(setKtc);
-    loadClayProjections().then(setProjections);
+    loadBlendedProjections().then(setProjections);
   }, []);
 
   const snoop = (name: string, seasonArg: string = season) => {

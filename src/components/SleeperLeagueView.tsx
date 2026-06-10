@@ -7,7 +7,7 @@ import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings,
 import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { loadClayProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
+import { loadBlendedProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
@@ -652,7 +652,7 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
     setLoaded(true);
     Promise.all([
       fetchLeagueRosteredIds(leagueId),
-      loadClayProjections(),
+      loadBlendedProjections(),
       fetchSleeperTrending('add', 24, 75).catch(() => [] as SleeperTrendingRow[]),
     ]).then(([ids, proj, trend]) => {
       setRosteredIds(ids);
@@ -1262,7 +1262,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     });
     fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
     fetchFantasyCalcRankings('1qb').then(setFcTrend).catch(() => {});
-    loadClayProjections().then(setAllProjections);
+    loadBlendedProjections().then(setAllProjections);
   }, []);
 
   const lookupUser = (name: string) => {
