@@ -4,6 +4,7 @@ declare const __BUILD_HASH__: string;
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
+import { ExpertTracker } from './components/ExpertTracker';
 import { parsePlayerHash, setPlayerHash } from './lib/hashRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -99,6 +100,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'sleeper-league', label: 'Sleeper Leagues' },
       { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
+      { id: 'expert-tracker', label: 'Expert Tracker' },
       { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
@@ -307,6 +309,7 @@ function App() {
         {tab === 'sleeper-league' && <SleeperLeagueView onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'sleeper-waivers' && <SleeperWaiverWire />}
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
+        {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
         {tab === 'sportsdata' && (

@@ -203,6 +203,7 @@ export type Tab =
   | 'sleeper-league'
   | 'sleeper-waivers'
   | 'sleeper-snooper'
+  | 'expert-tracker'
   | 'consensus-adp'
   | 'ktc'
   | 'sportsdata'
