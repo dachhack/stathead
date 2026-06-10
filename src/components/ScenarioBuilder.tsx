@@ -297,16 +297,34 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   };
   const setStats = (p: SDIOProjection, patch: Partial<Record<StatField, number | undefined>>) => {
     const rest = (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID);
-    const existing = (statOf(p.PlayerID) ?? {
-      playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
-    }) as unknown as Record<string, number | string | undefined>;
+    // A preset (e.g. Consensus / ML Optimized) pins this player to an absolute
+    // PPR via a pointsOverride, which the engine applies AFTER stat overrides —
+    // re-scaling the whole line back to the target and swallowing manual nudges.
+    // The first time the user edits a stat under such a pin, bake the current
+    // adjusted line into absolute stat overrides and drop the pin, so the line
+    // stays put visually but is now directly editable.
+    const pinned = pprOf(p.PlayerID) !== undefined && !statOf(p.PlayerID);
+    const existing: Record<string, number | string | undefined> = pinned
+      ? {
+          playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
+          ...Object.fromEntries(STAT_COLS.map((f) => [f, Math.round(adjStat(p, f))])),
+        }
+      : (statOf(p.PlayerID) ?? {
+          playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
+        }) as unknown as Record<string, number | string | undefined>;
     const merged: Record<string, number | string | undefined> = { ...existing };
     for (const [k, v] of Object.entries(patch)) {
       if (v === undefined) delete merged[k];
       else merged[k] = v;
     }
     const hasAny = STAT_FIELDS.some((f) => merged[f] !== undefined);
-    update({ statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest });
+    const next: Partial<ScenarioConfig> = {
+      statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest,
+    };
+    if (pinned) {
+      next.pointsOverrides = (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID);
+    }
+    update(next);
   };
   // Live PPR for a player from their current (override-or-base) stat line.
   const computedPPR = (p: SDIOProjection) =>
