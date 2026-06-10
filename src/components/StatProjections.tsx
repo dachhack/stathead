@@ -9,6 +9,7 @@ import {
 import type { SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, ScenarioConfig, SDIOProjection, FreeAgentPlayer } from '../types';
 import { createEmptyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
+import { NFL_DIVISIONS, divisionOf, compareTeams, groupByDivision } from '../lib/divisions';
 import type { PresetMeta, PlayerMeta } from '../lib/scenarioPresets';
 import { positionStats, zScore } from '../lib/nameUtils';
 import { exportTeamXlsx, type XlsxTeam } from '../lib/exportTeamXlsx';
@@ -2282,6 +2283,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
 
   const [teamSortCol, setTeamSortCol] = useState<keyof TeamTotalRow>('pprPts');
   const [teamSortAsc, setTeamSortAsc] = useState(false);
+  // By Team view shows one division at a time (4 teams); Team Totals groups all.
+  const [byTeamDivision, setByTeamDivision] = useState(NFL_DIVISIONS[0].name);
 
   const sortedTeamTotals = useMemo(() => {
     return [...teamTotals].sort((a, b) => {
@@ -2444,14 +2447,29 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
       {viewMode === 'team' && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
-              Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team — sorted by combined PPR
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div className="control-group" style={{ marginBottom: 0 }}>
+                <label className="control-label">Division</label>
+                <select
+                  value={byTeamDivision}
+                  onChange={(e) => setByTeamDivision(e.target.value)}
+                  style={{ padding: '4px 8px', fontSize: 13, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--text-muted)', borderRadius: 6 }}
+                >
+                  {NFL_DIVISIONS.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+                </select>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: 0 }}>
+                Top {TEAM_POS_LIMITS.QB} QBs, {TEAM_POS_LIMITS.RB} RBs, {TEAM_POS_LIMITS.WR} WRs, {TEAM_POS_LIMITS.TE} TEs per team
+              </p>
+            </div>
             <button className="export-btn" onClick={() => { void exportTeamView(); }} title="Download every team's stat lines (current scenario applied) as a formatted Excel workbook — PPR and team totals are live formulas, so it recomputes as you edit">
               ⬇ Export to Excel
             </button>
           </div>
-          {teamGroups.map((g, ti) => {
+          {teamGroups
+            .filter((g) => divisionOf(g.team) === byTeamDivision)
+            .sort((a, b) => compareTeams(a.team, b.team))
+            .map((g, ti) => {
             // Compute position subtotals and team total
             const sumQB = { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 0, rec: 0, recYds: 0, recTD: 0, ppr: 0 };
             for (const p of g.qbs) { sumQB.passAtt += p.passAtt; sumQB.passComp += p.passComp; sumQB.passYds += p.passYds; sumQB.passTD += p.passTD; sumQB.int += p.int; sumQB.rushAtt += p.rushAtt; sumQB.rushYds += p.rushYds; sumQB.rushTD += p.rushTD; sumQB.ppr += p.pprPts; }
@@ -2701,25 +2719,33 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedTeamTotals.map((r, i) => (
-                    <tr key={r.team} onClick={() => { setViewMode('team'); }} style={{ cursor: 'pointer' }}>
-                      <td style={{ ...tdS, textAlign: 'center', color: 'var(--text-muted)' }}>{i + 1}</td>
-                      <td style={{ ...tdS, textAlign: 'left', fontWeight: 700 }}>{r.team}</td>
-                      <td style={tdS}>{r.passAtt.toLocaleString()}</td>
-                      <td style={tdS}>{r.passComp.toLocaleString()}</td>
-                      <td style={tdS}>{r.passYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.passTD).toLocaleString()}</td>
-                      <td style={{ ...tdS, color: '#ef4444' }}>{round1(r.int).toLocaleString()}</td>
-                      <td style={tdS}>{r.rushAtt.toLocaleString()}</td>
-                      <td style={tdS}>{r.rushYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.rushTD).toLocaleString()}</td>
-                      <td style={tdS}>{r.tgt.toLocaleString()}</td>
-                      <td style={tdS}>{r.rec.toLocaleString()}</td>
-                      <td style={tdS}>{r.recYds.toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.recTD).toLocaleString()}</td>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#f59e0b' }}>{r.pprPts.toLocaleString()}</td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const rank = new Map(sortedTeamTotals.map((r, i) => [r.team, i + 1] as const));
+                    return groupByDivision(sortedTeamTotals, (r) => r.team).flatMap((grp) => [
+                      <tr key={`div-${grp.division}`}>
+                        <td colSpan={15} style={{ ...tdS, textAlign: 'left', fontWeight: 700, background: 'var(--bg-tertiary)', color: 'var(--text-muted)', fontSize: 10, letterSpacing: '0.05em' }}>{grp.division.toUpperCase()}</td>
+                      </tr>,
+                      ...grp.items.map((r) => (
+                        <tr key={r.team} onClick={() => { setByTeamDivision(divisionOf(r.team)); setViewMode('team'); }} style={{ cursor: 'pointer' }}>
+                          <td style={{ ...tdS, textAlign: 'center', color: 'var(--text-muted)' }}>{rank.get(r.team)}</td>
+                          <td style={{ ...tdS, textAlign: 'left', fontWeight: 700 }}>{r.team}</td>
+                          <td style={tdS}>{r.passAtt.toLocaleString()}</td>
+                          <td style={tdS}>{r.passComp.toLocaleString()}</td>
+                          <td style={tdS}>{r.passYds.toLocaleString()}</td>
+                          <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.passTD).toLocaleString()}</td>
+                          <td style={{ ...tdS, color: '#ef4444' }}>{round1(r.int).toLocaleString()}</td>
+                          <td style={tdS}>{r.rushAtt.toLocaleString()}</td>
+                          <td style={tdS}>{r.rushYds.toLocaleString()}</td>
+                          <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.rushTD).toLocaleString()}</td>
+                          <td style={tdS}>{r.tgt.toLocaleString()}</td>
+                          <td style={tdS}>{r.rec.toLocaleString()}</td>
+                          <td style={tdS}>{r.recYds.toLocaleString()}</td>
+                          <td style={{ ...tdS, fontWeight: 700 }}>{round1(r.recTD).toLocaleString()}</td>
+                          <td style={{ ...tdS, fontWeight: 700, color: '#f59e0b' }}>{r.pprPts.toLocaleString()}</td>
+                        </tr>
+                      )),
+                    ]);
+                  })()}
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid var(--text-muted)' }}>

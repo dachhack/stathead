@@ -1,19 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchNflSchedule, computeSOS, makeStrengthIndex, makeUnitStrengthIndex, matchupFor, computeUnitSOS, DEF_UNIT_GROUPS, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam, type MatchupsByKey, type TeamProjByTeam, type DefUnitKey, type UnitSOS } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
-
-const NFL_DIVISIONS: [string, string[]][] = [
-  ['AFC East', ['BUF', 'MIA', 'NE', 'NYJ']],
-  ['AFC North', ['BAL', 'CIN', 'CLE', 'PIT']],
-  ['AFC South', ['HOU', 'IND', 'JAX', 'TEN']],
-  ['AFC West', ['DEN', 'KC', 'LV', 'LAC']],
-  ['NFC East', ['DAL', 'NYG', 'PHI', 'WAS']],
-  ['NFC North', ['CHI', 'DET', 'GB', 'MIN']],
-  ['NFC South', ['ATL', 'CAR', 'NO', 'TB']],
-  ['NFC West', ['ARI', 'LA', 'SF', 'SEA']],
-];
-const ORDERED = NFL_DIVISIONS.flatMap(([, t]) => t);
-const divisionOf = (() => { const m: Record<string, string> = {}; for (const [d, ts] of NFL_DIVISIONS) for (const t of ts) m[t] = d; return m; })();
+import { NFL_DIVISIONS, TEAM_ORDER, divisionOf } from '../lib/divisions';
 
 function fmtKick(iso: string): string {
   if (!iso) return 'TBD';
@@ -127,8 +115,8 @@ export function ScheduleView() {
   // Season SOS broken down by defensive sub-unit (avg opp grade + rank).
   const unitSos = useMemo(() => (byTeam ? computeUnitSOS(byTeam, grades) : {}), [byTeam, grades]);
   const cycle = (dir: number) => {
-    const i = ORDERED.indexOf(team);
-    setTeam(ORDERED[(i + dir + ORDERED.length) % ORDERED.length]);
+    const i = TEAM_ORDER.indexOf(team);
+    setTeam(TEAM_ORDER[(i + dir + TEAM_ORDER.length) % TEAM_ORDER.length]);
   };
 
   const sched = byTeam?.[team];
@@ -152,14 +140,14 @@ export function ScheduleView() {
             <button className="se-cycle" onClick={() => cycle(-1)} aria-label="previous team">◀</button>
             <TeamLogo team={team} size={28} />
             <select className="scenario-select" value={team} onChange={(e) => setTeam(e.target.value)}>
-              {NFL_DIVISIONS.map(([div, codes]) => {
-                const present = codes.filter((c) => teamsPresent.has(c));
+              {NFL_DIVISIONS.map((d) => {
+                const present = d.teams.filter((c) => teamsPresent.has(c));
                 if (!present.length) return null;
-                return <optgroup key={div} label={div}>{present.map((c) => <option key={c} value={c}>{c}</option>)}</optgroup>;
+                return <optgroup key={d.name} label={d.name}>{present.map((c) => <option key={c} value={c}>{c}</option>)}</optgroup>;
               })}
             </select>
             <button className="se-cycle" onClick={() => cycle(1)} aria-label="next team">▶</button>
-            <span className="sched-div">{divisionOf[team]}</span>
+            <span className="sched-div">{divisionOf(team)}</span>
           </div>
 
           {s && (

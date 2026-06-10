@@ -1,7 +1,7 @@
 declare const __APP_VERSION__: string;
 declare const __BUILD_HASH__: string;
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
 import { parsePlayerHash, setPlayerHash } from './lib/hashRoute';
@@ -129,6 +129,14 @@ function App() {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
+
+  // Switching tabs closes the open player card (it renders in place of the tab
+  // content). Skip the initial mount so deep links like #/player/... still load.
+  const tabFirstRender = useRef(true);
+  useEffect(() => {
+    if (tabFirstRender.current) { tabFirstRender.current = false; return; }
+    if (parsePlayerHash(window.location.hash)) setPlayerHash(null);
+  }, [tab]);
 
   const onDataLoaded = useCallback((data: unknown[]) => {
     setExtraData(data);
