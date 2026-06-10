@@ -503,83 +503,95 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
 
         <div className="scenario-body">
 
-          {/* Scenario name + save/load */}
-          <div className="scenario-section">
-            <div className="scenario-name-row">
-              <input
-                className="scenario-name-input"
-                value={scenario.name}
-                onChange={(e) => update({ name: e.target.value })}
-                placeholder="Scenario name..."
-              />
-              <button className="scenario-action-btn" onClick={handleSave}>Save</button>
+          {/* Scenario selector — name/save/load + quick presets in one
+              collapsible panel. order:-2 (see CSS) floats it above the
+              Team Workspace / Rankings (which use order:-1), so it's the
+              very top of the builder. Collapsed by default. */}
+          <details className="scenario-section scenario-selector">
+            <summary className="scenario-selector-summary">
+              <span className="scenario-selector-label">Scenario</span>
+              <span className="scenario-selector-current">{scenario.name || 'New Scenario'}</span>
+              {activeCount > 0 && (
+                <span className="scenario-selector-count">{activeCount} adj</span>
+              )}
+            </summary>
+
+            <div className="scenario-selector-body">
+              {/* Scenario name + save/load */}
+              <div className="scenario-name-row">
+                <input
+                  className="scenario-name-input"
+                  value={scenario.name}
+                  onChange={(e) => update({ name: e.target.value })}
+                  placeholder="Scenario name..."
+                />
+                <button className="scenario-action-btn" onClick={handleSave}>Save</button>
+                <button
+                  className={`scenario-action-btn ${showSaved ? 'active' : ''}`}
+                  onClick={() => setShowSaved((v) => !v)}
+                >
+                  Load
+                </button>
+              </div>
+              {showSaved && (
+                <div className="scenario-saved-list">
+                  {savedList.length === 0 ? (
+                    <div className="scenario-empty-msg">No saved scenarios yet</div>
+                  ) : (
+                    savedList.map((s) => (
+                      <div key={s.id} className="scenario-saved-item">
+                        <span className="scenario-saved-name">{s.name}</span>
+                        <div className="scenario-saved-actions">
+                          <button
+                            className="scenario-link-btn"
+                            onClick={() => handleLoad(s)}
+                          >
+                            Load
+                          </button>
+                          <button
+                            className="scenario-link-btn danger"
+                            onClick={() => handleDelete(s.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Quick presets — one-click opinionated tilts */}
+              <div className="scenario-section-header" style={{ marginTop: 14 }}>
+                <span className="scenario-section-title">Quick Presets</span>
+              </div>
+              <p className="scenario-section-hint">
+                One click fills the scenario with an opinionated tilt built from the levers below.
+                Apply one, then fine-tune any section. Presets replace the current adjustments.
+              </p>
+              <div className="scenario-preset-grid">
+                {availablePresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    className="scenario-preset-btn"
+                    onClick={() => applyPreset(preset.id)}
+                    title={preset.description}
+                  >
+                    <span className="scenario-preset-name">{preset.name}</span>
+                    <span className="scenario-preset-desc">{preset.description}</span>
+                  </button>
+                ))}
+              </div>
               <button
-                className={`scenario-action-btn ${showSaved ? 'active' : ''}`}
-                onClick={() => setShowSaved((v) => !v)}
+                className="scenario-add-btn"
+                onClick={resetToBase}
+                disabled={isScenarioEmpty(scenario)}
+                style={{ marginTop: 8 }}
               >
-                Load
+                ↺ Reset to base
               </button>
             </div>
-            {showSaved && (
-              <div className="scenario-saved-list">
-                {savedList.length === 0 ? (
-                  <div className="scenario-empty-msg">No saved scenarios yet</div>
-                ) : (
-                  savedList.map((s) => (
-                    <div key={s.id} className="scenario-saved-item">
-                      <span className="scenario-saved-name">{s.name}</span>
-                      <div className="scenario-saved-actions">
-                        <button
-                          className="scenario-link-btn"
-                          onClick={() => handleLoad(s)}
-                        >
-                          Load
-                        </button>
-                        <button
-                          className="scenario-link-btn danger"
-                          onClick={() => handleDelete(s.id)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Quick presets — one-click opinionated tilts */}
-          <div className="scenario-section">
-            <div className="scenario-section-header">
-              <span className="scenario-section-title">Quick Presets</span>
-            </div>
-            <p className="scenario-section-hint">
-              One click fills the scenario with an opinionated tilt built from the levers below.
-              Apply one, then fine-tune any section. Presets replace the current adjustments.
-            </p>
-            <div className="scenario-preset-grid">
-              {availablePresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  className="scenario-preset-btn"
-                  onClick={() => applyPreset(preset.id)}
-                  title={preset.description}
-                >
-                  <span className="scenario-preset-name">{preset.name}</span>
-                  <span className="scenario-preset-desc">{preset.description}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              className="scenario-add-btn"
-              onClick={resetToBase}
-              disabled={isScenarioEmpty(scenario)}
-              style={{ marginTop: 8 }}
-            >
-              ↺ Reset to base
-            </button>
-          </div>
+          </details>
 
           {/* 1. Vegas Line Weighting */}
           <div className="scenario-section">
