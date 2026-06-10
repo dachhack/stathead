@@ -86,12 +86,17 @@ export function DraftKitValidation() {
         <p style={p13}>
           Decision rules, evaluated in order: <strong>DC1</strong> — listed #1 at his position on
           his NFL depth chart (nflverse snapshot) → automatic Roster, caveated when the
-          projection disagrees. <strong>Roster</strong> — current-season projection or actual
-          rookie-year PPG within 1 of streamable, or within 2 with ≥30% model starter odds.{' '}
-          <strong>Drop</strong> — career model ≤5% to ever reach locked-starter PPG (the
-          model&apos;s bottom ~20% tail) AND bottom-third profile AND no production signal
-          anywhere (no projection ≥ cutoff−3; year-2s also need a rookie year below cutoff−4).{' '}
-          <strong>Taxi</strong> — everything else: future starter odds without this-year value.
+          projection disagrees. <strong>Roster</strong> — current-season projection within 1 of
+          streamable (or within 2 with ≥30% model starter odds), or rookie-year PPG within 2.5:
+          near-streamable yr-1 production is an <em>immediate</em>-value signal (35% streamable
+          the next season vs 32% the one after), so it belongs active, not stashed.{' '}
+          <strong>Drop</strong> — three falling-hazard patterns: (a) career model ≤5% to ever
+          reach locked-starter PPG AND bottom-third profile AND no production signal anywhere;
+          (b) round-5+ capital with a quiet rookie year and &lt;6% starter odds (hazard 9% → 7%);
+          (c) round-3+ QBs with quiet rookie years (6% → 0%).{' '}
+          <strong>Taxi</strong> — everything else, by construction the <em>ramp</em> profiles:
+          high-capital players buried as rookies are the classic delayed breakout (R1–2 + quiet
+          yr1 hit streamable 24% the next season but 31% the one after; R1–2 WRs 21% → 38%).
         </p>
       </div>
 
@@ -102,16 +107,19 @@ export function DraftKitValidation() {
           The year-2 decision (the fully replayable one: rookie-year production + model profile;
           historical preseason projections don&apos;t exist so the projection clause stays off)
           was replayed for every drafted skill player in the 2010–2022 classes, scored against
-          full weekly-stats outcomes at the streamable bar (≥6 games at cutoff PPG):
+          full weekly-stats outcomes at the streamable bar (≥6 games at cutoff PPG). The design
+          goal: the Taxi bucket should be <strong>forward-loaded</strong> — a higher streamable
+          rate in the season <em>after</em> next than next season — because that is the
+          population a taxi spot exists to hold:
         </p>
         <table style={{ borderCollapse: 'collapse', marginBottom: 12 }}>
           <thead><tr style={{ borderBottom: '1px solid var(--border)' }}>
             <th style={{ ...th, textAlign: 'left' }}>Verdict</th><th style={th}>n</th>
-            <th style={th}>Streamable that season</th><th style={th}>Following season</th>
+            <th style={th}>Streamable next season</th><th style={th}>Season after</th>
             <th style={th}>Ever within 4 yrs</th>
           </tr></thead>
           <tbody>
-            {([['Roster', 322, '68%', '63%', '80%'], ['Taxi', 394, '24%', '22%', '39%'], ['Drop', 123, '5%', '5%', '13%']] as const).map(([v, n, a, b, c]) => (
+            {([['Roster', 405, '63%', '58%', '76%'], ['Taxi', 273, '19%', '20%', '36%'], ['Drop', 161, '6%', '5%', '14%']] as const).map(([v, n, a, b, c]) => (
               <tr key={v} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={tdL}>{v}</td><td style={td}>{n}</td><td style={td}>{a}</td><td style={td}>{b}</td><td style={td}>{c}</td>
               </tr>
@@ -119,13 +127,17 @@ export function DraftKitValidation() {
           </tbody>
         </table>
         <p style={p13}>
-          The expensive error — dropping a future starter — runs <strong>13%</strong> at this
-          bar, and the regret names are fringe streamers (Geoff Swaim, Braxton Berrios tier),
-          not stars. Of the <strong>126 true year-2 breakouts</strong> (not streamable as
-          rookies → streamable in year 2 — exactly the player the taxi spot exists for), the
-          tree kept 120: 26 on Roster, 94 on Taxi, only <strong>6 mislabeled Drop</strong>.
-          At the stricter locked-starter bar the same tree showed 6% drop regret with the misses
-          being the all-time late-bloomer tail (Antonio Brown, Julius Thomas).
+          Taxi is the only bucket whose hazard <em>rises</em> (19% → 20%) — Roster&apos;s falls
+          (63% → 58%, value is now) and Drop&apos;s falls (6% → 5%, value never comes). Earlier
+          tree versions had Taxi flat-to-declining (24% → 22%); the fix was moving
+          near-streamable yr-1 producers to Roster and the late-capital/quiet-QB fade patterns
+          to Drop. The expensive error — dropping a future starter — runs <strong>14%</strong>{' '}
+          at this bar (was 13% before the fade patterns), and the regret names are journeyman
+          streamers (Geoff Swaim, Braxton Berrios tier), not stars. Of the{' '}
+          <strong>126 true year-2 breakouts</strong> (not streamable as rookies → streamable in
+          year 2), the tree retained 116; the 10 mislabeled Drops are late-capital one-season
+          streamers. At the stricter locked-starter bar the same tree showed 6% drop regret with
+          the misses being the all-time late-bloomer tail (Antonio Brown, Julius Thomas).
         </p>
         <p style={p13}>
           <strong>Start % calibration</strong> (rookie decision, model input only — realized =
