@@ -68,6 +68,8 @@ public/data/*
 !public/data/expert-adds.json
 !public/data/expert-trades.json
 !public/data/expert-graph.json
+!public/data/expert-league-graph.json
+!public/data/expert-candidates.json
 # expert-names.json (index -> username) is intentionally NOT un-ignored: it stays
 # local-only so the social graph / rankings can show names in dev but never ship.
 # Its passphrase-encrypted form (scripts/encrypt-expert-names.mjs) IS committed:

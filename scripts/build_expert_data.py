@@ -18,6 +18,9 @@ Input:  private/expert-usernames.txt  (gitignored; see the .example template)
 Output: public/data/expert-ownership.json
         public/data/expert-adds.json
         public/data/expert-trades.json
+        public/data/expert-graph.json        (expert social graph, anonymized)
+        public/data/expert-league-graph.json (league graph, anonymized)
+        public/data/expert-candidates.json   (co-members ranked by expert links)
 
 Usage:  python3 scripts/build_expert_data.py [--season 2026] [--no-transactions]
 
@@ -97,7 +100,9 @@ def main() -> int:
     roster_totals = {'all': 0, 'dynasty': 0, 'redraft': 0, 'sf': 0, '1qb': 0}
     add_counts: dict[str, dict] = {}        # pid -> {count, experts:set, last}
     trades: list[dict] = []
-    league_experts: dict[str, dict] = {}  # league_id -> {dynasty, sf, experts:set[int]}
+    league_experts: dict[str, dict] = {}  # league_id -> {dynasty, sf, experts:set[int], name, size}
+    league_members: dict[str, set[str]] = {}  # league_id -> co-member owner_ids
+    expert_uids: set[str] = set()
     experts_with_data = 0
 
     def bump(pid: str, dyn: bool, sf: bool, started: bool, expert: str):
@@ -117,6 +122,7 @@ def main() -> int:
         if not uid:
             print(f"  skip — no user_id", file=sys.stderr)
             continue
+        expert_uids.add(uid)
         leagues = get(f"{API}/user/{uid}/leagues/nfl/{args.season}") or []
         if not leagues:
             continue
@@ -134,7 +140,13 @@ def main() -> int:
             roster_totals['all'] += 1
             roster_totals['dynasty' if dyn else 'redraft'] += 1
             roster_totals['sf' if sf else '1qb'] += 1
-            league_experts.setdefault(lid, {'dynasty': dyn, 'sf': sf, 'experts': set()})['experts'].add(eidx)
+            league_experts.setdefault(lid, {
+                'dynasty': dyn, 'sf': sf, 'experts': set(),
+                'name': lg.get('name') or '', 'size': lg.get('total_rosters') or len(rosters),
+            })['experts'].add(eidx)
+            # Co-members for the expert-candidate scan (rosters already in hand).
+            league_members.setdefault(lid, set()).update(
+                r.get('owner_id') for r in rosters if r.get('owner_id'))
             starters = set(mine.get('starters') or [])
             for pid in (mine.get('players') or []):
                 if not pid or pid == '0':
@@ -225,13 +237,71 @@ def main() -> int:
         'nodes': nodes, 'edges': sorted(edges.values(), key=lambda e: -e['total']),
     }, separators=(',', ':')))
 
-    # ── gitignored name map (index -> username). LOCAL ONLY: never committed or
-    # deployed (see .gitignore; refresh-data.yml strips it before the build). ──
-    (OUT_DIR / 'expert-names.json').write_text(json.dumps(
-        {'names': {str(i): u for i, u in enumerate(usernames)}}, separators=(',', ':')))
+    # ── expert candidates (anonymized): non-expert co-members ranked by how many
+    # distinct experts they share leagues with — likely experts we haven't listed.
+    # Published rows carry only an index + counts; usernames go in the name map.
+    cand_stats: dict[str, dict] = {}  # owner_id -> {experts:set, leagues, dynasty, redraft}
+    for lid, members in league_members.items():
+        le = league_experts.get(lid)
+        if not le:
+            continue
+        for oid in members:
+            if oid in expert_uids:
+                continue
+            c = cand_stats.setdefault(oid, {'experts': set(), 'leagues': 0, 'dynasty': 0, 'redraft': 0})
+            c['experts'] |= le['experts']
+            c['leagues'] += 1
+            c['dynasty' if le['dynasty'] else 'redraft'] += 1
+    ranked = sorted(
+        (kv for kv in cand_stats.items() if len(kv[1]['experts']) >= 2),
+        key=lambda kv: (-len(kv[1]['experts']), -kv[1]['leagues']))[:30]
+    cand_rows = []
+    cand_names: dict[str, str] = {}
+    for ci, (oid, c) in enumerate(ranked):
+        u = get(f"{API}/user/{oid}") or {}
+        cand_names[str(ci)] = u.get('username') or u.get('display_name') or ''
+        cand_rows.append({'i': ci, 'experts': len(c['experts']), 'leagues': c['leagues'],
+                          'dynasty': c['dynasty'], 'redraft': c['redraft']})
+    (OUT_DIR / 'expert-candidates.json').write_text(json.dumps({
+        'generated': generated, 'season': args.season, 'expert_count': len(usernames),
+        'candidates': cand_rows,
+    }, separators=(',', ':')))
+
+    # ── league graph (anonymized): leagues with ≥2 experts as nodes; edges =
+    # experts two leagues have in common. League names go in the name map only.
+    hub_ids = sorted((lid for lid, le in league_experts.items() if len(le['experts']) >= 2),
+                     key=lambda lid: -len(league_experts[lid]['experts']))
+    lg_nodes = []
+    lg_names: dict[str, str] = {}
+    for li, lid in enumerate(hub_ids):
+        le = league_experts[lid]
+        lg_nodes.append({'i': li, 'experts': len(le['experts']), 'size': le['size'],
+                         'dynasty': 1 if le['dynasty'] else 0, 'sf': 1 if le['sf'] else 0})
+        lg_names[str(li)] = le['name']
+    lg_edges = []
+    for i in range(len(hub_ids)):
+        for j in range(i + 1, len(hub_ids)):
+            shared = len(league_experts[hub_ids[i]]['experts'] & league_experts[hub_ids[j]]['experts'])
+            if shared:
+                lg_edges.append({'a': i, 'b': j, 'shared': shared})
+    lg_edges.sort(key=lambda e: -e['shared'])
+    (OUT_DIR / 'expert-league-graph.json').write_text(json.dumps({
+        'generated': generated, 'season': args.season,
+        'nodes': lg_nodes, 'edges': lg_edges,
+    }, separators=(',', ':')))
+
+    # ── gitignored name map (expert/candidate/league index -> name). LOCAL ONLY:
+    # never committed or deployed in plaintext (see .gitignore; refresh-data.yml
+    # strips it before the build, optionally encrypting it first). ──
+    (OUT_DIR / 'expert-names.json').write_text(json.dumps({
+        'names': {str(i): u for i, u in enumerate(usernames)},
+        'candidates': cand_names,
+        'leagues': lg_names,
+    }, separators=(',', ':')))
 
     print(f"Wrote expert data: {len(players)} players, {len(adds)} adds, {len(trades)} trades, "
-          f"{len(edges)} graph edges from {experts_with_data} experts ({roster_totals['all']} rosters).", file=sys.stderr)
+          f"{len(edges)} graph edges from {experts_with_data} experts ({roster_totals['all']} rosters), "
+          f"{len(cand_rows)} candidates, {len(lg_nodes)} league nodes / {len(lg_edges)} league edges.", file=sys.stderr)
     return 0
 
 

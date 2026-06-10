@@ -132,6 +132,8 @@ jobs:
                   public/data/expert-adds.json \
                   public/data/expert-trades.json \
                   public/data/expert-graph.json \
+                  public/data/expert-league-graph.json \
+                  public/data/expert-candidates.json \
                   public/data/expert-names.enc.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
