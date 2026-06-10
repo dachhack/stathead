@@ -41,15 +41,22 @@ jobs:
       # Refresh anonymized expert activity. The username list comes from the
       # EXPERT_USERNAMES repo secret (newline-separated) so it's never committed.
       # Skipped when the secret is unset. Runs before the build so the output
-      # ships in dist/.
+      # ships in dist/. If EXPERT_NAMES_PASSPHRASE is also set, the name map is
+      # encrypted into expert-names.enc.json (committed + deployed) so the
+      # Social Graph can unlock usernames with that passphrase; the plaintext
+      # map is still deleted and never ships.
       - name: Build expert data
         env:
           EXPERT_USERNAMES: ${{ secrets.EXPERT_USERNAMES }}
+          EXPERT_NAMES_PASSPHRASE: ${{ secrets.EXPERT_NAMES_PASSPHRASE }}
         run: |
           if [ -n "$EXPERT_USERNAMES" ]; then
             mkdir -p private
             printf '%s\n' "$EXPERT_USERNAMES" > private/expert-usernames.txt
             python3 scripts/build_expert_data.py --weeks 1 || echo "expert build failed (non-fatal)"
+            if [ -n "$EXPERT_NAMES_PASSPHRASE" ] && [ -s public/data/expert-names.json ]; then
+              node scripts/encrypt-expert-names.mjs || echo "name-map encryption failed (non-fatal)"
+            fi
             rm -f public/data/expert-names.json  # local-only name map — never deploy/commit
           else
             echo "EXPERT_USERNAMES secret not set — skipping expert data build"
@@ -124,7 +131,8 @@ jobs:
                   public/data/expert-ownership.json \
                   public/data/expert-adds.json \
                   public/data/expert-trades.json \
-                  public/data/expert-graph.json 2>/dev/null || true
+                  public/data/expert-graph.json \
+                  public/data/expert-names.enc.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else
