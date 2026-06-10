@@ -135,7 +135,9 @@ def main() -> int:
             if args.no_transactions:
                 continue
             my_rid = mine.get('roster_id')
-            for wk in range(1, args.weeks + 1):
+            # Week 0 holds offseason transactions (dynasty trades/adds in the
+            # spring), so scan from 0 through the regular season.
+            for wk in range(0, args.weeks + 1):
                 txns = get(f"{API}/league/{lid}/transactions/{wk}")
                 if not txns:
                     continue
