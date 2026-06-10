@@ -193,11 +193,17 @@ function RotowireSection({ ro }: { ro: PlayerRotowire }) {
 
 const NORM = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
+// Fallback match key for Clay↔Sleeper: last name + team + position. Catches
+// nickname mismatches (Clay "Cameron Ward" vs Sleeper "Cam Ward") and rookies
+// that Clay hasn't stamped with a sleeper_id yet.
+const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)$/i;
+const altKey = (name: string, team: string, pos: string) => {
+  const last = name.replace(NAME_SUFFIX, '').trim().split(/\s+/).pop() || name;
+  return `${NORM(last)}|${team}|${pos}`;
+};
+
 function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
   const [players, setPlayers] = useState<SleeperPlayer[]>([]);
-  // Base Consensus (Clay) projected PPR, keyed by sleeper id + (fallback) name.
-  const [projById, setProjById] = useState<Map<string, number>>(new Map());
-  const [projByName, setProjByName] = useState<Map<string, number>>(new Map());
   const [clay, setClay] = useState<ClayPlayer[]>([]);
   const [presetMeta, setPresetMeta] = useState<PresetMeta>(new Map());
   const [sortMode, setSortMode] = useState<'depth' | 'proj'>('depth');
@@ -220,22 +226,30 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
 
   useEffect(() => {
     let alive = true;
-    loadClayProjections().then((all) => {
-      if (!alive) return;
-      const byId = new Map<string, number>();
-      const byName = new Map<string, number>();
-      for (const c of all) {
-        const ppr = computePpr(c);
-        if (ppr <= 0) continue;
-        if (c.sleeperId) byId.set(c.sleeperId, ppr);
-        byName.set(NORM(c.name), ppr);
-      }
-      setProjById(byId);
-      setProjByName(byName);
-      setClay(all);
-    }).catch(() => {});
+    loadClayProjections().then((all) => { if (alive) setClay(all); }).catch(() => {});
     return () => { alive = false; };
   }, []);
+
+  // Clay projection lookups: by sleeper id, exact normalized name, and a
+  // last-name+team+position fallback (rookies/nicknames Clay hasn't crosswalked).
+  const clayIndex = useMemo(() => {
+    const byId = new Map<string, ClayPlayer>();
+    const byName = new Map<string, ClayPlayer>();
+    const byAlt = new Map<string, ClayPlayer>();
+    for (const c of clay) {
+      if (c.sleeperId) byId.set(c.sleeperId, c);
+      const nn = NORM(c.name);
+      if (!byName.has(nn)) byName.set(nn, c);
+      const ak = altKey(c.name, c.team, c.position);
+      const prev = byAlt.get(ak);
+      if (!prev || computePpr(c) > computePpr(prev)) byAlt.set(ak, c); // starter wins ties
+    }
+    return { byId, byName, byAlt };
+  }, [clay]);
+  const matchClay = (p: SleeperPlayer): ClayPlayer | undefined =>
+    clayIndex.byId.get(p.player_id)
+    ?? clayIndex.byName.get(NORM(p.full_name))
+    ?? clayIndex.byAlt.get(altKey(p.full_name, p.team, p.position));
 
   // Scenario-adjusted PPR by normalized name (null = no scenario selected).
   const adjByName = useMemo(
@@ -246,8 +260,10 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
   if (!players.length) return null;
   const self = NORM(selfName);
   const projFor = (p: SleeperPlayer): number => {
-    const base = projById.get(p.player_id) ?? projByName.get(NORM(p.full_name)) ?? 0;
-    return adjByName?.get(normalizeForMatch(p.full_name)) ?? base;
+    const c = matchClay(p);
+    if (!c) return 0;
+    const base = computePpr(c);
+    return adjByName?.get(normalizeForMatch(c.name)) ?? base;
   };
 
   const groups = (['QB', 'RB', 'WR', 'TE'] as const)
