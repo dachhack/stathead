@@ -114,6 +114,74 @@ def test_manual_overrides_keyed_by_name_pos():
     assert any("|" in k for k in keys)
 
 
+def test_player_stats_weekly_box_scores():
+    df = stathead.load_player_stats(2024)
+    assert not df.empty
+    assert {"player_key", "player_id", "season", "week",
+            "fantasy_points_ppr"}.issubset(df.columns)
+    assert (df.season == 2024).all()
+    # player_key should resolve for the vast majority of rows (every NFL
+    # player with a GSIS ID is in the crosswalk).
+    assert df.player_key.notna().mean() > 0.9
+
+
+def test_redraft_projections():
+    df = stathead.load_redraft_projections()
+    assert not df.empty
+    assert {"player_key", "name", "position", "ppg", "recPG"}.issubset(df.columns)
+
+
+def test_ppg_and_adp_value_model():
+    ppg = stathead.load_ppg_projections()
+    adp = stathead.load_adp_value_model()
+    assert {"name", "position", "predictedPPG"}.issubset(ppg.columns)
+    assert {"name", "position", "adp", "predictedVor", "hitProb"}.issubset(adp.columns)
+    # headshot URLs are stripped from the public surface.
+    assert "headshotUrl" not in adp.columns
+
+
+def test_volume_and_share_projections():
+    vol = stathead.load_volume_projections()
+    shr = stathead.load_share_projections()
+    assert {"name", "teamPassAtt", "teamTargets", "projPlayerPPG"}.issubset(vol.columns)
+    assert {"name", "predTargetShare", "predRushShare"}.issubset(shr.columns)
+
+
+def test_taxi_predictions_carry_meta():
+    df = stathead.load_taxi_predictions()
+    assert {"name", "position", "p1", "p2", "pEver"}.issubset(df.columns)
+    assert isinstance(df.attrs.get("meta"), dict)
+    assert "thresholds" in df.attrs["meta"]
+
+
+def test_career_2027_class():
+    df = stathead.load_career_2027()
+    assert not df.empty
+    assert {"name", "pos", "grade"}.issubset(df.columns)
+
+
+def test_dynasty_blend_is_consensus():
+    df = stathead.load_dynasty_values()
+    assert not df.empty
+    assert {"name", "position", "value_1qb", "value_superflex",
+            "n_sources_1qb", "n_sources_superflex"}.issubset(df.columns)
+    # Blended values live on the rescaled 0-10000 scale.
+    assert df.value_1qb.max() <= 10000
+    # At least some players are covered by more than one source.
+    assert (df.n_sources_1qb >= 2).any()
+    # Sorted by 1QB value, descending.
+    top = df.value_1qb.dropna().tolist()
+    assert top == sorted(top, reverse=True)
+
+
+def test_dynasty_value_history_blend():
+    df = stathead.load_dynasty_value_history()
+    assert not df.empty
+    assert {"name", "position", "date", "value_1qb",
+            "value_superflex"}.issubset(df.columns)
+    assert df.value_1qb.dropna().max() <= 10000
+
+
 def test_no_vendor_named_columns_leak():
     """Source-agnostic feature naming — no rsp*/pdf* columns reach users."""
     pred = stathead.load_career_predictions_2026()

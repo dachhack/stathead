@@ -57,15 +57,58 @@ cache directory or call `clear_cache()` to force a refresh.
 
 ## Available loaders
 
+Every table on the [StatHead site](https://github.com/dachhack/stathead) is
+available here as a pandas DataFrame.
+
+**Predictions & prospects**
+
 | Function | Returns | Shape |
 |---|---|---|
 | `load_career_predictions_2026()` | 2026 rookie predictions | ~77 × ~80 cols |
 | `load_career_backtest()` | Historical rookies with pred + actual PPG | ~1087 × ~100 cols |
+| `load_prospect_grades(year=2026)` | Scouting-report grades | ~200 × 7 |
+| `load_career_2027()` | 2027 draft-class early board + college aggregates | ~200 × ~30 |
+
+**Projections (model outputs)**
+
+| Function | Returns | Shape |
+|---|---|---|
+| `load_redraft_projections()` | Seasonal redraft PPG (PPR) + receptions/game | ~250 × 7 |
+| `load_ppg_projections()` | Model-predicted PPG for established players | ~250 × 4 |
+| `load_adp_value_model()` | VOR vs ADP, hit probability, confidence interval | ~153 × 10 |
+| `load_volume_projections()` | Team pass/rush/target volumes with low/high bands | ~153 × ~14 |
+| `load_share_projections()` | Predicted target + rush share | ~153 × 6 |
+| `load_taxi_predictions()` | Taxi-squad roster/drop probabilities (+ `df.attrs['meta']`) | ~96 × 6 |
+
+**Market & stats**
+
+| Function | Returns | Shape |
+|---|---|---|
+| `load_player_stats(season=None)` | Per-player per-week NFL box scores 2010-present | ~400k × ~50 |
+| `load_dynasty_values()` | In-house blended dynasty value (1QB + Superflex) | ~500 × 10 |
+| `load_dynasty_value_history()` | Blended daily dynasty value history | variable |
 | `load_adp_historical()` | Model-training ADP 2010-2025 | 4507 × 10 |
 | `load_adp_ffc(season=None)` | FFC PPR raw ADP (per season as fetched) — data via [Fantasy Football Calculator](https://fantasyfootballcalculator.com/adp/ppr) | variable |
-| `load_prospect_grades(year=2026)` | Scouting-report grades | ~200 × 7 |
+
+**Identity & raw**
+
+| Function | Returns | Shape |
+|---|---|---|
+| `load_player_crosswalk()` | Canonical cross-source player IDs | ~10k × ~20 |
+| `resolve_player(name, position=None)` / `get_player(key)` / `load_player_profile(key)` | Name → `player_key` helpers | — |
 | `load_feature_matrix()` | Raw `feature-matrix.json` (dict) | — |
 | `load_manual_overrides()` | Manual CFBD usage overrides (dict) | — |
+
+Every row-shaped loader carries a `player_key` column that joins to
+`load_player_crosswalk()`.
+
+### Dynasty values are an in-house blend
+
+`load_dynasty_values()` does **not** republish any single vendor's rankings.
+Each source (KeepTradeCut, FantasyCalc — 1QB and Superflex) is rescaled to a
+common 0-10000 scale and the sources covering a player are averaged into a
+derived consensus value; `n_sources_*` records the coverage. No raw vendor
+value is exposed.
 
 ## Feature columns
 
