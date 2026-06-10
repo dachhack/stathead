@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
+import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
@@ -90,6 +91,19 @@ interface SavedRanking {
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
+
+// Non-clay quick presets offered here (clay-blend presets would no-op without Clay).
+const MR_PRESET_IDS = new Set(['preset-rookie-optimistic', 'preset-vet-optimistic', 'preset-injury-skeptic', 'preset-vegas-weighted']);
+
+// Season fantasy points from a (possibly scenario-adjusted) SDIO line, under a
+// chosen reception weight (PPR=1, Half=0.5, Standard=0).
+function scoreSeasonPts(p: SDIOProjection, fmt: 'ppr' | 'half' | 'standard'): number {
+  const recPt = fmt === 'ppr' ? 1 : fmt === 'half' ? 0.5 : 0;
+  return (p.PassingYards || 0) * 0.04 + (p.PassingTouchdowns || 0) * 4 + (p.PassingInterceptions || 0) * -2
+    + (p.RushingYards || 0) * 0.1 + (p.RushingTouchdowns || 0) * 6
+    + (p.Receptions || 0) * recPt + (p.ReceivingYards || 0) * 0.1 + (p.ReceivingTouchdowns || 0) * 6
+    + (p.FumblesLost || 0) * -2;
+}
 const BASE = import.meta.env.BASE_URL;
 
 function makeId(name: string, pos: string): string {
@@ -147,6 +161,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   // Projection scenario selection
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
+  // League scoring format — re-scores PPG from the projected stat line.
+  const [scoringFormat, setScoringFormat] = useState<'ppr' | 'half' | 'standard'>('ppr');
 
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
@@ -284,14 +300,27 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [competition]);
 
-  // Resolve active scenario: user-selected scenario overrides prop scenario
+  // Rookie/age metadata for quick presets, from the ADP model rows.
+  const presetMeta = useMemo(() => {
+    const m: PresetMeta = new Map<string, PlayerMeta>();
+    for (const a of adpScores) {
+      m.set(normName(a.name), { isRookie: a.isRookie, yearsExp: a.isRookie ? 0 : null, age: null, priorGames: null });
+    }
+    return m;
+  }, [adpScores]);
+
+  // Resolve active scenario: a selected quick preset or saved scenario overrides
+  // the prop scenario. Clay-dependent presets are excluded (no Clay data here).
   const activeScenario = useMemo(() => {
-    if (selectedScenarioId) {
+    if (selectedScenarioId.startsWith('preset-')) {
+      const preset = SCENARIO_PRESETS.find(p => p.id === selectedScenarioId);
+      if (preset && sdio.length) return preset.build(sdio, presetMeta, normName, {});
+    } else if (selectedScenarioId) {
       const found = savedScenarios.find(s => s.id === selectedScenarioId);
       if (found) return found;
     }
     return scenario;
-  }, [selectedScenarioId, savedScenarios, scenario]);
+  }, [selectedScenarioId, savedScenarios, scenario, sdio, presetMeta]);
 
   // Apply scenario to SDIO projections
   const scenarioSdio = useMemo(() => {
@@ -344,9 +373,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       // PPG priority: 1) ML pipeline score-store predictedPPG, 2) redraft projections fallback
       let ppg = ppgS?.predictedPPG ?? basePpg;
-      // If SDIO scenario-adjusted is available and a scenario is active, use it
-      if (sdioP && !isScenarioEmpty(activeScenario) && (sdioP.FantasyPointsPPR ?? 0) > 0) {
-        ppg = Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10;
+      // Recompute from the (scenario-adjusted) SDIO line when a scenario is active
+      // or a non-PPR league scoring format is selected.
+      const scenarioActive = !isScenarioEmpty(activeScenario);
+      if (sdioP && (sdioP.FantasyPointsPPR ?? 0) > 0 && (scenarioActive || scoringFormat !== 'ppr')) {
+        const seasonPts = scoringFormat === 'ppr' ? (sdioP.FantasyPointsPPR ?? 0) : scoreSeasonPts(sdioP, scoringFormat);
+        ppg = Math.round((seasonPts / GAMES) * 10) / 10;
       }
 
       const resolvedTeam = ffcP?.team ?? adpS?.team ?? sdioP?.Team ?? team;
@@ -445,7 +477,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -545,7 +577,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             border: '1px solid #6366f144', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
           }}>
             {selectedScenarioId
-              ? `Scenario: ${savedScenarios.find(s => s.id === selectedScenarioId)?.name ?? 'Active'}`
+              ? `Scenario: ${SCENARIO_PRESETS.find(p => p.id === selectedScenarioId)?.name ?? savedScenarios.find(s => s.id === selectedScenarioId)?.name ?? 'Active'}`
               : 'Scenario Active'}
           </span>
         )}
@@ -561,9 +593,33 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             }}
           >
             <option value="">No Scenario</option>
-            {savedScenarios.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
+            <optgroup label="Quick presets">
+              {SCENARIO_PRESETS.filter(p => MR_PRESET_IDS.has(p.id)).map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </optgroup>
+            {savedScenarios.length > 0 && (
+              <optgroup label="Saved">
+                {savedScenarios.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          {/* League scoring */}
+          <select
+            value={scoringFormat}
+            onChange={e => setScoringFormat(e.target.value as 'ppr' | 'half' | 'standard')}
+            title="League scoring — re-scores PPG from the projected stat line"
+            style={{
+              background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+              borderRadius: 6, padding: '4px 8px', fontSize: 11, color: 'var(--text-primary)',
+              fontFamily: 'inherit',
+            }}
+          >
+            <option value="ppr">PPR</option>
+            <option value="half">Half-PPR</option>
+            <option value="standard">Standard</option>
           </select>
           <input
             value={rankingName}
@@ -662,8 +718,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>Player</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'})`}>PPG</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current FantasyCalc/FFC redraft ADP">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>
