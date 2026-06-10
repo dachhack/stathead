@@ -13,6 +13,7 @@ import { PlayerName } from './PlayerName';
 import { loadBlendedProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
 import { normalizeForMatch } from '../lib/nameMatch';
+import { toSleeperTeam } from '../lib/teamCodes';
 import type { PresetMeta } from '../lib/scenarioPresets';
 import type { PlayerStats, SleeperPlayer } from '../types';
 
@@ -72,7 +73,9 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
   const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, gameLog, gameLogSeason } = data;
 
   // Best available current NFL team: KTC → most recent game → Sleeper (rookies).
-  const nflTeam = ktcCurrent?.team || gameLog[0]?.recent_team || sleeperTeam || null;
+  // Normalized to Sleeper codes — KTC says GBP/KCC/… and nflverse says LA for
+  // the Rams, and TeamRoster matches against Sleeper's team field.
+  const nflTeam = toSleeperTeam(ktcCurrent?.team || gameLog[0]?.recent_team || sleeperTeam);
 
   const headshotUrl = gameLog[0]?.headshot_url
     || (cw.espn_id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${cw.espn_id}.png&w=200&h=145` : null);
