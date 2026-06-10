@@ -1,0 +1,12 @@
+# Expert Sleeper usernames — PRIVATE list (template).
+#
+# Copy this file to  private/expert-usernames.txt  and add real usernames there.
+# private/ is gitignored, so your real list is NEVER committed or deployed.
+#
+# One Sleeper username per line. Blank lines and #comments are ignored.
+# Then it's picked up by the regular data update:
+#   python3 scripts/build_expert_data.py
+# which writes anonymized aggregates to public/data/expert-*.json (committed).
+#
+# example_expert_one
+# example_expert_two

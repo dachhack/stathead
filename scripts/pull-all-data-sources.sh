@@ -90,6 +90,13 @@ for csv in "$OUT"/*.csv; do
   gzip -9 -f "$csv"
 done
 
+# Aggregate the private expert list (if present) into anonymized public JSON.
+# No-ops when private/expert-usernames.txt is absent (e.g. in CI / forks).
+if [ -f private/expert-usernames.txt ]; then
+  echo "Building expert data from private/expert-usernames.txt..."
+  python3 scripts/build_expert_data.py || echo "  expert data build failed (non-fatal)"
+fi
+
 n=$(find "$OUT" -maxdepth 1 \( -name '*.csv' -o -name '*.csv.gz' -o -name '*.json' \) | wc -l)
 size=$(du -sh "$OUT" 2>/dev/null | awk '{print $1}')
 echo "Done. $n files, $size total in $OUT/"

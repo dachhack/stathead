@@ -40,6 +40,24 @@ interface ExpertOwnership {
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 const LEAGUE_TYPES = ['all', 'Dynasty', 'Keeper', 'Redraft'] as const;
 
+// ── Generated (pipeline) data: anonymized aggregates from build_expert_data.py ──
+interface GenOwnershipPlayer {
+  id: string; experts: number; rosters: number;
+  dynasty: number; redraft: number; sf: number; '1qb': number; starters: number;
+}
+interface GenOwnership {
+  generated: string; expert_count: number;
+  roster_totals: Record<string, number>;
+  players: GenOwnershipPlayer[];
+}
+interface GenAdds { generated: string; adds: { id: string; count: number; experts: number; last: number }[]; }
+interface GenTrade { created: number; dynasty: boolean; sf: boolean; received: string[]; gave: string[]; picks: { season: string; round: number; to: boolean }[] }
+interface GenTrades { generated: string; trades: GenTrade[]; }
+
+const FMT_FILTERS = ['all', 'dynasty', 'redraft', 'sf', '1qb'] as const;
+type FmtFilter = (typeof FMT_FILTERS)[number];
+const FMT_LABEL: Record<FmtFilter, string> = { all: 'All', dynasty: 'Dynasty', redraft: 'Redraft', sf: 'Superflex', '1qb': '1QB' };
+
 export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void }) {
   const [experts, setExperts] = useState<string[]>(() => loadExperts());
   const [input, setInput] = useState('');
@@ -50,6 +68,35 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const [leagueType, setLeagueType] = useState<(typeof LEAGUE_TYPES)[number]>('all');
   const [pos, setPos] = useState<(typeof POSITIONS)[number]>('ALL');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Pipeline data (anonymized aggregates committed by the data update).
+  const [gOwn, setGOwn] = useState<GenOwnership | null>(null);
+  const [gAdds, setGAdds] = useState<GenAdds | null>(null);
+  const [gTrades, setGTrades] = useState<GenTrades | null>(null);
+  const [dataView, setDataView] = useState<'ownership' | 'adds' | 'trades'>('ownership');
+  const [fmt, setFmt] = useState<FmtFilter>('all');
+  useEffect(() => {
+    const B = import.meta.env.BASE_URL;
+    const load = <T,>(f: string, set: (v: T | null) => void) =>
+      fetch(`${B}data/${f}`).then((r) => (r.ok ? r.json() : null)).then(set).catch(() => set(null));
+    load<GenOwnership>('expert-ownership.json', setGOwn);
+    load<GenAdds>('expert-adds.json', setGAdds);
+    load<GenTrades>('expert-trades.json', setGTrades);
+  }, []);
+  const hasPipeline = !!(gOwn?.players?.length || gAdds?.adds?.length || gTrades?.trades?.length);
+
+  const pname = (id: string) => players.get(id)?.full_name ?? id;
+  const ppos = (id: string) => players.get(id)?.position ?? '?';
+
+  const ownRows = useMemo(() => {
+    if (!gOwn) return [];
+    const field: keyof GenOwnershipPlayer = fmt === 'all' ? 'rosters' : fmt;
+    let rows = gOwn.players.map((p) => ({ p, metric: p[field] as number }));
+    if (pos !== 'ALL') rows = rows.filter((r) => ppos(r.p.id) === pos);
+    return rows.filter((r) => r.metric > 0).sort((a, b) => b.metric - a.metric);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gOwn, fmt, pos, players]);
+  const ownDenom = gOwn ? (gOwn.roster_totals[fmt] || 0) : 0;
 
   useEffect(() => { fetchSleeperPlayers().then(setPlayers).catch(() => {}); }, []);
   useEffect(() => { localStorage.setItem(LS_KEY, JSON.stringify(experts)); }, [experts]);
@@ -157,9 +204,109 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
         highest rates, and jump into any expert's trade history.
       </p>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '0 0 16px', fontStyle: 'italic' }}>
-        🔒 Your list is stored only in this browser (localStorage). It is never uploaded, committed
-        to the repo, or included in the deployed site. Use Export to back it up.
+        🔒 Lists never leave your control: the data-update list lives in a gitignored file and only
+        anonymized counts are published; the live-mode list below stays in this browser only.
       </p>
+
+      {/* ── Pipeline data (from the data update) ── */}
+      {hasPipeline ? (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+            {(['ownership', 'adds', 'trades'] as const).map((v) => (
+              <button key={v} onClick={() => setDataView(v)} style={{ ...btn(dataView === v), padding: '4px 12px', fontSize: 12 }}>
+                {v === 'ownership' ? 'Ownership' : v === 'adds' ? 'Adds' : 'Trades'}
+              </button>
+            ))}
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {gOwn ? `${gOwn.expert_count} experts · ${gOwn.roster_totals.all} rosters` : ''}
+              {gOwn ? ` · updated ${new Date(gOwn.generated).toLocaleDateString()}` : ''}
+            </span>
+          </div>
+
+          {dataView === 'ownership' && gOwn && (
+            <>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 8px' }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Format:</span>
+                  {FMT_FILTERS.map((f) => <button key={f} onClick={() => setFmt(f)} style={btn(fmt === f)}>{FMT_LABEL[f]}</button>)}
+                </div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pos:</span>
+                  {POSITIONS.map((p) => <button key={p} onClick={() => setPos(p)} style={btn(pos === p)}>{p === 'ALL' ? 'All' : p}</button>)}
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ownRows.length} players · {ownDenom} {FMT_LABEL[fmt]} rosters</span>
+              </div>
+              <div className="table-container" style={{ maxHeight: 600 }}>
+                <table className="sched-table" style={{ fontSize: 12 }}>
+                  <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Experts</th><th>Rosters</th><th>% of rosters</th><th>Start %</th></tr></thead>
+                  <tbody>
+                    {ownRows.slice(0, 150).map((r, i) => (
+                      <tr key={r.p.id}>
+                        <td className="rank-cell">{i + 1}</td>
+                        <td><strong><PlayerName sleeperId={r.p.id} name={pname(r.p.id)} position={ppos(r.p.id)} /></strong></td>
+                        <td><span className={`pos-badge pos-${ppos(r.p.id)}`}>{ppos(r.p.id)}</span></td>
+                        <td title={`${r.p.experts} of ${gOwn.expert_count} experts`}><b>{r.p.experts}</b> / {gOwn.expert_count}</td>
+                        <td>{r.metric}{ownDenom ? <span style={{ color: 'var(--text-muted)' }}> / {ownDenom}</span> : ''}</td>
+                        <td>{ownDenom ? `${((r.metric / ownDenom) * 100).toFixed(0)}%` : '—'}</td>
+                        <td>{r.p.rosters ? `${((r.p.starters / r.p.rosters) * 100).toFixed(0)}%` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {dataView === 'adds' && (
+            <div className="table-container" style={{ maxHeight: 600 }}>
+              <table className="sched-table" style={{ fontSize: 12 }}>
+                <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Experts adding</th><th>Adds</th><th>Last</th></tr></thead>
+                <tbody>
+                  {(gAdds?.adds ?? []).filter((a) => pos === 'ALL' || ppos(a.id) === pos).slice(0, 150).map((a, i) => (
+                    <tr key={a.id}>
+                      <td className="rank-cell">{i + 1}</td>
+                      <td><strong><PlayerName sleeperId={a.id} name={pname(a.id)} position={ppos(a.id)} /></strong></td>
+                      <td><span className={`pos-badge pos-${ppos(a.id)}`}>{ppos(a.id)}</span></td>
+                      <td><b>{a.experts}</b></td>
+                      <td>{a.count}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{a.last ? new Date(a.last).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {dataView === 'trades' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(gTrades?.trades ?? []).slice(0, 100).map((t, i) => (
+                <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t.dynasty ? 'Dynasty' : 'Redraft'}</span>
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t.sf ? 'SF' : '1QB'}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t.created ? new Date(t.created).toLocaleDateString() : ''}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <div><span style={{ color: '#22c55e', fontWeight: 700 }}>Got:</span> {[...t.received.map(pname), ...t.picks.filter((p) => p.to).map((p) => `${p.season} R${p.round}`)].join(', ') || '—'}</div>
+                    <div><span style={{ color: '#ef4444', fontWeight: 700 }}>Gave:</span> {[...t.gave.map(pname), ...t.picks.filter((p) => !p.to).map((p) => `${p.season} R${p.round}`)].join(', ') || '—'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 12, color: 'var(--text-muted)' }}>
+          No published expert data yet. Add usernames to <code>private/expert-usernames.txt</code> and run{' '}
+          <code>python3 scripts/build_expert_data.py</code> (or the regular data update) to generate anonymized
+          Ownership / Adds / Trades aggregates. Or use live mode below.
+        </div>
+      )}
+
+      <details style={{ marginBottom: 16 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
+          Live mode — analyze a list in your browser (no data update needed)
+        </summary>
 
       {/* Expert list manager */}
       <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', marginBottom: 16 }}>
@@ -266,6 +413,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
           </div>
         </>
       )}
+      </details>
     </div>
   );
 }

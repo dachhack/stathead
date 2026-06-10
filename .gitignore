@@ -62,6 +62,11 @@ public/data/*
 !public/data/fantasycalc_history_*.json
 !public/data/sleeper-players.json
 !public/data/ktc-fc-rescale.json
+# Aggregated, anonymized expert activity (no usernames) — committed/deployed.
+# Built by scripts/build_expert_data.py from the gitignored private/ list.
+!public/data/expert-ownership.json
+!public/data/expert-adds.json
+!public/data/expert-trades.json
 .claude/*
 !.claude/commands/
 !.claude/commands/**
