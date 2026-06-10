@@ -98,6 +98,8 @@ jobs:
                 && echo "  refreshed ${base}.csv.gz ($(zcat public/data/${base}.csv.gz | wc -l) rows)"
             fi
           done || true
+          # Distill offensive depth-chart #1s for the Taxi Squad Advisor.
+          node scripts/build-depth-starters.mjs ${SEASON} || true
 
       # Commit the rebuilt caches back so downstream jobs (model training,
       # coverage audit, local analysis) work off the fresh data instead of
@@ -113,6 +115,7 @@ jobs:
                   public/data/score-store/ \
                   public/data/roster_2026.csv.gz \
                   public/data/depth_charts_2026.csv.gz \
+                  public/data/depth-starters-2026.json \
                   public/data/player-crosswalk.json \
                   public/data/player-aliases.json \
                   public/data/player-promotions.json \

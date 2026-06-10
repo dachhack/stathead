@@ -89,3 +89,4 @@ pdfs/
 # Downloaded headshot images
 headshots.zip
 headshots_part*.zip
+!public/data/depth-starters-*.json

@@ -11,11 +11,15 @@ import { normName } from '../lib/nameUtils';
 //   Now PPG    — current-season base projection (redraft-projections.json,
 //                the same source the Projections tab uses). The "is he a
 //                lineup option THIS year" number.
-//   Start %    — career model's probability of reaching low-end-starter
-//                PPG (QB 16 / RB 12 / WR 12 / TE 9 — the model's lowest
-//                threshold band).
+//   Start %    — career model's probability of reaching low-end LOCKED
+//                STARTER PPG (QB 16 / RB 12 / WR 12 / TE 9 — the model's
+//                lowest threshold band). A stricter bar than streamable;
+//                treat it as the future-horizon signal.
 //   Boom/Bust  — career model tail probabilities.
 //   Yr-1 PPG   — for year-2 players, their actual rookie-season PPG.
+//   DC1        — listed #1 at his position on his NFL team's current
+//                depth chart (nflverse snapshot). Automatic Roster call,
+//                with a caveat when the projection doesn't back it up.
 //   Market     — FantasyCalc dynasty value (1QB/SF toggle), as a sanity
 //                check on what the community already believes.
 //
@@ -52,6 +56,8 @@ interface FcDynastyEntry {
 
 interface RedraftProjEntry { name: string; position: string; ppg: number }
 
+interface DepthStarter { name: string; team: string; pos: string }
+
 type Verdict = 'Roster' | 'Taxi' | 'Drop';
 
 const VERDICT_STYLE: Record<Verdict, { bg: string; fg: string; desc: string }> = {
@@ -60,9 +66,15 @@ const VERDICT_STYLE: Record<Verdict, { bg: string; fg: string; desc: string }> =
   Drop:   { bg: '#3a1a1a', fg: '#fb923c', desc: 'Probably never startable — the spot is worth more than the lottery ticket.' },
 };
 
-/** Startable-PPG threshold per position == the career model's lowest threshold band. */
+/** Model threshold band used for Start % — the career model's lowest
+ *  band ≈ low-end locked starter (stricter than streamable). */
 const START_KEY: Record<string, string> = { QB: '16', RB: '12', WR: '12', TE: '9' };
-const START_CUTOFF: Record<string, number> = { QB: 16, RB: 12, WR: 12, TE: 9 };
+/** "Streamable" PPG — the bar for confidently starting a player for a
+ *  couple of weeks: what the position's rank-N season PPG actually is
+ *  (QB32 / RB60 / WR72 / TE36). Computed from 2015–2025 weekly data
+ *  (≥6-game seasons); remarkably stable year to year. */
+const STREAM_CUTOFF: Record<string, number> = { QB: 11.5, RB: 6, WR: 7.5, TE: 5.5 };
+const STREAM_RANK: Record<string, number> = { QB: 32, RB: 60, WR: 72, TE: 36 };
 
 interface TaxiRow {
   name: string;
@@ -80,41 +92,58 @@ interface TaxiRow {
   bustProb: number;
   dynValue: number;         // FantasyCalc value under active format; 0 if unranked
   dynRank: number;          // 9999 if unranked
+  isDC1: boolean;           // listed #1 at his position on his NFL team's depth chart
   verdict: Verdict;
   why: string;
 }
 
-// The decision is a time-horizon split on startability:
+// The decision is a time-horizon split on STREAMABLE production — the
+// bar an owner needs to put a player in a lineup for a couple of weeks
+// (QB32 / RB60 / WR72 / TE36 PPG), not locked-starter numbers:
 //
-//   This season  — current-season projection (or actual rookie-year
-//                  production for year-2s) within ~2 PPG of the
-//                  startable cutoff, or within ~3.5 with strong model
-//                  conviction. → ROSTER: you want him active when the
-//                  role hits, not buried on taxi.
-//   Next season  — not startable now, but the career model gives a
-//                  live probability of reaching startable PPG. → TAXI.
-//   Never        — model ≤5% to ever reach startable, bottom-third
-//                  profile, AND no production signal anywhere (no
-//                  current projection, quiet rookie year). → DROP.
+//   DC1          — listed #1 at his position on his NFL depth chart →
+//                  immediate ROSTER pass, caveated when the projection
+//                  doesn't back the listing up.
+//   This season  — projection (or actual rookie-year production) within
+//                  ~1 PPG of streamable, or within ~2 with strong model
+//                  conviction. → ROSTER.
+//   Next season  — not streamable now, but live future-starter odds
+//                  from the career model. → TAXI.
+//   Never        — model ≤5% to ever reach starter PPG, bottom-third
+//                  profile, AND no production signal anywhere. → DROP.
 //
-// Thresholds calibrated to the live score-store distributions (2025 +
-// 2026 classes): startProb median ≈ 11 / p25 ≈ 7 / p90 ≈ 42, so ≤5 is
-// genuinely the model's "probably never" tail (~bottom 20%); current-
-// season proj median ≈ 2.3 PPG / p90 ≈ 11.
+// Margins + thresholds validated by backtest on the 2010–2022 classes
+// (full weekly-stats ground truth at the streamable bar): Roster = 68%
+// streamable that season / 80% within 4yr; Taxi pays off 39% within
+// 4yr; Drop regret 13% — and the regret names are fringe streamers
+// (one-month wonders), not stars. Of 126 true year-2 breakouts, only 6
+// were labeled Drop.
 function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; why: string } {
-  const cutoff = START_CUTOFF[r.position] ?? 12;
+  const cutoff = STREAM_CUTOFF[r.position] ?? 6;
 
-  // — Startable THIS season? —
-  const nowClose = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 2;
-  const provenYr1 = r.isYear2 && Number.isFinite(r.rookieYearPpg) && r.rookieYearPpg >= cutoff - 2;
-  const nearWithConviction = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 3.5
+  // — Projected #1 on his own NFL depth chart → automatic Roster, with
+  // a caveat when the projection doesn't agree (thin-room #1). —
+  if (r.isDC1) {
+    const projBacks = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 1;
+    return {
+      verdict: 'Roster',
+      why: projBacks
+        ? `Listed #1 ${r.position}${r.team ? ` on ${r.team}` : ''} with the projection at the streamable line (${r.nowPpg.toFixed(1)} PPG, bar ≈ ${cutoff}) — automatic roster call.`
+        : `Listed #1 ${r.position}${r.team ? ` on ${r.team}` : ''} — automatic roster call, BUT the projection (${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} PPG vs streamable ≈ ${cutoff}) doesn't back it up yet: a thin-room #1, keep him active with eyes open.`,
+    };
+  }
+
+  // — Streamable THIS season? —
+  const nowClose = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 1;
+  const provenYr1 = r.isYear2 && Number.isFinite(r.rookieYearPpg) && r.rookieYearPpg >= cutoff - 1;
+  const nearWithConviction = Number.isFinite(r.nowPpg) && r.nowPpg >= cutoff - 2
     && Number.isFinite(r.startProb) && r.startProb >= 30;
   if (nowClose || provenYr1 || nearWithConviction) {
     const why = provenYr1 && !nowClose
-      ? `Already produced ${r.rookieYearPpg.toFixed(1)} PPG as a rookie (startable ≈ ${cutoff}) — startable value is live, keep him active.`
+      ? `Already produced ${r.rookieYearPpg.toFixed(1)} PPG as a rookie (streamable ≈ ${cutoff}) — lineup-worthy stretches are live, keep him active.`
       : nowClose
-        ? `Projected ${r.nowPpg.toFixed(1)} PPG this season vs startable ≈ ${cutoff} — you want him in lineups (or at least available), not on taxi.`
-        : `Projected ${r.nowPpg.toFixed(1)} PPG with ${r.startProb.toFixed(0)}% startable odds — close enough this season that hiding him on taxi risks missing the window.`;
+        ? `Projected ${r.nowPpg.toFixed(1)} PPG this season vs streamable ≈ ${cutoff} — an owner can already start him for stretches; you want him available, not on taxi.`
+        : `Projected ${r.nowPpg.toFixed(1)} PPG with ${r.startProb.toFixed(0)}% starter odds — close enough this season that hiding him on taxi risks missing the window.`;
     return { verdict: 'Roster', why };
   }
 
@@ -124,12 +153,12 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
   // floor does that work (they haven't played yet, so the bar is the
   // same evidence we have).
   const neverOdds = Number.isFinite(r.startProb) ? r.startProb <= 5 : r.percentile <= 20;
-  const noNowSignal = !Number.isFinite(r.nowPpg) || r.nowPpg < cutoff - 5;
-  const quietYr1 = !r.isYear2 || !Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 6;
+  const noNowSignal = !Number.isFinite(r.nowPpg) || r.nowPpg < cutoff - 3;
+  const quietYr1 = !r.isYear2 || !Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 4;
   if (neverOdds && r.percentile <= 35 && noNowSignal && quietYr1) {
     return {
       verdict: 'Drop',
-      why: `${Number.isFinite(r.startProb) ? `${r.startProb.toFixed(0)}% odds of ever reaching startable PPG` : `p${r.percentile} profile`}${r.isYear2 ? ', quiet rookie year' : ''}, no current-season role — the spot is worth more than the lottery ticket.`,
+      why: `${Number.isFinite(r.startProb) ? `${r.startProb.toFixed(0)}% odds of ever reaching starter PPG` : `p${r.percentile} profile`}${r.isYear2 ? ', quiet rookie year' : ''}, no current-season role — the spot is worth more than the lottery ticket.`,
     };
   }
 
@@ -138,8 +167,8 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
   return {
     verdict: 'Taxi',
     why: prime
-      ? `${r.startProb.toFixed(0)}% odds of reaching startable PPG (${r.tierLabel}, p${r.percentile}) but only ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} projected PPG this season — prime taxi stash: next-year starter odds with no this-year value to lose.`
-      : `No starting value this season (proj ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} vs startable ${cutoff})${Number.isFinite(r.startProb) ? ` and ${r.startProb.toFixed(0)}% startable odds` : ''} — speculative stash; hold while the taxi spot is free.`,
+      ? `${r.startProb.toFixed(0)}% odds of reaching starter PPG (${r.tierLabel}, p${r.percentile}) but only ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} projected PPG this season — prime taxi stash: next-year starter odds with no this-year value to lose.`
+      : `Not streamable this season (proj ${Number.isFinite(r.nowPpg) ? r.nowPpg.toFixed(1) : '—'} vs ≈ ${cutoff})${Number.isFinite(r.startProb) ? ` and ${r.startProb.toFixed(0)}% starter odds` : ''} — speculative stash; hold while the taxi spot is free.`,
   };
 }
 
@@ -156,6 +185,7 @@ export function TaxiSquadAdvisor() {
   const [redraft, setRedraft] = useState<RedraftProjEntry[]>([]);
   const [dyn1qb, setDyn1qb] = useState<FcDynastyEntry[]>([]);
   const [dynSf, setDynSf] = useState<FcDynastyEntry[]>([]);
+  const [dc1, setDc1] = useState<DepthStarter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -177,7 +207,12 @@ export function TaxiSquadAdvisor() {
         .catch(() => []),
       fetch(`${BASE}data/fantasycalc_dynasty_1qb.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch(`${BASE}data/fantasycalc_dynasty_sf.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    ]).then(([careerData, redraftData, d1, dsf]) => {
+      // Depth-chart #1s (built by scripts/build-depth-starters.mjs from
+      // the nflverse depth chart snapshot).
+      fetch(`${BASE}data/depth-starters-${CURRENT_SEASON}.json`)
+        .then((r) => (r.ok ? r.json() : { starters: [] }))
+        .catch(() => ({ starters: [] })),
+    ]).then(([careerData, redraftData, d1, dsf, dcData]) => {
       if (cancelled) return;
       const entries = (Array.isArray(careerData) ? careerData : []) as CareerEntry[];
       if (!entries.length) {
@@ -189,6 +224,7 @@ export function TaxiSquadAdvisor() {
       setRedraft(redraftData as RedraftProjEntry[]);
       setDyn1qb((Array.isArray(d1) ? d1 : []) as FcDynastyEntry[]);
       setDynSf((Array.isArray(dsf) ? dsf : []) as FcDynastyEntry[]);
+      setDc1((dcData?.starters ?? []) as DepthStarter[]);
       setLoading(false);
     }).catch((e) => {
       if (!cancelled) {
@@ -214,17 +250,23 @@ export function TaxiSquadAdvisor() {
         });
       }
     }
+    // Depth-chart #1 lookup — keyed name::pos; carries the listing team.
+    const dc1ByName = new Map<string, string>();
+    for (const s of dc1) {
+      if (s?.name) dc1ByName.set(`${normName(s.name)}::${s.pos}`, s.team);
+    }
 
     return career
       .filter((c) => c.draftSeason === CURRENT_SEASON || c.draftSeason === CURRENT_SEASON - 1)
       .map((c) => {
         const key = `${normName(c.name)}::${c.position}`;
         const market = dynByName.get(key);
+        const dcTeam = dc1ByName.get(key);
         const isYear2 = c.draftSeason === CURRENT_SEASON - 1;
         const base: Omit<TaxiRow, 'verdict' | 'why'> = {
           name: c.name,
           position: c.position,
-          team: market?.team ?? '',
+          team: dcTeam || market?.team || '',
           classOf: c.draftSeason,
           isYear2,
           tierLabel: c.tierLabel,
@@ -237,10 +279,11 @@ export function TaxiSquadAdvisor() {
           bustProb: c.bustProb,
           dynValue: market?.value ?? 0,
           dynRank: market?.rank ?? 9999,
+          isDC1: dcTeam !== undefined,
         };
         return { ...base, ...verdictFor(base) };
       });
-  }, [career, redraft, dyn1qb, dynSf, format]);
+  }, [career, redraft, dyn1qb, dynSf, format, dc1]);
 
   const displayRows = useMemo(() => {
     let out = rows;
@@ -334,23 +377,28 @@ export function TaxiSquadAdvisor() {
 
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
         The taxi call is a question about <em>when</em> a player will be
-        startable. <strong>Roster</strong> — probably startable{' '}
-        <em>this</em> season (or close enough that you need him
-        available): too valuable to hide on taxi.{' '}
-        <strong>Taxi</strong> — probably no starting value this year but
-        a live chance to be a starter <em>next</em> year: exactly what
-        the taxi spot is for. <strong>Drop</strong> — probably{' '}
-        <em>never</em> startable: the spot beats the lottery ticket.
-        Signals: <strong>Now PPG</strong> = current-season base
-        projection (same source as the Projections tab);{' '}
+        startable — where "startable" means <em>streamable</em>: enough
+        PPG that an owner can confidently start him for a couple of
+        weeks, i.e. roughly the QB{STREAM_RANK.QB} / RB{STREAM_RANK.RB} /
+        WR{STREAM_RANK.WR} / TE{STREAM_RANK.TE} line
+        (≈ {STREAM_CUTOFF.QB} / {STREAM_CUTOFF.RB} / {STREAM_CUTOFF.WR} / {STREAM_CUTOFF.TE} PPR
+        PPG over the last decade). <strong>Roster</strong> — probably
+        streamable <em>this</em> season, or listed{' '}
+        <span style={{ color: '#facc15', fontWeight: 700 }}>DC1</span>{' '}
+        (#1 at his position on his NFL depth chart — an automatic pass,
+        caveated when the projection doesn't back it up).{' '}
+        <strong>Taxi</strong> — no streaming value this year but a live
+        chance to be a starter <em>next</em> year: exactly what the spot
+        is for. <strong>Drop</strong> — probably <em>never</em>{' '}
+        startable. Signals: <strong>Now PPG</strong> = current-season
+        base projection (same source as the Projections tab);{' '}
         <strong>Start %</strong> = career model's odds of ever reaching
-        low-end-starter PPG
-        (QB {START_CUTOFF.QB} / RB {START_CUTOFF.RB} / WR {START_CUTOFF.WR} / TE {START_CUTOFF.TE})
-        — the future-horizon signal; <strong>Yr-1 PPG</strong> = actual
-        rookie-season production (year-2 players);{' '}
-        <strong>Value</strong> = FantasyCalc dynasty market. Hover any
-        verdict for the player-specific reasoning. Names link to the
-        full player page.
+        low-end <em>locked-starter</em> PPG (QB 16 / RB 12 / WR 12 /
+        TE 9 — a stricter bar; the future-horizon signal);{' '}
+        <strong>Yr-1 PPG</strong> = actual rookie-season production
+        (year-2 players); <strong>Value</strong> = FantasyCalc dynasty
+        market. Hover any verdict for the player-specific reasoning.
+        Names link to the full player page.
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -452,6 +500,17 @@ export function TaxiSquadAdvisor() {
                 <td style={{ ...td, fontWeight: 600 }}>
                   <PlayerName name={r.name} position={r.position} />
                   {r.team && <span style={{ fontSize: 9, color: 'var(--text-muted)', marginLeft: 5 }}>{r.team}</span>}
+                  {r.isDC1 && (
+                    <span
+                      style={{
+                        fontSize: 8, fontWeight: 800, marginLeft: 5, padding: '1px 4px',
+                        borderRadius: 6, background: '#3a3000', color: '#facc15', verticalAlign: 'middle',
+                      }}
+                      title={`Listed #1 ${r.position} on ${r.team || 'his team'}'s current depth chart (nflverse snapshot)`}
+                    >
+                      DC1
+                    </span>
+                  )}
                 </td>
                 <td style={{ ...td, textAlign: 'center' }}>
                   <span className={`pos-badge pos-${r.position}`} style={{ fontSize: 10 }}>{r.position}</span>
@@ -523,7 +582,14 @@ export function TaxiSquadAdvisor() {
         current-season projection only. Drop is deliberately strict
         (model's bottom tail AND weak profile AND zero production
         signal) — a Taxi verdict on a marginal profile just means the
-        stash is free, not that he's untouchable.
+        stash is free, not that he's untouchable.{' '}
+        <strong>Backtested on the 2010–2022 classes</strong> (verdicts
+        replayed at the year-2 decision against full weekly-stats
+        outcomes at the streamable bar): Roster hit streamable that
+        season 68% of the time (80% within 4 years), Taxi stashes paid
+        off 39% within 4 years, and only 13% of Drops ever had a
+        streamable season — mostly one-month wonders, and just 6 of 126
+        true year-2 breakouts were mislabeled Drop.
       </p>
     </div>
   );
