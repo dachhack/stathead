@@ -82,8 +82,6 @@ export function BuzzTracker() {
     );
   }
 
-  const maxVolume = Math.max(1, ...rows.map((r) => r.volume));
-
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
@@ -152,7 +150,6 @@ export function BuzzTracker() {
             key={p.player_key ?? `${p.name}-${p.position}`}
             rank={i + 1}
             player={p}
-            maxVolume={maxVolume}
             open={expanded === (p.player_key ?? p.name)}
             onToggle={() => setExpanded(expanded === (p.player_key ?? p.name) ? null : (p.player_key ?? p.name))}
           />
@@ -162,8 +159,8 @@ export function BuzzTracker() {
   );
 }
 
-function BuzzRow({ rank, player, maxVolume, open, onToggle }: {
-  rank: number; player: BuzzPlayer; maxVolume: number; open: boolean; onToggle: () => void;
+function BuzzRow({ rank, player, open, onToggle }: {
+  rank: number; player: BuzzPlayer; open: boolean; onToggle: () => void;
 }) {
   const sc = sentimentColor(player.sentimentLabel);
   const trendUp = player.trend > 1.15;
