@@ -417,6 +417,52 @@ export function DraftOptimizerTable() {
         };
       });
 
+      // The score-store pool is vets-only (no current rookie class).
+      // Append synthetic rows for market-priced players it misses —
+      // mostly rookies (FFC ADP or FantasyCalc redraft rank as the pick
+      // proxy) — so the Edge Board, Round Plan, Tier Map, and Targets &
+      // Fades see the whole draftable pool. These rows have no CI
+      // bounds (Beat % / Upside / Downside show "—"); PickEdge runs on
+      // the base projection vs the position's ADP curve.
+      const inPool = new Set(adpData.map((a) => `${normName(a.name)}::${a.position}`));
+      const rookieNames = new Set<string>();
+      for (const c of careerData ?? []) {
+        if (c.draftSeason === CURRENT_SEASON) rookieNames.add(normName(c.name));
+      }
+      const fcByKey = new Map<string, FcRedraftEntry>();
+      for (const v of fcData ?? []) {
+        if (v?.player?.name) fcByKey.set(`${normName(v.player.name)}::${v.player.position}`, v);
+      }
+      const ffcByKey = new Map<string, FfcAdpEntry>();
+      for (const f of ffcData ?? []) {
+        if (f?.name) ffcByKey.set(`${normName(f.name)}::${f.position}`, f);
+      }
+      for (const p of redraftData ?? []) {
+        const key = `${normName(p.name)}::${p.position}`;
+        if (inPool.has(key) || !['QB', 'RB', 'WR', 'TE'].includes(p.position)) continue;
+        const ppg = Number(p.ppg) || 0;
+        if (ppg <= 0) continue;
+        const ffc = ffcByKey.get(key);
+        const fc = fcByKey.get(key);
+        const adp = ffc?.adp ?? fc?.overallRank;
+        if (adp === undefined || !Number.isFinite(adp)) continue; // no market price — not draft-relevant
+        inPool.add(key);
+        built.push({
+          name: p.name,
+          position: p.position,
+          team: ffc?.team || fc?.player?.maybeTeam || '',
+          adp,
+          stdev: ffc?.stdev ?? 0,
+          basePpg: basePpgByName.get(normName(p.name)) ?? 0,
+          baseProjPpg: ppg,
+          ciLower: NaN,
+          ciUpper: NaN,
+          ciCenter: NaN,
+          rawTargetShare: NaN,
+          isRookie: rookieNames.has(normName(p.name)),
+        });
+      }
+
       setRawRows(built);
       setCurves(adpCurves);
       setLoading(false);
@@ -736,7 +782,10 @@ export function DraftOptimizerTable() {
         <strong>Verdict</strong> is cohort-relative — per-(position × ADP
         band) z-score — so Strong Target reads as "best in your draft
         slot range." Beat % stands alone as the absolute "will they beat
-        curve baseline" view. Toggle{' '}
+        curve baseline" view. Rookies (and other players outside the
+        model pool) are included with projection-only rows — Pick Edge
+        runs on Proj vs the ADP curve; Beat % / Upside / Downside show
+        “—” since the model has no CI for them. Toggle{' '}
         <em>Available at my picks</em> to filter to players with ≥15%
         survival probability across your snake-draft picks.
         {scenarios.length > 0 && (
