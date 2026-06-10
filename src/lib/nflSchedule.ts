@@ -293,3 +293,69 @@ export function computeSOS(byTeam: ScheduleByTeam, grades?: UnitGradesByTeam | n
   }
   return out;
 }
+
+// ── Defensive sub-units (from the Consensus unit grades) ──
+// Groups the per-position grades (DI/ED/LB/CB/S) into the matchup-relevant
+// defensive units so SOS can be broken down by what a player actually faces.
+export const DEF_UNIT_GROUPS = [
+  { key: 'dline', label: 'D-Line', units: ['DI', 'ED'], hint: 'Interior + edge — run front & pass rush' },
+  { key: 'lb', label: 'LB', units: ['LB'], hint: 'Linebackers' },
+  { key: 'secondary', label: 'Secondary', units: ['CB', 'S'], hint: 'Corners + safeties — pass coverage' },
+] as const;
+export type DefUnitKey = typeof DEF_UNIT_GROUPS[number]['key'];
+
+/** Average Consensus grade for a team's defensive sub-unit (higher = stronger);
+ *  null when grades are missing for the team. */
+export function unitGroupGrade(team: string, units: readonly string[], grades?: UnitGradesByTeam | null): number | null {
+  const u = grades?.[team]?.units;
+  if (!u) return null;
+  const vals = units.map((k) => u[k]).filter((v): v is number => typeof v === 'number');
+  return vals.length ? avg(vals) : null;
+}
+
+/** 0–100 league-normalized strength index for a defensive sub-unit (higher =
+ *  tougher matchup). Returns null per-team when grades are unavailable. */
+export function makeUnitStrengthIndex(
+  grades: UnitGradesByTeam | null | undefined,
+  units: readonly string[],
+): (team: string) => number | null {
+  if (!grades) return () => null;
+  const codes = Object.keys(grades);
+  const vals = codes.map((c) => unitGroupGrade(c, units, grades) ?? 0);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const out: Record<string, number> = {};
+  codes.forEach((c, i) => { out[c] = max > min ? Math.round(((vals[i] - min) / (max - min)) * 100) : 50; });
+  return (team: string) => (grades[team] ? out[team] ?? 0 : null);
+}
+
+export interface UnitSOS { idx: number; rank: number; }
+
+/** Season SOS broken down by defensive sub-unit: each team's average opponent
+ *  sub-unit grade + a league rank (1 = hardest). Empty when grades are absent. */
+export function computeUnitSOS(
+  byTeam: ScheduleByTeam,
+  grades: UnitGradesByTeam | null | undefined,
+): Record<string, Record<DefUnitKey, UnitSOS>> {
+  const out: Record<string, Record<DefUnitKey, UnitSOS>> = {};
+  if (!grades) return out;
+  const raw: Record<string, Record<string, number>> = {};
+  for (const [team, sched] of Object.entries(byTeam)) {
+    raw[team] = {};
+    for (const u of DEF_UNIT_GROUPS) {
+      const vals = sched.reg
+        .map((g) => unitGroupGrade(g.opp, u.units, grades))
+        .filter((v): v is number => v != null);
+      raw[team][u.key] = avg(vals);
+    }
+  }
+  for (const u of DEF_UNIT_GROUPS) {
+    const order = Object.keys(raw).sort((a, b) => raw[b][u.key] - raw[a][u.key]); // desc → 1 hardest
+    const rank: Record<string, number> = {};
+    order.forEach((t, i) => { rank[t] = i + 1; });
+    for (const t of Object.keys(raw)) {
+      if (!out[t]) out[t] = {} as Record<DefUnitKey, UnitSOS>;
+      out[t][u.key] = { idx: raw[t][u.key], rank: rank[t] };
+    }
+  }
+  return out;
+}

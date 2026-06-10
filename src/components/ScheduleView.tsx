@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchNflSchedule, computeSOS, makeStrengthIndex, matchupFor, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
+import { fetchNflSchedule, computeSOS, makeStrengthIndex, makeUnitStrengthIndex, matchupFor, computeUnitSOS, DEF_UNIT_GROUPS, SCHEDULE_SEASON, type ScheduleByTeam, type TeamSOS, type SchedGame, type UnitGradesByTeam, type MatchupsByKey, type TeamProjByTeam, type DefUnitKey, type UnitSOS } from '../lib/nflSchedule';
 import { teamLogoUrl } from '../lib/teamLogo';
 
 const NFL_DIVISIONS: [string, string[]][] = [
@@ -31,6 +31,14 @@ function rankColor(rank: number): string {
   return '#22c55e';
 }
 
+// 0–100 strength index: higher = tougher matchup (red), lower = easier (green).
+function idxColor(idx: number): string {
+  if (idx >= 67) return '#ef4444';
+  if (idx >= 50) return '#f59e0b';
+  if (idx >= 33) return '#a3e635';
+  return '#22c55e';
+}
+
 function TeamLogo({ team, size = 22 }: { team: string; size?: number }) {
   return <img src={teamLogoUrl(team)} alt="" width={size} height={size} style={{ objectFit: 'contain', verticalAlign: 'middle' }} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />;
 }
@@ -45,7 +53,13 @@ function SosCard({ label, rank, idx }: { label: string; rank: number; idx: numbe
   );
 }
 
-function GameRow({ g, strengthIdx, proj }: { g: SchedGame; strengthIdx: (team: string) => number; proj: { teamPts: number; oppPts: number; winProb: number } | null }) {
+function GameRow({ g, strengthIdx, proj, unitIdx }: {
+  g: SchedGame;
+  strengthIdx: (team: string) => number;
+  proj: { teamPts: number; oppPts: number; winProb: number } | null;
+  unitIdx?: { key: string; fn: (team: string) => number | null }[];
+}) {
+  const isReg = g.seasonType === 2;
   return (
     <tr>
       <td className="sched-wk">{g.seasonType === 1 ? `P${g.week}` : g.week}</td>
@@ -66,7 +80,15 @@ function GameRow({ g, strengthIdx, proj }: { g: SchedGame; strengthIdx: (team: s
           </>
         ) : ''}
       </td>
-      <td className="sched-strength" style={{ color: rankColor(0) }}>{g.seasonType === 2 ? strengthIdx(g.opp) : ''}</td>
+      <td className="sched-strength" style={{ color: rankColor(0) }}>{isReg ? strengthIdx(g.opp) : ''}</td>
+      {unitIdx?.map(({ key, fn }) => {
+        const v = isReg ? fn(g.opp) : null;
+        return (
+          <td key={key} style={{ textAlign: 'center', color: v == null ? 'var(--text-muted)' : idxColor(v), fontWeight: 600 }}>
+            {v == null ? '' : v}
+          </td>
+        );
+      })}
     </tr>
   );
 }
@@ -97,6 +119,13 @@ export function ScheduleView() {
 
   const teamsPresent = useMemo(() => new Set(byTeam ? Object.keys(byTeam) : []), [byTeam]);
   const strengthIdx = useMemo(() => makeStrengthIndex(grades), [grades]);
+  // Per-game opponent sub-unit strength index (D-Line / LB / Secondary).
+  const unitIdx = useMemo(
+    () => DEF_UNIT_GROUPS.map((u) => ({ key: u.key, fn: makeUnitStrengthIndex(grades, u.units) })),
+    [grades],
+  );
+  // Season SOS broken down by defensive sub-unit (avg opp grade + rank).
+  const unitSos = useMemo(() => (byTeam ? computeUnitSOS(byTeam, grades) : {}), [byTeam, grades]);
   const cycle = (dir: number) => {
     const i = ORDERED.indexOf(team);
     setTeam(ORDERED[(i + dir + ORDERED.length) % ORDERED.length]);
@@ -142,6 +171,15 @@ export function ScheduleView() {
             </div>
           )}
 
+          {grades && unitSos[team] && (
+            <div className="sched-sos-row">
+              {DEF_UNIT_GROUPS.map((u) => {
+                const us: UnitSOS | undefined = unitSos[team][u.key as DefUnitKey];
+                return us ? <SosCard key={u.key} label={`Opp ${u.label}`} rank={us.rank} idx={us.idx} /> : null;
+              })}
+            </div>
+          )}
+
           {teamProj?.[team] && (() => {
             const tp = teamProj[team];
             return (
@@ -157,11 +195,11 @@ export function ScheduleView() {
           <div className="sched-section-title">Regular season</div>
           <div className="table-container" style={{ maxHeight: 'none' }}>
             <table className="sched-table">
-              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title="Consensus projected score (team–opp) and win probability">Proj</th><th title={`Opponent ${grades ? 'defense' : 'offensive'} strength index (0–100, higher = tougher)`}>Opp</th></tr></thead>
+              <thead><tr><th>Wk</th><th>Opponent</th><th>Date / Time</th><th>Location</th><th>Network</th><th title="Consensus projected score (team–opp) and win probability">Proj</th><th title={`Opponent ${grades ? 'defense' : 'offensive'} strength index (0–100, higher = tougher)`}>Opp</th>{grades && DEF_UNIT_GROUPS.map((u) => <th key={u.key} title={`Opponent ${u.label} strength index (0–100, higher = tougher) — ${u.hint}`}>{u.label}</th>)}</tr></thead>
               <tbody>
                 {sched && sched.reg.length > 0
-                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} strengthIdx={strengthIdx} proj={matchupFor(matchups, g.week, team, g.opp, g.home)} />)
-                  : <tr><td colSpan={7} className="sched-empty">No regular-season games found.</td></tr>}
+                  ? sched.reg.map((g, i) => <GameRow key={`r${i}`} g={g} strengthIdx={strengthIdx} proj={matchupFor(matchups, g.week, team, g.opp, g.home)} unitIdx={grades ? unitIdx : undefined} />)
+                  : <tr><td colSpan={grades ? 10 : 7} className="sched-empty">No regular-season games found.</td></tr>}
               </tbody>
             </table>
           </div>
