@@ -5,6 +5,7 @@ import {
 } from '../lib/edgeBoardRow';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
+import { PlayerName } from './PlayerName';
 
 // Round-by-Round Plan section. For each of the user's picks across the
 // first 12 rounds, show the pick number, recommended position(s), 3
@@ -204,7 +205,7 @@ function PlayerLine({ row }: { row: EdgeBoardRow }) {
     <>
       <span className={`pos-badge pos-${row.position}`} style={{ fontSize: 9 }}>{row.position}</span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>
-        {row.name}
+        <PlayerName name={row.name} position={row.position} />
         {row.isRookie && <span style={{ fontSize: 9, color: '#6366f1', marginLeft: 4 }}>R</span>}
       </span>
       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>ADP {row.adp.toFixed(1)}</span>
