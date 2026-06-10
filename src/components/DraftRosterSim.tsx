@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
 import { PlayerAvatar, TeamLogo } from './PlayerAvatar';
+import { DocsLink } from './DocsLink';
 import { kitKey } from '../lib/draftKit';
 import type { DraftPrepSettings, Position } from '../lib/draftPrepSettings';
 import { startersPerTeam } from '../lib/draftPrepSettings';
@@ -79,11 +80,14 @@ function lineupPoints(roster: ValuedPlayer[], settings: DraftPrepSettings): numb
   return pts * SEASON_GAMES;
 }
 
+type SimStrategy = 'value' | 'chalk' | 'board';
+
 function simulate(
   players: ValuedPlayer[],
   settings: DraftPrepSettings,
   rounds: number,
-  strategy: 'value' | 'chalk',
+  strategy: SimStrategy,
+  myRankByKey?: Map<string, number>,
 ): SimResult {
   const taken = new Set<string>();
   const slots = openSlots(settings);
@@ -99,12 +103,26 @@ function simulate(
 
     const starterOpen = (pos: Position) => starterSlotOpen(slots, pos);
 
-    const score = (p: ValuedPlayer): number => strategy === 'chalk'
-      // Chalk drafts strictly by market price (lowest ADP first), with a
-      // soft preference for filling starters before stacking a position
-      // five deep — mirrors a default autodraft queue.
-      ? -(p.adp + (starterOpen(p.position) ? 0 : settings.numTeams * 1.5))
-      : p.vbd * (starterOpen(p.position) ? 1 : BENCH_WEIGHT);
+    const score = (p: ValuedPlayer): number => {
+      if (strategy === 'chalk') {
+        // Chalk drafts strictly by market price (lowest ADP first), with a
+        // soft preference for filling starters before stacking a position
+        // five deep — mirrors a default autodraft queue.
+        return -(p.adp + (starterOpen(p.position) ? 0 : settings.numTeams * 1.5));
+      }
+      if (strategy === 'board') {
+        // Draft by MY board: highest-ranked available player on the
+        // user's saved order, with the same soft starters-first nudge
+        // (≈1.5 rounds of rank) chalk uses. Players the board doesn't
+        // rank come after every ranked player, ordered by VBD.
+        const rank = myRankByKey?.get(kitKey(p.name, p.position));
+        if (rank !== undefined) {
+          return -(rank + (starterOpen(p.position) ? 0 : settings.numTeams * 1.5));
+        }
+        return -(100_000 - Math.max(p.vbd, -999));
+      }
+      return p.vbd * (starterOpen(p.position) ? 1 : BENCH_WEIGHT);
+    };
 
     const ranked = [...candidates].sort((a, b) => score(b.p) - score(a.p));
     const chosen = ranked[0];
@@ -124,20 +142,25 @@ function simulate(
 
 export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
   const [open, setOpen] = useState(true);
+  const [strategy, setStrategy] = useState<'value' | 'board'>('value');
 
   const rounds = Math.min(MAX_ROUNDS, startersPerTeam(settings) + BENCH_SPOTS);
+  const hasBoard = !!myRankByKey && myRankByKey.size > 0;
 
-  const { mine, chalk } = useMemo(() => {
-    if (pool.length === 0) return { mine: null, chalk: null };
+  const { mine, chalk, board } = useMemo(() => {
+    if (pool.length === 0) return { mine: null, chalk: null, board: null };
     const { players } = valuePool(pool, settings, 'BEER');
     return {
       mine: simulate(players, settings, rounds, 'value'),
       chalk: simulate(players, settings, rounds, 'chalk'),
+      board: myRankByKey?.size ? simulate(players, settings, rounds, 'board', myRankByKey) : null,
     };
-  }, [pool, settings, rounds]);
+  }, [pool, settings, rounds, myRankByKey]);
 
   if (!mine || !chalk) return null;
+  const shown = strategy === 'board' && board ? board : mine;
   const edge = mine.lineupPts - chalk.lineupPts;
+  const boardDelta = board ? board.lineupPts - mine.lineupPts : NaN;
 
   return (
     <section style={{ marginTop: 32 }}>
@@ -146,6 +169,23 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           From pick {settings.pickSlot} of {settings.numTeams} · {rounds} rounds · BEER baseline
         </span>
+        <DocsLink section="draft-kit" title="Sim methodology + validation — Model Docs" />
+        {hasBoard && (
+          <span style={{ display: 'flex', gap: 4 }}>
+            {(['value', 'board'] as const).map((s) => (
+              <button
+                key={s}
+                className={`pos-filter ${strategy === s ? 'active' : ''}`}
+                onClick={() => setStrategy(s)}
+                title={s === 'value'
+                  ? 'Greedy weighted-VBD picks (the value-optimal roster)'
+                  : 'Draft strictly by your saved board order (starters-first nudge; unranked players fall back to VBD)'}
+              >
+                {s === 'value' ? 'Optimal (VBD)' : 'My board'}
+              </button>
+            ))}
+          </span>
+        )}
         <button
           onClick={() => setOpen((v) => !v)}
           style={{
@@ -164,6 +204,13 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
         borderRadius: 8, padding: '10px 14px', alignItems: 'baseline',
       }}>
         <Stat label="Optimal lineup" value={`${Math.round(mine.lineupPts)} pts`} />
+        {board && (
+          <Stat
+            label="My-board lineup"
+            value={`${Math.round(board.lineupPts)} pts (${boardDelta >= 0 ? '+' : ''}${Math.round(boardDelta)} vs optimal)`}
+            color={boardDelta >= -10 ? '#22c55e' : boardDelta >= -40 ? '#facc15' : '#ef4444'}
+          />
+        )}
         <Stat label="ADP-chalk lineup" value={`${Math.round(chalk.lineupPts)} pts`} muted />
         <Stat
           label="Your edge vs the room"
@@ -171,16 +218,16 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
           color={edge > 0 ? '#22c55e' : '#ef4444'}
         />
         <span style={{ fontSize: 10, color: 'var(--text-muted)', flexBasis: '100%' }}>
-          Both rosters drafted from your seat under identical availability
+          All rosters drafted from your seat under identical availability
           (≥{Math.round(SURVIVAL_FLOOR * 100)}% survival at each pick). Optimal picks by weighted
-          VBD with roster awareness; chalk picks best available by market ADP. The gap is what
-          value drafting alone is worth from your slot.
+          VBD with roster awareness; chalk picks best available by market ADP
+          {board ? '; My board drafts strictly in your saved order (starters first, unranked → VBD). The "vs optimal" delta is what your rankings cost or gain in projected lineup points' : ''}.
         </span>
       </div>
 
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 10 }}>
-          {mine.picks.map((pk) => <PickCard key={pk.round} pick={pk} myRankByKey={myRankByKey} />)}
+          {shown.picks.map((pk) => <PickCard key={pk.round} pick={pk} myRankByKey={myRankByKey} />)}
         </div>
       )}
     </section>

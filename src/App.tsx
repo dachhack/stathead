@@ -134,6 +134,17 @@ function App() {
     return () => window.removeEventListener('hashchange', handler);
   }, []);
 
+  // Cross-tab navigation events (e.g. DocsLink deep into a section) —
+  // lets nested components switch tabs without prop-drilling onNavigate.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail as Tab | undefined;
+      if (tab) { setTab(tab); setExtraData([]); }
+    };
+    window.addEventListener('stathead:navigate', handler);
+    return () => window.removeEventListener('stathead:navigate', handler);
+  }, []);
+
   // Switching tabs closes the open player card (it renders in place of the tab
   // content). Skip the initial mount so deep links like #/player/... still load.
   const tabFirstRender = useRef(true);

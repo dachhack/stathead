@@ -5,6 +5,7 @@ import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scena
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
+import { DocsLink } from './DocsLink';
 
 // ── Types ──
 
@@ -571,6 +572,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>My Rankings</h1>
+        <DocsLink section="projection" title="Projection model validation — Model Docs" />
         {hasScenario && (
           <span style={{
             fontSize: 11, background: '#6366f122', color: '#6366f1',

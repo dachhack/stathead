@@ -12,6 +12,7 @@ import type { SleeperDraftPick, SleeperDraftSummary } from '../lib/sleeper';
 import {
   fetchDraft, fetchDraftPicks, fetchSleeperUser, fetchUserDrafts, parseDraftIdInput,
 } from '../lib/sleeper';
+import { DocsLink } from './DocsLink';
 
 // Live Draft Assistant — guidance while a draft is actually running.
 //
@@ -278,7 +279,7 @@ export function DraftLiveAssistant({ pool, settings, onSettingsChange, myRankByK
         background: 'var(--bg-secondary)', border: '1px solid var(--border)',
         borderRadius: 8, padding: '10px 14px', marginBottom: 12,
       }}>
-        <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>Connect a draft</div>
+        <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6, display: 'flex', gap: 8, alignItems: 'center' }}>Connect a draft <DocsLink section="draft-kit" title="Best-available + survival methodology — Model Docs" /></div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             style={{ ...pill, width: 160 }}

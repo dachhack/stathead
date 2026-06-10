@@ -7,6 +7,7 @@ import type { EdgeBoardRow } from '../lib/edgeBoardRow';
 import { VERDICT_STYLE, fmtEdge, fmtPct } from '../lib/edgeBoardRow';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 
 // Tier Map section. Per-position scatter — X=ADP, Y=Pred PPG, color =
 // Verdict — with horizontal cliff lines at the tier boundaries within
@@ -65,6 +66,7 @@ export function DraftTierMap({ rows, settings }: Props) {
     <section style={{ marginTop: 32 }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Tier Map</h2>
+        <DocsLink section="projection" title="PPG model validation — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           Predicted PPG vs ADP, per position. Cliff lines at tier
           boundaries (Top 5 / Next 7 / Next 12 / rest).

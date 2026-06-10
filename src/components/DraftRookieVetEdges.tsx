@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { PlayerName } from './PlayerName';
 import { MethodNote } from './MethodNote';
+import { DocsLink } from './DocsLink';
 import { normName } from '../lib/nameUtils';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
@@ -109,6 +110,7 @@ export function DraftRookieVetEdges({ pool, settings, career, currentSeason }: P
     <section style={{ marginTop: 32 }}>
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Rookie &amp; Veteran Edges</h2>
+        <DocsLink section="rookie" title="Rookie career model validation — Model Docs" />
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           Where the room's priors break · Δ = ADP vs value rank, in rounds
         </span>
