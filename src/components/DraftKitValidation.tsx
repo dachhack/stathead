@@ -176,7 +176,13 @@ export function DraftKitValidation() {
           samples are thinnest (QB ever −.05, TE s2 −.04) — cross-position transfer beats
           position-specific fits at these sizes, and deeper pooled trees (which could learn
           position interactions internally) lose monotonically too: depth 3 is the optimum at
-          every head.
+          every head. Per-position verdict <em>thresholds</em> lose as well: the pooled
+          probabilities are already calibrated within each position (predicted vs realized
+          within 2 points for every position × head), so a global cut on calibrated probability
+          is effectively position-aware; thresholds tuned per position on the 2010–16 classes
+          underperformed the global pair on every metric when frozen and tested on 2017–22
+          (Roster 81% vs 83%, Taxi 15→18 vs 18→20, drop regret 13% vs 8%) — small per-position
+          event counts make position-specific operating points unestimable.
         </p>
       </div>
 
