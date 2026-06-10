@@ -19,6 +19,10 @@ Output: public/data/expert-ownership.json
         public/data/expert-trades.json
 
 Usage:  python3 scripts/build_expert_data.py [--season 2026] [--no-transactions]
+
+Optional: to make usernames unlockable on the DEPLOYED Social Graph, run
+`node scripts/encrypt-expert-names.mjs <passphrase>` afterwards and commit the
+resulting expert-names.enc.json (passphrase-encrypted; plaintext still never ships).
 """
 from __future__ import annotations
 

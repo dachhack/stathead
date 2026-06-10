@@ -9,6 +9,10 @@ import { PlayerName } from './PlayerName';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { dynastyPickValue } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
+import {
+  fetchEncryptedNames, decryptExpertNames, loadCachedUnlockedNames, cacheUnlockedNames,
+  type EncryptedNames,
+} from '../lib/expertNames';
 
 const SLEEPER = 'https://api.sleeper.app/v1';
 
@@ -100,7 +104,8 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const [dataView, setDataView] = useState<'ownership' | 'adds' | 'trades' | 'rank' | 'graph'>('ownership');
   const [fmt, setFmt] = useState<FmtFilter>('all');
   const [graph, setGraph] = useState<GenGraph | null>(null);
-  const [names, setNames] = useState<Record<string, string> | null>(null); // local-only (gitignored)
+  const [names, setNames] = useState<Record<string, string> | null>(null); // local dev file, or unlocked
+  const [encNames, setEncNames] = useState<EncryptedNames | null>(null); // deployed encrypted blob
   const [ktcByName, setKtcByName] = useState<Map<string, KTCPlayer>>(new Map());
   const [graphFmt, setGraphFmt] = useState<'all' | 'dynasty' | 'redraft'>('all');
   // Compare-a-username state
@@ -118,7 +123,10 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     load<GenAdds>('expert-adds.json', setGAdds);
     load<GenTrades>('expert-trades.json', setGTrades);
     load<GenGraph>('expert-graph.json', setGraph);
-    load<{ names: Record<string, string> }>('expert-names.json', (v) => setNames(v?.names ?? null));
+    // Plaintext name map exists only in local dev; deployed sites fall back to
+    // a previously unlocked copy (sessionStorage) or the encrypted blob.
+    load<{ names: Record<string, string> }>('expert-names.json', (v) => setNames(v?.names ?? loadCachedUnlockedNames()));
+    fetchEncryptedNames().then(setEncNames).catch(() => {});
     fetchKTCRankings('superflex').then((ks) => {
       const m = new Map<string, KTCPlayer>();
       for (const k of ks) m.set(normalizeForMatch(k.playerName), k);
@@ -127,6 +135,14 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   }, []);
   const hasPipeline = !!(gOwn?.players?.length || gAdds?.adds?.length || gTrades?.trades?.length);
   const expertLabel = (i: number) => names?.[String(i)] ?? `Expert #${i + 1}`;
+  const unlockNames = useCallback(async (passphrase: string): Promise<boolean> => {
+    if (!encNames) return false;
+    const m = await decryptExpertNames(encNames, passphrase);
+    if (!m) return false;
+    setNames(m);
+    cacheUnlockedNames(m);
+    return true;
+  }, [encNames]);
 
   // ── Trade grading (client-side, KTC dynasty values) ──
   const valuePlayer = useCallback((id: string, sf: boolean): number => {
@@ -479,7 +495,10 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
           )}
 
           {dataView === 'graph' && graph && (
-            <SocialGraph graph={graph} fmt={graphFmt} setFmt={setGraphFmt} label={expertLabel} hasNames={!!names} />
+            <SocialGraph
+              graph={graph} fmt={graphFmt} setFmt={setGraphFmt} label={expertLabel} hasNames={!!names}
+              onUnlock={encNames ? unlockNames : undefined}
+            />
           )}
         </div>
       ) : (
@@ -612,15 +631,47 @@ const gbtn = (active: boolean) => ({
   color: active ? '#fff' : 'var(--text-muted)',
 });
 
+// Passphrase field for the deployed encrypted name map. Wrong passphrase =
+// failed GCM auth, surfaced inline; success flips the parent's `names` state.
+function UnlockNames({ onUnlock }: { onUnlock: (passphrase: string) => Promise<boolean> }) {
+  const [pass, setPass] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const submit = async () => {
+    if (!pass || busy) return;
+    setBusy(true);
+    setFailed(!(await onUnlock(pass)));
+    setBusy(false);
+  };
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', marginLeft: 8 }}>
+      <input
+        type="password"
+        value={pass}
+        placeholder="passphrase"
+        autoComplete="off"
+        onChange={(e) => { setPass(e.target.value); setFailed(false); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+        style={{ fontSize: 11, padding: '2px 6px', width: 110, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6 }}
+      />
+      <button onClick={() => void submit()} disabled={busy || !pass} style={gbtn(false)}>
+        {busy ? 'Unlocking…' : 'Unlock names'}
+      </button>
+      {failed && <span style={{ fontSize: 11, color: '#ef4444' }}>wrong passphrase</span>}
+    </span>
+  );
+}
+
 // Circular-layout social graph: nodes = experts (size ∝ # leagues), edges =
-// shared leagues. Anonymized indices; names render only when the local-only
-// name map is present.
-function SocialGraph({ graph, fmt, setFmt, label, hasNames }: {
+// shared leagues. Anonymized indices; names render when the local-only name
+// map is present (dev) or after unlocking the deployed encrypted map.
+function SocialGraph({ graph, fmt, setFmt, label, hasNames, onUnlock }: {
   graph: GenGraph;
   fmt: 'all' | 'dynasty' | 'redraft';
   setFmt: (f: 'all' | 'dynasty' | 'redraft') => void;
   label: (i: number) => string;
   hasNames: boolean;
+  onUnlock?: (passphrase: string) => Promise<boolean>;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 760, H = 600, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 70;
@@ -644,8 +695,9 @@ function SocialGraph({ graph, fmt, setFmt, label, hasNames }: {
         ))}
         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
           {edges.length} shared-league links among {nodes.length} experts
-          {hasNames ? '' : ' · anonymized (names show only in local dev)'}
+          {hasNames ? '' : ' · anonymized'}
         </span>
+        {!hasNames && onUnlock && <UnlockNames onUnlock={onUnlock} />}
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
         {edges.map((e, i) => {
