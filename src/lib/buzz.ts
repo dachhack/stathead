@@ -17,6 +17,7 @@ export interface BuzzItem {
   link?: string;
   score: number;            // per-item sentiment in [-1, 1]
   method: SentimentMethod;
+  rationale?: string;       // short LLM-written reason (method === 'llm' only)
 }
 
 export interface BuzzPlayer {
@@ -42,6 +43,12 @@ export interface BuzzSnapshot {
   windowDays: number;
   sources: string[];
   players: BuzzPlayer[];
+  /** 'lexicon' | 'lexicon+llm' — how sentiment was scored. */
+  method?: string;
+  /** Model used for the LLM pass, when method includes llm. */
+  llmModel?: string;
+  /** How many top players were LLM-scored. */
+  llmScoredPlayers?: number;
 }
 
 export async function fetchPlayerBuzz(): Promise<BuzzSnapshot | null> {

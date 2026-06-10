@@ -56,9 +56,16 @@ jobs:
       - name: Fetch buzz snapshot
         run: npx tsx scripts/fetch-player-buzz.ts --window=${{ inputs.window || '14' }} --limit=${{ inputs.limit || '0' }}
 
+      - name: LLM sentiment pass (top players)
+        # No-op when the secret is unset, so the workflow still ships a
+        # lexicon-scored snapshot without an API key configured.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx tsx scripts/score-buzz-llm.ts --top=60
+
       - name: Show snapshot summary
         run: |
-          node -e "const b=require('./public/data/player-buzz.json'); console.log('players:', b.players.length); console.log('generated:', b.generated); console.log('top:', b.players.slice(0,5).map(p=>p.name+' ('+p.volume+')').join(', '));"
+          node -e "const b=require('./public/data/player-buzz.json'); console.log('players:', b.players.length); console.log('generated:', b.generated); console.log('scoring:', b.method||'lexicon', b.llmModel?('('+b.llmModel+', '+b.llmScoredPlayers+' players)'):''); console.log('top:', b.players.slice(0,5).map(p=>p.name+' ('+p.volume+')').join(', '));"
 
       - name: Commit snapshot to triggering branch
         if: ${{ inputs.dry_run != 'true' }}

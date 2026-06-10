@@ -90,7 +90,10 @@ export function BuzzTracker() {
         <h2 style={{ fontSize: 18, margin: 0 }}>Buzz Tracker</h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
           Who's getting talked about over the last {snap?.windowDays ?? 14} days — news volume + sentiment
-          from ESPN, Rotowire, and Reddit. Sentiment is keyword-scored (approximate).
+          from ESPN, Rotowire, and Reddit.{' '}
+          {snap?.method?.includes('llm')
+            ? `Sentiment for the top ${snap.llmScoredPlayers ?? ''} players is AI-scored; the rest keyword-scored.`
+            : 'Sentiment is keyword-scored (approximate).'}
         </p>
       </div>
 
@@ -234,7 +237,13 @@ function BuzzItemRow({ item }: { item: BuzzItem }) {
           ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{item.headline}</a>
           : item.headline}
         {item.summary && <span style={{ color: 'var(--text-muted)' }}> — {item.summary}</span>}
+        {item.method === 'llm' && item.rationale && (
+          <span title="AI sentiment rationale" style={{ color: 'var(--accent)', fontStyle: 'italic' }}> · {item.rationale}</span>
+        )}
       </span>
+      {item.method === 'llm' && (
+        <span title="Scored by Claude" style={{ color: 'var(--accent)', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>AI</span>
+      )}
       <span style={{ color: sc, fontSize: 10, fontWeight: 600, width: 34, textAlign: 'right', flexShrink: 0 }}>
         {item.score > 0 ? '+' : ''}{item.score.toFixed(2)}
       </span>
