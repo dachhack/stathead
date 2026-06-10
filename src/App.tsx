@@ -32,6 +32,7 @@ import { RookieProspectsView } from './components/RookieProspectsView';
 import { Prospects2027View } from './components/Prospects2027View';
 import { TradeCalculator } from './components/TradeCalculator';
 import { DynastyForecast } from './components/DynastyForecast';
+import { TaxiSquadAdvisor } from './components/TaxiSquadAdvisor';
 import { DraftOptimizerTable } from './components/DraftOptimizerTable';
 import { ModelDocumentation } from './components/ModelDocumentation';
 import { RookieCareerBacktest } from './components/RookieCareerBacktest';
@@ -89,6 +90,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'ktc', label: 'Dynasty Values' },
       { id: 'trade-calc', label: 'Trade Calculator' },
       { id: 'dynasty-forecast', label: 'Value Forecast' },
+      { id: 'taxi-squad', label: 'Taxi Squad' },
       { id: 'prospects', label: 'Prospects' },
       { id: 'prospects-2027', label: '2027 Prospects' },
       { id: 'my-prospects', label: 'My Prospect Rankings' },
@@ -287,6 +289,7 @@ function App() {
         {tab === 'draft-optimizer' && <DraftOptimizerTable />}
         {tab === 'trade-calc' && <TradeCalculator onDataLoaded={onDataLoaded} />}
         {tab === 'dynasty-forecast' && <DynastyForecast onDataLoaded={onDataLoaded} />}
+        {tab === 'taxi-squad' && <TaxiSquadAdvisor />}
         {tab === 'injuries' && (
           <InjuriesView season={season} onDataLoaded={onDataLoaded} />
         )}

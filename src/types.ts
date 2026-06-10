@@ -220,6 +220,7 @@ export type Tab =
   | 'docs-season-ppg'
   | 'my-rankings'
   | 'my-prospects'
+  | 'taxi-squad'
   | 'data-query';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---

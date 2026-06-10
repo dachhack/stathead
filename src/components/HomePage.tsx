@@ -41,7 +41,7 @@ const SECTIONS: Section[] = [
         label: 'Draft Optimizer',
         tab: 'draft-optimizer',
         blurb:
-          'Find the pick that maximizes expected value given your league settings, roster slots, and positional scarcity.',
+          'The full redraft kit: model-vs-ADP edge board, BeerSheets-style VBD value board with tiers and scarcity, an optimal-team simulator from your draft slot, rookie/vet market mispricings, and a round-by-round plan — all under your league settings, saved rankings, and projection scenarios.',
       },
     ],
   },
@@ -64,6 +64,11 @@ const SECTIONS: Section[] = [
         label: 'Value Forecast',
         tab: 'dynasty-forecast',
         blurb: 'Project dynasty value forward using career trajectory, age curve, and model percentile.',
+      },
+      {
+        label: 'Taxi Squad',
+        tab: 'taxi-squad',
+        blurb: 'Rookies and year-2 players ranked on the taxi-vs-active call: current-season projection, startable odds from the career model, rookie-year production, and a Promote / Watch / Taxi / Move On verdict.',
       },
       {
         label: 'Prospects',
