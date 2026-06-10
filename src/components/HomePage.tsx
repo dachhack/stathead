@@ -68,7 +68,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Taxi Squad',
         tab: 'taxi-squad',
-        blurb: 'Rookies and year-2 players ranked on the taxi-vs-active call: current-season projection, startable odds from the career model, rookie-year production, and a Promote / Watch / Taxi / Move On verdict.',
+        blurb: 'Rookies and year-2 players ranked on when they’ll be startable: Roster (startable this season), Taxi (next-year starter odds, no value yet), or Drop (probably never) — from current-season projections, career-model startable odds, and rookie-year production.',
       },
       {
         label: 'Prospects',
