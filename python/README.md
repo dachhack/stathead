@@ -11,8 +11,8 @@ pip install stathead
 Optional extras:
 
 ```bash
-pip install "stathead[polars]"   # for .to_polars() helpers
-pip install "stathead[duckdb]"   # for local SQL querying
+pip install "stathead[polars]"   # for sh.to_polars() / sh.load_polars() helpers
+pip install "stathead[duckdb]"   # for local SQL querying (sh.query)
 ```
 
 ## Quick start
@@ -66,6 +66,24 @@ model tables:
 ```python
 sh.register("my_roster", roster_df)
 sh.query("SELECT * FROM career_2026 c JOIN my_roster r USING (player_key)")
+```
+
+## Polars
+
+Loaders return pandas. With the `polars` extra, convert any of them — handy on
+the big tables like `load_player_stats` (~400k rows) where polars is faster.
+
+```bash
+pip install "stathead[polars]"
+```
+
+```python
+import stathead as sh
+
+pl_df = sh.to_polars(sh.load_player_stats(2024))
+
+# Or convert a loader by reference, without calling it yourself:
+pl_df = sh.load_polars(sh.load_player_stats, 2024)
 ```
 
 ## Pinning to a specific version

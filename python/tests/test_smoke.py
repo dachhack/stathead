@@ -241,6 +241,37 @@ def test_query_without_duckdb_gives_install_hint(monkeypatch):
         sql._duckdb()
 
 
+def test_to_polars_roundtrip():
+    pl = pytest.importorskip("polars")
+    df = stathead.load_dynasty_values()
+    pdf = stathead.to_polars(df)
+    assert isinstance(pdf, pl.DataFrame)
+    assert pdf.height == len(df)
+    assert list(pdf.columns) == list(df.columns)
+
+
+def test_load_polars_calls_loader():
+    pl = pytest.importorskip("polars")
+    pdf = stathead.load_polars(stathead.load_redraft_projections)
+    assert isinstance(pdf, pl.DataFrame)
+    assert "name" in pdf.columns
+
+
+def test_to_polars_without_polars_gives_install_hint(monkeypatch):
+    import builtins
+    from stathead import polars as polars_mod
+    real_import = builtins.__import__
+
+    def _no_polars(name, *args, **kwargs):
+        if name == "polars":
+            raise ImportError("No module named 'polars'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_polars)
+    with pytest.raises(ImportError, match=r"stathead\[polars\]"):
+        polars_mod._polars()
+
+
 def test_no_vendor_named_columns_leak():
     """Source-agnostic feature naming — no rsp*/pdf* columns reach users."""
     pred = stathead.load_career_predictions_2026()
