@@ -1,6 +1,51 @@
 # StatHead — session handoff
 
-Last updated 2026-06-09 (refinement session). **Resume section directly below;** older notes follow.
+Last updated 2026-06-10 (draft kit + taxi session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-06-10, branch `claude/modest-albattani-vt8rz2`)
+
+Redraft-season centerpiece work. Open to-do #6 ("Draft Optimizer — test +
+clean up for the upcoming season") is now substantially done.
+
+### Shipped
+- **Draft Optimizer → full redraft kit** (PR #387). New `src/lib/draftKit.ts`
+  VBD engine: wide pool from `redraft-projections.json` (416 players, **all 96
+  2026 rookies** — the score-store `adp.json` pool has ZERO rookies, so the
+  pre-existing Edge Board was rookie-blind), market price = FFC ADP with
+  FantasyCalc-redraft-rank fallback (covers 29 rookies), replacement levels
+  from league settings w/ greedy FLEX/SF allocation, baselines VOLS/VORP/BEER.
+  New sections on the tab: **Value Board** (BeerSheets-style: tier color
+  bands, value vs ADP round.pick, ▼/▲ round-delta arbitrage encoding,
+  scarcity bars, "My board" overlay from saved My Rankings boards),
+  **Optimal Team Builder** (survival-aware greedy VBD sim from the user's
+  seat vs an ADP-chalk roster → "edge vs the room" in lineup points),
+  **Rookie & Veteran Edges** (market discount × career-model startable/boom
+  probs; rookie hype tax; 4+ yoe vet values). Player names clickable
+  (`PlayerName`) across Edge Board / Round Plan / Targets & Fades. Scenarios
+  override PPG in all new sections; Half/Std re-scored from `recPG`.
+- **Dynasty → Taxi Squad Advisor** (tab `taxi-squad`, this PR). 2026 rookies +
+  2025 year-2 class scored on the taxi-vs-active call: Now PPG (base redraft
+  projection), Start % (career-model P(low-end-starter PPG): thresholdProbs
+  key QB 16 / RB 12 / WR 12 / TE 9), rookie-year actual PPG, boom/bust,
+  FantasyCalc dynasty value (1QB/SF toggle). Verdict tree **calibrated to the
+  live score-store distributions** (boomProb runs 23–36 for everyone — only
+  ≥38 is signal; bustProb p90 ≈ 40): Promote (20) / Watch (23) / Taxi (117) /
+  Move On (2, year-2 only by design). Hover a verdict for the reasoning.
+
+### Notes / follow-ups
+- FFC 2026 ADP (`ffc_adp_ppr_2026.json`) still has **no rookies** (171 vets).
+  Once FFC publishes post-draft ADP, the daily fetch picks it up and the kit
+  pool automatically prefers it over the FC-rank proxy (rows marked `*`).
+- Roster sim is greedy + deterministic; a Monte Carlo "draft 1000 times"
+  upgrade and a live-draft assistant (mark picks as they happen → VONA) are
+  the natural next steps.
+- Round Plan / Tier Map / Targets & Fades still run on the score-store pool
+  (rookie-blind); consider migrating them to the kit pool.
+- Dev env note: this container had full deps (`npm ci` works; tsc, eslint,
+  vite, puppeteer headless verification all ran locally — unlike the older
+  web container).
 
 ---
 
