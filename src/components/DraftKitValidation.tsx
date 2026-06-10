@@ -170,7 +170,13 @@ export function DraftKitValidation() {
           top features were the same quality axis the two horizon heads already learn, and its
           live top picks were mostly Roster-grade players just under the p1 line. The two-head
           design (separate this-season / next-season probabilities, combined by the verdict
-          logic) keeps ~13× the training signal per head and is what ships.
+          logic) keeps ~13× the training signal per head and is what ships. Per-position
+          models also lose: trained separately (QB 113 / RB 255 / WR 368 / TE 174 rows), the
+          pooled model wins 11 of 12 position × head cells, with the deficit largest where
+          samples are thinnest (QB ever −.05, TE s2 −.04) — cross-position transfer beats
+          position-specific fits at these sizes, and deeper pooled trees (which could learn
+          position interactions internally) lose monotonically too: depth 3 is the optimum at
+          every head.
         </p>
       </div>
 
