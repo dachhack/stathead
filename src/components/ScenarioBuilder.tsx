@@ -91,10 +91,12 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
-  // Undo history — snapshots of the scenario taken before each change. Local
-  // to the builder session (cleared on unmount); see `commit`/`undo` below.
+  // Undo/redo stacks — snapshots of the scenario taken around each change.
+  // Local to the builder session (cleared on unmount); see commit/undo/redo.
   const historyRef = useRef<ScenarioConfig[]>([]);
+  const redoRef = useRef<ScenarioConfig[]>([]);
   const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   // Save signals: `autoStatus` mirrors App's debounced draft auto-save;
   // `savedFlash` confirms an explicit Save into the named library.
@@ -260,14 +262,26 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const commit = (next: ScenarioConfig) => {
     historyRef.current.push(scenario);
     if (historyRef.current.length > 50) historyRef.current.shift();
+    redoRef.current = []; // a fresh change invalidates the redo stack
     setCanUndo(true);
+    setCanRedo(false);
     onChange(next);
   };
   const undo = () => {
     const prev = historyRef.current.pop();
     if (!prev) return;
+    redoRef.current.push(scenario);
     setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
     onChange(prev);
+  };
+  const redo = () => {
+    const next = redoRef.current.pop();
+    if (!next) return;
+    historyRef.current.push(scenario);
+    setCanUndo(true);
+    setCanRedo(redoRef.current.length > 0);
+    onChange(next);
   };
   const update = (patch: Partial<ScenarioConfig>) => commit({ ...scenario, ...patch });
 
@@ -1309,6 +1323,14 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
             title="Undo the last change"
           >
             ↶ Undo
+          </button>
+          <button
+            className="scenario-clear-btn"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo the last undone change"
+          >
+            ↷ Redo
           </button>
           <button
             className="scenario-clear-btn"
