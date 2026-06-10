@@ -486,3 +486,72 @@ export async function fetchUserTradeActivity(
   const totalTrades = Object.values(bySeason).reduce((a, b) => a + b, 0);
   return { totalTrades, leaguesAnalyzed: analyzed.size, bySeason, trades, capped };
 }
+
+// ── Drafts (live draft assistant) ──
+
+export type SleeperDraftStatus = 'pre_draft' | 'drafting' | 'paused' | 'complete';
+
+export interface SleeperDraftSummary {
+  draft_id: string;
+  league_id: string | null;
+  status: SleeperDraftStatus;
+  /** 'snake' | 'linear' | 'auction' */
+  type: string;
+  season: string;
+  start_time: number | null;
+  settings?: {
+    teams?: number;
+    rounds?: number;
+    slots_qb?: number;
+    slots_rb?: number;
+    slots_wr?: number;
+    slots_te?: number;
+    slots_flex?: number;
+    slots_super_flex?: number;
+    slots_bn?: number;
+  };
+  metadata?: {
+    name?: string;
+    scoring_type?: string; // 'ppr' | 'half_ppr' | 'std' | '2qb' | 'dynasty_*' | 'idp' ...
+  };
+  /** user_id → draft slot (humans only; empty for mocks/autopicks). */
+  draft_order?: Record<string, number> | null;
+}
+
+export interface SleeperDraftPick {
+  round: number;
+  draft_slot: number;
+  pick_no: number;
+  player_id: string;
+  picked_by: string; // user_id, '' for CPU/autopick
+  metadata?: {
+    first_name?: string;
+    last_name?: string;
+    position?: string;
+    team?: string;
+  };
+}
+
+/** All of a user's drafts for a season (league drafts + mocks). */
+export async function fetchUserDrafts(userId: string, season = '2026'): Promise<SleeperDraftSummary[]> {
+  const drafts = await getJson<SleeperDraftSummary[] | null>(`${SLEEPER}/user/${userId}/drafts/nfl/${season}`);
+  return drafts ?? [];
+}
+
+export async function fetchDraft(draftId: string): Promise<SleeperDraftSummary> {
+  const d = await getJson<SleeperDraftSummary | null>(`${SLEEPER}/draft/${draftId.trim()}`);
+  if (!d?.draft_id) throw new Error(`No Sleeper draft found for id "${draftId}".`);
+  return d;
+}
+
+export async function fetchDraftPicks(draftId: string): Promise<SleeperDraftPick[]> {
+  const picks = await getJson<SleeperDraftPick[] | null>(`${SLEEPER}/draft/${draftId.trim()}/picks`);
+  return picks ?? [];
+}
+
+/** Accepts a bare draft id or a Sleeper draft URL
+ *  (https://sleeper.com/draft/nfl/<id>); returns the id. */
+export function parseDraftIdInput(input: string): string {
+  const m = input.trim().match(/draft\/(?:nfl\/)?(\d{10,})/) ?? input.trim().match(/^(\d{10,})$/);
+  return m ? m[1] : input.trim();
+}

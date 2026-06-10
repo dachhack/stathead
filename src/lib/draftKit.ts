@@ -304,3 +304,30 @@ export function positionalScarcity(players: ValuedPlayer[]): Record<Position, nu
   for (const p of players) if (p.vbd > 0) out[p.position] += p.vbd;
   return out;
 }
+
+// ── Roster-slot bookkeeping (shared by the draft sim + live assistant) ──
+
+export interface OpenSlots {
+  QB: number; RB: number; WR: number; TE: number; FLEX: number; SF: number;
+}
+
+export function openSlots(settings: DraftPrepSettings): OpenSlots {
+  return {
+    QB: settings.roster.QB, RB: settings.roster.RB, WR: settings.roster.WR, TE: settings.roster.TE,
+    FLEX: settings.roster.FLEX, SF: settings.roster.SF,
+  };
+}
+
+/** Fill the best open slot for a position (dedicated → FLEX → SF → bench),
+ *  mutating `slots`. Returns the slot label the player landed in. */
+export function assignSlot(slots: OpenSlots, pos: Position): string {
+  if (slots[pos] > 0) { slots[pos]--; return pos; }
+  if (pos !== 'QB' && slots.FLEX > 0) { slots.FLEX--; return 'FLEX'; }
+  if (slots.SF > 0) { slots.SF--; return 'SF'; }
+  return 'BN';
+}
+
+/** True while the position can still fill a starting slot (incl. flex). */
+export function starterSlotOpen(slots: OpenSlots, pos: Position): boolean {
+  return slots[pos] > 0 || (pos !== 'QB' && slots.FLEX > 0) || slots.SF > 0;
+}
