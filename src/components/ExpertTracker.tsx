@@ -34,11 +34,12 @@ const pickOverall = (round: number) => Math.max(1, (round - 0.5) * 12); // 12-te
 interface GraphNode { i: number; leagues: number; dynasty: number; redraft: number }
 interface GraphEdge { a: number; b: number; dynasty: number; redraft: number; total: number }
 interface GenGraph { generated: string; expert_count: number; nodes: GraphNode[]; edges: GraphEdge[] }
-interface LeagueNode { i: number; experts: number; size: number; dynasty: 0 | 1; sf: 0 | 1 }
+interface LeagueNode { i: number; experts: number; size: number; dynasty: 0 | 1; sf: 0 | 1; members?: number[] }
 interface LeagueEdge { a: number; b: number; shared: number }
 interface GenLeagueGraph { generated: string; nodes: LeagueNode[]; edges: LeagueEdge[] }
 interface CandidateRow { i: number; experts: number; leagues: number; dynasty: number; redraft: number }
-interface GenCandidates { generated: string; expert_count: number; candidates: CandidateRow[] }
+interface ConnEdge { c: number; e: number; total: number; dynasty: number; redraft: number }
+interface GenCandidates { generated: string; expert_count: number; candidates: CandidateRow[]; edges?: ConnEdge[] }
 interface RankRow { label: string; isUser: boolean; avg: number; grade: string; trades: number }
 
 // The expert username list lives ONLY in the browser (localStorage). It is never
@@ -166,7 +167,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   }, []);
   const hasPipeline = !!(gOwn?.players?.length || gAdds?.adds?.length || gTrades?.trades?.length);
   const expertLabel = (i: number) => nameDoc?.names?.[String(i)] ?? `Expert #${i + 1}`;
-  const candidateLabel = (i: number) => nameDoc?.candidates?.[String(i)] || `Candidate #${i + 1}`;
+  const candidateLabel = (i: number) => nameDoc?.candidates?.[String(i)] || `Connection #${i + 1}`;
   const leagueLabel = (i: number) => nameDoc?.leagues?.[String(i)] || `League #${i + 1}`;
   // The graph views stay hidden until the name map is unlocked (or present in dev).
   const unlocked = !!nameDoc?.names;
@@ -426,12 +427,12 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
             {(['ownership', 'adds', 'trades', 'rank', 'graph', 'leagues', 'candidates'] as const)
-              .filter((v) => unlocked || (v !== 'graph' && v !== 'leagues'))
+              .filter((v) => unlocked || (v !== 'graph' && v !== 'leagues' && v !== 'candidates'))
               .map((v) => (
               <button key={v} onClick={() => setDataView(v)} style={{ ...btn(dataView === v), padding: '4px 12px', fontSize: 12 }}>
                 {v === 'ownership' ? 'Ownership' : v === 'adds' ? 'Adds' : v === 'trades' ? 'Trades'
                   : v === 'rank' ? 'Compare & Rank' : v === 'graph' ? 'Social Graph'
-                  : v === 'leagues' ? 'League Graph' : 'Candidates'}
+                  : v === 'leagues' ? 'League Graph' : 'Connections'}
               </button>
             ))}
             {!unlocked && encNames && <UnlockNames onUnlock={unlockNames} buttonLabel="🔒 Unlock graphs" />}
@@ -583,10 +584,17 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
 
           {dataView === 'leagues' && unlocked && (
             lgGraph?.nodes.length ? (
-              <LeagueGraph
-                graph={lgGraph} fmt={graphFmt} setFmt={setGraphFmt} label={leagueLabel}
-                hasNames={!!nameDoc?.leagues}
-              />
+              lgGraph.nodes.some((n) => n.members?.length) ? (
+                <LeagueSocialGraph
+                  graph={lgGraph} fmt={graphFmt} setFmt={setGraphFmt}
+                  expertLabel={expertLabel} leagueLabel={leagueLabel} hasNames={!!nameDoc?.leagues}
+                />
+              ) : (
+                <LeagueGraph
+                  graph={lgGraph} fmt={graphFmt} setFmt={setGraphFmt} label={leagueLabel}
+                  hasNames={!!nameDoc?.leagues}
+                />
+              )
             ) : (
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 No league graph yet — it appears after the next data update regenerates the expert data.
@@ -594,15 +602,22 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
             )
           )}
 
-          {dataView === 'candidates' && (
+          {dataView === 'candidates' && unlocked && (
             gCands?.candidates.length ? (
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
                   Sleeper users who share leagues with the most tracked experts — they run in the same
                   circles, so they may be experts worth adding to the list.
-                  {nameDoc && !nameDoc.candidates && ' Usernames for candidates arrive with the next data update.'}
+                  {nameDoc && !nameDoc.candidates && ' Usernames for connections arrive with the next data update.'}
+                  {!gCands.edges?.length && ' The connection graph appears after the next data update.'}
                 </p>
-                <div className="table-container" style={{ maxHeight: 600 }}>
+                {!!gCands.edges?.length && (
+                  <ConnectionsGraph
+                    cands={gCands} fmt={graphFmt} setFmt={setGraphFmt}
+                    expertLabel={expertLabel} connectionLabel={candidateLabel} hasNames={!!nameDoc?.candidates}
+                  />
+                )}
+                <div className="table-container" style={{ maxHeight: 600, marginTop: 12 }}>
                   <table className="sched-table" style={{ fontSize: 12 }}>
                     <thead><tr><th>#</th><th>User</th><th>Experts shared</th><th>Shared leagues</th><th>Dynasty</th><th>Redraft</th></tr></thead>
                     <tbody>
@@ -624,7 +639,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
               </div>
             ) : (
               <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                No candidates yet — they appear after the next data update regenerates the expert data.
+                No connections yet — they appear after the next data update regenerates the expert data.
               </p>
             )
           )}
@@ -637,6 +652,9 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
         </div>
       )}
 
+      {/* Live mode applies to the player-centric views; the social-graph views
+          (graph / leagues / connections) are pipeline-only, so hide it there. */}
+      {!(['graph', 'leagues', 'candidates'] as readonly string[]).includes(dataView) && (
       <details style={{ marginBottom: 16 }}>
         <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
           Live mode — analyze a list in your browser (no data update needed)
@@ -660,7 +678,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
           <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importList(f); e.target.value = ''; }} />
         </div>
         {experts.length === 0 ? (
-          <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>No experts yet — add Sleeper usernames above.</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>No users yet — add Sleeper usernames above.</div>
         ) : (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {experts.map((name) => (
@@ -673,7 +691,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
         )}
         <div style={{ marginTop: 12 }}>
           <button onClick={() => { void analyze(); }} disabled={loading || !experts.length} style={{ ...btn(true), padding: '6px 16px', fontSize: 13 }}>
-            {loading ? 'Analyzing…' : `Analyze ${experts.length} expert${experts.length === 1 ? '' : 's'}`}
+            {loading ? 'Analyzing…' : `Analyze ${experts.length} user${experts.length === 1 ? '' : 's'}`}
           </button>
           {progress && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-muted)' }}>{progress}</span>}
         </div>
@@ -681,8 +699,8 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
 
       {results.length > 0 && (
         <>
-          {/* Per-expert summary */}
-          <div className="sched-section-title">Experts loaded</div>
+          {/* Per-user summary */}
+          <div className="sched-section-title">Users loaded</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '6px 0 16px' }}>
             {results.map((r) => (
               <div key={r.username} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12, minWidth: 160 }}>
@@ -711,20 +729,20 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
               ))}
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {list.length} players · {expertsWithData} experts · {totalRosters} rosters
+              {list.length} players · {expertsWithData} users · {totalRosters} rosters
             </span>
           </div>
 
           {/* Ownership table */}
-          <div className="sched-section-title">Most-owned by experts</div>
+          <div className="sched-section-title">Most-owned by users</div>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-            "Experts" = how many of your experts roster the player. "Rosters" = expert rosters with
-            the player (a player can appear in several of one expert's leagues). "Start %" = of those, how often started.
+            "Users" = how many of your users roster the player. "Rosters" = user rosters with
+            the player (a player can appear in several of one user's leagues). "Start %" = of those, how often started.
           </p>
           <div className="table-container" style={{ maxHeight: 600 }}>
             <table className="sched-table" style={{ fontSize: 12 }}>
               <thead>
-                <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Experts</th><th>Rosters</th><th>% of rosters</th><th>Start %</th></tr>
+                <tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Users</th><th>Rosters</th><th>% of rosters</th><th>Start %</th></tr>
               </thead>
               <tbody>
                 {list.slice(0, 100).map((p, i) => (
@@ -748,6 +766,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
         </>
       )}
       </details>
+      )}
     </div>
   );
 }
@@ -915,6 +934,156 @@ function LeagueGraph({ graph, fmt, setFmt, label, hasNames }: {
           );
         })}
       </svg>
+    </div>
+  );
+}
+
+// ── Two-ring (bipartite) social graph: experts on the inner ring, leagues or
+// connections on the outer ring. Hovering a node spotlights its edges and
+// labels its neighbors, so e.g. hovering an expert names their leagues. ──
+interface BiNode { i: number; label: string; title?: string; color: string; r: number; alwaysLabel?: boolean }
+
+function BipartiteGraph({ inner, outer, edges }: {
+  inner: BiNode[];
+  outer: BiNode[];
+  edges: { a: number; b: number; w: number }[]; // a = inner node i, b = outer node i
+}) {
+  const [hover, setHover] = useState<string | null>(null);
+  const W = 760, H = 600, cx = W / 2, cy = H / 2;
+  const outerR = Math.min(W, H) / 2 - 70, innerR = outerR * 0.42;
+  const ring = (nodes: BiNode[], radius: number) => {
+    const m = new Map<number, { x: number; y: number }>();
+    nodes.forEach((nd, k) => {
+      const a = (k / (nodes.length || 1)) * Math.PI * 2 - Math.PI / 2;
+      m.set(nd.i, { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) });
+    });
+    return m;
+  };
+  const ipos = ring(inner, innerR);
+  const opos = ring(outer, outerR);
+  const es = edges.filter((e) => ipos.has(e.a) && opos.has(e.b));
+  const maxW = Math.max(1, ...es.map((e) => e.w));
+  const nodeEl = (prefix: 'i' | 'o', nd: BiNode, p: { x: number; y: number }) => {
+    const key = `${prefix}${nd.i}`;
+    const isHover = hover === key;
+    const isNeighbor = hover != null && !isHover && es.some((e) =>
+      prefix === 'i' ? (e.a === nd.i && hover === `o${e.b}`) : (e.b === nd.i && hover === `i${e.a}`));
+    const active = hover == null || isHover || isNeighbor;
+    return (
+      <g key={key} onMouseEnter={() => setHover(key)} onMouseLeave={() => setHover(null)}>
+        {nd.title && <title>{nd.title}</title>}
+        <circle cx={p.x} cy={p.y} r={nd.r} fill={nd.color} fillOpacity={active ? 0.9 : 0.2} stroke="var(--bg-tertiary)" strokeWidth={1} />
+        {(nd.alwaysLabel || isHover || isNeighbor) && (
+          <text x={p.x} y={p.y - nd.r - 3} fontSize={9} fill="var(--text-secondary)" textAnchor="middle">{nd.label}</text>
+        )}
+      </g>
+    );
+  };
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>
+      {es.map((e, i) => {
+        const a = ipos.get(e.a)!, b = opos.get(e.b)!;
+        const active = hover == null || hover === `i${e.a}` || hover === `o${e.b}`;
+        return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#64748b"
+          strokeWidth={0.5 + (e.w / maxW) * 3} strokeOpacity={active ? 0.45 : 0.05} />;
+      })}
+      {inner.map((nd) => nodeEl('i', nd, ipos.get(nd.i)!))}
+      {outer.map((nd) => nodeEl('o', nd, opos.get(nd.i)!))}
+    </svg>
+  );
+}
+
+// Expert↔league social graph: experts inside, hub leagues (≥2 experts) outside,
+// one edge per membership. Used when the data carries league member lists;
+// older data falls back to the league↔league projection above.
+function LeagueSocialGraph({ graph, fmt, setFmt, expertLabel, leagueLabel, hasNames }: {
+  graph: GenLeagueGraph;
+  fmt: 'all' | 'dynasty' | 'redraft';
+  setFmt: (f: 'all' | 'dynasty' | 'redraft') => void;
+  expertLabel: (i: number) => string;
+  leagueLabel: (i: number) => string;
+  hasNames: boolean;
+}) {
+  const leagues = graph.nodes.filter((nd) =>
+    fmt === 'all' || (fmt === 'dynasty' ? nd.dynasty === 1 : nd.dynasty === 0));
+  const edges = leagues.flatMap((nd) => (nd.members ?? []).map((e) => ({ a: e, b: nd.i, w: 1 })));
+  const degree = new Map<number, number>();
+  for (const e of edges) degree.set(e.a, (degree.get(e.a) ?? 0) + 1);
+  const maxDeg = Math.max(1, ...degree.values());
+  const maxExperts = Math.max(1, ...leagues.map((nd) => nd.experts));
+  const inner: BiNode[] = [...degree.keys()].sort((x, y) => x - y).map((i) => ({
+    i, label: expertLabel(i), color: '#94a3b8',
+    r: 3 + ((degree.get(i) ?? 0) / maxDeg) * 7,
+    title: `${expertLabel(i)} — in ${degree.get(i)} of these leagues`,
+  }));
+  const outer: BiNode[] = leagues.map((nd) => ({
+    i: nd.i, label: leagueLabel(nd.i),
+    color: nd.dynasty ? '#6366f1' : '#f59e0b',
+    r: 4 + (nd.experts / maxExperts) * 10,
+    alwaysLabel: hasNames && nd.experts >= 3,
+    title: `${leagueLabel(nd.i)} — ${nd.experts} experts · ${nd.size}-team ${nd.dynasty ? 'dynasty' : 'redraft'}${nd.sf ? ' SF' : ''}`,
+  }));
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>League type:</span>
+        {(['all', 'dynasty', 'redraft'] as const).map((f) => (
+          <button key={f} onClick={() => setFmt(f)} style={gbtn(fmt === f)}>{f === 'all' ? 'All' : f === 'dynasty' ? 'Dynasty' : 'Redraft'}</button>
+        ))}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
+          {inner.length} experts across {leagues.length} leagues with 2+ experts
+          · <span style={{ color: '#94a3b8' }}>●</span> expert <span style={{ color: '#6366f1' }}>●</span> dynasty <span style={{ color: '#f59e0b' }}>●</span> redraft
+        </span>
+      </div>
+      <BipartiteGraph inner={inner} outer={outer} edges={edges} />
+    </div>
+  );
+}
+
+// Connections social graph: experts inside, candidate users outside, edge
+// weight = leagues that connection shares with that expert.
+function ConnectionsGraph({ cands, fmt, setFmt, expertLabel, connectionLabel, hasNames }: {
+  cands: GenCandidates;
+  fmt: 'all' | 'dynasty' | 'redraft';
+  setFmt: (f: 'all' | 'dynasty' | 'redraft') => void;
+  expertLabel: (i: number) => string;
+  connectionLabel: (i: number) => string;
+  hasNames: boolean;
+}) {
+  const weight = (e: ConnEdge) => (fmt === 'all' ? e.total : e[fmt]);
+  const edges = (cands.edges ?? [])
+    .map((e) => ({ a: e.e, b: e.c, w: weight(e) }))
+    .filter((e) => e.w > 0);
+  const degree = new Map<number, number>();
+  for (const e of edges) degree.set(e.a, (degree.get(e.a) ?? 0) + 1);
+  const maxDeg = Math.max(1, ...degree.values());
+  const connected = new Set(edges.map((e) => e.b));
+  const rows = cands.candidates.filter((c) => connected.has(c.i));
+  const maxExperts = Math.max(1, ...rows.map((c) => c.experts));
+  const inner: BiNode[] = [...degree.keys()].sort((x, y) => x - y).map((i) => ({
+    i, label: expertLabel(i), color: '#94a3b8',
+    r: 3 + ((degree.get(i) ?? 0) / maxDeg) * 7,
+    title: `${expertLabel(i)} — shares leagues with ${degree.get(i)} connections`,
+  }));
+  const outer: BiNode[] = rows.map((c) => ({
+    i: c.i, label: connectionLabel(c.i), color: '#10b981',
+    r: 4 + (c.experts / maxExperts) * 10,
+    alwaysLabel: hasNames,
+    title: `${connectionLabel(c.i)} — shares leagues with ${c.experts} of ${cands.expert_count} experts`,
+  }));
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>League type:</span>
+        {(['all', 'dynasty', 'redraft'] as const).map((f) => (
+          <button key={f} onClick={() => setFmt(f)} style={gbtn(fmt === f)}>{f === 'all' ? 'All' : f === 'dynasty' ? 'Dynasty' : 'Redraft'}</button>
+        ))}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
+          {rows.length} connections × {inner.length} experts
+          · <span style={{ color: '#94a3b8' }}>●</span> expert <span style={{ color: '#10b981' }}>●</span> connection
+        </span>
+      </div>
+      <BipartiteGraph inner={inner} outer={outer} edges={edges} />
     </div>
   );
 }
