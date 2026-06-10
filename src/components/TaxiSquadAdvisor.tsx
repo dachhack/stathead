@@ -179,17 +179,18 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
     return { verdict: 'Roster', why };
   }
 
-  // — Ramp model (year-2 players with a score). Trained directly on the
-  // streamable targets with leave-one-class-out validation (s1 AUC .85,
-  // s2 .82, ever .83) — it subsumes the hand rules below for scored
-  // players; unscored year-2s and all rookies fall through to the rules.
-  if (Number.isFinite(r.p1)) {
-    if (r.p1 >= MODEL_ROSTER_P1) {
-      return {
-        verdict: 'Roster',
-        why: `Ramp model: ${(100 * r.p1).toFixed(0)}% to be streamable THIS season (${(100 * r.p2).toFixed(0)}% next) — his value is now; keep him active.`,
-      };
-    }
+  // — Ramp models. Year-2 players (s1 AUC .85 / s2 .82 / ever .83) get
+  // full model verdicts. Rookies (landing-spot model: .77 / .75 / .79)
+  // get model Roster/Taxi only — model-driven rookie DROPS ran 17%
+  // regret in validation, so rookie drops stay on the strict rule tree
+  // below. Unscored players fall through to the rules entirely.
+  if (Number.isFinite(r.p1) && r.p1 >= MODEL_ROSTER_P1) {
+    return {
+      verdict: 'Roster',
+      why: `${r.isYear2 ? 'Ramp' : 'Rookie landing-spot'} model: ${(100 * r.p1).toFixed(0)}% to be streamable THIS season (${(100 * r.p2).toFixed(0)}% next) — his value is now; keep him active.`,
+    };
+  }
+  if (r.isYear2 && Number.isFinite(r.p1)) {
     if (r.pEver <= MODEL_DROP_PEVER) {
       return {
         verdict: 'Drop',
@@ -228,6 +229,16 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
   }
 
   // — Otherwise: the taxi case — ramp profiles without this-year value.
+  if (Number.isFinite(r.p1)) {
+    // Scored rookie who didn't clear the Roster bar and survived the
+    // rule-tree drop checks: quote the model's horizon view.
+    return {
+      verdict: 'Taxi',
+      why: r.p2 > r.p1
+        ? `Rookie landing-spot model: ${(100 * r.p1).toFixed(0)}% streamable this season but ${(100 * r.p2).toFixed(0)}% next — forward-loaded; let him cook (${(100 * r.pEver).toFixed(0)}% within 4 years).`
+        : `Rookie landing-spot model: ${(100 * r.p1).toFixed(0)}% this season / ${(100 * r.p2).toFixed(0)}% next / ${(100 * r.pEver).toFixed(0)}% ever — developmental stash.`,
+    };
+  }
   const rampCapital = r.draftRound <= 2 && (!r.isYear2 || quietRookieYr);
   const prime = Number.isFinite(r.startProb) && r.startProb >= 20;
   return {
@@ -298,7 +309,12 @@ export function TaxiSquadAdvisor() {
       setDyn1qb((Array.isArray(d1) ? d1 : []) as FcDynastyEntry[]);
       setDynSf((Array.isArray(dsf) ? dsf : []) as FcDynastyEntry[]);
       setDc1((dcData?.starters ?? []) as DepthStarter[]);
-      setModelScores((taxiData?.players ?? []) as TaxiModelScore[]);
+      // Year-2 ramp scores + rookie landing-spot scores live in the same
+      // file; the verdict logic distinguishes them via isYear2.
+      setModelScores([
+        ...((taxiData?.players ?? []) as TaxiModelScore[]),
+        ...((taxiData?.rookies ?? []) as TaxiModelScore[]),
+      ]);
       setLoading(false);
     }).catch((e) => {
       if (!cancelled) {
@@ -568,7 +584,7 @@ export function TaxiSquadAdvisor() {
                 <span title="Actual rookie-season PPG (year-2 players only)">Yr-1 PPG</span>{sortArrow('rookieYearPpg')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('p2')}>
-                <span title="Ramp model: P(streamable THIS season) → P(streamable NEXT season). Year-2 players only — trained on 2010-2023 classes with leave-one-class-out validation (AUC .85/.82). Green arrow = forward-loaded profile.">Strm % →</span>{sortArrow('p2')}
+                <span title="Ramp models: P(streamable THIS season) → P(streamable NEXT season). Year-2 players use the production+market model (LOSO AUC .85/.82); rookies use the landing-spot model (.77/.75 — incumbent quality, room size, QB quality, team offense). Green arrow = forward-loaded profile.">Strm % →</span>{sortArrow('p2')}
               </th>
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('startProb')}>
                 <span title="Career-model probability of reaching low-end-starter PPG at the position">Start %</span>{sortArrow('startProb')}
