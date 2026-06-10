@@ -50,6 +50,7 @@ jobs:
             mkdir -p private
             printf '%s\n' "$EXPERT_USERNAMES" > private/expert-usernames.txt
             python3 scripts/build_expert_data.py --weeks 1 || echo "expert build failed (non-fatal)"
+            rm -f public/data/expert-names.json  # local-only name map — never deploy/commit
           else
             echo "EXPERT_USERNAMES secret not set — skipping expert data build"
           fi
@@ -119,7 +120,8 @@ jobs:
                   public/data/espn-nfl-ids.json \
                   public/data/expert-ownership.json \
                   public/data/expert-adds.json \
-                  public/data/expert-trades.json 2>/dev/null || true
+                  public/data/expert-trades.json \
+                  public/data/expert-graph.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else

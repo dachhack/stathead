@@ -67,6 +67,9 @@ public/data/*
 !public/data/expert-ownership.json
 !public/data/expert-adds.json
 !public/data/expert-trades.json
+!public/data/expert-graph.json
+# expert-names.json (index -> username) is intentionally NOT un-ignored: it stays
+# local-only so the social graph / rankings can show names in dev but never ship.
 .claude/*
 !.claude/commands/
 !.claude/commands/**

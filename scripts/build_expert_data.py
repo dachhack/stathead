@@ -91,6 +91,7 @@ def main() -> int:
     roster_totals = {'all': 0, 'dynasty': 0, 'redraft': 0, 'sf': 0, '1qb': 0}
     add_counts: dict[str, dict] = {}        # pid -> {count, experts:set, last}
     trades: list[dict] = []
+    league_experts: dict[str, dict] = {}  # league_id -> {dynasty, sf, experts:set[int]}
     experts_with_data = 0
 
     def bump(pid: str, dyn: bool, sf: bool, started: bool, expert: str):
@@ -103,6 +104,7 @@ def main() -> int:
         experts_by_player.setdefault(pid, set()).add(expert)
 
     for n, username in enumerate(usernames, 1):
+        eidx = n - 1
         print(f"[{n}/{len(usernames)}] {username}", file=sys.stderr)
         user = get(f"{API}/user/{username}")
         uid = user.get('user_id') if user else None
@@ -126,6 +128,7 @@ def main() -> int:
             roster_totals['all'] += 1
             roster_totals['dynasty' if dyn else 'redraft'] += 1
             roster_totals['sf' if sf else '1qb'] += 1
+            league_experts.setdefault(lid, {'dynasty': dyn, 'sf': sf, 'experts': set()})['experts'].add(eidx)
             starters = set(mine.get('starters') or [])
             for pid in (mine.get('players') or []):
                 if not pid or pid == '0':
@@ -158,7 +161,7 @@ def main() -> int:
                         for pk in (t.get('draft_picks') or []):
                             picks.append({'season': pk.get('season'), 'round': pk.get('round'),
                                           'to': pk.get('owner_id') == my_rid})
-                        trades.append({'created': created, 'dynasty': dyn, 'sf': sf,
+                        trades.append({'created': created, 'dynasty': dyn, 'sf': sf, 'expert': eidx,
                                        'received': recv, 'gave': gave, 'picks': picks})
                     elif ttype in ('waiver', 'free_agent'):
                         adds = t.get('adds') or {}
@@ -192,11 +195,37 @@ def main() -> int:
 
     trades.sort(key=lambda t: -(t.get('created') or 0))
     (OUT_DIR / 'expert-trades.json').write_text(json.dumps({
-        'generated': generated, 'season': args.season, 'trades': trades[:500],
+        'generated': generated, 'season': args.season, 'trades': trades[:3000],
     }, separators=(',', ':')))
 
-    print(f"Wrote expert data: {len(players)} players, {len(adds)} adds, {len(trades)} trades "
-          f"from {experts_with_data} experts ({roster_totals['all']} rosters).", file=sys.stderr)
+    # ── social graph (anonymized): experts as indices; edges = shared leagues ──
+    edges: dict[tuple, dict] = {}
+    for lg in league_experts.values():
+        members = sorted(lg['experts'])
+        for i in range(len(members)):
+            for j in range(i + 1, len(members)):
+                key = (members[i], members[j])
+                e = edges.setdefault(key, {'a': members[i], 'b': members[j], 'dynasty': 0, 'redraft': 0, 'total': 0})
+                e['total'] += 1
+                e['dynasty' if lg['dynasty'] else 'redraft'] += 1
+    nodes = []
+    for idx in range(len(usernames)):
+        mine_lgs = [lg for lg in league_experts.values() if idx in lg['experts']]
+        nodes.append({'i': idx, 'leagues': len(mine_lgs),
+                      'dynasty': sum(1 for lg in mine_lgs if lg['dynasty']),
+                      'redraft': sum(1 for lg in mine_lgs if not lg['dynasty'])})
+    (OUT_DIR / 'expert-graph.json').write_text(json.dumps({
+        'generated': generated, 'season': args.season, 'expert_count': len(usernames),
+        'nodes': nodes, 'edges': sorted(edges.values(), key=lambda e: -e['total']),
+    }, separators=(',', ':')))
+
+    # ── gitignored name map (index -> username). LOCAL ONLY: never committed or
+    # deployed (see .gitignore; refresh-data.yml strips it before the build). ──
+    (OUT_DIR / 'expert-names.json').write_text(json.dumps(
+        {'names': {str(i): u for i, u in enumerate(usernames)}}, separators=(',', ':')))
+
+    print(f"Wrote expert data: {len(players)} players, {len(adds)} adds, {len(trades)} trades, "
+          f"{len(edges)} graph edges from {experts_with_data} experts ({roster_totals['all']} rosters).", file=sys.stderr)
     return 0
 
 
