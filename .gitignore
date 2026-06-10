@@ -70,6 +70,10 @@ public/data/*
 !public/data/expert-graph.json
 # expert-names.json (index -> username) is intentionally NOT un-ignored: it stays
 # local-only so the social graph / rankings can show names in dev but never ship.
+# Its passphrase-encrypted form (scripts/encrypt-expert-names.mjs) IS committed:
+# the deployed Social Graph decrypts it in-browser after an "unlock" passphrase.
+# The ciphertext is public, so the passphrase is the only protection — keep it strong.
+!public/data/expert-names.enc.json
 .claude/*
 !.claude/commands/
 !.claude/commands/**

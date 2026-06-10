@@ -7,8 +7,9 @@ themselves. Run as part of the regular data update (see
 scripts/pull-all-data-sources.sh); the output files are committed/deployed, the
 username list is not.
 
-Privacy: the input list (expert-usernames.txt) is gitignored and never read at
-build time in CI. The output contains only counts and player ids — no usernames,
+Privacy: the input list (expert-usernames.txt) is gitignored; CI reconstructs
+it from the EXPERT_USERNAMES repo secret (see refresh-data.yml) so it's never
+committed. The output contains only counts and player ids — no usernames,
 display names, or league names — so the committed/deployed data can't be used to
 reconstruct the list.
 
@@ -19,6 +20,11 @@ Output: public/data/expert-ownership.json
         public/data/expert-trades.json
 
 Usage:  python3 scripts/build_expert_data.py [--season 2026] [--no-transactions]
+
+Optional: to make usernames unlockable on the DEPLOYED Social Graph, encrypt
+the name map with `node scripts/encrypt-expert-names.mjs <passphrase>` and
+commit expert-names.enc.json. refresh-data.yml does this automatically when
+the EXPERT_NAMES_PASSPHRASE repo secret is set (plaintext still never ships).
 """
 from __future__ import annotations
 
