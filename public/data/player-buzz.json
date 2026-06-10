@@ -1,0 +1,84 @@
+{
+  "generated": "2026-06-10T12:00:00.000Z",
+  "windowDays": 14,
+  "sources": ["espn", "rotowire", "reddit:fantasyfootball", "reddit:dynastyff", "reddit:32beatwriters"],
+  "_note": "Seed sample. Replaced on the first run of scripts/fetch-player-buzz.ts (see .github/workflows/fetch-player-buzz.yml).",
+  "players": [
+    {
+      "player_key": "sh_477b1bbce2", "name": "Jayden Daniels", "position": "QB", "team": "WAS",
+      "volume": 9, "volumeBySource": { "rotowire": 2, "espn": 3, "reddit:fantasyfootball": 3, "reddit:32beatwriters": 1 },
+      "sentiment": 0.71, "sentimentLabel": "positive", "pos": 7, "neg": 2, "trend": 2.0,
+      "lastPublished": "2026-06-09T16:20:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "rotowire", "headline": "Daniels looks elite in OTAs, expanded role in new offense", "summary": "Beat writers note Daniels is taking reps with the first team and turning heads with his command.", "published": "2026-06-09T16:20:00.000Z", "score": 0.8, "method": "lexicon" },
+        { "source": "reddit:32beatwriters", "headline": "Daniels with an impressive deep ball session today, coaches praised his footwork", "published": "2026-06-08T19:05:00.000Z", "score": 0.67, "method": "lexicon" },
+        { "source": "espn", "headline": "Commanders praise Daniels' command of the offense", "summary": "Healthy and full go entering Year 2.", "published": "2026-06-06T14:00:00.000Z", "link": "https://www.espn.com/", "score": 0.5, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_42fb0a0c12", "name": "Jonathon Brooks", "position": "RB", "team": "CAR",
+      "volume": 7, "volumeBySource": { "espn": 2, "rotowire": 1, "reddit:fantasyfootball": 2, "reddit:dynastyff": 2 },
+      "sentiment": -0.6, "sentimentLabel": "negative", "pos": 1, "neg": 4, "trend": 1.33,
+      "lastPublished": "2026-06-09T11:00:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "rotowire", "headline": "Brooks limited in practice, still recovering from knee injury", "summary": "Did not practice in team drills; timeline remains a concern.", "published": "2026-06-09T11:00:00.000Z", "score": -0.67, "method": "lexicon" },
+        { "source": "reddit:dynastyff", "headline": "Worried about Brooks' injury setback, is he a sell?", "published": "2026-06-07T22:30:00.000Z", "score": -1.0, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_345265c54a", "name": "Xavier Worthy", "position": "WR", "team": "KC",
+      "volume": 8, "volumeBySource": { "espn": 3, "reddit:fantasyfootball": 3, "reddit:32beatwriters": 2 },
+      "sentiment": 0.5, "sentimentLabel": "positive", "pos": 4, "neg": 1, "trend": 1.5,
+      "lastPublished": "2026-06-09T15:10:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "reddit:32beatwriters", "headline": "Worthy standout in red-zone drills, looks featured in the offense", "published": "2026-06-09T15:10:00.000Z", "score": 0.5, "method": "lexicon" },
+        { "source": "espn", "headline": "Chiefs expect a bigger role for Worthy in Year 2", "summary": "Added muscle this offseason; ascending.", "published": "2026-06-05T13:00:00.000Z", "link": "https://www.espn.com/", "score": 0.6, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_80b054a07f", "name": "Brock Bowers", "position": "TE", "team": "LV",
+      "volume": 6, "volumeBySource": { "espn": 2, "rotowire": 1, "reddit:dynastyff": 3 },
+      "sentiment": 0.6, "sentimentLabel": "positive", "pos": 3, "neg": 1, "trend": 0.5,
+      "lastPublished": "2026-06-04T18:45:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "rotowire", "headline": "Bowers an every-down weapon, locked in as the TE1", "summary": "New OC plans to feature him heavily.", "published": "2026-06-04T18:45:00.000Z", "score": 0.67, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_5a30fff9e4", "name": "Caleb Williams", "position": "QB", "team": "CHI",
+      "volume": 6, "volumeBySource": { "espn": 2, "reddit:fantasyfootball": 3, "reddit:32beatwriters": 1 },
+      "sentiment": 0.2, "sentimentLabel": "positive", "pos": 3, "neg": 2, "trend": 1.0,
+      "lastPublished": "2026-06-08T17:00:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "espn", "headline": "Williams impressive in new scheme but concern over O-line", "summary": "Praised for accuracy; some red flag chatter on protection.", "published": "2026-06-08T17:00:00.000Z", "link": "https://www.espn.com/", "score": 0.0, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_410d1b0094", "name": "Rome Odunze", "position": "WR", "team": "CHI",
+      "volume": 5, "volumeBySource": { "reddit:fantasyfootball": 3, "reddit:dynastyff": 2 },
+      "sentiment": 0.33, "sentimentLabel": "positive", "pos": 2, "neg": 1, "trend": 4.0,
+      "lastPublished": "2026-06-09T20:00:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "reddit:dynastyff", "headline": "Odunze breakout candidate? Reps with the first team are encouraging", "published": "2026-06-09T20:00:00.000Z", "score": 0.5, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_bc401c420b", "name": "Ladd McConkey", "position": "WR", "team": "LAC",
+      "volume": 4, "volumeBySource": { "espn": 1, "rotowire": 1, "reddit:fantasyfootball": 2 },
+      "sentiment": 0.0, "sentimentLabel": "neutral", "pos": 1, "neg": 1, "trend": 1.0,
+      "lastPublished": "2026-06-03T12:00:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "rotowire", "headline": "McConkey running with the starters, no setbacks reported", "published": "2026-06-03T12:00:00.000Z", "score": 0.0, "method": "lexicon" }
+      ]
+    },
+    {
+      "player_key": "sh_52085e323f", "name": "Trey Benson", "position": "RB", "team": "ARI",
+      "volume": 5, "volumeBySource": { "reddit:dynastyff": 3, "reddit:fantasyfootball": 2 },
+      "sentiment": 0.43, "sentimentLabel": "positive", "pos": 3, "neg": 1, "trend": 1.5,
+      "lastPublished": "2026-06-09T09:30:00.000Z", "method": "lexicon",
+      "items": [
+        { "source": "reddit:dynastyff", "headline": "Benson buy-low window closing, lead-back upside if Conner misses time", "published": "2026-06-09T09:30:00.000Z", "score": 0.33, "method": "lexicon" }
+      ]
+    }
+  ]
+}

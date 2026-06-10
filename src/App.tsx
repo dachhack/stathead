@@ -43,6 +43,7 @@ import { DocsSeasonPPG } from './components/DocsSeasonPPG';
 import { MyRankings } from './components/MyRankings';
 import { MyProspectRankings } from './components/MyProspectRankings';
 import { DataQuery } from './components/DataQuery';
+import { BuzzTracker } from './components/BuzzTracker';
 import { HomePage } from './components/HomePage';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
@@ -103,6 +104,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'sleeper-league', label: 'Sleeper Leagues' },
       { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
       { id: 'expert-tracker', label: 'Expert Tracker' },
+      { id: 'buzz-tracker', label: 'Buzz Tracker' },
       { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
@@ -332,6 +334,7 @@ function App() {
         {tab === 'sleeper-waivers' && <SleeperWaiverWire />}
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
+        {tab === 'buzz-tracker' && <BuzzTracker />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
         {tab === 'sportsdata' && (
