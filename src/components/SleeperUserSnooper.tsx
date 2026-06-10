@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueTypeName, leagueFormatInfo, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
+import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueTypeName, leagueFormatInfo, qbFormatLabel, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
+import { dynastyPickValue, overallPickNumber } from '../lib/tradeEngine';
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, KTCPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -126,20 +127,21 @@ interface RosterScore {
   matchedCount: number;
 }
 
-function scoreRosterSimple(team: LeagueTeam, ktc: KTCPlayer[]): RosterScore | null {
+function scoreRosterSimple(team: LeagueTeam, ktc: KTCPlayer[], isSuperflex: boolean): RosterScore | null {
   const ktcByName = new Map<string, KTCPlayer>();
   for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
   const allPlayers = [...team.starters, ...team.bench].filter((p) => p.position && p.position !== 'DEF' && p.name !== 'Empty');
   let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, ageSum = 0, matchedCount = 0;
   for (const p of allPlayers) {
     const k = ktcByName.get(normalizeForMatch(p.name));
-    if (!k || k.value <= 0) continue;
+    const val = k ? (isSuperflex ? k.superflexValue : k.value) : 0;
+    if (!k || val <= 0) continue;
     matchedCount++;
-    totalValue += k.value;
+    totalValue += val;
     ageSum += k.age;
-    if (k.age <= 24) youngValue += k.value;
-    else if (k.age <= 27) primeValue += k.value;
-    else agingValue += k.value;
+    if (k.age <= 24) youngValue += val;
+    else if (k.age <= 27) primeValue += val;
+    else agingValue += val;
   }
   if (!matchedCount) return null;
   const avgAge = ageSum / matchedCount;
@@ -187,6 +189,9 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
 
   const selectedTeam = useMemo(() => data?.teams.find((t) => t.rosterId === selected), [data, selected]);
   const isDynasty = isDynastyLeague(data?.league);
+  // SF/2QB leagues price players on superflex dynasty values, matching the
+  // full League View's power rankings.
+  const isSuperflex = qbFormatLabel(data?.league.roster_positions) !== '1QB';
 
   // Projected season points per team's optimal lineup — the redraft strength metric.
   const projByTeam = useMemo(() => {
@@ -210,7 +215,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
     if (!data) return [];
     const out: { team: LeagueTeam; score: RosterScore | null; projPts: number }[] = [];
     for (const t of data.teams) {
-      const score = ktc.length ? scoreRosterSimple(t, ktc) : null;
+      const score = ktc.length ? scoreRosterSimple(t, ktc, isSuperflex) : null;
       const projPts = projByTeam.get(t.rosterId) ?? 0;
       if (isDynasty) {
         if (score) out.push({ team: t, score, projPts });
@@ -221,7 +226,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
     if (isDynasty) out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
     else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [data, ktc, isDynasty, projByTeam]);
+  }, [data, ktc, isDynasty, isSuperflex, projByTeam]);
 
   if (loading) return <div className="loading" style={{ padding: '12px 0' }}><div className="spinner" /><span className="loading-text">Loading league…</span></div>;
   if (error) return <p style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</p>;
@@ -278,8 +283,8 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
               <thead><tr>
                 <th>#</th><th>Team</th>
                 {isDynasty
-                  ? <><th>Window</th><th>Value</th><th>Avg Age</th><th style={{ width: 90 }}>Age Dist</th></>
-                  : <th title="Projected PPR points (optimal lineup)">Proj Pts</th>}
+                  ? <><th>Window</th><th title={isSuperflex ? 'Dynasty value (Superflex)' : 'Dynasty value (1QB)'}>Value</th><th>Avg Age</th><th style={{ width: 90 }}>Age Dist</th></>
+                  : <th title="Projected season points — optimal lineup scored with this league's scoring settings">Proj Pts</th>}
               </tr></thead>
               <tbody>
                 {powerRows.map(({ team: t, score: s, projPts }, i) => (
@@ -458,16 +463,31 @@ function StackedYearChart({ title, subtitle, data, series }: {
 }
 
 // ── Trade grading (hindsight, from the snooped user's side) ──
-const PICK_GRADE_VALUE: Record<number, number> = { 1: 6000, 2: 3000, 3: 1500, 4: 700 };
 const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th'];
 
-function sideValue(side: TradeSide, ktcByName: Map<string, number>, players: Map<string, SleeperPlayer>): number {
+// Per-league context for valuing trade assets: SF/2QB leagues use superflex
+// dynasty values, and picks are priced on the league-size-aware decay curve.
+interface TradeLeagueMeta { superflex: boolean; size: number }
+
+function sideValue(
+  side: TradeSide,
+  ktcByName: Map<string, KTCPlayer>,
+  players: Map<string, SleeperPlayer>,
+  meta: TradeLeagueMeta | undefined,
+): number {
+  const superflex = meta?.superflex ?? false;
+  const size = meta?.size || 12;
   let v = 0;
   for (const pid of side.players) {
     const sp = players.get(pid);
-    if (sp) v += ktcByName.get(normalizeForMatch(sp.full_name)) ?? 0;
+    if (!sp) continue;
+    const k = ktcByName.get(normalizeForMatch(sp.full_name));
+    if (k) v += superflex ? k.superflexValue : k.value;
   }
-  for (const pk of side.picks) v += PICK_GRADE_VALUE[pk.round] ?? 400;
+  // The pick's slot within its round is unknown, so assume mid-round; league
+  // size still moves the overall draft position (and thus the value) a lot.
+  const midSlot = Math.ceil(size / 2);
+  for (const pk of side.picks) v += dynastyPickValue(overallPickNumber(pk.round, midSlot, size));
   return v;
 }
 
@@ -493,10 +513,11 @@ function SideAssets({ side, players }: { side: TradeSide; players: Map<string, S
   return <>{nodes.map((n, i) => <span key={i}>{i > 0 ? ', ' : ''}{n}</span>)}</>;
 }
 
-function TradeList({ trades, players, ktcByName }: {
+function TradeList({ trades, players, ktcByName, leagueMeta }: {
   trades: TradeRecord[];
   players: Map<string, SleeperPlayer>;
-  ktcByName: Map<string, number>;
+  ktcByName: Map<string, KTCPlayer>;
+  leagueMeta: Map<string, TradeLeagueMeta>;
 }) {
   const MAX = 80;
   const [leagueFilter, setLeagueFilter] = useState('all');
@@ -520,7 +541,7 @@ function TradeList({ trades, players, ktcByName }: {
           ))}
         </select>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          Grades are hindsight — current player/pick values from your side of each deal.
+          Grades are hindsight — current player/pick values from your side of each deal, using each league&apos;s QB format (SF values in SF/2QB leagues) and size (pick pricing).
         </span>
       </div>
       <div className="table-container" style={{ maxHeight: 420 }}>
@@ -528,8 +549,9 @@ function TradeList({ trades, players, ktcByName }: {
           <thead><tr><th>When</th><th>League</th><th>Got</th><th>Gave</th><th title="Hindsight grade from this manager's side">Grade</th></tr></thead>
           <tbody>
             {shown.map((t, i) => {
-              const recv = sideValue(t.received, ktcByName, players);
-              const gave = sideValue(t.gave, ktcByName, players);
+              const meta = leagueMeta.get(t.leagueId);
+              const recv = sideValue(t.received, ktcByName, players, meta);
+              const gave = sideValue(t.gave, ktcByName, players, meta);
               const g = tradeGrade(recv, gave);
               return (
                 <tr key={`${t.leagueId}-${t.created}-${i}`}>
@@ -658,10 +680,20 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
   );
 
   const ktcByName = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const k of ktc) m.set(normalizeForMatch(k.playerName), k.value);
+    const m = new Map<string, KTCPlayer>();
+    for (const k of ktc) m.set(normalizeForMatch(k.playerName), k);
     return m;
   }, [ktc]);
+
+  // QB format + size per league (from the season records), so trade grades use
+  // superflex values in SF/2QB leagues and size-aware pick pricing.
+  const tradeLeagueMeta = useMemo(() => {
+    const m = new Map<string, TradeLeagueMeta>();
+    for (const r of history) {
+      if (!m.has(r.leagueId)) m.set(r.leagueId, { superflex: r.format.qb !== '1QB', size: r.totalRosters });
+    }
+    return m;
+  }, [history]);
 
   // Current projected PPR points by sleeper id — the talent signal for the
   // historical window proxy.
@@ -860,7 +892,7 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
         </div>
       )}
       {trades && trades.trades.length > 0 && (
-        <TradeList trades={trades.trades} players={players} ktcByName={ktcByName} />
+        <TradeList trades={trades.trades} players={players} ktcByName={ktcByName} leagueMeta={tradeLeagueMeta} />
       )}
 
       {/* Per-league finishes */}

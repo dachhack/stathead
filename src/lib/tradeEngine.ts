@@ -114,6 +114,9 @@ function buildTeamProfile(
   // Redraft leagues value, compare, and rank everything on projected season
   // points instead of dynasty (KTC) value.
   useProjectedValue = false,
+  // SF/2QB leagues price players on the superflex value (QBs are worth far
+  // more); 1QB leagues use the base value — matching the power rankings.
+  isSuperflex = false,
 ): TeamProfile {
   const assets: TradeAsset[] = [];
   const posValues: Record<string, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
@@ -124,8 +127,8 @@ function buildTeamProfile(
     const k = ktcByName.get(normalizeForMatch(p.name));
     const proj = projMap?.get(p.id) ?? 0;
     // In redraft mode the trade currency is projected points; include any player
-    // with a projection. In dynasty mode it's KTC value.
-    const value = useProjectedValue ? proj : (k?.value ?? 0);
+    // with a projection. In dynasty mode it's KTC value (SF value in SF leagues).
+    const value = useProjectedValue ? proj : ((isSuperflex ? k?.superflexValue : k?.value) ?? 0);
     if (value <= 0) continue;
     assets.push({
       type: 'player',
@@ -378,6 +381,8 @@ export function generateTradeSuggestions(
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
   // Redraft: value, compare, and rank on projected points instead of KTC value.
   useProjectedValue = false,
+  // Dynasty SF/2QB leagues: price players on superflex value.
+  isSuperflex = false,
 ): TradeSuggestion[] {
   rngState = Date.now();
 
@@ -387,7 +392,7 @@ export function generateTradeSuggestions(
   const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
     const goal = goals.get(t.rosterId) ?? 'balanced';
-    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue));
+    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue, isSuperflex));
   }
 
   const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;

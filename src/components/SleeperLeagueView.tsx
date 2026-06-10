@@ -1056,9 +1056,10 @@ interface TradeSectionProps {
   projStatsMap: Map<string, TradeAssetStats>;
   lastSeasonMap: Map<string, { pts: number; posRank: number }>;
   isDynasty: boolean;
+  isSuperflex: boolean;
 }
 
-function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty, isSuperflex }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -1071,7 +1072,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
   const doGenerate = async () => {
     setLoading(true);
     try {
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty);
+      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty, isSuperflex);
       setSuggestions(results);
       setGenerated(true);
     } catch {
@@ -1111,8 +1112,8 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
           )}
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             {isDynasty
-              ? 'Trades consider dynasty value, age, positional needs, and 2027–2028 draft picks (slotted by projected finish). Your top assets are protected.'
-              : 'Trades consider projected season points and positional needs. Your top assets are protected.'}
+              ? `Trades consider dynasty value${isSuperflex ? ' (Superflex)' : ''}, age, positional needs, and 2027–2028 draft picks (slotted by projected finish and priced by league size). Your top assets are protected.`
+              : 'Trades consider projected season points (league scoring) and positional needs. Your top assets are protected.'}
           </p>
 
           {!isDynasty && (
@@ -1694,6 +1695,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               projStatsMap={projStatsMap}
               lastSeasonMap={lastSeasonMap}
               isDynasty={isDynasty}
+              isSuperflex={isSuperflex}
             />
           )}
 
