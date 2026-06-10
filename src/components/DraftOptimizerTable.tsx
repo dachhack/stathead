@@ -19,6 +19,8 @@ import { DraftTargetsFades } from './DraftTargetsFades';
 import { DraftValueBoard } from './DraftValueBoard';
 import { DraftRosterSim } from './DraftRosterSim';
 import { DraftRookieVetEdges } from './DraftRookieVetEdges';
+import { DraftLiveAssistant } from './DraftLiveAssistant';
+import { MethodNote } from './MethodNote';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
 import { buildKitPool, kitKey } from '../lib/draftKit';
@@ -131,6 +133,19 @@ interface SavedRankingBoard {
 
 const MY_RANKINGS_KEY = 'stathead-my-rankings';
 const CURRENT_SEASON = 2026;
+
+// Workflow steps. The page is a draft-prep progression: configure the
+// league (settings header, always visible), then 1 study the cheat
+// sheet, 2 mark your edges, 3 simulate the plan from your seat, and
+// 4 run it live on draft day.
+const VIEWS = [
+  { id: 'sheet', label: '1 · Cheat Sheet', caption: 'where the value is' },
+  { id: 'edges', label: '2 · Edges', caption: 'targets & fades vs ADP' },
+  { id: 'plan', label: '3 · My Plan', caption: 'simulate from your seat' },
+  { id: 'live', label: '4 · Draft Day', caption: 'live draft sync' },
+] as const;
+type ViewId = typeof VIEWS[number]['id'];
+const VIEW_KEY = 'draft-kit-view';
 
 function loadSavedBoards(): SavedRankingBoard[] {
   try {
@@ -275,6 +290,16 @@ export function DraftOptimizerTable() {
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [savedBoards, setSavedBoards] = useState<SavedRankingBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [view, setView] = useState<ViewId>(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY) as ViewId | null;
+      return v && VIEWS.some((x) => x.id === v) ? v : 'sheet';
+    } catch { return 'sheet'; }
+  });
+  const switchView = (v: ViewId) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* quota */ }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
@@ -742,15 +767,9 @@ export function DraftOptimizerTable() {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Prep</h1>
-        <span style={{
-          fontSize: 11, background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
-          border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', fontWeight: 600,
-        }}>
-          Edge Board
-        </span>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {displayRows.length} players
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Draft Kit</h1>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          Set your league below — every number on this page recomputes around it.
         </span>
       </div>
 
@@ -762,7 +781,36 @@ export function DraftOptimizerTable() {
         onScenarioChange={setSelectedScenarioId}
       />
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
+      {/* Workflow steps */}
+      <div style={{ display: 'flex', gap: 8, margin: '4px 0 16px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => switchView(v.id)}
+            style={{
+              flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+              background: view === v.id ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+              border: view === v.id ? '1px solid var(--accent, #00d4aa)' : '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 12px',
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 800, color: view === v.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+              {v.label}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{v.caption}</div>
+          </button>
+        ))}
+      </div>
+
+      {view === 'edges' && (
+        <>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Edge Board</h2>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          model vs market, player by player · {displayRows.length} players
+        </span>
+      </div>
+      <MethodNote id="edge-board">
         <strong>Model</strong> = our ADP-free ensemble's predicted PPG
         (Stathead, score-store/ppg.json).{' '}
         <strong>Proj</strong> = base projections from{' '}
@@ -797,13 +845,13 @@ export function DraftOptimizerTable() {
             new distribution.
           </>
         )}
-        {Object.keys(curves).length === 0 && (
-          <span style={{ color: '#fb923c', marginLeft: 6 }}>
-            ADP curve unavailable — Pick Edge / Beat % / Verdict will
-            show as “—” until the next score-store build.
-          </span>
-        )}
-      </p>
+      </MethodNote>
+      {Object.keys(curves).length === 0 && (
+        <p style={{ fontSize: 12, color: '#fb923c', marginBottom: 12 }}>
+          ADP curve unavailable — Pick Edge / Beat % / Verdict will
+          show as “—” until the next score-store build.
+        </p>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {POSITIONS.map((p) => (
@@ -1029,46 +1077,47 @@ export function DraftOptimizerTable() {
         </div>
       )}
 
-      {/* Section 2: Value Board. BeerSheets-style VBD cheat sheet over
-          the wide projection pool (rookie-inclusive), with tier colors,
-          scarcity bars, and ADP-arbitrage deltas. */}
-      <DraftValueBoard
-        pool={kitPool}
-        settings={settings}
-        myRankByKey={myRankByKey}
-        myBoardName={myBoard?.name}
-      />
-
-      {/* Section 3: Optimal Team Builder. Simulates the user's draft
-          from their seat (survival-aware, roster-aware greedy VBD) and
-          quantifies the edge vs an ADP-chalk roster. */}
-      <DraftRosterSim pool={kitPool} settings={settings} />
-
-      {/* Section 4: Rookie & Veteran Edges. Market mispricings on the
-          rookie class (career-model boom/startable probs) and on boring
-          4+-year vets the community fades. */}
+      {/* Step 2 continued: Targets & Fades + Rookie/Vet market
+          mispricings live with the Edge Board. */}
+      <DraftTargetsFades rows={enrichedRows} />
       <DraftRookieVetEdges
         pool={kitPool}
         settings={settings}
         career={careerScores}
         currentSeason={CURRENT_SEASON}
       />
+        </>
+      )}
 
-      {/* Section 5: Round-by-Round Plan. Reads enrichedRows so verdict
-          + survival reflect the user's current settings header. */}
-      <DraftRoundPlan rows={enrichedRows} settings={settings} />
+      {view === 'sheet' && (
+        <>
+          {/* Step 1: the market study — BeerSheets-style VBD cheat
+              sheet (rookie-inclusive pool, tier colors, scarcity bars,
+              ADP-arbitrage deltas) + the tier-cliff scatter. */}
+          <DraftValueBoard
+            pool={kitPool}
+            settings={settings}
+            myRankByKey={myRankByKey}
+            myBoardName={myBoard?.name}
+          />
+          <DraftTierMap rows={enrichedRows} settings={settings} />
+        </>
+      )}
 
-      {/* Section 6: Tier Map. Per-position scatter (ADP × Pred PPG)
-          with cliff lines at tier boundaries. Production tiers — by
-          predicted PPG — answer the "where do positions run out?"
-          question; verdict color overlays the value signal. */}
-      <DraftTierMap rows={enrichedRows} settings={settings} />
+      {view === 'plan' && (
+        <>
+          {/* Step 3: the plan from the user's seat — full-draft sim vs
+              an ADP-chalk roster, then the round-by-round pick guide. */}
+          <DraftRosterSim pool={kitPool} settings={settings} />
+          <DraftRoundPlan rows={enrichedRows} settings={settings} />
+        </>
+      )}
 
-      {/* Section 7: Targets & Fades. Top-N undervalued and overvalued
-          per position, scored by edge × confidence. Filtered to
-          ADP ≤ 200 by default to keep the lists in actionable
-          territory; toggle off for sleepers. */}
-      <DraftTargetsFades rows={enrichedRows} />
+      {view === 'live' && (
+        /* Step 4: draft day — Sleeper draft sync (or manual tracking
+           for other platforms) with need-aware best-available. */
+        <DraftLiveAssistant pool={kitPool} settings={settings} onSettingsChange={setSettings} />
+      )}
     </div>
   );
 }

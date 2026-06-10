@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PlayerName } from './PlayerName';
+import { MethodNote } from './MethodNote';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import type { BaselineMode, KitPlayer, ValuedPlayer } from '../lib/draftKit';
 import {
@@ -104,7 +105,7 @@ export function DraftValueBoard({ pool, settings, myRankByKey, myBoardName }: Pr
         </label>
       </header>
 
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.55 }}>
+      <MethodNote id="value-board">
         <strong>VBD</strong> = season points over a replacement-level
         alternative at the position, computed from your roster slots
         (flex allocated greedily by projected PPG) and scoring.{' '}
@@ -122,7 +123,7 @@ export function DraftValueBoard({ pool, settings, myRankByKey, myBoardName }: Pr
             “{myBoardName}”.
           </>
         )}
-      </p>
+      </MethodNote>
 
       {/* Scarcity bars */}
       <div style={{

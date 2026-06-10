@@ -3,7 +3,7 @@ import { PlayerName } from './PlayerName';
 import type { DraftPrepSettings, Position } from '../lib/draftPrepSettings';
 import { startersPerTeam } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
-import { KIT_POSITIONS, SEASON_GAMES, valuePool } from '../lib/draftKit';
+import { KIT_POSITIONS, SEASON_GAMES, valuePool, openSlots, assignSlot, starterSlotOpen } from '../lib/draftKit';
 import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
 
 // Optimal Team Builder — simulates the user's whole draft from their
@@ -47,21 +47,6 @@ interface SimResult {
   lineupPts: number;   // projected season points of the optimal starting lineup
 }
 
-/** Open-slot bookkeeping for one simulated roster. */
-function makeSlots(settings: DraftPrepSettings) {
-  return {
-    QB: settings.roster.QB, RB: settings.roster.RB, WR: settings.roster.WR, TE: settings.roster.TE,
-    FLEX: settings.roster.FLEX, SF: settings.roster.SF,
-  };
-}
-
-function assignSlot(slots: ReturnType<typeof makeSlots>, pos: Position): string {
-  if (slots[pos] > 0) { slots[pos]--; return pos; }
-  if (pos !== 'QB' && slots.FLEX > 0) { slots.FLEX--; return 'FLEX'; }
-  if (slots.SF > 0) { slots.SF--; return 'SF'; }
-  return 'BN';
-}
-
 /** Projected season points of the best legal starting lineup of a roster. */
 function lineupPoints(roster: ValuedPlayer[], settings: DraftPrepSettings): number {
   const byPos: Record<Position, number[]> = { QB: [], RB: [], WR: [], TE: [] };
@@ -95,7 +80,7 @@ function simulate(
   strategy: 'value' | 'chalk',
 ): SimResult {
   const taken = new Set<string>();
-  const slots = makeSlots(settings);
+  const slots = openSlots(settings);
   const roster: ValuedPlayer[] = [];
   const picks: SimPick[] = [];
 
@@ -106,8 +91,7 @@ function simulate(
       .filter((c) => !taken.has(`${c.p.name}:${c.p.position}`) && c.surv >= SURVIVAL_FLOOR);
     if (candidates.length === 0) break;
 
-    const starterOpen = (pos: Position) =>
-      slots[pos] > 0 || (pos !== 'QB' && slots.FLEX > 0) || slots.SF > 0;
+    const starterOpen = (pos: Position) => starterSlotOpen(slots, pos);
 
     const score = (p: ValuedPlayer): number => strategy === 'chalk'
       // Chalk drafts strictly by market price (lowest ADP first), with a

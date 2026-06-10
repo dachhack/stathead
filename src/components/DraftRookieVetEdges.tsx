@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { PlayerName } from './PlayerName';
+import { MethodNote } from './MethodNote';
 import { normName } from '../lib/nameUtils';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
@@ -112,7 +113,7 @@ export function DraftRookieVetEdges({ pool, settings, career, currentSeason }: P
           Where the room's priors break · Δ = ADP vs value rank, in rounds
         </span>
       </header>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.55 }}>
+      <MethodNote id="rookie-vet">
         <strong>Rookie values</strong> pair the market discount (projection
         value rank vs ADP) with the career model's profile —{' '}
         <strong>Start %</strong> is the model's probability the rookie hits
@@ -125,7 +126,7 @@ export function DraftRookieVetEdges({ pool, settings, career, currentSeason }: P
         systematic buy). <strong>Veteran values</strong> are 4+ year vets whose
         boring projection out-runs their ADP — the community fade you get paid
         to take.
-      </p>
+      </MethodNote>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 12 }}>
         <Panel title="Rookie values" accent="#22c55e">

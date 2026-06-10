@@ -6,6 +6,7 @@ import {
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { pickNumber, survivalAtPick } from '../lib/snakeDraft';
 import { PlayerName } from './PlayerName';
+import { MethodNote } from './MethodNote';
 
 // Round-by-Round Plan section. For each of the user's picks across the
 // first 12 rounds, show the pick number, recommended position(s), 3
@@ -128,7 +129,7 @@ export function DraftRoundPlan({ rows, settings }: Props) {
           {settings.draftType} · 12 rounds
         </span>
       </header>
-      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.55 }}>
+      <MethodNote id="round-plan">
         For each of your picks, the top-PickEdge targets filtered to (a)
         players ≥55% likely to be available (likely) or 20–55% likely
         (coin flip), and (b) within ±1 round of the pick — without that
@@ -137,7 +138,7 @@ export function DraftRoundPlan({ rows, settings }: Props) {
         Recommendation is whichever position has the strongest edge in
         the likely bucket; ties within 0.5 PPG show both. Survival uses
         Gaussian on FFC ADP stdev (σ=8 fallback when stdev=0).
-      </p>
+      </MethodNote>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 12 }}>
         {cards.map((c) => (
