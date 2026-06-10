@@ -6,6 +6,7 @@ import {
 import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
 import type { SleeperPlayer, Tab, KTCPlayer } from '../types';
 import { PlayerName } from './PlayerName';
+import { PlayerAvatar } from './PlayerAvatar';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { dynastyPickValue } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
@@ -276,6 +277,20 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const pname = (id: string) => players.get(id)?.full_name ?? id;
   const ppos = (id: string) => players.get(id)?.position ?? '?';
 
+  // One side of a trade line: player chips (headshot + name) followed by pick labels.
+  const tradeSide = (ids: string[], pickLabels: string[]) =>
+    ids.length + pickLabels.length === 0 ? '—' : (
+      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 10px', verticalAlign: 'middle' }}>
+        {ids.map((id, j) => (
+          <span key={`${id}:${j}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PlayerAvatar name={pname(id)} position={ppos(id)} size={16} />
+            {pname(id)}
+          </span>
+        ))}
+        {pickLabels.map((p, j) => <span key={`pk:${j}`}>{p}</span>)}
+      </span>
+    );
+
   // Ownership/Adds rows arrive pre-sorted by (-experts, …), so a stable sort by
   // the active column keeps the pipeline order as the tie-break.
   const ownRows = useMemo(() => {
@@ -470,7 +485,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                     {ownRows.slice(0, 150).map((r, i) => (
                       <tr key={r.p.id}>
                         <td className="rank-cell">{i + 1}</td>
-                        <td><strong><PlayerName sleeperId={r.p.id} name={pname(r.p.id)} position={ppos(r.p.id)} /></strong></td>
+                        <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><PlayerAvatar name={pname(r.p.id)} position={ppos(r.p.id)} size={20} /><strong><PlayerName sleeperId={r.p.id} name={pname(r.p.id)} position={ppos(r.p.id)} /></strong></span></td>
                         <td><span className={`pos-badge pos-${ppos(r.p.id)}`}>{ppos(r.p.id)}</span></td>
                         <td title={`${r.p.experts} of ${gOwn.expert_count} experts`}><b>{r.p.experts}</b> / {gOwn.expert_count}</td>
                         <td>{r.metric}{ownDenom ? <span style={{ color: 'var(--text-muted)' }}> / {ownDenom}</span> : ''}</td>
@@ -499,7 +514,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                   {addRows.slice(0, 150).map((a, i) => (
                     <tr key={a.id}>
                       <td className="rank-cell">{i + 1}</td>
-                      <td><strong><PlayerName sleeperId={a.id} name={pname(a.id)} position={ppos(a.id)} /></strong></td>
+                      <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><PlayerAvatar name={pname(a.id)} position={ppos(a.id)} size={20} /><strong><PlayerName sleeperId={a.id} name={pname(a.id)} position={ppos(a.id)} /></strong></span></td>
                       <td><span className={`pos-badge pos-${ppos(a.id)}`}>{ppos(a.id)}</span></td>
                       <td><b>{a.experts}</b></td>
                       <td>{a.count}</td>
@@ -528,8 +543,8 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                     <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{t.created ? new Date(t.created).toLocaleDateString() : ''}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                    <div><span style={{ color: '#22c55e', fontWeight: 700 }}>Got:</span> {[...t.received.map(pname), ...t.picks.filter((p) => p.to).map((p) => `${p.season} R${p.round}`)].join(', ') || '—'}</div>
-                    <div><span style={{ color: '#ef4444', fontWeight: 700 }}>Gave:</span> {[...t.gave.map(pname), ...t.picks.filter((p) => !p.to).map((p) => `${p.season} R${p.round}`)].join(', ') || '—'}</div>
+                    <div><span style={{ color: '#22c55e', fontWeight: 700 }}>Got:</span> {tradeSide(t.received, t.picks.filter((p) => p.to).map((p) => `${p.season} R${p.round}`))}</div>
+                    <div><span style={{ color: '#ef4444', fontWeight: 700 }}>Gave:</span> {tradeSide(t.gave, t.picks.filter((p) => !p.to).map((p) => `${p.season} R${p.round}`))}</div>
                   </div>
                 </div>
                 );
