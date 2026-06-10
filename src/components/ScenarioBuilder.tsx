@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import type {
   SDIOProjection,
   ScenarioConfig,
@@ -90,6 +90,24 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
 export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, clayStats, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+
+  // Undo history — snapshots of the scenario taken before each change. Local
+  // to the builder session (cleared on unmount); see `commit`/`undo` below.
+  const historyRef = useRef<ScenarioConfig[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+
+  // Save signals: `autoStatus` mirrors App's debounced draft auto-save;
+  // `savedFlash` confirms an explicit Save into the named library.
+  const [autoStatus, setAutoStatus] = useState<'idle' | 'pending' | 'saved'>('idle');
+  const [savedFlash, setSavedFlash] = useState(false);
+  const firstChange = useRef(true);
+  useEffect(() => {
+    // Skip the initial mount so opening the builder doesn't flash "Saving…".
+    if (firstChange.current) { firstChange.current = false; return; }
+    setAutoStatus('pending');
+    const t = setTimeout(() => setAutoStatus('saved'), 500);
+    return () => clearTimeout(t);
+  }, [scenario]);
 
   // Roster editor (by-team interactive view for volume / availability / projection)
   const [editTeam, setEditTeam] = useState('');
@@ -236,7 +254,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
 
   if (!open) return null;
 
-  const update = (patch: Partial<ScenarioConfig>) => onChange({ ...scenario, ...patch });
+  // Every scenario mutation funnels through `commit`: it snapshots the
+  // current scenario onto the undo stack, then applies the change. `undo`
+  // restores the last snapshot directly (without re-recording it).
+  const commit = (next: ScenarioConfig) => {
+    historyRef.current.push(scenario);
+    if (historyRef.current.length > 50) historyRef.current.shift();
+    setCanUndo(true);
+    onChange(next);
+  };
+  const undo = () => {
+    const prev = historyRef.current.pop();
+    if (!prev) return;
+    setCanUndo(historyRef.current.length > 0);
+    onChange(prev);
+  };
+  const update = (patch: Partial<ScenarioConfig>) => commit({ ...scenario, ...patch });
 
   // --- Team tendency / volume actions (upsert; 0 clears) for the current team ---
   const setTeamTendencyFor = (team: string, delta: number) => {
@@ -446,17 +479,19 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (!preset) return;
     const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr, clayStats });
-    onChange({ ...next, id: scenario.id, name: preset.name });
+    commit({ ...next, id: scenario.id, name: preset.name });
   };
-  const resetToBase = () => onChange({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
+  const resetToBase = () => commit({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });
 
   // --- Save/load ---
   const handleSave = () => {
     saveScenario(scenario);
     setSavedList(loadAllScenarios());
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2000);
   };
   const handleLoad = (s: ScenarioConfig) => {
-    onChange(s);
+    commit(s);
     setShowSaved(false);
   };
   const handleDelete = (id: string) => {
@@ -498,7 +533,15 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               </div>
             )}
           </div>
-          {!embedded && <button className="chat-close" onClick={onClose}>✕</button>}
+          <div className="se-header-actions">
+            {!isScenarioEmpty(scenario) && (
+              <span className={`se-autosave se-autosave--${autoStatus === 'pending' ? 'pending' : 'saved'}`}
+                title="Your working scenario is auto-saved to this browser and restored on reload">
+                {autoStatus === 'pending' ? 'Saving…' : 'Auto-saved ✓'}
+              </span>
+            )}
+            {!embedded && <button className="chat-close" onClick={onClose}>✕</button>}
+          </div>
         </div>
 
         <div className="scenario-body">
@@ -532,6 +575,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 >
                   Load
                 </button>
+                {savedFlash && <span className="se-save-flash">Saved ✓</span>}
               </div>
               {showSaved && (
                 <div className="scenario-saved-list">
@@ -1260,8 +1304,16 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
         <div className="scenario-footer">
           <button
             className="scenario-clear-btn"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo the last change"
+          >
+            ↶ Undo
+          </button>
+          <button
+            className="scenario-clear-btn"
             onClick={() =>
-              onChange({
+              commit({
                 ...scenario,
                 vegasWeighting: 0,
                 teamTendencies: [],

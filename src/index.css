@@ -1315,6 +1315,33 @@ tr:hover td {
   font-weight: 500;
 }
 
+/* Header right cluster: auto-save status + close button */
+.se-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.se-autosave {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.se-autosave--pending { color: var(--text-muted); background: var(--bg-tertiary); }
+.se-autosave--saved { color: var(--accent); background: rgba(0, 212, 170, 0.12); }
+
+/* Transient confirmation after an explicit Save into the named library */
+.se-save-flash {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  animation: se-fade-in 0.15s ease;
+}
+@keyframes se-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
 .scenario-body {
   flex: 1;
   overflow-y: auto;

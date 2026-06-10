@@ -47,7 +47,7 @@ import { HomePage } from './components/HomePage';
 import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
-import { createEmptyScenario } from './lib/scenarioEngine';
+import { createEmptyScenario, loadScenarioDraft, saveScenarioDraft } from './lib/scenarioEngine';
 import type { Tab, ScenarioConfig } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
@@ -119,7 +119,15 @@ function App() {
   const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const [scenario, setScenario] = useState<ScenarioConfig>(createEmptyScenario);
+  // Restore the last working scenario so in-progress edits survive a reload.
+  const [scenario, setScenario] = useState<ScenarioConfig>(
+    () => loadScenarioDraft() ?? createEmptyScenario(),
+  );
+  // Auto-save the working scenario (debounced) on every change.
+  useEffect(() => {
+    const t = setTimeout(() => saveScenarioDraft(scenario), 400);
+    return () => clearTimeout(t);
+  }, [scenario]);
   const { seasonTotals, loading, error } = usePlayerData(season);
 
   // Hash-based player detail route: `#/player/sh_<key>` renders the
