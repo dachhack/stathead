@@ -89,6 +89,9 @@ interface GenAdds { generated: string; adds: { id: string; count: number; expert
 interface GenTrade { created: number; dynasty: boolean; sf: boolean; expert?: number; received: string[]; gave: string[]; picks: { season: string; round: number; to: boolean }[] }
 interface GenTrades { generated: string; trades: GenTrade[]; }
 
+/** Date-window chips for the Adds + Trades views: [days back, label]; 0 = all time. */
+const SINCE_OPTIONS: Array<[number, string]> = [[7, '7d'], [14, '14d'], [30, '30d'], [60, '60d'], [0, 'All']];
+
 const FMT_FILTERS = ['all', 'dynasty', 'redraft', 'sf', '1qb'] as const;
 type FmtFilter = (typeof FMT_FILTERS)[number];
 const FMT_LABEL: Record<FmtFilter, string> = { all: 'All', dynasty: 'Dynasty', redraft: 'Redraft', sf: 'Superflex', '1qb': '1QB' };
@@ -130,6 +133,10 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const [gTrades, setGTrades] = useState<GenTrades | null>(null);
   const [dataView, setDataView] = useState<'ownership' | 'adds' | 'trades' | 'rank' | 'graph' | 'leagues' | 'candidates'>('ownership');
   const [fmt, setFmt] = useState<FmtFilter>('all');
+  // Date window for the Adds + Trades views, in days back (0 = all time).
+  // Shared between the two views so switching tabs keeps the window.
+  const [sinceDays, setSinceDays] = useState<number>(0);
+  const sinceCutoff = sinceDays ? Date.now() - sinceDays * 86_400_000 : 0;
   const [graph, setGraph] = useState<GenGraph | null>(null);
   const [lgGraph, setLgGraph] = useState<GenLeagueGraph | null>(null);
   const [gCands, setGCands] = useState<GenCandidates | null>(null);
@@ -313,7 +320,9 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const ownDenom = gOwn ? (gOwn.roster_totals[fmt] || 0) : 0;
 
   const addRows = useMemo(() => {
-    const rows = (gAdds?.adds ?? []).filter((a) => pos === 'ALL' || ppos(a.id) === pos);
+    const rows = (gAdds?.adds ?? [])
+      .filter((a) => pos === 'ALL' || ppos(a.id) === pos)
+      .filter((a) => !sinceCutoff || (a.last || 0) >= sinceCutoff);
     const val = (a: (typeof rows)[number]): string | number => {
       switch (addSort.k) {
         case 'player': return pname(a.id);
@@ -325,7 +334,12 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     };
     return rows.sort((a, b) => sortCmp(val(a), val(b), addSort.d));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gAdds, pos, players, addSort]);
+  }, [gAdds, pos, players, addSort, sinceCutoff]);
+
+  const tradeRows = useMemo(
+    () => (gTrades?.trades ?? []).filter((t) => !sinceCutoff || (t.created || 0) >= sinceCutoff),
+    [gTrades, sinceCutoff],
+  );
 
   useEffect(() => { fetchSleeperPlayers().then(setPlayers).catch(() => {}); }, []);
   useEffect(() => { localStorage.setItem(LS_KEY, JSON.stringify(experts)); }, [experts]);
@@ -500,6 +514,19 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
           )}
 
           {dataView === 'adds' && (
+            <>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 8px' }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Added within:</span>
+                {SINCE_OPTIONS.map(([d, label]) => (
+                  <button key={d} onClick={() => setSinceDays(d)} style={btn(sinceDays === d)}>{label}</button>
+                ))}
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                {addRows.length} players
+                {sinceDays > 0 && ' · Adds/Experts counts are all-time; the window keys on each player’s most recent add'}
+              </span>
+            </div>
             <div className="table-container" style={{ maxHeight: 600 }}>
               <table className="sched-table" style={{ fontSize: 12 }}>
                 <thead><tr>
@@ -524,11 +551,23 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {dataView === 'trades' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(gTrades?.trades ?? []).slice(0, 100).map((t, i) => {
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Traded within:</span>
+                  {SINCE_OPTIONS.map(([d, label]) => (
+                    <button key={d} onClick={() => setSinceDays(d)} style={btn(sinceDays === d)}>{label}</button>
+                  ))}
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {tradeRows.length} trades{tradeRows.length > 100 ? ' · showing newest 100' : ''}
+                </span>
+              </div>
+              {tradeRows.slice(0, 100).map((t, i) => {
                 const g = gradeTrade(t);
                 return (
                 <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
