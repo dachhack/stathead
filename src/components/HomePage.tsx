@@ -258,6 +258,33 @@ export function HomePage({ onNavigate }: HomePageProps) {
           in the repo.
         </div>
       </div>
+
+      <div
+        style={{
+          marginTop: 28,
+          paddingTop: 18,
+          borderTop: '1px solid var(--border)',
+          fontSize: 13,
+          color: 'var(--text-secondary)',
+          lineHeight: 1.6,
+        }}
+      >
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px' }}>Source &amp; license</h2>
+        <p style={{ margin: '0 0 6px' }}>
+          StatHead is open source. The full app, modeling pipeline, and data live in the{' '}
+          <a href="https://github.com/dachhack/stathead" target="_blank" rel="noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>
+            github.com/dachhack/stathead
+          </a>{' '}
+          repository — clone it to run locally, browse the data-extraction scripts, or open an issue.
+        </p>
+        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+          Released under the{' '}
+          <a href="https://github.com/dachhack/stathead/blob/main/LICENSE" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>
+            MIT License
+          </a>
+          {' '}— free to use, modify, and distribute with attribution; provided &ldquo;as is&rdquo; without warranty.
+        </p>
+      </div>
     </div>
   );
 }
