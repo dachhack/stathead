@@ -61,6 +61,17 @@ interface RedraftProjEntry { name: string; position: string; ppg: number }
 
 interface DepthStarter { name: string; team: string; pos: string }
 
+/** Ramp-model scores (score-store/taxi.json, scripts/train_taxi_model.py):
+ *  P(streamable this season / next season / ever within 4yr) for the
+ *  current year-2 class. Rookies are never scored (no NFL data yet). */
+interface TaxiModelScore { name: string; position: string; p1: number; p2: number; pEver: number }
+
+/** Model verdict thresholds — chosen in LOSO validation so the Taxi
+ *  bucket is forward-loaded (20% → 23% streamable by season) at 12%
+ *  drop regret. Keep in sync with scripts/train_taxi_model.py. */
+const MODEL_ROSTER_P1 = 0.5;
+const MODEL_DROP_PEVER = 0.12;
+
 type Verdict = 'Roster' | 'Taxi' | 'Drop';
 
 const VERDICT_STYLE: Record<Verdict, { bg: string; fg: string; desc: string }> = {
@@ -97,6 +108,10 @@ interface TaxiRow {
   dynValue: number;         // FantasyCalc value under active format; 0 if unranked
   dynRank: number;          // 9999 if unranked
   isDC1: boolean;           // listed #1 at his position on his NFL team's depth chart
+  /** Ramp-model probabilities (year-2 players only; NaN when unscored). */
+  p1: number;
+  p2: number;
+  pEver: number;
   verdict: Verdict;
   why: string;
 }
@@ -164,6 +179,31 @@ function verdictFor(r: Omit<TaxiRow, 'verdict' | 'why'>): { verdict: Verdict; wh
     return { verdict: 'Roster', why };
   }
 
+  // — Ramp model (year-2 players with a score). Trained directly on the
+  // streamable targets with leave-one-class-out validation (s1 AUC .85,
+  // s2 .82, ever .83) — it subsumes the hand rules below for scored
+  // players; unscored year-2s and all rookies fall through to the rules.
+  if (Number.isFinite(r.p1)) {
+    if (r.p1 >= MODEL_ROSTER_P1) {
+      return {
+        verdict: 'Roster',
+        why: `Ramp model: ${(100 * r.p1).toFixed(0)}% to be streamable THIS season (${(100 * r.p2).toFixed(0)}% next) — his value is now; keep him active.`,
+      };
+    }
+    if (r.pEver <= MODEL_DROP_PEVER) {
+      return {
+        verdict: 'Drop',
+        why: `Ramp model: ${(100 * r.pEver).toFixed(0)}% to EVER reach a streamable season (${(100 * r.p1).toFixed(0)}% this year, ${(100 * r.p2).toFixed(0)}% next) — the spot is worth more than the wait.`,
+      };
+    }
+    return {
+      verdict: 'Taxi',
+      why: r.p2 > r.p1
+        ? `Ramp model: ${(100 * r.p1).toFixed(0)}% streamable this season but ${(100 * r.p2).toFixed(0)}% next — a forward-loaded profile, exactly what the taxi spot is for (${(100 * r.pEver).toFixed(0)}% within 4 years).`
+        : `Ramp model: ${(100 * r.p1).toFixed(0)}% this season / ${(100 * r.p2).toFixed(0)}% next / ${(100 * r.pEver).toFixed(0)}% ever — not rosterable yet, too live to drop. Stash.`,
+    };
+  }
+
   // — Probably NEVER startable? Three falling-hazard patterns. —
   const quietRookieYr = r.isYear2 && (!Number.isFinite(r.rookieYearPpg) || r.rookieYearPpg < cutoff - 3);
   const noNowSignal = !Number.isFinite(r.nowPpg) || r.nowPpg < cutoff - 3;
@@ -204,7 +244,7 @@ const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
 const CLASSES = ['ALL', 'Rookies', 'Year 2'] as const;
 const VERDICTS: Array<'ALL' | Verdict> = ['ALL', 'Roster', 'Taxi', 'Drop'];
 
-type SortKey = 'verdict' | 'nowPpg' | 'startProb' | 'boomProb' | 'bustProb' | 'dynRank' | 'careerPpg' | 'percentile' | 'rookieYearPpg';
+type SortKey = 'verdict' | 'nowPpg' | 'startProb' | 'boomProb' | 'bustProb' | 'dynRank' | 'careerPpg' | 'percentile' | 'rookieYearPpg' | 'p2';
 
 const VERDICT_ORDER: Record<Verdict, number> = { Roster: 0, Taxi: 1, Drop: 2 };
 
@@ -214,6 +254,7 @@ export function TaxiSquadAdvisor() {
   const [dyn1qb, setDyn1qb] = useState<FcDynastyEntry[]>([]);
   const [dynSf, setDynSf] = useState<FcDynastyEntry[]>([]);
   const [dc1, setDc1] = useState<DepthStarter[]>([]);
+  const [modelScores, setModelScores] = useState<TaxiModelScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,7 +281,11 @@ export function TaxiSquadAdvisor() {
       fetch(`${BASE}data/depth-starters-${CURRENT_SEASON}.json`)
         .then((r) => (r.ok ? r.json() : { starters: [] }))
         .catch(() => ({ starters: [] })),
-    ]).then(([careerData, redraftData, d1, dsf, dcData]) => {
+      // Ramp-model scores (scripts/train_taxi_model.py).
+      fetch(`${BASE}data/score-store/taxi.json`)
+        .then((r) => (r.ok ? r.json() : { players: [] }))
+        .catch(() => ({ players: [] })),
+    ]).then(([careerData, redraftData, d1, dsf, dcData, taxiData]) => {
       if (cancelled) return;
       const entries = (Array.isArray(careerData) ? careerData : []) as CareerEntry[];
       if (!entries.length) {
@@ -253,6 +298,7 @@ export function TaxiSquadAdvisor() {
       setDyn1qb((Array.isArray(d1) ? d1 : []) as FcDynastyEntry[]);
       setDynSf((Array.isArray(dsf) ? dsf : []) as FcDynastyEntry[]);
       setDc1((dcData?.starters ?? []) as DepthStarter[]);
+      setModelScores((taxiData?.players ?? []) as TaxiModelScore[]);
       setLoading(false);
     }).catch((e) => {
       if (!cancelled) {
@@ -283,6 +329,10 @@ export function TaxiSquadAdvisor() {
     for (const s of dc1) {
       if (s?.name) dc1ByName.set(`${normName(s.name)}::${s.pos}`, s.team);
     }
+    const modelByName = new Map<string, TaxiModelScore>();
+    for (const m of modelScores) {
+      if (m?.name) modelByName.set(`${normName(m.name)}::${m.position}`, m);
+    }
 
     return career
       .filter((c) => c.draftSeason === CURRENT_SEASON || c.draftSeason === CURRENT_SEASON - 1)
@@ -309,10 +359,13 @@ export function TaxiSquadAdvisor() {
           dynValue: market?.value ?? 0,
           dynRank: market?.rank ?? 9999,
           isDC1: dcTeam !== undefined,
+          p1: modelByName.get(key)?.p1 ?? NaN,
+          p2: modelByName.get(key)?.p2 ?? NaN,
+          pEver: modelByName.get(key)?.pEver ?? NaN,
         };
         return { ...base, ...verdictFor(base) };
       });
-  }, [career, redraft, dyn1qb, dynSf, format, dc1]);
+  }, [career, redraft, dyn1qb, dynSf, format, dc1, modelScores]);
 
   const displayRows = useMemo(() => {
     let out = rows;
@@ -329,14 +382,15 @@ export function TaxiSquadAdvisor() {
         av = VERDICT_ORDER[a.verdict]; bv = VERDICT_ORDER[b.verdict];
         if (av === bv) {
           // Within a verdict, most actionable first: Roster by this-
-          // season projection, Taxi/Drop by future starter odds.
+          // season projection, Taxi/Drop by next-season odds (ramp
+          // model p2 where scored, career-model starter odds otherwise).
           if (a.verdict === 'Roster') {
             const an = Number.isFinite(a.nowPpg) ? a.nowPpg : -1;
             const bn = Number.isFinite(b.nowPpg) ? b.nowPpg : -1;
             return bn - an;
           }
-          const as = Number.isFinite(a.startProb) ? a.startProb : -1;
-          const bs = Number.isFinite(b.startProb) ? b.startProb : -1;
+          const as = Number.isFinite(a.p2) ? 100 * a.p2 : Number.isFinite(a.startProb) ? a.startProb : -1;
+          const bs = Number.isFinite(b.p2) ? 100 * b.p2 : Number.isFinite(b.startProb) ? b.startProb : -1;
           return bs - as;
         }
       } else {
@@ -427,8 +481,14 @@ export function TaxiSquadAdvisor() {
         TE 9 — a stricter bar; the future-horizon signal);{' '}
         <strong>Yr-1 PPG</strong> = actual rookie-season production
         (year-2 players); <strong>Value</strong> = FantasyCalc dynasty
-        market. Hover any verdict for the player-specific reasoning.
-        Names link to the full player page.
+        market. <strong>Strm % →</strong> = the ramp model (year-2
+        players): P(streamable this season) → P(next season), trained
+        on the 2010–2023 classes from the feature store (rookie-year
+        production, year-2 market ADP, depth-chart situation, draft
+        capital, combine) with leave-one-class-out validation — it
+        drives year-2 verdicts where scored; rookies use the career
+        model + rules. Hover any verdict for the player-specific
+        reasoning. Names link to the full player page.
       </MethodNote>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -507,6 +567,9 @@ export function TaxiSquadAdvisor() {
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('rookieYearPpg')}>
                 <span title="Actual rookie-season PPG (year-2 players only)">Yr-1 PPG</span>{sortArrow('rookieYearPpg')}
               </th>
+              <th style={{ ...th, textAlign: 'right', width: 72 }} onClick={() => handleSort('p2')}>
+                <span title="Ramp model: P(streamable THIS season) → P(streamable NEXT season). Year-2 players only — trained on 2010-2023 classes with leave-one-class-out validation (AUC .85/.82). Green arrow = forward-loaded profile.">Strm % →</span>{sortArrow('p2')}
+              </th>
               <th style={{ ...th, textAlign: 'right', width: 56 }} onClick={() => handleSort('startProb')}>
                 <span title="Career-model probability of reaching low-end-starter PPG at the position">Start %</span>{sortArrow('startProb')}
               </th>
@@ -562,6 +625,15 @@ export function TaxiSquadAdvisor() {
                 <td style={{ ...td, textAlign: 'right', color: 'var(--text-secondary)' }}>
                   {Number.isFinite(r.rookieYearPpg) ? r.rookieYearPpg.toFixed(1) : '—'}
                 </td>
+                <td style={{ ...td, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  {Number.isFinite(r.p1) ? (
+                    <span title={`Ramp model: ${(100 * r.p1).toFixed(0)}% streamable this season, ${(100 * r.p2).toFixed(0)}% next, ${(100 * r.pEver).toFixed(0)}% ever within 4 years.`}>
+                      {(100 * r.p1).toFixed(0)}
+                      <span style={{ color: r.p2 > r.p1 ? '#22c55e' : 'var(--text-muted)', fontWeight: 800 }}>→</span>
+                      {(100 * r.p2).toFixed(0)}
+                    </span>
+                  ) : '—'}
+                </td>
                 <td style={{ ...td, textAlign: 'right', fontWeight: 600, color: startProbColor(r.startProb) }}>
                   {Number.isFinite(r.startProb) ? `${Math.round(r.startProb)}%` : '—'}
                 </td>
@@ -613,16 +685,17 @@ export function TaxiSquadAdvisor() {
         (model's bottom tail AND weak profile AND zero production
         signal) — a Taxi verdict on a marginal profile just means the
         stash is free, not that he's untouchable.{' '}
-        <strong>Backtested on the 2010–2022 classes</strong> (verdicts
-        replayed at the year-2 decision against full weekly-stats
-        outcomes at the streamable bar): Roster hit streamable that
-        season 63% of the time (76% within 4 years); the Taxi bucket is
-        deliberately <em>forward-loaded</em> — 19% streamable next
-        season rising to 20% the season after (36% within 4 years),
-        because immediate producers go to Roster and falling-hazard
-        profiles go to Drop; 14% of Drops ever had a streamable season —
-        mostly journeyman streamers — and 116 of 126 true year-2
-        breakouts were retained.
+        <strong>Validated on the 2010–2023 classes</strong>: year-2
+        verdicts come from a gradient-boosted ramp model trained
+        directly on the streamable targets (leave-one-class-out AUC:
+        this-season .85, next-season .82, ever .83; thresholds p1 ≥ .50
+        → Roster, pEver ≤ .12 → Drop). At those thresholds the Roster
+        bucket hit streamable 76% of the time (86% within 4 years), the
+        Taxi bucket is genuinely <em>forward-loaded</em> — 20%
+        streamable next season rising to 23% the season after — and
+        only 12% of Drops ever had a streamable season, with just 3 of
+        68 delayed-ramp players mislabeled. Rookies and unscored players
+        use the hand-tuned rule tree (details in Model Docs).
       </p>
     </div>
   );

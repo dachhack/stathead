@@ -100,9 +100,73 @@ export function DraftKitValidation() {
         </p>
       </div>
 
-      {/* ── Taxi backtest ── */}
+      {/* ── Ramp model ── */}
       <div style={card}>
-        <h3 style={h3}>Taxi Verdicts — Backtest (2010–2022 classes)</h3>
+        <h3 style={h3}>Taxi Ramp Model (year-2 verdicts)</h3>
+        <p style={p13}>
+          Year-2 verdicts come from a gradient-boosted model
+          (<code>scripts/train_taxi_model.py</code> → <code>score-store/taxi.json</code>)
+          trained <em>directly</em> on the streamable targets rather than hand rules. Three
+          heads per player: <strong>p1</strong> = P(streamable this season), <strong>p2</strong> =
+          P(next season), <strong>pEver</strong> = P(within 4 years). 43 features from the
+          committed feature store at the decision season: rookie-year production (PPG/games/
+          snap share/touches), year-2 market ADP (live FFC/FantasyCalc for the current class),
+          situation shards where available (depth-chart rank, teammates drafted at the position,
+          routes YPRR, injuries, new head coach, Vegas win totals — sparse coverage handled as
+          informative missingness), and the draft-time career-model profile (capital, combine,
+          percentile, threshold probs).
+        </p>
+        <table style={{ borderCollapse: 'collapse', marginBottom: 12 }}>
+          <thead><tr style={{ borderBottom: '1px solid var(--border)' }}>
+            <th style={{ ...th, textAlign: 'left' }}>Head</th><th style={th}>n</th>
+            <th style={th}>LOSO AUC</th>
+          </tr></thead>
+          <tbody>
+            {([['p1 — streamable this season', 979, '.854'], ['p2 — streamable next season', 910, '.815'], ['pEver — within 4 years', 839, '.828']] as const).map(([h, n, a]) => (
+              <tr key={h} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={tdL}>{h}</td><td style={td}>{n}</td><td style={td}>{a}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={p13}>
+          Validation is leave-one-class-out across 2010–2023 (no class ever predicts itself);
+          the held-out 2023 class scored AUC .88 / .86 (p1 / p2). Top features by permutation
+          importance: year-2 ADP, rookie-year PPG gap to the streamable bar, rookie-year games,
+          career-model predicted PPG and boom odds, forty time and draft capital (both matter
+          <em> more</em> for p2 — buried pedigree is the ramp profile), and team win total.
+          Verdict thresholds: <strong>p1 ≥ 0.50 → Roster</strong>,{' '}
+          <strong>pEver ≤ 0.12 → Drop</strong>, else Taxi — chosen on the LOSO predictions so
+          the Taxi bucket is forward-loaded at low drop regret (table below). The model
+          replaces the hand rules for scored year-2 players; rookies (no NFL data yet) and
+          unscored players keep the rule tree. Retrain after a data refresh with{' '}
+          <code>python3 scripts/train_taxi_model.py</code> and commit the output.
+        </p>
+        <table style={{ borderCollapse: 'collapse', marginBottom: 4 }}>
+          <thead><tr style={{ borderBottom: '1px solid var(--border)' }}>
+            <th style={{ ...th, textAlign: 'left' }}>Bucket (model, LOSO)</th><th style={th}>n</th>
+            <th style={th}>Streamable next season</th><th style={th}>Season after</th>
+            <th style={th}>Ever within 4 yrs</th>
+          </tr></thead>
+          <tbody>
+            {([['Roster (p1 ≥ .50)', 297, '76%', '65%', '86%'], ['Taxi', 419, '20%', '23%', '37%'], ['Drop (pEver ≤ .12)', 123, '7%', '7%', '12%']] as const).map(([v, n, a, b, c]) => (
+              <tr key={v} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={tdL}>{v}</td><td style={td}>{n}</td><td style={td}>{a}</td><td style={td}>{b}</td><td style={td}>{c}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ ...p13, margin: '12px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+          vs the hand-tuned rule tree it replaces (Roster 63% / Taxi 19→20% / Drop regret 14%):
+          +13 points of Roster precision, a steeper Taxi ramp (20→23), lower drop regret (12%),
+          and only 3 of 68 delayed-ramp players (not streamable next season → streamable the
+          season after) labeled Drop.
+        </p>
+      </div>
+
+      {/* ── Taxi rule-tree backtest (rookies + unscored fallback) ── */}
+      <div style={card}>
+        <h3 style={h3}>Taxi Rule Tree — Backtest (fallback for rookies / unscored)</h3>
         <p style={p13}>
           The year-2 decision (the fully replayable one: rookie-year production + model profile;
           historical preseason projections don&apos;t exist so the projection clause stays off)
