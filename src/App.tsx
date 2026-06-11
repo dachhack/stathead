@@ -27,7 +27,6 @@ import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
 import { KTCView } from './components/KTCView';
-import { SportsDataIOView } from './components/SportsDataIOView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { Prospects2027View } from './components/Prospects2027View';
 import { TradeCalculator } from './components/TradeCalculator';
@@ -45,7 +44,6 @@ import { MyProspectRankings } from './components/MyProspectRankings';
 import { DataQuery } from './components/DataQuery';
 import { BuzzTracker } from './components/BuzzTracker';
 import { HomePage } from './components/HomePage';
-import { SettingsModal } from './components/SettingsModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import { createEmptyScenario, loadScenarioDraft, saveScenarioDraft } from './lib/scenarioEngine';
@@ -59,7 +57,7 @@ const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
 // (projections, dynasty, prospects) or season-agnostic (research, docs).
 const SEASON_AWARE_TABS = new Set<Tab>([
   'projections', 'stats', 'compare', 'scoring', 'adp',
-  'snaps', 'injuries', 'advanced', 'pbp', 'sleeper', 'sportsdata',
+  'snaps', 'injuries', 'advanced', 'pbp', 'sleeper',
 ]);
 
 // Tab groups for navigation
@@ -117,8 +115,6 @@ function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [, setApiKeysVersion] = useState(0);
   const [extraData, setExtraData] = useState<unknown[]>([]);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   // Restore the last working scenario so in-progress edits survive a reload.
@@ -337,13 +333,6 @@ function App() {
         {tab === 'buzz-tracker' && <BuzzTracker />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
-        {tab === 'sportsdata' && (
-          <SportsDataIOView
-            season={season}
-            onDataLoaded={onDataLoaded}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-        )}
           </>
         )}
       </main>
@@ -354,12 +343,6 @@ function App() {
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         systemPrompt={dataContext}
-      />
-
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onKeysChanged={() => setApiKeysVersion((v) => v + 1)}
       />
     </>
   );

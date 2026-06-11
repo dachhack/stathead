@@ -8,7 +8,6 @@ import { loadSettings } from '../lib/draftPrepSettings';
 import { userPickNumbers, maxSurvival, bandIdFor } from '../lib/snakeDraft';
 import type { ScenarioConfig, SDIOProjection } from '../types';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
-import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
 import {
   type EdgeBoardRow,
   verdictFor, VERDICT_STYLE, pickEdgeColor, pBeatColor, fmtEdge, fmtPct,
@@ -284,7 +283,6 @@ export function DraftOptimizerTable() {
   const [settings, setSettings] = useState<DraftPrepSettings>(() => loadSettings());
   const [rawRows, setRawRows] = useState<RawRow[]>([]);
   const [curves, setCurves] = useState<Record<string, AdpCurve>>({});
-  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [scenarios, setScenarios] = useState<ScenarioConfig[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
   // Wide-pool inputs for the VBD sections (Value Board / Team Builder /
@@ -353,11 +351,6 @@ export function DraftOptimizerTable() {
         .then((d) => Array.isArray(d) ? d : (d?.players ?? []))
         .catch(() => []),
       loadScoreManifest(),
-      // SDIO projections power scenario PPG. Skipped (empty array)
-      // when no API key is configured; scenarios still apply on top of
-      // an empty SDIO array as a no-op, so the dropdown stays usable
-      // even if the user hasn't configured SDIO.
-      hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       // Base projections — the same redraft-projections.json the
       // Projections tab reads. Always available (no API key needed),
       // 320 players with `ppg`. Drives the Proj column when no
@@ -381,20 +374,18 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<Record<string, number | string>>)
         .catch(() => [] as Array<Record<string, number | string>>),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, sdioData, redraftData, fcData, careerData, clayRaw]: [
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, redraftData, fcData, careerData, clayRaw]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
       FfcAdpEntry[],
       Awaited<ReturnType<typeof loadScoreManifest>>,
-      SDIOProjection[],
       RedraftProjEntry[],
       FcRedraftEntry[],
       CareerScoreEntry[],
       Array<Record<string, number | string>>,
     ]) => {
       if (cancelled) return;
-      setSdio(sdioData);
       setRedraftEntries(redraftData ?? []);
       setFfcEntries(ffcData ?? []);
       setFcRedraft(fcData ?? []);
@@ -545,12 +536,10 @@ export function DraftOptimizerTable() {
     return () => { cancelled = true; };
   }, []);
 
-  // Base projection rows the scenario engine runs on. Real SDIO rows
-  // when an API key is configured; otherwise synthetic SDIO-shaped rows
-  // decomposed from the base projections — so scenarios AND presets
-  // work for every user, not just SDIO-key holders.
+  // Base projection rows the scenario engine runs on: synthetic SDIO-shaped
+  // rows decomposed from the base projections, so scenarios AND presets work
+  // for every user (the SportsDataIO client was removed — it was unreachable).
   const baseSdio = useMemo<SDIOProjection[]>(() => {
-    if (sdio.length) return sdio;
     if (!redraftEntries.length) return [];
     const teamByKey = new Map<string, string>();
     for (const r of rawRows) {
@@ -570,7 +559,7 @@ export function DraftOptimizerTable() {
       recPG: p.recPG,
       team: teamByKey.get(kitKey(p.name, p.position)),
     })));
-  }, [sdio, redraftEntries, rawRows, fcRedraft]);
+  }, [redraftEntries, rawRows, fcRedraft]);
 
   // Player metadata for the preset factories (rookie/vet tilts need
   // isRookie / yearsExp / age).

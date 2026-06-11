@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
-import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
+import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, boomPct, bustPct } from '../lib/nameUtils';
 import type { FfcADPPlayer, ScenarioConfig, SDIOProjection } from '../types';
 import { PlayerName } from './PlayerName';
@@ -44,6 +44,7 @@ interface RedraftPlayer {
   name: string;
   position: string;
   ppg: number;
+  recPG?: number;
 }
 
 interface Row {
@@ -67,7 +68,6 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
   const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
-  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -83,10 +83,9 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => [] as ADPScoreEntry[]),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => [] as PPGScoreEntry[]),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
-      hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
       // Fallback when score-store shards are stale/empty.
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
-    ]).then(([ffcData, adpData, ppgData, rdData, sdioData, featureMatrix]) => {
+    ]).then(([ffcData, adpData, ppgData, rdData, featureMatrix]) => {
       setFfc(ffcData);
 
       const fmAdp: ADPScoreEntry[] = (!adpData?.length && featureMatrix?.predictions2026)
@@ -112,7 +111,6 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       setAdpScores(fmAdp);
       setPpgScores(fmPpg);
       setRedraft(rdData.players ?? []);
-      setSdio(sdioData);
       setLoading(false);
     }).catch((e) => {
       setError(e.message);
@@ -139,10 +137,31 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
   }, [redraft]);
 
   const activeScenario = scenario;
+
+  // Scenario pool: synthetic SDIO-shaped rows decomposed from the validated
+  // model projections (redraft-projections.json), so the active scenario
+  // moves Scen PPG without any external API (previously required an SDIO key,
+  // so scenarios silently no-oped here).
+  const projPool = useMemo(() => {
+    const teamByName = new Map<string, string>();
+    for (const p of ffc) if (p.team) teamByName.set(normName(p.name), p.team);
+    for (const a of adpScores) {
+      const nn = normName(a.name);
+      if (a.team && !teamByName.has(nn)) teamByName.set(nn, a.team);
+    }
+    return buildSyntheticSdio(redraft.map((p) => ({
+      name: p.name,
+      position: p.position,
+      ppg: p.ppg,
+      recPG: p.recPG,
+      team: teamByName.get(normName(p.name)),
+    })));
+  }, [redraft, ffc, adpScores]);
+
   const scenarioSdio = useMemo(() => {
-    if (!sdio.length || !activeScenario || isScenarioEmpty(activeScenario)) return sdio;
-    return applyScenario(sdio, activeScenario);
-  }, [sdio, activeScenario]);
+    if (!projPool.length || !activeScenario || isScenarioEmpty(activeScenario)) return projPool;
+    return applyScenario(projPool, activeScenario);
+  }, [projPool, activeScenario]);
 
   const sdioByName = useMemo(() => {
     const m = new Map<string, SDIOProjection>();
