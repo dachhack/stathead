@@ -48,10 +48,10 @@ function spearman(ranks1: number[], ranks2: number[]): number {
 // TRAINING ROWS: Bump ONLY when buildFeatureMatrix.ts or data sources change.
 // This triggers a 30-60 min rebuild fetching all seasons. Do NOT bump for
 // model params, tiers, scoring logic, or UI changes.
-const CACHE_PATH = 'public/data/training-rows-cache-v49.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v50.json';
 // MODELS: Bump when rookieCareerModel.ts, feature lists, or training logic change.
 // Uses cached rows, rebuilds in ~1-2 min.
-const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v59.json';
+const MODEL_CACHE_PATH = 'public/data/trained-models-cache-v60.json';
 const OUTPUT_PATH = 'public/data/feature-matrix.json';
 
 const MAX_ADP = 400;
@@ -367,12 +367,12 @@ async function main() {
   // Changing one model type only retrains that type, not all 5.
   const MODEL_DIR = 'public/data';
   const componentCachePaths = {
-    adp: `${MODEL_DIR}/model-cache-adp-v56.json`,
-    ppg: `${MODEL_DIR}/model-cache-ppg-v56.json`,
-    residual: `${MODEL_DIR}/model-cache-residual-v56.json`,
-    share: `${MODEL_DIR}/model-cache-share-v56.json`,
-    career: `${MODEL_DIR}/model-cache-career-v72.json`,
-    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v4.json`,
+    adp: `${MODEL_DIR}/model-cache-adp-v57.json`,
+    ppg: `${MODEL_DIR}/model-cache-ppg-v57.json`,
+    residual: `${MODEL_DIR}/model-cache-residual-v57.json`,
+    share: `${MODEL_DIR}/model-cache-share-v57.json`,
+    career: `${MODEL_DIR}/model-cache-career-v73.json`,
+    careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v5.json`,
     lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
   };
 

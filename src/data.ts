@@ -92,8 +92,20 @@ async function readLocalFile(filename: string): Promise<string | null> {
   return null;
 }
 
-// CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/
-// and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
+/** Node-only committed-snapshot JSON reader (always null in the browser).
+ *  The training pipeline uses this to read public/data files directly —
+ *  the deterministic, immutable inputs the snapshot regime guarantees. */
+export async function readLocalJson<T>(filename: string): Promise<T | null> {
+  const text = await readLocalFile(filename);
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+// CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/// and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
 // NB: `import.meta.env` is undefined outside Vite (e.g. when tsx runs
 // precompute-features.ts), so optional-chain it before reading the override.
 const KTC_PROXY = import.meta.env?.VITE_KTC_PROXY ?? 'https://ktc-proxy.dachhack.workers.dev';
