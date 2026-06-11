@@ -46,6 +46,8 @@ interface SimPick {
   player: ValuedPlayer;
   slot: string;        // QB / RB / WR / TE / FLEX / SF / BN
   survival: number;
+  /** True when this round's pick was hand-swapped by the user. */
+  isOverride: boolean;
   alternates: ValuedPlayer[];
 }
 
@@ -88,11 +90,18 @@ function simulate(
   rounds: number,
   strategy: SimStrategy,
   myRankByKey?: Map<string, number>,
+  overrides?: Map<number, string>,
 ): SimResult {
   const taken = new Set<string>();
   const slots = openSlots(settings);
   const roster: ValuedPlayer[] = [];
   const picks: SimPick[] = [];
+  // Hard positional cap: a 1QB league plan drafts exactly its starter
+  // count at QB (one), a superflex league at most three. Applies to every
+  // strategy — drafting strictly by a QB-heavy saved board used to spend
+  // round after round on QBs only one of whom could ever start.
+  const qbCap = settings.roster.SF > 0 ? 3 : Math.max(1, settings.roster.QB);
+  let qbDrafted = 0;
 
   for (let round = 1; round <= rounds; round++) {
     const pickN = pickNumber(round, settings.pickSlot, settings.numTeams, settings.draftType);
@@ -101,7 +110,9 @@ function simulate(
       : null;
     const candidates = players
       .map((p) => ({ p, surv: p.adp >= 999 ? 1 : survivalAtPick(p.adp, p.stdev || undefined, pickN) }))
-      .filter((c) => !taken.has(`${c.p.name}:${c.p.position}`) && c.surv >= SURVIVAL_FLOOR);
+      .filter((c) => !taken.has(`${c.p.name}:${c.p.position}`)
+        && c.surv >= SURVIVAL_FLOOR
+        && !(c.p.position === 'QB' && qbDrafted >= qbCap));
     if (candidates.length === 0) break;
 
     const starterOpen = (pos: Position) => starterSlotOpen(slots, pos);
@@ -139,8 +150,19 @@ function simulate(
     };
 
     const ranked = [...candidates].sort((a, b) => score(b.p) - score(a.p));
-    const chosen = ranked[0];
+    // A manual override (clicked alternate) wins the round when the player
+    // is still on the board — the user's explicit call bypasses the QB cap
+    // and the survival floor; downstream rounds re-simulate around it.
+    let chosen = ranked[0];
+    const ovKey = overrides?.get(round);
+    if (ovKey) {
+      const ov = players.find((p) => kitKey(p.name, p.position) === ovKey && !taken.has(`${p.name}:${p.position}`));
+      if (ov) {
+        chosen = { p: ov, surv: ov.adp >= 999 ? 1 : survivalAtPick(ov.adp, ov.stdev || undefined, pickN) };
+      }
+    }
     taken.add(`${chosen.p.name}:${chosen.p.position}`);
+    if (chosen.p.position === 'QB') qbDrafted++;
     roster.push(chosen.p);
     picks.push({
       round,
@@ -148,7 +170,8 @@ function simulate(
       player: chosen.p,
       slot: assignSlot(slots, chosen.p.position),
       survival: chosen.surv,
-      alternates: ranked.slice(1, 4).map((c) => c.p),
+      isOverride: !!ovKey && kitKey(chosen.p.name, chosen.p.position) === ovKey,
+      alternates: ranked.filter((c) => c.p !== chosen.p).slice(0, 5).map((c) => c.p),
     });
   }
   return { picks, lineupPts: lineupPoints(roster, settings) };
@@ -157,6 +180,10 @@ function simulate(
 export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
   const [open, setOpen] = useState(true);
   const [strategy, setStrategy] = useState<'value' | 'board'>('value');
+  // Hand-swapped picks: round → kitKey. Applied to the value and board
+  // sims (chalk stays the untouched market baseline); downstream rounds
+  // re-simulate around each swap.
+  const [overrides, setOverrides] = useState<Map<number, string>>(new Map());
 
   const rounds = Math.min(MAX_ROUNDS, startersPerTeam(settings) + BENCH_SPOTS);
   const hasBoard = !!myRankByKey && myRankByKey.size > 0;
@@ -165,11 +192,20 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
     if (pool.length === 0) return { mine: null, chalk: null, board: null };
     const { players } = valuePool(pool, settings, 'BEER');
     return {
-      mine: simulate(players, settings, rounds, 'value'),
+      mine: simulate(players, settings, rounds, 'value', undefined, overrides),
       chalk: simulate(players, settings, rounds, 'chalk'),
-      board: myRankByKey?.size ? simulate(players, settings, rounds, 'board', myRankByKey) : null,
+      board: myRankByKey?.size ? simulate(players, settings, rounds, 'board', myRankByKey, overrides) : null,
     };
-  }, [pool, settings, rounds, myRankByKey]);
+  }, [pool, settings, rounds, myRankByKey, overrides]);
+
+  const setPick = (round: number, key: string | null) => {
+    setOverrides((prev) => {
+      const next = new Map(prev);
+      if (key === null) next.delete(round);
+      else next.set(round, key);
+      return next;
+    });
+  };
 
   if (!mine || !chalk) return null;
   const shown = strategy === 'board' && board ? board : mine;
@@ -239,9 +275,21 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
         </span>
       </div>
 
+      {open && overrides.size > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <button
+            className="scenario-action-btn"
+            style={{ fontSize: 11 }}
+            onClick={() => setOverrides(new Map())}
+            title="Clear all hand-swapped picks and return to the simulated plan"
+          >
+            ↺ Reset {overrides.size} swapped pick{overrides.size > 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 10 }}>
-          {shown.picks.map((pk) => <PickCard key={pk.round} pick={pk} myRankByKey={myRankByKey} />)}
+          {shown.picks.map((pk) => <PickCard key={pk.round} pick={pk} myRankByKey={myRankByKey} onPick={setPick} />)}
         </div>
       )}
     </section>
@@ -257,13 +305,14 @@ function Stat({ label, value, muted, color }: { label: string; value: string; mu
   );
 }
 
-function PickCard({ pick, myRankByKey }: { pick: SimPick; myRankByKey?: Map<string, number> }) {
+function PickCard({ pick, myRankByKey, onPick }: { pick: SimPick; myRankByKey?: Map<string, number>; onPick: (round: number, key: string | null) => void }) {
   const p = pick.player;
   const steal = p.adp < 999 ? pick.pickN - p.adp : NaN;
   const myRank = myRankByKey?.get(kitKey(p.name, p.position));
   return (
     <div style={{
-      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+      background: 'var(--bg-secondary)',
+      border: `1px solid ${pick.isOverride ? 'var(--accent)' : 'var(--border)'}`,
       borderRadius: 8, padding: '8px 12px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -281,6 +330,18 @@ function PickCard({ pick, myRankByKey }: { pick: SimPick; myRankByKey?: Map<stri
             my #{myRank}
           </span>
         )}
+        {pick.isOverride && (
+          <button
+            onClick={() => onPick(pick.round, null)}
+            title="Undo this swap — back to the simulated pick"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              fontSize: 10, color: 'var(--accent)', fontWeight: 700,
+            }}
+          >
+            ↺
+          </button>
+        )}
         <span style={{
           marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
           background: pick.slot === 'BN' ? 'var(--bg-tertiary)' : '#13343b',
@@ -297,14 +358,21 @@ function PickCard({ pick, myRankByKey }: { pick: SimPick; myRankByKey?: Map<stri
         {' '}· {Math.round(pick.survival * 100)}% available
       </div>
       {pick.alternates.length > 0 && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-          Else:{' '}
-          {pick.alternates.map((a, i) => (
-            <span key={`${a.name}:${a.position}`}>
-              {i > 0 && ' · '}
-              <PlayerName name={a.name} position={a.position} style={{ color: 'var(--text-secondary)' }} />
-              <span> ({a.position}, {Math.round(a.vbd)})</span>
-            </span>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+          Swap to:
+          {pick.alternates.map((a) => (
+            <button
+              key={`${a.name}:${a.position}`}
+              onClick={() => onPick(pick.round, kitKey(a.name, a.position))}
+              title={`Take ${a.name} here instead — later rounds re-plan around it`}
+              style={{
+                background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 10,
+                padding: '1px 8px', fontSize: 10, color: 'var(--text-secondary)', cursor: 'pointer',
+                fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}
+            >
+              {a.name} <span style={{ color: 'var(--text-muted)' }}>({a.position} {Math.round(a.vbd)})</span>
+            </button>
           ))}
         </div>
       )}
