@@ -130,6 +130,13 @@ async function fetchEspnItems(p: Player): Promise<RawItem[]> {
   } catch {
     return [];
   }
+  // ESPN pads quiet players' feeds with league-wide stories — the same
+  // generic article shows up on hundreds of athletes' overviews. Keep a
+  // news item only if it actually names the player.
+  const lastName = normName(p.name).split(' ').pop() ?? '';
+  const nameRe = lastName.length > 2
+    ? new RegExp(`\\b${lastName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+    : null;
   const items: RawItem[] = [];
   // news[]
   const news = Array.isArray(data.news) ? (data.news as Record<string, unknown>[]) : [];
@@ -139,10 +146,12 @@ async function fetchEspnItems(p: Player): Promise<RawItem[]> {
     const links = a.links as { web?: { href?: string } } | undefined;
     const headline = String(a.headline ?? a.title ?? a.shortHeadline ?? '');
     if (!headline) continue;
+    const summary = String(a.description ?? a.story ?? '');
+    if (nameRe && !nameRe.test(normName(`${headline} ${summary}`))) continue;
     items.push({
       source: 'espn',
       headline,
-      summary: String(a.description ?? a.story ?? ''),
+      summary,
       published: when.iso,
       link: String(links?.web?.href ?? a.link ?? ''),
       ts: when.ts,
