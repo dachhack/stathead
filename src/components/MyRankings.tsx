@@ -150,6 +150,16 @@ interface SavedRanking {
   scenarioId?: string;  // link to a saved projection scenario
 }
 
+// Columns sortable by header click. null sortKey = board order (rank/drag).
+type SortKey = 'name' | 'position' | 'team' | 'ppg' | 'adp' | 'boomZ' | 'bustZ'
+  | 'projTgtShare' | 'projRushShare' | 'priorPPG' | 'priorTgtShare' | 'priorRushShare';
+// First-click direction per column: text + ADP ascending, rates descending.
+const SORT_DEFAULT_DIR: Record<SortKey, 1 | -1> = {
+  name: 1, position: 1, team: 1, adp: 1,
+  ppg: -1, boomZ: -1, bustZ: -1, projTgtShare: -1, projRushShare: -1,
+  priorPPG: -1, priorTgtShare: -1, priorRushShare: -1,
+};
+
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
@@ -213,6 +223,10 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  // Header-click sorting. Cycle: sort → reverse → back to board order
+  // (drag-to-reorder only works in board order).
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [showSaved, setShowSaved] = useState(false);
   const [savedList, setSavedList] = useState<SavedRanking[]>([]);
   const [rankingName, setRankingName] = useState('My Rankings');
@@ -664,6 +678,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       // player movements); otherwise the widest-coverage local chain.
       const resolvedTeam = toolP?.team || ffcP?.team || adpS?.team || sdioP?.Team || resolveTeam(nn, position) || team;
 
+      // Free agents / retired players (no team — e.g. Darren Waller) carry
+      // no projection: a stat line needs an offense. A scenario that signs
+      // or moves them restores a team, and the projection with it.
+      if (!resolvedTeam || resolvedTeam === 'FA') ppg = 0;
+
       // CI bounds from the ADP model. The boom/bust *spreads* (raw numbers)
       // are computed here; the within-position z-score is applied in a
       // second pass once we have all rows, since z-score requires the
@@ -807,8 +826,35 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const q = search.toLowerCase();
       rows = rows.filter(r => r.name.toLowerCase().includes(q) || r.team.toLowerCase().includes(q));
     }
+    if (sortKey) {
+      // Missing values (— cells) sink to the bottom in either direction.
+      // Mirrors each column's display rule: rate columns render — for ≤ 0
+      // (a fumble-heavy small sample can be negative), z-scores for 0,
+      // ADP for the 999 sentinel.
+      const isMissing = (r: RankingRow): boolean => {
+        const v = r[sortKey];
+        if (typeof v === 'string') return !v;
+        if (sortKey === 'adp') return v >= 999;
+        if (sortKey === 'boomZ' || sortKey === 'bustZ') return v === 0;
+        return v <= 0;
+      };
+      rows = [...rows].sort((a, b) => {
+        const ma = isMissing(a), mb = isMissing(b);
+        if (ma !== mb) return ma ? 1 : -1;
+        const va = a[sortKey], vb = b[sortKey];
+        if (typeof va === 'string') return sortDir * va.localeCompare(String(vb));
+        return sortDir * ((va as number) - (vb as number));
+      });
+    }
     return rows;
-  }, [rankedRows, posFilter, search]);
+  }, [rankedRows, posFilter, search, sortKey, sortDir]);
+
+  const clickSort = useCallback((key: SortKey) => {
+    if (sortKey !== key) { setSortKey(key); setSortDir(SORT_DEFAULT_DIR[key]); return; }
+    if (sortDir === SORT_DEFAULT_DIR[key]) { setSortDir((SORT_DEFAULT_DIR[key] * -1) as 1 | -1); return; }
+    setSortKey(null); // third click restores board order
+  }, [sortKey, sortDir]);
+  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 1 ? ' ▲' : ' ▼') : '');
 
   // Drag handlers
   const onDragStart = useCallback((idx: number) => { dragIdx.current = idx; }, []);
@@ -1014,9 +1060,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       {/* Hint */}
       <div style={{ fontSize: 11, color: customOrder ? '#6366f1' : 'var(--text-muted)', marginBottom: 8 }}>
-        {customOrder
+        {sortKey
+          ? 'Sorted by column — click the header again to reverse, a third time (or #) for board order. Dragging is disabled while sorted.'
+          : customOrder
           ? 'Custom ranking active. Drag to adjust, or Reset to return to default.'
-          : `Drag rows to reorder. Default sort: projected PPG.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
+          : `Drag rows to reorder, or click a column header to sort. Default sort: projected PPG.${hasScenario ? ' Scenario adjustments applied.' : ''}`}
       </div>
 
       {/* Table */}
@@ -1024,29 +1072,41 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border)' }}>
-              <th style={{ ...th, textAlign: 'center', width: 28 }}>#</th>
-              <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>Player</th>
-              <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
-              <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP — weighted blend of FFC and Sleeper draft rooms (weights = sample size × recency); FantasyCalc rank as a pick proxy when no market lists the player">ADP</th>
-              <th style={{ ...th, textAlign: 'right', width: 48 }}>
-                <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
+              <th
+                style={{ ...th, textAlign: 'center', width: 28, cursor: sortKey ? 'pointer' : undefined }}
+                title={sortKey ? 'Back to board order' : 'Board order'}
+                onClick={() => setSortKey(null)}
+              >
+                #
               </th>
-              <th style={{ ...th, textAlign: 'right', width: 48 }}>
-                <span title="Bust z-score — CI downside spread vs the position cohort. >+1 = unusually wide downside risk.">Bust z</span>
-              </th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>Tgt%</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>Rush%</th>
-              <th style={{ ...th, textAlign: 'right', width: 44, borderLeft: '1px solid var(--border)' }}>
-                <span title="Prior season PPG">Pr PPG</span>
-              </th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>
-                <span title="Prior season target share">Pr Tgt%</span>
-              </th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }}>
-                <span title="Prior season rush share">Pr Rush%</span>
-              </th>
+              {([
+                ['name', 'Player', 'left', 'Sort by name'],
+                ['position', 'Pos', 'center', 'Sort by position'],
+                ['team', 'Tm', 'center', 'Sort by team'],
+                ['ppg', 'PPG', 'right', `Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`],
+                ['adp', 'ADP', 'right', 'Current market redraft ADP — weighted blend of FFC and Sleeper draft rooms (weights = sample size × recency); FantasyCalc rank as a pick proxy when no market lists the player'],
+                ['boomZ', 'Boom z', 'right', 'Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.'],
+                ['bustZ', 'Bust z', 'right', 'Bust z-score — CI downside spread vs the position cohort. >+1 = unusually wide downside risk.'],
+                ['projTgtShare', 'Tgt%', 'right', 'Projected team target share'],
+                ['projRushShare', 'Rush%', 'right', 'Projected team rush share'],
+                ['priorPPG', 'Pr PPG', 'right', 'Prior season PPG'],
+                ['priorTgtShare', 'Pr Tgt%', 'right', 'Prior season target share'],
+                ['priorRushShare', 'Pr Rush%', 'right', 'Prior season rush share'],
+              ] as Array<[SortKey, string, 'left' | 'center' | 'right', string]>).map(([key, label, align, title]) => (
+                <th
+                  key={key}
+                  style={{
+                    ...th, textAlign: align, cursor: 'pointer', whiteSpace: 'nowrap',
+                    ...(key === 'name' ? { minWidth: 120 } : { width: key === 'boomZ' || key === 'bustZ' ? 48 : key === 'position' || key === 'team' ? 36 : 44 }),
+                    ...(key === 'priorPPG' ? { borderLeft: '1px solid var(--border)' } : {}),
+                    ...(sortKey === key ? { color: 'var(--accent)' } : {}),
+                  }}
+                  title={`${title} — click to sort`}
+                  onClick={() => clickSort(key)}
+                >
+                  {label}{sortArrow(key)}
+                </th>
+              ))}
               <th style={{ ...th, textAlign: 'center', width: 24 }}></th>
             </tr>
           </thead>
@@ -1054,7 +1114,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             {displayRows.map((r, i) => (
               <tr
                 key={r.id}
-                draggable
+                draggable={!sortKey}
                 onDragStart={() => onDragStart(i)}
                 onDragOver={(e) => onDragOver(e, i)}
                 onDrop={onDrop}
