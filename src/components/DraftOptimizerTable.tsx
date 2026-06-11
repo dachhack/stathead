@@ -296,7 +296,7 @@ export function DraftOptimizerTable() {
   // different, so SF leagues get SF ADP. Empty until the CI fetch lands.
   const [ffc2qbEntries, setFfc2qbEntries] = useState<FfcAdpEntry[]>([]);
   const [ffcEndDates, setFfcEndDates] = useState<{ ppr?: string; sf?: string }>({});
-  const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; adp: number; adp2qb: number }>>([]);
+  const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; team: string; adp: number; adp2qb: number }>>([]);
   const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
@@ -404,7 +404,7 @@ export function DraftOptimizerTable() {
       FcRedraftEntry[],
       CareerScoreEntry[],
       Array<Record<string, number | string>>,
-      { fetchedAt?: string; players?: Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number; adp_2qb?: number }> },
+      { fetchedAt?: string; players?: Array<{ name: string; position: string; team?: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number; adp_2qb?: number }> },
     ]) => {
       if (cancelled) return;
       setRedraftEntries(redraftData ?? []);
@@ -416,7 +416,7 @@ export function DraftOptimizerTable() {
       setSleeperFetchedAt(sleeperDoc?.fetchedAt);
       setSleeperAdpEntries((sleeperDoc?.players ?? [])
         .map((p) => ({
-          name: p.name, position: p.position,
+          name: p.name, position: p.position, team: p.team ?? '',
           adp: p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0,
           adp2qb: p.adp_2qb ?? 0,
         }))
@@ -555,7 +555,12 @@ export function DraftOptimizerTable() {
         });
       }
 
-      setRawRows(built);
+      // Free agents / retired players (no team) carry no projection —
+      // drop them from the model pool so the Edge Board / Round Plan /
+      // Tier Map / Targets & Fades stop surfacing phantom "discounts"
+      // (an unsigned vet's deep ADP vs his stale model VOR). All 11
+      // current teamless rows are genuine FAs (Tyreek, Diggs, Chubb…).
+      setRawRows(built.filter((r) => r.team && r.team !== 'FA'));
       setCurves(adpCurves);
       setLoading(false);
     }).catch((e) => {
@@ -692,6 +697,12 @@ export function DraftOptimizerTable() {
     const teams = new Map<string, string>();
     for (const r of rawRows) {
       if (r.team) teams.set(kitKey(r.name, r.position), r.team);
+    }
+    // Sleeper teams widen coverage so rostered players aren't mistaken
+    // for free agents by the kit's teamless-no-projection rule.
+    for (const s of sleeperAdpEntries) {
+      const k = kitKey(s.name, s.position);
+      if (s.team && !teams.has(k)) teams.set(k, s.team);
     }
     return buildKitPool({
       projections,

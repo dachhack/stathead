@@ -96,6 +96,9 @@ function simulate(
 
   for (let round = 1; round <= rounds; round++) {
     const pickN = pickNumber(round, settings.pickSlot, settings.numTeams, settings.draftType);
+    const nextPickN = round < rounds
+      ? pickNumber(round + 1, settings.pickSlot, settings.numTeams, settings.draftType)
+      : null;
     const candidates = players
       .map((p) => ({ p, surv: p.adp >= 999 ? 1 : survivalAtPick(p.adp, p.stdev || undefined, pickN) }))
       .filter((c) => !taken.has(`${c.p.name}:${c.p.position}`) && c.surv >= SURVIVAL_FLOOR);
@@ -121,7 +124,18 @@ function simulate(
         }
         return -(100_000 - Math.max(p.vbd, -999));
       }
-      return p.vbd * (starterOpen(p.position) ? 1 : BENCH_WEIGHT);
+      // Urgency-weighted VBD: discount a candidate by his chance of still
+      // being on the board at YOUR NEXT pick. A market discount who will
+      // certainly survive another round scores near zero now — wait and
+      // take him then — so the sim stops burning early picks on
+      // late-round edges (an ADP-159 player at pick 45) while still
+      // grabbing genuine edges in their last realistic window. A small
+      // pure-value floor (10%) breaks ties toward better players once
+      // nothing on the board is urgent (late bench rounds).
+      const survNext = nextPickN === null
+        ? 0
+        : p.adp >= 999 ? 1 : survivalAtPick(p.adp, p.stdev || undefined, nextPickN);
+      return p.vbd * (1 - 0.9 * survNext) * (starterOpen(p.position) ? 1 : BENCH_WEIGHT);
     };
 
     const ranked = [...candidates].sort((a, b) => score(b.p) - score(a.p));
@@ -219,7 +233,7 @@ export function DraftRosterSim({ pool, settings, myRankByKey }: Props) {
         />
         <span style={{ fontSize: 10, color: 'var(--text-muted)', flexBasis: '100%' }}>
           All rosters drafted from your seat under identical availability
-          (≥{Math.round(SURVIVAL_FLOOR * 100)}% survival at each pick). Optimal picks by weighted
+          (≥{Math.round(SURVIVAL_FLOOR * 100)}% survival at each pick). Optimal picks by urgency-weighted
           VBD with roster awareness; chalk picks best available by market ADP
           {board ? '; My board drafts strictly in your saved order (starters first, unranked → VBD). The "vs optimal" delta is what your rankings cost or gain in projected lineup points' : ''}.
         </span>
