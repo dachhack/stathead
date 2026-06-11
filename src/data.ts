@@ -702,7 +702,14 @@ export async function fetchFfcADP(
   teams: number = 12,
 ): Promise<FfcADPPlayer[]> {
   const primary = await fetchFfcADPRaw(season, scoring, teams);
-  if (primary.length >= FFC_THIN_THRESHOLD) return primary;
+  // The thin-season fallback exists ONLY to deepen the upcoming season's
+  // sparse early board — it must never substitute a different year's
+  // prices for a completed historic season. (It silently did exactly
+  // that for years: season 2022's committed file has 157 players, under
+  // the threshold, so 2022 consumers — including the model training
+  // rows — received 2021 ADP. Jonathan Taylor's 2022 training row said
+  // 13.8, his 2021 price, when he was the consensus 1.01 at 1.3.)
+  if (primary.length >= FFC_THIN_THRESHOLD || season < FFC_CURRENT_SEASON) return primary;
 
   // Fall back to the prior season's COMMITTED SNAPSHOT when it is
   // meaningfully larger than the thin primary. Snapshot-only by the

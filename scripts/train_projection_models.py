@@ -27,7 +27,7 @@ from scipy.stats import spearmanr
 warnings.filterwarnings('ignore')
 
 DATA_DIR = Path('public/data')
-CACHE_PATH = DATA_DIR / 'training-rows-cache-v50.json'
+CACHE_PATH = DATA_DIR / 'training-rows-cache-v51.json'
 
 
 # ── LightGBM → JS tree conversion ──────────────────────────────────
@@ -526,7 +526,7 @@ PRE_DRAFT_FEATURES_MAP = {
 def train_adp_models(rows):
     """Train ADP models for all positions."""
     # Warm-start feature lists from the last committed cache version.
-    old = load_old_cache('model-cache-adp-v57.json') or load_old_cache('model-cache-adp-v56.json')
+    old = load_old_cache('model-cache-adp-v58.json') or load_old_cache('model-cache-adp-v57.json')
     if not old:
         print("  No existing ADP cache to get feature names from, skipping")
         return None
@@ -548,12 +548,13 @@ def train_adp_models(rows):
         # before adopting a new feature — e.g.
         #   ADP_EXTRA_FEATURES=adpTrend python3 scripts/train_projection_models.py
         # Ablation log:
-        #   adpTrend (2026-06-11, rows v50): REJECTED — LOSO Ens R² down at
-        #   every position (QB .498→.497, RB .521→.516, WR .561→.559,
-        #   TE .579→.578) and every vet sub-model. Only 475/3,567 rows have
-        #   a nonzero trend (coverage starts 2020 and needs consecutive-year
-        #   ADP), so the feature is mostly zeros + noise on top of `adp`.
-        #   Re-test once a few more seasons of two-source history accrue.
+        #   adpTrend (2026-06-11, rows v50, cross-source 2024 FFC vs 2025
+        #   Sleeper): REJECTED — LOSO Ens R² down at every position.
+        #   adpTrend (2026-06-11, rows v51, single-source FFC after the
+        #   thin-fallback fix + FFC-2025 recovery): NEUTRAL — QB −.001,
+        #   RB +.003, WR/TE flat. Still doesn't earn a slot; sparse
+        #   coverage (~13% of rows) on top of the raw `adp` the models
+        #   already have. Re-test as more consecutive-season history accrues.
         for extra in [f for f in os.environ.get('ADP_EXTRA_FEATURES', '').split(',') if f]:
             if extra not in feature_names:
                 feature_names = feature_names + [extra]
@@ -706,7 +707,7 @@ def train_ppg_models(rows):
     add or change features. DO NOT hand-edit these lists without rerunning
     the measurement.
     """
-    old = load_old_cache('model-cache-ppg-v57.json') or load_old_cache('model-cache-ppg-v56.json')
+    old = load_old_cache('model-cache-ppg-v58.json') or load_old_cache('model-cache-ppg-v57.json')
     if not old:
         print("  No existing PPG cache, skipping")
         return None
@@ -1077,7 +1078,7 @@ def train_residual_models(rows):
     Re-run scripts/ablate_residual_features.py if you add or change features.
     DO NOT hand-edit these lists without rerunning the measurement.
     """
-    old = load_old_cache('model-cache-residual-v57.json') or load_old_cache('model-cache-residual-v56.json')
+    old = load_old_cache('model-cache-residual-v58.json') or load_old_cache('model-cache-residual-v57.json')
     if not old:
         print("  No existing residual cache, skipping")
         return None
@@ -1424,10 +1425,10 @@ def main():
     # already-cached model files. Useful to answer "what are the current
     # per-position sample sizes?" without waiting on a full retrain.
     if '--summary' in args:
-        adp = json.load(open(DATA_DIR / 'model-cache-adp-v57.json'))
-        ppg = json.load(open(DATA_DIR / 'model-cache-ppg-v57.json'))
-        share = json.load(open(DATA_DIR / 'model-cache-share-v57.json'))
-        residual = json.load(open(DATA_DIR / 'model-cache-residual-v57.json'))
+        adp = json.load(open(DATA_DIR / 'model-cache-adp-v58.json'))
+        ppg = json.load(open(DATA_DIR / 'model-cache-ppg-v58.json'))
+        share = json.load(open(DATA_DIR / 'model-cache-share-v58.json'))
+        residual = json.load(open(DATA_DIR / 'model-cache-residual-v58.json'))
         print_training_audit(adp, ppg, share, residual)
         return
 
@@ -1441,7 +1442,7 @@ def main():
         print('\n  Training ADP models...')
         adp_result = train_adp_models(rows)
         if adp_result:
-            with open(DATA_DIR / 'model-cache-adp-v57.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-adp-v58.json', 'w') as f:
                 json.dump(adp_result, f)
             print(f'  ADP cache saved.')
 
@@ -1449,7 +1450,7 @@ def main():
         print('\n  Training PPG models...')
         ppg_result = train_ppg_models(rows)
         if ppg_result:
-            with open(DATA_DIR / 'model-cache-ppg-v57.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-ppg-v58.json', 'w') as f:
                 json.dump(ppg_result, f)
             print(f'  PPG cache saved.')
 
@@ -1457,7 +1458,7 @@ def main():
         print('\n  Training Share models...')
         share_result = train_share_models(rows)
         if share_result:
-            with open(DATA_DIR / 'model-cache-share-v57.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-share-v58.json', 'w') as f:
                 json.dump(share_result, f)
             print(f'  Share cache saved.')
 
@@ -1465,7 +1466,7 @@ def main():
         print('\n  Training Residual models...')
         residual_result = train_residual_models(rows)
         if residual_result:
-            with open(DATA_DIR / 'model-cache-residual-v57.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-residual-v58.json', 'w') as f:
                 json.dump(residual_result, f)
             print(f'  Residual cache saved.')
 

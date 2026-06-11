@@ -27,7 +27,7 @@ import { PRE_DRAFT_ROOKIE_FEATURES, FEATURES } from '../src/lib/featureTypes';
 import { trainRookieCareerModels } from '../src/lib/rookieCareerModel';
 
 // Match the CACHE_PATH used by precompute-features.ts. Bump when that bumps.
-const CACHE_PATH = 'public/data/training-rows-cache-v50.json';
+const CACHE_PATH = 'public/data/training-rows-cache-v51.json';
 
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 type Pos = typeof POSITIONS[number];
