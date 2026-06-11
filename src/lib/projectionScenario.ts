@@ -52,7 +52,9 @@ export function buildPresetMeta(sleeper: Map<string, SleeperPlayer>): PresetMeta
 // ClayPlayer -> SDIOProjection. recalcPoints uses Passing/Rushing/Receiving
 // yards+TDs, Receptions, INTs and fumbles; Clay lacks INT/fumbles (computePpr
 // ignores them too), so the bridged base PPR matches computePpr exactly.
-function claysToSdio(clay: ClayPlayer[]): SDIOProjection[] {
+// Exported so SDIO-shaped surfaces (e.g. My Rankings) can fall back to the
+// blended Clay lines as their scenario pool when no SportsDataIO key is set.
+export function clayToSdioProjections(clay: ClayPlayer[]): SDIOProjection[] {
   const zero = {
     PassingAttempts: 0, PassingCompletions: 0, PassingYards: 0, PassingTouchdowns: 0,
     PassingInterceptions: 0, RushingAttempts: 0, RushingYards: 0, RushingTouchdowns: 0,
@@ -109,7 +111,7 @@ export function buildScenarioPprByName(
   meta: PresetMeta,
 ): Map<string, number> | null {
   if (!optionId || !clay.length) return null;
-  const sdio = claysToSdio(clay);
+  const sdio = clayToSdioProjections(clay);
   const scenario = resolveScenario(clay, sdio, optionId, meta);
   if (!scenario || isScenarioEmpty(scenario)) return null;
   const adjusted = applyScenario(sdio, scenario);
