@@ -4,7 +4,7 @@ import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenari
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
-import { blendPicks } from '../lib/adpSources';
+import { blendPicks, fetchFfcRaw, recencyWeight, sampleWeight } from '../lib/adpSources';
 import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
@@ -95,6 +95,11 @@ interface SleeperAdpEntry {
   adp_ppr?: number;
   adp_half_ppr?: number;
   adp_std?: number;
+}
+
+interface SleeperAdpDoc {
+  fetchedAt?: string;
+  players?: SleeperAdpEntry[];
 }
 
 // One scenario-adjusted row from the Projections tab's own engine — the
@@ -200,6 +205,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [depthOrder, setDepthOrder] = useState<DepthOrderEntry[]>([]);
   const [sleeperAdp, setSleeperAdp] = useState<SleeperAdpEntry[]>([]);
+  // Source freshness for ADP weighting: Sleeper snapshot fetch date and the
+  // FFC file's draft-window end date + per-player sample sizes.
+  const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
+  const [ffcEndDate, setFfcEndDate] = useState<string | undefined>(undefined);
+  const [ffcSampleByName, setFfcSampleByName] = useState<Map<string, number>>(new Map());
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -252,9 +262,10 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         .catch(() => [] as DepthOrderEntry[]),
       fetch(`${BASE}data/sleeper-adp-${CURRENT_SEASON}.json`)
         .then(r => (r.ok ? r.json() : null))
-        .then(d => (Array.isArray(d?.players) ? d.players : []) as SleeperAdpEntry[])
-        .catch(() => [] as SleeperAdpEntry[]),
-    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperData]) => {
+        .then(d => (d ?? {}) as SleeperAdpDoc)
+        .catch(() => ({} as SleeperAdpDoc)),
+      fetchFfcRaw(CURRENT_SEASON),
+    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperDoc, ffcRaw]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
 
@@ -308,7 +319,16 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       setFcRedraft(fcData);
       setCareerScores(careerData);
       setDepthOrder(depthData);
-      setSleeperAdp(sleeperData);
+      setSleeperAdp(Array.isArray(sleeperDoc?.players) ? sleeperDoc.players : []);
+      setSleeperFetchedAt(sleeperDoc?.fetchedAt);
+      setFfcEndDate(ffcRaw?.meta?.end_date);
+      {
+        const m = new Map<string, number>();
+        for (const p of ffcRaw?.players ?? []) {
+          if (p?.name && p.times_drafted !== undefined) m.set(normName(p.name), Number(p.times_drafted));
+        }
+        setFfcSampleByName(m);
+      }
       setLoading(false);
     });
   }, []);
@@ -579,6 +599,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const s = sleeperByName.get(nn);
       return s?.adp_ppr ?? s?.adp_half_ppr ?? s?.adp_std;
     };
+    // Source weights: sample size × recency. FFC's "year N" endpoint can
+    // serve months-old mocks between seasons, so its weight decays with
+    // the file's draft-window age; Sleeper publishes no counts (huge
+    // platform) so its weight is snapshot recency only.
+    const ffcFileW = recencyWeight(ffcEndDate);
+    const sleeperW = recencyWeight(sleeperFetchedAt);
 
     const buildRow = (name: string, position: string, basePpg: number, team: string): RankingRow | null => {
       const id = makeId(name, position);
@@ -691,11 +717,18 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         position,
         team: resolvedTeam,
         ppg,
-        // Current market ADP: blend (mean pick) of the real markets — the
+        // Current market ADP: weighted blend of the real markets — the
         // FFC family (FFC ADP, else the FFC-derived model-pool ADP) and
         // Sleeper draft rooms. FantasyCalc overall rank only as a pick
         // proxy when no market prices the player.
-        adp: blendPicks(ffcP?.adp ?? adpS?.adp, sleeperAdpFor(nn)) ?? fcByName.get(nn)?.rank ?? 999,
+        adp: (() => {
+          const ffcAdp = ffcP?.adp ?? adpS?.adp;
+          const slAdp = sleeperAdpFor(nn);
+          return blendPicks(
+            ffcAdp !== undefined ? { adp: ffcAdp, weight: sampleWeight(ffcSampleByName.get(nn)) * ffcFileW } : undefined,
+            slAdp !== undefined ? { adp: slAdp, weight: sleeperW } : undefined,
+          ) ?? fcByName.get(nn)?.rank ?? 999;
+        })(),
         ciSpreadUp,
         ciSpreadDown,
         boomZ: 0, // filled in below once position stats are known
@@ -743,7 +776,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, ffcSampleByName, ffcEndDate, sleeperFetchedAt, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -986,7 +1019,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP — blend (mean pick) of FFC and Sleeper draft rooms; FantasyCalc rank as a pick proxy when no market lists the player">ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP — weighted blend of FFC and Sleeper draft rooms (weights = sample size × recency); FantasyCalc rank as a pick proxy when no market lists the player">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>

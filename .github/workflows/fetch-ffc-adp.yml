@@ -2,7 +2,7 @@ name: Fetch FFC ADP
 
 # Fetches FantasyFootballCalculator PPR ADP for every covered season and commits
 # the per-season files back to the triggering branch. This is the git source of
-# truth for public/data/ffc_adp_ppr_<year>.json.
+# truth for public/data/ffc_adp_<scoring>_<year>.json (ppr + 2qb).
 #
 # Why a CI job: fantasyfootballcalculator.com serves these requests fine from
 # GitHub runners but 403s "Host not in allowlist" from the dev sandbox and many
@@ -56,8 +56,8 @@ jobs:
 
       - name: Show fetched coverage
         run: |
-          echo "=== ffc_adp_ppr files ==="
-          for f in public/data/ffc_adp_ppr_*.json; do
+          echo "=== ffc_adp files ==="
+          for f in public/data/ffc_adp_*_*.json; do
             [ -e "$f" ] || continue
             n=$(python3 -c "import json,sys;print(len(json.load(open(sys.argv[1])).get('players',[])))" "$f" 2>/dev/null || echo '?')
             printf '  %s — %s players (%s bytes)\n' "$f" "$n" "$(wc -c < "$f")"
@@ -69,6 +69,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add public/data/ffc_adp_ppr_*.json
+          git add public/data/ffc_adp_2qb_*.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No FFC ADP changes to commit."
             exit 0

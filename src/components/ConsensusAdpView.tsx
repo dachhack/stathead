@@ -4,7 +4,7 @@ import { fetchFantasyCalcValues } from '../data';
 import {
   loadAdpSources, buildMultiAdpRows,
   ADP_SOURCE_LABELS, ADP_SOURCE_TITLES,
-  type AdpSourceKey, type MultiAdpRow,
+  type AdpSourceKey, type AdpFormat, type MultiAdpRow,
 } from '../lib/adpSources';
 import { normName } from '../lib/nameUtils';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -34,6 +34,7 @@ function spreadColor(spread: number): string | undefined {
 
 export function ConsensusAdpView() {
   const [season, setSeason] = useState(CURRENT_SEASON);
+  const [format, setFormat] = useState<AdpFormat>('1qb');
   const [rows, setRows] = useState<MultiAdpRow[]>([]);
   const [fcByName, setFcByName] = useState<Map<string, FantasyCalcPlayer>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -46,11 +47,11 @@ export function ConsensusAdpView() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    loadAdpSources(season, CURRENT_SEASON)
+    loadAdpSources(season, CURRENT_SEASON, format)
       .then((data) => { if (!cancelled) { setRows(buildMultiAdpRows(data)); setLoading(false); } })
       .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [season]);
+  }, [season, format]);
 
   // FantasyCalc extras (value / 30d trend) for the current season.
   useEffect(() => {
@@ -115,7 +116,8 @@ export function ConsensusAdpView() {
           <a href="https://sleeper.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Sleeper</a> draft rooms,{' '}
           ESPN live drafts and{' '}
           <a href="https://fantasycalc.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>FantasyCalc</a> consensus.
-          {' '}<b>Blend</b> = mean pick across available sources; <b>Spread</b> = max−min disagreement (click it to surface the players the markets can&apos;t agree on).
+          {' '}<b>Blend</b> = weighted mean pick (weights = sample size × recency, so a thin or stale market counts less); <b>Spread</b> = max−min disagreement (click it to surface the players the markets can&apos;t agree on).
+          {' '}Redraft drafts only — dynasty startups and rookie-only drafts are excluded at the source. SF = superflex/2QB pricing (FFC 2qb + Sleeper + FantasyCalc; ESPN publishes no SF ADP).
           {' '}History: FFC back to 2018, Sleeper back to 2020 — immutable committed snapshots (the model-training input); ESPN/FantasyCalc are current-season only.
         </p>
       </div>
@@ -131,6 +133,18 @@ export function ConsensusAdpView() {
         >
           {SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <div className="position-filters">
+          {(['1qb', 'sf'] as const).map((f) => (
+            <button
+              key={f}
+              className={`pos-filter ${format === f ? 'active' : ''}`}
+              title={f === 'sf' ? 'Superflex / 2QB drafts — QB pricing is radically different' : '1QB PPR drafts'}
+              onClick={() => setFormat(f)}
+            >
+              {f === 'sf' ? 'SF' : '1QB'}
+            </button>
+          ))}
+        </div>
         <input type="text" placeholder="Search players…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="position-filters">
           {POSITIONS.map((pos) => (
@@ -152,7 +166,7 @@ export function ConsensusAdpView() {
                 <th>Player</th>
                 <th>Pos</th>
                 <th>Team</th>
-                {sortableTh('blend', 'Blend', 'Mean pick across available sources')}
+                {sortableTh('blend', 'Blend', 'Weighted mean pick across available sources (weights = sample size × recency)')}
                 {activeSources.map((k) => sortableTh(k, ADP_SOURCE_LABELS[k], ADP_SOURCE_TITLES[k]))}
                 {sortableTh('spread', 'Spread', 'Disagreement across sources (max − min picks)')}
                 <th title="How many sources price this player">Srcs</th>

@@ -24,7 +24,7 @@
  */
 
 import { normName } from './nameUtils';
-import { blendPicks } from './adpSources';
+import { blendPicks, recencyWeight, sampleWeight } from './adpSources';
 import type { DraftPrepSettings, Position, Scoring } from './draftPrepSettings';
 import type { SDIOProjection } from '../types';
 
@@ -45,9 +45,9 @@ export interface KitPlayer {
   ppg: number;
   /** ppg × 17. */
   seasonPts: number;
-  /** Current market ADP: blend (mean pick) of FFC and Sleeper where both
-   *  list the player, else whichever does, else FantasyCalc redraft
-   *  overall rank as a pick proxy, else 999 (undrafted). */
+  /** Current market ADP: weighted blend (sample size × recency) of FFC
+   *  and Sleeper where both list the player, else whichever does, else
+   *  FantasyCalc redraft overall rank as a pick proxy, else 999. */
   adp: number;
   adpSource: AdpSource;
   /** FFC ADP stdev (picks); 0 when unavailable. */
@@ -74,7 +74,10 @@ export interface KitPoolInputs {
   /** redraft-projections.json players — the projection spine. */
   projections: Array<{ name: string; position: string; ppg: number; recPG?: number }>;
   /** FFC ADP entries (real market ADP, vets only this far from draft season). */
-  ffc: Array<{ name: string; position: string; team?: string; adp: number; stdev?: number }>;
+  ffc: Array<{ name: string; position: string; team?: string; adp: number; stdev?: number; timesDrafted?: number }>;
+  /** End of the FFC file's draft-date window (meta.end_date) — decays the
+   *  FFC weight when the endpoint is serving months-old mocks. */
+  ffcEndDate?: string;
   /** FantasyCalc redraft snapshot — covers rookies; overallRank ≈ consensus pick. */
   fcRedraft: Array<{
     player: { name: string; position: string; maybeTeam?: string | null; maybeAge?: number | null; maybeYoe?: number | null };
@@ -83,6 +86,8 @@ export interface KitPoolInputs {
   /** Sleeper draft-room ADP entries (sleeper-adp-<season>.json). Optional —
    *  blended with FFC into the market price when provided. */
   sleeperAdp?: Array<{ name: string; position: string; adp: number }>;
+  /** Sleeper snapshot fetch date — decays its weight if the CI refresh stalls. */
+  sleeperFetchedAt?: string;
   /** score-store/ppg.json. */
   modelPpg: Array<{ name: string; position: string; predictedPPG: number }>;
   /** Names of current-season rookie class (career model draftSeason === this season). */
@@ -98,10 +103,14 @@ export interface KitPoolInputs {
  * valued, so ADP-only players are dropped.
  */
 export function buildKitPool(inputs: KitPoolInputs): KitPlayer[] {
-  const ffcByKey = new Map<string, { adp: number; stdev: number; team?: string }>();
+  const ffcFileW = recencyWeight(inputs.ffcEndDate);
+  const ffcByKey = new Map<string, { adp: number; stdev: number; team?: string; weight: number }>();
   for (const f of inputs.ffc) {
     if (!f?.name || !Number.isFinite(f.adp)) continue;
-    ffcByKey.set(kitKey(f.name, f.position), { adp: f.adp, stdev: Number(f.stdev) || 0, team: f.team });
+    ffcByKey.set(kitKey(f.name, f.position), {
+      adp: f.adp, stdev: Number(f.stdev) || 0, team: f.team,
+      weight: sampleWeight(f.timesDrafted) * ffcFileW,
+    });
   }
   const fcByKey = new Map<string, { rank: number; team: string; age: number | null; yoe: number | null }>();
   for (const v of inputs.fcRedraft) {
@@ -118,6 +127,7 @@ export function buildKitPool(inputs: KitPoolInputs): KitPlayer[] {
   for (const m of inputs.modelPpg) {
     if (m?.name) modelByKey.set(kitKey(m.name, m.position), Number(m.predictedPPG) || NaN);
   }
+  const sleeperW = recencyWeight(inputs.sleeperFetchedAt);
   const sleeperByKey = new Map<string, number>();
   for (const s of inputs.sleeperAdp ?? []) {
     if (s?.name && Number.isFinite(s.adp) && s.adp > 0) sleeperByKey.set(kitKey(s.name, s.position), s.adp);
@@ -135,7 +145,10 @@ export function buildKitPool(inputs: KitPoolInputs): KitPlayer[] {
     const sleeper = sleeperByKey.get(key);
     let adp = 999;
     let adpSource: AdpSource = 'none';
-    const market = blendPicks(ffc?.adp, sleeper);
+    const market = blendPicks(
+      ffc ? { adp: ffc.adp, weight: ffc.weight } : undefined,
+      sleeper !== undefined ? { adp: sleeper, weight: sleeperW } : undefined,
+    );
     if (market !== undefined) {
       adp = market;
       adpSource = ffc && sleeper !== undefined ? 'blend' : ffc ? 'ffc' : 'sleeper';

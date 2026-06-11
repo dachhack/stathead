@@ -87,6 +87,8 @@ interface FfcAdpEntry {
   team?: string;
   adp: number;
   stdev: number;
+  /** Raw FFC field — per-player sample size for ADP weighting. */
+  times_drafted?: number;
 }
 
 interface RedraftProjEntry {
@@ -290,7 +292,12 @@ export function DraftOptimizerTable() {
   // (153 vets, no rookies); these sections need full projection depth.
   const [redraftEntries, setRedraftEntries] = useState<RedraftProjEntry[]>([]);
   const [ffcEntries, setFfcEntries] = useState<FfcAdpEntry[]>([]);
-  const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; adp: number }>>([]);
+  // Superflex market (FFC 2qb endpoint) — QB pricing is radically
+  // different, so SF leagues get SF ADP. Empty until the CI fetch lands.
+  const [ffc2qbEntries, setFfc2qbEntries] = useState<FfcAdpEntry[]>([]);
+  const [ffcEndDates, setFfcEndDates] = useState<{ ppr?: string; sf?: string }>({});
+  const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; adp: number; adp2qb: number }>>([]);
+  const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [clayPpr, setClayPpr] = useState<Map<string, number>>(new Map());
@@ -346,11 +353,16 @@ export function DraftOptimizerTable() {
       fetch(`${BASE}data/score-store/ppg.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       fetch(`${BASE}data/score-store/shares.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       // FFC dump shapes vary by year — 2025 is a bare array, 2026 wraps
-      // in `{ players: [...] }`. Normalize to an array on read.
+      // in `{ meta, players }`. Keep meta (draft-window end date) for the
+      // ADP recency weight.
       fetch(`${BASE}data/ffc_adp_ppr_2026.json`)
         .then((r) => (r.ok ? r.json() : { players: [] }))
-        .then((d) => Array.isArray(d) ? d : (d?.players ?? []))
-        .catch(() => []),
+        .then((d) => (Array.isArray(d) ? { players: d } : (d ?? { players: [] })))
+        .catch(() => ({ players: [] as FfcAdpEntry[] })),
+      fetch(`${BASE}data/ffc_adp_2qb_2026.json`)
+        .then((r) => (r.ok ? r.json() : { players: [] }))
+        .then((d) => (Array.isArray(d) ? { players: d } : (d ?? { players: [] })))
+        .catch(() => ({ players: [] as FfcAdpEntry[] })),
       loadScoreManifest(),
       // Base projections — the same redraft-projections.json the
       // Projections tab reads. Always available (no API key needed),
@@ -379,28 +391,36 @@ export function DraftOptimizerTable() {
       // daily) — blended with FFC into the kit pool's market price.
       fetch(`${BASE}data/sleeper-adp-${CURRENT_SEASON}.json`)
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number }>)
-        .catch(() => []),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, redraftData, fcData, careerData, clayRaw, sleeperRaw]: [
+        .then((d) => (d ?? { players: [] }))
+        .catch(() => ({ players: [] })),
+    ]).then(([adpData, ppgData, shareData, ffcDoc, ffc2qbDoc, manifest, redraftData, fcData, careerData, clayRaw, sleeperDoc]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
-      FfcAdpEntry[],
+      { meta?: { end_date?: string }; players?: FfcAdpEntry[] },
+      { meta?: { end_date?: string }; players?: FfcAdpEntry[] },
       Awaited<ReturnType<typeof loadScoreManifest>>,
       RedraftProjEntry[],
       FcRedraftEntry[],
       CareerScoreEntry[],
       Array<Record<string, number | string>>,
-      Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number }>,
+      { fetchedAt?: string; players?: Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number; adp_2qb?: number }> },
     ]) => {
       if (cancelled) return;
       setRedraftEntries(redraftData ?? []);
-      setFfcEntries(ffcData ?? []);
+      setFfcEntries(ffcDoc?.players ?? []);
+      setFfc2qbEntries(ffc2qbDoc?.players ?? []);
+      setFfcEndDates({ ppr: ffcDoc?.meta?.end_date, sf: ffc2qbDoc?.meta?.end_date });
       setFcRedraft(fcData ?? []);
       setCareerScores(careerData ?? []);
-      setSleeperAdpEntries((sleeperRaw ?? [])
-        .map((p) => ({ name: p.name, position: p.position, adp: p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0 }))
-        .filter((p) => p.adp > 0));
+      setSleeperFetchedAt(sleeperDoc?.fetchedAt);
+      setSleeperAdpEntries((sleeperDoc?.players ?? [])
+        .map((p) => ({
+          name: p.name, position: p.position,
+          adp: p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0,
+          adp2qb: p.adp_2qb ?? 0,
+        }))
+        .filter((p) => p.adp > 0 || p.adp2qb > 0));
       // Consensus maps for the requiresClay presets. PPR recomputed from
       // the stat line with our scoring (same as the Projections tab).
       {
@@ -449,7 +469,7 @@ export function DraftOptimizerTable() {
         if (s?.name) shareByKey.set(`${normName(s.name)}::${s.position}`, Number(s.predTargetShare) || 0);
       }
       const stdevByKey = new Map<string, number>();
-      for (const f of ffcData ?? []) {
+      for (const f of ffcDoc?.players ?? []) {
         if (f?.name) stdevByKey.set(`${normName(f.name)}::${f.position}`, Number(f.stdev) || 0);
       }
       // Base projection PPG keyed by player name. Drives the Proj
@@ -506,7 +526,7 @@ export function DraftOptimizerTable() {
         if (v?.player?.name) fcByKey.set(`${normName(v.player.name)}::${v.player.position}`, v);
       }
       const ffcByKey = new Map<string, FfcAdpEntry>();
-      for (const f of ffcData ?? []) {
+      for (const f of ffcDoc?.players ?? []) {
         if (f?.name) ffcByKey.set(`${normName(f.name)}::${f.position}`, f);
       }
       for (const p of redraftData ?? []) {
@@ -645,6 +665,20 @@ export function DraftOptimizerTable() {
   // players incl. all rookies); scenario PPG overrides per player when a
   // scenario is active, so the Value Board / Team Builder / Edges all
   // respect the same projection assumptions as the Edge Board.
+  // SF leagues price QBs radically differently — feed the kit the 2QB
+  // market when the league starts a superflex. The FFC 2qb file may not
+  // be committed yet (CI fetch); until then SF mode is Sleeper-only
+  // rather than polluting the blend with 1QB prices.
+  const isSuperflexLeague = settings.roster.SF > 0;
+  const ffcKitEntries = isSuperflexLeague ? ffc2qbEntries : ffcEntries;
+  const ffcKitEndDate = isSuperflexLeague ? ffcEndDates.sf : ffcEndDates.ppr;
+  const sleeperKitAdp = useMemo(
+    () => sleeperAdpEntries
+      .map((s) => ({ name: s.name, position: s.position, adp: isSuperflexLeague ? s.adp2qb : s.adp }))
+      .filter((s) => s.adp > 0),
+    [sleeperAdpEntries, isSuperflexLeague],
+  );
+
   const kitPool = useMemo<KitPlayer[]>(() => {
     if (redraftEntries.length === 0) return [];
     const rookieNames = new Set<string>();
@@ -661,15 +695,17 @@ export function DraftOptimizerTable() {
     }
     return buildKitPool({
       projections,
-      ffc: ffcEntries,
+      ffc: ffcKitEntries.map((f) => ({ ...f, timesDrafted: f.times_drafted })),
+      ffcEndDate: ffcKitEndDate,
       fcRedraft,
-      sleeperAdp: sleeperAdpEntries,
+      sleeperAdp: sleeperKitAdp,
+      sleeperFetchedAt,
       modelPpg: rawRows.map((r) => ({ name: r.name, position: r.position, predictedPPG: r.basePpg })),
       rookieNames,
       teams,
       scoring: settings.scoring,
     });
-  }, [redraftEntries, ffcEntries, fcRedraft, sleeperAdpEntries, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
+  }, [redraftEntries, ffcKitEntries, ffcKitEndDate, fcRedraft, sleeperKitAdp, sleeperFetchedAt, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
 
   // Selected My Rankings board → kitKey → 1-based rank. Saved order ids
   // are `${normName}:${pos}` (see MyRankings.makeId); kitKey is

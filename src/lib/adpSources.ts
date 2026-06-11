@@ -13,10 +13,23 @@
  * fetched live. This is the input for scoring models, projections, and
  * draft optimization, where freshness beats reproducibility.
  *
+ * REDRAFT ONLY: every loader here targets redraft drafts. Sleeper
+ * segments formats itself (adp_ppr/adp_2qb are redraft; dynasty startups
+ * are the separate adp_dynasty_* fields and supplemental rookie drafts
+ * are adp_rookie — both excluded here). FFC mocks are redraft by
+ * construction; FantasyCalc is queried with isDynasty=false; ESPN's ADP
+ * is its standard redraft game.
+ *
+ * FORMATS: '1qb' (PPR) or 'sf' (superflex/2QB — radically different QB
+ * pricing). SF comes from FFC's 2qb endpoint, Sleeper's adp_2qb, and
+ * FantasyCalc numQbs=2; ESPN publishes no SF ADP. No tracked source
+ * exposes TE-premium ADP.
+ *
  * Sources:
  *  - FFC (FantasyFootballCalculator mock drafts) — committed snapshots
- *    2018+ (`ffc_adp_ppr_<season>.json`); current season re-fetched daily
- *    by fetch-ffc-adp.yml.
+ *    2018+ (`ffc_adp_<scoring>_<season>.json`); current season re-fetched
+ *    daily by fetch-ffc-adp.yml. Publishes per-player `times_drafted`
+ *    (sample size) and a file-level draft-date window (`meta.end_date`).
  *  - Sleeper draft rooms — committed snapshots 2020+
  *    (`sleeper-adp-<season>.json`); current season re-fetched daily by
  *    fetch-sleeper-players.yml. Sleeper has no ADP before 2020.
@@ -25,15 +38,21 @@
  *    else the overall value rank as a pick proxy. Current season only
  *    (the daily snapshot has no history).
  *
- * The blend is the mean pick across available sources — the standard
- * "consensus ADP" aggregation; all sources are overall pick numbers on
- * the same scale. The spread (max − min) is the disagreement signal.
+ * BLEND = weighted mean pick across available sources (all sources are
+ * overall pick numbers on the same scale). Weights = sample size ×
+ * recency: FFC rows are weighted by times_drafted and decayed by the
+ * age of the file's draft window (its "year N" endpoint can serve
+ * months-old mocks between seasons — the committed 2026 file once
+ * carried drafts from Sept 2025), so a stale thin market can't drag
+ * players priced before real news. The spread (max − min) is the
+ * disagreement signal.
  */
 
 import { fetchFfcADP, fetchEspnADP, fetchFantasyCalcValues } from '../data';
 import { normName } from './nameUtils';
 
 export type AdpSourceKey = 'ffc' | 'sleeper' | 'espn' | 'fc';
+export type AdpFormat = '1qb' | 'sf';
 
 export const ADP_SOURCE_LABELS: Record<AdpSourceKey, string> = {
   ffc: 'FFC',
@@ -43,11 +62,58 @@ export const ADP_SOURCE_LABELS: Record<AdpSourceKey, string> = {
 };
 
 export const ADP_SOURCE_TITLES: Record<AdpSourceKey, string> = {
-  ffc: 'FantasyFootballCalculator mock-draft ADP (PPR)',
-  sleeper: 'Sleeper draft-room ADP (PPR)',
+  ffc: 'FantasyFootballCalculator mock-draft ADP',
+  sleeper: 'Sleeper draft-room ADP',
   espn: 'ESPN live-draft ADP',
   fc: 'FantasyCalc — real ADP when populated, else consensus value rank as a pick proxy',
 };
+
+// ── Weighting ──
+
+/** Half-life decay on data age. ~1 month half-life: yesterday ≈ 0.98,
+ *  a month old ≈ 0.5, last September ≈ 0. Floor keeps a stale source
+ *  visible-but-negligible instead of vanishing. */
+export function recencyWeight(dateIso?: string, halfLifeDays = 30): number {
+  if (!dateIso) return 1;
+  const t = Date.parse(dateIso);
+  if (!Number.isFinite(t)) return 1;
+  const days = Math.max(0, (Date.now() - t) / 86_400_000);
+  return Math.max(0.02, 0.5 ** (days / halfLifeDays));
+}
+
+/** Per-player sample weight from a draft count (FFC times_drafted):
+ *  full weight at `ref`+ drafts, floored so tiny samples stay visible.
+ *  Unknown counts get 0.5 — present but not fully trusted. */
+export function sampleWeight(timesDrafted?: number, ref = 50): number {
+  if (timesDrafted === undefined || !Number.isFinite(timesDrafted)) return 0.5;
+  return Math.max(0.1, Math.min(1, timesDrafted / ref));
+}
+
+export interface WeightedPick {
+  adp: number;
+  weight: number;
+}
+
+/** Weighted mean of the available real-market picks — the blend the
+ *  scoring surfaces (My Rankings, Draft Kit) put on a player. Plain
+ *  numbers count at weight 1. Ignores missing / sentinel (≥999) values;
+ *  undefined when no market prices the player. */
+export function blendPicks(...picks: Array<number | WeightedPick | undefined>): number | undefined {
+  let num = 0;
+  let den = 0;
+  for (const p of picks) {
+    if (p === undefined) continue;
+    const adp = typeof p === 'number' ? p : p.adp;
+    const w = typeof p === 'number' ? 1 : p.weight;
+    if (!Number.isFinite(adp) || adp <= 0 || adp >= 999 || !(w > 0)) continue;
+    num += adp * w;
+    den += w;
+  }
+  if (den <= 0) return undefined;
+  return round1(num / den);
+}
+
+// ── Row shapes ──
 
 export interface MultiAdpRow {
   name: string;
@@ -55,7 +121,7 @@ export interface MultiAdpRow {
   team: string;
   sleeperId?: string;
   adp: Partial<Record<AdpSourceKey, number>>;
-  /** Mean pick across available sources. */
+  /** Weighted mean pick across available sources. */
   blend: number;
   /** max − min across sources; 0 with fewer than 2 sources. */
   spread: number;
@@ -67,6 +133,7 @@ interface RawEntry {
   position: string;
   team?: string;
   adp: number;
+  weight: number;
   sleeperId?: string;
 }
 
@@ -77,57 +144,102 @@ const canonTeam = (t?: string | null): string => (t ? TEAM_CANON[t] ?? t : '');
 const SKILL = new Set(['QB', 'RB', 'WR', 'TE']);
 const BASE = import.meta.env.BASE_URL;
 
+// ── Loaders ──
+
 interface SleeperAdpDoc {
   season: number;
+  fetchedAt?: string;
   players: Array<{
     sleeper_id?: string; name: string; position: string; team?: string;
-    adp_ppr?: number; adp_half_ppr?: number; adp_std?: number;
+    adp_ppr?: number; adp_half_ppr?: number; adp_std?: number; adp_2qb?: number;
   }>;
 }
 
-async function loadSleeper(season: number): Promise<RawEntry[]> {
+async function loadSleeperDoc(season: number): Promise<SleeperAdpDoc | null> {
   try {
     const r = await fetch(`${BASE}data/sleeper-adp-${season}.json`);
-    if (!r.ok) return [];
-    const doc = (await r.json()) as SleeperAdpDoc;
-    return (doc.players ?? [])
-      .map((p) => ({
-        name: p.name,
-        position: p.position,
-        team: canonTeam(p.team),
-        adp: p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0,
-        sleeperId: p.sleeper_id,
-      }))
-      .filter((p) => p.adp > 0);
+    if (!r.ok) return null;
+    return (await r.json()) as SleeperAdpDoc;
   } catch {
-    return [];
+    return null;
   }
 }
 
-async function loadFfc(season: number): Promise<RawEntry[]> {
+async function loadSleeper(season: number, format: AdpFormat, applyRecency: boolean): Promise<RawEntry[]> {
+  const doc = await loadSleeperDoc(season);
+  if (!doc) return [];
+  // Sleeper publishes no per-player draft counts; its volume is the
+  // largest of any platform, so the weight is recency-only.
+  const weight = applyRecency ? recencyWeight(doc.fetchedAt) : 1;
+  return (doc.players ?? [])
+    .map((p) => ({
+      name: p.name,
+      position: p.position,
+      team: canonTeam(p.team),
+      adp: format === 'sf' ? (p.adp_2qb ?? 0) : (p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0),
+      weight,
+      sleeperId: p.sleeper_id,
+    }))
+    .filter((p) => p.adp > 0 && p.adp < 999);
+}
+
+const ffcScoring = (format: AdpFormat): 'ppr' | '2qb' => (format === 'sf' ? '2qb' : 'ppr');
+
+interface FfcRawDoc {
+  meta?: { total_drafts?: number; start_date?: string; end_date?: string };
+  players?: Array<{ name: string; position: string; team?: string; adp: number; times_drafted?: number }>;
+}
+
+/** Raw committed FFC file — keeps `meta` (draft-date window) and
+ *  `times_drafted`, which the mapped fetchFfcADP path discards. */
+export async function fetchFfcRaw(season: number, format: AdpFormat = '1qb'): Promise<FfcRawDoc | null> {
   try {
-    const players = await fetchFfcADP(season, 'ppr', 12);
+    const r = await fetch(`${BASE}data/ffc_adp_${ffcScoring(format)}_${season}.json`);
+    if (!r.ok) return null;
+    const doc = (await r.json()) as FfcRawDoc;
+    return Array.isArray(doc?.players) ? doc : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapFfcRaw(doc: FfcRawDoc, applyRecency: boolean): RawEntry[] {
+  const fileW = applyRecency ? recencyWeight(doc.meta?.end_date) : 1;
+  return (doc.players ?? [])
+    .filter((p) => SKILL.has(p.position) && Number(p.adp) > 0)
+    .map((p) => ({
+      name: p.name,
+      position: p.position,
+      team: canonTeam(p.team),
+      adp: Number(p.adp),
+      weight: sampleWeight(p.times_drafted) * fileW,
+    }));
+}
+
+async function loadFfcCurrent(season: number, format: AdpFormat): Promise<RawEntry[]> {
+  // Committed snapshot first (CI-refreshed daily; carries meta + counts)…
+  const raw = await fetchFfcRaw(season, format);
+  if (raw && (raw.players?.length ?? 0) > 0) return mapFfcRaw(raw, true);
+  // …else the live-API path (no meta — assume fresh, unknown sample).
+  try {
+    const players = await fetchFfcADP(season, ffcScoring(format), 12);
     return players
       .filter((p) => SKILL.has(p.position) && p.adp > 0)
-      .map((p) => ({ name: p.name, position: p.position, team: canonTeam(p.team), adp: p.adp }));
+      .map((p) => ({
+        name: p.name, position: p.position, team: canonTeam(p.team),
+        adp: p.adp, weight: sampleWeight(p.timesDrafted),
+      }));
   } catch {
     return [];
   }
 }
 
-// Snapshot-only FFC for historic seasons — reads the committed per-season
-// file directly, with no live-API fallback, so research is deterministic.
-async function loadFfcSnapshot(season: number): Promise<RawEntry[]> {
-  try {
-    const r = await fetch(`${BASE}data/ffc_adp_ppr_${season}.json`);
-    if (!r.ok) return [];
-    const doc = (await r.json()) as { players?: Array<{ name: string; position: string; team?: string; adp: number }> };
-    return (doc.players ?? [])
-      .filter((p) => SKILL.has(p.position) && Number(p.adp) > 0)
-      .map((p) => ({ name: p.name, position: p.position, team: canonTeam(p.team), adp: Number(p.adp) }));
-  } catch {
-    return [];
-  }
+// Snapshot-only FFC for historic seasons — no live-API fallback, so
+// research is deterministic. Sample weights still apply (a 5-mock ADP
+// from 2021 is as noisy as one from today); recency does not.
+async function loadFfcSnapshot(season: number, format: AdpFormat): Promise<RawEntry[]> {
+  const raw = await fetchFfcRaw(season, format);
+  return raw ? mapFfcRaw(raw, false) : [];
 }
 
 async function loadEspn(season: number): Promise<RawEntry[]> {
@@ -135,24 +247,30 @@ async function loadEspn(season: number): Promise<RawEntry[]> {
     const players = await fetchEspnADP(season);
     return players
       .filter((p) => SKILL.has(p.position) && p.adp > 0)
-      .map((p) => ({ name: p.name, position: p.position, team: canonTeam(p.team), adp: p.adp }));
+      .map((p) => ({ name: p.name, position: p.position, team: canonTeam(p.team), adp: p.adp, weight: 1 }));
   } catch {
     return [];
   }
 }
 
-async function loadFc(): Promise<RawEntry[]> {
+async function loadFc(format: AdpFormat): Promise<RawEntry[]> {
   try {
-    const players = await fetchFantasyCalcValues(false, 1, 12, 1);
+    const players = await fetchFantasyCalcValues(false, format === 'sf' ? 2 : 1, 12, 1);
     return players
       .filter((p) => SKILL.has(p.player.position))
-      .map((p) => ({
-        name: p.player.name,
-        position: p.player.position,
-        team: canonTeam(p.player.maybeTeam),
-        adp: p.maybeAdp != null && p.maybeAdp > 0 ? p.maybeAdp : p.overallRank,
-        sleeperId: p.player.sleeperId,
-      }));
+      .map((p) => {
+        const realAdp = p.maybeAdp != null && p.maybeAdp > 0;
+        return {
+          name: p.player.name,
+          position: p.player.position,
+          team: canonTeam(p.player.maybeTeam),
+          adp: realAdp ? (p.maybeAdp as number) : p.overallRank,
+          // A consensus value rank is a pick proxy, not a sampled pick —
+          // half weight until FC's real ADP populates.
+          weight: realAdp ? 1 : 0.5,
+          sleeperId: p.player.sleeperId,
+        };
+      });
   } catch {
     return [];
   }
@@ -160,69 +278,73 @@ async function loadFc(): Promise<RawEntry[]> {
 
 export interface AdpSourceData {
   season: number;
+  format: AdpFormat;
   sources: Record<AdpSourceKey, RawEntry[]>;
 }
 
 /** Historic regime: committed snapshots only (FFC + Sleeper), no live
  *  calls — same numbers on every run. The research/training input. */
-export async function loadHistoricAdpSources(season: number): Promise<AdpSourceData> {
-  const [ffc, sleeper] = await Promise.all([loadFfcSnapshot(season), loadSleeper(season)]);
-  return { season, sources: { ffc, sleeper, espn: [], fc: [] } };
+export async function loadHistoricAdpSources(season: number, format: AdpFormat = '1qb'): Promise<AdpSourceData> {
+  const [ffc, sleeper] = await Promise.all([
+    loadFfcSnapshot(season, format),
+    loadSleeper(season, format, false),
+  ]);
+  return { season, format, sources: { ffc, sleeper, espn: [], fc: [] } };
 }
 
 /** Current regime: every live + daily-refreshed source. The input for
- *  scoring, projections, and draft optimization. */
-export async function loadCurrentAdpSources(season: number): Promise<AdpSourceData> {
+ *  scoring, projections, and draft optimization. ESPN has no SF ADP. */
+export async function loadCurrentAdpSources(season: number, format: AdpFormat = '1qb'): Promise<AdpSourceData> {
   const [ffc, sleeper, espn, fc] = await Promise.all([
-    loadFfc(season),
-    loadSleeper(season),
-    loadEspn(season),
-    loadFc(),
+    loadFfcCurrent(season, format),
+    loadSleeper(season, format, true),
+    format === '1qb' ? loadEspn(season) : Promise.resolve([] as RawEntry[]),
+    loadFc(format),
   ]);
-  return { season, sources: { ffc, sleeper, espn, fc } };
+  return { season, format, sources: { ffc, sleeper, espn, fc } };
 }
 
 /** Route to the right regime for the requested season. */
-export async function loadAdpSources(season: number, currentSeason: number): Promise<AdpSourceData> {
-  return season < currentSeason ? loadHistoricAdpSources(season) : loadCurrentAdpSources(season);
+export async function loadAdpSources(season: number, currentSeason: number, format: AdpFormat = '1qb'): Promise<AdpSourceData> {
+  return season < currentSeason ? loadHistoricAdpSources(season, format) : loadCurrentAdpSources(season, format);
 }
 
 const round1 = (v: number): number => Math.round(v * 10) / 10;
 
-/** Mean of the available real-market picks — the blend the scoring
- *  surfaces (My Rankings, Draft Kit) put on a player. Ignores missing /
- *  sentinel (≥999) values; undefined when no market prices the player. */
-export function blendPicks(...picks: Array<number | undefined>): number | undefined {
-  const vals = picks.filter((v): v is number => v !== undefined && Number.isFinite(v) && v > 0 && v < 999);
-  if (!vals.length) return undefined;
-  return round1(vals.reduce((a, b) => a + b, 0) / vals.length);
-}
-
-/** Join the sources by player and compute the blend + disagreement spread. */
+/** Join the sources by player and compute the weighted blend + the
+ *  disagreement spread. */
 export function buildMultiAdpRows(data: AdpSourceData): MultiAdpRow[] {
-  const byName = new Map<string, MultiAdpRow>();
+  interface Acc extends MultiAdpRow { weights: Partial<Record<AdpSourceKey, number>> }
+  const byName = new Map<string, Acc>();
   for (const key of Object.keys(data.sources) as AdpSourceKey[]) {
     for (const e of data.sources[key]) {
       const nn = normName(e.name);
       if (!nn) continue;
       let row = byName.get(nn);
       if (!row) {
-        row = { name: e.name, position: e.position, team: '', adp: {}, blend: 0, spread: 0, sourceCount: 0 };
+        row = { name: e.name, position: e.position, team: '', adp: {}, weights: {}, blend: 0, spread: 0, sourceCount: 0 };
         byName.set(nn, row);
       }
       // First source to provide a team/id wins (source order is stable).
       if (!row.team && e.team) row.team = e.team;
       if (!row.sleeperId && e.sleeperId) row.sleeperId = e.sleeperId;
-      if (row.adp[key] === undefined) row.adp[key] = round1(e.adp);
+      if (row.adp[key] === undefined) {
+        row.adp[key] = round1(e.adp);
+        row.weights[key] = e.weight;
+      }
     }
   }
 
   const rows: MultiAdpRow[] = [];
   for (const row of byName.values()) {
-    const vals = Object.values(row.adp).filter((v): v is number => v !== undefined);
-    if (!vals.length) continue;
+    const picks = (Object.keys(row.adp) as AdpSourceKey[])
+      .map((k) => ({ adp: row.adp[k]!, weight: row.weights[k] ?? 1 }));
+    if (!picks.length) continue;
+    const blend = blendPicks(...picks);
+    if (blend === undefined) continue;
+    const vals = picks.map((p) => p.adp);
     row.sourceCount = vals.length;
-    row.blend = round1(vals.reduce((a, b) => a + b, 0) / vals.length);
+    row.blend = blend;
     row.spread = vals.length > 1 ? round1(Math.max(...vals) - Math.min(...vals)) : 0;
     rows.push(row);
   }

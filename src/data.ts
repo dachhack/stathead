@@ -1234,7 +1234,7 @@ export async function fetchFantasyCalcValues(
   // Try pre-fetched data
   const sfx = isDynasty
     ? (numQbs === 2 ? 'dynasty_sf' : 'dynasty_1qb')
-    : 'redraft_1qb';
+    : (numQbs === 2 ? 'redraft_sf' : 'redraft_1qb');
   const preFetched = await tryPreFetched<FantasyCalcPlayer[]>(`fantasycalc_${sfx}.json`);
   if (preFetched && preFetched.length > 0) {
     preFetched.sort((a, b) => b.value - a.value);
