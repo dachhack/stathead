@@ -155,10 +155,16 @@ export function buildKitPool(inputs: KitPoolInputs): KitPlayer[] {
     } else if (fc) { adp = fc.rank; adpSource = 'fc-rank'; }
     const recPG = Number(pr.recPG) || 0;
     const ppg = adjustPpg(pprPpg, recPG, inputs.scoring);
+    // Free agents / retired players (no team) carry no projection — and a
+    // kit row with phantom PPG reads as a massive market discount (deep
+    // ADP because unsigned, healthy model PPG) that the optimizer and
+    // Value Board chase. Same rule as the rankings surfaces.
+    const team = ffc?.team || fc?.team || inputs.teams?.get(key) || '';
+    if (!team || team === 'FA') continue;
     out.push({
       name: pr.name,
       position: pos,
-      team: ffc?.team || fc?.team || inputs.teams?.get(key) || '',
+      team,
       pprPpg,
       recPG,
       ppg,
