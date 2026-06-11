@@ -10,9 +10,11 @@ import {
   fetchContracts, fetchCollegeStats, fetchCollegeQBR, fetchDraftProspects,
   fetchCfbdCollegeStats, fetchCfbdSpRatings, fetchCfbdRecruiting,
   fetchCfbdGames, fetchCfbdTeamTalent, fetchCfbdPlayerUsage,
+  readLocalJson,
 } from '../data';
+import { blendPicks, recencyWeight, sampleWeight } from './adpBlend';
 import type { CfbdSpRating, CfbdRecruit, CfbdPlayerUsage } from '../data';
-import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect } from '../types';
+import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect, FfcADPPlayer } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
 // Volume projection module available for future ML team-level models
 // import { trainTeamVolumeModel, buildTeamVolumeTrainingData, projectPlayerPPG } from './volumeProjection';
@@ -962,6 +964,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           adp: number;
         }
         const playerHistoryMap = new Map<string, PlayerHistory[]>(); // name → sorted history
+        // Season → (name → market ADP), saved as each training season's ADP
+        // resolves so the NEXT season's history entries (and the prediction
+        // season's) can fill PlayerHistory.adp — which feeds adpTrend. Only
+        // real market ADP lands here, never the draft-pick proxy rows.
+        const adpBySeasonHist = new Map<number, Map<string, number>>();
 
         for (const season of seasons) {
           onStatus?.(`Building features for ${season}...`);
@@ -991,8 +998,31 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           ]);
           
 
-          // Use FFC ADP, falling back to ESPN ADP if FFC is empty
+          // Use FFC ADP (committed snapshot); when FFC has dropped the
+          // season from its year-keyed endpoint (year=2025 returns an
+          // empty players array as of June 2026), fall back to the
+          // committed Sleeper snapshot — deterministic, immutable, and
+          // byte-identical to what the existing 2025 training caches
+          // already carry. Live ESPN remains the last resort.
           let adpData = ffcAdp;
+          if (adpData.length === 0) {
+            // Cap at FFC-equivalent board depth (FFC files run ~200
+            // players, max ADP ~260) so a Sleeper-sourced season emits the
+            // same cohort the FFC-sourced seasons do — without the cap,
+            // Sleeper's 2,600-player priced universe would flood one season
+            // with deep-roster rows no other season has, skewing the
+            // position ADP→PPG curves and hit/bust label distributions.
+            const FFC_EQUIV_MAX_ADP = 260;
+            const sl = await readLocalJson<{ players?: Array<{ name: string; position: string; team?: string; adp_ppr?: number }> }>(`sleeper-adp-${season}.json`);
+            const slPlayers = (sl?.players ?? []).filter((p) => (p.adp_ppr ?? 0) > 0 && (p.adp_ppr ?? 999) <= FFC_EQUIV_MAX_ADP);
+            if (slPlayers.length > 50) {
+              adpData = slPlayers.map((p) => ({
+                name: p.name, position: p.position, team: p.team || '',
+                adp: p.adp_ppr as number, high: 0, low: 0, stdev: 0, timesDrafted: 0, bye: 0,
+              }));
+              onStatus?.(`FFC ADP empty for ${season} — using committed Sleeper snapshot (${adpData.length} players)`);
+            }
+          }
           if (adpData.length === 0) {
             onStatus?.(`FFC ADP empty for ${season}, trying ESPN ADP fallback...`);
             try {
@@ -1027,6 +1057,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             onStatus?.(`⚠ ${season}: validADP=${validAdpCount}/${adpData.length} — emitting rookie rows via draft path only`);
             adpData = [];  // ADP loop below becomes a no-op; draft path still runs
           }
+
+          // Save this season's market ADP for next season's history fill
+          // (PlayerHistory.adp → adpTrend).
+          adpBySeasonHist.set(season, new Map(
+            adpData.filter((p) => p.adp > 0).map((p) => [normalizeName(p.name), p.adp]),
+          ));
 
           // Current season totals + ranks
           const currentTotals = aggregateToSeasonTotals(
@@ -1104,7 +1140,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 touches: (p.carries || 0) + (p.receptions || 0),
                 snapPct: 0, // will be filled from snap data
                 targetShare: 0, // will be filled from weekly data
-                adp: 0, // filled from ADP data
+                // Season-(S-1) market ADP, captured during that season's
+                // iteration (seasons ascend). 0 before ADP coverage starts,
+                // which the adpTrend guard treats as "unknown".
+                adp: adpBySeasonHist.get(season - 1)?.get(name) ?? 0,
               });
             }
           }
@@ -2654,7 +2693,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   ppgTrend: Math.round((curr.ppg - prev.ppg) * 10) / 10,
                   targetTrend: curr.targets - prev.targets,
                   touchTrend: curr.touches - prev.touches,
-                  adpTrend: prev.adp > 0 && curr.adp > 0 ? Math.round((prev.adp - curr.adp) * 10) / 10 : 0, // positive = rising
+                  // positive = rising. NB: at the 2024→2025 boundary the two
+                  // years come from different markets (FFC vs the Sleeper
+                  // snapshot), which differ by ~12-19 picks on average —
+                  // tolerable noise inside a trend, but a known caveat.
+                  adpTrend: prev.adp > 0 && curr.adp > 0 ? Math.round((prev.adp - curr.adp) * 10) / 10 : 0,
                   snapPctTrend: Math.round((curr.snapPct - prev.snapPct) * 10) / 10,
                   targetShareTrend: Math.round((curr.targetShare - prev.targetShare) * 1000) / 1000,
                 };
@@ -2818,7 +2861,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               // to avoid double-dividing by games. Same bug as rookie path above.
               const totalPPR = current.fantasy_points_ppr || 0;
               const rawPPG = Math.round((totalPPR / Math.max(1, playerGames)) * 10) / 10;
-              const proxyAdp = draft.pick;
+              // ADP proxy: draft-year rookies have no fantasy board yet, so
+              // the NFL pick is the documented stand-in. Year-2/3 players
+              // who STILL have no market ADP are undrafted in fantasy
+              // terms — re-using the NFL pick would claim e.g. a year-3
+              // WR was a round-4 fantasy pick (this poisoned 64 rows of
+              // season-2025 training data: Mingo "ADP 39" = his 2023 NFL
+              // slot, real market ≈ undrafted). Deep sentinel instead.
+              const UNDRAFTED_ADP = 300;
+              const proxyAdp = yearsFromDraft === 0 ? draft.pick : UNDRAFTED_ADP;
 
               const features: Record<string, number> = {
                 adp: proxyAdp,
@@ -3164,13 +3215,13 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           const priorSeason = predSeason - 1;
 
           const [
-            predAdpData, predPriorStats, predPriorSnaps,
+            predFfcAdpData, predPriorStats, predPriorSnaps,
             predPriorInjuries, predPreseasonInjuries,
             predPriorNgsRec, predPriorNgsRush, predPriorNgsPass,
             predPriorPbp, predPriorParticipation,
             predSeasonRosters, predPriorRosters, predSeasonDepthCharts,
           ] = await Promise.all([
-            fetchFfcADP(predSeason, 'ppr', 12).catch(() => []),
+            fetchFfcADP(predSeason, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
             fetchPlayerStats(priorSeason).catch(() => []),
             fetchSnapCounts(priorSeason).catch(() => []),
             fetchInjuries(priorSeason).catch(() => []),
@@ -3184,7 +3235,49 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             fetchRosters(priorSeason).catch(() => [] as Roster[]),
             fetchDepthCharts(predSeason).catch(() => [] as DepthChart[]),
           ]);
-          
+
+          // ── Current-season market price = weighted blend of FFC and the
+          // Sleeper draft-room snapshot (sample × recency weights, the same
+          // regime the UI's adpSources.ts applies). FFC's offseason file can
+          // be a thin, months-old window — the committed "2026" file once
+          // carried only Sept-2025 mocks — so blending keeps the scoring
+          // pool priced sanely when one market goes stale, and Sleeper-only
+          // players (rookies, deep vets FFC hasn't priced) join the pool.
+          const predAdpData = await (async () => {
+            const [ffcRawDoc, sleeperDoc] = await Promise.all([
+              readLocalJson<{ meta?: { end_date?: string }; players?: Array<{ name: string; times_drafted?: number }> }>(`ffc_adp_ppr_${predSeason}.json`),
+              readLocalJson<{ fetchedAt?: string; players?: Array<{ name: string; position: string; team?: string; adp_ppr?: number }> }>(`sleeper-adp-${predSeason}.json`),
+            ]);
+            const ffcFileW = recencyWeight(ffcRawDoc?.meta?.end_date);
+            const sleeperW = recencyWeight(sleeperDoc?.fetchedAt);
+            const tdByName = new Map((ffcRawDoc?.players ?? []).map((p) => [normalizeName(p.name), p.times_drafted]));
+            const slByName = new Map((sleeperDoc?.players ?? [])
+              .filter((p) => (p.adp_ppr ?? 0) > 0 && (p.adp_ppr ?? 999) < 999)
+              .map((p) => [normalizeName(p.name), p]));
+            if (slByName.size === 0) return predFfcAdpData;
+
+            const blended: FfcADPPlayer[] = [];
+            const seen = new Set<string>();
+            for (const p of predFfcAdpData) {
+              const nn = normalizeName(p.name);
+              seen.add(nn);
+              const sl = slByName.get(nn);
+              const adp = blendPicks(
+                { adp: p.adp, weight: sampleWeight(tdByName.get(nn) ?? p.timesDrafted) * ffcFileW },
+                sl ? { adp: sl.adp_ppr as number, weight: sleeperW } : undefined,
+              ) ?? p.adp;
+              blended.push({ ...p, adp });
+            }
+            for (const [nn, sl] of slByName) {
+              if (seen.has(nn) || !POSITIONS.includes(sl.position)) continue;
+              blended.push({
+                name: sl.name, position: sl.position, team: sl.team || '',
+                adp: sl.adp_ppr as number, high: 0, low: 0, stdev: 0, timesDrafted: 0, bye: 0,
+              });
+            }
+            onStatus?.(`Blended ${predSeason} market ADP: ${predFfcAdpData.length} FFC + ${slByName.size} Sleeper → ${blended.length} players`);
+            return blended;
+          })();
 
           if (predAdpData.length > 0) {
             // Prior season totals
@@ -3251,7 +3344,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   touches: (p.carries || 0) + (p.receptions || 0),
                   snapPct: 0,
                   targetShare: 0,
-                  adp: 0,
+                  adp: adpBySeasonHist.get(predSeason - 1)?.get(name) ?? 0,
                 });
               }
             }

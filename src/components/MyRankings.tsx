@@ -4,6 +4,8 @@ import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenari
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
+import { blendPicks, fetchFfcRaw, recencyWeight, sampleWeight } from '../lib/adpSources';
+import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
 
@@ -53,6 +55,65 @@ interface CompetitionEntry {
   priorTeamTargetShare: number;
 }
 
+// FantasyCalc redraft snapshot — daily-refreshed consensus. Covers current
+// rookies and deep vets that FFC's offseason ADP misses, plus team and
+// age / years-of-experience for the preset metadata.
+interface FcRedraftEntry {
+  player: {
+    name: string;
+    position: string;
+    maybeTeam?: string | null;
+    maybeAge?: number | null;
+    maybeYoe?: number | null;
+  };
+  overallRank: number;
+}
+
+// score-store/career.json — career-model scores; draftSeason identifies the
+// current rookie class for the rookie/vet presets.
+interface CareerScoreEntry {
+  name: string;
+  position: string;
+  draftSeason: number;
+}
+
+// depth-order-2026.json — model depth-chart ordering; the widest local
+// player→team mapping (covers deep depth pieces no ADP source ranks).
+interface DepthOrderEntry {
+  name: string;
+  team: string;
+  pos: string;
+}
+
+// sleeper-adp-<season>.json — Sleeper market ADP snapshot (CI-fetched daily
+// by fetch-sleeper-players.yml). Real draft-room ADP that covers rookies and
+// deep vets long before FFC's offseason ADP fills out.
+interface SleeperAdpEntry {
+  name: string;
+  position: string;
+  team?: string;
+  adp_ppr?: number;
+  adp_half_ppr?: number;
+  adp_std?: number;
+}
+
+interface SleeperAdpDoc {
+  fetchedAt?: string;
+  players?: SleeperAdpEntry[];
+}
+
+// One scenario-adjusted row from the Projections tab's own engine — the
+// exact values the scenario tool displays for the active scenario.
+interface ToolProjEntry {
+  position: string;
+  team: string;
+  games: number;
+  pprPts: number;
+  rec: number;
+  tgt: number;
+  rushAtt: number;
+}
+
 interface RankingRow {
   id: string;
   rank: number;
@@ -92,19 +153,11 @@ interface SavedRanking {
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
+const CURRENT_SEASON = 2026;
 
 // Non-clay quick presets offered here (clay-blend presets would no-op without Clay).
 const MR_PRESET_IDS = new Set(['preset-rookie-optimistic', 'preset-vet-optimistic', 'preset-injury-skeptic', 'preset-vegas-weighted']);
 
-// Season fantasy points from a (possibly scenario-adjusted) SDIO line, under a
-// chosen reception weight (PPR=1, Half=0.5, Standard=0).
-function scoreSeasonPts(p: SDIOProjection, fmt: 'ppr' | 'half' | 'standard'): number {
-  const recPt = fmt === 'ppr' ? 1 : fmt === 'half' ? 0.5 : 0;
-  return (p.PassingYards || 0) * 0.04 + (p.PassingTouchdowns || 0) * 4 + (p.PassingInterceptions || 0) * -2
-    + (p.RushingYards || 0) * 0.1 + (p.RushingTouchdowns || 0) * 6
-    + (p.Receptions || 0) * recPt + (p.ReceivingYards || 0) * 0.1 + (p.ReceivingTouchdowns || 0) * 6
-    + (p.FumblesLost || 0) * -2;
-}
 const BASE = import.meta.env.BASE_URL;
 
 function makeId(name: string, pos: string): string {
@@ -148,6 +201,15 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [shareScores, setShareScores] = useState<ShareScoreEntry[]>([]);
   const [priorStats, setPriorStats] = useState<Record<string, PriorStatsEntry>>({});
   const [competition, setCompetition] = useState<Record<string, CompetitionEntry>>({});
+  const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
+  const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
+  const [depthOrder, setDepthOrder] = useState<DepthOrderEntry[]>([]);
+  const [sleeperAdp, setSleeperAdp] = useState<SleeperAdpEntry[]>([]);
+  // Source freshness for ADP weighting: Sleeper snapshot fetch date and the
+  // FFC file's draft-window end date + per-player sample sizes.
+  const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
+  const [ffcEndDate, setFfcEndDate] = useState<string | undefined>(undefined);
+  const [ffcSampleByName, setFfcSampleByName] = useState<Map<string, number>>(new Map());
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -161,6 +223,9 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   // Projection scenario selection
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
+  // The Projections tab's computed base pool (cached on every load of that
+  // tab) — lets this page run the tab's own scenario engine for exact parity.
+  const [projBase, setProjBase] = useState<ProjectionBase | null>(null);
   // League scoring format — re-scores PPG from the projected stat line.
   const [scoringFormat, setScoringFormat] = useState<'ppr' | 'half' | 'standard'>('ppr');
 
@@ -179,7 +244,28 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
       // Fallback source — if score-store shards are empty, hydrate from the monolithic matrix.
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
-    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
+      // FFC's offseason ADP is thin (~170 players) and adp.json only covers the
+      // model pool, so teams/ADP need deeper local fallbacks: FantasyCalc
+      // redraft (team + rank + age/yoe, rookie-inclusive) and the depth-chart
+      // ordering (widest player→team map).
+      fetch(`${BASE}data/fantasycalc_redraft_1qb.json`)
+        .then(r => (r.ok ? r.json() : []))
+        .then(d => (Array.isArray(d) ? d : []) as FcRedraftEntry[])
+        .catch(() => [] as FcRedraftEntry[]),
+      fetch(`${BASE}data/score-store/career.json`)
+        .then(r => (r.ok ? r.json() : []))
+        .then(d => (Array.isArray(d) ? d : []) as CareerScoreEntry[])
+        .catch(() => [] as CareerScoreEntry[]),
+      fetch(`${BASE}data/depth-order-${CURRENT_SEASON}.json`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => (Array.isArray(d?.players) ? d.players : []) as DepthOrderEntry[])
+        .catch(() => [] as DepthOrderEntry[]),
+      fetch(`${BASE}data/sleeper-adp-${CURRENT_SEASON}.json`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => (d ?? {}) as SleeperAdpDoc)
+        .catch(() => ({} as SleeperAdpDoc)),
+      fetchFfcRaw(CURRENT_SEASON),
+    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperDoc, ffcRaw]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
 
@@ -230,6 +316,19 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       setShareScores(fmShares);
       setPriorStats(priorData);
       setCompetition(compData);
+      setFcRedraft(fcData);
+      setCareerScores(careerData);
+      setDepthOrder(depthData);
+      setSleeperAdp(Array.isArray(sleeperDoc?.players) ? sleeperDoc.players : []);
+      setSleeperFetchedAt(sleeperDoc?.fetchedAt);
+      setFfcEndDate(ffcRaw?.meta?.end_date);
+      {
+        const m = new Map<string, number>();
+        for (const p of ffcRaw?.players ?? []) {
+          if (p?.name && p.times_drafted !== undefined) m.set(normName(p.name), Number(p.times_drafted));
+        }
+        setFfcSampleByName(m);
+      }
       setLoading(false);
     });
   }, []);
@@ -240,6 +339,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       if (raw) setSavedList(JSON.parse(raw));
     } catch { /* ignore */ }
     setSavedScenarios(loadAllScenarios());
+    setProjBase(loadProjectionBase(CURRENT_SEASON));
   }, []);
 
   // Lookup maps
@@ -266,6 +366,48 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     for (const p of shareScores) m.set(normName(p.name), p);
     return m;
   }, [shareScores]);
+
+  const fcByName = useMemo(() => {
+    const m = new Map<string, { team: string; rank: number; age: number | null; yoe: number | null }>();
+    for (const v of fcRedraft) {
+      const p = v?.player;
+      if (!p?.name) continue;
+      m.set(normName(p.name), {
+        team: p.maybeTeam ?? '',
+        rank: v.overallRank,
+        age: Number.isFinite(p.maybeAge as number) ? (p.maybeAge as number) : null,
+        yoe: Number.isFinite(p.maybeYoe as number) ? (p.maybeYoe as number) : null,
+      });
+    }
+    return m;
+  }, [fcRedraft]);
+
+  const depthTeamByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of depthOrder) {
+      if (p?.name && p.team) m.set(`${normName(p.name)}|${p.pos}`, p.team);
+    }
+    return m;
+  }, [depthOrder]);
+
+  const sleeperByName = useMemo(() => {
+    const m = new Map<string, SleeperAdpEntry>();
+    for (const p of sleeperAdp) {
+      if (p?.name) m.set(normName(p.name), p);
+    }
+    return m;
+  }, [sleeperAdp]);
+
+  // Current rookie class from the career model — adp.json's isRookie flag
+  // only covers the model pool, so it can't identify the rookie class for
+  // the rookie/vet presets on its own.
+  const rookieNames = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of careerScores) {
+      if (c.draftSeason === CURRENT_SEASON) s.add(normName(c.name));
+    }
+    return s;
+  }, [careerScores]);
 
   // Prior data: prefer ::2026 entries (which contain 2025 actual stats as "prior")
   const priorByName = useMemo(() => {
@@ -298,39 +440,53 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [competition]);
 
-  // Rookie/availability metadata for quick presets, from the ADP model rows
-  // (rookie flag) and the feature store (prior-season games, for the injury
-  // skeptic preset's risk tiers).
+  // Rookie/availability metadata for quick presets, spanning the whole
+  // projection pool: rookie flag from the career model class (plus the ADP
+  // model rows), age / years-of-experience from FantasyCalc, and
+  // prior-season games from the feature store (injury skeptic risk tiers).
   const presetMeta = useMemo(() => {
     const m: PresetMeta = new Map<string, PlayerMeta>();
-    for (const a of adpScores) {
-      const nn = normName(a.name);
+    for (const p of redraft) {
+      const nn = normName(p.name);
+      const fc = fcByName.get(nn);
+      const isRookie = rookieNames.has(nn) || (adpScoreByName.get(nn)?.isRookie ?? false);
       m.set(nn, {
-        isRookie: a.isRookie,
-        yearsExp: a.isRookie ? 0 : null,
-        age: null,
+        isRookie,
+        yearsExp: isRookie ? 0 : fc?.yoe ?? null,
+        age: fc?.age ?? null,
         priorGames: priorByName.get(nn)?.priorGames ?? null,
       });
     }
     return m;
-  }, [adpScores, priorByName]);
+  }, [redraft, fcByName, rookieNames, adpScoreByName, priorByName]);
+
+  // Team resolution, widest-coverage chain: FFC ADP → ADP model pool →
+  // FantasyCalc redraft → Sleeper ADP → model depth-chart ordering. Team
+  // coverage matters beyond display — scenario team levers (tendencies/
+  // volumes) and the Tgt%/Rush% team totals only reach players with a
+  // resolved team.
+  const resolveTeam = useCallback((nn: string, position: string): string => {
+    return ffcByName.get(nn)?.team
+      || adpScoreByName.get(nn)?.team
+      || fcByName.get(nn)?.team
+      || sleeperByName.get(nn)?.team
+      || depthTeamByKey.get(`${nn}|${position}`)
+      || '';
+  }, [ffcByName, adpScoreByName, fcByName, sleeperByName, depthTeamByKey]);
 
   // Scenario pool: synthetic SDIO-shaped rows decomposed from the validated
   // model projections (redraft-projections.json — the same Consensus base the
   // Projections tab's scenario engine runs on), so scenario adjustments and
   // the scoring selector move the same numbers the page already shows.
   const projPool = useMemo(
-    () => buildSyntheticSdio(redraft.map((p) => {
-      const nn = normName(p.name);
-      return {
-        name: p.name,
-        position: p.position,
-        ppg: p.ppg,
-        recPG: p.recPG,
-        team: ffcByName.get(nn)?.team ?? adpScoreByName.get(nn)?.team,
-      };
-    })),
-    [redraft, ffcByName, adpScoreByName],
+    () => buildSyntheticSdio(redraft.map((p) => ({
+      name: p.name,
+      position: p.position,
+      ppg: p.ppg,
+      recPG: p.recPG,
+      team: resolveTeam(normName(p.name), p.position),
+    }))),
+    [redraft, resolveTeam],
   );
 
   // Resolve active scenario: a selected quick preset or saved scenario overrides
@@ -358,6 +514,64 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [scenarioSdio]);
 
+  // Pre-scenario synthetic lines — the baseline the scenario delta is
+  // measured against, so scenario PPG can be applied as a relative move on
+  // top of whichever base PPG the row displays.
+  const basePoolByName = useMemo(() => {
+    const m = new Map<string, SDIOProjection>();
+    for (const p of projPool) m.set(normName(p.Name), p);
+    return m;
+  }, [projPool]);
+
+  // Exact scenario values: when the Projections tab's base pool is cached,
+  // run the tab's OWN scenario engine over the tab's OWN base, so a selected
+  // scenario shows the exact numbers the scenario tool shows. The synthetic
+  // pool above remains the fallback for players (or whole sessions) the
+  // cache doesn't cover.
+  const toolAdjusted = useMemo(() => {
+    if (!projBase || isScenarioEmpty(activeScenario)) return null;
+    return applyScenarioToProjections(projBase.qbs, projBase.rbs, projBase.wrs, projBase.tes, activeScenario);
+  }, [projBase, activeScenario]);
+
+  const toolByName = useMemo(() => {
+    const m = new Map<string, ToolProjEntry>();
+    if (!toolAdjusted) return m;
+    const add = (arr: Array<{ name: string; team: string; games: number; pprPts: number }>, position: string) => {
+      for (const p of arr) {
+        // Scenario-injected custom/FA rows ("★ Name") have no rankings row.
+        if (p.name.startsWith('★')) continue;
+        const o = p as unknown as Record<string, number>;
+        m.set(normName(p.name), {
+          position,
+          team: p.team,
+          games: p.games,
+          pprPts: p.pprPts,
+          rec: o.rec || 0,
+          tgt: o.tgt || 0,
+          rushAtt: o.rushAtt || 0,
+        });
+      }
+    };
+    add(toolAdjusted.qbs, 'QB');
+    add(toolAdjusted.rbs, 'RB');
+    add(toolAdjusted.wrs, 'WR');
+    add(toolAdjusted.tes, 'TE');
+    return m;
+  }, [toolAdjusted]);
+
+  // Team totals over the tool-adjusted pool, for exact Tgt%/Rush%.
+  const toolTeamTotals = useMemo(() => {
+    const m = new Map<string, { rushAtt: number; tgt: number }>();
+    for (const e of toolByName.values()) {
+      if (!e.team) continue;
+      const t = m.get(e.team) ?? { rushAtt: 0, tgt: 0 };
+      if (e.position === 'RB') t.rushAtt += e.rushAtt;
+      if (e.position !== 'QB') t.tgt += e.tgt;
+      m.set(e.team, t);
+    }
+    return m;
+  }, [toolByName]);
+
   // Team totals from SDIO for projected share computation
   const teamTotals = useMemo(() => {
     const totals = new Map<string, { rushAtt: number; tgt: number }>();
@@ -381,6 +595,17 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const seen = new Set<string>();
     const rows: RankingRow[] = [];
 
+    const sleeperAdpFor = (nn: string): number | undefined => {
+      const s = sleeperByName.get(nn);
+      return s?.adp_ppr ?? s?.adp_half_ppr ?? s?.adp_std;
+    };
+    // Source weights: sample size × recency. FFC's "year N" endpoint can
+    // serve months-old mocks between seasons, so its weight decays with
+    // the file's draft-window age; Sleeper publishes no counts (huge
+    // platform) so its weight is snapshot recency only.
+    const ffcFileW = recencyWeight(ffcEndDate);
+    const sleeperW = recencyWeight(sleeperFetchedAt);
+
     const buildRow = (name: string, position: string, basePpg: number, team: string): RankingRow | null => {
       const id = makeId(name, position);
       if (seen.has(id)) return null;
@@ -397,15 +622,42 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       // PPG priority: 1) ML pipeline score-store predictedPPG, 2) redraft projections fallback
       let ppg = ppgS?.predictedPPG ?? basePpg;
-      // Recompute from the (scenario-adjusted) SDIO line when a scenario is active
-      // or a non-PPR league scoring format is selected.
       const scenarioActive = !isScenarioEmpty(activeScenario);
-      if (sdioP && (sdioP.FantasyPointsPPR ?? 0) > 0 && (scenarioActive || scoringFormat !== 'ppr')) {
-        const seasonPts = scoringFormat === 'ppr' ? (sdioP.FantasyPointsPPR ?? 0) : scoreSeasonPts(sdioP, scoringFormat);
-        ppg = Math.round((seasonPts / GAMES) * 10) / 10;
+      const toolEntry = scenarioActive ? toolByName.get(nn) : undefined;
+      const toolP = toolEntry && toolEntry.position === position && toolEntry.games > 0 ? toolEntry : undefined;
+      if (toolP) {
+        // Exact value from the Projections tab under this scenario — the
+        // same round(pprPts / games, 1) its PPG column shows. Half/Standard
+        // re-scored from the tab's real receptions.
+        let pts = toolP.pprPts;
+        if (scoringFormat === 'half') pts -= 0.5 * toolP.rec;
+        else if (scoringFormat === 'standard') pts -= toolP.rec;
+        ppg = Math.max(0, Math.round((pts / toolP.games) * 10) / 10);
+      } else {
+        // Fallback (no cached Projections-tab base, or player outside its
+        // pool): scenario and league-scoring adjustments applied RELATIVE
+        // to the synthetic stat line, so untouched players keep their base
+        // PPG instead of jumping to a different decomposition's numbers.
+        const baseP = basePoolByName.get(nn);
+        if (sdioP && baseP) {
+          if (scenarioActive) {
+            const basePts = baseP.FantasyPointsPPR ?? 0;
+            const scenPts = sdioP.FantasyPointsPPR ?? 0;
+            if (basePts > 0) ppg *= scenPts / basePts;
+          }
+          if (scoringFormat !== 'ppr') {
+            // Receptions in the synthetic line are real (recPG-based), so
+            // subtracting reception points per game re-scores exactly.
+            const recPG = (sdioP.Receptions || 0) / GAMES;
+            ppg -= (scoringFormat === 'half' ? 0.5 : 1) * recPG;
+          }
+          ppg = Math.max(0, Math.round(ppg * 10) / 10);
+        }
       }
 
-      const resolvedTeam = ffcP?.team ?? adpS?.team ?? sdioP?.Team ?? team;
+      // With exact tool values, the tab's team wins (it reflects scenario
+      // player movements); otherwise the widest-coverage local chain.
+      const resolvedTeam = toolP?.team || ffcP?.team || adpS?.team || sdioP?.Team || resolveTeam(nn, position) || team;
 
       // CI bounds from the ADP model. The boom/bust *spreads* (raw numbers)
       // are computed here; the within-position z-score is applied in a
@@ -417,10 +669,22 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const ciSpreadUp = adpS ? Math.max(0, ciHigh - vor) : 0;
       const ciSpreadDown = adpS ? Math.max(0, vor - ciLow) : 0;
 
-      // Projected shares: SDIO (scenario) > share model predictions > prior year
+      // Projected shares: exact tool pool (scenario) > SDIO (scenario) >
+      // share model predictions > prior year
       let projTgtShare = 0;
       let projRushShare = 0;
-      if (sdioP && resolvedTeam) {
+      if (toolP) {
+        const tt = toolTeamTotals.get(toolP.team);
+        if (tt) {
+          if (position !== 'QB' && tt.tgt > 0) {
+            projTgtShare = toolP.tgt / tt.tgt;
+          }
+          if (position === 'RB' && tt.rushAtt > 0) {
+            projRushShare = toolP.rushAtt / tt.rushAtt;
+          }
+        }
+      }
+      if (!projTgtShare && !projRushShare && sdioP && resolvedTeam) {
         const tt = teamTotals.get(resolvedTeam);
         if (tt) {
           if (position !== 'QB' && tt.tgt > 0) {
@@ -453,7 +717,18 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         position,
         team: resolvedTeam,
         ppg,
-        adp: ffcP?.adp ?? adpS?.adp ?? 999,
+        // Current market ADP: weighted blend of the real markets — the
+        // FFC family (FFC ADP, else the FFC-derived model-pool ADP) and
+        // Sleeper draft rooms. FantasyCalc overall rank only as a pick
+        // proxy when no market prices the player.
+        adp: (() => {
+          const ffcAdp = ffcP?.adp ?? adpS?.adp;
+          const slAdp = sleeperAdpFor(nn);
+          return blendPicks(
+            ffcAdp !== undefined ? { adp: ffcAdp, weight: sampleWeight(ffcSampleByName.get(nn)) * ffcFileW } : undefined,
+            slAdp !== undefined ? { adp: slAdp, weight: sleeperW } : undefined,
+          ) ?? fcByName.get(nn)?.rank ?? 999;
+        })(),
         ciSpreadUp,
         ciSpreadDown,
         boomZ: 0, // filled in below once position stats are known
@@ -501,7 +776,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, ffcSampleByName, ffcEndDate, sleeperFetchedAt, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -743,8 +1018,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>Player</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'})`}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current FantasyCalc/FFC redraft ADP">ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP — weighted blend of FFC and Sleeper draft rooms (weights = sample size × recency); FantasyCalc rank as a pick proxy when no market lists the player">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>

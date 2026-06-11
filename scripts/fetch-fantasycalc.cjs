@@ -20,6 +20,7 @@ const VARIANTS = [
   { sfx: 'dynasty_1qb', isDynasty: true,  numQbs: 1 },
   { sfx: 'dynasty_sf',  isDynasty: true,  numQbs: 2 },
   { sfx: 'redraft_1qb', isDynasty: false, numQbs: 1 },
+  { sfx: 'redraft_sf',  isDynasty: false, numQbs: 2 },
 ];
 
 async function fetchVariant({ sfx, isDynasty, numQbs }) {

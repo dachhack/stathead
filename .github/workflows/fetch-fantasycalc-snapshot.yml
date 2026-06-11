@@ -55,7 +55,7 @@ jobs:
       - name: Show fetched file sizes
         run: |
           echo "=== current snapshots ==="
-          ls -lh public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json 2>&1 || true
+          ls -lh public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json public/data/fantasycalc_redraft_sf.json 2>&1 || true
           echo ""
           echo "=== history series ==="
           ls -lh public/data/fantasycalc_history_*.json 2>&1 || true
@@ -79,6 +79,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add -f public/data/fantasycalc_dynasty_1qb.json public/data/fantasycalc_dynasty_sf.json public/data/fantasycalc_redraft_1qb.json
+          git add -f public/data/fantasycalc_redraft_sf.json 2>/dev/null || true
           git add -f public/data/fantasycalc_history_dynasty_1qb.json public/data/fantasycalc_history_dynasty_sf.json public/data/fantasycalc_history_redraft_1qb.json
           # Commit the refreshed crosswalk sidecars too (allowlisted in
           # .gitignore). They only change when the new snapshot introduced a

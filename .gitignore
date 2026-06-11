@@ -57,11 +57,13 @@ public/data/*
 # once to materialize the .csv. See scripts/pull-all-data-sources.sh.
 !public/data/*.csv.gz
 !public/data/ffc_adp_ppr_*.json
+!public/data/ffc_adp_2qb_*.json
 !public/data/espn_adp_*.json
 !public/data/espn-nfl-ids.json
 !public/data/fantasycalc_*.json
 !public/data/fantasycalc_history_*.json
 !public/data/sleeper-players.json
+!public/data/sleeper-adp-*.json
 !public/data/ktc-fc-rescale.json
 # Aggregated, anonymized expert activity (no usernames) — committed/deployed.
 # Built by scripts/build_expert_data.py from the gitignored private/ list.

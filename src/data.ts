@@ -92,8 +92,20 @@ async function readLocalFile(filename: string): Promise<string | null> {
   return null;
 }
 
-// CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/
-// and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
+/** Node-only committed-snapshot JSON reader (always null in the browser).
+ *  The training pipeline uses this to read public/data files directly —
+ *  the deterministic, immutable inputs the snapshot regime guarantees. */
+export async function readLocalJson<T>(filename: string): Promise<T | null> {
+  const text = await readLocalFile(filename);
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+// CORS proxy for KeepTradeCut (Cloudflare Worker). Deploy workers/ktc-proxy/// and set VITE_KTC_PROXY to your worker URL; defaults to the project's worker.
 // NB: `import.meta.env` is undefined outside Vite (e.g. when tsx runs
 // precompute-features.ts), so optional-chain it before reading the override.
 const KTC_PROXY = import.meta.env?.VITE_KTC_PROXY ?? 'https://ktc-proxy.dachhack.workers.dev';
@@ -620,11 +632,18 @@ function normalizeFfcTeam(team: string): string {
 
 const ffcAdpCache = new Map<string, FfcADPPlayer[]>();
 
-// FFC's `year=N` endpoint frequently returns a thin slice (≤ ~150 rows) for the
-// upcoming draft season until the league fills out. The prior year's endpoint
-// holds the same drafts populated with current rosters (e.g. Jaxson Dart on
-// NYG appears under year=2025). Anything under this threshold triggers a
-// fallback to season-1 to avoid silently truncating the rankings UI.
+// The current FFC draft season. Seasons before this are immutable committed
+// snapshots (scripts/fetch-ffc-adp.sh) — the live API must never be hit for
+// them: FFC drops old seasons from its year-keyed endpoint (year=2025 returns
+// an empty players array as of June 2026), so a live call for a missing
+// historic file is a guaranteed-dead request that stalls page loads and, if
+// FFC ever re-served different data, would silently drift research inputs.
+const FFC_CURRENT_SEASON = 2026;
+
+// FFC's `year=N` endpoint frequently returns a thin slice (≤ ~150 rows) for
+// the upcoming draft season until the league fills out. Anything under this
+// threshold triggers a fallback to the season-1 committed snapshot (when one
+// exists) to avoid silently truncating the rankings UI.
 const FFC_THIN_THRESHOLD = 200;
 
 function mapFfcPlayers(raw: Array<Record<string, unknown>>): FfcADPPlayer[] {
@@ -657,6 +676,15 @@ async function fetchFfcADPRaw(
     return players;
   }
 
+  // Historic seasons are snapshot-only in production (see
+  // FFC_CURRENT_SEASON above) — a missing committed file means "no data",
+  // never a live request. Dev (localhost) keeps the live path since it
+  // never reads the committed snapshots.
+  if (IS_PROD && season < FFC_CURRENT_SEASON) {
+    ffcAdpCache.set(cacheKey, []);
+    return [];
+  }
+
   const url = `https://fantasyfootballcalculator.com/api/v1/adp/${scoring}?teams=${teams}&year=${season}`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
@@ -674,12 +702,20 @@ export async function fetchFfcADP(
   teams: number = 12,
 ): Promise<FfcADPPlayer[]> {
   const primary = await fetchFfcADPRaw(season, scoring, teams);
-  if (primary.length >= FFC_THIN_THRESHOLD) return primary;
+  // The thin-season fallback exists ONLY to deepen the upcoming season's
+  // sparse early board — it must never substitute a different year's
+  // prices for a completed historic season. (It silently did exactly
+  // that for years: season 2022's committed file has 157 players, under
+  // the threshold, so 2022 consumers — including the model training
+  // rows — received 2021 ADP. Jonathan Taylor's 2022 training row said
+  // 13.8, his 2021 price, when he was the consensus 1.01 at 1.3.)
+  if (primary.length >= FFC_THIN_THRESHOLD || season < FFC_CURRENT_SEASON) return primary;
 
-  // Fall back to the prior year's endpoint, which often serves the same
-  // upcoming-draft data with deeper coverage. Prefer it when it is
-  // meaningfully larger than the primary response. Swallow fallback errors
-  // so a sparse-but-valid primary still wins over a failed fallback.
+  // Fall back to the prior season's COMMITTED SNAPSHOT when it is
+  // meaningfully larger than the thin primary. Snapshot-only by the
+  // historic guard above — FFC no longer serves old seasons live, so
+  // this can never fire a network request in production. Swallow
+  // fallback errors so a sparse-but-valid primary still wins.
   // Placeholder guard: real FFC rows always carry market signal
   // (timesDrafted/stdev). A committed placeholder file with zeroed
   // fields once leaked phantom deep ADPs (e.g. Al Riles at "363") into
@@ -1234,7 +1270,7 @@ export async function fetchFantasyCalcValues(
   // Try pre-fetched data
   const sfx = isDynasty
     ? (numQbs === 2 ? 'dynasty_sf' : 'dynasty_1qb')
-    : 'redraft_1qb';
+    : (numQbs === 2 ? 'redraft_sf' : 'redraft_1qb');
   const preFetched = await tryPreFetched<FantasyCalcPlayer[]>(`fantasycalc_${sfx}.json`);
   if (preFetched && preFetched.length > 0) {
     preFetched.sort((a, b) => b.value - a.value);
