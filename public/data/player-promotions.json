@@ -2,20 +2,5 @@
   "_about":"Rookie key-promotion log. When a player who was previously minted as a synthetic COL record (no NFL gsis_id) gets placed on an nflverse roster, build-player-crosswalk.py rebinds them to an NFL-spine canonical record and back-references the old COL player_key via the `alias_keys` field on the new record. Entries under `unresolved` are fail-closed: either the COL vanished with no spine match (reason=col_gone_no_spine_match) or multiple spine candidates collide on (name, position) \u2014 hand-resolve these by adding a matching entry to player-aliases.json overrides and rerunning.",
   "version":1,
   "promotions":[],
-  "unresolved":[
-    {
-      "old_player_key":"sh_6ae2e00699",
-      "name":"Trinidad Chambliss",
-      "position":"QB",
-      "reason":"col_gone_no_spine_match",
-      "candidates":[]
-    },
-    {
-      "old_player_key":"sh_1c6a0cf263",
-      "name":"Luke Altmyer",
-      "position":"QB",
-      "reason":"col_gone_no_spine_match",
-      "candidates":[]
-    }
-  ]
+  "unresolved":[]
 }
