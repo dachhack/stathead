@@ -186,6 +186,10 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
         scenPPG = Math.round((sdioP.FantasyPointsPPR / GAMES) * 10) / 10;
       }
 
+      // Free agents / retired players (no team — e.g. Darren Waller) carry
+      // no projection: a stat line needs an offense.
+      const isTeamless = !p.team || p.team === 'FA';
+
       return {
         name: p.name,
         position: p.position,
@@ -194,8 +198,8 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
         high: p.high,
         low: p.low,
         stdev: p.stdev,
-        projPPG: ppgS?.predictedPPG ?? 0,
-        scenPPG,
+        projPPG: isTeamless ? 0 : (ppgS?.predictedPPG ?? 0),
+        scenPPG: isTeamless ? 0 : scenPPG,
         boomPct: boomPct(vor, ciHigh),
         bustPct: bustPct(vor, ciLow),
       };
