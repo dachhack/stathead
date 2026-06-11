@@ -544,7 +544,13 @@ function applyScenarioToProjections(
   // Scale counting stats by target/current so columns stay consistent; matched
   // by name (consistent with the other overrides on this path). Non-zero-sum.
   const pointsByName = new Map<string, number>();
-  for (const po of (sc.pointsOverrides ?? [])) pointsByName.set(normalizeName(po.playerName), po.ppr);
+  for (const po of (sc.pointsOverrides ?? [])) {
+    const n = normalizeName(po.playerName);
+    // A manual stat line beats a PPR pin (mirrors scenarioEngine): the pin
+    // would re-scale the user's exact stats straight back to its target.
+    if (statByName.has(n)) continue;
+    pointsByName.set(n, po.ppr);
+  }
   if (pointsByName.size > 0) {
     const scaleQb = (p: QBProjection): QBProjection => {
       const t = pointsByName.get(normalizeName(p.name));

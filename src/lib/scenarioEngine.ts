@@ -276,8 +276,9 @@ export function applyScenario(
   const STAT_OVERRIDE_KEYS: (keyof SDIOProjection)[] = [
     'PassingAttempts', 'PassingCompletions', 'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
     'RushingAttempts', 'RushingYards', 'RushingTouchdowns',
-    'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
+    'Targets', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
   ];
+  const statOverridden = new Set<SDIOProjection>();
   for (const so of (scenario.statOverrides ?? [])) {
     const player = findPlayer(so.playerId, so.playerName, so.position);
     if (!player) continue;
@@ -287,6 +288,7 @@ export function applyScenario(
       if (v !== undefined) { (player as unknown as Record<string, number>)[k] = v; changed = true; }
     }
     if (!changed) continue;
+    statOverridden.add(player);
     const { ppr, std } = recalcPoints(player);
     player.FantasyPointsPPR = ppr;
     player.FantasyPoints = std;
@@ -324,6 +326,9 @@ export function applyScenario(
   for (const po of (scenario.pointsOverrides ?? [])) {
     const player = findPlayer(po.playerId, po.playerName, po.position);
     if (!player) continue;
+    // A manual stat line beats a PPR pin: the pin would re-scale the user's
+    // exact stats straight back to its target, swallowing the edit.
+    if (statOverridden.has(player)) continue;
     const cur = recalcPoints(player).ppr;
     if (cur <= 0 || po.ppr < 0) continue;
     const f = po.ppr / cur;

@@ -303,14 +303,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
 
   // --- Roster editor: per-player upsert setters (volume / availability / projection) ---
   // Each looks up the player's current value and writes (or clears) the matching
-  // override array entry, keyed by PlayerID.
-  const gamesOf = (id: number) =>
-    (scenario.playerAvailability ?? []).find((a) => a.playerId === id)?.games ?? 17;
-  const pprOf = (id: number) =>
-    (scenario.pointsOverrides ?? []).find((o) => o.playerId === id)?.ppr;
+  // override array entry. Override entries can carry the PlayerID of another
+  // surface or an older data load (ids are assigned sequentially per build), so
+  // resolve by id OR normalized name + position — matching how the engines
+  // apply these overrides. Id-only matching left "phantom" entries that still
+  // applied by name but couldn't be seen, edited, or cleared here.
+  const norm = normalizeName ?? defaultNormalize;
+  const isSame = (e: { playerId: number; playerName?: string; position?: string }, p: SDIOProjection) =>
+    e.playerId === p.PlayerID ||
+    (!!e.playerName && norm(e.playerName) === norm(p.Name) && (!e.position || e.position === p.Position));
+  const gamesOf = (p: SDIOProjection) =>
+    (scenario.playerAvailability ?? []).find((a) => isSame(a, p))?.games ?? 17;
+  const pprOf = (p: SDIOProjection) =>
+    (scenario.pointsOverrides ?? []).find((o) => isSame(o, p))?.ppr;
 
   const setPlayerGames = (p: SDIOProjection, games: number) => {
-    const rest = (scenario.playerAvailability ?? []).filter((a) => a.playerId !== p.PlayerID);
+    const rest = (scenario.playerAvailability ?? []).filter((a) => !isSame(a, p));
     update({
       playerAvailability: games >= 17 ? rest : [
         ...rest,
@@ -319,12 +327,18 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     });
   };
   const setPlayerPpr = (p: SDIOProjection, ppr: number | undefined) => {
-    const rest = (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID);
+    const rest = (scenario.pointsOverrides ?? []).filter((o) => !isSame(o, p));
     update({
       pointsOverrides: (ppr === undefined || ppr <= 0) ? rest : [
         ...rest,
         { playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, ppr: Math.round(ppr) },
       ],
+      // Manual stat lines beat PPR pins in the engine, so setting a pin while
+      // holding a stat line would be a no-op. Stepping PTS takes PPR control:
+      // release the stat line and let the pin scale the base shape.
+      statOverrides: (ppr === undefined || ppr <= 0)
+        ? scenario.statOverrides
+        : (scenario.statOverrides ?? []).filter((s) => !isSame(s, p)),
     });
   };
 
@@ -336,27 +350,28 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Targets', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
   ] as const;
   type StatField = typeof STAT_FIELDS[number];
-  const statOf = (id: number) => (scenario.statOverrides ?? []).find((s) => s.playerId === id);
+  const statOf = (p: SDIOProjection) => (scenario.statOverrides ?? []).find((s) => isSame(s, p));
   const statVal = (p: SDIOProjection, field: StatField): number => {
-    const o = statOf(p.PlayerID) as Record<string, number | undefined> | undefined;
+    const o = statOf(p) as Record<string, number | undefined> | undefined;
     const ov = o?.[field];
     return ov !== undefined ? ov : ((p as unknown as Record<string, number>)[field] || 0);
   };
   const setStats = (p: SDIOProjection, patch: Partial<Record<StatField, number | undefined>>) => {
-    const rest = (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID);
+    const rest = (scenario.statOverrides ?? []).filter((s) => !isSame(s, p));
     // A preset (e.g. Consensus / ML Optimized) pins this player to an absolute
-    // PPR via a pointsOverride, which the engine applies AFTER stat overrides —
-    // re-scaling the whole line back to the target and swallowing manual nudges.
-    // The first time the user edits a stat under such a pin, bake the current
-    // adjusted line into absolute stat overrides and drop the pin, so the line
-    // stays put visually but is now directly editable.
-    const pinned = pprOf(p.PlayerID) !== undefined && !statOf(p.PlayerID);
+    // PPR via a pointsOverride, which re-scales the whole line back to the
+    // target and swallows manual nudges. Whenever the user edits a stat under
+    // such a pin — including pins from an older draft that coexist with a stat
+    // override — bake the current adjusted line into absolute stat overrides
+    // and drop the pin, so the line stays put visually but is now directly
+    // editable.
+    const pinned = pprOf(p) !== undefined;
     const existing: Record<string, number | string | undefined> = pinned
       ? {
           playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
-          ...Object.fromEntries(STAT_COLS.map((f) => [f, Math.round(adjStat(p, f))])),
+          ...Object.fromEntries(([...STAT_COLS, 'Targets'] as StatField[]).map((f) => [f, Math.round(adjStat(p, f))])),
         }
-      : (statOf(p.PlayerID) ?? {
+      : (statOf(p) ?? {
           playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
         }) as unknown as Record<string, number | string | undefined>;
     const merged: Record<string, number | string | undefined> = { ...existing };
@@ -369,7 +384,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
       statOverrides: hasAny ? [...rest, merged as unknown as PlayerStatOverride] : rest,
     };
     if (pinned) {
-      next.pointsOverrides = (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID);
+      next.pointsOverrides = (scenario.pointsOverrides ?? []).filter((o) => !isSame(o, p));
     }
     update(next);
   };
@@ -382,18 +397,18 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     );
   // True when a stat field has an active absolute override.
   const isStatEdited = (p: SDIOProjection, field: StatField) =>
-    (statOf(p.PlayerID) as Record<string, number | undefined> | undefined)?.[field] !== undefined;
+    (statOf(p) as Record<string, number | undefined> | undefined)?.[field] !== undefined;
   // Clear every override for one player in a single update.
   const clearPlayer = (p: SDIOProjection) =>
     update({
-      statOverrides: (scenario.statOverrides ?? []).filter((s) => s.playerId !== p.PlayerID),
-      playerAvailability: (scenario.playerAvailability ?? []).filter((a) => a.playerId !== p.PlayerID),
-      pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => o.playerId !== p.PlayerID),
-      volumeOverrides: scenario.volumeOverrides.filter((v) => v.playerId !== p.PlayerID),
+      statOverrides: (scenario.statOverrides ?? []).filter((s) => !isSame(s, p)),
+      playerAvailability: (scenario.playerAvailability ?? []).filter((a) => !isSame(a, p)),
+      pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => !isSame(o, p)),
+      volumeOverrides: scenario.volumeOverrides.filter((v) => !isSame(v, p)),
     });
   const playerEdited = (p: SDIOProjection) =>
-    !!statOf(p.PlayerID) || gamesOf(p.PlayerID) < 17 || pprOf(p.PlayerID) !== undefined ||
-    scenario.volumeOverrides.some((v) => v.playerId === p.PlayerID);
+    !!statOf(p) || gamesOf(p) < 17 || pprOf(p) !== undefined ||
+    scenario.volumeOverrides.some((v) => isSame(v, p));
 
   // Fully scenario-adjusted value for display (reflects team tendency/volume/
   // stat reshapes, availability, vegas). Falls back to the raw line if missing.
@@ -486,7 +501,6 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     update({ freeAgentSignings: (scenario.freeAgentSignings ?? []).filter((s) => s.id !== id) });
 
   // --- Presets ---
-  const norm = normalizeName ?? defaultNormalize;
   const hasClay = !!clayPpr && clayPpr.size > 0;
   const availablePresets = SCENARIO_PRESETS.filter((p) => !p.requiresClay || hasClay);
   const applyPreset = (id: string) => {
@@ -825,7 +839,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 });
               };
               const gamesTd = (p: SDIOProjection) => {
-                const g = gamesOf(p.PlayerID);
+                const g = gamesOf(p);
                 return stepCell({
                   active: editCell?.id === p.PlayerID && editCell.field === 'games',
                   display: String(g),
@@ -835,7 +849,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 });
               };
               const ptsTd = (p: SDIOProjection) => {
-                const ov = pprOf(p.PlayerID);
+                // A manual stat line beats a PPR pin in the engine, so a pin
+                // coexisting with one (older drafts) is inert — show the live line.
+                const ov = statOf(p) ? undefined : pprOf(p);
                 const v = ov ?? adjPts(p);
                 return stepCell({
                   active: editCell?.id === p.PlayerID && editCell.field === 'ppr',
@@ -877,7 +893,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               };
               // Read-only subtotal / total rows that sum the fully-adjusted line.
               const sumCol = (rows: SDIOProjection[], f: StatField) => rows.reduce((s, p) => s + adjStat(p, f), 0);
-              const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + (pprOf(p.PlayerID) ?? adjPts(p)), 0);
+              const sumPts = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + ((statOf(p) ? undefined : pprOf(p)) ?? adjPts(p)), 0);
               const sumTgt = (rows: SDIOProjection[]) => rows.reduce((s, p) => s + tgtOf(p), 0);
               const totalRow = (label: string, rows: SDIOProjection[], cls: string) => (
                 <tr className={cls}>
@@ -906,7 +922,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   {STAT_COLS.slice(0, 8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
                   {dCell(sumR(rows, tgtOf), sumR(rows, baseGet('Targets')), 'tgt')}
                   {STAT_COLS.slice(8).map((f) => dCell(sumR(rows, (p) => adjStat(p, f)), sumR(rows, baseGet(f)), f))}
-                  {dCell(sumR(rows, (p) => pprOf(p.PlayerID) ?? adjPts(p)), sumR(rows, baseGet('FantasyPointsPPR')), 'pts', true)}
+                  {dCell(sumR(rows, (p) => (statOf(p) ? undefined : pprOf(p)) ?? adjPts(p)), sumR(rows, baseGet('FantasyPointsPPR')), 'pts', true)}
                 </tr>
               );
               const allPlayers = teamPlayers;
