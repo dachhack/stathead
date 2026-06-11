@@ -232,7 +232,7 @@ function SheetRow({ p, settings, hasMy, myRank }: {
         {Math.round(p.vbd)}
       </span>
       <span style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{roundPick(p.valueRank, settings.numTeams)}</span>
-      <span style={{ textAlign: 'right', color: 'var(--text-muted)' }} title={p.adpSource === 'fc-rank' ? 'No FFC ADP yet — FantasyCalc consensus rank used as pick proxy' : undefined}>
+      <span style={{ textAlign: 'right', color: 'var(--text-muted)' }} title={p.adpSource === 'fc-rank' ? 'No market ADP yet (FFC/Sleeper) — FantasyCalc consensus rank used as pick proxy' : undefined}>
         {p.adp < 999 ? roundPick(Math.round(p.adp), settings.numTeams) : '—'}
         {p.adpSource === 'fc-rank' && <span style={{ fontSize: 8, verticalAlign: 'super' }}>*</span>}
       </span>

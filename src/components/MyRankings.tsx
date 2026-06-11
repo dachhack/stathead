@@ -4,6 +4,7 @@ import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenari
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
+import { blendPicks } from '../lib/adpSources';
 import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
@@ -690,10 +691,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         position,
         team: resolvedTeam,
         ppg,
-        // Market ADP chain: FFC ADP, else the ADP-model pool's ADP, else
-        // Sleeper draft-room ADP (real market, rookie-inclusive), else
-        // FantasyCalc overall rank as a pick proxy.
-        adp: ffcP?.adp ?? adpS?.adp ?? sleeperAdpFor(nn) ?? fcByName.get(nn)?.rank ?? 999,
+        // Current market ADP: blend (mean pick) of the real markets — the
+        // FFC family (FFC ADP, else the FFC-derived model-pool ADP) and
+        // Sleeper draft rooms. FantasyCalc overall rank only as a pick
+        // proxy when no market prices the player.
+        adp: blendPicks(ffcP?.adp ?? adpS?.adp, sleeperAdpFor(nn)) ?? fcByName.get(nn)?.rank ?? 999,
         ciSpreadUp,
         ciSpreadDown,
         boomZ: 0, // filled in below once position stats are known
@@ -984,7 +986,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP: FFC, else Sleeper draft rooms, else FantasyCalc rank as a pick proxy">ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP — blend (mean pick) of FFC and Sleeper draft rooms; FantasyCalc rank as a pick proxy when no market lists the player">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>

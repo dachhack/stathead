@@ -116,7 +116,7 @@ export function ConsensusAdpView() {
           ESPN live drafts and{' '}
           <a href="https://fantasycalc.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>FantasyCalc</a> consensus.
           {' '}<b>Blend</b> = mean pick across available sources; <b>Spread</b> = max−min disagreement (click it to surface the players the markets can&apos;t agree on).
-          {' '}History: FFC back to 2018, Sleeper back to 2020; ESPN/FantasyCalc are current-season.
+          {' '}History: FFC back to 2018, Sleeper back to 2020 — immutable committed snapshots (the model-training input); ESPN/FantasyCalc are current-season only.
         </p>
       </div>
 

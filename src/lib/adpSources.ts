@@ -1,14 +1,26 @@
 /**
  * Multi-source redraft ADP — load, join, and blend every ADP source the
- * repo tracks, per season:
+ * repo tracks. Two regimes with different jobs:
  *
+ * HISTORIC ADP (seasons before the current one) — immutable committed
+ * snapshots, fetched once and never refreshed. This is the model-training
+ * and research input, so `loadHistoricAdpSources` reads ONLY the committed
+ * files (no live-API fallback): a backtest must see the same numbers every
+ * run. The Node-side training pipeline (buildFeatureMatrix) gets the same
+ * determinism via readLocalFile on the same snapshots.
+ *
+ * CURRENT ADP (the upcoming draft season) — refreshed daily by CI or
+ * fetched live. This is the input for scoring models, projections, and
+ * draft optimization, where freshness beats reproducibility.
+ *
+ * Sources:
  *  - FFC (FantasyFootballCalculator mock drafts) — committed snapshots
- *    2018+ (`ffc_adp_ppr_<season>.json`), live API fallback.
+ *    2018+ (`ffc_adp_ppr_<season>.json`); current season re-fetched daily
+ *    by fetch-ffc-adp.yml.
  *  - Sleeper draft rooms — committed snapshots 2020+
- *    (`sleeper-adp-<season>.json`, CI-refreshed daily for the current
- *    season). Sleeper has no ADP before 2020.
- *  - ESPN drafts — live undocumented v3 API (current seasons), with
- *    `espn_adp_<season>.json` snapshot fallback when committed.
+ *    (`sleeper-adp-<season>.json`); current season re-fetched daily by
+ *    fetch-sleeper-players.yml. Sleeper has no ADP before 2020.
+ *  - ESPN drafts — live undocumented v3 API, current season only here.
  *  - FantasyCalc — consensus from real leagues; real ADP when populated,
  *    else the overall value rank as a pick proxy. Current season only
  *    (the daily snapshot has no history).
@@ -103,6 +115,21 @@ async function loadFfc(season: number): Promise<RawEntry[]> {
   }
 }
 
+// Snapshot-only FFC for historic seasons — reads the committed per-season
+// file directly, with no live-API fallback, so research is deterministic.
+async function loadFfcSnapshot(season: number): Promise<RawEntry[]> {
+  try {
+    const r = await fetch(`${BASE}data/ffc_adp_ppr_${season}.json`);
+    if (!r.ok) return [];
+    const doc = (await r.json()) as { players?: Array<{ name: string; position: string; team?: string; adp: number }> };
+    return (doc.players ?? [])
+      .filter((p) => SKILL.has(p.position) && Number(p.adp) > 0)
+      .map((p) => ({ name: p.name, position: p.position, team: canonTeam(p.team), adp: Number(p.adp) }));
+  } catch {
+    return [];
+  }
+}
+
 async function loadEspn(season: number): Promise<RawEntry[]> {
   try {
     const players = await fetchEspnADP(season);
@@ -136,19 +163,40 @@ export interface AdpSourceData {
   sources: Record<AdpSourceKey, RawEntry[]>;
 }
 
-/** Load every source available for the season, in parallel. FantasyCalc is
- *  current-season only (no history in the snapshot). */
-export async function loadAdpSources(season: number, currentSeason: number): Promise<AdpSourceData> {
+/** Historic regime: committed snapshots only (FFC + Sleeper), no live
+ *  calls — same numbers on every run. The research/training input. */
+export async function loadHistoricAdpSources(season: number): Promise<AdpSourceData> {
+  const [ffc, sleeper] = await Promise.all([loadFfcSnapshot(season), loadSleeper(season)]);
+  return { season, sources: { ffc, sleeper, espn: [], fc: [] } };
+}
+
+/** Current regime: every live + daily-refreshed source. The input for
+ *  scoring, projections, and draft optimization. */
+export async function loadCurrentAdpSources(season: number): Promise<AdpSourceData> {
   const [ffc, sleeper, espn, fc] = await Promise.all([
     loadFfc(season),
     loadSleeper(season),
     loadEspn(season),
-    season === currentSeason ? loadFc() : Promise.resolve([] as RawEntry[]),
+    loadFc(),
   ]);
   return { season, sources: { ffc, sleeper, espn, fc } };
 }
 
+/** Route to the right regime for the requested season. */
+export async function loadAdpSources(season: number, currentSeason: number): Promise<AdpSourceData> {
+  return season < currentSeason ? loadHistoricAdpSources(season) : loadCurrentAdpSources(season);
+}
+
 const round1 = (v: number): number => Math.round(v * 10) / 10;
+
+/** Mean of the available real-market picks — the blend the scoring
+ *  surfaces (My Rankings, Draft Kit) put on a player. Ignores missing /
+ *  sentinel (≥999) values; undefined when no market prices the player. */
+export function blendPicks(...picks: Array<number | undefined>): number | undefined {
+  const vals = picks.filter((v): v is number => v !== undefined && Number.isFinite(v) && v > 0 && v < 999);
+  if (!vals.length) return undefined;
+  return round1(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
 
 /** Join the sources by player and compute the blend + disagreement spread. */
 export function buildMultiAdpRows(data: AdpSourceData): MultiAdpRow[] {

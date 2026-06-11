@@ -290,6 +290,7 @@ export function DraftOptimizerTable() {
   // (153 vets, no rookies); these sections need full projection depth.
   const [redraftEntries, setRedraftEntries] = useState<RedraftProjEntry[]>([]);
   const [ffcEntries, setFfcEntries] = useState<FfcAdpEntry[]>([]);
+  const [sleeperAdpEntries, setSleeperAdpEntries] = useState<Array<{ name: string; position: string; adp: number }>>([]);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [clayPpr, setClayPpr] = useState<Map<string, number>>(new Map());
@@ -374,7 +375,13 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<Record<string, number | string>>)
         .catch(() => [] as Array<Record<string, number | string>>),
-    ]).then(([adpData, ppgData, shareData, ffcData, manifest, redraftData, fcData, careerData, clayRaw]: [
+      // Sleeper draft-room ADP (current-season snapshot, CI-refreshed
+      // daily) — blended with FFC into the kit pool's market price.
+      fetch(`${BASE}data/sleeper-adp-${CURRENT_SEASON}.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => (Array.isArray(d?.players) ? d.players : []) as Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number }>)
+        .catch(() => []),
+    ]).then(([adpData, ppgData, shareData, ffcData, manifest, redraftData, fcData, careerData, clayRaw, sleeperRaw]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -384,12 +391,16 @@ export function DraftOptimizerTable() {
       FcRedraftEntry[],
       CareerScoreEntry[],
       Array<Record<string, number | string>>,
+      Array<{ name: string; position: string; adp_ppr?: number; adp_half_ppr?: number; adp_std?: number }>,
     ]) => {
       if (cancelled) return;
       setRedraftEntries(redraftData ?? []);
       setFfcEntries(ffcData ?? []);
       setFcRedraft(fcData ?? []);
       setCareerScores(careerData ?? []);
+      setSleeperAdpEntries((sleeperRaw ?? [])
+        .map((p) => ({ name: p.name, position: p.position, adp: p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std ?? 0 }))
+        .filter((p) => p.adp > 0));
       // Consensus maps for the requiresClay presets. PPR recomputed from
       // the stat line with our scoring (same as the Projections tab).
       {
@@ -652,12 +663,13 @@ export function DraftOptimizerTable() {
       projections,
       ffc: ffcEntries,
       fcRedraft,
+      sleeperAdp: sleeperAdpEntries,
       modelPpg: rawRows.map((r) => ({ name: r.name, position: r.position, predictedPPG: r.basePpg })),
       rookieNames,
       teams,
       scoring: settings.scoring,
     });
-  }, [redraftEntries, ffcEntries, fcRedraft, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
+  }, [redraftEntries, ffcEntries, fcRedraft, sleeperAdpEntries, careerScores, rawRows, scenarioPpgByName, settings.scoring]);
 
   // Selected My Rankings board → kitKey → 1-based rank. Saved order ids
   // are `${normName}:${pos}` (see MyRankings.makeId); kitKey is
