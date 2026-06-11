@@ -11,6 +11,7 @@ Usage:
 """
 
 import json
+import os
 import sys
 import time
 import math
@@ -541,6 +542,22 @@ def train_adp_models(rows):
         LEAKY_FEATURES = {'actualTargetShare', 'actualRushShare', 'actualReceptionShare',
                           'actualRecYdsShare', 'actualRushYdsShare', 'actualPassTDShare', 'actualRushTDShare'}
         feature_names = [f for f in feature_names if f not in LEAKY_FEATURES]
+
+        # Experiment hook: append candidate features to the warm-started
+        # list (comma-separated). Used for with/without LOSO comparisons
+        # before adopting a new feature — e.g.
+        #   ADP_EXTRA_FEATURES=adpTrend python3 scripts/train_projection_models.py
+        # Ablation log:
+        #   adpTrend (2026-06-11, rows v50): REJECTED — LOSO Ens R² down at
+        #   every position (QB .498→.497, RB .521→.516, WR .561→.559,
+        #   TE .579→.578) and every vet sub-model. Only 475/3,567 rows have
+        #   a nonzero trend (coverage starts 2020 and needs consecutive-year
+        #   ADP), so the feature is mostly zeros + noise on top of `adp`.
+        #   Re-test once a few more seasons of two-source history accrue.
+        for extra in [f for f in os.environ.get('ADP_EXTRA_FEATURES', '').split(',') if f]:
+            if extra not in feature_names:
+                feature_names = feature_names + [extra]
+                feature_labels = feature_labels + [extra]
 
         pos_rows = [r for r in rows if r['position'] == pos and r.get('adp', 999) <= 250]
         X = make_X(pos_rows, feature_names)
