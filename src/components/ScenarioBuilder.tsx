@@ -776,8 +776,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               const poolRushAtt = pool('RushingAttempts');
               const poolRec = pool('Receptions');
               const poolRecYds = pool('ReceivingYards');
-              // Targets are read-only (not scored / not an override field) — shown from the adjusted line.
-              const tgtOf = (p: SDIOProjection) => adjLineFor(p)?.Targets ?? 0;
+              // Targets aren't scored but ARE an override field; read through
+              // adjStat so totals reflect manual target edits on every surface.
+              const tgtOf = (p: SDIOProjection) => adjStat(p, 'Targets');
               const poolTgt = teamPlayers.reduce((s, p) => s + tgtOf(p), 0);
               // Renders a cell that shows a plain number until clicked, then a
               // value with ▲/▼ arrows to nudge it (no typing).
@@ -926,6 +927,82 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 </tr>
               );
               const allPlayers = teamPlayers;
+              // ── QB passing ⇄ team receiving consistency ──
+              // A team's completions should land in its receivers' hands, but
+              // player movements and pinned/edited lines can leave the two
+              // sides far apart (e.g. 457 completions vs 242 catches). Flag
+              // material gaps and offer one-click rebalances that scale one
+              // side proportionally, preserving every player's share.
+              const qbRows = allPlayers.filter((p) => p.Position === 'QB');
+              const recRows = allPlayers.filter((p) => p.Position !== 'QB');
+              const passT = {
+                cmp: sumR(qbRows, (p) => adjStat(p, 'PassingCompletions')),
+                yds: sumR(qbRows, (p) => adjStat(p, 'PassingYards')),
+                td: sumR(qbRows, (p) => adjStat(p, 'PassingTouchdowns')),
+              };
+              const recT = {
+                rec: sumR(recRows, (p) => adjStat(p, 'Receptions')),
+                yds: sumR(recRows, (p) => adjStat(p, 'ReceivingYards')),
+                td: sumR(recRows, (p) => adjStat(p, 'ReceivingTouchdowns')),
+              };
+              const gapRec = recT.rec - passT.cmp;
+              const gapYds = recT.yds - passT.yds;
+              const gapTd = recT.td - passT.td;
+              // The table only carries fantasy-relevant players, so a real
+              // team naturally shows a small receiving deficit (depth catches
+              // aren't listed). Only flag gaps well beyond that.
+              const gapMaterial = qbRows.length > 0 && recRows.length > 0 && passT.cmp > 0 && recT.rec > 0 && (
+                Math.abs(gapRec) > Math.max(8, passT.cmp * 0.12) ||
+                Math.abs(gapYds) > Math.max(80, passT.yds * 0.12) ||
+                Math.abs(gapTd) >= 3
+              );
+              // Bake a player's full adjusted line into an absolute override
+              // entry (the same shape setStats writes), then let the caller
+              // scale one side of it. Writing the whole line (and dropping any
+              // PPR pin) keeps everything else exactly where the user sees it.
+              const rebalance = (
+                rows: SDIOProjection[],
+                adjustLine: (p: SDIOProjection, line: Record<string, number | string>) => void,
+              ) => {
+                const overrides = (scenario.statOverrides ?? []).filter((s) => !rows.some((p) => isSame(s, p)));
+                for (const p of rows) {
+                  const line: Record<string, number | string> = {
+                    playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position,
+                    ...Object.fromEntries(([...STAT_COLS, 'Targets'] as StatField[]).map((f) => [f, Math.round(adjStat(p, f))])),
+                  };
+                  adjustLine(p, line);
+                  overrides.push(line as unknown as PlayerStatOverride);
+                }
+                update({
+                  statOverrides: overrides,
+                  pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => !rows.some((p) => isSame(o, p))),
+                });
+              };
+              const matchReceivingToPassing = () => {
+                const fRec = passT.cmp / recT.rec;
+                const fYds = recT.yds > 0 ? passT.yds / recT.yds : fRec;
+                const fTd = recT.td > 0 && passT.td > 0 ? passT.td / recT.td : 0;
+                const rows = recRows.filter((p) => tgtOf(p) > 0 || adjStat(p, 'Receptions') > 0 || adjStat(p, 'ReceivingYards') > 0);
+                rebalance(rows, (p, line) => {
+                  line.Targets = Math.round(tgtOf(p) * fRec);
+                  line.Receptions = Math.round(adjStat(p, 'Receptions') * fRec);
+                  line.ReceivingYards = Math.round(adjStat(p, 'ReceivingYards') * fYds);
+                  if (fTd > 0) line.ReceivingTouchdowns = Math.round(adjStat(p, 'ReceivingTouchdowns') * fTd);
+                });
+              };
+              const matchPassingToReceiving = () => {
+                const fCmp = recT.rec / passT.cmp;
+                const fYds = passT.yds > 0 ? recT.yds / passT.yds : fCmp;
+                const fTd = passT.td > 0 && recT.td > 0 ? recT.td / passT.td : 0;
+                const rows = qbRows.filter((p) => adjStat(p, 'PassingAttempts') > 0);
+                rebalance(rows, (p, line) => {
+                  line.PassingAttempts = Math.round(adjStat(p, 'PassingAttempts') * fCmp);
+                  line.PassingCompletions = Math.round(adjStat(p, 'PassingCompletions') * fCmp);
+                  line.PassingInterceptions = Math.round(adjStat(p, 'PassingInterceptions') * fCmp);
+                  line.PassingYards = Math.round(adjStat(p, 'PassingYards') * fYds);
+                  if (fTd > 0) line.PassingTouchdowns = Math.round(adjStat(p, 'PassingTouchdowns') * fTd);
+                });
+              };
               return (
                 <div className="se-table-wrap">
                   <table className="se-table">
@@ -956,6 +1033,35 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                       {allPlayers.length > 0 && deltaRow(allPlayers)}
                     </tbody>
                   </table>
+                  {gapMaterial && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                      margin: '6px 2px 2px', padding: '6px 10px', fontSize: 11,
+                      background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                      borderRadius: 6, color: 'var(--text-secondary)',
+                    }}>
+                      <span title="A team's completions should land in its receivers' hands. Player movements and pinned/edited lines can leave QB passing and team receiving out of sync.">
+                        <b style={{ color: '#f59e0b' }}>QB passing ≠ team receiving:</b>{' '}
+                        {recT.rec.toLocaleString()} rec vs {passT.cmp.toLocaleString()} cmp ({dFmt(gapRec) || '0'}) ·{' '}
+                        {recT.yds.toLocaleString()} vs {passT.yds.toLocaleString()} yds ({dFmt(gapYds) || '0'}) ·{' '}
+                        {recT.td} vs {passT.td} TD ({dFmt(gapTd) || '0'})
+                      </span>
+                      <button
+                        className="scenario-action-btn" style={{ fontSize: 11 }}
+                        onClick={matchReceivingToPassing}
+                        title="Scale every receiver's targets / catches / yards / TDs proportionally so team receiving matches QB passing"
+                      >
+                        Scale receiving to match
+                      </button>
+                      <button
+                        className="scenario-action-btn" style={{ fontSize: 11 }}
+                        onClick={matchPassingToReceiving}
+                        title="Scale QB attempts / completions / yards / TDs proportionally so QB passing matches team receiving"
+                      >
+                        Scale passing to match
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })()}
