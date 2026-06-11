@@ -42,6 +42,29 @@ try: print(len(json.load(open(sys.argv[1])).get('players',[])))
 except Exception: print(0)" "$1" 2>/dev/null || echo 0
 }
 
+# Last-resort recovery for a historic season FFC no longer serves: the
+# year-keyed endpoint drops old seasons (year=2025 started returning an
+# empty players array in 2026), which would leave a permanent hole in the
+# immutable archive. Ask the Wayback Machine for an archived copy of the
+# same API response (Sept 1 of that season ≈ end of draft season).
+# Writes the recovered body to the given path and returns 0 on success;
+# best-effort, returns 1 on any miss.
+try_wayback() {
+  local sc="$1" season="$2" out="$3"
+  local api="https://fantasyfootballcalculator.com/api/v1/adp/${sc}?teams=12&year=${season}"
+  local avail snap
+  avail="$(curl -fsSL --max-time 30 "http://archive.org/wayback/available?url=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$api")&timestamp=${season}0901" 2>/dev/null)" || return 1
+  snap="$(printf '%s' "$avail" | python3 -c "import json,sys
+try: print(json.load(sys.stdin).get('archived_snapshots',{}).get('closest',{}).get('url',''))
+except Exception: pass" 2>/dev/null)"
+  [ -n "$snap" ] || return 1
+  # id_ suffix on the timestamp returns the raw archived body (no chrome).
+  snap="$(printf '%s' "$snap" | sed 's|/web/\([0-9]*\)/|/web/\1id_/|')"
+  curl -fsSL --max-time 60 "$snap" -o "$out" 2>/dev/null || return 1
+  [ "$(player_count "$out")" -gt 0 ] || return 1
+  return 0
+}
+
 echo "Fetching FFC ADP for: $SEASONS (scorings: $SCORINGS)"
 fetched=0 kept=0 failed=0
 for sc in $SCORINGS; do
@@ -62,6 +85,10 @@ for s in $SEASONS; do
     if [ "$n" -gt 0 ]; then
       mv "$tmp" "$dest"
       echo "  [ok]   $sc $s — saved $n players"
+      fetched=$((fetched + 1))
+    elif [ "$s" -lt "$DYNAMIC_FROM" ] && [ ! -s "$dest" ] && try_wayback "$sc" "$s" "$tmp"; then
+      mv "$tmp" "$dest"
+      echo "  [ok]   $sc $s — recovered $(player_count "$dest") players from the Wayback Machine"
       fetched=$((fetched + 1))
     else
       echo "  [warn] $sc $s — response had 0 players; keeping existing file"
