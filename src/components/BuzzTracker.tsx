@@ -8,6 +8,9 @@ type PosFilter = typeof POS_FILTERS[number];
 
 const POS_COLORS: Record<string, string> = { QB: '#6366f1', RB: '#10b981', WR: '#f59e0b', TE: '#ef4444' };
 
+// Shared by the header row and every BuzzRow so the columns stay aligned.
+const GRID_COLUMNS = '28px 1fr 90px 120px 64px 56px';
+
 // Friendly source labels + colors for the volume breakdown + item tags.
 const SOURCE_META: Record<string, { label: string; color: string }> = {
   espn: { label: 'ESPN', color: '#cc0000' },
@@ -145,6 +148,19 @@ export function BuzzTracker() {
 
       {/* Leaderboard */}
       <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: GRID_COLUMNS, gap: 8, padding: '6px 12px',
+          borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)',
+          fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+          color: 'var(--text-muted)',
+        }}>
+          <span style={{ textAlign: 'right' }}>#</span>
+          <span>Player</span>
+          <SortHeader label="Volume" k="volume" sort={sort} onSort={setSort} />
+          <SortHeader label="Sentiment" k="sentiment" sort={sort} onSort={setSort} />
+          <SortHeader label="Trend" k="trend" sort={sort} onSort={setSort} align="center" />
+          <SortHeader label="Updated" k="recent" sort={sort} onSort={setSort} align="right" />
+        </div>
         {rows.map((p, i) => (
           <BuzzRow
             key={p.player_key ?? `${p.name}-${p.position}`}
@@ -156,6 +172,26 @@ export function BuzzTracker() {
         ))}
       </div>
     </div>
+  );
+}
+
+function SortHeader({ label, k, sort, onSort, align }: {
+  label: string; k: SortKey; sort: SortKey; onSort: (k: SortKey) => void; align?: 'center' | 'right';
+}) {
+  const active = sort === k;
+  return (
+    <button
+      onClick={() => onSort(k)}
+      title={`Sort by ${label.toLowerCase()}`}
+      style={{
+        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+        font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit',
+        textAlign: align ?? 'left',
+        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+      }}
+    >
+      {label}{active ? ' ▾' : ''}
+    </button>
   );
 }
 
@@ -171,7 +207,7 @@ function BuzzRow({ rank, player, open, onToggle }: {
         onClick={onToggle}
         style={{
           display: 'grid',
-          gridTemplateColumns: '28px 1fr 90px 120px 64px 56px',
+          gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer',
           background: open ? 'var(--bg-tertiary)' : 'transparent',
         }}
