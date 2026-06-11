@@ -1006,8 +1006,15 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // already carry. Live ESPN remains the last resort.
           let adpData = ffcAdp;
           if (adpData.length === 0) {
+            // Cap at FFC-equivalent board depth (FFC files run ~200
+            // players, max ADP ~260) so a Sleeper-sourced season emits the
+            // same cohort the FFC-sourced seasons do — without the cap,
+            // Sleeper's 2,600-player priced universe would flood one season
+            // with deep-roster rows no other season has, skewing the
+            // position ADP→PPG curves and hit/bust label distributions.
+            const FFC_EQUIV_MAX_ADP = 260;
             const sl = await readLocalJson<{ players?: Array<{ name: string; position: string; team?: string; adp_ppr?: number }> }>(`sleeper-adp-${season}.json`);
-            const slPlayers = (sl?.players ?? []).filter((p) => (p.adp_ppr ?? 0) > 0 && (p.adp_ppr ?? 999) < 999);
+            const slPlayers = (sl?.players ?? []).filter((p) => (p.adp_ppr ?? 0) > 0 && (p.adp_ppr ?? 999) <= FFC_EQUIV_MAX_ADP);
             if (slPlayers.length > 50) {
               adpData = slPlayers.map((p) => ({
                 name: p.name, position: p.position, team: p.team || '',

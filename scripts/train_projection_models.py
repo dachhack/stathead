@@ -26,7 +26,7 @@ from scipy.stats import spearmanr
 warnings.filterwarnings('ignore')
 
 DATA_DIR = Path('public/data')
-CACHE_PATH = DATA_DIR / 'training-rows-cache-v49.json'
+CACHE_PATH = DATA_DIR / 'training-rows-cache-v50.json'
 
 
 # ── LightGBM → JS tree conversion ──────────────────────────────────
@@ -524,7 +524,8 @@ PRE_DRAFT_FEATURES_MAP = {
 
 def train_adp_models(rows):
     """Train ADP models for all positions."""
-    old = load_old_cache('model-cache-adp-v56.json')
+    # Warm-start feature lists from the last committed cache version.
+    old = load_old_cache('model-cache-adp-v57.json') or load_old_cache('model-cache-adp-v56.json')
     if not old:
         print("  No existing ADP cache to get feature names from, skipping")
         return None
@@ -688,7 +689,7 @@ def train_ppg_models(rows):
     add or change features. DO NOT hand-edit these lists without rerunning
     the measurement.
     """
-    old = load_old_cache('model-cache-ppg-v56.json')
+    old = load_old_cache('model-cache-ppg-v57.json') or load_old_cache('model-cache-ppg-v56.json')
     if not old:
         print("  No existing PPG cache, skipping")
         return None
@@ -1059,7 +1060,7 @@ def train_residual_models(rows):
     Re-run scripts/ablate_residual_features.py if you add or change features.
     DO NOT hand-edit these lists without rerunning the measurement.
     """
-    old = load_old_cache('model-cache-residual-v56.json')
+    old = load_old_cache('model-cache-residual-v57.json') or load_old_cache('model-cache-residual-v56.json')
     if not old:
         print("  No existing residual cache, skipping")
         return None
@@ -1406,10 +1407,10 @@ def main():
     # already-cached model files. Useful to answer "what are the current
     # per-position sample sizes?" without waiting on a full retrain.
     if '--summary' in args:
-        adp = json.load(open(DATA_DIR / 'model-cache-adp-v56.json'))
-        ppg = json.load(open(DATA_DIR / 'model-cache-ppg-v56.json'))
-        share = json.load(open(DATA_DIR / 'model-cache-share-v56.json'))
-        residual = json.load(open(DATA_DIR / 'model-cache-residual-v56.json'))
+        adp = json.load(open(DATA_DIR / 'model-cache-adp-v57.json'))
+        ppg = json.load(open(DATA_DIR / 'model-cache-ppg-v57.json'))
+        share = json.load(open(DATA_DIR / 'model-cache-share-v57.json'))
+        residual = json.load(open(DATA_DIR / 'model-cache-residual-v57.json'))
         print_training_audit(adp, ppg, share, residual)
         return
 
@@ -1423,7 +1424,7 @@ def main():
         print('\n  Training ADP models...')
         adp_result = train_adp_models(rows)
         if adp_result:
-            with open(DATA_DIR / 'model-cache-adp-v56.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-adp-v57.json', 'w') as f:
                 json.dump(adp_result, f)
             print(f'  ADP cache saved.')
 
@@ -1431,7 +1432,7 @@ def main():
         print('\n  Training PPG models...')
         ppg_result = train_ppg_models(rows)
         if ppg_result:
-            with open(DATA_DIR / 'model-cache-ppg-v56.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-ppg-v57.json', 'w') as f:
                 json.dump(ppg_result, f)
             print(f'  PPG cache saved.')
 
@@ -1439,7 +1440,7 @@ def main():
         print('\n  Training Share models...')
         share_result = train_share_models(rows)
         if share_result:
-            with open(DATA_DIR / 'model-cache-share-v56.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-share-v57.json', 'w') as f:
                 json.dump(share_result, f)
             print(f'  Share cache saved.')
 
@@ -1447,7 +1448,7 @@ def main():
         print('\n  Training Residual models...')
         residual_result = train_residual_models(rows)
         if residual_result:
-            with open(DATA_DIR / 'model-cache-residual-v56.json', 'w') as f:
+            with open(DATA_DIR / 'model-cache-residual-v57.json', 'w') as f:
                 json.dump(residual_result, f)
             print(f'  Residual cache saved.')
 

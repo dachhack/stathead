@@ -180,6 +180,31 @@ async function main() {
   // exactly so training rows (built in Python) and prediction rows
   // (built in TS) agree.
   if (result.predRows.length > 0 && result.rows.length > 0) {
+    // Market ADP entering Y-1 and Y-2, from the committed snapshots —
+    // the same sources the training-side history fill uses (FFC per
+    // season; Sleeper where FFC purged the year). Powers the predRows'
+    // adpTrend, which the cached-training path otherwise leaves at 0.
+    const loadSeasonMarketAdp = (season: number): Map<string, number> => {
+      const m = new Map<string, number>();
+      try {
+        const ffc = JSON.parse(readFileSync(`public/data/ffc_adp_ppr_${season}.json`, 'utf-8'));
+        for (const p of ffc?.players ?? []) {
+          if (p?.name && Number(p.adp) > 0) m.set(normalizeName(p.name), Number(p.adp));
+        }
+      } catch { /* no FFC snapshot for this season */ }
+      if (m.size > 0) return m;
+      try {
+        const sl = JSON.parse(readFileSync(`public/data/sleeper-adp-${season}.json`, 'utf-8'));
+        for (const p of sl?.players ?? []) {
+          const adp = Number(p?.adp_ppr) || 0;
+          if (p?.name && adp > 0 && adp < 999) m.set(normalizeName(p.name), adp);
+        }
+      } catch { /* no Sleeper snapshot either */ }
+      return m;
+    };
+    const adpEnteringY1 = loadSeasonMarketAdp(PREDICT_SEASON - 1);
+    const adpEnteringY2 = loadSeasonMarketAdp(PREDICT_SEASON - 2);
+
     const histByKey = new Map<string, Map<number, { rawPPG: number; games: number }>>();
     for (const tr of result.rows as Array<{ name: string; position: string; season: number; rawPPG: number; features: Record<string, number> }>) {
       const key = `${normalizeName(tr.name)}::${tr.position}`;
@@ -258,6 +283,14 @@ async function main() {
 
       if (priorPPG2yr > 0) pr.features.priorPPG2yr = priorPPG2yr;
       if (y1 > 0 && y2 > 0) pr.features.ppgTrend = ppgTrend;
+      // adpTrend: market price entering Y-1 vs Y-2; positive = rising —
+      // mirrors the training-side convention (prev.adp − curr.adp).
+      {
+        const nn = normalizeName(pr.name);
+        const a1 = adpEnteringY1.get(nn) ?? 0;
+        const a2 = adpEnteringY2.get(nn) ?? 0;
+        if (a1 > 0 && a2 > 0) pr.features.adpTrend = Math.round((a2 - a1) * 10) / 10;
+      }
       // Always set the new multi-year trend features. Zero is a
       // legitimate value for "we don't have enough history" and the
       // GBM should treat it as such.
@@ -373,7 +406,7 @@ async function main() {
     share: `${MODEL_DIR}/model-cache-share-v57.json`,
     career: `${MODEL_DIR}/model-cache-career-v73.json`,
     careerPostDraft: `${MODEL_DIR}/model-cache-career-postdraft-v5.json`,
-    lateBoom: `${MODEL_DIR}/model-cache-late-boom-v1.json`,
+    lateBoom: `${MODEL_DIR}/model-cache-late-boom-v2.json`,
   };
 
   // Late-boom classifier: (position, normalized name, season) → LOSO boom probability.

@@ -35,8 +35,8 @@ import numpy as np
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score
 
-CACHE_PATH = Path('public/data/training-rows-cache-v49.json')
-OUTPUT_PATH = Path('public/data/model-cache-late-boom-v1.json')
+CACHE_PATH = Path('public/data/training-rows-cache-v50.json')
+OUTPUT_PATH = Path('public/data/model-cache-late-boom-v2.json')
 
 
 # Per-position thresholds.

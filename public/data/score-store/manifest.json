@@ -1,49 +1,49 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-11T00:57:36.727Z",
+  "updatedAt": "2026-06-11T16:34:04.784Z",
   "models": {
     "career": {
       "version": "v51",
       "count": 96,
-      "backtestCount": 1097
+      "backtestCount": 1091
     },
     "adp": {
       "version": "v50",
-      "count": 153
+      "count": 258
     },
     "ppg": {
       "version": "v50",
-      "count": 249
+      "count": 354
     },
     "volumes": {
       "version": "v1",
-      "count": 153
+      "count": 258
     }
   },
   "adpCurves": {
     "QB": {
-      "sqrtSlope": -0.478003,
-      "sqrtIntercept": 17.8319,
-      "n": 561,
-      "poolOffset": 4.464
+      "sqrtSlope": -0.368222,
+      "sqrtIntercept": 18.0017,
+      "n": 298,
+      "poolOffset": 3.916
     },
     "RB": {
-      "sqrtSlope": -1.068988,
-      "sqrtIntercept": 18.9465,
-      "n": 1234,
-      "poolOffset": 1.375
+      "sqrtSlope": -1.105164,
+      "sqrtIntercept": 19.5692,
+      "n": 684,
+      "poolOffset": 2.086
     },
     "WR": {
-      "sqrtSlope": -0.957684,
-      "sqrtIntercept": 18.1846,
-      "n": 1700,
-      "poolOffset": 1.678
+      "sqrtSlope": -0.964221,
+      "sqrtIntercept": 18.5395,
+      "n": 876,
+      "poolOffset": 2.17
     },
     "TE": {
-      "sqrtSlope": -0.768321,
-      "sqrtIntercept": 14.6277,
-      "n": 718,
-      "poolOffset": 4.049
+      "sqrtSlope": -0.613164,
+      "sqrtIntercept": 13.428,
+      "n": 329,
+      "poolOffset": 3.013
     }
   }
 }
