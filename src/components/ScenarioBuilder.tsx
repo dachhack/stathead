@@ -542,7 +542,10 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   const deltaLabel = (delta: number, type: 'pass' | 'volume') => {
     if (delta === 0) return '0';
     if (type === 'pass') {
-      return delta > 0 ? `+${delta}% Pass` : `${delta}% Run`;
+      // Lean direction, phrased positively as "more of what you leaned toward":
+      // right = pass-heavier (≈0.8% pass volume per point), left = run-heavier
+      // (1% rush volume per point). "−20% Run" used to mean MORE rushing.
+      return delta > 0 ? `+${Math.round(delta * 0.8)}% Pass` : `+${Math.abs(delta)}% Run`;
     }
     return delta > 0 ? `+${delta}%` : `${delta}%`;
   };
@@ -731,12 +734,31 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               const tendency = scenario.teamTendencies.find((t) => t.team === editTeam)?.passRatioDelta ?? 0;
               const teamVol = (scenario.teamVolumes ?? []).find((t) => t.team === editTeam)?.volumeDelta ?? 0;
               const lever = (label: string, value: number, min: number, max: number, onChange: (n: number) => void, kind: 'pass' | 'volume') => (
-                <div key={label} className="se-lever">
+                <div
+                  key={label}
+                  className="se-lever"
+                  title={kind === 'pass'
+                    ? 'Lean the offense. Slide right toward PASS (boosts pass volume ≈0.8%/pt, trims rushing 1%/pt); slide left toward RUN (boosts rush volume 1%/pt, trims passing). Receivers and RB check-downs follow.'
+                    : undefined}
+                >
                   <span className="se-lever-label">{label}</span>
-                  <input
-                    type="range" min={min} max={max} value={value} className="scenario-slider-inline"
-                    onChange={(e) => onChange(Number(e.target.value))}
-                  />
+                  {kind === 'pass' ? (
+                    // Endpoint markers so the drag direction is unambiguous:
+                    // negative/left = run-lean, positive/right = pass-lean.
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>RUN</span>
+                      <input
+                        type="range" min={min} max={max} value={value} className="scenario-slider-inline"
+                        onChange={(e) => onChange(Number(e.target.value))}
+                      />
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>PASS</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="range" min={min} max={max} value={value} className="scenario-slider-inline"
+                      onChange={(e) => onChange(Number(e.target.value))}
+                    />
+                  )}
                   <span className={`se-lever-val ${value > 0 ? 'positive' : value < 0 ? 'negative' : ''}`}>{deltaLabel(value, kind)}</span>
                 </div>
               );
@@ -746,7 +768,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                   <div className="se-statadj-group">
                     <div className="se-statadj-grouptitle">Team</div>
                     <div className="se-team-levers">
-                      {lever('Pass / Run', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
+                      {lever('Run / Pass', tendency, -30, 30, (n) => setTeamTendencyFor(editTeam, n), 'pass')}
                       {lever('Team Volume', teamVol, -50, 50, (n) => setTeamVolumeFor(editTeam, n), 'volume')}
                     </div>
                   </div>

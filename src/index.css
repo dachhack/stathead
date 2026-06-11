@@ -1839,7 +1839,7 @@ tr:hover td {
 /* Each lever is its own 3-col grid so labels / sliders / values align. */
 .se-lever {
   display: grid;
-  grid-template-columns: 88px 1fr 44px;
+  grid-template-columns: 88px 1fr 62px;
   align-items: center;
   gap: 10px;
 }
