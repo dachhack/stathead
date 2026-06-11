@@ -82,9 +82,13 @@ jobs:
           [skip ci]"
           for i in 1 2 3; do
             if git push origin HEAD:${TARGET_BRANCH}; then
-              break
+              exit 0
             fi
-            echo "Push attempt $i failed, pulling + retrying..."
-            git pull --rebase origin ${TARGET_BRANCH} || true
+            echo "Push attempt $i rejected — rebasing onto latest ${TARGET_BRANCH}..."
+            # During a rebase, -X theirs favors the commit being replayed,
+            # i.e. this run's fresh snapshot, over an older one on the branch.
+            git pull --rebase -X theirs origin ${TARGET_BRANCH}
             sleep $((i * 2))
           done
+          echo "Failed to push after 3 attempts."
+          exit 1

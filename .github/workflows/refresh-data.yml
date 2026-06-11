@@ -140,14 +140,25 @@ jobs:
           else
             git commit -m "Auto-commit caches: training rows + models + feature store [skip ci]"
             # Retry push 3 times in case of transient conflicts with concurrent pushes
+            pushed=0
             for i in 1 2 3; do
               if git push origin HEAD:claude/nfl-fantasy-workbench-6D1yd; then
+                pushed=1
                 break
               fi
-              echo "Push attempt $i failed, pulling + retrying..."
-              git pull --rebase origin claude/nfl-fantasy-workbench-6D1yd || true
+              echo "Push attempt $i rejected — rebasing onto latest branch..."
+              # During a rebase, -X theirs favors the commit being replayed,
+              # i.e. this run's fresh caches, over older ones on the branch.
+              # || true keeps a rebase failure from aborting the step (set -e):
+              # the deploy below must run even if the cache commit is lost.
+              git pull --rebase -X theirs origin claude/nfl-fantasy-workbench-6D1yd || true
               sleep $((i * 2))
             done
+            # Don't fail the job: that would skip the Pages deploy below, and
+            # losing one cache commit is cheaper than losing a deploy.
+            if [ "$pushed" != "1" ]; then
+              echo "::warning::Failed to push caches after 3 attempts; this run's caches were not committed."
+            fi
           fi
 
       - uses: actions/upload-pages-artifact@v5
