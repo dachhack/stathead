@@ -109,4 +109,15 @@ jobs:
           .github/workflows/fetch-ktc-snapshot.yml on branch ${TARGET_BRANCH}.
 
           [skip ci]"
-          git push origin HEAD:${TARGET_BRANCH}
+          for i in 1 2 3; do
+            if git push origin HEAD:${TARGET_BRANCH}; then
+              exit 0
+            fi
+            echo "Push attempt $i rejected — rebasing onto latest ${TARGET_BRANCH}..."
+            # During a rebase, -X theirs favors the commit being replayed,
+            # i.e. this run's fresh snapshot, over an older one on the branch.
+            git pull --rebase -X theirs origin ${TARGET_BRANCH}
+            sleep $((i * 2))
+          done
+          echo "Failed to push after 3 attempts."
+          exit 1
