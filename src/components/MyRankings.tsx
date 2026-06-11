@@ -84,6 +84,18 @@ interface DepthOrderEntry {
   pos: string;
 }
 
+// sleeper-adp-<season>.json — Sleeper market ADP snapshot (CI-fetched daily
+// by fetch-sleeper-players.yml). Real draft-room ADP that covers rookies and
+// deep vets long before FFC's offseason ADP fills out.
+interface SleeperAdpEntry {
+  name: string;
+  position: string;
+  team?: string;
+  adp_ppr?: number;
+  adp_half_ppr?: number;
+  adp_std?: number;
+}
+
 // One scenario-adjusted row from the Projections tab's own engine — the
 // exact values the scenario tool displays for the active scenario.
 interface ToolProjEntry {
@@ -186,6 +198,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
   const [depthOrder, setDepthOrder] = useState<DepthOrderEntry[]>([]);
+  const [sleeperAdp, setSleeperAdp] = useState<SleeperAdpEntry[]>([]);
 
   const [posFilter, setPosFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -236,7 +249,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         .then(r => (r.ok ? r.json() : null))
         .then(d => (Array.isArray(d?.players) ? d.players : []) as DepthOrderEntry[])
         .catch(() => [] as DepthOrderEntry[]),
-    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData]) => {
+      fetch(`${BASE}data/sleeper-adp-${CURRENT_SEASON}.json`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => (Array.isArray(d?.players) ? d.players : []) as SleeperAdpEntry[])
+        .catch(() => [] as SleeperAdpEntry[]),
+    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix, fcData, careerData, depthData, sleeperData]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
 
@@ -290,6 +307,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       setFcRedraft(fcData);
       setCareerScores(careerData);
       setDepthOrder(depthData);
+      setSleeperAdp(sleeperData);
       setLoading(false);
     });
   }, []);
@@ -350,6 +368,14 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     }
     return m;
   }, [depthOrder]);
+
+  const sleeperByName = useMemo(() => {
+    const m = new Map<string, SleeperAdpEntry>();
+    for (const p of sleeperAdp) {
+      if (p?.name) m.set(normName(p.name), p);
+    }
+    return m;
+  }, [sleeperAdp]);
 
   // Current rookie class from the career model — adp.json's isRookie flag
   // only covers the model pool, so it can't identify the rookie class for
@@ -414,16 +440,18 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   }, [redraft, fcByName, rookieNames, adpScoreByName, priorByName]);
 
   // Team resolution, widest-coverage chain: FFC ADP → ADP model pool →
-  // FantasyCalc redraft → model depth-chart ordering. Team coverage matters
-  // beyond display — scenario team levers (tendencies/volumes) and the
-  // Tgt%/Rush% team totals only reach players with a resolved team.
+  // FantasyCalc redraft → Sleeper ADP → model depth-chart ordering. Team
+  // coverage matters beyond display — scenario team levers (tendencies/
+  // volumes) and the Tgt%/Rush% team totals only reach players with a
+  // resolved team.
   const resolveTeam = useCallback((nn: string, position: string): string => {
     return ffcByName.get(nn)?.team
       || adpScoreByName.get(nn)?.team
       || fcByName.get(nn)?.team
+      || sleeperByName.get(nn)?.team
       || depthTeamByKey.get(`${nn}|${position}`)
       || '';
-  }, [ffcByName, adpScoreByName, fcByName, depthTeamByKey]);
+  }, [ffcByName, adpScoreByName, fcByName, sleeperByName, depthTeamByKey]);
 
   // Scenario pool: synthetic SDIO-shaped rows decomposed from the validated
   // model projections (redraft-projections.json — the same Consensus base the
@@ -546,6 +574,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     const seen = new Set<string>();
     const rows: RankingRow[] = [];
 
+    const sleeperAdpFor = (nn: string): number | undefined => {
+      const s = sleeperByName.get(nn);
+      return s?.adp_ppr ?? s?.adp_half_ppr ?? s?.adp_std;
+    };
+
     const buildRow = (name: string, position: string, basePpg: number, team: string): RankingRow | null => {
       const id = makeId(name, position);
       if (seen.has(id)) return null;
@@ -657,9 +690,10 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         position,
         team: resolvedTeam,
         ppg,
-        // Market ADP chain mirrors the Draft Kit: FFC ADP, else the ADP-model
-        // pool's ADP, else FantasyCalc overall rank as a pick proxy.
-        adp: ffcP?.adp ?? adpS?.adp ?? fcByName.get(nn)?.rank ?? 999,
+        // Market ADP chain: FFC ADP, else the ADP-model pool's ADP, else
+        // Sleeper draft-room ADP (real market, rookie-inclusive), else
+        // FantasyCalc overall rank as a pick proxy.
+        adp: ffcP?.adp ?? adpS?.adp ?? sleeperAdpFor(nn) ?? fcByName.get(nn)?.rank ?? 999,
         ciSpreadUp,
         ciSpreadDown,
         boomZ: 0, // filled in below once position stats are known
@@ -707,7 +741,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -950,7 +984,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current FantasyCalc/FFC redraft ADP">ADP</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current market redraft ADP: FFC, else Sleeper draft rooms, else FantasyCalc rank as a pick proxy">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
               </th>

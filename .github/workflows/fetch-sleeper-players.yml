@@ -1,9 +1,10 @@
 name: Fetch Sleeper Players
 
-# Refreshes the slim Sleeper players snapshot (public/data/sleeper-players.json)
-# and rebuilds the player crosswalk so newly-listed rookies pick up a
-# sleeper_id. Sleeper's /v1/players/nfl is reachable directly from GitHub
-# runners (no proxy needed). The crosswalk builder is pure-stdlib Python and
+# Refreshes the slim Sleeper players snapshot (public/data/sleeper-players.json),
+# the Sleeper market-ADP snapshot (public/data/sleeper-adp-<season>.json), and
+# rebuilds the player crosswalk so newly-listed rookies pick up a sleeper_id.
+# Sleeper's API is reachable directly from GitHub runners (no proxy needed).
+# The crosswalk builder is pure-stdlib Python and
 # reads only committed inputs, so this stays a fast, self-contained job.
 #
 # Runs after the FantasyCalc snapshot (06:30) so the crosswalk rebuild sees the
@@ -47,6 +48,9 @@ jobs:
       - name: Refresh Sleeper players snapshot
         run: python3 scripts/fetch-sleeper-players.py public/data
 
+      - name: Refresh Sleeper ADP snapshot
+        run: python3 scripts/fetch-sleeper-adp.py public/data
+
       - name: Rebuild player crosswalk
         run: python3 scripts/build-player-crosswalk.py
 
@@ -55,7 +59,8 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add -f public/data/sleeper-players.json public/data/player-crosswalk.json \
+          git add -f public/data/sleeper-players.json public/data/sleeper-adp-*.json \
+            public/data/player-crosswalk.json \
             public/data/player-aliases.json public/data/player-promotions.json \
             public/data/player-conflicts.json
           if git diff --cached --quiet; then
