@@ -738,7 +738,12 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         priorPPG: prior?.priorPPG ?? 0,
         priorTgtShare: comp?.priorTeamTargetShare ?? 0,
         priorRushShare: position === 'RB' ? (comp?.priorTeamTouchShare ?? 0) : 0,
-        isRookie: !prior || (prior.priorGames ?? 0) === 0,
+        // Rookie badge from the career model's 2026 class (plus the ADP
+        // model's flag) — NOT from missing prior stats, which mislabeled
+        // 2025-class sophomores (Cam Ward, Quinn Ewers) and vets whose
+        // name variant misses the prior-stats join (Chigoziem Okonkwo)
+        // as rookies.
+        isRookie: rookieNames.has(nn) || (adpS?.isRookie ?? false),
         isLocked: false,
       };
     };
@@ -776,7 +781,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, ffcSampleByName, ffcEndDate, sleeperFetchedAt, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, sleeperByName, ffcSampleByName, ffcEndDate, sleeperFetchedAt, resolveTeam, priorByName, compByName, rookieNames, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
