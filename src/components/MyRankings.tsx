@@ -4,6 +4,7 @@ import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenari
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
+import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
 
@@ -81,6 +82,18 @@ interface DepthOrderEntry {
   name: string;
   team: string;
   pos: string;
+}
+
+// One scenario-adjusted row from the Projections tab's own engine — the
+// exact values the scenario tool displays for the active scenario.
+interface ToolProjEntry {
+  position: string;
+  team: string;
+  games: number;
+  pprPts: number;
+  rec: number;
+  tgt: number;
+  rushAtt: number;
 }
 
 interface RankingRow {
@@ -186,6 +199,9 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   // Projection scenario selection
   const [savedScenarios, setSavedScenarios] = useState<ScenarioConfig[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('');
+  // The Projections tab's computed base pool (cached on every load of that
+  // tab) — lets this page run the tab's own scenario engine for exact parity.
+  const [projBase, setProjBase] = useState<ProjectionBase | null>(null);
   // League scoring format — re-scores PPG from the projected stat line.
   const [scoringFormat, setScoringFormat] = useState<'ppr' | 'half' | 'standard'>('ppr');
 
@@ -284,6 +300,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       if (raw) setSavedList(JSON.parse(raw));
     } catch { /* ignore */ }
     setSavedScenarios(loadAllScenarios());
+    setProjBase(loadProjectionBase(CURRENT_SEASON));
   }, []);
 
   // Lookup maps
@@ -457,6 +474,55 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [projPool]);
 
+  // Exact scenario values: when the Projections tab's base pool is cached,
+  // run the tab's OWN scenario engine over the tab's OWN base, so a selected
+  // scenario shows the exact numbers the scenario tool shows. The synthetic
+  // pool above remains the fallback for players (or whole sessions) the
+  // cache doesn't cover.
+  const toolAdjusted = useMemo(() => {
+    if (!projBase || isScenarioEmpty(activeScenario)) return null;
+    return applyScenarioToProjections(projBase.qbs, projBase.rbs, projBase.wrs, projBase.tes, activeScenario);
+  }, [projBase, activeScenario]);
+
+  const toolByName = useMemo(() => {
+    const m = new Map<string, ToolProjEntry>();
+    if (!toolAdjusted) return m;
+    const add = (arr: Array<{ name: string; team: string; games: number; pprPts: number }>, position: string) => {
+      for (const p of arr) {
+        // Scenario-injected custom/FA rows ("★ Name") have no rankings row.
+        if (p.name.startsWith('★')) continue;
+        const o = p as unknown as Record<string, number>;
+        m.set(normName(p.name), {
+          position,
+          team: p.team,
+          games: p.games,
+          pprPts: p.pprPts,
+          rec: o.rec || 0,
+          tgt: o.tgt || 0,
+          rushAtt: o.rushAtt || 0,
+        });
+      }
+    };
+    add(toolAdjusted.qbs, 'QB');
+    add(toolAdjusted.rbs, 'RB');
+    add(toolAdjusted.wrs, 'WR');
+    add(toolAdjusted.tes, 'TE');
+    return m;
+  }, [toolAdjusted]);
+
+  // Team totals over the tool-adjusted pool, for exact Tgt%/Rush%.
+  const toolTeamTotals = useMemo(() => {
+    const m = new Map<string, { rushAtt: number; tgt: number }>();
+    for (const e of toolByName.values()) {
+      if (!e.team) continue;
+      const t = m.get(e.team) ?? { rushAtt: 0, tgt: 0 };
+      if (e.position === 'RB') t.rushAtt += e.rushAtt;
+      if (e.position !== 'QB') t.tgt += e.tgt;
+      m.set(e.team, t);
+    }
+    return m;
+  }, [toolByName]);
+
   // Team totals from SDIO for projected share computation
   const teamTotals = useMemo(() => {
     const totals = new Map<string, { rushAtt: number; tgt: number }>();
@@ -496,30 +562,42 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
 
       // PPG priority: 1) ML pipeline score-store predictedPPG, 2) redraft projections fallback
       let ppg = ppgS?.predictedPPG ?? basePpg;
-      // Scenario and league-scoring adjustments are applied RELATIVE to the
-      // synthetic stat line rather than swapping the base outright: the
-      // model predictedPPG and the redraft decomposition differ for most
-      // players, so an absolute recompute used to shift every row the
-      // moment any scenario went active — drowning the actual scenario
-      // moves. Here untouched players keep their base PPG exactly.
       const scenarioActive = !isScenarioEmpty(activeScenario);
-      const baseP = basePoolByName.get(nn);
-      if (sdioP && baseP) {
-        if (scenarioActive) {
-          const basePts = baseP.FantasyPointsPPR ?? 0;
-          const scenPts = sdioP.FantasyPointsPPR ?? 0;
-          if (basePts > 0) ppg *= scenPts / basePts;
+      const toolEntry = scenarioActive ? toolByName.get(nn) : undefined;
+      const toolP = toolEntry && toolEntry.position === position && toolEntry.games > 0 ? toolEntry : undefined;
+      if (toolP) {
+        // Exact value from the Projections tab under this scenario — the
+        // same round(pprPts / games, 1) its PPG column shows. Half/Standard
+        // re-scored from the tab's real receptions.
+        let pts = toolP.pprPts;
+        if (scoringFormat === 'half') pts -= 0.5 * toolP.rec;
+        else if (scoringFormat === 'standard') pts -= toolP.rec;
+        ppg = Math.max(0, Math.round((pts / toolP.games) * 10) / 10);
+      } else {
+        // Fallback (no cached Projections-tab base, or player outside its
+        // pool): scenario and league-scoring adjustments applied RELATIVE
+        // to the synthetic stat line, so untouched players keep their base
+        // PPG instead of jumping to a different decomposition's numbers.
+        const baseP = basePoolByName.get(nn);
+        if (sdioP && baseP) {
+          if (scenarioActive) {
+            const basePts = baseP.FantasyPointsPPR ?? 0;
+            const scenPts = sdioP.FantasyPointsPPR ?? 0;
+            if (basePts > 0) ppg *= scenPts / basePts;
+          }
+          if (scoringFormat !== 'ppr') {
+            // Receptions in the synthetic line are real (recPG-based), so
+            // subtracting reception points per game re-scores exactly.
+            const recPG = (sdioP.Receptions || 0) / GAMES;
+            ppg -= (scoringFormat === 'half' ? 0.5 : 1) * recPG;
+          }
+          ppg = Math.max(0, Math.round(ppg * 10) / 10);
         }
-        if (scoringFormat !== 'ppr') {
-          // Receptions in the synthetic line are real (recPG-based), so
-          // subtracting reception points per game re-scores exactly.
-          const recPG = (sdioP.Receptions || 0) / GAMES;
-          ppg -= (scoringFormat === 'half' ? 0.5 : 1) * recPG;
-        }
-        ppg = Math.max(0, Math.round(ppg * 10) / 10);
       }
 
-      const resolvedTeam = ffcP?.team || adpS?.team || sdioP?.Team || resolveTeam(nn, position) || team;
+      // With exact tool values, the tab's team wins (it reflects scenario
+      // player movements); otherwise the widest-coverage local chain.
+      const resolvedTeam = toolP?.team || ffcP?.team || adpS?.team || sdioP?.Team || resolveTeam(nn, position) || team;
 
       // CI bounds from the ADP model. The boom/bust *spreads* (raw numbers)
       // are computed here; the within-position z-score is applied in a
@@ -531,10 +609,22 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const ciSpreadUp = adpS ? Math.max(0, ciHigh - vor) : 0;
       const ciSpreadDown = adpS ? Math.max(0, vor - ciLow) : 0;
 
-      // Projected shares: SDIO (scenario) > share model predictions > prior year
+      // Projected shares: exact tool pool (scenario) > SDIO (scenario) >
+      // share model predictions > prior year
       let projTgtShare = 0;
       let projRushShare = 0;
-      if (sdioP && resolvedTeam) {
+      if (toolP) {
+        const tt = toolTeamTotals.get(toolP.team);
+        if (tt) {
+          if (position !== 'QB' && tt.tgt > 0) {
+            projTgtShare = toolP.tgt / tt.tgt;
+          }
+          if (position === 'RB' && tt.rushAtt > 0) {
+            projRushShare = toolP.rushAtt / tt.rushAtt;
+          }
+        }
+      }
+      if (!projTgtShare && !projRushShare && sdioP && resolvedTeam) {
         const tt = teamTotals.get(resolvedTeam);
         if (tt) {
           if (position !== 'QB' && tt.tgt > 0) {
@@ -617,7 +707,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
-  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, fcByName, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
+  }, [redraft, ffc, ffcByName, adpScoreByName, ppgScoreByName, shareScoreByName, sdioByName, basePoolByName, toolByName, toolTeamTotals, fcByName, resolveTeam, priorByName, compByName, teamTotals, activeScenario, scoringFormat]);
 
   // Apply custom order
   const rankedRows = useMemo(() => {
@@ -859,7 +949,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
               <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>Player</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Pos</th>
               <th style={{ ...th, textAlign: 'center', width: 36 }}>Tm</th>
-              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'})`}>PPG</th>
+              <th style={{ ...th, textAlign: 'right', width: 44 }} title={`Projected points per game (${scoringFormat === 'ppr' ? 'PPR' : scoringFormat === 'half' ? 'Half-PPR' : 'Standard'}). With a scenario active, exact Projections-tab values for that scenario.`}>PPG</th>
               <th style={{ ...th, textAlign: 'right', width: 44 }} title="Current FantasyCalc/FFC redraft ADP">ADP</th>
               <th style={{ ...th, textAlign: 'right', width: 48 }}>
                 <span title="Boom z-score — CI upside spread vs the position cohort. >+1 = unusually wide upside.">Boom z</span>
