@@ -2,9 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
-import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
-import { clayToSdioProjections } from '../lib/projectionScenario';
-import { loadBlendedProjections, type ClayPlayer } from '../lib/waiverUtils';
+import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
@@ -145,8 +143,6 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [loading, setLoading] = useState(true);
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
-  const [sdio, setSdio] = useState<SDIOProjection[]>([]);
-  const [clay, setClay] = useState<ClayPlayer[]>([]);
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
   const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
   const [shareScores, setShareScores] = useState<ShareScoreEntry[]>([]);
@@ -176,8 +172,6 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     Promise.all([
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
-      hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
-      loadBlendedProjections().catch(() => [] as ClayPlayer[]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/shares.json`).then(r => r.json()).catch(() => []),
@@ -185,11 +179,9 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
       // Fallback source — if score-store shards are empty, hydrate from the monolithic matrix.
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
-    ]).then(([rdData, ffcData, sdioData, clayData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
+    ]).then(([rdData, ffcData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
-      setSdio(sdioData);
-      setClay(clayData);
 
       // If score-store is empty, derive equivalent shards from feature-matrix.json so
       // UI does not silently lose VOR/Boom/Bust/shares when the auto-commit lag leaves
@@ -323,13 +315,22 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [adpScores, priorByName]);
 
-  // Scenario pool: real SDIO season projections when a key is configured,
-  // otherwise the blended Clay/Consensus lines bridged to SDIO shape — the
-  // same no-key fallback the Sleeper views use. Without this, picking a
-  // scenario (or a non-PPR format) changed nothing unless SDIO was set up.
+  // Scenario pool: synthetic SDIO-shaped rows decomposed from the validated
+  // model projections (redraft-projections.json — the same Consensus base the
+  // Projections tab's scenario engine runs on), so scenario adjustments and
+  // the scoring selector move the same numbers the page already shows.
   const projPool = useMemo(
-    () => (sdio.length ? sdio : clayToSdioProjections(clay)),
-    [sdio, clay],
+    () => buildSyntheticSdio(redraft.map((p) => {
+      const nn = normName(p.name);
+      return {
+        name: p.name,
+        position: p.position,
+        ppg: p.ppg,
+        recPG: p.recPG,
+        team: ffcByName.get(nn)?.team ?? adpScoreByName.get(nn)?.team,
+      };
+    })),
+    [redraft, ffcByName, adpScoreByName],
   );
 
   // Resolve active scenario: a selected quick preset or saved scenario overrides

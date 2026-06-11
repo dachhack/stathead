@@ -168,40 +168,6 @@ export function buildDataContext(
         );
       }
       break;
-    case 'sportsdata':
-      if (extraData && extraData.length > 0) {
-        const firstItem = extraData[0] as Record<string, unknown>;
-        if ('FantasyPointsPPR' in firstItem) {
-          // Projections
-          parts.push(
-            `\nSportsDataIO Projections (${extraData.length} players):`,
-            formatAsTable(extraData.slice(0, 60), [
-              'Name', 'Position', 'Team', 'FantasyPointsPPR', 'FantasyPoints',
-              'PassingYards', 'PassingTouchdowns', 'PassingInterceptions',
-              'RushingYards', 'RushingTouchdowns', 'Receptions',
-              'ReceivingYards', 'ReceivingTouchdowns', 'FumblesLost',
-            ])
-          );
-        } else if ('PointSpread' in firstItem) {
-          // Odds
-          parts.push(
-            `\nSportsDataIO Odds (${extraData.length} games):`,
-            formatAsTable(extraData.slice(0, 30), [
-              'AwayTeam', 'HomeTeam', 'PointSpread', 'OverUnder',
-              'HomeMoneyLine', 'AwayMoneyLine', 'DateTime', 'Status',
-            ])
-          );
-        } else if ('Title' in firstItem) {
-          // News
-          parts.push(
-            `\nSportsDataIO News (${extraData.length} articles):`,
-            formatAsTable(extraData.slice(0, 20), [
-              'Team', 'Title', 'TimeAgo', 'OriginalSource',
-            ])
-          );
-        }
-      }
-      break;
   }
 
   // Add semantic layer - column definitions so Claude knows what each field means

@@ -207,7 +207,6 @@ export type Tab =
   | 'buzz-tracker'
   | 'consensus-adp'
   | 'ktc'
-  | 'sportsdata'
   | 'prospects'
   | 'prospects-2027'
   | 'draft-optimizer'
@@ -861,7 +860,10 @@ export interface CollegeQBR {
   sack: number;
 }
 
-// --- SportsDataIO API Types ---
+// --- Projection stat line (SDIO-shaped) ---
+// Originally the SportsDataIO season-projection schema; the API client was
+// removed, but the shape lives on as the scenario engine's lingua franca —
+// every surface bridges its projections into these rows to run scenarios.
 
 export interface SDIOProjection {
   PlayerID: number;
@@ -885,96 +887,6 @@ export interface SDIOProjection {
   FumblesLost: number;
   FieldGoalsMade: number;
   ExtraPointsMade: number;
-}
-
-export interface SDIODfsSalary {
-  PlayerID: number;
-  Name: string;
-  Team: string;
-  Position: string;
-  OperatorPlayerID: string;
-  OperatorSalary: number;
-  OperatorPosition: string;
-  OperatorSlateID: number;
-  SlateID: number;
-  SlateGameID: number;
-  Operator: string; // 'FanDuel' | 'DraftKings' | 'Yahoo'
-  FantasyPoints: number;
-  FantasyPointsPPR: number;
-}
-
-export interface SDIOOdds {
-  GameId: number;
-  Season: number;
-  SeasonType: number;
-  Week: number;
-  HomeTeam: string;
-  AwayTeam: string;
-  DateTime: string;
-  HomeMoneyLine: number;
-  AwayMoneyLine: number;
-  PointSpread: number;
-  OverUnder: number;
-  HomePointSpreadPayout: number;
-  AwayPointSpreadPayout: number;
-  OverPayout: number;
-  UnderPayout: number;
-  Status: string;
-}
-
-export interface SDIONews {
-  NewsID: number;
-  Source: string;
-  Updated: string;
-  TimeAgo: string;
-  Title: string;
-  Content: string;
-  Url: string;
-  OriginalSource: string;
-  OriginalSourceUrl: string;
-  PlayerID: number;
-  PlayerID2: number;
-  Team: string;
-  Team2: string;
-  Categories: string;
-}
-
-export interface SDIOBoxScore {
-  Game: {
-    GameKey: string;
-    Season: number;
-    Week: number;
-    HomeTeam: string;
-    AwayTeam: string;
-    HomeScore: number;
-    AwayScore: number;
-    DateTime: string;
-    Status: string;
-  };
-  PlayerGames: SDIOPlayerGame[];
-}
-
-export interface SDIOPlayerGame {
-  PlayerID: number;
-  Name: string;
-  Team: string;
-  Position: string;
-  PassingAttempts: number;
-  PassingCompletions: number;
-  PassingYards: number;
-  PassingTouchdowns: number;
-  PassingInterceptions: number;
-  RushingAttempts: number;
-  RushingYards: number;
-  RushingTouchdowns: number;
-  Receptions: number;
-  ReceivingYards: number;
-  ReceivingTouchdowns: number;
-  FumblesLost: number;
-  FantasyPoints: number;
-  FantasyPointsPPR: number;
-  Played: number;
-  Started: number;
 }
 
 // --- Scenario Builder Types ---
