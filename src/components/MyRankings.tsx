@@ -626,13 +626,18 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       const toolEntry = scenarioActive ? toolByName.get(nn) : undefined;
       const toolP = toolEntry && toolEntry.position === position && toolEntry.games > 0 ? toolEntry : undefined;
       if (toolP) {
-        // Exact value from the Projections tab under this scenario — the
-        // same round(pprPts / games, 1) its PPG column shows. Half/Standard
-        // re-scored from the tab's real receptions.
+        // Exact season points from the Projections tab under this scenario,
+        // expressed per-17 (season-equivalent PPG). NOT divided by the
+        // row's own `games`: the tab models backup/spot-start lines over
+        // tiny game counts (e.g. a QB2 projected for 2 games), and since
+        // this page RANKS by the PPG column, a per-own-games rate floats a
+        // 30-point season line to the top of the board ("Raiders games
+        // are scheduled to go 12 quarters"). Half/Standard re-scored from
+        // the tab's real receptions.
         let pts = toolP.pprPts;
         if (scoringFormat === 'half') pts -= 0.5 * toolP.rec;
         else if (scoringFormat === 'standard') pts -= toolP.rec;
-        ppg = Math.max(0, Math.round((pts / toolP.games) * 10) / 10);
+        ppg = Math.max(0, Math.round((pts / GAMES) * 10) / 10);
       } else {
         // Fallback (no cached Projections-tab base, or player outside its
         // pool): scenario and league-scoring adjustments applied RELATIVE
