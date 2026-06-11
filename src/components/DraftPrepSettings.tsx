@@ -12,6 +12,10 @@ import type { ScenarioConfig } from '../types';
 // MyRankings / ScenarioBuilder). When active, scenario-projected PPG
 // flows through PickEdge / Beat % / Verdict so the user can see how
 // alternative projection assumptions change every recommendation.
+//
+// Visual language: uniform pill controls (see .league-pill in index.css)
+// with the roster summary folded into the Roster toggle itself, and an
+// accent ring on the Scenario pill when one is active.
 
 interface Props {
   settings: DraftPrepSettings;
@@ -26,6 +30,10 @@ interface Props {
 
 const TEAM_OPTIONS = [8, 10, 12, 14] as const;
 const ROSTER_KEYS = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SF'] as const;
+// Compact labels for the summary chips inside the Roster pill.
+const ROSTER_SHORT: Record<(typeof ROSTER_KEYS)[number], string> = {
+  QB: 'QB', RB: 'RB', WR: 'WR', TE: 'TE', FLEX: 'FLX', SF: 'SF',
+};
 
 export function DraftPrepSettings({ settings, onChange, scenarios, presets, selectedScenarioId, onScenarioChange }: Props) {
   const [open, setOpen] = useState(false);
@@ -44,10 +52,7 @@ export function DraftPrepSettings({ settings, onChange, scenarios, presets, sele
     update({ ...settings, roster: { ...settings.roster, [key]: clamped } });
   };
 
-  const pillStyle: React.CSSProperties = {
-    background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
-    borderRadius: 6, padding: '3px 8px', fontSize: 11, fontWeight: 600,
-  };
+  const scenarioActive = !!selectedScenarioId;
   const inputStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)', border: '1px solid var(--border)',
     borderRadius: 4, padding: '2px 4px', fontSize: 11,
@@ -55,28 +60,23 @@ export function DraftPrepSettings({ settings, onChange, scenarios, presets, sele
   };
 
   return (
-    <div style={{
-      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-      borderRadius: 8, padding: '8px 12px', marginBottom: 12,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.5 }}>
-          LEAGUE
-        </span>
+    <div className="league-bar">
+      <div className="league-bar-row">
+        <span className="league-label">LEAGUE</span>
 
-        <label style={pillStyle}>
-          Teams{' '}
+        <label className="league-pill" title="League size">
+          Teams
           <select
             value={settings.numTeams}
             onChange={(e) => setField('numTeams', Number(e.target.value))}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
           >
             {TEAM_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
+          <span className="chev">▼</span>
         </label>
 
-        <label style={pillStyle}>
-          Pick{' '}
+        <label className="league-pill" title="Your draft slot">
+          Pick
           <input
             type="number"
             min={1}
@@ -86,38 +86,39 @@ export function DraftPrepSettings({ settings, onChange, scenarios, presets, sele
               const v = Math.max(1, Math.min(settings.numTeams, Number(e.target.value) || 1));
               setField('pickSlot', v);
             }}
-            style={inputStyle}
           />
         </label>
 
-        <label style={pillStyle}>
+        <label className="league-pill" title="Draft order format">
           <select
             value={settings.draftType}
             onChange={(e) => setField('draftType', e.target.value as DraftPrepSettings['draftType'])}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
           >
             <option value="snake">Snake</option>
             <option value="linear">Linear</option>
           </select>
+          <span className="chev">▼</span>
         </label>
 
         <button
+          className={`league-pill ${open ? 'active' : ''}`}
           onClick={() => setOpen((v) => !v)}
-          style={{
-            ...pillStyle, cursor: 'pointer',
-            background: open ? 'var(--bg-quaternary, #2a2a2a)' : 'var(--bg-tertiary)',
-          }}
+          title="Starting lineup slots — click to edit"
         >
-          {open ? '▾' : '▸'} Roster
+          Roster
+          {ROSTER_KEYS.filter((k) => settings.roster[k] > 0).map((k) => (
+            <span key={k} className="roster-chip"><b>{ROSTER_SHORT[k]}</b>{settings.roster[k]}</span>
+          ))}
+          <span className="chev">{open ? '▲' : '▼'}</span>
         </button>
 
         {scenarios !== undefined && onScenarioChange && (
-          <label style={pillStyle}>
-            Scenario{' '}
+          <label className={`league-pill ${scenarioActive ? 'active' : ''}`}>
+            Scenario
             <select
               value={selectedScenarioId ?? ''}
               onChange={(e) => onScenarioChange(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 11, fontWeight: 700 }}
+              style={{ maxWidth: 150, textOverflow: 'ellipsis' }}
               title={
                 (presets?.find((p) => p.id === selectedScenarioId)?.description)
                 ?? (scenarios.length === 0 && !presets?.length
@@ -125,7 +126,7 @@ export function DraftPrepSettings({ settings, onChange, scenarios, presets, sele
                   : 'Apply a projection preset or a saved scenario; every number on the page recomputes against its PPG')
               }
             >
-              <option value="">Base projections</option>
+              <option value="">Base</option>
               {!!presets?.length && (
                 <optgroup label="Presets">
                   {presets.map((p) => (
@@ -141,12 +142,9 @@ export function DraftPrepSettings({ settings, onChange, scenarios, presets, sele
                 </optgroup>
               )}
             </select>
+            <span className="chev">▼</span>
           </label>
         )}
-
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-          {ROSTER_KEYS.map((k) => `${k}:${settings.roster[k]}`).join('  ')}
-        </span>
       </div>
 
       {open && (

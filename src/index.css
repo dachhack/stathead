@@ -2618,3 +2618,90 @@ tr.scenario-custom-row-highlight td {
     width: 100vw;
   }
 }
+
+/* ── Draft prep league bar (DraftPrepSettings) ── */
+.league-bar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.league-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.league-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+.league-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.league-pill:hover,
+.league-pill:focus-within {
+  border-color: var(--text-muted);
+}
+.league-pill.active {
+  border-color: var(--accent);
+  color: var(--text-secondary);
+}
+.league-pill select,
+.league-pill input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+.league-pill input::-webkit-inner-spin-button,
+.league-pill input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.league-pill input[type='number'] {
+  width: 22px;
+  text-align: center;
+  cursor: text;
+}
+.league-pill .chev {
+  font-size: 8px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.league-pill .roster-chip {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.league-pill .roster-chip + .roster-chip {
+  margin-left: 2px;
+}
+.league-pill .roster-chip b {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 1px;
+}
