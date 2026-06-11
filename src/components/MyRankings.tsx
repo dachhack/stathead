@@ -3,6 +3,8 @@ import { fetchFfcADP } from '../data';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { fetchSDIOSeasonProjections, hasSDIOKey } from '../lib/sportsDataIO';
+import { clayToSdioProjections } from '../lib/projectionScenario';
+import { loadBlendedProjections, type ClayPlayer } from '../lib/waiverUtils';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
@@ -144,6 +146,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
   const [ffc, setFfc] = useState<FfcADPPlayer[]>([]);
   const [sdio, setSdio] = useState<SDIOProjection[]>([]);
+  const [clay, setClay] = useState<ClayPlayer[]>([]);
   const [adpScores, setAdpScores] = useState<ADPScoreEntry[]>([]);
   const [ppgScores, setPpgScores] = useState<PPGScoreEntry[]>([]);
   const [shareScores, setShareScores] = useState<ShareScoreEntry[]>([]);
@@ -174,6 +177,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
       fetchFfcADP(2026, 'ppr').catch(() => [] as FfcADPPlayer[]),
       hasSDIOKey() ? fetchSDIOSeasonProjections(2026).catch(() => []) : Promise.resolve([]),
+      loadBlendedProjections().catch(() => [] as ClayPlayer[]),
       fetch(`${BASE}data/score-store/adp.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => []),
       fetch(`${BASE}data/score-store/shares.json`).then(r => r.json()).catch(() => []),
@@ -181,10 +185,11 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
       // Fallback source — if score-store shards are empty, hydrate from the monolithic matrix.
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
-    ]).then(([rdData, ffcData, sdioData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
+    ]).then(([rdData, ffcData, sdioData, clayData, adpData, ppgData, shareData, priorData, compData, featureMatrix]) => {
       setRedraft(rdData.players ?? []);
       setFfc(ffcData);
       setSdio(sdioData);
+      setClay(clayData);
 
       // If score-store is empty, derive equivalent shards from feature-matrix.json so
       // UI does not silently lose VOR/Boom/Bust/shares when the auto-commit lag leaves
@@ -301,33 +306,50 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     return m;
   }, [competition]);
 
-  // Rookie/age metadata for quick presets, from the ADP model rows.
+  // Rookie/availability metadata for quick presets, from the ADP model rows
+  // (rookie flag) and the feature store (prior-season games, for the injury
+  // skeptic preset's risk tiers).
   const presetMeta = useMemo(() => {
     const m: PresetMeta = new Map<string, PlayerMeta>();
     for (const a of adpScores) {
-      m.set(normName(a.name), { isRookie: a.isRookie, yearsExp: a.isRookie ? 0 : null, age: null, priorGames: null });
+      const nn = normName(a.name);
+      m.set(nn, {
+        isRookie: a.isRookie,
+        yearsExp: a.isRookie ? 0 : null,
+        age: null,
+        priorGames: priorByName.get(nn)?.priorGames ?? null,
+      });
     }
     return m;
-  }, [adpScores]);
+  }, [adpScores, priorByName]);
+
+  // Scenario pool: real SDIO season projections when a key is configured,
+  // otherwise the blended Clay/Consensus lines bridged to SDIO shape — the
+  // same no-key fallback the Sleeper views use. Without this, picking a
+  // scenario (or a non-PPR format) changed nothing unless SDIO was set up.
+  const projPool = useMemo(
+    () => (sdio.length ? sdio : clayToSdioProjections(clay)),
+    [sdio, clay],
+  );
 
   // Resolve active scenario: a selected quick preset or saved scenario overrides
-  // the prop scenario. Clay-dependent presets are excluded (no Clay data here).
+  // the prop scenario. Clay-blend presets are excluded (handled via MR_PRESET_IDS).
   const activeScenario = useMemo(() => {
     if (selectedScenarioId.startsWith('preset-')) {
       const preset = SCENARIO_PRESETS.find(p => p.id === selectedScenarioId);
-      if (preset && sdio.length) return preset.build(sdio, presetMeta, normName, {});
+      if (preset && projPool.length) return preset.build(projPool, presetMeta, normName, {});
     } else if (selectedScenarioId) {
       const found = savedScenarios.find(s => s.id === selectedScenarioId);
       if (found) return found;
     }
     return scenario;
-  }, [selectedScenarioId, savedScenarios, scenario, sdio, presetMeta]);
+  }, [selectedScenarioId, savedScenarios, scenario, projPool, presetMeta]);
 
-  // Apply scenario to SDIO projections
+  // Apply scenario to the projection pool
   const scenarioSdio = useMemo(() => {
-    if (!sdio.length || isScenarioEmpty(activeScenario)) return sdio;
-    return applyScenario(sdio, activeScenario);
-  }, [sdio, activeScenario]);
+    if (!projPool.length || isScenarioEmpty(activeScenario)) return projPool;
+    return applyScenario(projPool, activeScenario);
+  }, [projPool, activeScenario]);
 
   const sdioByName = useMemo(() => {
     const m = new Map<string, SDIOProjection>();
