@@ -59,11 +59,12 @@ def slim(row: dict) -> dict | None:
     stats = row.get('stats') or {}
     if not isinstance(stats, dict):
         stats = {}
-    # Tolerate adp fields at the top level too.
+    # Tolerate adp fields at the top level too. Sleeper reports 999 for
+    # "undrafted in this format" — that's a sentinel, not an ADP.
     adp = {}
     for k in ADP_KEYS:
         v = stats.get(k, row.get(k))
-        if isinstance(v, (int, float)) and v > 0:
+        if isinstance(v, (int, float)) and 0 < v < 999:
             adp[k] = round(float(v), 1)
     if not adp:
         return None
