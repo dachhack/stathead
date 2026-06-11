@@ -26,8 +26,12 @@ Writes: public/data/sleeper-adp-<season>.json
             { "sleeper_id", "name", "position", "team",
               "adp_ppr", "adp_half_ppr", "adp_std", "adp_2qb", "adp_dynasty" } ] }
 
-Usage:  python3 scripts/fetch-sleeper-adp.py [out_dir] [season]
+Usage:  python3 scripts/fetch-sleeper-adp.py [out_dir] [season ...]
         (defaults: public/data, 2026)
+
+Historic seasons are immutable: pass them once to backfill (existing
+non-empty snapshots are skipped); the daily CI job only refreshes the
+current season.
 """
 from __future__ import annotations
 
@@ -38,7 +42,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 POSITIONS = ['QB', 'RB', 'WR', 'TE']
-ADP_KEYS = ['adp_ppr', 'adp_half_ppr', 'adp_std', 'adp_2qb', 'adp_dynasty']
+ADP_KEYS = ['adp_ppr', 'adp_half_ppr', 'adp_std', 'adp_2qb', 'adp_dynasty', 'adp_dynasty_ppr']
+CURRENT_SEASON = 2026
 
 
 def fetch(season: int) -> list:
@@ -84,23 +89,32 @@ def slim(row: dict) -> dict | None:
     return {k: v for k, v in rec.items() if v not in (None, '')}
 
 
-def main() -> None:
-    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('public/data')
-    season = int(sys.argv[2]) if len(sys.argv) > 2 else 2026
-    out_dir.mkdir(parents=True, exist_ok=True)
+def fetch_season(out_dir: Path, season: int) -> None:
     dest = out_dir / f'sleeper-adp-{season}.json'
+
+    # Historic seasons are immutable — fetch once, then keep the snapshot.
+    if season < CURRENT_SEASON and dest.is_file() and dest.stat().st_size > 2:
+        print(f'[skip] {dest.name} already present (historic season)')
+        return
 
     try:
         raw = fetch(season)
     except Exception as e:  # noqa: BLE001 — keep the parent CI job alive
-        print(f'[warn] Sleeper ADP fetch failed ({e}); keeping existing {dest.name}')
+        print(f'[warn] Sleeper ADP fetch failed for {season} ({e}); keeping existing {dest.name}')
         return
 
     players = [s for r in raw if (s := slim(r))]
+    # Sleeper's player object carries the CURRENT roster team, not the
+    # team as of the requested season — drop it on historic snapshots so a
+    # 2022 file can't claim Derrick Henry played for BAL. Per-season teams
+    # come from the FFC snapshots instead.
+    if season < CURRENT_SEASON:
+        for p in players:
+            p.pop('team', None)
     players.sort(key=lambda r: r.get('adp_ppr', 1e9))
     if not players:
-        print(f'[warn] Sleeper returned {len(raw)} rows but none with a usable ADP; '
-              f'keeping existing {dest.name}')
+        print(f'[warn] Sleeper returned {len(raw)} rows for {season} but none with a '
+              f'usable ADP; keeping existing {dest.name}')
         return
 
     doc = {
@@ -111,6 +125,14 @@ def main() -> None:
     dest.write_text(json.dumps(doc, separators=(',', ':')) + '\n')
     with_team = sum(1 for p in players if p.get('team'))
     print(f'[ok] {dest.name}: {len(players)} players with ADP ({with_team} with a team)')
+
+
+def main() -> None:
+    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('public/data')
+    seasons = [int(a) for a in sys.argv[2:]] or [CURRENT_SEASON]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for season in seasons:
+        fetch_season(out_dir, season)
 
 
 if __name__ == '__main__':
