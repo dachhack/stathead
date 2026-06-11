@@ -17,6 +17,7 @@
  */
 
 import type { ScenarioConfig } from '../types';
+import { PROMOTION_BASELINE } from './scenarioEngine';
 
 function normalizeName(name: string | null | undefined): string {
   if (!name) return '';
@@ -79,11 +80,48 @@ export function applyScenarioToProjections(
   tesIn: TEProjection[],
   sc: ScenarioConfig,
 ): { qbs: QBProjection[]; rbs: RBProjection[]; wrs: WRProjection[]; tes: TEProjection[] } {
+  // Roster removals — pool players dropped from the projections entirely,
+  // before anything else runs: their volume vanishes rather than
+  // redistributing, and the zero-sum pools below never see them.
+  // Mirrors scenarioEngine.applyScenario step 0.
+  const removalKeys = new Set(
+    (sc.rosterRemovals ?? []).map((r) => `${normalizeName(r.name)}|${r.position}`),
+  );
+  const keep = <T extends { name: string }>(arr: T[], pos: string): T[] =>
+    removalKeys.size === 0 ? [...arr] : arr.filter((p) => !removalKeys.has(`${normalizeName(p.name)}|${pos}`));
+
   // Inject free agent signings before team adjustments so tendencies apply to them
-  const qbs = [...qbsIn];
-  const rbs = [...rbsIn];
-  const wrs = [...wrsIn];
-  const tes = [...tesIn];
+  const qbs = keep(qbsIn, 'QB');
+  const rbs = keep(rbsIn, 'RB');
+  const wrs = keep(wrsIn, 'WR');
+  const tes = keep(tesIn, 'TE');
+
+  // Roster promotions — real rostered players the modeled pool doesn't
+  // carry (the 4th TE, a two-way rookie), injected with a baseline
+  // depth stat line so every later lever (team reshapes, stat steppers,
+  // PPR pins, games haircut) applies to them like any pool player.
+  for (const promo of (sc.rosterPromotions ?? [])) {
+    const b = PROMOTION_BASELINE[promo.position] ?? PROMOTION_BASELINE.WR;
+    const base = { name: promo.name, team: promo.team, adp: 999, games: 17 };
+    const has = <T extends { name: string }>(arr: T[]) =>
+      arr.some((p) => normalizeName(p.name) === normalizeName(promo.name));
+    if (promo.position === 'QB' && !has(qbs)) {
+      qbs.push({ ...base, passAtt: b.passAtt, passComp: b.passComp, passYds: b.passYds, passTD: b.passTD, int: b.int,
+        rushAtt: b.rushAtt, rushYds: b.rushYds, rushTD: b.rushTD,
+        pprPts: Math.round(computePPR({ passYds: b.passYds, passTD: b.passTD, int: b.int, rushYds: b.rushYds, rushTD: b.rushTD })) });
+    } else if (promo.position === 'RB' && !has(rbs)) {
+      rbs.push({ ...base, rushAtt: b.rushAtt, rushYds: b.rushYds, rushTD: b.rushTD,
+        tgt: b.tgt, rec: b.rec, recYds: b.recYds, recTD: b.recTD,
+        pprPts: Math.round(computePPR({ rushYds: b.rushYds, rushTD: b.rushTD, rec: b.rec, recYds: b.recYds, recTD: b.recTD })) });
+    } else if (promo.position === 'WR' && !has(wrs)) {
+      wrs.push({ ...base, tgt: b.tgt, rec: b.rec, recYds: b.recYds, recTD: b.recTD,
+        rushAtt: b.rushAtt, rushYds: b.rushYds, rushTD: b.rushTD,
+        pprPts: Math.round(computePPR({ rec: b.rec, recYds: b.recYds, recTD: b.recTD, rushYds: b.rushYds, rushTD: b.rushTD })) });
+    } else if (promo.position === 'TE' && !has(tes)) {
+      tes.push({ ...base, tgt: b.tgt, rec: b.rec, recYds: b.recYds, recTD: b.recTD,
+        pprPts: Math.round(computePPR({ rec: b.rec, recYds: b.recYds, recTD: b.recTD })) });
+    }
+  }
 
   for (const fa of (sc.freeAgentSignings ?? [])) {
     const scale = fa.priorGames > 0 ? (FA_PROJ_GAMES / fa.priorGames) * FA_REG : 0;

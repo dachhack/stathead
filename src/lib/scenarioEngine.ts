@@ -13,8 +13,58 @@ export function isScenarioEmpty(s: ScenarioConfig): boolean {
     (s.statOverrides ?? []).length === 0 &&
     s.movements.length === 0 &&
     s.customPlayers.length === 0 &&
-    (s.freeAgentSignings ?? []).length === 0
+    (s.freeAgentSignings ?? []).length === 0 &&
+    (s.rosterPromotions ?? []).length === 0 &&
+    (s.rosterRemovals ?? []).length === 0
   );
+}
+
+// Baseline stat line for a roster player promoted into the projection
+// pool — a deep-depth season (~46-75 PPR over 17 games) the user then
+// reshapes with the normal levers (stat steppers, PPR pin, games).
+// Shared by both scenario engines so a promotion means the same thing
+// on every surface.
+export const PROMOTION_BASELINE: Record<string, {
+  passAtt: number; passComp: number; passYds: number; passTD: number; int: number;
+  rushAtt: number; rushYds: number; rushTD: number;
+  tgt: number; rec: number; recYds: number; recTD: number;
+}> = {
+  QB: { passAtt: 150, passComp: 95, passYds: 1100, passTD: 6, int: 4, rushAtt: 20, rushYds: 90, rushTD: 1, tgt: 0, rec: 0, recYds: 0, recTD: 0 },
+  RB: { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 60, rushYds: 250, rushTD: 1, tgt: 20, rec: 15, recYds: 110, recTD: 0 },
+  WR: { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 2, rushYds: 10, rushTD: 0, tgt: 40, rec: 25, recYds: 300, recTD: 2 },
+  TE: { passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, tgt: 30, rec: 20, recYds: 200, recTD: 1 },
+};
+
+/** Deterministic synthetic PlayerID for a promoted roster player —
+ *  negative and well away from the customPlayer/FA id range, stable
+ *  across builds so steppers/undo keep addressing the same row. */
+export function promotionId(name: string, position: string): number {
+  const key = `${normName(name)}|${position}`;
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = ((h * 31) + key.charCodeAt(i)) | 0;
+  return -(2_000_000 + (Math.abs(h) % 1_000_000));
+}
+
+/** SDIO-shaped row for a promoted roster player. */
+export function promotionSdioRow(name: string, team: string, position: string): SDIOProjection {
+  const b = PROMOTION_BASELINE[position] ?? PROMOTION_BASELINE.WR;
+  const row = {
+    PlayerID: promotionId(name, position),
+    Name: name,
+    Team: team,
+    Position: position,
+    FantasyPoints: 0,
+    FantasyPointsPPR: 0,
+    PassingAttempts: b.passAtt, PassingCompletions: b.passComp, PassingYards: b.passYds,
+    PassingTouchdowns: b.passTD, PassingInterceptions: b.int,
+    RushingAttempts: b.rushAtt, RushingYards: b.rushYds, RushingTouchdowns: b.rushTD,
+    Targets: b.tgt, Receptions: b.rec, ReceivingYards: b.recYds, ReceivingTouchdowns: b.recTD,
+    FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
+  } as SDIOProjection;
+  const { ppr, std } = recalcPoints(row);
+  row.FantasyPointsPPR = ppr;
+  row.FantasyPoints = std;
+  return row;
 }
 
 const PASSING_STAT_KEYS = new Set<TeamStatKey>([
@@ -48,6 +98,21 @@ export function applyScenario(
   if (isScenarioEmpty(scenario)) return projections;
 
   let result = projections.map((p) => ({ ...p }));
+
+  // 0. Roster pool edits — applied before everything (including the
+  // name-lookup maps) so promoted players are full pool citizens every
+  // later lever can hit, and removed players are gone before zero-sum
+  // pools are computed (their volume vanishes; it does not redistribute).
+  const removalKeys = new Set(
+    (scenario.rosterRemovals ?? []).map((r) => `${normName(r.name)}|${r.position}`),
+  );
+  if (removalKeys.size > 0) {
+    result = result.filter((p) => !removalKeys.has(`${normName(p.Name)}|${p.Position}`));
+  }
+  for (const promo of (scenario.rosterPromotions ?? [])) {
+    const exists = result.some((p) => normName(p.Name) === normName(promo.name) && p.Position === promo.position);
+    if (!exists) result.push(promotionSdioRow(promo.name, promo.team, promo.position));
+  }
 
   // Player-specific levers are stored with the PlayerID of whichever
   // surface created them (Projections tab ids, SDIO ids, synthetic kit
@@ -509,5 +574,7 @@ export function createEmptyScenario(): ScenarioConfig {
     playerAvailability: [],
     pointsOverrides: [],
     statOverrides: [],
+    rosterPromotions: [],
+    rosterRemovals: [],
   };
 }

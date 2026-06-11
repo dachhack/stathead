@@ -15,6 +15,7 @@ import {
   deleteScenario,
   isScenarioEmpty,
   createEmptyScenario,
+  promotionSdioRow,
 } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta } from '../lib/scenarioPresets';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -234,13 +235,22 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
   }, [scenario, editTeam]);
 
   // Roster editor: selected team's players grouped by position, each group
-  // sorted by projected PPR (so the depth order reads top-down).
+  // sorted by projected PPR (so the depth order reads top-down). Roster
+  // players promoted into the pool get stub rows with the engine's
+  // baseline line, so the same steppers/pins/games controls work on them.
   const editRoster = useMemo(() => {
     if (!editTeam) return [] as { pos: string; players: SDIOProjection[] }[];
+    const nrm = normalizeName ?? defaultNormalize;
     const byPos: Record<string, SDIOProjection[]> = {};
+    const seen = new Set<string>();
     for (const p of projections) {
       if (p.Team !== editTeam) continue;
       (byPos[p.Position] ??= []).push(p);
+      seen.add(`${nrm(p.Name)}|${p.Position}`);
+    }
+    for (const promo of (scenario.rosterPromotions ?? [])) {
+      if (promo.team !== editTeam || seen.has(`${nrm(promo.name)}|${promo.position}`)) continue;
+      (byPos[promo.position] ??= []).push(promotionSdioRow(promo.name, promo.team, promo.position));
     }
     return ['QB', 'RB', 'WR', 'TE']
       .filter((pos) => byPos[pos]?.length)
@@ -248,7 +258,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
         pos,
         players: byPos[pos].sort((a, b) => (b.FantasyPointsPPR || 0) - (a.FantasyPointsPPR || 0)),
       }));
-  }, [projections, editTeam]);
+  }, [projections, editTeam, scenario.rosterPromotions, normalizeName]);
 
   useEffect(() => {
     if (open) setSavedList(loadAllScenarios());
@@ -410,6 +420,32 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     !!statOf(p) || gamesOf(p) < 17 || pprOf(p) !== undefined ||
     scenario.volumeOverrides.some((v) => isSame(v, p));
 
+  // --- Roster pool edits: promote roster players into the projection pool
+  // (so points/stats can be assigned to the 4th TE, a two-way rookie, …)
+  // and remove pool players from the projections entirely. ---
+  const promotions = scenario.rosterPromotions ?? [];
+  const removals = scenario.rosterRemovals ?? [];
+  const isRemoved = (p: SDIOProjection) =>
+    removals.some((r) => norm(r.name) === norm(p.Name) && r.position === p.Position);
+  // A stub row injected by a promotion (see promotionId's reserved range).
+  const isPromotedRow = (p: SDIOProjection) => p.PlayerID <= -2_000_000;
+  const promoteToPool = (name: string, position: string, team: string) =>
+    update({ rosterPromotions: [...promotions, { name, position, team }] });
+  const demoteFromPool = (p: SDIOProjection) =>
+    update({
+      rosterPromotions: promotions.filter((r) => !(norm(r.name) === norm(p.Name) && r.position === p.Position)),
+      // Drop the player's per-player levers too — without a pool row they
+      // would linger as invisible entries in the active count.
+      statOverrides: (scenario.statOverrides ?? []).filter((s) => !isSame(s, p)),
+      playerAvailability: (scenario.playerAvailability ?? []).filter((a) => !isSame(a, p)),
+      pointsOverrides: (scenario.pointsOverrides ?? []).filter((o) => !isSame(o, p)),
+      volumeOverrides: scenario.volumeOverrides.filter((v) => !isSame(v, p)),
+    });
+  const removeFromPool = (p: SDIOProjection) =>
+    update({ rosterRemovals: [...removals, { name: p.Name, position: p.Position, team: p.Team }] });
+  const restoreToPool = (p: SDIOProjection) =>
+    update({ rosterRemovals: removals.filter((r) => !(norm(r.name) === norm(p.Name) && r.position === p.Position)) });
+
   // Fully scenario-adjusted value for display (reflects team tendency/volume/
   // stat reshapes, availability, vegas). Falls back to the raw line if missing.
   const adjLineFor = (p: SDIOProjection) => adjusted[(normalizeName ?? defaultNormalize)(p.Name)];
@@ -537,7 +573,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     (scenario.statOverrides ?? []).length +
     scenario.movements.length +
     scenario.customPlayers.length +
-    (scenario.freeAgentSignings ?? []).length;
+    (scenario.freeAgentSignings ?? []).length +
+    (scenario.rosterPromotions ?? []).length +
+    (scenario.rosterRemovals ?? []).length;
 
   const deltaLabel = (delta: number, type: 'pass' | 'volume') => {
     if (delta === 0) return '0';
@@ -792,7 +830,9 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               const share = (v: number, ref: number) => (ref && v ? `${Math.round((v / ref) * 100)}%` : '');
               // Share denominators = adjusted team pools, so they stay consistent
               // when team-level reshapes scale everyone.
-              const teamPlayers = editRoster.flatMap((g) => g.players);
+              // Removed players are out of the projection — excluded from
+              // share denominators and totals, rendered struck-through.
+              const teamPlayers = editRoster.flatMap((g) => g.players).filter((p) => !isRemoved(p));
               const pool = (f: StatField) => teamPlayers.reduce((s, p) => s + adjStat(p, f), 0);
               const poolPassYds = pool('PassingYards');
               const poolRushAtt = pool('RushingAttempts');
@@ -888,6 +928,18 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               const playerRow = (p: SDIOProjection) => {
                 const isQB = p.Position === 'QB';
                 const hasRush = p.Position !== 'TE';
+                if (isRemoved(p)) {
+                  return (
+                    <tr key={p.PlayerID} style={{ opacity: 0.45 }}>
+                      <td className="se-cell se-pos" style={{ color: POS_COLORS[p.Position] }}>{p.Position}</td>
+                      <td className="se-cell se-name" colSpan={16}>
+                        <span style={{ textDecoration: 'line-through' }}>{nameEl(p.Name, p.Position)}</span>
+                        <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-muted)' }}>removed from projections</span>
+                        <button className="scenario-link-btn" style={{ marginLeft: 8 }} onClick={() => restoreToPool(p)}>Restore</button>
+                      </td>
+                    </tr>
+                  );
+                }
                 return (
                   <tr key={p.PlayerID}>
                     <td className="se-cell se-pos" style={{ color: POS_COLORS[p.Position] }}>{p.Position}</td>
@@ -896,6 +948,17 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                         <button className="se-clear" title="Reset player" onClick={() => clearPlayer(p)}>×</button>
                       )}
                       {nameEl(p.Name, p.Position)}
+                      {isPromotedRow(p) && (
+                        <span title="Promoted from the team roster — baseline depth line; edit stats/points like any player" style={{ marginLeft: 4, fontSize: 9, color: '#6366f1', fontWeight: 700 }}>+R</span>
+                      )}
+                      <button
+                        className="se-clear"
+                        style={{ marginLeft: 4 }}
+                        title={isPromotedRow(p) ? 'Remove this added player from the projections' : 'Remove from projections (volume vanishes; teammates keep their lines)'}
+                        onClick={() => (isPromotedRow(p) ? demoteFromPool(p) : removeFromPool(p))}
+                      >
+                        –
+                      </button>
                     </td>
                     {gamesTd(p)}
                     {isQB ? statTd(p, 'PassingAttempts') : blank('pa')}
@@ -1048,7 +1111,7 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                       {editRoster.map((g) => (
                         <Fragment key={g.pos}>
                           {g.players.map((p) => playerRow(p))}
-                          {g.players.length > 0 && totalRow(`${g.pos} Total`, g.players, 'se-subtotal')}
+                          {g.players.length > 0 && totalRow(`${g.pos} Total`, g.players.filter((p) => !isRemoved(p)), 'se-subtotal')}
                         </Fragment>
                       ))}
                       {allPlayers.length > 0 && totalRow('Team Total', allPlayers, 'se-total')}
@@ -1092,25 +1155,82 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
               <div className="scenario-section-empty">Select a team to edit its players</div>
             )}
 
-            {/* Collapsible full current roster for the selected team (reference) */}
+            {/* Collapsible full current roster for the selected team. Skill
+                players the projection pool doesn't carry can be promoted in
+                from here (then edited like any pool player above). */}
             {editTeam && (teamRosters[editTeam]?.length ?? 0) > 0 && (() => {
               const ORDER = ['QB', 'RB', 'FB', 'WR', 'TE', 'K', 'P', 'LS'];
               const ord = (pos: string) => { const i = ORDER.indexOf(pos); return i < 0 ? 50 : i; };
               const roster = [...teamRosters[editTeam]].sort((a, b) => ord(a.position) - ord(b.position) || a.name.localeCompare(b.name));
+              const SKILL = new Set(['QB', 'RB', 'WR', 'TE']);
+              // Pool membership — promoted stubs are in editRoster too, so
+              // they read as "in projections" with a remove affordance.
+              const poolKeys = new Set(editRoster.flatMap((g) => g.players).map((p) => `${norm(p.Name)}|${p.Position}`));
               return (
                 <details className="se-roster">
                   <summary>Current roster — {editTeam} ({roster.length})</summary>
+                  <p className="scenario-section-hint" style={{ margin: '4px 0 6px' }}>
+                    “Project” adds a roster player to the projection table above with a baseline
+                    depth stat line — then assign his points/stats there like any other player.
+                  </p>
                   <div className="se-roster-list">
-                    {roster.map((r, i) => (
-                      <div key={`${r.name}-${i}`} className="se-roster-row">
-                        <span className="se-roster-pos" style={{ color: POS_COLORS[r.position] || 'var(--text-muted)' }}>{r.position || '—'}</span>
-                        <span className="se-roster-name">{nameEl(r.name, r.position)}</span>
-                        <span className="se-roster-meta">
-                          {r.jersey ? `#${r.jersey}` : ''}{r.yearsExp === 0 ? ' · R' : r.yearsExp > 0 ? ` · ${r.yearsExp}y` : ''}
-                          {r.status && !/^act/i.test(r.status) ? ` · ${r.status}` : ''}
+                    {roster.map((r, i) => {
+                      // Promotion may be at a different position than the
+                      // roster listing — e.g. a two-way CB/WR projected as WR.
+                      const promotedAs = promotions.find((x) => norm(x.name) === norm(r.name));
+                      const inPool = ['QB', 'RB', 'WR', 'TE'].some((pos) => poolKeys.has(`${norm(r.name)}|${pos}`));
+                      const action = promotedAs ? (
+                        <span style={{ fontSize: 10, color: '#6366f1', whiteSpace: 'nowrap' }}>
+                          projected{promotedAs.position !== r.position ? ` as ${promotedAs.position}` : ''}
+                          <button
+                            className="scenario-link-btn danger"
+                            style={{ marginLeft: 6 }}
+                            title="Remove this added player from the projections"
+                            onClick={() => update({ rosterPromotions: promotions.filter((x) => norm(x.name) !== norm(r.name)) })}
+                          >
+                            ✕
+                          </button>
                         </span>
-                      </div>
-                    ))}
+                      ) : inPool ? (
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }} title="Already in the projection pool — edit him in the table above">in projections</span>
+                      ) : SKILL.has(r.position) ? (
+                        <button
+                          className="scenario-link-btn"
+                          style={{ whiteSpace: 'nowrap' }}
+                          title="Add to the projection table with a baseline depth stat line"
+                          onClick={() => promoteToPool(r.name, r.position, editTeam)}
+                        >
+                          + Project
+                        </button>
+                      ) : (
+                        // Non-skill roster listing (e.g. a two-way DB like
+                        // Travis Hunter) — pick the fantasy position to
+                        // project him at.
+                        <select
+                          value=""
+                          title="Project this player at a fantasy position"
+                          style={{
+                            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                            borderRadius: 4, fontSize: 10, color: 'var(--accent)', padding: '1px 2px', fontFamily: 'inherit',
+                          }}
+                          onChange={(e) => { if (e.target.value) promoteToPool(r.name, e.target.value, editTeam); }}
+                        >
+                          <option value="">+ Project as…</option>
+                          {['QB', 'RB', 'WR', 'TE'].map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                        </select>
+                      );
+                      return (
+                        <div key={`${r.name}-${i}`} className="se-roster-row">
+                          <span className="se-roster-pos" style={{ color: POS_COLORS[r.position] || 'var(--text-muted)' }}>{r.position || '—'}</span>
+                          <span className="se-roster-name">{nameEl(r.name, r.position)}</span>
+                          <span className="se-roster-meta">
+                            {r.jersey ? `#${r.jersey}` : ''}{r.yearsExp === 0 ? ' · R' : r.yearsExp > 0 ? ` · ${r.yearsExp}y` : ''}
+                            {r.status && !/^act/i.test(r.status) ? ` · ${r.status}` : ''}
+                          </span>
+                          {action}
+                        </div>
+                      );
+                    })}
                   </div>
                 </details>
               );
@@ -1492,6 +1612,8 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
                 movements: [],
                 customPlayers: [],
                 freeAgentSignings: [],
+                rosterPromotions: [],
+                rosterRemovals: [],
               })
             }
             disabled={isScenarioEmpty(scenario)}

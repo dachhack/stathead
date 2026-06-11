@@ -1035,6 +1035,15 @@ export interface FreeAgentSigning {
   recTD: number;
 }
 
+/** A real rostered player promoted into (or removed from) the projection
+ *  pool — e.g. assigning points to the 4th TE or a two-way rookie the
+ *  modeled pool doesn't carry. Matched by normalized name + position. */
+export interface RosterPoolEdit {
+  name: string;
+  position: string;
+  team: string;
+}
+
 export interface ScenarioConfig {
   id: string;
   name: string;
@@ -1049,4 +1058,10 @@ export interface ScenarioConfig {
   playerAvailability: PlayerAvailability[];
   pointsOverrides: PointsOverride[];
   statOverrides: PlayerStatOverride[];
+  /** Roster players promoted into the projection pool (baseline depth
+   *  stat line; every per-player lever then applies to them). */
+  rosterPromotions?: RosterPoolEdit[];
+  /** Pool players removed from the projections entirely (non-zero-sum:
+   *  their volume vanishes rather than redistributing). */
+  rosterRemovals?: RosterPoolEdit[];
 }
