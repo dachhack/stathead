@@ -473,10 +473,19 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
   }
 
   const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+  let text: string;
+  if (response.ok) {
+    text = await response.text();
+  } else {
+    // Large CSVs are shipped gzipped (Cloudflare Pages caps assets at
+    // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is
+    // absent, fall back to the .csv.gz sibling and inflate it here.
+    const gz = await fetchWithTimeout(`${url}.gz`, { timeout: LARGE_CSV_TIMEOUT });
+    if (!gz.ok || !gz.body) {
+      throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    }
+    text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
   }
-  const text = await response.text();
   const result = Papa.parse<T>(text, {
     header: true,
     dynamicTyping: true,
