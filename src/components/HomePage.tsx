@@ -35,13 +35,13 @@ const SECTIONS: Section[] = [
       {
         label: 'My Rankings',
         tab: 'my-rankings',
-        blurb: 'Hand-edit rankings layered on the projections engine, with projection-scenario presets, league scoring (PPR/Half/Standard), and current ADP; persists in your browser.',
+        blurb: 'Hand-edit rankings layered on the projections engine, with projection-scenario presets, league scoring (PPR/Half/Standard), and current ADP; persists in your browser. Export the board to Excel — and import the same file to share it or move it between devices, with edited projections coming back as a scenario.',
       },
       {
         label: 'Draft Optimizer',
         tab: 'draft-optimizer',
         blurb:
-          'The full redraft kit as a four-step workflow: ① VBD cheat sheet with tiers and scarcity, ② model-vs-ADP edges (targets, fades, rookie/vet mispricings), ③ a full-draft simulator from your seat, and ④ live draft-day sync — connect your Sleeper draft (auto-configures your league) or track any platform manually for need-aware best-available picks.',
+          'The full redraft kit as a four-step workflow: ① VBD cheat sheet with tiers and scarcity, ② model-vs-ADP edges (targets, fades, rookie/vet mispricings), ③ a full-draft simulator from your seat, and ④ live draft-day sync — connect your Sleeper draft (auto-configures your league) or track any platform manually for need-aware best-available picks. Includes a one-page, BeerSheets-style Draft Day Sheet you can print or save as a PDF.',
       },
     ],
   },
