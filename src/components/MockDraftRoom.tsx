@@ -7,12 +7,13 @@ import { startersPerTeam } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
 import { kitKey, roundPick, valuePool } from '../lib/draftKit';
 import { userPickNumbers } from '../lib/snakeDraft';
-import type { MockTeam, OpponentProfile, PickContext } from '../lib/mockDraft';
+import type { Grade, MockTeam, OpponentProfile, PickContext, PickReview, TeamGrade } from '../lib/mockDraft';
 import {
   GOAL_INFO, GOAL_OPTIONS, STYLE_INFO, STYLE_OPTIONS,
-  applyPick, chooseCpuPick, choosePlanPick, lineupPoints, makeTeams,
-  randomOpponents, rankPlanCandidates, sampleCpuDelayMs, slotForOverall,
+  applyPick, chooseCpuPick, choosePlanPick, gradeTeams, lineupPoints, makeTeams,
+  randomOpponents, rankPlanCandidates, reviewUserPicks, sampleCpuDelayMs, slotForOverall,
 } from '../lib/mockDraft';
+import type { Position } from '../lib/draftPrepSettings';
 
 // Mock Draft room — practice a full draft against a configurable room
 // of CPU opponents.
@@ -440,11 +441,21 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   const timerSec = cfgRef.current?.config.timerSec ?? config.timerSec;
   const planByKey = cfgRef.current?.myRankByKey;
 
+  const gradesBySlot = phase === 'done'
+    ? new Map(gradeTeams(teamsRef.current, liveSettings).map((g) => [g.slot, g]))
+    : new Map<number, TeamGrade>();
+
   const standings = phase === 'done'
     ? teamsRef.current
-      .map((t) => ({ team: t, pts: lineupPoints(t.players, liveSettings), vbd: t.players.reduce((s, p) => s + p.vbd, 0) }))
+      .map((t) => ({ team: t, pts: lineupPoints(t.players, liveSettings), vbd: t.players.reduce((s, p) => s + p.vbd, 0), grade: gradesBySlot.get(t.slot) }))
       .sort((a, b) => b.pts - a.pts)
     : [];
+
+  const userGrade = userTeam ? gradesBySlot.get(userTeam.slot) : undefined;
+  const userReview: PickReview[] = phase === 'done' && userTeam
+    ? reviewUserPicks(picks, playersRef.current, liveSettings, userTeam.slot, roundsTotal)
+    : [];
+  const upgrades = userReview.filter((r) => r.isUpgrade).sort((a, b) => b.gain - a.gain);
 
   return (
     <section>
@@ -531,11 +542,109 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
               </span>
               <span style={{ fontSize: 12, fontWeight: 700 }}>{Math.round(s.pts)} pts</span>
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>lineup · VBD {Math.round(s.vbd)}</span>
+              {s.grade && <GradeChip grade={s.grade.overallGrade} size={11} title={`Overall: stronger starting lineup than ${Math.round(s.grade.overallPct)}% of the room`} />}
             </div>
           ))}
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
             Projected season points of each roster's best legal starting lineup. Bench depth shows in the VBD total.
+            Grade = starting-lineup strength percentile within this room.
           </div>
+        </div>
+      )}
+
+      {/* Your draft report card (done) */}
+      {phase === 'done' && userGrade && (
+        <div style={{ ...card, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 800 }}>Your draft report card</span>
+            <GradeChip grade={userGrade.overallGrade} size={20} title="" />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {Math.round(userGrade.total)} starting pts · stronger than {Math.round(userGrade.overallPct)}% of the room · VBD depth {Math.round(userGrade.vbdTotal)}
+            </span>
+          </div>
+          {/* Position strength bars */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 4 }}>
+            {(['QB', 'RB', 'WR', 'TE'] as Position[]).map((pos) => {
+              const pg = userGrade.byPos[pos];
+              return (
+                <div key={pos} style={{ background: 'var(--bg-tertiary)', borderRadius: 6, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span className={`pos-badge pos-${pos}`} style={{ fontSize: 10 }}>{pos}</span>
+                    <GradeChip grade={pg.grade} size={12} title="" />
+                    <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)' }}>{Math.round(pg.pct)}</span>
+                  </div>
+                  <div style={{ height: 5, background: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.max(3, pg.pct)}%`, background: gradeColor(pg.grade) }} />
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {Math.round(pg.value)} starting pts
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+            Each position scores 0–100 by how its starters (flex players counted at their own position)
+            rank against the other {liveSettings.numTeams - 1} teams. The bar is that percentile.
+          </div>
+        </div>
+      )}
+
+      {/* Board review — better moves than you made (done) */}
+      {phase === 'done' && userTeam && (
+        <div style={{ ...card, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+            Board review
+            <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>
+              the value pick on the board at each of your picks vs what you took
+            </span>
+          </div>
+          {upgrades.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}>
+              ✓ Clean draft — every pick was the best value on the board (or within a rounding error of it).
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                {upgrades.length} pick{upgrades.length > 1 ? 's' : ''} where a stronger value move was available:
+              </div>
+              {upgrades.slice(0, 8).map((r) => (
+                <div key={r.overall} style={{
+                  display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 0',
+                  borderTop: '1px solid var(--border)',
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', minWidth: 56, paddingTop: 2 }}>
+                    {roundPick(r.overall, N)}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>You took</span>
+                      <span className={`pos-badge pos-${r.actual.position}`} style={{ fontSize: 9 }}>{r.actual.position}</span>
+                      <PlayerName name={r.actual.name} position={r.actual.position} />
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>(VBD {Math.round(r.actual.vbd)})</span>
+                      <span style={{ color: 'var(--text-muted)' }}>→ better:</span>
+                      <span className={`pos-badge pos-${r.best.position}`} style={{ fontSize: 9 }}>{r.best.position}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--accent, #00d4aa)' }}>
+                        <PlayerName name={r.best.name} position={r.best.position} />
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>(VBD {Math.round(r.best.vbd)})</span>
+                      {r.vbdDelta > 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>+{Math.round(r.vbdDelta)} value</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {reviewReason(r)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>
+                “Better” = higher urgency-weighted VBD on the board at that exact pick — value over your
+                roster's replacement level, discounted by each player's chance of lasting to your next pick.
+                It never flags a player who'd already be gone, or one you could simply have waited a round for.
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -762,4 +871,50 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
       )}
     </section>
   );
+}
+
+// ── Grade rendering helpers ──
+
+function gradeColor(grade: Grade): string {
+  const c = grade.charAt(0);
+  if (c === 'A') return '#22c55e';
+  if (c === 'B') return '#a3e635';
+  if (c === 'C') return '#facc15';
+  if (c === 'D') return '#fb923c';
+  return '#ef4444';
+}
+
+function GradeChip({ grade, size, title }: { grade: Grade; size: number; title: string }) {
+  const color = gradeColor(grade);
+  return (
+    <span
+      title={title || undefined}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size, fontWeight: 800, lineHeight: 1,
+        padding: size >= 18 ? '5px 9px' : '2px 6px', borderRadius: 6,
+        color, background: `${color}1f`, border: `1px solid ${color}55`,
+        fontVariantNumeric: 'tabular-nums', minWidth: size >= 18 ? 34 : undefined,
+      }}
+    >
+      {grade}
+    </span>
+  );
+}
+
+/** Human reasoning for why the review flagged a better move. */
+function reviewReason(r: PickReview): string {
+  const firstName = (n: string) => n.split(' ')[0];
+  const parts: string[] = [];
+  if (r.fillsStarterGap) {
+    parts.push(`${firstName(r.best.name)} filled an open starting spot while ${firstName(r.actual.name)} was bench depth`);
+  } else if (r.posShift) {
+    parts.push(`${r.best.position} was the stronger value than ${r.actual.position} here`);
+  } else {
+    parts.push(`${firstName(r.best.name)} carried more value at the same spot`);
+  }
+  if (r.actualWouldSurvive && r.nextPick !== null) {
+    parts.push(`${firstName(r.actual.name)} likely would've made it back to your next pick (#${r.nextPick})`);
+  }
+  return parts.join('; ') + '.';
 }

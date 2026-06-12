@@ -30,7 +30,20 @@ Last updated 2026-06-12 (mock draft session). **Resume section directly below;**
     normally distributed** around 4s (`sampleCpuDelayMs`), with Fast (÷8) and
     Instant speed options. Pause/resume/abort supported.
   - **Results**: projected standings (best-legal-lineup season points via
-    `lineupPoints` + total VBD), full draft board grid, every team's roster.
+    `lineupPoints` + total VBD), full draft board grid, and every team's
+    roster — each with a letter grade.
+  - **Draft report card** (`gradeTeams` / `lineupBreakdown`): per-position
+    strength scored 0–100 as the percentile of the season points that
+    position's starters contribute (flex players credited to their own
+    position) vs the rest of the room, plus an overall letter grade.
+    Shown as colored bars on the user's card and a grade chip on every
+    standings row.
+  - **Board review** (`reviewUserPicks` / shared `valueScore`): replays the
+    user's seat and flags picks where a higher urgency-weighted-VBD player
+    was on the board — value over the roster's replacement level, discounted
+    by survival to the user's next pick, so it never suggests a player who'd
+    be gone or one the user could've waited a round for. "Clean draft" when
+    every pick was the best value available.
   - Config persists to localStorage `mock-draft-config`.
 - Verified: tsc + eslint clean; headless engine smoke test (180-pick drafts ×
   20: completion/caps/starter fills/goal behavior/delay distribution) and

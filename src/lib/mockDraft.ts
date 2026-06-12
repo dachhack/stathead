@@ -281,6 +281,23 @@ export function chooseCpuPick(available: ValuedPlayer[], team: MockTeam, ctx: Pi
 
 // ── User plan pick (simulation mode + timer autopick) ──
 
+/** Urgency-weighted VBD — the plan's value objective. A player's VBD is
+ *  discounted by his chance of surviving to the user's NEXT pick (wait
+ *  and take him then) and by 0.45 once he'd only be bench depth. Shared
+ *  by the plan ranker and the post-draft board review so "the value pick"
+ *  means the same thing in both. */
+export function valueScore(
+  p: ValuedPlayer,
+  open: OpenSlots,
+  overall: number,
+  nextPick: number | null,
+): number {
+  const survNext = nextPick === null
+    ? 0
+    : p.adp >= 999 ? 1 : survivalAtPick(Math.max(p.adp, overall), p.stdev || undefined, nextPick);
+  return p.vbd * (1 - 0.9 * survNext) * (starterSlotOpen(open, p.position) ? 1 : 0.45);
+}
+
 /**
  * The user's candidates ranked by their plan: saved-board order when a
  * board is selected (starters-first nudge, unranked → VBD), else
@@ -309,13 +326,7 @@ export function rankPlanCandidates(
 
   const myPicks = userPickNumbers(totalRounds, team.slot, N, settings.draftType);
   const nextPick = myPicks.find((n) => n > overall) ?? null;
-  const score = (p: ValuedPlayer): number => {
-    const survNext = nextPick === null
-      ? 0
-      : p.adp >= 999 ? 1 : survivalAtPick(Math.max(p.adp, overall), p.stdev || undefined, nextPick);
-    return p.vbd * (1 - 0.9 * survNext) * (starterSlotOpen(team.open, p.position) ? 1 : 0.45);
-  };
-  return [...cands].sort((a, b) => score(b) - score(a));
+  return [...cands].sort((a, b) => valueScore(b, team.open, overall, nextPick) - valueScore(a, team.open, overall, nextPick));
 }
 
 export function choosePlanPick(
@@ -329,17 +340,31 @@ export function choosePlanPick(
 
 // ── Results ──
 
-/** Projected season points of the best legal starting lineup of a roster. */
-export function lineupPoints(roster: ValuedPlayer[], settings: DraftPrepSettings): number {
+export interface LineupBreakdown {
+  /** Season points of the best legal starting lineup. */
+  total: number;
+  /** Season points contributed by each position's starters (incl. the
+   *  flex/superflex players that position won). Sums to `total`. */
+  byPos: Record<Position, number>;
+}
+
+/**
+ * Best legal starting lineup of a roster, decomposed by position. The
+ * flex and superflex slots are filled greedily by the best remaining
+ * eligible player, and that player's points are credited to his own
+ * position — so the breakdown reflects where a roster's starting value
+ * actually comes from (a flex RB shows up under RB).
+ */
+export function lineupBreakdown(roster: ValuedPlayer[], settings: DraftPrepSettings): LineupBreakdown {
   const byPos: Record<Position, number[]> = { QB: [], RB: [], WR: [], TE: [] };
   for (const p of roster) byPos[p.position].push(p.ppg);
   for (const pos of KIT_POSITIONS) byPos[pos].sort((a, b) => b - a);
   const idx: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-  let pts = 0;
+  const acc: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
   for (const pos of KIT_POSITIONS) {
     for (let i = 0; i < settings.roster[pos]; i++) {
       const v = byPos[pos][idx[pos]];
-      if (v !== undefined) { pts += v; idx[pos]++; }
+      if (v !== undefined) { acc[pos] += v; idx[pos]++; }
     }
   }
   const flexFill = (eligible: Position[]) => {
@@ -349,9 +374,193 @@ export function lineupPoints(roster: ValuedPlayer[], settings: DraftPrepSettings
       const v = byPos[pos][idx[pos]];
       if (v !== undefined && v > best) { best = v; bestPos = pos; }
     }
-    if (bestPos) { pts += best; idx[bestPos]++; }
+    if (bestPos) { acc[bestPos] += best; idx[bestPos]++; }
   };
   for (let i = 0; i < settings.roster.FLEX; i++) flexFill(['RB', 'WR', 'TE']);
   for (let i = 0; i < settings.roster.SF; i++) flexFill(['QB', 'RB', 'WR', 'TE']);
-  return pts * SEASON_GAMES;
+  const out: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+  let total = 0;
+  for (const pos of KIT_POSITIONS) { out[pos] = acc[pos] * SEASON_GAMES; total += out[pos]; }
+  return { total, byPos: out };
+}
+
+/** Projected season points of the best legal starting lineup of a roster. */
+export function lineupPoints(roster: ValuedPlayer[], settings: DraftPrepSettings): number {
+  return lineupBreakdown(roster, settings).total;
+}
+
+// ── Draft grade ──
+
+export type Grade = 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'F';
+
+const GRADE_LADDER: Array<[number, Grade]> = [
+  [93, 'A+'], [85, 'A'], [78, 'A-'], [70, 'B+'], [62, 'B'], [54, 'B-'],
+  [46, 'C+'], [38, 'C'], [30, 'C-'], [20, 'D+'], [12, 'D'], [0, 'F'],
+];
+
+/** Map a 0–100 percentile (strength vs the room) to a letter grade. */
+export function pctToGrade(pct: number): Grade {
+  for (const [floor, g] of GRADE_LADDER) if (pct >= floor) return g;
+  return 'F';
+}
+
+export interface PosGrade {
+  /** Season points this position's starters contribute. */
+  value: number;
+  /** Percentile of that value within the room (0–100). */
+  pct: number;
+  grade: Grade;
+}
+
+export interface TeamGrade {
+  slot: number;
+  isUser: boolean;
+  /** Starting-lineup season points. */
+  total: number;
+  /** Total VBD across the whole roster — bench depth shows here. */
+  vbdTotal: number;
+  /** Percentile of `total` within the room. */
+  overallPct: number;
+  overallGrade: Grade;
+  byPos: Record<Position, PosGrade>;
+}
+
+/** Percentile of `v` within `arr` (midrank for ties), 0–100. */
+function percentile(arr: number[], v: number): number {
+  const n = arr.length;
+  if (n === 0) return 50;
+  let less = 0, eq = 0;
+  for (const x of arr) { if (x < v) less++; else if (x === v) eq++; }
+  return ((less + 0.5 * eq) / n) * 100;
+}
+
+/**
+ * Grade every team by starting-lineup strength, both overall and
+ * position by position, relative to the rest of the room. A position's
+ * score is the percentile of the season points its starters contribute
+ * (flex players credited to their own position) — so "how does my RB
+ * room stack up against this league" rather than an absolute cutoff.
+ */
+export function gradeTeams(teams: MockTeam[], settings: DraftPrepSettings): TeamGrade[] {
+  const rows = teams.map((t) => ({
+    t,
+    bd: lineupBreakdown(t.players, settings),
+    vbd: t.players.reduce((s, p) => s + p.vbd, 0),
+  }));
+  const totals = rows.map((r) => r.bd.total);
+  const posArrays: Record<Position, number[]> = { QB: [], RB: [], WR: [], TE: [] };
+  for (const r of rows) for (const pos of KIT_POSITIONS) posArrays[pos].push(r.bd.byPos[pos]);
+
+  return rows.map((r) => {
+    const byPos = {} as Record<Position, PosGrade>;
+    for (const pos of KIT_POSITIONS) {
+      const value = r.bd.byPos[pos];
+      const pct = percentile(posArrays[pos], value);
+      byPos[pos] = { value, pct, grade: pctToGrade(pct) };
+    }
+    const overallPct = percentile(totals, r.bd.total);
+    return {
+      slot: r.t.slot,
+      isUser: r.t.isUser,
+      total: r.bd.total,
+      vbdTotal: r.vbd,
+      overallPct,
+      overallGrade: pctToGrade(overallPct),
+      byPos,
+    };
+  });
+}
+
+// ── Board review (better moves than the user made) ──
+
+export interface PickReview {
+  overall: number;
+  round: number;
+  /** What the user actually drafted. */
+  actual: ValuedPlayer;
+  /** The value-optimal pick available at that moment (urgency-weighted
+   *  VBD, roster-aware), or null if the actual pick was best. */
+  best: ValuedPlayer;
+  /** valueScore(best) − valueScore(actual). >0 ⇒ a better move existed. */
+  gain: number;
+  /** Raw season-points-of-value difference (best.vbd − actual.vbd). */
+  vbdDelta: number;
+  /** The user's next pick number after this one (for the wait reasoning). */
+  nextPick: number | null;
+  /** True if the actual pick would likely have survived to that next pick. */
+  actualWouldSurvive: boolean;
+  /** best fills a starting slot the actual pick left for bench depth. */
+  fillsStarterGap: boolean;
+  /** best is a different position than the actual pick. */
+  posShift: boolean;
+  /** Flagged as a materially better move (gain over the noise threshold). */
+  isUpgrade: boolean;
+}
+
+/**
+ * Replay the user's seat and, at each of their picks, compare what they
+ * took to the value-optimal pick that was on the board — the same
+ * urgency-weighted VBD the plan sim optimizes. Returns one review per
+ * user pick; `isUpgrade` marks the ones where a materially better move
+ * existed. Honest about availability: candidates are exactly the players
+ * still on the board at that pick, and the "wait" reasoning uses survival
+ * to the user's next pick, so it never suggests a player who'd have been
+ * gone or one the user could simply have taken a round later.
+ */
+export function reviewUserPicks(
+  picks: Array<{ overall: number; teamSlot: number; player: ValuedPlayer }>,
+  pool: ValuedPlayer[],
+  settings: DraftPrepSettings,
+  userSlot: number,
+  totalRounds: number,
+): PickReview[] {
+  const ordered = [...picks].sort((a, b) => a.overall - b.overall);
+  const taken = new Set<string>();
+  const user: MockTeam = {
+    slot: userSlot, name: 'You', isUser: true, profile: null,
+    players: [], open: openSlots(settings), posCounts: { QB: 0, RB: 0, WR: 0, TE: 0 },
+  };
+  const userPickNums = userPickNumbers(totalRounds, userSlot, settings.numTeams, settings.draftType);
+  const N = settings.numTeams;
+  const reviews: PickReview[] = [];
+
+  for (const pk of ordered) {
+    if (pk.teamSlot === userSlot) {
+      const overall = pk.overall;
+      const available = pool.filter((p) => !taken.has(kitKey(p.name, p.position)));
+      const ctx: PickContext = { round: Math.ceil(overall / N), overall, totalRounds, settings };
+      const ranked = rankPlanCandidates(available, user, ctx); // value mode
+      const best = ranked[0];
+      const actual = pk.player;
+      const nextPick = userPickNums.find((n) => n > overall) ?? null;
+      if (best) {
+        const sActual = valueScore(actual, user.open, overall, nextPick);
+        const sBest = valueScore(best, user.open, overall, nextPick);
+        const gain = sBest - sActual;
+        const sameKey = kitKey(best.name, best.position) === kitKey(actual.name, actual.position);
+        const survActual = nextPick === null || actual.adp >= 999
+          ? actual.adp >= 999
+          : survivalAtPick(Math.max(actual.adp, overall), actual.stdev || undefined, nextPick) >= 0.55;
+        // Upgrade threshold scales a touch with league size so it reads
+        // the same in 8- and 14-team rooms; floor keeps tiny edges quiet.
+        const threshold = Math.max(10, N * 0.9);
+        reviews.push({
+          overall,
+          round: ctx.round,
+          actual,
+          best,
+          gain,
+          vbdDelta: best.vbd - actual.vbd,
+          nextPick,
+          actualWouldSurvive: survActual,
+          fillsStarterGap: starterSlotOpen(user.open, best.position) && !starterSlotOpen(user.open, actual.position),
+          posShift: best.position !== actual.position,
+          isUpgrade: !sameKey && gain >= threshold,
+        });
+      }
+      applyPick(user, actual);
+    }
+    taken.add(kitKey(pk.player.name, pk.player.position));
+  }
+  return reviews;
 }
