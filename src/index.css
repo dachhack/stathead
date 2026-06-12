@@ -2803,6 +2803,19 @@ tr.scenario-custom-row-highlight td {
   print-color-adjust: exact;
 }
 
+/* Continuation chunks are separate printed pages; on screen, show the
+   boundary as a dashed divider in the preview. */
+.print-sheet-cont {
+  border-top: 2px dashed #94a3b8;
+  margin-top: 18px;
+}
+@media print {
+  .print-sheet-cont {
+    border-top: none;
+    margin-top: 0;
+  }
+}
+
 /* The print sheet is the app's only print path, so the page setup can be
    global: letter landscape with slim margins. */
 @page {
