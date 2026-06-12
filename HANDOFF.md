@@ -1,6 +1,85 @@
 # StatHead — session handoff
 
-Last updated 2026-06-10 (draft kit + taxi session). **Resume section directly below;** older notes follow.
+Last updated 2026-06-12 (ADP overhaul session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-06-12, branch `claude/intelligent-einstein-1kxwga`)
+
+The big ADP session. PRs #419–#421, #423–#427, all merged + deployed.
+
+### Shipped
+- **ADP architecture** (`src/lib/adpSources.ts` + pure `adpBlend.ts`):
+  explicit **historic vs current regimes** — historic = immutable
+  committed snapshots, loaded snapshot-only (deterministic research
+  input); current = daily-refreshed/live, **weighted blend** (FFC
+  sample `times_drafted` × recency half-life on the file's draft
+  window) consumed by My Rankings, the Draft Kit, and 2026 model
+  scoring. **Superflex segmented** end to end (FFC `2qb` files,
+  Sleeper `adp_2qb`, FC `redraft_sf`; never mixed with 1QB). No source
+  has TEP ADP.
+- **New Sleeper ADP source**: `sleeper-adp-<season>.json` 2020–2026,
+  CI-refreshed daily via fetch-sleeper-players.yml
+  (`scripts/fetch-sleeper-adp.py`; 999 = undrafted sentinel; historic
+  files omit teams — Sleeper reports CURRENT rosters for old seasons).
+- **Consensus ADP tab rebuilt**: multi-source compare, weighted Blend,
+  disagreement Spread (click to sort), seasons to 2018, 1QB/SF toggle.
+- **FFC 2025 recovered**: FFC relabeled its 2025 board as `year=2026`
+  when its season rolled (meta: 870 drafts, Sept 3–10 2025).
+  Reconstructed `ffc_adp_ppr_2025.json` with teams restamped from
+  roster_2025. The committed "2026" file IS that stale window until
+  FFC serves real 2026 mocks — recency weighting mutes it meanwhile,
+  and the daily fetch self-corrects. Wayback-recovery fallback added
+  to `scripts/fetch-ffc-adp.sh` for purged historic seasons.
+- **Wrong-year fallback bug** (years old): fetchFfcADP's thin-season
+  fallback served season-1 prices for HISTORIC seasons — **season
+  2022 trained on 2021 ADP** (JT's 2022 row said 13.8, his 2021
+  price). Fallback is now current-season-only; historic = snapshot-only
+  in prod (no live calls — also un-stalled every Projections load).
+- **Training pipeline integrity** + full retrain (rows v51, models
+  v58/v74/v6/v3): draft-pick poisoning fixed (vets no longer carry
+  NFL draft slots as "ADP"; UNDRAFTED_ADP=300 sentinel), 2025 rows
+  deterministic, 2026 scoring blended (pool 171→276; score-store
+  153→**258 ADP preds incl. 30 rookies** — Dart/Stafford now scored).
+  LOSO improved: QB .498→.509, WR →.567, TE .579→**.608**. `adpTrend`
+  filled end-to-end but **ablated out** (neutral; verdict + repro hook
+  logged in `train_projection_models.py`).
+- **My Rankings**: teams/ADP fallback chain (398/416 teams; real
+  market ADP via blend), **exact Projections-tab scenario parity**
+  (`projectionsTabEngine.ts` extracted + cached base pool), working
+  rookie/vet presets, rookie badge from career-model class (was
+  no-prior-stats heuristic — mislabeled 25), sortable column headers
+  (3-state cycle, missing-last), scenario PPG ranked per-17
+  (season-equivalent — a 2-game QB2 line topped the board at "63.5
+  PPG" otherwise), **teamless players carry no projections** (also on
+  Rankings tab + Draft Kit pools; a scenario signing restores them).
+- **Scenario Builder**: `rosterPromotions`/`rosterRemovals` levers in
+  both engines — promote any rostered player into the projection pool
+  ("Project as…" position picker for two-way guys like Travis Hunter
+  DB→WR), remove pool players (struck-through + Restore).
+- **Draft Kit**: urgency-weighted optimal picks (vbd × P(gone by your
+  next pick)) — no more ADP-159 players drafted at 45; QB caps (1 in
+  1QB, 3 in SF) across all sim strategies; **hand-swappable plan
+  picks** (click an alternate → later rounds re-sim; per-card undo +
+  reset-all); league bar redesigned (`.league-pill` in index.css).
+- Mobile: Home Python-library section fits phones (≤42-char quickstart
+  + soft-wrap fallback, stacked loader rows).
+
+### Notes / follow-ups
+- FFC daily run keeps trying real 2026 mocks + `2qb` history backfill;
+  FC workflow adds `redraft_sf` next run — SF columns light up then.
+- `adpTrend` stays out of model feature lists (twice-neutral ablation;
+  re-test as consecutive-season two-source history accrues).
+- MFL is a candidate 5th ADP source (documented public API with
+  history) — CI-only fetch, unverifiable from sandboxes; not shipped.
+- The "My board" sim craters if a saved board is position-sorted
+  (QB block at top → was −1163 vs optimal); QB caps now contain it,
+  but stale boards saved under old scenarios should be re-saved.
+- Sandbox verification recipe: `vite preview` on **127.0.0.1** (NOT
+  localhost — IS_PROD is hostname-based and dev mode skips committed
+  snapshots), gunzip player_stats_2025/draft_picks/roster_2026/games
+  csv.gz into dist/data (vite build wipes them), abort external hosts
+  in Playwright so fallbacks fail fast.
 
 ---
 
