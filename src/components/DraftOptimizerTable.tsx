@@ -20,6 +20,7 @@ import { DraftPrintSheet } from './DraftPrintSheet';
 import { DraftRosterSim } from './DraftRosterSim';
 import { DraftRookieVetEdges } from './DraftRookieVetEdges';
 import { DraftLiveAssistant } from './DraftLiveAssistant';
+import { MockDraftRoom } from './MockDraftRoom';
 import { MethodNote } from './MethodNote';
 import { DocsLink } from './DocsLink';
 import { PlayerName } from './PlayerName';
@@ -151,6 +152,7 @@ const VIEWS = [
   { id: 'edges', label: '2 · Edges', caption: 'targets & fades vs ADP' },
   { id: 'plan', label: '3 · My Plan', caption: 'simulate from your seat' },
   { id: 'live', label: '4 · Draft Day', caption: 'live draft sync' },
+  { id: 'mock', label: '5 · Mock Draft', caption: 'practice vs the room' },
 ] as const;
 type ViewId = typeof VIEWS[number]['id'];
 const VIEW_KEY = 'draft-kit-view';
@@ -1355,6 +1357,18 @@ export function DraftOptimizerTable() {
           pool={kitPool}
           settings={settings}
           onSettingsChange={setSettings}
+          myRankByKey={myRankByKey}
+          myBoardName={myBoard?.name}
+        />
+      )}
+
+      {view === 'mock' && (
+        /* Step 5: the dress rehearsal — full mock draft against a
+           configurable room of CPU drafters (styles + positional goals),
+           with your seat picking by your plan. */
+        <MockDraftRoom
+          pool={kitPool}
+          settings={settings}
           myRankByKey={myRankByKey}
           myBoardName={myBoard?.name}
         />
