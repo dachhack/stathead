@@ -126,17 +126,22 @@ const SECTIONS: Section[] = [
   },
 ];
 
+// Lines kept ≤ 42 chars so the block fits a 390px phone without
+// horizontal scrolling (see .py-quickstart in index.css for the
+// mobile font-size + soft-wrap fallback).
 const PY_QUICKSTART = `import stathead as sh
 
-# 2026 rookie class predictions (77 players × ~80 columns)
-rookies = sh.load_career_predictions_2026()
-rookies.nlargest(10, "percentile")[["name", "position", "predictedCareerPPG", "modelTier"]]
+# 2026 rookie class predictions
+preds = sh.load_career_predictions_2026()
+preds.nlargest(10, "percentile")[
+    ["name", "position",
+     "predictedCareerPPG", "modelTier"]]
 
-# Seasonal redraft projections + per-week NFL box scores (2010-present)
+# Redraft projections + weekly stats
 proj = sh.load_redraft_projections()
 weekly = sh.load_player_stats(2024)
 
-# In-house blended dynasty value (1QB + Superflex), and historical ADP
+# Dynasty values (1QB + SF) + past ADP
 dynasty = sh.load_dynasty_values()
 adp = sh.load_adp_historical()
 `;
@@ -238,6 +243,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </p>
 
         <pre
+          className="py-quickstart"
           style={{
             background: 'var(--bg-tertiary)',
             border: '1px solid var(--border)',
@@ -258,14 +264,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </h3>
         <div style={{ display: 'grid', gap: 6, fontSize: 12 }}>
           {LOADERS.map((l) => (
-            <div key={l.fn} style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 12 }}>
+            <div key={l.fn} className="py-loader">
               <code style={{ color: '#6366f1', fontWeight: 600 }}>{l.fn}</code>
               <span style={{ color: 'var(--text-secondary)' }}>{l.desc}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+        <div className="py-note" style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
           Prefer SQL? <code>pip install &quot;stathead[duckdb]&quot;</code> and{' '}
           <code>sh.query(&quot;SELECT … FROM career_2026 JOIN dynasty_values USING (player_key)&quot;)</code>{' '}
           runs the same tables as the Data Query tab, in Python.

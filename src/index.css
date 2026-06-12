@@ -2705,3 +2705,34 @@ tr.scenario-custom-row-highlight td {
   color: var(--text-muted);
   margin-right: 1px;
 }
+
+/* ── Home page Python-library section (mobile-friendly) ── */
+.py-loader {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 4px 12px;
+}
+.py-loader code {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  /* Stack loader name above its description on phones instead of
+     squeezing a fixed 260px column into the viewport. */
+  .py-loader {
+    grid-template-columns: 1fr;
+    margin-bottom: 4px;
+  }
+}
+.py-note code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  /* Quickstart code: smaller mono + soft-wrap so no line ever clips or
+     forces sideways scrolling on a phone. */
+  .py-quickstart {
+    font-size: 11px !important;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
