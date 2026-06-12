@@ -15,9 +15,6 @@ const GRID_COLUMNS = '28px 1fr 90px 120px 64px 56px';
 const SOURCE_META: Record<string, { label: string; color: string }> = {
   espn: { label: 'ESPN', color: '#cc0000' },
   rotowire: { label: 'Rotowire', color: '#f59e0b' },
-  'reddit:fantasyfootball': { label: 'r/ff', color: '#ff4500' },
-  'reddit:dynastyff': { label: 'r/dynastyff', color: '#7c3aed' },
-  'reddit:32beatwriters': { label: 'r/32beat', color: '#0ea5e9' },
 };
 const sourceMeta = (s: string) => SOURCE_META[s] ?? { label: s, color: 'var(--text-muted)' };
 
@@ -91,7 +88,7 @@ export function BuzzTracker() {
         <h2 style={{ fontSize: 18, margin: 0 }}>Buzz Tracker</h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
           Who's getting talked about over the last {snap?.windowDays ?? 14} days — news volume + sentiment
-          from ESPN, Rotowire, and Reddit.{' '}
+          from ESPN and Rotowire.{' '}
           {snap?.method?.includes('llm')
             ? `Sentiment for the top ${snap.llmScoredPlayers ?? ''} players is AI-scored; the rest keyword-scored.`
             : 'Sentiment is keyword-scored (approximate).'}

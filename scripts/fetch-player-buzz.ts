@@ -1,10 +1,13 @@
 /**
- * Player buzz fetcher — aggregates recent news + community chatter per player
- * into a single leaderboard snapshot for the Buzz Tracker tab.
+ * Player buzz fetcher — aggregates recent news per player into a single
+ * leaderboard snapshot for the Buzz Tracker tab.
  *
  * Sources:
  *   - ESPN athlete overview (news[] + Rotowire beat-writer blurb), per player
- *   - Reddit: r/fantasyfootball, r/dynastyff, r/32beatwriters (mention volume)
+ *
+ * (Reddit mention volume was removed: reddit.com blocks unauthenticated
+ * JSON requests from datacenter IPs, so the GitHub Actions fetch silently
+ * returned zero posts from every subreddit.)
  *
  * Sentiment is scored with the shared lexicon (src/lib/buzzSentiment.ts); the
  * output tags each score with method:'lexicon' so a later LLM pass can refine
@@ -13,16 +16,14 @@
  * Run:    npx tsx scripts/fetch-player-buzz.ts [--window=14] [--limit=0]
  * Output: public/data/player-buzz.json
  *
- * Network-failure tolerant by design (mirrors fetch-reddit-sentiment.ts): any
- * source that fails is skipped, and the script never fails the build.
+ * Network-failure tolerant by design: any source that fails is skipped, and
+ * the script never fails the build.
  */
 import { writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { scoreSentiment, sentimentLabel } from '../src/lib/buzzSentiment';
 
 const OUTPUT_PATH = 'public/data/player-buzz.json';
-const ESPN_RATE_MS = 120;       // ESPN tolerates faster than Reddit
-const REDDIT_RATE_MS = 1200;    // Reddit asks ~1 req/sec unauthenticated
-const REDDIT_SUBS = ['fantasyfootball', 'dynastyff', '32beatwriters'];
+const ESPN_RATE_MS = 120;
 const SKILL_POS = new Set(['QB', 'RB', 'WR', 'TE']);
 const MAX_ITEMS_PER_PLAYER = 10;
 
@@ -45,7 +46,6 @@ interface Player {
   team: string;
   espn_id?: string;
   player_key: string | null;
-  patterns: string[]; // lowercased name patterns for Reddit matching
 }
 
 interface RawItem {
@@ -92,13 +92,9 @@ function loadPlayers(): Player[] {
     const dedupe = `${normName(p.name)}|${p.position}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
-    const parts = p.name.split(' ');
-    const patterns = [p.name.toLowerCase()];
-    if (parts.length >= 2) patterns.push(`${parts[0]} ${parts[parts.length - 1]}`.toLowerCase());
     players.push({
       name: p.name, position: p.position, team: p.team, espn_id: p.espn_id,
       player_key: keyByNamePos.get(dedupe) ?? null,
-      patterns,
     });
   }
   return PLAYER_LIMIT > 0 ? players.slice(0, PLAYER_LIMIT) : players;
@@ -176,35 +172,6 @@ async function fetchEspnItems(p: Player): Promise<RawItem[]> {
   return items;
 }
 
-// ── Reddit mention volume ───────────────────────────────────────────────
-
-async function fetchRedditPosts(sub: string): Promise<{ text: string; ts: number; score: number; permalink: string }[]> {
-  // `new` listing within the window — OTA chatter is recency-driven, so we take
-  // the freshest posts rather than search-ranked ones.
-  const url = `https://www.reddit.com/r/${sub}/new.json?limit=100`;
-  await sleep(REDDIT_RATE_MS);
-  try {
-    const resp = await fetch(url, { headers: { 'User-Agent': 'stathead-buzz/1.0' } });
-    if (!resp.ok) return [];
-    const data = (await resp.json()) as { data?: { children?: { data?: Record<string, unknown> }[] } };
-    const out: { text: string; ts: number; score: number; permalink: string }[] = [];
-    for (const c of data.data?.children ?? []) {
-      const d = c.data ?? {};
-      const ts = Number(d.created_utc ?? 0) * 1000;
-      if (ts < windowStart) continue;
-      out.push({
-        text: `${String(d.title ?? '')} ${String(d.selftext ?? '')}`,
-        ts,
-        score: Number(d.score ?? 0),
-        permalink: `https://www.reddit.com${String(d.permalink ?? '')}`,
-      });
-    }
-    return out;
-  } catch {
-    return [];
-  }
-}
-
 // ── Aggregation ─────────────────────────────────────────────────────────
 
 async function main() {
@@ -225,27 +192,7 @@ async function main() {
     await sleep(ESPN_RATE_MS);
   }
 
-  // 2. Reddit (per subreddit, scan posts for player mentions)
-  for (const sub of REDDIT_SUBS) {
-    const posts = await fetchRedditPosts(sub);
-    console.log(`  r/${sub}: ${posts.length} recent posts`);
-    for (const post of posts) {
-      const lower = post.text.toLowerCase();
-      for (const p of players) {
-        if (!p.patterns.some((pat) => pat.length > 4 && lower.includes(pat))) continue;
-        itemsByPlayer.get(idOf(p))!.push({
-          source: `reddit:${sub}`,
-          headline: post.text.slice(0, 140).replace(/\s+/g, ' ').trim(),
-          summary: '',
-          published: new Date(post.ts).toISOString(),
-          link: post.permalink,
-          ts: post.ts,
-        });
-      }
-    }
-  }
-
-  // 3. Roll up per player
+  // 2. Roll up per player
   const out = players.map((p) => {
     const raw = (itemsByPlayer.get(idOf(p)) ?? []).sort((a, b) => b.ts - a.ts);
     const volumeBySource: Record<string, number> = {};
@@ -280,7 +227,7 @@ async function main() {
   const snapshot = {
     generated: new Date().toISOString(),
     windowDays: WINDOW_DAYS,
-    sources: ['espn', 'rotowire', ...REDDIT_SUBS.map((s) => `reddit:${s}`)],
+    sources: ['espn', 'rotowire'],
     players: out,
   };
 
