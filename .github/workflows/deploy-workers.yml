@@ -2,29 +2,31 @@ name: Deploy Cloudflare Workers
 
 # Deploys the Cloudflare Worker proxies (no local terminal required).
 #
-# Auto-deploys espn-news-proxy when its source changes on the base branch.
-# Use the "Run workflow" button (workflow_dispatch) to deploy any worker
-# on demand by name (espn-news-proxy / fc-proxy / ktc-proxy).
+# Auto-deploys all three workers when any of them change on the base
+# branch (a push touching workers/** redeploys all — wrangler deploy is
+# idempotent). Use the "Run workflow" button to deploy one worker, or all,
+# on demand.
 #
 # One-time setup: add a repository secret CLOUDFLARE_API_TOKEN
-# (Cloudflare dashboard → My Profile → API Tokens → Create Token →
-# "Edit Cloudflare Workers" template). If your Cloudflare login has more
-# than one account, also add CLOUDFLARE_ACCOUNT_ID, or set account_id in
-# the worker's wrangler.toml.
+# (Cloudflare dashboard → My Profile → API Tokens). For Pages + Workers
+# the token needs both "Edit Cloudflare Workers" and "Cloudflare Pages —
+# Edit". If your Cloudflare login has more than one account, also add
+# CLOUDFLARE_ACCOUNT_ID.
 
 on:
   push:
     branches: [claude/nfl-fantasy-workbench-6D1yd]
     paths:
-      - 'workers/espn-news-proxy/**'
+      - 'workers/**'
       - '.github/workflows/deploy-workers.yml'
   workflow_dispatch:
     inputs:
       worker:
-        description: Worker directory under workers/ to deploy
+        description: Which worker(s) to deploy
         type: choice
-        default: espn-news-proxy
+        default: all
         options:
+          - all
           - espn-news-proxy
           - fc-proxy
           - ktc-proxy
@@ -32,10 +34,26 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy]
     steps:
-      - uses: actions/checkout@v5
-      - uses: cloudflare/wrangler-action@v4
+      - name: Decide whether to deploy this worker
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] \
+             && [ "${{ github.event.inputs.worker }}" != "all" ] \
+             && [ "${{ github.event.inputs.worker }}" != "${{ matrix.worker }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip == 'false'
+        uses: actions/checkout@v5
+      - if: steps.gate.outputs.skip == 'false'
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: workers/${{ github.event.inputs.worker || 'espn-news-proxy' }}
+          workingDirectory: workers/${{ matrix.worker }}

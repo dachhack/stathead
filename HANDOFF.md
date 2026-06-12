@@ -4,6 +4,34 @@ Last updated 2026-06-12 (mock draft session). **Resume section directly below;**
 
 ---
 
+## ⚡ Session wrap (2026-06-12, worker hardening — `claude/mock-draft-feature-kglrh4`)
+
+Hardened the three CORS Worker proxies ahead of the public `stathead.app`
+launch.
+
+- **Origin allowlist** (was hardcoded to `https://dachhack.github.io` on
+  ktc/fc, `*` on espn): now echoes the request `Origin` with
+  `Vary: Origin` when it matches `dachhack.github.io`, `stathead.app`,
+  `www.stathead.app`, `localhost`/`127.0.0.1`, or any `*.pages.dev`
+  (CF preview); anything else gets a non-matching ACAO (browser-refused).
+  Fixes the would-be CORS break on stathead.app and locks down the
+  previously wide-open espn proxy.
+- **Edge caching** via `caches.default` (GET only): KTC/FC 1h, ESPN 15m.
+  The cached body carries **no** CORS header — it's re-added per request —
+  so one cached object serves every allowed origin with its own correct
+  ACAO. Collapses N user requests into ≤1 upstream fetch per TTL.
+  POST (KTC histories) is proxied, not cached.
+- `deploy-workers.yml` now **matrix-deploys all three** on any `workers/**`
+  push (was espn-only), with an `all`/per-worker dispatch choice.
+- Reminder: in prod these are the **fallback/abuse-control layer** — KTC
+  and FantasyCalc render from committed daily snapshots
+  (`public/data/ktc_*`, `fantasycalc_*`); ESPN news is the only per-user
+  live call. Verified the new CORS-echo + cache logic with a Node harness
+  (origin matrix, single-upstream-fetch-across-origins, no-ACAO-in-cache,
+  POST-not-cached). Workers auto-deploy when this lands on the base branch.
+
+---
+
 ## ⚡ Session wrap (2026-06-12, prod environment — `claude/mock-draft-feature-kglrh4`)
 
 Stood up a **two-environment deploy** so GitHub Pages is QA and the new
