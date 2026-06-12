@@ -29,6 +29,26 @@ the URLs via env vars. Copy [`.env.example`](.env.example) to `.env.local` and s
 Each falls back to the project's worker when unset. Deploy a worker with
 `cd workers/<name> && npx wrangler deploy` (or use the deploy workflow).
 
+## Environments
+
+Two deploy targets, fed by the same codebase:
+
+| Env | URL | Host | Base path | Trigger |
+| --- | --- | --- | --- | --- |
+| **QA** | `dachhack.github.io/stathead/` | GitHub Pages | `/stathead/` | push to the dev branch ([`deploy.yml`](.github/workflows/deploy.yml)) |
+| **Production** | `stathead.app` | Cloudflare Pages | `/` | push to `production` ([`deploy-prod.yml`](.github/workflows/deploy-prod.yml)) |
+
+The base path is set by the `BASE_PATH` env var in
+[`vite.config.ts`](vite.config.ts) (default `/stathead/`); the prod
+workflow builds with `BASE_PATH=/`. Everything in the app reads
+`import.meta.env.BASE_URL`, so that one switch repoints every asset and
+data URL.
+
+**Promote QA → prod by merging the dev branch into `production`.** That
+push builds for the root domain and uploads to Cloudflare Pages. See the
+header of [`deploy-prod.yml`](.github/workflows/deploy-prod.yml) for the
+one-time Cloudflare Pages + DNS setup.
+
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
