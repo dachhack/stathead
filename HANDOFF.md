@@ -4,6 +4,29 @@ Last updated 2026-06-12 (mock draft session). **Resume section directly below;**
 
 ---
 
+## ⚡ Session wrap (2026-06-12, prod environment — `claude/mock-draft-feature-kglrh4`)
+
+Stood up a **two-environment deploy** so GitHub Pages is QA and the new
+`stathead.app` domain is production.
+
+- **QA** — unchanged: GitHub Pages at `dachhack.github.io/stathead/`,
+  base `/stathead/`, deploys on push to the dev branch (`deploy.yml`).
+- **Production** — `stathead.app` on **Cloudflare Pages**, base `/`,
+  deploys on push to a new **`production`** branch (`deploy-prod.yml`,
+  reuses the existing `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`
+  secrets). Promote by merging the QA'd dev branch into `production`.
+- `vite.config.ts` base is now env-driven: `process.env.BASE_PATH ??
+  '/stathead/'`. Verified both builds — default → `/stathead/assets/…`,
+  `BASE_PATH=/` → `/assets/…`. App reads `import.meta.env.BASE_URL`
+  everywhere, so nothing else needed changing.
+- **Still requires the user (Cloudflare dashboard, one-time):** create a
+  Direct-Upload Pages project named `stathead` with production branch
+  `production`; add the `stathead.app` custom domain + DNS; ensure the
+  API token has Pages-Edit permission; then `git push` a `production`
+  branch. Steps are in the `deploy-prod.yml` header + README "Environments".
+
+---
+
 ## ⚡ Session wrap (2026-06-12, branch `claude/mock-draft-feature-kglrh4`)
 
 ### Shipped

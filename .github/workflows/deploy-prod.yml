@@ -1,0 +1,60 @@
+name: Deploy to Production (stathead.app)
+
+# Production deploy → Cloudflare Pages (stathead.app).
+#
+# QA lives on GitHub Pages at dachhack.github.io/stathead/ (see
+# deploy.yml) and tracks the dev branch. You PROMOTE to production by
+# merging the QA'd dev branch into `production`; that push builds with
+# BASE_PATH=/ (root, not /stathead/) and uploads dist to Cloudflare
+# Pages. The "Run workflow" button deploys the current production branch
+# on demand.
+#
+# One-time setup (all in the Cloudflare dashboard / repo settings):
+#   1. Cloudflare → Workers & Pages → Create → Pages → "Direct Upload",
+#      name the project `stathead`. Set its Production branch to
+#      `production` (Settings → Builds & deployments) so an upload on
+#      this branch publishes to the live domain, not a preview.
+#   2. Add the custom domain `stathead.app` (and `www.stathead.app` if
+#      wanted) to that Pages project; follow Cloudflare's DNS prompts.
+#   3. Repo secrets CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are
+#      already configured (deploy-workers.yml uses them). The token needs
+#      the "Cloudflare Pages — Edit" permission in addition to Workers.
+#   4. Create the branch once: `git branch production <qa-commit> &&
+#      git push -u origin production`.
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://stathead.app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: bash scripts/download-data.sh
+      - run: bash scripts/download-api-data.sh
+      - name: Build for the root domain
+        run: npm run build
+        env:
+          # Served from stathead.app/, not /stathead/ — repoints every
+          # asset + data URL via import.meta.env.BASE_URL.
+          BASE_PATH: /
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=stathead --branch=production
