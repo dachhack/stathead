@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Dark rounded background matching the masthead (--bg-secondary) -->
+  <!-- Dark rounded background matching the masthead (bg-secondary) -->
   <rect width="64" height="64" rx="13" fill="#1a2733"/>
   <!-- StatHead mark (football + bar chart), centered -->
   <g transform="translate(0.08,-1.6) scale(0.84)" stroke-linecap="round" stroke-linejoin="round">
