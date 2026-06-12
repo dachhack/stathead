@@ -1,6 +1,49 @@
 # StatHead — session handoff
 
-Last updated 2026-06-12 (draft-day sheet + Excel round-trip session). **Resume section directly below;** older notes follow.
+Last updated 2026-06-12 (mock draft session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-06-12, branch `claude/mock-draft-feature-kglrh4`)
+
+### Shipped
+- **Mock Draft room** — Draft Kit step "5 · Mock Draft" (`src/lib/mockDraft.ts`
+  engine + `src/components/MockDraftRoom.tsx` UI). Full practice draft vs a
+  configurable CPU room. League shape (size/slot/snake/roster/scoring) comes
+  from the LEAGUE bar; the mock setup configures the ROOM:
+  - **Per-opponent profiles**: draft style (ADP / Value / Needs / Wildcard) ×
+    positional goal (Balanced, Pure BPA, Zero RB, Hero RB, RB/WR heavy,
+    Early/Late QB, TE premium), with 🎲 randomize + all-chalk presets.
+  - **CPU pick logic** is rank-space scoring: style orders the board (ADP or
+    VBD), then Gaussian noise (σ per style, depth-scaled so the top of the
+    board stays chalky), goal tilts, and starters-first nudges in units of
+    picks. Standard behavior for every profile: position caps
+    (`positionCap`), bench-filler pushdown, and endgame forced fills so all
+    starting slots always get filled.
+  - **Two modes**: Simulate everything (your seat autopicks by your plan) or
+    "I make my picks" (draft pauses on your turn; plan-ranked best-available
+    list + search, click to draft).
+  - **Plan** = selected My Rankings board when active (starters-first nudge,
+    unranked → VBD), else the plan sim's urgency-weighted VBD vs your next pick.
+  - **Timers**: only YOUR turn is timed (Off/15/30/60/90/120s, mm:ss display
+    + progress bar; expiry autopicks from the plan). CPU picks take **1–7s,
+    normally distributed** around 4s (`sampleCpuDelayMs`), with Fast (÷8) and
+    Instant speed options. Pause/resume/abort supported.
+  - **Results**: projected standings (best-legal-lineup season points via
+    `lineupPoints` + total VBD), full draft board grid, every team's roster.
+  - Config persists to localStorage `mock-draft-config`.
+- Verified: tsc + eslint clean; headless engine smoke test (180-pick drafts ×
+  20: completion/caps/starter fills/goal behavior/delay distribution) and
+  puppeteer UI run (sim end-to-end, manual on-the-clock click-draft, timer
+  autopick) against `vite preview` on 127.0.0.1.
+
+### Notes
+- CPU pick scoring is intentionally in rank space so style noise, goal tilts,
+  and need nudges compose in "picks" units; tune `STYLE_INFO[].sigma` /
+  `goalRankDelta` if rooms feel too chalky or too wild.
+- Natural extensions: keeper support (pre-assigned players), draft-from-any
+  -seat review grades per pick (vs ADP and vs plan), export the mock result
+  to a My Rankings board.
 
 ---
 
