@@ -5,8 +5,8 @@ import { DocsLink } from './DocsLink';
 import type { DraftPrepSettings } from '../lib/draftPrepSettings';
 import { startersPerTeam } from '../lib/draftPrepSettings';
 import type { KitPlayer, ValuedPlayer } from '../lib/draftKit';
-import { kitKey, roundPick, valuePool } from '../lib/draftKit';
-import { userPickNumbers } from '../lib/snakeDraft';
+import { kitKey, roundPick, starterSlotOpen, valuePool } from '../lib/draftKit';
+import { userPickNumbers, survivalAtPick } from '../lib/snakeDraft';
 import type { Grade, MockTeam, OpponentProfile, PickContext, PickReview, TeamGrade } from '../lib/mockDraft';
 import {
   GOAL_INFO, GOAL_OPTIONS, STYLE_INFO, STYLE_OPTIONS,
@@ -39,6 +39,7 @@ type Phase = 'setup' | 'live' | 'done';
 type Mode = 'sim' | 'manual';
 type Speed = 'real' | 'fast' | 'instant';
 
+const POSITIONS: Position[] = ['QB', 'RB', 'WR', 'TE'];
 const TIMER_OPTIONS = [0, 15, 30, 60, 90, 120] as const;
 const SPEED_INFO: Record<Speed, { label: string; blurb: string }> = {
   real: { label: 'Real time', blurb: 'CPU picks take 1–7s each (normal around 4s) — draft-room pacing.' },
@@ -103,6 +104,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [onClockSlot, setOnClockSlot] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [availFilter, setAvailFilter] = useState<'ALL' | Position>('ALL');
 
   // Engine state lives in refs — timeout callbacks always read current
   // data, never a stale render's.
@@ -278,6 +280,10 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   const currentOverall = picks.length + 1;
   const onClockTeam = onClockSlot !== null ? teamsRef.current[onClockSlot - 1] : null;
   const userTeam = teamsRef.current.find((t) => t.isUser) ?? null;
+  const roundsTotal = cfgRef.current?.config.rounds ?? config.rounds;
+  const mode = cfgRef.current?.config.mode ?? config.mode;
+  const timerSec = cfgRef.current?.config.timerSec ?? config.timerSec;
+  const planByKey = cfgRef.current?.myRankByKey;
 
   const available = useMemo(() => {
     if (phase === 'setup') return [];
@@ -304,6 +310,61 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
     if (q.length < 2) return [];
     return available.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 6);
   }, [search, available]);
+
+  // Position rank within the still-available pool (RB5 = 5th-best RB left)
+  // and per-position counts for the filter chips.
+  const { posRankByKey, availCounts } = useMemo(() => {
+    const rank = new Map<string, number>();
+    const counts: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+    for (const pos of POSITIONS) {
+      const list = available.filter((p) => p.position === pos).sort((a, b) => b.vbd - a.vbd);
+      counts[pos] = list.length;
+      list.forEach((p, i) => rank.set(kitKey(p.name, p.position), i + 1));
+    }
+    return { posRankByKey: rank, availCounts: counts };
+  }, [available]);
+
+  // P(player is still on the board when the user picks AGAIN) — the
+  // "wait vs take now" signal. Always measured against the user's next
+  // pick strictly after the current one.
+  const pickAfterCurrent = useMemo(() => {
+    if (phase === 'setup') return null;
+    return userPickNumbers(roundsTotal, liveSettings.pickSlot, N, liveSettings.draftType)
+      .find((n) => n > currentOverall) ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentOverall]);
+  const survivalToNext = (p: ValuedPlayer): number => {
+    if (pickAfterCurrent === null) return NaN;
+    if (p.adp >= 999) return 1;
+    return survivalAtPick(Math.max(p.adp, currentOverall), p.stdev || undefined, pickAfterCurrent);
+  };
+
+  // Live roster-build summary for the user's seat: how many of each
+  // starting slot are filled, what's still needed, bench depth, and the
+  // projected points of the best lineup drafted so far.
+  const rosterBuild = useMemo(() => {
+    if (!userTeam) return null;
+    const req = liveSettings.roster;
+    const open = userTeam.open;
+    const filledDed: Record<Position, number> = {
+      QB: req.QB - open.QB, RB: req.RB - open.RB, WR: req.WR - open.WR, TE: req.TE - open.TE,
+    };
+    const benchCount = picks.filter((p) => p.teamSlot === userTeam.slot && p.rosterSlot === 'BN').length;
+    const startersReq = startersPerTeam(liveSettings);
+    const startersOpen = open.QB + open.RB + open.WR + open.TE + open.FLEX + open.SF;
+    const needs: string[] = [];
+    for (const pos of POSITIONS) if (open[pos] > 0) needs.push(`${pos}×${open[pos]}`);
+    if (open.FLEX > 0) needs.push(`FLEX×${open.FLEX}`);
+    if (open.SF > 0) needs.push(`SF×${open.SF}`);
+    return {
+      filledDed, req, open, benchCount, startersReq, startersOpen, needs,
+      startingPts: lineupPoints(userTeam.players, liveSettings),
+    };
+  }, [userTeam, picks, liveSettings]);
+
+  const filteredPlan = availFilter === 'ALL'
+    ? planRanked
+    : planRanked.filter((p) => p.position === availFilter);
 
   const pill: React.CSSProperties = {
     background: 'var(--bg-secondary)', border: '1px solid var(--border)',
@@ -436,10 +497,6 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   // ── Live + done share the board/roster rendering ──
   const pickBySlotRound = new Map<string, MockPick>();
   for (const p of picks) pickBySlotRound.set(`${p.round}:${p.teamSlot}`, p);
-  const roundsTotal = cfgRef.current?.config.rounds ?? config.rounds;
-  const mode = cfgRef.current?.config.mode ?? config.mode;
-  const timerSec = cfgRef.current?.config.timerSec ?? config.timerSec;
-  const planByKey = cfgRef.current?.myRankByKey;
 
   const gradesBySlot = phase === 'done'
     ? new Map(gradeTeams(teamsRef.current, liveSettings).map((g) => [g.slot, g]))
@@ -691,30 +748,84 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
                 )}
               </div>
             )}
-            {planRanked.slice(0, 10).map((p, i) => {
+            {/* Position filter chips */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+              {(['ALL', ...POSITIONS] as const).map((f) => {
+                const count = f === 'ALL'
+                  ? availCounts.QB + availCounts.RB + availCounts.WR + availCounts.TE
+                  : availCounts[f];
+                const need = f !== 'ALL' && userTeam ? starterSlotOpen(userTeam.open, f) : false;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setAvailFilter(f)}
+                    className={`pos-filter ${availFilter === f ? 'active' : ''}`}
+                    style={{
+                      fontSize: 10, padding: '2px 8px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                      fontWeight: 700, whiteSpace: 'nowrap',
+                      background: availFilter === f ? 'var(--accent, #00d4aa)' : 'var(--bg-tertiary)',
+                      color: availFilter === f ? '#06251f' : 'var(--text-secondary)',
+                      border: `1px solid ${need ? 'var(--accent, #00d4aa)' : 'var(--border)'}`,
+                    }}
+                    title={need ? `${f} — open starting slot` : f === 'ALL' ? 'All positions' : f}
+                  >
+                    {f}{f !== 'ALL' && <span style={{ opacity: 0.7 }}> {count}</span>}
+                    {need && availFilter !== f && <span style={{ color: 'var(--accent, #00d4aa)' }}> •</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {filteredPlan.slice(0, 12).map((p, i) => {
               const boardRank = planByKey?.get(kitKey(p.name, p.position));
+              const posRank = posRankByKey.get(kitKey(p.name, p.position));
+              const fillsStarter = userTeam ? starterSlotOpen(userTeam.open, p.position) : false;
+              const surv = survivalToNext(p);
               return (
                 <div key={`${p.name}:${p.position}`} style={{
                   display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0',
                   borderBottom: '1px solid var(--border)',
                 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: i === 0 ? 'var(--accent, #00d4aa)' : 'var(--text-muted)', minWidth: 18, textAlign: 'right' }}>
-                    {i === 0 ? '★' : i + 1}
+                  <span style={{ fontSize: 10, fontWeight: 700, color: i === 0 && availFilter === 'ALL' ? 'var(--accent, #00d4aa)' : 'var(--text-muted)', minWidth: 18, textAlign: 'right' }}>
+                    {i === 0 && availFilter === 'ALL' ? '★' : i + 1}
                   </span>
                   <PlayerAvatar name={p.name} position={p.position} size={20} />
-                  <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 9 }}>{p.position}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 5, flex: 1 }}>
-                    <PlayerName name={p.name} position={p.position} />
-                    {p.team && <TeamLogo team={p.team} size={13} />}
-                    {p.isRookie && <span style={{ fontSize: 9, color: '#6366f1' }}>R</span>}
-                    {boardRank !== undefined && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#93c5fd' }}>you #{boardRank}</span>
-                    )}
+                  <span className={`pos-badge pos-${p.position}`} style={{ fontSize: 9 }}>
+                    {p.position}{posRank ? posRank : ''}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>VBD {Math.round(p.vbd)}</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 52, textAlign: 'right' }}>
-                    {p.adp < 999 ? `ADP ${p.adp.toFixed(0)}` : 'free'}
+                  <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <PlayerName name={p.name} position={p.position} />
+                      {p.team && <TeamLogo team={p.team} size={13} />}
+                      {p.isRookie && <span style={{ fontSize: 9, color: '#6366f1' }}>R</span>}
+                      {fillsStarter && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--accent, #00d4aa)', border: '1px solid var(--accent, #00d4aa)', borderRadius: 6, padding: '0 4px' }}>NEED</span>}
+                      {boardRank !== undefined && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#93c5fd' }}>you #{boardRank}</span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      {p.ppg.toFixed(1)} PPG · T{p.tier}
+                      {Number.isFinite(p.adpDeltaRounds) && Math.abs(p.adpDeltaRounds) >= 0.75 && (
+                        <span style={{ color: p.adpDeltaRounds > 0 ? '#22c55e' : '#fb923c' }}>
+                          {' '}· {p.adpDeltaRounds > 0 ? 'value' : 'reach'} {Math.abs(p.adpDeltaRounds).toFixed(1)}r
+                        </span>
+                      )}
+                    </span>
                   </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 56 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600 }}>VBD {Math.round(p.vbd)}</span>
+                    <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{p.adp < 999 ? `ADP ${p.adp.toFixed(0)}` : 'free'}</span>
+                  </span>
+                  {Number.isFinite(surv) && pickAfterCurrent !== null && (
+                    <span
+                      style={{
+                        fontSize: 9, fontWeight: 700, minWidth: 54, textAlign: 'right',
+                        color: surv >= 0.6 ? '#22c55e' : surv >= 0.3 ? '#facc15' : '#ef4444',
+                      }}
+                      title={`${Math.round(surv * 100)}% chance he's still there at your next pick (#${pickAfterCurrent})`}
+                    >
+                      {surv >= 0.6 ? `wait ${Math.round(surv * 100)}%` : surv >= 0.3 ? `${Math.round(surv * 100)}%` : 'take now'}
+                    </span>
+                  )}
                   {mode === 'manual' && (
                     <button
                       style={{ ...btn, fontSize: 10, padding: '2px 10px', color: 'var(--accent, #00d4aa)', opacity: userTurn && !paused ? 1 : 0.35 }}
@@ -728,12 +839,78 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
                 </div>
               );
             })}
-            {mode === 'sim' && (
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
-                Simulation mode — your seat autopicks the ★ row when your turn comes up.
+            {filteredPlan.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
+                No {availFilter} left on the board.
               </div>
             )}
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+              {mode === 'sim'
+                ? 'Simulation mode — your seat autopicks the ★ row when your turn comes up. '
+                : ''}
+              NEED = fills one of your open starting slots · “wait %” = chance he lasts to your next pick.
+            </div>
           </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Roster build — needs + construction as the draft moves */}
+          {rosterBuild && (
+            <div style={card}>
+              <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                Roster build
+                <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>
+                  {rosterBuild.startersReq - rosterBuild.startersOpen}/{rosterBuild.startersReq} starters · {rosterBuild.benchCount} bench
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--accent, #00d4aa)' }}>
+                  ~{Math.round(rosterBuild.startingPts)} pts
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                {POSITIONS.map((pos) => {
+                  const filled = rosterBuild.filledDed[pos];
+                  const req = rosterBuild.req[pos];
+                  const met = filled >= req;
+                  const open = rosterBuild.open[pos] > 0;
+                  return (
+                    <span key={pos} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700,
+                      padding: '2px 8px', borderRadius: 10,
+                      background: 'var(--bg-tertiary)',
+                      border: `1px solid ${open ? 'var(--accent, #00d4aa)' : 'var(--border)'}`,
+                      color: met ? '#22c55e' : open ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}>
+                      <span className={`pos-badge pos-${pos}`} style={{ fontSize: 8 }}>{pos}</span>
+                      {filled}/{req}
+                      {met && req > 0 && ' ✓'}
+                    </span>
+                  );
+                })}
+                {(rosterBuild.req.FLEX > 0) && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--bg-tertiary)',
+                    border: `1px solid ${rosterBuild.open.FLEX > 0 ? 'var(--accent, #00d4aa)' : 'var(--border)'}`,
+                    color: rosterBuild.open.FLEX > 0 ? 'var(--text-primary)' : '#22c55e',
+                  }}>
+                    FLEX {rosterBuild.req.FLEX - rosterBuild.open.FLEX}/{rosterBuild.req.FLEX}
+                  </span>
+                )}
+                {(rosterBuild.req.SF > 0) && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--bg-tertiary)',
+                    border: `1px solid ${rosterBuild.open.SF > 0 ? 'var(--accent, #00d4aa)' : 'var(--border)'}`,
+                    color: rosterBuild.open.SF > 0 ? 'var(--text-primary)' : '#22c55e',
+                  }}>
+                    SF {rosterBuild.req.SF - rosterBuild.open.SF}/{rosterBuild.req.SF}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                {rosterBuild.needs.length > 0
+                  ? <>Still need: <strong style={{ color: 'var(--text-secondary)' }}>{rosterBuild.needs.join(' · ')}</strong></>
+                  : <span style={{ color: '#22c55e' }}>Starting lineup complete — drafting bench depth.</span>}
+              </div>
+            </div>
+          )}
 
           {/* My roster */}
           <div style={card}>
@@ -760,12 +937,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
                 </span>
               </div>
             ))}
-            {userTeam && (
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
-                Open: {(Object.entries(userTeam.open) as Array<[string, number]>)
-                  .filter(([, n]) => n > 0).map(([k, n]) => `${k}×${n}`).join(' ') || 'starters full — bench mode'}
-              </div>
-            )}
+          </div>
           </div>
         </div>
       )}
@@ -773,7 +945,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
       {/* Draft board */}
       <div style={{ ...card, overflowX: 'auto', marginBottom: 12 }}>
         <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 6 }}>Draft board</div>
-        <table style={{ borderCollapse: 'collapse', fontSize: 10, minWidth: N * 86 }}>
+        <table style={{ borderCollapse: 'collapse', fontSize: 10, minWidth: N * 104 }}>
           <thead>
             <tr>
               <th style={{ padding: '2px 6px', color: 'var(--text-muted)', fontWeight: 700, textAlign: 'left' }}>Rd</th>
@@ -808,9 +980,13 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
                       outline: isOnClock ? '1px solid var(--accent, #00d4aa)' : 'none',
                     }}>
                       {pk ? (
-                        <span title={`#${pk.overall} ${pk.player.name} (${pk.player.position}) — VBD ${Math.round(pk.player.vbd)}, ADP ${pk.player.adp < 999 ? pk.player.adp.toFixed(0) : '—'}`}>
-                          <span style={{ color: 'var(--text-muted)' }}>{pk.overall}</span>{' '}
-                          <span className={`pos-badge pos-${pk.player.position}`} style={{ fontSize: 8, padding: '0 3px' }}>{pk.player.position}</span>{' '}
+                        <span
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title={`#${pk.overall} ${pk.player.name} (${pk.player.position}) — VBD ${Math.round(pk.player.vbd)}, ADP ${pk.player.adp < 999 ? pk.player.adp.toFixed(0) : '—'}`}
+                        >
+                          <PlayerAvatar name={pk.player.name} position={pk.player.position} size={16} />
+                          <span style={{ color: 'var(--text-muted)' }}>{pk.overall}</span>
+                          <span className={`pos-badge pos-${pk.player.position}`} style={{ fontSize: 8, padding: '0 3px' }}>{pk.player.position}</span>
                           <span style={{ fontWeight: 600 }}>{shortName(pk.player.name)}</span>
                         </span>
                       ) : isOnClock ? (
@@ -841,6 +1017,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
               {picks.filter((p) => p.teamSlot === team.slot).map((p) => (
                 <div key={p.overall} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '1px 0', fontSize: 11 }}>
                   <span style={{ color: 'var(--text-muted)', minWidth: 32 }}>{roundPick(p.overall, N)}</span>
+                  <PlayerAvatar name={p.player.name} position={p.player.position} size={16} />
                   <span className={`pos-badge pos-${p.player.position}`} style={{ fontSize: 8 }}>{p.player.position}</span>
                   <span style={{ fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <PlayerName name={p.player.name} position={p.player.position} />
