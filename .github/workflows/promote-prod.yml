@@ -1,0 +1,61 @@
+name: Promote to Production
+
+# One-click QA → production promotion. Fast-forwards the `production`
+# branch to a QA commit and deploys it to stathead.app (Cloudflare Pages)
+# in the same run.
+#
+# Run it from the Actions tab ("Run workflow") or trigger it via the API.
+# Defaults to promoting the QA/dev branch tip; override `source_ref` to
+# promote a specific branch, tag, or SHA.
+#
+# Note: the push to `production` here uses GITHUB_TOKEN, which by design
+# does NOT re-trigger deploy-prod.yml — so this workflow does the deploy
+# itself and there's no double deploy. A manual `git push origin
+# production` still deploys via deploy-prod.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: QA branch, tag, or SHA to promote to stathead.app
+        default: claude/nfl-fantasy-workbench-6D1yd
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://stathead.app
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+      - name: Advance the production branch to ${{ inputs.source_ref }}
+        run: |
+          echo "Promoting $(git rev-parse --short HEAD) (${{ inputs.source_ref }}) to production"
+          git push origin HEAD:production
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: bash scripts/download-data.sh
+      - run: bash scripts/download-api-data.sh
+      - name: Build for the root domain
+        run: npm run build
+        env:
+          BASE_PATH: /
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=stathead --branch=production
