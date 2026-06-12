@@ -2736,3 +2736,98 @@ tr.scenario-custom-row-highlight td {
     word-break: break-word;
   }
 }
+
+/* ── Draft Day print sheet (DraftPrintSheet.tsx) ──
+   On screen: a light preview overlay portaled over the dark app.
+   In print: the app root is hidden and the sheet becomes the document,
+   sized for letter landscape so "Save as PDF" yields a one-page board. */
+.print-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: auto;
+  background: #475569;
+}
+.print-sheet-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--bg-secondary, #1a2733);
+  border-bottom: 1px solid var(--border, #2a3a4a);
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-primary, #e8edf2);
+}
+.print-sheet-toolbar select {
+  background: var(--bg-tertiary, #243447);
+  border: 1px solid var(--border, #2a3a4a);
+  border-radius: 4px;
+  color: inherit;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+.print-sheet-tip {
+  font-size: 10px;
+  color: var(--text-muted, #8899aa);
+  max-width: 380px;
+}
+.print-sheet-btn {
+  background: var(--bg-tertiary, #243447);
+  border: 1px solid var(--border, #2a3a4a);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+}
+.print-sheet-btn.primary {
+  background: var(--accent, #00d4aa);
+  border-color: var(--accent, #00d4aa);
+  color: #06231d;
+}
+.print-sheet-page {
+  background: #fff;
+  color: #0f172a;
+  width: 1056px; /* 11in at 96dpi — letter landscape */
+  margin: 16px auto 48px;
+  padding: 18px 22px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* The print sheet is the app's only print path, so the page setup can be
+   global: letter landscape with slim margins. */
+@page {
+  size: letter landscape;
+  margin: 0.3in;
+}
+@media print {
+  body.print-sheet-open #root {
+    display: none !important;
+  }
+  body.print-sheet-open {
+    background: #fff;
+  }
+  .print-sheet {
+    position: static;
+    overflow: visible;
+    background: #fff;
+  }
+  .print-sheet-page {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

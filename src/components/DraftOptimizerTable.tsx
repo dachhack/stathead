@@ -16,6 +16,7 @@ import { DraftRoundPlan } from './DraftRoundPlan';
 import { DraftTierMap } from './DraftTierMap';
 import { DraftTargetsFades } from './DraftTargetsFades';
 import { DraftValueBoard } from './DraftValueBoard';
+import { DraftPrintSheet } from './DraftPrintSheet';
 import { DraftRosterSim } from './DraftRosterSim';
 import { DraftRookieVetEdges } from './DraftRookieVetEdges';
 import { DraftLiveAssistant } from './DraftLiveAssistant';
@@ -314,6 +315,7 @@ export function DraftOptimizerTable() {
     setView(v);
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* quota */ }
   };
+  const [showPrintSheet, setShowPrintSheet] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<PosFilter>('ALL');
@@ -948,7 +950,31 @@ export function DraftOptimizerTable() {
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
           Set your league below — every number on this page recomputes around it.
         </span>
+        <button
+          onClick={() => setShowPrintSheet(true)}
+          disabled={kitPool.length === 0}
+          title="One-page BeerSheets-style cheat sheet — print it or save as PDF for draft day"
+          style={{
+            marginLeft: 'auto', cursor: kitPool.length ? 'pointer' : 'default', fontFamily: 'inherit',
+            background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 6,
+            color: 'var(--text-primary)', fontSize: 11, fontWeight: 700, padding: '4px 12px',
+            opacity: kitPool.length ? 1 : 0.5,
+          }}
+        >
+          🖨 Print / PDF Sheet
+        </button>
       </div>
+
+      {showPrintSheet && (
+        <DraftPrintSheet
+          pool={kitPool}
+          settings={settings}
+          myRankByKey={myRankByKey}
+          myBoardName={myBoard?.name}
+          scenarioName={activeScenarioName}
+          onClose={() => setShowPrintSheet(false)}
+        />
+      )}
 
       <SettingsHeader
         settings={settings}

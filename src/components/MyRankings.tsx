@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchFfcADP } from '../data';
-import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
+import { applyScenario, createEmptyScenario, isScenarioEmpty, loadAllScenarios, saveScenario } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import { blendPicks, fetchFfcRaw, recencyWeight, sampleWeight } from '../lib/adpSources';
 import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
-import type { ScenarioConfig, FfcADPPlayer, SDIOProjection } from '../types';
+import { exportRankingsXlsx, importRankingsXlsx } from '../lib/rankingsXlsx';
+import type { ScenarioConfig, FfcADPPlayer, PointsOverride, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
 
 // ── Types ──
@@ -230,6 +231,8 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   const [showSaved, setShowSaved] = useState(false);
   const [savedList, setSavedList] = useState<SavedRanking[]>([]);
   const [rankingName, setRankingName] = useState('My Rankings');
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
@@ -907,6 +910,113 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   }, [savedList]);
 
+  // ── Excel round-trip (share boards / migrate devices) ──
+
+  const exportExcel = useCallback(() => {
+    const scenarioName = selectedScenarioId
+      ? SCENARIO_PRESETS.find(p => p.id === selectedScenarioId)?.name
+        ?? savedScenarios.find(s => s.id === selectedScenarioId)?.name
+      : undefined;
+    void exportRankingsXlsx(
+      rankedRows.map(r => ({
+        rank: r.rank, name: r.name, position: r.position, team: r.team,
+        ppg: r.ppg, adp: r.adp, boomZ: r.boomZ, bustZ: r.bustZ,
+        projTgtShare: r.projTgtShare, projRushShare: r.projRushShare,
+        priorPPG: r.priorPPG, isRookie: r.isRookie, isLocked: r.isLocked,
+      })),
+      { boardName: rankingName, scoring: scoringFormat, season: CURRENT_SEASON, scenarioName },
+    ).catch(e => setImportStatus(`Export failed: ${e instanceof Error ? e.message : 'unknown error'}`));
+  }, [rankedRows, rankingName, scoringFormat, selectedScenarioId, savedScenarios]);
+
+  const handleImportFile = useCallback(async (file: File) => {
+    setImportStatus('Importing…');
+    try {
+      const parsed = await importRankingsXlsx(await file.arrayBuffer());
+      const boardName = parsed.boardName || file.name.replace(/\.xlsx$/i, '') || 'Imported Rankings';
+
+      // Board order + locks from the sheet's row order.
+      const knownIds = new Set(allRows.map(r => r.id));
+      const seen = new Set<string>();
+      const order: string[] = [];
+      const locked: string[] = [];
+      let matched = 0;
+      for (const row of parsed.rows) {
+        const id = makeId(row.name, row.position);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        order.push(id);
+        if (knownIds.has(id)) matched++;
+        if (row.locked) locked.push(id);
+      }
+
+      // Proj PPG values that differ from this device's no-scenario PPG
+      // become per-player overrides in a saved scenario, so edited (or
+      // scenario-exported) projections travel with the board. PPR files
+      // only — Half/Standard PPG can't be mapped back to a PPR target.
+      let scenarioId: string | undefined;
+      let overrideCount = 0;
+      if (!parsed.scoring || parsed.scoring === 'ppr') {
+        const overrides: PointsOverride[] = [];
+        for (const row of parsed.rows) {
+          if (row.ppg == null || row.ppg <= 0) continue;
+          const nn = normName(row.name);
+          const base = basePoolByName.get(nn);
+          if (!base || base.Position !== row.position) continue;
+          // Same no-scenario priority as buildRow: model PPG, else base projection.
+          const baseDisplay = ppgScoreByName.get(nn)?.predictedPPG
+            ?? redraft.find(p => p.position === row.position && normName(p.name) === nn)?.ppg
+            ?? 0;
+          const basePpr = base.FantasyPointsPPR ?? 0;
+          if (baseDisplay <= 0 || basePpr <= 0 || Math.abs(row.ppg - baseDisplay) < 0.2) continue;
+          // Target the synthetic line's PPR such that the display PPG
+          // (baseDisplay × scenario/base ratio) lands on the imported value.
+          overrides.push({
+            playerId: base.PlayerID,
+            playerName: base.Name,
+            team: base.Team,
+            position: base.Position,
+            ppr: Math.round(basePpr * (row.ppg / baseDisplay)),
+          });
+        }
+        if (overrides.length) {
+          const sc: ScenarioConfig = {
+            ...createEmptyScenario(),
+            id: `scenario-import-${Date.now()}`,
+            name: `${boardName} (imported projections)`,
+            pointsOverrides: overrides,
+          };
+          saveScenario(sc);
+          setSavedScenarios(loadAllScenarios());
+          scenarioId = sc.id;
+          overrideCount = overrides.length;
+        }
+      }
+
+      const entry: SavedRanking = {
+        id: `rank-${Date.now()}`, name: boardName, savedAt: new Date().toISOString(),
+        order, lockedIds: locked, scenarioId,
+      };
+      const updated = [...savedList.filter(s => s.name !== boardName), entry];
+      setSavedList(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      // Load the imported board into the view.
+      setCustomOrder(order);
+      setLockedIds(new Set(locked));
+      setRankingName(boardName);
+      setSelectedScenarioId(scenarioId ?? '');
+      if (parsed.scoring) setScoringFormat(parsed.scoring);
+      setImportStatus(
+        `Imported “${boardName}” — ${matched}/${order.length} players matched and the board was saved`
+        + (overrideCount ? `; ${overrideCount} custom projections saved as scenario “${boardName} (imported projections)”` : '')
+        + (parsed.scoring && parsed.scoring !== 'ppr' ? ' (non-PPR file — projections not imported)' : '')
+        + '.',
+      );
+    } catch (e) {
+      setImportStatus(`Import failed: ${e instanceof Error ? e.message : 'unreadable file'}`);
+    }
+  }, [allRows, basePoolByName, ppgScoreByName, redraft, savedList]);
+
   const hasScenario = !isScenarioEmpty(activeScenario);
 
   if (loading) {
@@ -996,8 +1106,55 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             Load
           </button>
           <button className="scenario-action-btn" onClick={resetOrder} style={{ fontSize: 11 }}>Reset</button>
+          <button
+            className="scenario-action-btn"
+            onClick={exportExcel}
+            title="Download this board (order, locks, projections) as an Excel file — share it or move it to another device"
+            style={{ fontSize: 11 }}
+          >
+            Excel ⬇
+          </button>
+          <button
+            className="scenario-action-btn"
+            onClick={() => importFileRef.current?.click()}
+            title="Import a Stat Head rankings Excel file — recreates the board; edited Proj PPG values become a projection scenario"
+            style={{ fontSize: 11 }}
+          >
+            Import ⬆
+          </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = ''; // allow re-importing the same file
+              if (f) void handleImportFile(f);
+            }}
+          />
         </div>
       </div>
+
+      {importStatus && (
+        <div style={{
+          fontSize: 12, marginBottom: 12, padding: '6px 10px', borderRadius: 6,
+          background: importStatus.startsWith('Import failed') || importStatus.startsWith('Export failed')
+            ? '#ef444422' : 'var(--bg-secondary)',
+          border: '1px solid var(--border)',
+          color: importStatus.startsWith('Import failed') || importStatus.startsWith('Export failed')
+            ? '#ef4444' : 'var(--text-secondary)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ flex: 1 }}>{importStatus}</span>
+          <button
+            onClick={() => setImportStatus(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Saved rankings list */}
       {showSaved && (
