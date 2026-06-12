@@ -2,7 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=4" />
+    <!-- Icons go through Vite's asset pipeline so the built URLs are
+         content-hashed — any future edit busts every favicon cache
+         automatically (query-string bumps don't reliably beat browsers'
+         dedicated favicon caches). PNGs are the Safari/iOS fallback:
+         Safari doesn't load SVG favicons. Regenerate PNGs after editing
+         the SVG with scripts/generate-favicons.mjs. -->
+    <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/src/assets/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/src/assets/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StatHead - NFL Fantasy Workbench</title>
   </head>
