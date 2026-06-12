@@ -38,16 +38,23 @@ const POS_COLORS: Record<string, string> = {
 
 const DELTA_NOISE_ROUNDS = 0.5; // same convention as the on-screen Value Board
 
-type Depth = 'compact' | 'standard' | 'full';
+type Depth = 'page' | 'starters' | 'full';
 const DEPTH_LABEL: Record<Depth, string> = {
-  compact: 'Compact — starters + 1 round',
-  standard: 'Standard — starters + 2 rounds',
+  page: 'One page — auto-fit',
+  starters: 'Starters + 2 rounds',
   full: 'Full pool',
 };
 
+// Per-page row budgets for letter landscape at the sheet's 8px/1.3 rows:
+// usable height ≈ 758px (8.5in − 0.6in margins), minus the header strip
+// (~70px) and column headers (~30px) on page one. Deliberately a touch
+// conservative — one spilled row creates a near-empty extra page.
+const FIRST_PAGE_ROWS = 56;
+const CONT_PAGE_ROWS = 62;
+
 export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scenarioName, onClose }: Props) {
   const [mode, setMode] = useState<BaselineMode>('BEER');
-  const [depth, setDepth] = useState<Depth>('standard');
+  const [depth, setDepth] = useState<Depth>('page');
 
   // Hide the app root while printing (the sheet portals to <body>, so it
   // survives) and close on Escape.
@@ -73,14 +80,34 @@ export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scen
     const m = new Map<string, ValuedPlayer[]>();
     for (const pos of KIT_POSITIONS) {
       const list = players.filter((p) => p.position === pos);
-      const extra = depth === 'compact' ? settings.numTeams : settings.numTeams * 2;
-      const cut = depth === 'full'
-        ? list.length
-        : Math.min(list.length, levels.startersAtPos[pos] + extra);
+      let cut = list.length;
+      if (depth !== 'full') {
+        // Starters + 2 rounds of depth; "one page" additionally caps at
+        // the page's row budget (superflex / deep-roster leagues can push
+        // starters+2 well past 100 rows per column).
+        cut = Math.min(cut, levels.startersAtPos[pos] + settings.numTeams * 2);
+        if (depth === 'page') cut = Math.min(cut, FIRST_PAGE_ROWS);
+      }
       m.set(pos, list.slice(0, cut));
     }
     return m;
   }, [players, levels, settings.numTeams, depth]);
+
+  // Deeper depths span pages: pre-chunk all four columns on shared row
+  // boundaries so every page is a clean grid with repeated headers and
+  // continuous numbering, instead of one tall grid the printer shears
+  // wherever it lands.
+  const pageChunks = useMemo(() => {
+    const maxLen = Math.max(0, ...KIT_POSITIONS.map((pos) => (byPos.get(pos) ?? []).length));
+    const out: Array<{ start: number; end: number }> = [];
+    let start = 0;
+    do {
+      const budget = start === 0 ? FIRST_PAGE_ROWS : CONT_PAGE_ROWS;
+      out.push({ start, end: Math.min(maxLen, start + budget) });
+      start += budget;
+    } while (start < maxLen);
+    return out;
+  }, [byPos]);
 
   // Picks through enough rounds to fill starters plus a 7-man bench.
   const rounds = Math.min(18, startersPerTeam(settings) + 7);
@@ -120,6 +147,7 @@ export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scen
           </select>
         </label>
         <span className="print-sheet-tip">
+          “One page” fits a single sheet; deeper depths add cleanly broken pages.
           In the print dialog choose “Save as PDF”, landscape, and enable background graphics for the tier colors.
         </span>
         <button className="print-sheet-btn" onClick={onClose} style={{ marginLeft: 'auto' }}>✕ Close</button>
@@ -141,7 +169,7 @@ export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scen
         </div>
 
         {/* My picks + scarcity */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'baseline', padding: '4px 0 6px', borderBottom: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'baseline', padding: '3px 0 4px', borderBottom: '1px solid #cbd5e1', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, whiteSpace: 'nowrap' }}>
             <b>MY PICKS</b>{' '}
             {myPicks.map((p, i) => (
@@ -166,21 +194,36 @@ export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scen
           </span>
         </div>
 
-        {/* Position columns */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, paddingTop: 6 }}>
-          {KIT_POSITIONS.map((pos) => (
-            <PrintPositionColumn
-              key={pos}
-              pos={pos}
-              players={byPos.get(pos) ?? []}
-              settings={settings}
-              hasMy={hasMy}
-              myRankByKey={myRankByKey}
-              baselinePpg={levels.baselinePpg[pos]}
-              starters={levels.startersAtPos[pos]}
-            />
-          ))}
-        </div>
+        {/* Position columns, pre-chunked per printed page */}
+        {pageChunks.map((chunk, ci) => (
+          <div
+            key={chunk.start}
+            className={ci > 0 ? 'print-sheet-cont' : undefined}
+            style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, paddingTop: 6,
+              ...(ci > 0 ? { breakBefore: 'page' as const } : {}),
+            }}
+          >
+            {KIT_POSITIONS.map((pos) => {
+              const list = byPos.get(pos) ?? [];
+              const slice = list.slice(chunk.start, chunk.end);
+              return (
+                <PrintPositionColumn
+                  key={pos}
+                  pos={pos}
+                  players={slice}
+                  offset={chunk.start}
+                  prevTier={chunk.start > 0 ? list[chunk.start - 1]?.tier : undefined}
+                  settings={settings}
+                  hasMy={hasMy}
+                  myRankByKey={myRankByKey}
+                  baselinePpg={levels.baselinePpg[pos]}
+                  starters={levels.startersAtPos[pos]}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -188,9 +231,13 @@ export function DraftPrintSheet({ pool, settings, myRankByKey, myBoardName, scen
   return createPortal(sheet, document.body);
 }
 
-function PrintPositionColumn({ pos, players, settings, hasMy, myRankByKey, baselinePpg, starters }: {
+function PrintPositionColumn({ pos, players, offset, prevTier, settings, hasMy, myRankByKey, baselinePpg, starters }: {
   pos: string;
   players: ValuedPlayer[];
+  /** Global index of the slice's first row — keeps numbering continuous
+   *  and tier separators correct across page boundaries. */
+  offset: number;
+  prevTier?: number;
   settings: DraftPrepSettings;
   hasMy: boolean;
   myRankByKey?: Map<string, number>;
@@ -201,21 +248,22 @@ function PrintPositionColumn({ pos, players, settings, hasMy, myRankByKey, basel
     fontSize: 7, fontWeight: 800, color: '#64748b', textAlign: 'right',
     borderBottom: '1px solid #94a3b8', padding: '0 0 1px',
   };
+  if (offset > 0 && players.length === 0) return <div />; // shorter list exhausted on an earlier page
   return (
-    <div style={{ breakInside: 'avoid' }}>
+    <div>
       <div style={{
         display: 'flex', alignItems: 'baseline', gap: 6,
-        background: POS_COLORS[pos], color: '#fff', borderRadius: 3, padding: '2px 6px', marginBottom: 2,
+        background: POS_COLORS[pos], color: '#fff', borderRadius: 3, padding: '1px 6px', marginBottom: 2,
       }}>
         <span style={{ fontSize: 11, fontWeight: 900 }}>{pos}</span>
         <span style={{ fontSize: 7, opacity: 0.9 }}>
-          {starters} start · repl {baselinePpg.toFixed(1)} ppg
+          {offset > 0 ? `cont. from ${offset}` : `${starters} start · repl ${baselinePpg.toFixed(1)} ppg`}
         </span>
       </div>
       <div style={{
         display: 'grid',
         gridTemplateColumns: hasMy ? '3px 1fr auto auto auto auto auto' : '3px 1fr auto auto auto auto',
-        columnGap: 4, alignItems: 'baseline', fontSize: 8, lineHeight: 1.45,
+        columnGap: 4, alignItems: 'baseline', fontSize: 8, lineHeight: 1.3,
       }}>
         <span style={head} />
         <span style={{ ...head, textAlign: 'left' }}>PLAYER</span>
@@ -228,8 +276,8 @@ function PrintPositionColumn({ pos, players, settings, hasMy, myRankByKey, basel
           <PrintRow
             key={`${p.name}:${p.position}`}
             p={p}
-            idx={i}
-            tierBreak={i > 0 && players[i - 1].tier !== p.tier}
+            idx={offset + i}
+            tierBreak={(i > 0 ? players[i - 1].tier : prevTier ?? p.tier) !== p.tier}
             settings={settings}
             hasMy={hasMy}
             myRank={myRankByKey?.get(kitKey(p.name, p.position))}
