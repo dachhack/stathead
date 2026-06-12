@@ -267,8 +267,16 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   if (!IS_PROD) return null;
   try {
     const resp = await fetchWithTimeout(`${import.meta.env.BASE_URL}data/${filename}`);
-    if (!resp.ok) return null;
-    return await resp.json();
+    if (resp.ok) return await resp.json();
+    // Oversized files are shipped gzipped (Cloudflare Pages caps assets at
+    // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is absent,
+    // fall back to the .gz sibling and inflate it in the browser.
+    const gz = await fetchWithTimeout(`${import.meta.env.BASE_URL}data/${filename}.gz`);
+    if (gz.ok && gz.body) {
+      const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+      return JSON.parse(text) as T;
+    }
+    return null;
   } catch {
     return null;
   }
