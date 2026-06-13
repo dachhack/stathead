@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchPlayerBuzz, type BuzzSnapshot, type BuzzPlayer, type BuzzItem } from '../lib/buzz';
 import { PlayerName } from './PlayerName';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 type SortKey = 'volume' | 'sentiment' | 'trend' | 'recent';
 const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
@@ -41,6 +42,7 @@ export function BuzzTracker() {
   const [pos, setPos] = useState<PosFilter>('ALL');
   const [sort, setSort] = useState<SortKey>('volume');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +85,7 @@ export function BuzzTracker() {
   }
 
   return (
-    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ padding: isMobile ? 10 : 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: 18, margin: 0 }}>Buzz Tracker</h2>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
@@ -145,24 +147,29 @@ export function BuzzTracker() {
 
       {/* Leaderboard */}
       <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: GRID_COLUMNS, gap: 8, padding: '6px 12px',
-          borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)',
-          fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
-          color: 'var(--text-muted)',
-        }}>
-          <span style={{ textAlign: 'right' }}>#</span>
-          <span>Player</span>
-          <SortHeader label="Volume" k="volume" sort={sort} onSort={setSort} />
-          <SortHeader label="Sentiment" k="sentiment" sort={sort} onSort={setSort} />
-          <SortHeader label="Trend" k="trend" sort={sort} onSort={setSort} align="center" />
-          <SortHeader label="Updated" k="recent" sort={sort} onSort={setSort} align="right" />
-        </div>
+        {/* Column headers only fit on wider screens; on mobile the Sort
+            control above drives ordering and each row is a stacked card. */}
+        {!isMobile && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: GRID_COLUMNS, gap: 8, padding: '6px 12px',
+            borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)',
+            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+            color: 'var(--text-muted)',
+          }}>
+            <span style={{ textAlign: 'right' }}>#</span>
+            <span>Player</span>
+            <SortHeader label="Volume" k="volume" sort={sort} onSort={setSort} />
+            <SortHeader label="Sentiment" k="sentiment" sort={sort} onSort={setSort} />
+            <SortHeader label="Trend" k="trend" sort={sort} onSort={setSort} align="center" />
+            <SortHeader label="Updated" k="recent" sort={sort} onSort={setSort} align="right" />
+          </div>
+        )}
         {rows.map((p, i) => (
           <BuzzRow
             key={p.player_key ?? `${p.name}-${p.position}`}
             rank={i + 1}
             player={p}
+            isMobile={isMobile}
             open={expanded === (p.player_key ?? p.name)}
             onToggle={() => setExpanded(expanded === (p.player_key ?? p.name) ? null : (p.player_key ?? p.name))}
           />
@@ -192,12 +199,96 @@ function SortHeader({ label, k, sort, onSort, align }: {
   );
 }
 
-function BuzzRow({ rank, player, open, onToggle }: {
-  rank: number; player: BuzzPlayer; open: boolean; onToggle: () => void;
-}) {
+// Shared mini-bars so the desktop and mobile layouts read identically.
+function VolumeBar({ player }: { player: BuzzPlayer }) {
+  return (
+    <span style={{ display: 'flex', height: 8, width: 56, borderRadius: 2, overflow: 'hidden', background: 'var(--bg-tertiary)', flexShrink: 0 }}>
+      {Object.entries(player.volumeBySource).map(([s, n]) => (
+        <span key={s} title={`${sourceMeta(s).label}: ${n}`} style={{ background: sourceMeta(s).color, width: `${(n / player.volume) * 100}%` }} />
+      ))}
+    </span>
+  );
+}
+
+function SentimentBar({ player }: { player: BuzzPlayer }) {
   const sc = sentimentColor(player.sentimentLabel);
+  return (
+    <span style={{ width: 56, height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      <span style={{
+        position: 'absolute', top: 0, bottom: 0,
+        left: player.sentiment >= 0 ? '50%' : `${50 + player.sentiment * 50}%`,
+        width: `${Math.abs(player.sentiment) * 50}%`, background: sc,
+      }} />
+    </span>
+  );
+}
+
+function TrendTag({ player }: { player: BuzzPlayer }) {
   const trendUp = player.trend > 1.15;
   const trendDown = player.trend > 0 && player.trend < 0.85;
+  return (
+    <span style={{ fontSize: 12, fontWeight: 600, color: trendUp ? '#10b981' : trendDown ? '#ef4444' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+      {trendUp ? '▲' : trendDown ? '▼' : '—'} {player.trend.toFixed(1)}×
+    </span>
+  );
+}
+
+function BuzzRow({ rank, player, open, onToggle, isMobile }: {
+  rank: number; player: BuzzPlayer; open: boolean; onToggle: () => void; isMobile: boolean;
+}) {
+  const sc = sentimentColor(player.sentimentLabel);
+
+  if (isMobile) {
+    return (
+      <div style={{ borderBottom: '1px solid var(--border)' }}>
+        <div
+          onClick={onToggle}
+          style={{
+            display: 'flex', flexDirection: 'column', gap: 6, padding: '9px 10px', cursor: 'pointer',
+            background: open ? 'var(--bg-tertiary)' : 'transparent',
+          }}
+        >
+          {/* Identity row: rank · pos · name · team … trend */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{rank}</span>
+            <span style={{ color: POS_COLORS[player.position] ?? 'var(--text-muted)', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{player.position}</span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <PlayerName name={player.name} playerKey={player.player_key} position={player.position} style={{ fontWeight: 600, fontSize: 14 }} />
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, flexShrink: 0 }}>{player.team}</span>
+            <span style={{ marginLeft: 'auto', flexShrink: 0 }}><TrendTag player={player} /></span>
+          </div>
+          {/* Latest headline */}
+          {player.items[0]?.headline && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {player.items[0].headline}
+            </div>
+          )}
+          {/* Metrics row with labels (no column headers on mobile) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }} title={`${player.volume} mentions`}>
+              <span style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>Vol</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{player.volume}</span>
+              <VolumeBar player={player} />
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>Sent</span>
+              <SentimentBar player={player} />
+              <span style={{ color: sc, fontWeight: 600 }}>{player.sentiment > 0 ? '+' : ''}{player.sentiment.toFixed(2)}</span>
+            </span>
+            <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{relDate(player.lastPublished)}</span>
+          </div>
+        </div>
+
+        {open && (
+          <div style={{ padding: '2px 10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {player.items.map((it, idx) => <BuzzItemRow key={idx} item={it} isMobile />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ borderBottom: '1px solid var(--border)' }}>
       <div
@@ -221,28 +312,18 @@ function BuzzRow({ rank, player, open, onToggle }: {
         {/* Volume + source breakdown bar */}
         <span title={`${player.volume} mentions`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', width: 18, textAlign: 'right' }}>{player.volume}</span>
-          <span style={{ display: 'flex', height: 8, width: 56, borderRadius: 2, overflow: 'hidden', background: 'var(--bg-tertiary)' }}>
-            {Object.entries(player.volumeBySource).map(([s, n]) => (
-              <span key={s} title={`${sourceMeta(s).label}: ${n}`} style={{ background: sourceMeta(s).color, width: `${(n / player.volume) * 100}%` }} />
-            ))}
-          </span>
+          <VolumeBar player={player} />
         </span>
         {/* Sentiment chip */}
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 56, height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', position: 'relative', overflow: 'hidden' }}>
-            <span style={{
-              position: 'absolute', top: 0, bottom: 0,
-              left: player.sentiment >= 0 ? '50%' : `${50 + player.sentiment * 50}%`,
-              width: `${Math.abs(player.sentiment) * 50}%`, background: sc,
-            }} />
-          </span>
+          <SentimentBar player={player} />
           <span style={{ fontSize: 11, color: sc, fontWeight: 600, width: 34 }}>
             {player.sentiment > 0 ? '+' : ''}{player.sentiment.toFixed(2)}
           </span>
         </span>
         {/* Trend */}
-        <span style={{ fontSize: 12, color: trendUp ? '#10b981' : trendDown ? '#ef4444' : 'var(--text-muted)', textAlign: 'center' }}>
-          {trendUp ? '▲' : trendDown ? '▼' : '—'} {player.trend.toFixed(1)}×
+        <span style={{ textAlign: 'center' }}>
+          <TrendTag player={player} />
         </span>
         <span style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right' }}>{relDate(player.lastPublished)}</span>
       </div>
@@ -256,9 +337,34 @@ function BuzzRow({ rank, player, open, onToggle }: {
   );
 }
 
-function BuzzItemRow({ item }: { item: BuzzItem }) {
+function BuzzItemRow({ item, isMobile }: { item: BuzzItem; isMobile?: boolean }) {
   const m = sourceMeta(item.source);
   const sc = sentimentColor(item.score >= 0.2 ? 'positive' : item.score <= -0.2 ? 'negative' : 'neutral');
+
+  // On mobile the source label, score, and date wrap onto a compact meta
+  // line under the headline so the headline gets the full width.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12, paddingLeft: 22 }}>
+        <span style={{ color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+          {item.link
+            ? <a href={item.link} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>{item.headline}</a>
+            : item.headline}
+          {item.summary && <span style={{ color: 'var(--text-muted)' }}> — {item.summary}</span>}
+          {item.method === 'llm' && item.rationale && (
+            <span title="AI sentiment rationale" style={{ color: 'var(--accent)', fontStyle: 'italic' }}> · {item.rationale}</span>
+          )}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10 }}>
+          <span style={{ color: m.color, fontWeight: 700 }}>{m.label}</span>
+          {item.method === 'llm' && <span title="Scored by Claude" style={{ color: 'var(--accent)', fontWeight: 700 }}>AI</span>}
+          <span style={{ color: sc, fontWeight: 600 }}>{item.score > 0 ? '+' : ''}{item.score.toFixed(2)}</span>
+          <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>{relDate(item.published)}</span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 12 }}>
       <span style={{ color: m.color, fontWeight: 700, fontSize: 10, width: 72, flexShrink: 0 }}>{m.label}</span>
