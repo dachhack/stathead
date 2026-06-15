@@ -22,19 +22,56 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z, type ZodTypeAny } from 'zod';
 import { NFL_TOOLS, executeTool } from './tools.ts';
 
 const server = new McpServer({
   name: 'stathead',
-  version: '1.0.0',
+  version: '1.0.1',
 });
+
+/**
+ * Convert an Anthropic-style JSON-Schema `input_schema` into the Zod raw
+ * shape that `McpServer.tool()` expects. The SDK reads parameters from a Zod
+ * shape (not raw JSON Schema) — passing the JSON `properties` directly makes
+ * it publish an empty schema, so MCP clients drop every argument before
+ * sending and the tools receive nothing. Our tool params are only
+ * string/number/boolean (+ string enums), so a small mapping covers them.
+ */
+function toZodShape(schema: {
+  properties?: unknown;
+  required?: unknown;
+}): Record<string, ZodTypeAny> {
+  const props = (schema.properties ?? {}) as Record<
+    string,
+    { type?: string; description?: string; enum?: string[] }
+  >;
+  const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+  const shape: Record<string, ZodTypeAny> = {};
+  for (const [key, def] of Object.entries(props)) {
+    let zt: ZodTypeAny;
+    if (Array.isArray(def.enum) && def.enum.length > 0) {
+      zt = z.enum(def.enum as [string, ...string[]]);
+    } else if (def.type === 'number' || def.type === 'integer') {
+      zt = z.number();
+    } else if (def.type === 'boolean') {
+      zt = z.boolean();
+    } else {
+      zt = z.string();
+    }
+    if (def.description) zt = zt.describe(def.description);
+    if (!required.has(key)) zt = zt.optional();
+    shape[key] = zt;
+  }
+  return shape;
+}
 
 // Register each NFL tool with the MCP server
 for (const tool of NFL_TOOLS) {
   server.tool(
     tool.name,
     tool.description ?? '',
-    tool.input_schema.properties as Record<string, unknown>,
+    toZodShape(tool.input_schema),
     async (params: Record<string, unknown>) => {
       const result = await executeTool(tool.name, params);
       const content =
