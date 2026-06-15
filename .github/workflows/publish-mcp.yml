@@ -12,13 +12,18 @@ name: Publish stathead-mcp to npm
 # Each run rebuilds the bundle (npm run build:mcp) and smoke-tests it (boots
 # the server, asserts it lists tools) BEFORE publishing.
 #
-# One-time setup (do this BEFORE the first release):
-#   1. npmjs.com → Access Tokens → Generate New Token → "Automation"
-#      (or a Granular token with publish rights to `stathead-mcp`).
-#   2. Repo Settings → Secrets and variables → Actions → New repository
-#      secret named NPM_TOKEN with that value.
-#   3. (Optional) Repo Settings → Environments → New environment `npm`
-#      and require a reviewer, to gate every publish behind an approval.
+# Auth: npm Trusted Publishing (OIDC) — NO long-lived token stored in GitHub.
+# GitHub Actions proves its identity to npm per-run via a short-lived OIDC
+# credential scoped to this repo + workflow. (Same model as the PyPI publish.)
+#
+# One-time setup on npmjs.com (the package must already exist):
+#   npmjs.com → stathead-mcp → Settings → Trusted Publishing →
+#   Add GitHub Actions publisher:
+#     Organization or user: dachhack
+#     Repository:           stathead
+#     Workflow filename:    publish-mcp.yml
+#     Environment:          npm   (or leave blank)
+#   Then you can delete the old NPM_TOKEN secret and revoke that npm token.
 #
 # Subsequent releases:
 #   1. Bump `version` in mcp/package.json
@@ -40,7 +45,7 @@ jobs:
     environment: npm
     permissions:
       contents: read
-      id-token: write  # enables npm provenance attestation
+      id-token: write  # OIDC auth for Trusted Publishing + provenance
     steps:
       - uses: actions/checkout@v5
 
@@ -49,6 +54,9 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+
+      - name: Ensure npm supports Trusted Publishing (OIDC)
+        run: npm install -g npm@latest
 
       - name: Install deps
         run: npm ci
@@ -79,11 +87,11 @@ jobs:
             exit 1
           fi
 
-      - name: Publish to npm
+      - name: Publish to npm (Trusted Publishing / OIDC)
         working-directory: mcp
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # No NODE_AUTH_TOKEN: npm authenticates via the id-token below.
+        # Provenance is attached automatically under Trusted Publishing.
+        run: npm publish --access public
 
       - name: Summary
         run: |
