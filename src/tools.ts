@@ -28,6 +28,19 @@ import {
 
 export const NFL_TOOLS: Tool[] = [
   {
+    name: 'get_metadata',
+    description:
+      'Describe this server\'s capabilities: available tools, data sources, ' +
+      'per-source season coverage, and valid enum values (positions, scoring ' +
+      'formats, league sizes, ADP sources). Call this FIRST to scope a question ' +
+      'correctly — it tells you what seasons/sources/formats are supported so ' +
+      'you don\'t have to probe by trial and error. Takes no arguments.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+    },
+  },
+  {
     name: 'get_player_season_stats',
     description:
       'Get aggregated season totals for NFL players. Returns rushing, passing, receiving, and fantasy stats. ' +
@@ -607,6 +620,45 @@ export async function executeTool(
 
 async function executeToolInner(name: string, input: ToolInput): Promise<string> {
   switch (name) {
+    case 'get_metadata': {
+      const catalog = NFL_TOOLS
+        .filter((t) => t.name !== 'get_metadata')
+        .map((t) => `- \`${t.name}\` — ${(t.description ?? '').split('. ')[0]}.`)
+        .join('\n');
+      return [
+        '# StatHead MCP — capabilities',
+        'NFL fantasy-football analytics. Call this to scope a question before querying.',
+        '## Data sources',
+        [
+          '- **nflverse** — play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine (open data)',
+          '- **Next Gen Stats** — advanced tracking metrics',
+          '- **Sleeper** — trending adds/drops, projections',
+          '- **FantasyFootballCalculator (ffc)** & **ESPN** — ADP',
+          '- **KeepTradeCut** & **FantasyCalc** — dynasty/redraft trade values',
+          '- **FantasyPros / DynastyProcess** — expert consensus rankings',
+          '- **ESPN** — QBR; **FTN** — charting; **OverTheCap** — contracts',
+          '- **CollegeFootballData (CFBD)** — college stats & QBR',
+        ].join('\n'),
+        '## Season coverage (approximate — call a tool to confirm)',
+        [
+          '- Player & weekly stats, play-by-play, games, rosters: **1999–present**',
+          '- Combine: 2000–present · Injuries: 2009–present · Snap counts: 2012–present',
+          '- Next Gen Stats: 2016–present · QBR: 2006–present · FTN charting: 2022–present',
+          '- FFC ADP: **~2018–present** (older may be unavailable); ESPN ADP: recent seasons',
+          '- Dynasty/redraft values (KTC, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**',
+        ].join('\n'),
+        '## Enumerations',
+        [
+          '- positions: `QB`, `RB`, `WR`, `TE` (some tools also accept `ALL`)',
+          '- scoring (ffc): `standard`, `ppr`, `half-ppr` · PPR (FantasyCalc): `0`, `0.5`, `1`',
+          '- league sizes (teams): `8`, `10`, `12`, `14` (ffc) / `8`, `10`, `12`, `14`, `16` (FantasyCalc)',
+          '- ADP sources: `ffc`, `espn` · dynasty formats: `1qb`, `superflex`',
+        ].join('\n'),
+        `## Tools (${NFL_TOOLS.length - 1})`,
+        catalog,
+      ].join('\n\n');
+    }
+
     case 'get_player_season_stats': {
       const season = input.season as number;
       const position = (input.position as string) || 'ALL';
