@@ -561,6 +561,31 @@ export const NFL_TOOLS: Tool[] = [
   },
 ];
 
+// Inject common output-control params into every data tool's schema, so
+// `fields` (column projection) and `format` (table/csv/jsonl) are available
+// everywhere without repeating them in each definition. get_metadata returns
+// prose, so it's skipped.
+const COMMON_OUTPUT_PARAMS = {
+  fields: {
+    type: 'string',
+    description:
+      'Comma-separated column names to return (projection), e.g. ' +
+      '"player_name,games,fantasy_points_ppr". Omit to return all columns. ' +
+      'Unknown names are ignored.',
+  },
+  format: {
+    type: 'string',
+    description:
+      'Output format: "table" (default markdown), "csv", or "jsonl". ' +
+      'Use csv/jsonl for compact, token-efficient output on large pulls.',
+    enum: ['table', 'csv', 'jsonl'],
+  },
+} as const;
+for (const t of NFL_TOOLS) {
+  if (t.name === 'get_metadata') continue;
+  Object.assign(t.input_schema.properties as Record<string, unknown>, COMMON_OUTPUT_PARAMS);
+}
+
 // ── Tool Execution ──
 
 type ToolInput = Record<string, unknown>;
@@ -605,6 +630,58 @@ function toMarkdownTable(rows: Record<string, unknown>[], columns?: string[]): s
   ).join('\n');
 
   return `${header}\n${separator}\n${body}`;
+}
+
+const fmtCell = (val: unknown): string => {
+  if (val == null) return '';
+  if (typeof val === 'number') return Number.isInteger(val) ? String(val) : val.toFixed(2);
+  return String(val);
+};
+
+/** Resolve the effective columns, applying an optional `fields` projection. */
+function resolveCols(
+  rows: Record<string, unknown>[],
+  cols: string[] | undefined,
+  fields: unknown,
+): string[] {
+  const base = cols ?? (rows[0] ? Object.keys(rows[0]) : []);
+  if (fields == null || fields === '') return base;
+  const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(','))
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (want.length === 0) return base;
+  const available = new Set(base);
+  const chosen = want.filter((w) => available.has(w));
+  return chosen.length > 0 ? chosen : base; // ignore an all-miss projection
+}
+
+/**
+ * Shared output renderer for every tool. Honors two common params:
+ *   - `fields`: comma-separated column projection (fewer columns)
+ *   - `format`: 'table' (default markdown) | 'csv' | 'jsonl' (compact)
+ * CSV/JSONL roughly halve token usage on large pulls.
+ */
+function renderTable(
+  input: ToolInput,
+  rows: Record<string, unknown>[],
+  cols?: string[],
+): string {
+  if (rows.length === 0) return '(no results)';
+  const effective = resolveCols(rows, cols, input.fields);
+  const fmt = String(input.format ?? 'table').toLowerCase();
+  if (fmt === 'jsonl') {
+    return rows
+      .map((r) => JSON.stringify(Object.fromEntries(effective.map((c) => [c, r[c] ?? null]))))
+      .join('\n');
+  }
+  if (fmt === 'csv') {
+    const esc = (v: unknown): string => {
+      const s = fmtCell(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    return [effective.join(','), ...rows.map((r) => effective.map((c) => esc(r[c])).join(','))].join('\n');
+  }
+  return toMarkdownTable(rows, effective);
 }
 
 function pickColumns(row: Record<string, unknown>, cols: string[]): Record<string, unknown> {
@@ -672,6 +749,11 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
           '- league sizes (teams): `8`, `10`, `12`, `14` (ffc) / `8`, `10`, `12`, `14`, `16` (FantasyCalc)',
           '- ADP sources: `ffc`, `espn` · dynasty formats: `1qb`, `superflex`',
         ].join('\n'),
+        '## Output control (all tools except get_metadata)',
+        [
+          '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
+          '- `format`: `table` (default) | `csv` | `jsonl` — use csv/jsonl to roughly halve tokens on large pulls',
+        ].join('\n'),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog,
       ].join('\n\n');
@@ -710,7 +792,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       ];
 
       const rows = totals.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
-      return `${season} season stats (${totals.length} players, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+      return `${season} season stats (${totals.length} players, sorted by ${sortBy}):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_player_weekly_stats': {
@@ -739,7 +821,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       ];
 
       const rows = filtered.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
-      return `Weekly stats for "${playerName}" in ${season} (weeks ${weekStart}-${weekEnd}):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Weekly stats for "${playerName}" in ${season} (weeks ${weekStart}-${weekEnd}):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_games': {
@@ -761,7 +843,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         'home_team', 'home_score', 'result', 'total', 'spread_line', 'total_line',
       ];
       const rows = games.map((g) => pickColumns(g as unknown as Record<string, unknown>, cols));
-      return `Games (${games.length} results):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Games (${games.length} results):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_snap_counts': {
@@ -779,7 +861,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['player', 'position', 'team', 'week', 'opponent', 'offense_snaps', 'offense_pct', 'defense_snaps', 'defense_pct'];
       const rows = snaps.map((s) => pickColumns(s as unknown as Record<string, unknown>, cols));
-      return `Snap counts for ${season} (${snaps.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Snap counts for ${season} (${snaps.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_combine_results': {
@@ -809,7 +891,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['season', 'player_name', 'pos', 'school', 'ht', 'wt', 'forty', 'bench', 'vertical', 'broad_jump', 'cone', 'shuttle', 'draft_round', 'draft_ovr'];
       const rows = combine.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
-      return `Combine results (${combine.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Combine results (${combine.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_draft_picks': {
@@ -830,7 +912,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['season', 'round', 'pick', 'team', 'pfr_player_name', 'position', 'college', 'age', 'games', 'car_av', 'probowls', 'allpro'];
       const rows = picks.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
-      return `Draft picks (${picks.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Draft picks (${picks.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_injuries': {
@@ -850,7 +932,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['week', 'full_name', 'position', 'team', 'report_primary_injury', 'report_status', 'practice_status'];
       const rows = injuries.map((i) => pickColumns(i as unknown as Record<string, unknown>, cols));
-      return `Injury reports for ${season} (${injuries.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Injury reports for ${season} (${injuries.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_advanced_stats': {
@@ -875,7 +957,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const rows = stats as unknown as Record<string, unknown>[];
       const mode = seasonTotals ? 'season totals' : 'per-game';
-      return `Advanced ${statType} stats for ${season} (${mode}, ${stats.length} entries):\n\n${toMarkdownTable(rows)}`;
+      return `Advanced ${statType} stats for ${season} (${mode}, ${stats.length} entries):\n\n${renderTable(input,rows)}`;
     }
 
     case 'get_play_by_play': {
@@ -912,7 +994,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         'air_yards', 'yards_after_catch', 'pass_location',
       ];
       const rows = plays.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
-      return `Play-by-play for ${season} (${plays.length} plays):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Play-by-play for ${season} (${plays.length} plays):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_fantasy_rankings': {
@@ -925,7 +1007,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['player', 'pos', 'team', 'ecr', 'sd', 'best', 'worst', 'player_owned_avg', 'page_type'];
       const rows = rankings.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
-      return `Fantasy rankings (${rankings.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Fantasy rankings (${rankings.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_adp': {
@@ -939,12 +1021,12 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         let data = await fetchFfcADP(season, scoring, teams);
         data = data.slice(0, limit);
         const rows = data as unknown as Record<string, unknown>[];
-        return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):\n\n${toMarkdownTable(rows)}`;
+        return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):\n\n${renderTable(input,rows)}`;
       } else {
         let data = await fetchEspnADP(season);
         data = data.slice(0, limit);
         const rows = data as unknown as Record<string, unknown>[];
-        return `ESPN ADP for ${season} (${data.length} players):\n\n${toMarkdownTable(rows)}`;
+        return `ESPN ADP for ${season} (${data.length} players):\n\n${renderTable(input,rows)}`;
       }
     }
 
@@ -956,7 +1038,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const data = await fetchSleeperTrending(type, hours, limit);
       const cols = ['full_name', 'position', 'team', 'age', 'count'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-      return `Sleeper trending ${type}s (last ${hours}h, ${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Sleeper trending ${type}s (last ${hours}h, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_sleeper_projections': {
@@ -972,7 +1054,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['full_name', 'position', 'team', 'pts_std', 'pts_half_ppr', 'pts_ppr',
         'pass_yd', 'pass_td', 'pass_int', 'rush_yd', 'rush_td', 'rec', 'rec_yd', 'rec_td'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-      return `Sleeper projections for ${season}${week ? ` week ${week}` : ''} (${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Sleeper projections for ${season}${week ? ` week ${week}` : ''} (${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_dynasty_values': {
@@ -988,7 +1070,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['playerName', 'position', 'positionRank', 'team', 'age', 'value', 'superflexValue', 'isRookie'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-      return `KTC dynasty values (${format}, ${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `KTC dynasty values (${format}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_fantasycalc_values': {
@@ -1018,7 +1100,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         redraftValue: d.redraftValue,
       }));
       const label = `${isDynasty ? 'dynasty' : 'redraft'}, ${numQbs === 2 ? 'SF' : '1QB'}, ${numTeams}-team, ${ppr}PPR`;
-      return `FantasyCalc values (${label}, ${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `FantasyCalc values (${label}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_next_gen_stats': {
@@ -1049,7 +1131,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       };
       const cols = [...baseCols, ...typeCols[statType]];
       const rows = stats.map((s) => pickColumns(s as unknown as Record<string, unknown>, cols));
-      return `Next Gen Stats ${statType} for ${season} (${stats.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Next Gen Stats ${statType} for ${season} (${stats.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_rosters': {
@@ -1070,7 +1152,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['full_name', 'position', 'team', 'jersey_number', 'status', 'height', 'weight',
         'college', 'birth_date', 'years_exp', 'draft_club', 'draft_number'];
       const rows = rosters.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
-      return `Rosters for ${season} (${rosters.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Rosters for ${season} (${rosters.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_contracts': {
@@ -1097,7 +1179,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['player', 'position', 'team', 'year_signed', 'years', 'value', 'apy', 'guaranteed', 'apy_cap_pct', 'inflated_apy'];
       const rows = contracts.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
-      return `Contracts (${contracts.length} entries, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Contracts (${contracts.length} entries, sorted by ${sortBy}):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_depth_charts': {
@@ -1126,7 +1208,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['team', 'player_name', 'pos_abb', 'pos_rank', 'pos_grp'];
       const rows = charts.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
-      return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_ftn_charting': {
@@ -1146,7 +1228,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         'is_qb_out_of_pocket', 'is_interception_worthy', 'is_drop',
         'n_blitzers', 'n_pass_rushers', 'is_qb_fault_sack'];
       const rows = plays.map((p) => pickColumns(p as unknown as Record<string, unknown>, cols));
-      return `FTN charting for ${season}${week ? ` week ${week}` : ''} (${plays.length} plays):\n\n${toMarkdownTable(rows, cols)}`;
+      return `FTN charting for ${season}${week ? ` week ${week}` : ''} (${plays.length} plays):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_trades': {
@@ -1167,7 +1249,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const cols = ['season', 'trade_date', 'gave', 'received', 'pfr_name', 'pick_season', 'pick_round', 'pick_number', 'conditional'];
       const rows = trades.map((t) => pickColumns(t as unknown as Record<string, unknown>, cols));
-      return `Trades (${trades.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Trades (${trades.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_player_metrics': {
@@ -1337,7 +1419,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       else cols = ['player_name', 'position', 'team', 'games', 'fantasy_points_ppr', 'total_epa'];
 
       const rows = sliced.map((r) => pickColumns(r as unknown as Record<string, unknown>, cols));
-      return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_qbr': {
@@ -1370,7 +1452,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const cols = ['name_display', 'team_abb', 'week_num', 'opp_abb', 'qbr_total', 'pts_added',
           'qb_plays', 'epa_total', 'pass', 'run', 'sack', 'qbr_raw'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-        return `ESPN QBR weekly for ${season} (${data.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+        return `ESPN QBR weekly for ${season} (${data.length} entries):\n\n${renderTable(input,rows, cols)}`;
       } else {
         let data = await fetchQBRSeason();
         data = data.filter((d) => d.season === season && d.season_type === 'Regular');
@@ -1390,7 +1472,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const cols = ['name_display', 'team_abb', 'rank', 'qbr_total', 'pts_added',
           'qb_plays', 'epa_total', 'pass', 'run', 'sack', 'qbr_raw'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-        return `ESPN QBR season for ${season} (${data.length} QBs):\n\n${toMarkdownTable(rows, cols)}`;
+        return `ESPN QBR season for ${season} (${data.length} QBs):\n\n${renderTable(input,rows, cols)}`;
       }
     }
 
@@ -1422,7 +1504,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const cols = ['player_name', 'pos_abbr', 'school', 'height', 'weight',
           'ovr_rk', 'pos_rk', 'grade', 'text1', 'text2', 'text3', 'text4'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-        return `Draft profiles (${data.length} prospects):\n\n${toMarkdownTable(rows, cols)}`;
+        return `Draft profiles (${data.length} prospects):\n\n${renderTable(input,rows, cols)}`;
       } else {
         // Use prospects dataset (includes draft results)
         let data = await fetchDraftProspects();
@@ -1445,7 +1527,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const cols = ['draft_year', 'player_name', 'pos_abbr', 'school', 'round', 'overall',
           'team_abbr', 'height', 'weight', 'ovr_rk', 'pos_rk', 'grade'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-        return `Draft prospects (${data.length} players):\n\n${toMarkdownTable(rows, cols)}`;
+        return `Draft prospects (${data.length} players):\n\n${renderTable(input,rows, cols)}`;
       }
     }
 
@@ -1487,7 +1569,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
 
       const rows = Array.from(pivoted.values());
       rows.sort((a, b) => (a.season as number) - (b.season as number));
-      return `College stats for "${playerName}" (${rows.length} season-rows):\n\n${toMarkdownTable(rows)}`;
+      return `College stats for "${playerName}" (${rows.length} season-rows):\n\n${renderTable(input,rows)}`;
     }
 
     case 'get_college_qbr': {
@@ -1511,7 +1593,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['season', 'player_name', 'age', 'total_qbr', 'points_added',
         'qb_plays', 'total_epa', 'pass', 'run', 'sack', 'raw_qbr'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-      return `College QBR (${data.length} entries):\n\n${toMarkdownTable(rows, cols)}`;
+      return `College QBR (${data.length} entries):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_team_metrics': {
@@ -1550,7 +1632,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         'def_epa_per_play', 'def_pass_epa_per_play', 'def_rush_epa_per_play', 'def_success_rate',
       ];
       const rows = metrics.map((m) => pickColumns(m as unknown as Record<string, unknown>, cols));
-      return `Team metrics for ${season} (${metrics.length} teams, sorted by ${sortBy}):\n\n${toMarkdownTable(rows, cols)}`;
+      return `Team metrics for ${season} (${metrics.length} teams, sorted by ${sortBy}):\n\n${renderTable(input,rows, cols)}`;
     }
 
     default:

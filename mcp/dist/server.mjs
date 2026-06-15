@@ -38815,6 +38815,21 @@ var NFL_TOOLS = [
     }
   }
 ];
+var COMMON_OUTPUT_PARAMS = {
+  fields: {
+    type: "string",
+    description: 'Comma-separated column names to return (projection), e.g. "player_name,games,fantasy_points_ppr". Omit to return all columns. Unknown names are ignored.'
+  },
+  format: {
+    type: "string",
+    description: 'Output format: "table" (default markdown), "csv", or "jsonl". Use csv/jsonl for compact, token-efficient output on large pulls.',
+    enum: ["table", "csv", "jsonl"]
+  }
+};
+for (const t of NFL_TOOLS) {
+  if (t.name === "get_metadata") continue;
+  Object.assign(t.input_schema.properties, COMMON_OUTPUT_PARAMS);
+}
 function normalizeNameForMatch(s) {
   return s.toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
 }
@@ -38842,6 +38857,36 @@ function toMarkdownTable(rows, columns) {
   return `${header}
 ${separator}
 ${body}`;
+}
+var fmtCell = (val) => {
+  if (val == null) return "";
+  if (typeof val === "number") return Number.isInteger(val) ? String(val) : val.toFixed(2);
+  return String(val);
+};
+function resolveCols(rows, cols, fields) {
+  const base = cols ?? (rows[0] ? Object.keys(rows[0]) : []);
+  if (fields == null || fields === "") return base;
+  const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
+  if (want.length === 0) return base;
+  const available = new Set(base);
+  const chosen = want.filter((w) => available.has(w));
+  return chosen.length > 0 ? chosen : base;
+}
+function renderTable(input, rows, cols) {
+  if (rows.length === 0) return "(no results)";
+  const effective = resolveCols(rows, cols, input.fields);
+  const fmt = String(input.format ?? "table").toLowerCase();
+  if (fmt === "jsonl") {
+    return rows.map((r) => JSON.stringify(Object.fromEntries(effective.map((c) => [c, r[c] ?? null])))).join("\n");
+  }
+  if (fmt === "csv") {
+    const esc2 = (v) => {
+      const s = fmtCell(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    return [effective.join(","), ...rows.map((r) => effective.map((c) => esc2(r[c])).join(","))].join("\n");
+  }
+  return toMarkdownTable(rows, effective);
 }
 function pickColumns(row, cols) {
   const out = {};
@@ -38901,6 +38946,11 @@ async function executeToolInner(name, input) {
           "- league sizes (teams): `8`, `10`, `12`, `14` (ffc) / `8`, `10`, `12`, `14`, `16` (FantasyCalc)",
           "- ADP sources: `ffc`, `espn` \xB7 dynasty formats: `1qb`, `superflex`"
         ].join("\n"),
+        "## Output control (all tools except get_metadata)",
+        [
+          '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
+          "- `format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
+        ].join("\n"),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog
       ].join("\n\n");
@@ -38943,7 +38993,7 @@ async function executeToolInner(name, input) {
       const rows = totals.map((p) => pickColumns(p, cols));
       return `${season} season stats (${totals.length} players, sorted by ${sortBy}):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_player_weekly_stats": {
       const season = input.season;
@@ -38981,7 +39031,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = filtered.map((p) => pickColumns(p, cols));
       return `Weekly stats for "${playerName}" in ${season} (weeks ${weekStart}-${weekEnd}):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_games": {
       const season = input.season;
@@ -39011,7 +39061,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = games.map((g) => pickColumns(g, cols));
       return `Games (${games.length} results):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_snap_counts": {
       const season = input.season;
@@ -39028,7 +39078,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = snaps.map((s) => pickColumns(s, cols));
       return `Snap counts for ${season} (${snaps.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_combine_results": {
       const position = input.position;
@@ -39056,7 +39106,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = combine.map((c) => pickColumns(c, cols));
       return `Combine results (${combine.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_draft_picks": {
       const season = input.season;
@@ -39076,7 +39126,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = picks.map((p) => pickColumns(p, cols));
       return `Draft picks (${picks.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_injuries": {
       const season = input.season;
@@ -39095,7 +39145,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = injuries.map((i) => pickColumns(i, cols));
       return `Injury reports for ${season} (${injuries.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_advanced_stats": {
       const season = input.season;
@@ -39116,7 +39166,7 @@ ${toMarkdownTable(rows, cols)}`;
       const mode = seasonTotals ? "season totals" : "per-game";
       return `Advanced ${statType} stats for ${season} (${mode}, ${stats.length} entries):
 
-${toMarkdownTable(rows)}`;
+${renderTable(input, rows)}`;
     }
     case "get_play_by_play": {
       const season = input.season;
@@ -39164,7 +39214,7 @@ ${toMarkdownTable(rows)}`;
       const rows = plays.map((p) => pickColumns(p, cols));
       return `Play-by-play for ${season} (${plays.length} plays):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_fantasy_rankings": {
       const position = input.position;
@@ -39176,7 +39226,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = rankings.map((r) => pickColumns(r, cols));
       return `Fantasy rankings (${rankings.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_adp": {
       const source = input.source;
@@ -39190,14 +39240,14 @@ ${toMarkdownTable(rows, cols)}`;
         const rows = data;
         return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):
 
-${toMarkdownTable(rows)}`;
+${renderTable(input, rows)}`;
       } else {
         let data = await fetchEspnADP(season);
         data = data.slice(0, limit);
         const rows = data;
         return `ESPN ADP for ${season} (${data.length} players):
 
-${toMarkdownTable(rows)}`;
+${renderTable(input, rows)}`;
       }
     }
     case "get_sleeper_trending": {
@@ -39209,7 +39259,7 @@ ${toMarkdownTable(rows)}`;
       const rows = data.map((d) => pickColumns(d, cols));
       return `Sleeper trending ${type}s (last ${hours}h, ${data.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_sleeper_projections": {
       const season = input.season;
@@ -39238,7 +39288,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = data.map((d) => pickColumns(d, cols));
       return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_dynasty_values": {
       const format = input.format || "1qb";
@@ -39253,7 +39303,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = data.map((d) => pickColumns(d, cols));
       return `KTC dynasty values (${format}, ${data.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_fantasycalc_values": {
       const isDynasty = input.is_dynasty !== false;
@@ -39282,7 +39332,7 @@ ${toMarkdownTable(rows, cols)}`;
       const label = `${isDynasty ? "dynasty" : "redraft"}, ${numQbs === 2 ? "SF" : "1QB"}, ${numTeams}-team, ${ppr}PPR`;
       return `FantasyCalc values (${label}, ${data.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_next_gen_stats": {
       const season = input.season;
@@ -39341,7 +39391,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = stats.map((s) => pickColumns(s, cols));
       return `Next Gen Stats ${statType} for ${season} (${stats.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_rosters": {
       const season = input.season;
@@ -39373,7 +39423,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = rosters.map((r) => pickColumns(r, cols));
       return `Rosters for ${season} (${rosters.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_contracts": {
       const playerName = input.player_name;
@@ -39398,7 +39448,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = contracts.map((c) => pickColumns(c, cols));
       return `Contracts (${contracts.length} entries, sorted by ${sortBy}):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_depth_charts": {
       const season = input.season;
@@ -39424,7 +39474,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = charts.map((c) => pickColumns(c, cols));
       return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_ftn_charting": {
       const season = input.season;
@@ -39457,7 +39507,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = plays.map((p) => pickColumns(p, cols));
       return `FTN charting for ${season}${week ? ` week ${week}` : ""} (${plays.length} plays):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_trades": {
       const season = input.season;
@@ -39477,7 +39527,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = trades.map((t) => pickColumns(t, cols));
       return `Trades (${trades.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_player_metrics": {
       const season = input.season;
@@ -39678,7 +39728,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = sliced.map((r) => pickColumns(r, cols));
       return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_qbr": {
       const season = input.season;
@@ -39720,7 +39770,7 @@ ${toMarkdownTable(rows, cols)}`;
         const rows = data.map((d) => pickColumns(d, cols));
         return `ESPN QBR weekly for ${season} (${data.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
       } else {
         let data = await fetchQBRSeason();
         data = data.filter((d) => d.season === season && d.season_type === "Regular");
@@ -39750,7 +39800,7 @@ ${toMarkdownTable(rows, cols)}`;
         const rows = data.map((d) => pickColumns(d, cols));
         return `ESPN QBR season for ${season} (${data.length} QBs):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
       }
     }
     case "get_draft_prospect_data": {
@@ -39791,7 +39841,7 @@ ${toMarkdownTable(rows, cols)}`;
         const rows = data.map((d) => pickColumns(d, cols));
         return `Draft profiles (${data.length} prospects):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
       } else {
         let data = await fetchDraftProspects();
         if (draftYear) data = data.filter((d) => d.draft_year === draftYear);
@@ -39825,7 +39875,7 @@ ${toMarkdownTable(rows, cols)}`;
         const rows = data.map((d) => pickColumns(d, cols));
         return `Draft prospects (${data.length} players):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
       }
     }
     case "get_college_stats": {
@@ -39859,7 +39909,7 @@ ${toMarkdownTable(rows, cols)}`;
       rows.sort((a, b) => a.season - b.season);
       return `College stats for "${playerName}" (${rows.length} season-rows):
 
-${toMarkdownTable(rows)}`;
+${renderTable(input, rows)}`;
     }
     case "get_college_qbr": {
       const season = input.season;
@@ -39892,7 +39942,7 @@ ${toMarkdownTable(rows)}`;
       const rows = data.map((d) => pickColumns(d, cols));
       return `College QBR (${data.length} entries):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     case "get_team_metrics": {
       const season = input.season;
@@ -39946,7 +39996,7 @@ ${toMarkdownTable(rows, cols)}`;
       const rows = metrics.map((m) => pickColumns(m, cols));
       return `Team metrics for ${season} (${metrics.length} teams, sorted by ${sortBy}):
 
-${toMarkdownTable(rows, cols)}`;
+${renderTable(input, rows, cols)}`;
     }
     default:
       return `Unknown tool: ${name}`;
@@ -39956,7 +40006,7 @@ ${toMarkdownTable(rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.6"
+  version: "1.0.7"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
