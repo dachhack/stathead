@@ -9,7 +9,7 @@ import {
   fetchSnapCounts, fetchCombine, fetchDraftPicks, fetchInjuries,
   fetchAdvancedStats, fetchAdvancedStatsSeason, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
-  fetchKTCRankings, fetchFantasyCalcValues, fetchFfcADP, fetchEspnADP,
+  fetchKTCRankingsForDisplay, fetchFantasyCalcValues, fetchFfcADP, fetchEspnADP,
   fetchNextGenStats, fetchRosters, fetchContracts,
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
   fetchPbpParticipation,
@@ -283,7 +283,8 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_dynasty_values',
     description:
-      'Get dynasty market player values and rankings. ' +
+      "Get StatHead's blended dynasty trade values and rankings — a market-consensus " +
+      'valuation rescaled to a common scale (not a raw third-party feed). ' +
       'Includes 1QB and SuperFlex values, position ranks, age. ' +
       'Use for dynasty trade evaluation, roster building, value comparisons.',
     input_schema: {
@@ -573,7 +574,7 @@ const COMMON_OUTPUT_PARAMS = {
       '"player_name,games,fantasy_points_ppr". Omit to return all columns. ' +
       'Unknown names are ignored.',
   },
-  format: {
+  output_format: {
     type: 'string',
     description:
       'Output format: "table" (default markdown), "csv", or "jsonl". ' +
@@ -583,7 +584,12 @@ const COMMON_OUTPUT_PARAMS = {
 } as const;
 for (const t of NFL_TOOLS) {
   if (t.name === 'get_metadata') continue;
-  Object.assign(t.input_schema.properties as Record<string, unknown>, COMMON_OUTPUT_PARAMS);
+  const props = t.input_schema.properties as Record<string, unknown>;
+  // Non-destructive: never clobber a tool's own param (e.g. get_dynasty_values
+  // already has a `format` of its own — different meaning).
+  for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
+    if (!(k in props)) props[k] = v;
+  }
 }
 
 // ── Tool Execution ──
@@ -668,7 +674,7 @@ function renderTable(
 ): string {
   if (rows.length === 0) return '(no results)';
   const effective = resolveCols(rows, cols, input.fields);
-  const fmt = String(input.format ?? 'table').toLowerCase();
+  const fmt = String(input.output_format ?? 'table').toLowerCase();
   if (fmt === 'jsonl') {
     return rows
       .map((r) => JSON.stringify(Object.fromEntries(effective.map((c) => [c, r[c] ?? null]))))
@@ -752,7 +758,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         '## Output control (all tools except get_metadata)',
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
-          '- `format`: `table` (default) | `csv` | `jsonl` — use csv/jsonl to roughly halve tokens on large pulls',
+          '- `output_format`: `table` (default) | `csv` | `jsonl` — use csv/jsonl to roughly halve tokens on large pulls',
         ].join('\n'),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog,
@@ -1063,14 +1069,17 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const playerName = input.player_name as string | undefined;
       const limit = clamp((input.limit as number) || 50, 1, 200);
 
-      let data = await fetchKTCRankings(format);
+      // StatHead's blended dynasty value (market consensus rescaled to a
+      // common scale) — the same canonical value the website shows, not a
+      // raw third-party feed.
+      let data = await fetchKTCRankingsForDisplay(format);
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
       if (playerName) data = data.filter((d) => nameMatch(d.playerName, playerName));
       data = data.slice(0, limit);
 
       const cols = ['playerName', 'position', 'positionRank', 'team', 'age', 'value', 'superflexValue', 'isRookie'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-      return `KTC dynasty values (${format}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
+      return `StatHead dynasty values (${format}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_fantasycalc_values': {
