@@ -40157,8 +40157,22 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.12"
+  version: "1.0.13"
 });
+function coerceNumber(v) {
+  if (typeof v !== "string") return v;
+  const t = v.trim();
+  if (t === "") return v;
+  const n = Number(t);
+  return Number.isNaN(n) ? v : n;
+}
+function coerceBoolean(v) {
+  if (typeof v !== "string") return v;
+  const t = v.trim().toLowerCase();
+  if (t === "true" || t === "1") return true;
+  if (t === "false" || t === "0") return false;
+  return v;
+}
 function toZodShape(schema) {
   const props = schema.properties ?? {};
   const required2 = new Set(Array.isArray(schema.required) ? schema.required : []);
@@ -40171,12 +40185,13 @@ function toZodShape(schema) {
         zt = external_exports3.enum(vals);
       } else {
         const lits = vals.map((v) => external_exports3.literal(v));
-        zt = lits.length === 1 ? lits[0] : external_exports3.union(lits);
+        const union2 = lits.length === 1 ? lits[0] : external_exports3.union(lits);
+        zt = external_exports3.preprocess(coerceNumber, union2);
       }
     } else if (def.type === "number" || def.type === "integer") {
-      zt = external_exports3.number();
+      zt = external_exports3.preprocess(coerceNumber, external_exports3.number());
     } else if (def.type === "boolean") {
-      zt = external_exports3.boolean();
+      zt = external_exports3.preprocess(coerceBoolean, external_exports3.boolean());
     } else {
       zt = external_exports3.string();
     }

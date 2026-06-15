@@ -27,8 +27,34 @@ import { NFL_TOOLS, executeTool } from './tools.ts';
 
 const server = new McpServer({
   name: 'stathead',
-  version: '1.0.12',
+  version: '1.0.13',
 });
+
+/**
+ * MCP clients routinely send every tool argument as a string — e.g.
+ * `season=2026` arrives as `"2026"`, `red_zone=true` as `"true"` — because
+ * the transport JSON or the client's form layer stringifies them. Strict
+ * `z.number()` / `z.boolean()` then reject valid input with "expected
+ * number, received string". These preprocessors coerce string-encoded
+ * numbers and booleans back to their real types before validation, while
+ * leaving genuinely invalid input to fail with a clear error. We avoid
+ * `z.coerce.*` because it's lossy here: `z.coerce.number("")` is 0 and
+ * `z.coerce.boolean("false")` is true. */
+function coerceNumber(v: unknown): unknown {
+  if (typeof v !== 'string') return v;
+  const t = v.trim();
+  if (t === '') return v; // let the empty string fail rather than become 0
+  const n = Number(t);
+  return Number.isNaN(n) ? v : n;
+}
+
+function coerceBoolean(v: unknown): unknown {
+  if (typeof v !== 'string') return v;
+  const t = v.trim().toLowerCase();
+  if (t === 'true' || t === '1') return true;
+  if (t === 'false' || t === '0') return false;
+  return v;
+}
 
 /**
  * Convert an Anthropic-style JSON-Schema `input_schema` into the Zod raw
@@ -36,7 +62,9 @@ const server = new McpServer({
  * shape (not raw JSON Schema) — passing the JSON `properties` directly makes
  * it publish an empty schema, so MCP clients drop every argument before
  * sending and the tools receive nothing. Our tool params are only
- * string/number/boolean (+ string enums), so a small mapping covers them.
+ * string/number/boolean (+ string/numeric enums), so a small mapping covers
+ * them. Numeric and boolean params are wrapped so string-encoded values from
+ * MCP clients still validate (see coerceNumber/coerceBoolean).
  */
 function toZodShape(schema: {
   properties?: unknown;
@@ -58,16 +86,18 @@ function toZodShape(schema: {
         // Numeric/mixed enums (e.g. teams: [8,10,12,14]) — z.enum is
         // string-only, so build a union of literals. Renders as an enum
         // in the published JSON schema and accepts the numeric values.
+        // Preprocess so a string-encoded value (teams="12") still matches.
         const lits: ZodTypeAny[] = vals.map((v) => z.literal(v as string | number));
-        zt =
+        const union =
           lits.length === 1
             ? lits[0]
             : z.union(lits as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+        zt = z.preprocess(coerceNumber, union);
       }
     } else if (def.type === 'number' || def.type === 'integer') {
-      zt = z.number();
+      zt = z.preprocess(coerceNumber, z.number());
     } else if (def.type === 'boolean') {
-      zt = z.boolean();
+      zt = z.preprocess(coerceBoolean, z.boolean());
     } else {
       zt = z.string();
     }
