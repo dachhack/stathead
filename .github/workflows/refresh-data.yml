@@ -75,6 +75,18 @@ jobs:
           fi
           echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
 
+      # Rebuild the projection base pool headlessly — the SAME pure builder the
+      # Projections tab uses (src/lib/buildProjectionPool.ts) — then run the
+      # scenario-engine presets over it, so the MCP's preset projections refresh
+      # automatically with the data. Both outputs are derived StatHead numbers;
+      # the intermediate pool (projection-base-2026.json) is gitignored and not
+      # committed — only the blended/derived presets file ships. Runs after
+      # `npm run build` so feature-matrix.json + score-store shards exist.
+      - name: Build projection presets
+        run: |
+          npm run build:pool
+          npm run build:presets
+
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
       # their synthetic COL keys to canonical NFL gsis-based keys as soon
@@ -118,6 +130,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
+                  public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \
                   public/data/score-store/ \
                   public/data/roster_2026.csv.gz \
