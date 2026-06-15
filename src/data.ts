@@ -1456,6 +1456,26 @@ export async function fetchDraftProfiles(): Promise<DraftProfile[]> {
   return fetchCsv<DraftProfile>(`${DRAFT_DATA}/nfl_draft_profiles.csv`);
 }
 
+// StatHead's own prospect model outputs (committed snapshots).
+export interface ProspectBoomBust {
+  name: string; position: string;
+  boomProb: number; bustProb: number;
+  boomZ: number; bustZ: number; outperfPctile: number;
+}
+export async function fetchProspectBoomBust(): Promise<ProspectBoomBust[]> {
+  return (await tryPreFetched<ProspectBoomBust[]>('prospect-boom-bust.json')) ?? [];
+}
+
+export interface ProspectGrade {
+  name: string; pos: string; school: string;
+  grade: number; projRound: number; projPick: number; tier: string;
+  team?: string; actualRound?: number; actualPick?: number;
+  consensusRank?: number; pffRank?: number; tankathonPick?: number;
+}
+export async function fetchProspectGrades(year: number): Promise<ProspectGrade[]> {
+  return (await tryPreFetched<ProspectGrade[]>(`prospect-grades-${year}.json`)) ?? [];
+}
+
 export async function fetchCollegeStats(): Promise<CollegeStats[]> {
   return fetchCsv<CollegeStats>(`${DRAFT_DATA}/college_statistics.csv`);
 }
