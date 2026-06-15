@@ -105,6 +105,20 @@ cd mcp && npm publish --access public
 
 The published tarball is just `dist/server.mjs` + this README (~220 KB).
 
+### Listing in the MCP Registry
+
+`server.json` is the manifest for the official [MCP Registry](https://registry.modelcontextprotocol.io)
+(`io.github.dachhack/stathead-mcp`). After an npm publish, the
+**Publish to MCP Registry** workflow (`.github/workflows/publish-mcp-registry.yml`)
+pushes it — authenticating via GitHub OIDC for the `io.github.dachhack/*`
+namespace (no secret). The npm package carries a matching `mcpName` field so the
+registry can verify the package belongs to this entry, and the workflow syncs
+`server.json`'s version from `package.json` so they never drift.
+
+Most community directories (Glama, mcp.so, PulseMCP) mirror the official
+registry and/or auto-index public npm packages with the `model-context-protocol`
+keyword (which `package.json` has), so a registry publish propagates to them.
+
 ## License
 
 MIT — see [`../LICENSE`](../LICENSE). The code is MIT; the **data** it returns

@@ -193,6 +193,7 @@ export type Tab =
   | 'adp'
   | 'games'
   | 'snaps'
+  | 'rookie-ramp'
   | 'combine'
   | 'draft'
   | 'injuries'

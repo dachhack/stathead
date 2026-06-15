@@ -1,0 +1,71 @@
+name: Publish to MCP Registry
+
+# Publishes mcp/server.json to the official MCP Registry
+# (registry.modelcontextprotocol.io) so stathead-mcp is discoverable by MCP
+# clients and the downstream directories that mirror the registry (Glama,
+# mcp.so, PulseMCP, etc.).
+#
+# Auth: GitHub OIDC for the `io.github.dachhack/*` namespace — Actions proves
+# control of the dachhack GitHub account, so there is NO stored secret. The
+# server.json `name` must stay under `io.github.dachhack/`.
+#
+# Prerequisites:
+#   1. The npm package `stathead-mcp` is already published at the SAME version
+#      (publish-mcp.yml / npm-publish-token.yml). The registry validates the npm
+#      package exists and that its package.json carries
+#      `"mcpName": "io.github.dachhack/stathead-mcp"` (it does) to prove the
+#      package corresponds to this registry entry.
+#   2. server.json `version` matches the published npm version — the step below
+#      syncs it from mcp/package.json so it can't drift.
+#
+# Trigger: run manually after an npm publish, or on an mcp-v* tag push.
+# Verify the mcp-publisher invocation against the current registry docs if it
+# changes: https://github.com/modelcontextprotocol/registry
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'mcp-v*'
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC for namespace authentication
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Keep server.json's version in lockstep with the published npm package
+      # (the registry rejects a mismatch).
+      - name: Sync server.json version from package.json
+        run: |
+          VER=$(node -p "require('./mcp/package.json').version")
+          tmp=$(mktemp)
+          jq --arg v "$VER" '.version=$v | .packages[0].version=$v' mcp/server.json > "$tmp" && mv "$tmp" mcp/server.json
+          echo "server.json synced to $VER"
+          cat mcp/server.json
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+          ./mcp-publisher --version || true
+
+      - name: Authenticate (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        working-directory: mcp
+        run: ../mcp-publisher publish
+
+      - name: Summary
+        run: |
+          echo "Published **io.github.dachhack/stathead-mcp** to registry.modelcontextprotocol.io" >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,7 @@
 {
   "name": "stathead-mcp",
-  "version": "1.0.23",
+  "mcpName": "io.github.dachhack/stathead-mcp",
+  "version": "1.0.25",
   "description": "MCP server exposing StatHead NFL fantasy analytics (player stats, play-by-play, Next Gen Stats, dynasty values, projections, prospects) to Claude and any MCP client.",
   "license": "MIT",
   "author": "dachhack",

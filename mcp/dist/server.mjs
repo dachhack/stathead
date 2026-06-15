@@ -37621,6 +37621,7 @@ function normalizeFfcTeam(team) {
 }
 var ffcAdpCache = /* @__PURE__ */ new Map();
 var FFC_CURRENT_SEASON = 2026;
+var LATEST_COMPLETED_SEASON = 2025;
 var FFC_THIN_THRESHOLD = 200;
 function mapFfcPlayers(raw) {
   return raw.map((p) => ({
@@ -38530,6 +38531,22 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_rookie_snap_share",
+    description: "Rookie snap-share RAMP tracker — weekly offensive snap % for a season's rookie class, with a ramp signal (last-3-week avg − first-3-week avg) that surfaces mid-season role expansion a static depth chart misses (the classic late-bloomer pattern, e.g. a rookie RB climbing from 30% to 70% snaps). Identifies rookies from the roster (years_exp 0 / rookie or entry year = season). For an in-progress season this is a live leading indicator; for a completed season it's the role-trajectory record. Sort by ramp (biggest risers), latest, peak, or avg.",
+    input_schema: {
+      type: "object",
+      properties: {
+        season: { type: "number", description: "Season (2012+). Defaults to the most recent completed season; pass the in-progress season to track live." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE)" },
+        team: { type: "string", description: "Filter by team abbreviation" },
+        sort_by: { type: "string", description: "ramp (default, biggest risers) | latest | peak | avg", enum: ["ramp", "latest", "peak", "avg"] },
+        min_weeks: { type: "number", description: "Minimum weeks with snap data to include (default 4)" },
+        limit: { type: "number", description: "Max rookies (default 40)" }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_combine_results",
     description: "Get NFL Combine athletic testing results. Includes 40-yard dash, bench press, vertical jump, broad jump, 3-cone drill, shuttle, height, weight, draft position. Use for athletic profile analysis, draft capital evaluation.",
     input_schema: {
@@ -38867,7 +38884,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_prospect_outcomes",
-    description: `StatHead's own prospect model: draft grade, tier, projected draft slot, and CALIBRATED boom/bust outcome probabilities (boomProb = modeled P(elite/boom outcome), bustProb = P(bust), outperfPctile = projected percentile vs draft slot). Use these instead of multiplying your own marginal factors into a "P(Hit)" \u2014 that is over-confident because factors are correlated (see get_metadata analytic caveats). Boom/bust probabilities cover the 2026 class; grades cover 2026 and 2027. Probabilities are model estimates, not certainties \u2014 treat as calibrated guidance.`,
+    description: `StatHead's own prospect model: draft grade, tier, projected draft slot, and CALIBRATED boom/bust probabilities. IMPORTANT \u2014 boomProb/bustProb/outperfPctile are RELATIVE to the player's draft slot, not absolute fantasy outcomes. boomProb = P(the player OUTPERFORMS the model's draft-slot-informed PPG expectation for a profile like this); bustProb = P(underperforms it); outperfPctile = percentile of that outperformance vs slot. So a Day-3 pick with a high boomProb is likely to beat Day-3 expectations \u2014 NOT likely to be an absolute fantasy star. For absolute expected value use grade / tier / projPick. Use these instead of multiplying your own marginal factors into a "P(Hit)" \u2014 that is over-confident because factors are correlated (see get_metadata analytic caveats). Boom/bust probabilities cover the 2026 class; grades cover 2026 and 2027. Probabilities are model estimates, not certainties \u2014 treat as calibrated guidance.`,
     input_schema: {
       type: "object",
       properties: {
@@ -39219,6 +39236,74 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
+    case "get_rookie_snap_share": {
+      const season = input.season || LATEST_COMPLETED_SEASON;
+      const position = input.position?.toUpperCase();
+      const team = input.team?.toUpperCase();
+      const sortBy = input.sort_by || "ramp";
+      const minWeeks = input.min_weeks ?? 4;
+      const limit = clamp(input.limit || 40, 1, 200);
+      const [snaps, rosters] = await Promise.all([
+        fetchSnapCounts(season),
+        fetchRosters(season)
+      ]);
+      const rookiePos = /* @__PURE__ */ new Map();
+      for (const r of rosters) {
+        const isRookie = Number(r.years_exp) === 0 || Number(r.rookie_year) === season || Number(r.entry_year) === season;
+        if (isRookie && ["QB", "RB", "WR", "TE"].includes(r.position)) {
+          rookiePos.set(normalizeNameForMatch(r.full_name), r.position);
+        }
+      }
+      if (rookiePos.size === 0) {
+        return `No ${season} rookies found in the roster (need roster_${season} with years_exp/rookie_year). Snap data covers 2012–present; rosters identify the rookie class.`;
+      }
+      const byPlayer = /* @__PURE__ */ new Map();
+      for (const s of snaps) {
+        if (s.game_type && s.game_type !== "REG") continue;
+        const key = normalizeNameForMatch(s.player);
+        if (!rookiePos.has(key)) continue;
+        let rec = byPlayer.get(key);
+        if (!rec) {
+          rec = { player: s.player, position: s.position || rookiePos.get(key), team: s.team, weeks: [] };
+          byPlayer.set(key, rec);
+        }
+        rec.weeks.push({ week: Number(s.week), pct: Number(s.offense_pct || 0) * 100 });
+      }
+      const blocks = "▁▂▃▄▅▆▇█";
+      const sparkline = (vals) => vals.map((v) => blocks[Math.min(7, Math.max(0, Math.floor(v / 100 * 8)))]).join("");
+      const mean = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+      let rows = [];
+      for (const rec of byPlayer.values()) {
+        const w = rec.weeks.sort((a, b) => a.week - b.week);
+        if (w.length < minWeeks) continue;
+        const pcts = w.map((x) => x.pct);
+        const early = mean(pcts.slice(0, Math.min(3, pcts.length)));
+        const late = mean(pcts.slice(-Math.min(3, pcts.length)));
+        rows.push({
+          player: rec.player,
+          position: rec.position,
+          team: rec.team,
+          weeks_played: w.length,
+          early_pct: Math.round(early),
+          late_pct: Math.round(late),
+          ramp: Math.round(late - early),
+          latest_pct: Math.round(pcts[pcts.length - 1]),
+          peak_pct: Math.round(Math.max(...pcts)),
+          avg_pct: Math.round(mean(pcts)),
+          trend: sparkline(pcts)
+        });
+      }
+      if (position) rows = rows.filter((r) => r.position === position);
+      if (team) rows = rows.filter((r) => r.team === team);
+      const sortKey = { ramp: "ramp", latest: "latest_pct", peak: "peak_pct", avg: "avg_pct" }[sortBy] || "ramp";
+      rows.sort((a, b) => b[sortKey] - a[sortKey]);
+      rows = rows.slice(0, limit);
+      const cols = ["player", "position", "team", "weeks_played", "early_pct", "late_pct", "ramp", "latest_pct", "peak_pct", "trend"];
+      const out = rows.map((r) => pickColumns(r, cols));
+      return `Rookie snap-share ramp — ${season} (${rows.length} rookies, sorted by ${sortBy}). Weekly offensive snap %; ramp = last-3-wk avg − first-3-wk avg (mid-season role expansion). trend is the week-by-week sparkline:
+
+${renderTable(input, out, cols)}`;
+    }
     case "get_combine_results": {
       const position = input.position;
       const playerName = input.player_name;
@@ -39382,9 +39467,17 @@ ${renderTable(input, rows)}`;
       const limit = clamp(input.limit || 50, 1, 200);
       let plays = await fetchPlayByPlay(season);
       if (playerName) {
-        const q = playerName.toLowerCase();
+        const q = playerName.toLowerCase().trim();
+        const last = q.split(/\s+/).pop();
+        const matchName = (n) => {
+          const name = (n || "").toLowerCase();
+          if (!name) return false;
+          if (name.includes(q)) return true;
+          const surname = name.replace(/^[a-z]\.\s*/, "").trim();
+          return surname.length > 1 && (q.endsWith(surname) || surname.endsWith(last));
+        };
         plays = plays.filter(
-          (p) => (p.passer_player_name || "").toLowerCase().includes(q) || (p.rusher_player_name || "").toLowerCase().includes(q) || (p.receiver_player_name || "").toLowerCase().includes(q)
+          (p) => matchName(p.passer_player_name) || matchName(p.rusher_player_name) || matchName(p.receiver_player_name)
         );
       }
       if (team) plays = plays.filter((p) => p.posteam === team.toUpperCase());
@@ -40164,7 +40257,7 @@ ${renderTable(input, rows, cols)}`;
       });
       rows = rows.slice(0, limit);
       const bbNote = draftYear === 2026 ? "" : " (boom/bust probabilities are 2026-class only; grades shown)";
-      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are StatHead's calibrated model estimates \u2014 see get_metadata caveats:
+      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
 
 ${renderTable(input, rows)}`;
     }
@@ -40388,7 +40481,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.23"
+  version: "1.0.25"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
