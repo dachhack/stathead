@@ -27,7 +27,7 @@ import { NFL_TOOLS, executeTool } from './tools.ts';
 
 const server = new McpServer({
   name: 'stathead',
-  version: '1.0.1',
+  version: '1.0.2',
 });
 
 /**
@@ -51,7 +51,19 @@ function toZodShape(schema: {
   for (const [key, def] of Object.entries(props)) {
     let zt: ZodTypeAny;
     if (Array.isArray(def.enum) && def.enum.length > 0) {
-      zt = z.enum(def.enum as [string, ...string[]]);
+      const vals = def.enum as unknown[];
+      if (vals.every((v) => typeof v === 'string')) {
+        zt = z.enum(vals as [string, ...string[]]);
+      } else {
+        // Numeric/mixed enums (e.g. teams: [8,10,12,14]) — z.enum is
+        // string-only, so build a union of literals. Renders as an enum
+        // in the published JSON schema and accepts the numeric values.
+        const lits: ZodTypeAny[] = vals.map((v) => z.literal(v as string | number));
+        zt =
+          lits.length === 1
+            ? lits[0]
+            : z.union(lits as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+      }
     } else if (def.type === 'number' || def.type === 'integer') {
       zt = z.number();
     } else if (def.type === 'boolean') {

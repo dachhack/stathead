@@ -38360,7 +38360,7 @@ var NFL_TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        season: { type: "number", description: "NFL season year (2015-2025)" },
+        season: { type: "number", description: "NFL season year. Coverage: 1999 to the latest completed season (nflverse)." },
         position: {
           type: "string",
           description: "Filter by position: QB, RB, WR, TE, or ALL",
@@ -38524,9 +38524,9 @@ var NFL_TOOLS = [
       type: "object",
       properties: {
         source: { type: "string", description: "Data source", enum: ["ffc", "espn"] },
-        season: { type: "number", description: "Season year" },
+        season: { type: "number", description: "Season year. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
         scoring: { type: "string", description: "Scoring format (community source only)", enum: ["standard", "ppr", "half-ppr"] },
-        teams: { type: "number", description: "League size (community source only)", enum: [8, 10, 12, 14] },
+        teams: { type: "number", description: "League size, one of 8/10/12/14 (community source only). Default 12.", enum: [8, 10, 12, 14] },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
       required: ["source", "season"]
@@ -39884,7 +39884,7 @@ ${toMarkdownTable(rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.1"
+  version: "1.0.2"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
@@ -39893,7 +39893,13 @@ function toZodShape(schema) {
   for (const [key, def] of Object.entries(props)) {
     let zt;
     if (Array.isArray(def.enum) && def.enum.length > 0) {
-      zt = external_exports3.enum(def.enum);
+      const vals = def.enum;
+      if (vals.every((v) => typeof v === "string")) {
+        zt = external_exports3.enum(vals);
+      } else {
+        const lits = vals.map((v) => external_exports3.literal(v));
+        zt = lits.length === 1 ? lits[0] : external_exports3.union(lits);
+      }
     } else if (def.type === "number" || def.type === "integer") {
       zt = external_exports3.number();
     } else if (def.type === "boolean") {
