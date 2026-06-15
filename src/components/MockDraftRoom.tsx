@@ -47,6 +47,10 @@ const SPEED_INFO: Record<Speed, { label: string; blurb: string }> = {
   instant: { label: 'Instant', blurb: 'CPU picks land immediately.' },
 };
 const CONFIG_KEY = 'mock-draft-config';
+// In-progress (or finished) draft, persisted so it survives the component
+// unmounting — e.g. when opening a player card, which swaps the whole tab
+// content for the PlayerDetail page. Restored on remount.
+const DRAFT_KEY = 'mock-draft-state';
 
 interface MockPick {
   overall: number;
@@ -61,6 +65,36 @@ interface RoomConfig {
   timerSec: number;
   rounds: number;
   speed: Speed;
+}
+
+// Everything needed to reconstruct a live/done draft. The engine refs
+// (teams, taken set, player pool) aren't stored — they're rebuilt by
+// replaying picks against a fresh value pool on restore.
+interface SavedDraft {
+  phase: 'live' | 'done';
+  picks: MockPick[];
+  opponents: OpponentProfile[];
+  config: RoomConfig;
+  settings: DraftPrepSettings;
+  userTurn: boolean;
+  paused: boolean;
+  secondsLeft: number | null;
+  onClockSlot: number | null;
+}
+
+function loadDraft(): SavedDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<SavedDraft>;
+    if ((p.phase !== 'live' && p.phase !== 'done') || !Array.isArray(p.picks)
+      || !Array.isArray(p.opponents) || !p.config || !p.settings) return null;
+    return p as SavedDraft;
+  } catch { return null; }
+}
+
+function clearDraft(): void {
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* quota */ }
 }
 
 function loadConfig(defaultRounds: number): RoomConfig {
@@ -115,6 +149,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   const picksRef = useRef<MockPick[]>([]);
   const pausedRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
+  const restoredRef = useRef(false);
 
   const updateConfig = (next: Partial<RoomConfig>) => {
     setConfig((prev) => {
@@ -136,6 +171,63 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
   }, [settings.numTeams, phase]);
 
   useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
+
+  // Restore an in-progress (or finished) draft after a remount — e.g.
+  // returning from a player card. Waits for the player pool to load, then
+  // rebuilds the engine by replaying the saved picks against a fresh value
+  // pool, and resumes the clock (CPU timer or the user's turn).
+  useEffect(() => {
+    if (restoredRef.current || pool.length === 0) return;
+    restoredRef.current = true;
+    const saved = loadDraft();
+    if (!saved) return;
+
+    const { players } = valuePool(pool, saved.settings, 'BEER');
+    const byKey = new Map(players.map((p) => [kitKey(p.name, p.position), p]));
+    const teams = makeTeams(saved.settings, saved.opponents);
+    const taken = new Set<string>();
+    const restoredPicks: MockPick[] = saved.picks.map((pk) => {
+      const key = kitKey(pk.player.name, pk.player.position);
+      const player = byKey.get(key) ?? pk.player;
+      applyPick(teams[pk.teamSlot - 1], player);
+      taken.add(key);
+      return { ...pk, player };
+    });
+
+    playersRef.current = players;
+    teamsRef.current = teams;
+    takenRef.current = taken;
+    picksRef.current = restoredPicks;
+    pausedRef.current = saved.paused;
+    cfgRef.current = {
+      config: saved.config,
+      settings: saved.settings,
+      myRankByKey: myRankByKey?.size ? myRankByKey : undefined,
+    };
+
+    setOpponents(saved.opponents);
+    setConfig(saved.config);
+    setPicks(restoredPicks);
+    setPaused(saved.paused);
+    setPhase(saved.phase);
+
+    if (saved.phase === 'live') {
+      const overall = restoredPicks.length + 1;
+      const slot = slotForOverall(overall, saved.settings.numTeams, saved.settings.draftType);
+      const onClockTeam = teams[slot - 1];
+      if (onClockTeam.isUser && saved.config.mode === 'manual') {
+        setOnClockSlot(slot);
+        setUserTurn(true);
+        setSecondsLeft(saved.config.timerSec > 0 ? saved.secondsLeft ?? saved.config.timerSec : null);
+      } else if (saved.paused) {
+        setOnClockSlot(slot);
+      } else {
+        advance(overall);
+      }
+    }
+    // Run once the pool is ready; advance/refs are stable via closures.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pool]);
 
   const clearPending = () => {
     if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
@@ -232,6 +324,7 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
 
   const abort = () => {
     clearPending();
+    clearDraft();
     pausedRef.current = false;
     setPaused(false);
     setUserTurn(false);
@@ -261,6 +354,24 @@ export function MockDraftRoom({ pool, settings, myRankByKey, myBoardName }: Prop
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, userTurn, paused, secondsLeft]);
+
+  // Persist the live/done draft on every meaningful change so it survives
+  // a remount. Setup is never persisted; abort clears it explicitly.
+  useEffect(() => {
+    if (phase === 'setup' || !cfgRef.current) return;
+    const saved: SavedDraft = {
+      phase,
+      picks,
+      opponents,
+      config: cfgRef.current.config,
+      settings: cfgRef.current.settings,
+      userTurn,
+      paused,
+      secondsLeft,
+      onClockSlot,
+    };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(saved)); } catch { /* quota */ }
+  }, [phase, picks, opponents, userTurn, paused, secondsLeft, onClockSlot]);
 
   const draftPlayer = (p: ValuedPlayer) => {
     if (phase !== 'live' || !userTurn || paused) return;
