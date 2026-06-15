@@ -40479,9 +40479,10 @@ ${renderTable(input, rows, cols)}`;
 }
 
 // src/mcp-server.ts
+var SERVER_VERSION = "1.0.26";
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.26"
+  version: SERVER_VERSION
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
@@ -40532,10 +40533,17 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
-main().catch((err) => {
-  console.error("MCP server error:", err);
-  process.exit(1);
-});
+// Only auto-start the stdio server under Node (the npm bin). When this module
+// is imported as a library (e.g. by the Cloudflare Worker HTTP transport in
+// workers/stathead-mcp), skip stdio and just expose the tool API below.
+var IS_CF_WORKER = typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+if (!IS_CF_WORKER) {
+  main().catch((err) => {
+    console.error("MCP server error:", err);
+    process.exit(1);
+  });
+}
+export { NFL_TOOLS, executeTool, SERVER_VERSION };
 /*! Bundled license information:
 
 papaparse/papaparse.js:
