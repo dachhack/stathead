@@ -37999,11 +37999,12 @@ async function fetchDraftProspects() {
 async function fetchDraftProfiles() {
   return fetchCsv(`${DRAFT_DATA}/nfl_draft_profiles.csv`);
 }
-async function fetchCollegeStats() {
-  return fetchCsv(`${DRAFT_DATA}/college_statistics.csv`);
-}
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
+}
+async function fetchCfbdCollegeStats() {
+  const data = await tryPreFetched("cfbd-college-stats.json");
+  return data || [];
 }
 
 // src/lib/metrics.ts
@@ -38768,7 +38769,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_college_stats",
-    description: "Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Data is from ESPN. Use for evaluating college production, dominator rating, market share analysis.",
+    description: "Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. Use for evaluating college production, dominator rating, market share analysis.",
     input_schema: {
       type: "object",
       properties: {
@@ -38783,7 +38784,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_college_qbr",
-    description: "Get ESPN college QBR ratings for quarterback prospects. Includes total QBR, points added, EPA, and breakdown by pass/run/sack. Data from 2004 onward. Use for evaluating college QB efficiency, comparing draft prospect QBs across classes.",
+    description: "Get ESPN college QBR ratings for quarterback prospects. Includes total QBR, points added, EPA, and breakdown by pass/run/sack. Coverage: 2004\u20132020 only (historical; the upstream source is not updated for recent seasons \u2014 use get_college_stats for current college production). Use for evaluating college QB efficiency, comparing draft prospect QBs across classes.",
     input_schema: {
       type: "object",
       properties: {
@@ -39822,7 +39823,7 @@ ${toMarkdownTable(rows, cols)}`;
       const position = input.position;
       const school = input.school;
       const limit = clamp(input.limit || 100, 1, 500);
-      let data = await fetchCollegeStats();
+      let data = await fetchCfbdCollegeStats();
       data = data.filter((d) => nameMatch(d.player_name, playerName));
       if (season) data = data.filter((d) => d.season === season);
       if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
@@ -39831,7 +39832,7 @@ ${toMarkdownTable(rows, cols)}`;
       if (data.length === 0) return `No college stats found for "${playerName}".`;
       const pivoted = /* @__PURE__ */ new Map();
       for (const row of data) {
-        const key = `${row.player_id}-${row.season}`;
+        const key = `${row.player_name}-${row.school}-${row.season}`;
         if (!pivoted.has(key)) {
           pivoted.set(key, {
             player_name: row.player_name,
@@ -39944,7 +39945,7 @@ ${toMarkdownTable(rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.4"
+  version: "1.0.5"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};

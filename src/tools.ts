@@ -15,7 +15,7 @@ import {
   fetchPbpParticipation,
   fetchQBRSeason, fetchQBRWeek,
   fetchDraftProspects, fetchDraftProfiles,
-  fetchCollegeStats, fetchCollegeQBR,
+  fetchCollegeQBR, fetchCfbdCollegeStats,
 } from './data';
 import type { SeasonTotals } from './types';
 import {
@@ -505,7 +505,7 @@ export const NFL_TOOLS: Tool[] = [
     name: 'get_college_stats',
     description:
       'Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, ' +
-      'receiving, tackles, sacks, INTs, etc.) by season. Data is from ESPN. ' +
+      'receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005–present. ' +
       'Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
       type: 'object' as const,
@@ -523,7 +523,8 @@ export const NFL_TOOLS: Tool[] = [
     name: 'get_college_qbr',
     description:
       'Get ESPN college QBR ratings for quarterback prospects. Includes total QBR, points added, EPA, ' +
-      'and breakdown by pass/run/sack. Data from 2004 onward. ' +
+      'and breakdown by pass/run/sack. Coverage: 2004–2020 only (historical; the upstream source is not updated ' +
+      'for recent seasons — use get_college_stats for current college production). ' +
       'Use for evaluating college QB efficiency, comparing draft prospect QBs across classes.',
     input_schema: {
       type: 'object' as const,
@@ -1432,7 +1433,10 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const school = input.school as string | undefined;
       const limit = clamp((input.limit as number) || 100, 1, 500);
 
-      let data = await fetchCollegeStats();
+      // CFBD-backed college stats (2005–present). The legacy fetchCollegeStats
+      // (JackLich10) is stale (ends 2020) and still used by the feature
+      // pipeline, so only the tool switches to the current source.
+      let data = await fetchCfbdCollegeStats();
       data = data.filter((d) => nameMatch(d.player_name, playerName));
       if (season) data = data.filter((d) => d.season === season);
       if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
@@ -1444,7 +1448,8 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       // Pivot: group by player + season, then list stats as columns
       const pivoted = new Map<string, Record<string, unknown>>();
       for (const row of data) {
-        const key = `${row.player_id}-${row.season}`;
+        // CFBD rows have no player_id; key on name+school+season.
+        const key = `${row.player_name}-${row.school}-${row.season}`;
         if (!pivoted.has(key)) {
           pivoted.set(key, {
             player_name: row.player_name,
