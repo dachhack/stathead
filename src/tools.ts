@@ -487,19 +487,23 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_college_stats',
     description:
-      'Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, ' +
-      'receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005–present. ' +
+      'Get college football statistics for individual players OR a whole class/cohort. ' +
+      'Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. ' +
+      'Source: CollegeFootballData (CFBD); coverage 2005–present. ' +
+      'For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit ' +
+      'player_name and pass season (optionally position/school) and sort_by to rank. ' +
       'Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        player_name: { type: 'string', description: 'Filter by player name (required — dataset is large)' },
-        season: { type: 'number', description: 'Filter to specific college season' },
-        position: { type: 'string', description: 'Filter by position abbreviation' },
-        school: { type: 'string', description: 'Filter by school abbreviation' },
-        limit: { type: 'number', description: 'Max rows (default 100)' },
+        player_name: { type: 'string', description: 'Filter to one player. Omit for a class/cohort query (then season and/or school is required).' },
+        season: { type: 'number', description: 'College season. Required for cohort queries (when player_name is omitted).' },
+        position: { type: 'string', description: 'Filter by position abbreviation (e.g. RB, WR, QB)' },
+        school: { type: 'string', description: 'Filter by school name/abbreviation' },
+        sort_by: { type: 'string', description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Default: season.' },
+        limit: { type: 'number', description: 'Max player-seasons (default 100)' },
       },
-      required: ['player_name'],
+      required: [],
     },
   },
   {
@@ -1490,25 +1494,34 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
     }
 
     case 'get_college_stats': {
-      const playerName = input.player_name as string;
+      const playerName = input.player_name as string | undefined;
       const season = input.season as number | undefined;
       const position = input.position as string | undefined;
       const school = input.school as string | undefined;
+      const sortBy = input.sort_by as string | undefined;
       const limit = clamp((input.limit as number) || 100, 1, 500);
+
+      // Require at least one bound so a cohort query can't dump the whole
+      // 288k-row dataset. A class-level query (no player_name) needs a season
+      // and/or school.
+      if (!playerName && !season && !school) {
+        return 'Provide player_name for one player, OR season (optionally with position/school) for a class/cohort query.';
+      }
 
       // CFBD-backed college stats (2005–present). The legacy fetchCollegeStats
       // (JackLich10) is stale (ends 2020) and still used by the feature
       // pipeline, so only the tool switches to the current source.
       let data = await fetchCfbdCollegeStats();
-      data = data.filter((d) => nameMatch(d.player_name, playerName));
+      if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
       if (season) data = data.filter((d) => d.season === season);
       if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
       if (school) data = data.filter((d) => nameMatch(d.school_abbr || '', school) || nameMatch(d.school, school));
-      data = data.slice(0, limit);
 
-      if (data.length === 0) return `No college stats found for "${playerName}".`;
+      if (data.length === 0) {
+        return `No college stats found${playerName ? ` for "${playerName}"` : ''}.`;
+      }
 
-      // Pivot: group by player + season, then list stats as columns
+      // Pivot: one row per player+school+season, stats as columns.
       const pivoted = new Map<string, Record<string, unknown>>();
       for (const row of data) {
         // CFBD rows have no player_id; key on name+school+season.
@@ -1521,13 +1534,22 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
             season: row.season,
           });
         }
-        const entry = pivoted.get(key)!;
-        entry[row.statistic] = row.value;
+        pivoted.get(key)![row.statistic] = row.value;
       }
 
-      const rows = Array.from(pivoted.values());
-      rows.sort((a, b) => (a.season as number) - (b.season as number));
-      return `College stats for "${playerName}" (${rows.length} season-rows):\n\n${renderTable(input,rows)}`;
+      let rows = Array.from(pivoted.values());
+      // Rank a cohort by a stat column (e.g. "Rushing Yards"), else by season.
+      if (sortBy) {
+        rows.sort((a, b) => Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0));
+      } else {
+        rows.sort((a, b) => (a.season as number) - (b.season as number));
+      }
+      rows = rows.slice(0, limit); // limit applies to player-seasons, not raw rows
+
+      const scope = playerName
+        ? `for "${playerName}"`
+        : `cohort ${[season, position, school].filter(Boolean).join(' / ')}`;
+      return `College stats ${scope} (${rows.length} player-seasons):\n\n${renderTable(input,rows)}`;
     }
 
     case 'get_college_qbr': {
