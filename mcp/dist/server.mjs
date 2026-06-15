@@ -38513,6 +38513,22 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_rookie_class",
+    description: "One-call rookie-class join: NFL draft picks for a draft year + combine testing + that player's rookie-season (same year) production \u2014 so you don't have to join draft, combine, and stats by hand. Skill positions (QB/RB/WR/TE) by default. Each row carries pfr_id for joining to other tools. Great for prospect/dynasty evaluation and hit-rate analysis.",
+    input_schema: {
+      type: "object",
+      properties: {
+        draft_year: { type: "number", description: "Draft year (= rookie NFL season). Coverage from ~2000." },
+        position: { type: "string", description: "Filter to a position", enum: ["QB", "RB", "WR", "TE"] },
+        round: { type: "number", description: "Filter to a draft round" },
+        player_name: { type: "string", description: "Filter to one player" },
+        sort_by: { type: "string", description: "Sort column. Lower-is-better fields (pick, round, forty) sort ascending; production fields (rookie_ppr, rookie_rush_yds, \u2026) descending. Default: pick." },
+        limit: { type: "number", description: "Max players (default 60)" }
+      },
+      required: ["draft_year"]
+    }
+  },
+  {
     name: "get_injuries",
     description: "Get weekly injury reports. Includes injury type, practice status, game status. Use for injury impact analysis, availability questions.",
     input_schema: {
@@ -38991,6 +39007,7 @@ async function executeToolInner(name, input) {
       });
       totals = totals.slice(0, limit);
       const cols = [
+        "player_id",
         "player_display_name",
         "position",
         "recent_team",
@@ -39138,11 +39155,73 @@ ${renderTable(input, rows, cols)}`;
       if (round) picks = picks.filter((p) => p.round === round);
       if (playerName) picks = picks.filter((p) => nameMatch(p.pfr_player_name, playerName));
       picks = picks.slice(0, limit);
-      const cols = ["season", "round", "pick", "team", "pfr_player_name", "position", "college", "age", "games", "car_av", "probowls", "allpro"];
+      const cols = ["season", "round", "pick", "team", "pfr_player_name", "pfr_player_id", "position", "college", "age", "games", "car_av", "probowls", "allpro"];
       const rows = picks.map((p) => pickColumns(p, cols));
       return `Draft picks (${picks.length} entries):
 
 ${renderTable(input, rows, cols)}`;
+    }
+    case "get_rookie_class": {
+      const draftYear = input.draft_year;
+      const position = input.position?.toUpperCase();
+      const round = input.round;
+      const playerName = input.player_name;
+      const sortBy = input.sort_by || "pick";
+      const limit = clamp(input.limit || 60, 1, 200);
+      const SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE"]);
+      const [picks, combine, statsRaw] = await Promise.all([
+        fetchDraftPicks(),
+        fetchCombine(),
+        fetchPlayerStats(draftYear).catch(() => [])
+      ]);
+      const combineById = new Map(combine.map((c) => [c.pfr_id, c]));
+      const totals = aggregateToSeasonTotals(statsRaw.filter((s) => s.season_type === "REG"));
+      const statsByName = /* @__PURE__ */ new Map();
+      for (const t of totals) statsByName.set(normalizeNameForMatch(t.player_display_name), t);
+      let classPicks = picks.filter((p) => p.season === draftYear);
+      classPicks = position ? classPicks.filter((p) => p.position === position) : classPicks.filter((p) => SKILL.has(p.position));
+      if (round) classPicks = classPicks.filter((p) => p.round === round);
+      if (playerName) classPicks = classPicks.filter((p) => nameMatch(p.pfr_player_name, playerName));
+      const num = (v) => typeof v === "number" && Number.isFinite(v) ? v : "";
+      let rows = classPicks.map((p) => {
+        const c = combineById.get(p.pfr_player_id);
+        const st = statsByName.get(normalizeNameForMatch(p.pfr_player_name));
+        return {
+          round: p.round,
+          pick: p.pick,
+          team: p.team,
+          player: p.pfr_player_name,
+          pos: p.position,
+          college: p.college,
+          age: num(p.age),
+          forty: c ? num(c.forty) : "",
+          vertical: c ? num(c.vertical) : "",
+          wt: c ? num(c.wt) : "",
+          rookie_games: st ? num(st.games) : "",
+          rookie_rush_yds: st ? num(st.rushing_yards) : "",
+          rookie_rec: st ? num(st.receptions) : "",
+          rookie_rec_yds: st ? num(st.receiving_yards) : "",
+          rookie_pass_yds: st ? num(st.passing_yards) : "",
+          rookie_ppr: st ? num(st.fantasy_points_ppr) : "",
+          pfr_id: p.pfr_player_id
+        };
+      });
+      const ASC = /* @__PURE__ */ new Set(["pick", "round", "forty", "age"]);
+      const dir = ASC.has(sortBy) ? 1 : -1;
+      rows.sort((a, b) => {
+        const an = a[sortBy];
+        const bn = b[sortBy];
+        const aok = typeof an === "number" && Number.isFinite(an);
+        const bok = typeof bn === "number" && Number.isFinite(bn);
+        if (!aok && !bok) return 0;
+        if (!aok) return 1;
+        if (!bok) return -1;
+        return (an - bn) * dir;
+      });
+      rows = rows.slice(0, limit);
+      return `Rookie class ${draftYear}${position ? ` (${position})` : ""} (${rows.length} players, sorted by ${sortBy}):
+
+${renderTable(input, rows)}`;
     }
     case "get_injuries": {
       const season = input.season;
@@ -40003,7 +40082,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.10"
+  version: "1.0.11"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
