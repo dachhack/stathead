@@ -71,6 +71,20 @@ const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'l
 // In Node.js (build scripts), check if local files exist in public/data/
 const IS_NODE = typeof window === 'undefined';
 
+// Base URL for committed `/data/` snapshots. In the Vite bundle this is
+// `import.meta.env.BASE_URL`. Outside Vite (the MCP server / standalone
+// scripts run via tsx) that's undefined, so fall back to the hosted site —
+// this lets `stathead-mcp` serve data without a multi-GB local checkout.
+// Override with STATHEAD_DATA_BASE (must end in `/`).
+const HOSTED_DATA_BASE =
+  (IS_NODE && typeof process !== 'undefined'
+    ? process.env.STATHEAD_DATA_BASE
+    : undefined) ?? 'https://stathead.app/';
+
+function dataBase(): string {
+  return import.meta.env?.BASE_URL ?? HOSTED_DATA_BASE;
+}
+
 /** Read a local file in Node, returns null if not found. Transparently
  *  decompresses a sibling .gz variant — the raw CSV sources are committed
  *  compressed (see scripts/pull-all-data-sources.sh). */
@@ -264,14 +278,17 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   if (localText) {
     try { return JSON.parse(localText) as T; } catch { return null; }
   }
-  if (!IS_PROD) return null;
+  // Browser dev server (localhost) has no hosted snapshots to hit; Node and
+  // prod both fetch from the resolved data base.
+  if (!IS_PROD && !IS_NODE) return null;
   try {
-    const resp = await fetchWithTimeout(`${import.meta.env.BASE_URL}data/${filename}`);
+    const base = dataBase();
+    const resp = await fetchWithTimeout(`${base}data/${filename}`);
     if (resp.ok) return await resp.json();
     // Oversized files are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is absent,
-    // fall back to the .gz sibling and inflate it in the browser.
-    const gz = await fetchWithTimeout(`${import.meta.env.BASE_URL}data/${filename}.gz`);
+    // fall back to the .gz sibling and inflate it.
+    const gz = await fetchWithTimeout(`${base}data/${filename}.gz`);
     if (gz.ok && gz.body) {
       const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
       return JSON.parse(text) as T;

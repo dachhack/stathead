@@ -1,11 +1,81 @@
-# React + TypeScript + Vite
+# StatHead
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**An open NFL fantasy-football analytics platform** — live data, machine-learned
+projections, dynasty values, and prospect grades, served as a web app **and** as
+an [MCP](https://modelcontextprotocol.io) server you can plug straight into
+Claude or any AI client.
 
-Currently, two official plugins are available:
+- 🌐 **Web app** — [stathead.app](https://stathead.app)
+  ([QA mirror](https://dachhack.github.io/stathead/))
+- 🤖 **MCP server** — 27 NFL tools for AI projects → [`mcp/`](mcp/)
+- 🧠 **ML pipeline** — projection / dynasty-value / prospect models trained from
+  10+ seasons of data
+- 📦 **MIT-licensed code.** ⚠️ The **data** has its own terms —
+  see [`DATA_SOURCES.md`](DATA_SOURCES.md) before redistributing anything.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
+
+## Use it in your own AI project (MCP)
+
+The fastest way to build on StatHead. No clone, no build:
+
+```bash
+npx -y stathead-mcp
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add stathead -- npx -y stathead-mcp
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "stathead": { "command": "npx", "args": ["-y", "stathead-mcp"] }
+  }
+}
+```
+
+Then ask things like *"Compare Bijan Robinson's and Jahmyr Gibbs' weekly
+consistency in 2024"* or *"Top 10 dynasty WRs by FantasyCalc value, with their
+ages."* Full tool list and configuration: [`mcp/README.md`](mcp/README.md).
+
+## Run the web app locally
+
+```bash
+npm install
+npm run dev          # Vite dev server
+```
+
+Other useful scripts:
+
+| Script | What it does |
+| --- | --- |
+| `npm run build` | Production build (semantic layer → features → tsc → vite → Pages post-build) |
+| `npm run build:mcp` | Bundle the MCP server → `mcp/dist/server.mjs` |
+| `npm run mcp` | Run the MCP server from source (`tsx`) |
+| `npm run lint` | ESLint |
+| `npm run data:local` | Download data sources for local work |
+
+The repo is a TypeScript/React (Vite) front end plus a TypeScript + Python data
+& ML pipeline under [`scripts/`](scripts/) and [`python/`](python/). The same
+tool layer (`src/tools.ts` → `src/data.ts`) backs both the app and the MCP
+server.
+
+## Data
+
+StatHead pulls from many upstreams — open data (nflverse, DynastyProcess, CFBD),
+public APIs (Sleeper, ESPN, FantasyFootballCalculator), proprietary community
+values (KeepTradeCut, FantasyCalc), and derived features from paid scouting
+products. **Licensing varies a lot by source.**
+
+👉 **Read [`DATA_SOURCES.md`](DATA_SOURCES.md) before redistributing data,
+publishing a dataset, or shipping a commercial product.** The short version:
+share the open sources and StatHead's own model outputs freely; fetch the rest
+from the original source under your own access rather than rebundling it.
 
 ## Data proxies (self-hosting)
 
@@ -49,67 +119,9 @@ push builds for the root domain and uploads to Cloudflare Pages. See the
 header of [`deploy-prod.yml`](.github/workflows/deploy-prod.yml) for the
 one-time Cloudflare Pages + DNS setup.
 
-## React Compiler
+## License
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Code is [MIT](LICENSE). Data is **not** covered by that license — see
+[`DATA_SOURCES.md`](DATA_SOURCES.md). The name "Stathead" may conflict with
+[Sports Reference's Stathead](https://stathead.com) trademark; see the note in
+that file.

@@ -1,5 +1,8 @@
 node_modules
 dist
+# ...except the published MCP server bundle (the distributable artifact).
+!mcp/dist/
+!mcp/dist/server.mjs
 .DS_Store
 *.local
 .env

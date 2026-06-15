@@ -1,0 +1,34 @@
+{
+  "name": "stathead-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing StatHead NFL fantasy analytics (player stats, play-by-play, Next Gen Stats, dynasty values, projections, prospects) to Claude and any MCP client.",
+  "license": "MIT",
+  "author": "dachhack",
+  "homepage": "https://github.com/dachhack/stathead/tree/main/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dachhack/stathead.git",
+    "directory": "mcp"
+  },
+  "type": "module",
+  "bin": {
+    "stathead-mcp": "dist/server.mjs"
+  },
+  "files": [
+    "dist/server.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "nfl",
+    "fantasy-football",
+    "dynasty",
+    "sports-analytics",
+    "claude",
+    "ai"
+  ]
+}
