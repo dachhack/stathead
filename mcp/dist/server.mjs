@@ -38786,17 +38786,18 @@ var NFL_TOOLS = [
   },
   {
     name: "get_college_stats",
-    description: "Get college football statistics for NFL draft prospects. Includes counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. Use for evaluating college production, dominator rating, market share analysis.",
+    description: 'Get college football statistics for individual players OR a whole class/cohort. Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit player_name and pass season (optionally position/school) and sort_by to rank. Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
       type: "object",
       properties: {
-        player_name: { type: "string", description: "Filter by player name (required \u2014 dataset is large)" },
-        season: { type: "number", description: "Filter to specific college season" },
-        position: { type: "string", description: "Filter by position abbreviation" },
-        school: { type: "string", description: "Filter by school abbreviation" },
-        limit: { type: "number", description: "Max rows (default 100)" }
+        player_name: { type: "string", description: "Filter to one player. Omit for a class/cohort query (then season and/or school is required)." },
+        season: { type: "number", description: "College season. Required for cohort queries (when player_name is omitted)." },
+        position: { type: "string", description: "Filter by position abbreviation (e.g. RB, WR, QB)" },
+        school: { type: "string", description: "Filter by school name/abbreviation" },
+        sort_by: { type: "string", description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Default: season.' },
+        limit: { type: "number", description: "Max player-seasons (default 100)" }
       },
-      required: ["player_name"]
+      required: []
     }
   },
   {
@@ -39869,14 +39870,19 @@ ${renderTable(input, rows, cols)}`;
       const season = input.season;
       const position = input.position;
       const school = input.school;
+      const sortBy = input.sort_by;
       const limit = clamp(input.limit || 100, 1, 500);
+      if (!playerName && !season && !school) {
+        return "Provide player_name for one player, OR season (optionally with position/school) for a class/cohort query.";
+      }
       let data = await fetchCfbdCollegeStats();
-      data = data.filter((d) => nameMatch(d.player_name, playerName));
+      if (playerName) data = data.filter((d) => nameMatch(d.player_name, playerName));
       if (season) data = data.filter((d) => d.season === season);
       if (position) data = data.filter((d) => d.pos_abbr === position.toUpperCase());
       if (school) data = data.filter((d) => nameMatch(d.school_abbr || "", school) || nameMatch(d.school, school));
-      data = data.slice(0, limit);
-      if (data.length === 0) return `No college stats found for "${playerName}".`;
+      if (data.length === 0) {
+        return `No college stats found${playerName ? ` for "${playerName}"` : ""}.`;
+      }
       const pivoted = /* @__PURE__ */ new Map();
       for (const row of data) {
         const key = `${row.player_name}-${row.school}-${row.season}`;
@@ -39888,12 +39894,17 @@ ${renderTable(input, rows, cols)}`;
             season: row.season
           });
         }
-        const entry = pivoted.get(key);
-        entry[row.statistic] = row.value;
+        pivoted.get(key)[row.statistic] = row.value;
       }
-      const rows = Array.from(pivoted.values());
-      rows.sort((a, b) => a.season - b.season);
-      return `College stats for "${playerName}" (${rows.length} season-rows):
+      let rows = Array.from(pivoted.values());
+      if (sortBy) {
+        rows.sort((a, b) => Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0));
+      } else {
+        rows.sort((a, b) => a.season - b.season);
+      }
+      rows = rows.slice(0, limit);
+      const scope = playerName ? `for "${playerName}"` : `cohort ${[season, position, school].filter(Boolean).join(" / ")}`;
+      return `College stats ${scope} (${rows.length} player-seasons):
 
 ${renderTable(input, rows)}`;
     }
@@ -39992,7 +40003,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.9"
+  version: "1.0.10"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
