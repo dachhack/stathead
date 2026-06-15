@@ -167,6 +167,25 @@ const LOADERS: { fn: string; desc: string }[] = [
   { fn: 'load_manual_overrides()', desc: 'Manual CFBD usage overrides' },
 ];
 
+const MCP_CONFIG = `{
+  "mcpServers": {
+    "stathead": {
+      "command": "npx",
+      "args": ["-y", "stathead-mcp"]
+    }
+  }
+}`;
+
+const MCP_TOOLS: { fn: string; desc: string }[] = [
+  { fn: 'get_player_metrics', desc: 'Advanced per-player metrics: NGS, snaps, EPA, routes' },
+  { fn: 'get_prospect_outcomes', desc: 'Calibrated rookie boom/bust probabilities + grades' },
+  { fn: 'get_projections', desc: 'Season PPG projections + scenario presets (Vegas, Consensus…)' },
+  { fn: 'get_dynasty_values', desc: 'In-house blended dynasty trade values (1QB + SF)' },
+  { fn: 'get_rookie_snap_share', desc: 'Weekly rookie snap-share ramp tracker' },
+  { fn: 'get_play_by_play', desc: 'Filterable play-by-play (player, red zone, down…)' },
+  { fn: 'get_metadata', desc: 'Capabilities, coverage, and analytic caveats' },
+];
+
 const linkStyle: React.CSSProperties = {
   background: 'transparent',
   border: 'none',
@@ -288,6 +307,68 @@ export function HomePage({ onNavigate }: HomePageProps) {
             python/
           </a>{' '}
           in the repo.
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '20px 22px',
+        }}
+      >
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, marginBottom: 4 }}>
+          MCP server{' '}
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>— for Claude &amp; AI assistants</span>
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, marginBottom: 14, lineHeight: 1.55 }}>
+          Query StatHead&apos;s analytics straight from Claude (or any{' '}
+          <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>MCP</a>{' '}
+          client) — player stats, play-by-play, Next Gen Stats, snap counts, dynasty values, calibrated prospect
+          outcomes, season projections with scenario presets, and more. Published to npm as{' '}
+          <code style={{ background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 3 }}>stathead-mcp</code>{' '}
+          — no clone, no API key.
+        </p>
+
+        <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Add to Claude Desktop / Code
+        </h3>
+        <pre
+          style={{
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            padding: '12px 14px',
+            fontSize: 12,
+            lineHeight: 1.55,
+            overflow: 'auto',
+            margin: 0,
+            marginBottom: 16,
+          }}
+        >
+          <code>{MCP_CONFIG}</code>
+        </pre>
+
+        <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Sample tools
+        </h3>
+        <div style={{ display: 'grid', gap: 6, fontSize: 12 }}>
+          {MCP_TOOLS.map((t) => (
+            <div key={t.fn} className="py-loader">
+              <code style={{ color: '#6366f1', fontWeight: 600 }}>{t.fn}</code>
+              <span style={{ color: 'var(--text-secondary)' }}>{t.desc}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="py-note" style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
+          Or just run it: <code>npx -y stathead-mcp</code>. ~30 tools total, calibrated and documented (call{' '}
+          <code>get_metadata</code> first to scope a question). On{' '}
+          <a href="https://www.npmjs.com/package/stathead-mcp" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>npm</a>{' '}
+          · source in{' '}
+          <a href="https://github.com/dachhack/stathead/tree/main/mcp" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>mcp/</a>.
         </div>
       </div>
 
