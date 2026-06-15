@@ -11,14 +11,14 @@ go.
 
 ## What you get
 
-28 tools spanning player and team data, including:
+27 tools spanning player and team data, including:
 
 | Area | Tools |
 | --- | --- |
 | Discovery | `get_metadata` — sources, season coverage, and valid enums (call this first to scope a question) |
 | Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, depth charts |
 | Games & plays | schedules/results, play-by-play, participation, FTN charting |
-| Fantasy | FantasyCalc & KeepTradeCut dynasty values, ADP (FFC / ESPN / Sleeper), trending adds/drops, projections |
+| Fantasy | StatHead blended dynasty values, ADP (FFC / ESPN / Sleeper), trending adds/drops, projections |
 | Draft & college | draft picks, prospect profiles, combine results, college stats, QBR |
 
 ## Quick start

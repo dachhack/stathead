@@ -7,7 +7,7 @@ Claude or any AI client.
 
 - 🌐 **Web app** — [stathead.app](https://stathead.app)
   ([QA mirror](https://dachhack.github.io/stathead/))
-- 🤖 **MCP server** — 28 NFL tools for AI projects → [`mcp/`](mcp/)
+- 🤖 **MCP server** — 27 NFL tools for AI projects → [`mcp/`](mcp/)
 - 🧠 **ML pipeline** — projection / dynasty-value / prospect models trained from
   10+ seasons of data
 - 📦 **MIT-licensed code.** ⚠️ The **data** has its own terms —
@@ -40,7 +40,7 @@ claude mcp add stathead -- npx -y stathead-mcp
 ```
 
 Then ask things like *"Compare Bijan Robinson's and Jahmyr Gibbs' weekly
-consistency in 2024"* or *"Top 10 dynasty WRs by FantasyCalc value, with their
+consistency in 2024"* or *"Top 10 dynasty WRs by StatHead value, with their
 ages."* Full tool list and configuration: [`mcp/README.md`](mcp/README.md).
 
 ## Run the web app locally

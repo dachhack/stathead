@@ -9,7 +9,7 @@ import {
   fetchSnapCounts, fetchCombine, fetchDraftPicks, fetchInjuries,
   fetchAdvancedStats, fetchAdvancedStatsSeason, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
-  fetchKTCRankingsForDisplay, fetchFantasyCalcValues, fetchFfcADP, fetchEspnADP,
+  fetchKTCRankingsForDisplay, fetchFfcADP, fetchEspnADP,
   fetchNextGenStats, fetchRosters, fetchContracts,
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
   fetchPbpParticipation,
@@ -293,27 +293,6 @@ export const NFL_TOOLS: Tool[] = [
         format: { type: 'string', description: 'Format', enum: ['1qb', 'superflex'] },
         position: { type: 'string', description: 'Filter by position' },
         player_name: { type: 'string', description: 'Filter by player name' },
-        limit: { type: 'number', description: 'Max rows (default 50)' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'get_fantasycalc_values',
-    description:
-      'Get FantasyCalc trade values — algorithm-generated from ~1M real fantasy trades. ' +
-      'Supports dynasty and redraft, 1QB and superflex, various league sizes and PPR settings. ' +
-      'Returns value, rank, 30-day trend, redraft value, and player details. ' +
-      'Use alongside the market dynasty values for cross-source dynasty value comparisons.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        is_dynasty: { type: 'boolean', description: 'Dynasty (true) or redraft (false). Default: true' },
-        num_qbs: { type: 'number', description: 'Number of QBs: 1 (1QB) or 2 (superflex). Default: 1', enum: [1, 2] },
-        num_teams: { type: 'number', description: 'League size (8, 10, 12, 14, 16). Default: 12', enum: [8, 10, 12, 14, 16] },
-        ppr: { type: 'number', description: 'PPR scoring: 0, 0.5, or 1. Default: 1', enum: [0, 0.5, 1] },
-        position: { type: 'string', description: 'Filter by position: QB, RB, WR, TE', enum: ['QB', 'RB', 'WR', 'TE'] },
-        player_name: { type: 'string', description: 'Filter by player name (case-insensitive partial match)' },
         limit: { type: 'number', description: 'Max rows (default 50)' },
       },
       required: [],
@@ -1080,36 +1059,6 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const cols = ['playerName', 'position', 'positionRank', 'team', 'age', 'value', 'superflexValue', 'isRookie'];
       const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
       return `StatHead dynasty values (${format}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
-    }
-
-    case 'get_fantasycalc_values': {
-      const isDynasty = input.is_dynasty !== false;
-      const numQbs = (input.num_qbs as 1 | 2) || 1;
-      const numTeams = (input.num_teams as number) || 12;
-      const ppr = (input.ppr as 0 | 0.5 | 1) ?? 1;
-      const position = input.position as string | undefined;
-      const playerName = input.player_name as string | undefined;
-      const limit = clamp((input.limit as number) || 50, 1, 200);
-
-      let data = await fetchFantasyCalcValues(isDynasty, numQbs, numTeams, ppr);
-      if (position) data = data.filter((d) => d.player.position === position.toUpperCase());
-      if (playerName) data = data.filter((d) => nameMatch(d.player.name, playerName));
-      data = data.slice(0, limit);
-
-      const cols = ['name', 'position', 'team', 'age', 'value', 'overallRank', 'positionRank', 'trend30Day', 'redraftValue'];
-      const rows = data.map((d) => ({
-        name: d.player.name,
-        position: d.player.position,
-        team: d.player.maybeTeam || '',
-        age: d.player.maybeAge || '',
-        value: d.value,
-        overallRank: d.overallRank,
-        positionRank: d.positionRank,
-        trend30Day: d.trend30Day,
-        redraftValue: d.redraftValue,
-      }));
-      const label = `${isDynasty ? 'dynasty' : 'redraft'}, ${numQbs === 2 ? 'SF' : '1QB'}, ${numTeams}-team, ${ppr}PPR`;
-      return `FantasyCalc values (${label}, ${data.length} players):\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_next_gen_stats': {

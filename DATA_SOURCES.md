@@ -81,6 +81,15 @@ and consider whether your usage fits their terms.
 - **[FantasyCalc](https://fantasycalc.com)** — dynasty/redraft trade values
   (`public/data/fantasycalc_*`).
 
+> **MCP exposure (important):** the `stathead-mcp` package does **not** serve
+> these raw feeds. `get_dynasty_values` returns StatHead's **blended** value
+> (KTC rescaled to FantasyCalc's scale via `ktc-fc-rescale.json`), labeled as
+> StatHead's own — the same value the website shows. The raw KTC/FantasyCalc
+> snapshots are inputs used to *compute* that blend, not redistributed verbatim
+> through the tools. A standalone raw-FantasyCalc tool was removed for this
+> reason. (The blend is still *derived* from these sources, so the providers'
+> terms still inform what you should do with it.)
+
 ## 🔴 Paid products — never redistribute the source
 
 These are **paid** products. StatHead already handles them carefully and you
