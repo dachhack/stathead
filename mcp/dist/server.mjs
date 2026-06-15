@@ -37548,6 +37548,10 @@ async function fetchInjuries(season) {
 async function fetchAdvancedStats(season, type = "pass") {
   return fetchCsv(nflUrl(`pfr_advstats/advstats_week_${type}_${season}.csv`));
 }
+async function fetchAdvancedStatsSeason(season, type = "pass") {
+  const all = await fetchCsv(nflUrl(`pfr_advstats/advstats_season_${type}.csv`));
+  return all.filter((s) => s.season === season);
+}
 async function fetchPlayByPlay(season) {
   const url2 = nflUrl(`pbp/play_by_play_${season}.csv`);
   const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
@@ -38465,7 +38469,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_draft_picks",
-    description: "Get historical NFL draft picks with career outcomes. Includes round, pick, team, college, career approximate value, Pro Bowls, All-Pro selections, Hall of Fame status. Use for draft analysis, career success by pick, team drafting history.",
+    description: "Get historical NFL draft picks with career outcomes. Includes round, pick, team, college, career approximate value (car_av), Pro Bowls, All-Pro selections, Hall of Fame status. Note: career columns (car_av, pro_bowls, etc.) are cumulative and are blank/low for recent draftees who are still active \u2014 they populate as careers progress. Use for draft analysis, career success by pick, team drafting history.",
     input_schema: {
       type: "object",
       properties: {
@@ -38501,12 +38505,13 @@ var NFL_TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        season: { type: "number", description: "NFL season year (2018+)" },
+        season: { type: "number", description: "NFL season year. Coverage: 2018\u2013present." },
         stat_type: {
           type: "string",
           description: "Type of advanced stats",
           enum: ["pass", "rush", "rec", "def"]
         },
+        season_totals: { type: "boolean", description: "Return one row per player of PFR season totals (default true). Set false for per-game rows." },
         player_name: { type: "string", description: "Filter by player name" },
         limit: { type: "number", description: "Max rows (default 40)" }
       },
@@ -38810,8 +38815,11 @@ var NFL_TOOLS = [
     }
   }
 ];
+function normalizeNameForMatch(s) {
+  return s.toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
+}
 function nameMatch(fullName, query) {
-  return fullName.toLowerCase().includes(query.toLowerCase());
+  return normalizeNameForMatch(fullName).includes(normalizeNameForMatch(query));
 }
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -39093,17 +39101,20 @@ ${toMarkdownTable(rows, cols)}`;
       const season = input.season;
       const statType = input.stat_type;
       const playerName = input.player_name;
+      const seasonTotals = input.season_totals !== false;
       const limit = clamp(input.limit || 40, 1, 100);
-      let stats = await fetchAdvancedStats(season, statType);
+      let stats = seasonTotals ? await fetchAdvancedStatsSeason(season, statType) : await fetchAdvancedStats(season, statType);
       if (playerName) {
-        stats = stats.filter((s) => nameMatch(
-          s.pfr_player_name || "",
-          playerName
-        ));
+        stats = stats.filter((s) => {
+          const r = s;
+          const nm = r.pfr_player_name ?? r.player ?? "";
+          return nameMatch(nm, playerName);
+        });
       }
       stats = stats.slice(0, limit);
       const rows = stats;
-      return `Advanced ${statType} stats for ${season} (${stats.length} entries):
+      const mode = seasonTotals ? "season totals" : "per-game";
+      return `Advanced ${statType} stats for ${season} (${mode}, ${stats.length} entries):
 
 ${toMarkdownTable(rows)}`;
     }
@@ -39945,7 +39956,7 @@ ${toMarkdownTable(rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.5"
+  version: "1.0.6"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};

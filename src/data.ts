@@ -545,6 +545,16 @@ export async function fetchAdvancedStats(
   return fetchCsv<AdvancedStats>(nflUrl(`pfr_advstats/advstats_week_${type}_${season}.csv`));
 }
 
+// PFR's own season-level advanced-stats aggregates (one file, all seasons,
+// correct rate stats — and carries a canonical pfr_id). Filtered by season.
+export async function fetchAdvancedStatsSeason(
+  season: number,
+  type: 'pass' | 'rush' | 'rec' | 'def' = 'pass'
+): Promise<AdvancedStats[]> {
+  const all = await fetchCsv<AdvancedStats>(nflUrl(`pfr_advstats/advstats_season_${type}.csv`));
+  return all.filter((s) => (s as unknown as Record<string, unknown>).season === season);
+}
+
 // --- Play-by-Play ---
 export async function fetchPlayByPlay(season: number): Promise<PlayByPlay[]> {
   const url = nflUrl(`pbp/play_by_play_${season}.csv`);
