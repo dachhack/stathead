@@ -9,6 +9,7 @@ dist
 !.env.example
 public/data/*
 !public/data/schedule-*.json
+!public/data/redraft-projections-presets.json
 !public/data/clay-projections-*.json
 !public/data/clay-unit-grades-*.json
 !public/data/clay-matchups-*.json

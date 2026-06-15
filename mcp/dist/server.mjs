@@ -38078,6 +38078,9 @@ async function fetchProspectGrades(year) {
 async function fetchStatheadProjections() {
   return await tryPreFetched("redraft-projections.json");
 }
+async function fetchProjectionPresets() {
+  return await tryPreFetched("redraft-projections-presets.json");
+}
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
 }
@@ -38886,7 +38889,7 @@ var NFL_TOOLS = [
       properties: {
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
-        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts to the projection. "vegas-weighted" regresses each player 25% toward their position mean (conservative, market-efficient). Omit for the unadjusted base model.', enum: ["vegas-weighted"] },
+        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts. "vegas-weighted" regresses each player 25% toward their position mean (conservative, market-efficient). "consensus" blends StatHead\'s projection toward market consensus via internal per-position weights (a derived StatHead output). Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus"] },
         sort_by: { type: "string", description: "Sort column, descending. Default: ppg." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
@@ -40170,31 +40173,50 @@ ${renderTable(input, rows)}`;
       const playerName = input.player_name;
       const preset = input.preset?.toLowerCase();
       const limit = clamp(input.limit || 50, 1, 300);
-      const doc = await fetchStatheadProjections();
-      if (!doc || !doc.players?.length) {
-        return "No StatHead projections available.";
-      }
       const sortBy = input.sort_by || "ppg";
-      let pool = doc.players;
+      let pool;
+      let season;
+      let scoring = "PPR";
+      let baseNote = "";
       let presetNote = "";
-      if (preset === "vegas-weighted" || preset === "vegas") {
-        const VEGAS_FACTOR = 0.25;
-        const sumByPos = /* @__PURE__ */ new Map();
-        const cntByPos = /* @__PURE__ */ new Map();
-        for (const p of pool) {
-          const v = Number(p.ppg);
-          if (!Number.isFinite(v)) continue;
-          sumByPos.set(p.position, (sumByPos.get(p.position) || 0) + v);
-          cntByPos.set(p.position, (cntByPos.get(p.position) || 0) + 1);
+      if (preset === "consensus") {
+        const pdoc = await fetchProjectionPresets();
+        const cons = pdoc?.presets?.consensus;
+        if (!cons?.length) {
+          return "No consensus-preset projections available.";
         }
-        pool = pool.map((p) => {
-          const v = Number(p.ppg);
-          const n = cntByPos.get(p.position) || 0;
-          if (!Number.isFinite(v) || n === 0) return p;
-          const mean = sumByPos.get(p.position) / n;
-          return { ...p, ppg: Math.round((v + (mean - v) * VEGAS_FACTOR) * 10) / 10 };
-        });
-        presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
+        pool = cons;
+        season = pdoc.season;
+        baseNote = pdoc.note || "";
+        presetNote = ' Preset "Consensus" applied: StatHead\'s projection blended toward market consensus via internal per-position weights (a derived StatHead output, not a raw third-party feed).';
+      } else {
+        const doc = await fetchStatheadProjections();
+        if (!doc || !doc.players?.length) {
+          return "No StatHead projections available.";
+        }
+        season = doc.season;
+        scoring = (doc.scoring || "ppr").toUpperCase();
+        baseNote = doc.note || "";
+        pool = doc.players;
+        if (preset === "vegas-weighted" || preset === "vegas") {
+          const VEGAS_FACTOR = 0.25;
+          const sumByPos = /* @__PURE__ */ new Map();
+          const cntByPos = /* @__PURE__ */ new Map();
+          for (const p of pool) {
+            const v = Number(p.ppg);
+            if (!Number.isFinite(v)) continue;
+            sumByPos.set(p.position, (sumByPos.get(p.position) || 0) + v);
+            cntByPos.set(p.position, (cntByPos.get(p.position) || 0) + 1);
+          }
+          pool = pool.map((p) => {
+            const v = Number(p.ppg);
+            const n = cntByPos.get(p.position) || 0;
+            if (!Number.isFinite(v) || n === 0) return p;
+            const mean = sumByPos.get(p.position) / n;
+            return { ...p, ppg: Math.round((v + (mean - v) * VEGAS_FACTOR) * 10) / 10 };
+          });
+          presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
+        }
       }
       let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
       rows.sort((a, b) => {
@@ -40210,8 +40232,7 @@ ${renderTable(input, rows)}`;
       rows = rows.slice(0, limit);
       const cols = ["name", "position", "ppg", "recPG"];
       const out = rows.map((r) => pickColumns(r, cols));
-      const scoring = (doc.scoring || "ppr").toUpperCase();
-      return `StatHead projections — ${doc.season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${doc.note || ""}
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}
 
 ${renderTable(input, out, cols)}`;
     }
@@ -40360,7 +40381,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.21"
+  version: "1.0.22"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
