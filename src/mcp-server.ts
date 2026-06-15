@@ -2,7 +2,15 @@
 /**
  * MCP Server for StatHead NFL analytics tools.
  *
- * Exposes all NFL data tools (player stats, play-by-play, NGS, FantasyCalc, team metrics, etc.)
+ * ⚠️ SOURCE OF TRUTH: the PUBLISHED server is the hand-maintained bundle
+ * `mcp/dist/server.mjs`. As of 1.0.16+ that bundle is edited directly and is
+ * NOT regenerated from this file — `npm run build:mcp` only validates the
+ * committed bundle (esbuild rebuild moved to `build:mcp:from-src`, kept only
+ * for reference). This file + `./tools.ts` are frozen at the 1.0.15 toolset and
+ * survive solely because the (dormant) website ChatDrawer still imports them.
+ * To change the MCP server, edit `mcp/dist/server.mjs`.
+ *
+ * Exposes all NFL data tools (player stats, play-by-play, NGS, team metrics, etc.)
  * as an MCP server that works with Claude Desktop, Claude Code, or any MCP client.
  *
  * Usage:
@@ -13,8 +21,7 @@
  *     "mcpServers": {
  *       "stathead": {
  *         "command": "npx",
- *         "args": ["tsx", "src/mcp-server.ts"],
- *         "cwd": "/path/to/stathead"
+ *         "args": ["-y", "stathead-mcp"]
  *       }
  *     }
  *   }
