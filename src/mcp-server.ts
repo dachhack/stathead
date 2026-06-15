@@ -27,7 +27,7 @@ import { NFL_TOOLS, executeTool } from './tools.ts';
 
 const server = new McpServer({
   name: 'stathead',
-  version: '1.0.7',
+  version: '1.0.8',
 });
 
 /**

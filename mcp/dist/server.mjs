@@ -37292,6 +37292,42 @@ var ROOKIE_FEATURES = {
   ]
 };
 
+// src/lib/valueRescale.ts
+var POSITIONS = ["QB", "RB", "WR", "TE"];
+function isSupportedPosition(p) {
+  return POSITIONS.includes(p);
+}
+function makeRescaler(snap) {
+  const ratio2 = (playerID, ktcValue, position, fmt) => {
+    if (!isSupportedPosition(position)) return null;
+    const key = fmt === "1qb" ? "oneQB" : "sf";
+    const player = snap.perPlayer[playerID];
+    if (player && player[key] != null && ktcValue >= snap.floor) {
+      return player[key];
+    }
+    return snap.positional[position][key];
+  };
+  return {
+    ratio: ratio2,
+    value(playerID, ktcValue, position, fmt) {
+      const r = ratio2(playerID, ktcValue, position, fmt);
+      return r == null ? ktcValue : Math.round(ktcValue * r);
+    },
+    history(playerID, points, position, fmt) {
+      const r = ratio2(playerID, points[points.length - 1]?.v ?? 0, position, fmt);
+      if (r == null) return points;
+      return points.map((p) => ({ d: p.d, v: Math.round(p.v * r) }));
+    }
+  };
+}
+function rescaleKTCPlayer(p, r) {
+  return {
+    ...p,
+    value: r.value(p.playerID, p.value, p.position, "1qb"),
+    superflexValue: r.value(p.playerID, p.superflexValue, p.position, "superflex")
+  };
+}
+
 // src/data.ts
 var NFLVERSE_REMOTE = "https://github.com/nflverse/nflverse-data/releases/download";
 var DEFAULT_TIMEOUT = 3e4;
@@ -37898,6 +37934,22 @@ async function fetchKTCRankings(format = "1qb") {
   allPlayers.sort((a, b) => b.value - a.value);
   ktcCache.set(format, allPlayers);
   return allPlayers;
+}
+var _rescalerPromise = null;
+function loadRescaler() {
+  if (_rescalerPromise) return _rescalerPromise;
+  _rescalerPromise = tryPreFetched("ktc-fc-rescale.json").then((snap) => snap ? makeRescaler(snap) : null);
+  return _rescalerPromise;
+}
+async function fetchKTCRankingsForDisplay(format = "1qb") {
+  const [raw, rescaler] = await Promise.all([
+    fetchKTCRankings(format),
+    loadRescaler()
+  ]);
+  if (!rescaler) return raw;
+  const out = raw.map((p) => rescaleKTCPlayer(p, rescaler));
+  out.sort((a, b) => format === "1qb" ? b.value - a.value : b.superflexValue - a.superflexValue);
+  return out;
 }
 var fantasyCalcCache = /* @__PURE__ */ new Map();
 async function fetchFantasyCalcValues(isDynasty = true, numQbs = 1, numTeams = 12, ppr = 1) {
@@ -38592,7 +38644,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_dynasty_values",
-    description: "Get dynasty market player values and rankings. Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
+    description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
       type: "object",
       properties: {
@@ -38820,7 +38872,7 @@ var COMMON_OUTPUT_PARAMS = {
     type: "string",
     description: 'Comma-separated column names to return (projection), e.g. "player_name,games,fantasy_points_ppr". Omit to return all columns. Unknown names are ignored.'
   },
-  format: {
+  output_format: {
     type: "string",
     description: 'Output format: "table" (default markdown), "csv", or "jsonl". Use csv/jsonl for compact, token-efficient output on large pulls.',
     enum: ["table", "csv", "jsonl"]
@@ -38828,7 +38880,10 @@ var COMMON_OUTPUT_PARAMS = {
 };
 for (const t of NFL_TOOLS) {
   if (t.name === "get_metadata") continue;
-  Object.assign(t.input_schema.properties, COMMON_OUTPUT_PARAMS);
+  const props = t.input_schema.properties;
+  for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
+    if (!(k in props)) props[k] = v;
+  }
 }
 function normalizeNameForMatch(s) {
   return s.toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
@@ -38875,7 +38930,7 @@ function resolveCols(rows, cols, fields) {
 function renderTable(input, rows, cols) {
   if (rows.length === 0) return "(no results)";
   const effective = resolveCols(rows, cols, input.fields);
-  const fmt = String(input.format ?? "table").toLowerCase();
+  const fmt = String(input.output_format ?? "table").toLowerCase();
   if (fmt === "jsonl") {
     return rows.map((r) => JSON.stringify(Object.fromEntries(effective.map((c) => [c, r[c] ?? null])))).join("\n");
   }
@@ -38949,7 +39004,7 @@ async function executeToolInner(name, input) {
         "## Output control (all tools except get_metadata)",
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
-          "- `format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
+          "- `output_format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
         ].join("\n"),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog
@@ -39295,13 +39350,13 @@ ${renderTable(input, rows, cols)}`;
       const position = input.position;
       const playerName = input.player_name;
       const limit = clamp(input.limit || 50, 1, 200);
-      let data = await fetchKTCRankings(format);
+      let data = await fetchKTCRankingsForDisplay(format);
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
       if (playerName) data = data.filter((d) => nameMatch(d.playerName, playerName));
       data = data.slice(0, limit);
       const cols = ["playerName", "position", "positionRank", "team", "age", "value", "superflexValue", "isRookie"];
       const rows = data.map((d) => pickColumns(d, cols));
-      return `KTC dynasty values (${format}, ${data.length} players):
+      return `StatHead dynasty values (${format}, ${data.length} players):
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -40006,7 +40061,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.7"
+  version: "1.0.8"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
