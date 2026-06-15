@@ -38867,7 +38867,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_prospect_outcomes",
-    description: `StatHead's own prospect model: draft grade, tier, projected draft slot, and CALIBRATED boom/bust outcome probabilities (boomProb = modeled P(elite/boom outcome), bustProb = P(bust), outperfPctile = projected percentile vs draft slot). Use these instead of multiplying your own marginal factors into a "P(Hit)" \u2014 that is over-confident because factors are correlated (see get_metadata analytic caveats). Boom/bust probabilities cover the 2026 class; grades cover 2026 and 2027. Probabilities are model estimates, not certainties \u2014 treat as calibrated guidance.`,
+    description: `StatHead's own prospect model: draft grade, tier, projected draft slot, and CALIBRATED boom/bust probabilities. IMPORTANT \u2014 boomProb/bustProb/outperfPctile are RELATIVE to the player's draft slot, not absolute fantasy outcomes. boomProb = P(the player OUTPERFORMS the model's draft-slot-informed PPG expectation for a profile like this); bustProb = P(underperforms it); outperfPctile = percentile of that outperformance vs slot. So a Day-3 pick with a high boomProb is likely to beat Day-3 expectations \u2014 NOT likely to be an absolute fantasy star. For absolute expected value use grade / tier / projPick. Use these instead of multiplying your own marginal factors into a "P(Hit)" \u2014 that is over-confident because factors are correlated (see get_metadata analytic caveats). Boom/bust probabilities cover the 2026 class; grades cover 2026 and 2027. Probabilities are model estimates, not certainties \u2014 treat as calibrated guidance.`,
     input_schema: {
       type: "object",
       properties: {
@@ -39382,9 +39382,17 @@ ${renderTable(input, rows)}`;
       const limit = clamp(input.limit || 50, 1, 200);
       let plays = await fetchPlayByPlay(season);
       if (playerName) {
-        const q = playerName.toLowerCase();
+        const q = playerName.toLowerCase().trim();
+        const last = q.split(/\s+/).pop();
+        const matchName = (n) => {
+          const name = (n || "").toLowerCase();
+          if (!name) return false;
+          if (name.includes(q)) return true;
+          const surname = name.replace(/^[a-z]\.\s*/, "").trim();
+          return surname.length > 1 && (q.endsWith(surname) || surname.endsWith(last));
+        };
         plays = plays.filter(
-          (p) => (p.passer_player_name || "").toLowerCase().includes(q) || (p.rusher_player_name || "").toLowerCase().includes(q) || (p.receiver_player_name || "").toLowerCase().includes(q)
+          (p) => matchName(p.passer_player_name) || matchName(p.rusher_player_name) || matchName(p.receiver_player_name)
         );
       }
       if (team) plays = plays.filter((p) => p.posteam === team.toUpperCase());
@@ -40164,7 +40172,7 @@ ${renderTable(input, rows, cols)}`;
       });
       rows = rows.slice(0, limit);
       const bbNote = draftYear === 2026 ? "" : " (boom/bust probabilities are 2026-class only; grades shown)";
-      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are StatHead's calibrated model estimates \u2014 see get_metadata caveats:
+      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
 
 ${renderTable(input, rows)}`;
     }
@@ -40388,7 +40396,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.23"
+  version: "1.0.24"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
