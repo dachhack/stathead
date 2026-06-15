@@ -38515,7 +38515,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_rookie_class",
-    description: "One-call rookie-class join: NFL draft picks for a draft year + combine testing + that player's rookie-season (same year) production \u2014 so you don't have to join draft, combine, and stats by hand. Skill positions (QB/RB/WR/TE) by default. Each row carries pfr_id for joining to other tools. Great for prospect/dynasty evaluation and hit-rate analysis.",
+    description: `One-call rookie-class join: NFL draft picks for a draft year + combine testing + that player's rookie-season (same year) production \u2014 so you don't have to join draft, combine, and stats by hand. Skill positions (QB/RB/WR/TE) by default. Each row carries pfr_id for joining to other tools. Great for prospect/dynasty evaluation and hit-rate analysis. Anti-pattern: do not multiply marginal factors (athleticism \xD7 age \xD7 draft slot) into a "P(Hit)" \u2014 the factors are correlated and the product is over-confident; use as ordinal ranking or compare similar-player (joint) comps instead.`,
     input_schema: {
       type: "object",
       properties: {
@@ -38584,7 +38584,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_fantasy_rankings",
-    description: "Get Expert Consensus Rankings (ECR) and ADP data. Use for draft strategy, value picks (ECR vs ADP), expert opinion analysis.",
+    description: "Get Expert Consensus Rankings (ECR) and ADP data (source: FantasyPros via DynastyProcess). The page_type column marks which board a row came from: best-overall (cross-position) vs best-qb / best-rb / best-wr / best-te (positional boards) \u2014 filter on it to compare apples to apples. ECR reflects market consensus, not probability. Use for draft strategy, value picks (ECR vs ADP), expert opinion analysis.",
     input_schema: {
       type: "object",
       properties: {
@@ -38611,7 +38611,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_adp_with_results",
-    description: "Join preseason ADP to actual season-end fantasy production in one call \u2014 find draft-day values and busts without joining ADP and stats yourself. For a season, returns each drafted skill player's FFC ADP alongside their actual PPR points, positional ADP rank, positional PPR finish (among drafted players), and value = adp_pos_rank \u2212 finish_pos_rank (positive = beat draft slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018\u2013present.",
+    description: "Join preseason ADP to actual season-end fantasy production in one call \u2014 find draft-day values and busts without joining ADP and stats yourself. For a season, returns each drafted skill player's FFC ADP alongside their actual PPR points, positional ADP rank, positional PPR finish (among drafted players), and value = adp_pos_rank \u2212 finish_pos_rank (positive = beat draft slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018\u2013present. Note: value is a single-season residual \u2014 a relative bust/value ranking, not a predictive probability; average multiple seasons before relying on it.",
     input_schema: {
       type: "object",
       properties: {
@@ -38999,6 +38999,15 @@ async function executeToolInner(name, input) {
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
           "- `output_format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
+        ].join("\n"),
+        "## Analytic caveats (read before modeling)",
+        [
+          "- These tools return **data**, not calibrated probabilities. Don't multiply marginal factors (base-rate \xD7 athleticism \xD7 age \xD7 opportunity) and call the product P(Hit) \u2014 the factors are correlated, so the result is systematically over-confident. Use such products as **ordinal ranking only**, or compare to historical joint-distribution comps.",
+          "- Empirical base rates with small n (<~20) have wide error bands (\xB1~10pp). Treat single-cell rates as estimates, not point predictions.",
+          "- ECR and ADP reflect **market consensus**, not true probability. Compare to historical hit rates for ground truth.",
+          "- Position PPG baselines differ: TE PPG \u2265 9 \u2248 WR PPG \u2265 11 \u2248 QB PPG \u2265 16. Don't compare PPG across positions without adjusting.",
+          "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
+          "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication."
         ].join("\n"),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog
@@ -40167,12 +40176,14 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.13"
+  version: "1.0.14"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
   const required2 = new Set(Array.isArray(schema.required) ? schema.required : []);
   const shape = {};
+  const coerceNum = (v) => typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : v;
+  const coerceBool = (v) => v === "true" ? true : v === "false" ? false : v;
   for (const [key, def] of Object.entries(props)) {
     let zt;
     if (Array.isArray(def.enum) && def.enum.length > 0) {
@@ -40181,12 +40192,13 @@ function toZodShape(schema) {
         zt = external_exports3.enum(vals);
       } else {
         const lits = vals.map((v) => external_exports3.literal(v));
-        zt = lits.length === 1 ? lits[0] : external_exports3.union(lits);
+        const inner = lits.length === 1 ? lits[0] : external_exports3.union(lits);
+        zt = external_exports3.preprocess(coerceNum, inner);
       }
     } else if (def.type === "number" || def.type === "integer") {
-      zt = external_exports3.number();
+      zt = external_exports3.preprocess(coerceNum, external_exports3.number());
     } else if (def.type === "boolean") {
-      zt = external_exports3.boolean();
+      zt = external_exports3.preprocess(coerceBool, external_exports3.boolean());
     } else {
       zt = external_exports3.string();
     }

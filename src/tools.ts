@@ -163,7 +163,10 @@ export const NFL_TOOLS: Tool[] = [
       'testing + that player\'s rookie-season (same year) production — so you ' +
       'don\'t have to join draft, combine, and stats by hand. Skill positions ' +
       '(QB/RB/WR/TE) by default. Each row carries pfr_id for joining to other ' +
-      'tools. Great for prospect/dynasty evaluation and hit-rate analysis.',
+      'tools. Great for prospect/dynasty evaluation and hit-rate analysis. ' +
+      'Anti-pattern: do not multiply marginal factors (athleticism × age × draft slot) ' +
+      'into a "P(Hit)" — the factors are correlated and the product is over-confident; ' +
+      'use as ordinal ranking or compare similar-player (joint) comps instead.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -241,7 +244,10 @@ export const NFL_TOOLS: Tool[] = [
   {
     name: 'get_fantasy_rankings',
     description:
-      'Get Expert Consensus Rankings (ECR) and ADP data. ' +
+      'Get Expert Consensus Rankings (ECR) and ADP data (source: FantasyPros via DynastyProcess). ' +
+      'The page_type column marks which board a row came from: best-overall (cross-position) ' +
+      'vs best-qb / best-rb / best-wr / best-te (positional boards) — filter on it to compare ' +
+      'apples to apples. ECR reflects market consensus, not probability. ' +
       'Use for draft strategy, value picks (ECR vs ADP), expert opinion analysis.',
     input_schema: {
       type: 'object' as const,
@@ -277,7 +283,9 @@ export const NFL_TOOLS: Tool[] = [
       'For a season, returns each drafted skill player\'s FFC ADP alongside their ' +
       'actual PPR points, positional ADP rank, positional PPR finish (among drafted ' +
       'players), and value = adp_pos_rank − finish_pos_rank (positive = beat draft ' +
-      'slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018–present.',
+      'slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018–present. ' +
+      'Note: value is a single-season residual — a relative bust/value ranking, ' +
+      'not a predictive probability; average multiple seasons before relying on it.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -787,6 +795,15 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
           '- `output_format`: `table` (default) | `csv` | `jsonl` — use csv/jsonl to roughly halve tokens on large pulls',
+        ].join('\n'),
+        '## Analytic caveats (read before modeling)',
+        [
+          '- These tools return **data**, not calibrated probabilities. Don\'t multiply marginal factors (base-rate × athleticism × age × opportunity) and call the product P(Hit) — the factors are correlated, so the result is systematically over-confident. Use such products as **ordinal ranking only**, or compare to historical joint-distribution comps.',
+          '- Empirical base rates with small n (<~20) have wide error bands (±~10pp). Treat single-cell rates as estimates, not point predictions.',
+          '- ECR and ADP reflect **market consensus**, not true probability. Compare to historical hit rates for ground truth.',
+          '- Position PPG baselines differ: TE PPG ≥ 9 ≈ WR PPG ≥ 11 ≈ QB PPG ≥ 16. Don\'t compare PPG across positions without adjusting.',
+          '- `get_adp_with_results` `value` is a single-season residual — a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.',
+          '- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.',
         ].join('\n'),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog,

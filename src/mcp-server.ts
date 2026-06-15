@@ -27,7 +27,7 @@ import { NFL_TOOLS, executeTool } from './tools.ts';
 
 const server = new McpServer({
   name: 'stathead',
-  version: '1.0.13',
+  version: '1.0.14',
 });
 
 /**
@@ -48,6 +48,14 @@ function toZodShape(schema: {
   >;
   const required = new Set(Array.isArray(schema.required) ? schema.required : []);
   const shape: Record<string, ZodTypeAny> = {};
+  // MCP clients sometimes serialize numeric/boolean args as strings
+  // ("2026", "true"). Coerce before validating so strict z.number()/z.boolean()
+  // don't reject otherwise-valid input — while keeping the published JSON
+  // schema (enums etc.) intact via z.preprocess wrapping the real schema.
+  const coerceNum = (v: unknown): unknown =>
+    typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : v;
+  const coerceBool = (v: unknown): unknown =>
+    v === 'true' ? true : v === 'false' ? false : v;
   for (const [key, def] of Object.entries(props)) {
     let zt: ZodTypeAny;
     if (Array.isArray(def.enum) && def.enum.length > 0) {
@@ -56,18 +64,19 @@ function toZodShape(schema: {
         zt = z.enum(vals as [string, ...string[]]);
       } else {
         // Numeric/mixed enums (e.g. teams: [8,10,12,14]) — z.enum is
-        // string-only, so build a union of literals. Renders as an enum
-        // in the published JSON schema and accepts the numeric values.
+        // string-only, so build a union of literals (renders as enum values in
+        // the published schema) and coerce string input first.
         const lits: ZodTypeAny[] = vals.map((v) => z.literal(v as string | number));
-        zt =
+        const inner =
           lits.length === 1
             ? lits[0]
             : z.union(lits as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]);
+        zt = z.preprocess(coerceNum, inner);
       }
     } else if (def.type === 'number' || def.type === 'integer') {
-      zt = z.number();
+      zt = z.preprocess(coerceNum, z.number());
     } else if (def.type === 'boolean') {
-      zt = z.boolean();
+      zt = z.preprocess(coerceBool, z.boolean());
     } else {
       zt = z.string();
     }
