@@ -7,7 +7,7 @@ import type { Tool, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/mes
 import {
   fetchPlayerStats, aggregateToSeasonTotals, fetchGames,
   fetchSnapCounts, fetchCombine, fetchDraftPicks, fetchInjuries,
-  fetchAdvancedStats, fetchPlayByPlay, fetchFantasyRankings,
+  fetchAdvancedStats, fetchAdvancedStatsSeason, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
   fetchKTCRankings, fetchFantasyCalcValues, fetchFfcADP, fetchEspnADP,
   fetchNextGenStats, fetchRosters, fetchContracts,
@@ -139,7 +139,9 @@ export const NFL_TOOLS: Tool[] = [
     name: 'get_draft_picks',
     description:
       'Get historical NFL draft picks with career outcomes. Includes round, pick, team, college, ' +
-      'career approximate value, Pro Bowls, All-Pro selections, Hall of Fame status. ' +
+      'career approximate value (car_av), Pro Bowls, All-Pro selections, Hall of Fame status. ' +
+      'Note: career columns (car_av, pro_bowls, etc.) are cumulative and are blank/low for ' +
+      'recent draftees who are still active — they populate as careers progress. ' +
       'Use for draft analysis, career success by pick, team drafting history.',
     input_schema: {
       type: 'object' as const,
@@ -181,12 +183,13 @@ export const NFL_TOOLS: Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        season: { type: 'number', description: 'NFL season year (2018+)' },
+        season: { type: 'number', description: 'NFL season year. Coverage: 2018–present.' },
         stat_type: {
           type: 'string',
           description: 'Type of advanced stats',
           enum: ['pass', 'rush', 'rec', 'def'],
         },
+        season_totals: { type: 'boolean', description: 'Return one row per player of PFR season totals (default true). Set false for per-game rows.' },
         player_name: { type: 'string', description: 'Filter by player name' },
         limit: { type: 'number', description: 'Max rows (default 40)' },
       },
@@ -562,8 +565,22 @@ export const NFL_TOOLS: Tool[] = [
 
 type ToolInput = Record<string, unknown>;
 
+// Punctuation-insensitive name match. Sources spell names inconsistently —
+// PFR drops apostrophes/periods ("JaMarr Chase", "Amon-Ra St Brown"), others
+// keep them ("Ja'Marr Chase", "D.J. Moore"), and generational suffixes vary
+// ("Odell Beckham Jr"). Normalize both sides before the substring test.
+function normalizeNameForMatch(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[.'`'']/g, '')          // drop apostrophes/periods
+    .replace(/-/g, ' ')                 // hyphen -> space (Amon-Ra)
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '') // drop generational suffixes
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function nameMatch(fullName: string, query: string): boolean {
-  return fullName.toLowerCase().includes(query.toLowerCase());
+  return normalizeNameForMatch(fullName).includes(normalizeNameForMatch(query));
 }
 
 function clamp(n: number, min: number, max: number): number {
@@ -840,19 +857,25 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const season = input.season as number;
       const statType = input.stat_type as 'pass' | 'rush' | 'rec' | 'def';
       const playerName = input.player_name as string | undefined;
+      const seasonTotals = input.season_totals !== false; // default: season aggregates
       const limit = clamp((input.limit as number) || 40, 1, 100);
 
-      let stats = await fetchAdvancedStats(season, statType);
+      let stats = seasonTotals
+        ? await fetchAdvancedStatsSeason(season, statType)
+        : await fetchAdvancedStats(season, statType);
       if (playerName) {
-        stats = stats.filter((s) => nameMatch(
-          (s as unknown as Record<string, unknown>).pfr_player_name as string || '', playerName
-        ));
+        stats = stats.filter((s) => {
+          const r = s as unknown as Record<string, unknown>;
+          // season files use `player`; weekly files use `pfr_player_name`.
+          const nm = (r.pfr_player_name ?? r.player ?? '') as string;
+          return nameMatch(nm, playerName);
+        });
       }
       stats = stats.slice(0, limit);
 
-      // Return all columns
       const rows = stats as unknown as Record<string, unknown>[];
-      return `Advanced ${statType} stats for ${season} (${stats.length} entries):\n\n${toMarkdownTable(rows)}`;
+      const mode = seasonTotals ? 'season totals' : 'per-game';
+      return `Advanced ${statType} stats for ${season} (${mode}, ${stats.length} entries):\n\n${toMarkdownTable(rows)}`;
     }
 
     case 'get_play_by_play': {
