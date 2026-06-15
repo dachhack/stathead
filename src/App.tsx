@@ -11,6 +11,7 @@ import { PlayerCompare } from './components/PlayerCompare';
 import { FantasyScoring } from './components/FantasyScoring';
 import { GamesView } from './components/GamesView';
 import { SnapCountsView } from './components/SnapCountsView';
+import { RookieSnapTracker } from './components/RookieSnapTracker';
 import { CombineView } from './components/CombineView';
 import { DraftView } from './components/DraftView';
 import { InjuriesView } from './components/InjuriesView';
@@ -57,7 +58,7 @@ const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
 // (projections, dynasty, prospects) or season-agnostic (research, docs).
 const SEASON_AWARE_TABS = new Set<Tab>([
   'projections', 'stats', 'compare', 'scoring', 'adp',
-  'snaps', 'injuries', 'advanced', 'pbp', 'sleeper',
+  'snaps', 'rookie-ramp', 'injuries', 'advanced', 'pbp', 'sleeper',
 ]);
 
 // Tab groups for navigation
@@ -102,6 +103,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'sleeper-league', label: 'Sleeper Leagues' },
       { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
       { id: 'expert-tracker', label: 'Expert Tracker' },
+      { id: 'rookie-ramp', label: 'Rookie Snap Tracker' },
       { id: 'buzz-tracker', label: 'Buzz Tracker' },
       { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
       { id: 'data-query', label: 'Data Query (SQL)' },
@@ -296,6 +298,9 @@ function App() {
         {tab === 'games' && <GamesView onDataLoaded={onDataLoaded} />}
         {tab === 'snaps' && (
           <SnapCountsView season={season} onDataLoaded={onDataLoaded} />
+        )}
+        {tab === 'rookie-ramp' && (
+          <RookieSnapTracker season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'combine' && <CombineView onDataLoaded={onDataLoaded} />}
         {tab === 'draft' && <DraftView onDataLoaded={onDataLoaded} />}
