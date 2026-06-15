@@ -37374,7 +37374,6 @@ async function readLocalFile(filename) {
 }
 var KTC_PROXY = import.meta.env?.VITE_KTC_PROXY ?? "https://ktc-proxy.dachhack.workers.dev";
 var FC_PROXY = import.meta.env?.VITE_FC_PROXY ?? "https://fc-proxy.dachhack.workers.dev";
-var FC_BASE = IS_PROD ? FC_PROXY : "https://api.fantasycalc.com";
 var ESPN_NEWS_PROXY = import.meta.env?.VITE_ESPN_NEWS_PROXY ?? "https://espn-news-proxy.dachhack.workers.dev";
 async function tryPreFetched(filename) {
   const localText = await readLocalFile(filename);
@@ -37950,28 +37949,6 @@ async function fetchKTCRankingsForDisplay(format = "1qb") {
   const out = raw.map((p) => rescaleKTCPlayer(p, rescaler));
   out.sort((a, b) => format === "1qb" ? b.value - a.value : b.superflexValue - a.superflexValue);
   return out;
-}
-var fantasyCalcCache = /* @__PURE__ */ new Map();
-async function fetchFantasyCalcValues(isDynasty = true, numQbs = 1, numTeams = 12, ppr = 1) {
-  const cacheKey = `${isDynasty}-${numQbs}-${numTeams}-${ppr}`;
-  const cached2 = fantasyCalcCache.get(cacheKey);
-  if (cached2) return cached2;
-  const sfx = isDynasty ? numQbs === 2 ? "dynasty_sf" : "dynasty_1qb" : numQbs === 2 ? "redraft_sf" : "redraft_1qb";
-  const preFetched = await tryPreFetched(`fantasycalc_${sfx}.json`);
-  if (preFetched && preFetched.length > 0) {
-    preFetched.sort((a, b) => b.value - a.value);
-    fantasyCalcCache.set(cacheKey, preFetched);
-    return preFetched;
-  }
-  const url2 = `${FC_BASE}/values/current?isDynasty=${isDynasty}&numQbs=${numQbs}&numTeams=${numTeams}&ppr=${ppr}`;
-  const response = await fetchWithTimeout(url2);
-  if (!response.ok) {
-    throw new Error(`FantasyCalc API returned ${response.status}`);
-  }
-  const data = await response.json();
-  data.sort((a, b) => b.value - a.value);
-  fantasyCalcCache.set(cacheKey, data);
-  return data;
 }
 async function fetchNextGenStats(season, type = "passing") {
   if (IS_PROD) {
@@ -38651,23 +38628,6 @@ var NFL_TOOLS = [
         format: { type: "string", description: "Format", enum: ["1qb", "superflex"] },
         position: { type: "string", description: "Filter by position" },
         player_name: { type: "string", description: "Filter by player name" },
-        limit: { type: "number", description: "Max rows (default 50)" }
-      },
-      required: []
-    }
-  },
-  {
-    name: "get_fantasycalc_values",
-    description: "Get FantasyCalc trade values \u2014 algorithm-generated from ~1M real fantasy trades. Supports dynasty and redraft, 1QB and superflex, various league sizes and PPR settings. Returns value, rank, 30-day trend, redraft value, and player details. Use alongside the market dynasty values for cross-source dynasty value comparisons.",
-    input_schema: {
-      type: "object",
-      properties: {
-        is_dynasty: { type: "boolean", description: "Dynasty (true) or redraft (false). Default: true" },
-        num_qbs: { type: "number", description: "Number of QBs: 1 (1QB) or 2 (superflex). Default: 1", enum: [1, 2] },
-        num_teams: { type: "number", description: "League size (8, 10, 12, 14, 16). Default: 12", enum: [8, 10, 12, 14, 16] },
-        ppr: { type: "number", description: "PPR scoring: 0, 0.5, or 1. Default: 1", enum: [0, 0.5, 1] },
-        position: { type: "string", description: "Filter by position: QB, RB, WR, TE", enum: ["QB", "RB", "WR", "TE"] },
-        player_name: { type: "string", description: "Filter by player name (case-insensitive partial match)" },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
       required: []
@@ -39360,35 +39320,6 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
-    case "get_fantasycalc_values": {
-      const isDynasty = input.is_dynasty !== false;
-      const numQbs = input.num_qbs || 1;
-      const numTeams = input.num_teams || 12;
-      const ppr = input.ppr ?? 1;
-      const position = input.position;
-      const playerName = input.player_name;
-      const limit = clamp(input.limit || 50, 1, 200);
-      let data = await fetchFantasyCalcValues(isDynasty, numQbs, numTeams, ppr);
-      if (position) data = data.filter((d) => d.player.position === position.toUpperCase());
-      if (playerName) data = data.filter((d) => nameMatch(d.player.name, playerName));
-      data = data.slice(0, limit);
-      const cols = ["name", "position", "team", "age", "value", "overallRank", "positionRank", "trend30Day", "redraftValue"];
-      const rows = data.map((d) => ({
-        name: d.player.name,
-        position: d.player.position,
-        team: d.player.maybeTeam || "",
-        age: d.player.maybeAge || "",
-        value: d.value,
-        overallRank: d.overallRank,
-        positionRank: d.positionRank,
-        trend30Day: d.trend30Day,
-        redraftValue: d.redraftValue
-      }));
-      const label = `${isDynasty ? "dynasty" : "redraft"}, ${numQbs === 2 ? "SF" : "1QB"}, ${numTeams}-team, ${ppr}PPR`;
-      return `FantasyCalc values (${label}, ${data.length} players):
-
-${renderTable(input, rows, cols)}`;
-    }
     case "get_next_gen_stats": {
       const season = input.season;
       const statType = input.stat_type;
@@ -40061,7 +39992,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.8"
+  version: "1.0.9"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
