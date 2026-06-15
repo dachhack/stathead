@@ -14,7 +14,7 @@ import {
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
   fetchPbpParticipation,
   fetchQBRSeason, fetchQBRWeek,
-  fetchDraftProspects, fetchDraftProfiles,
+  fetchDraftProspects, fetchDraftProfiles, fetchProspectBoomBust, fetchProspectGrades,
   fetchCollegeQBR, fetchCfbdCollegeStats,
 } from './data';
 import type { SeasonTotals } from './types';
@@ -533,6 +533,29 @@ export const NFL_TOOLS: Tool[] = [
         include_scouting: { type: 'boolean', description: 'Include scouting report text from draft profiles (default false)' },
         sort_by: { type: 'string', description: 'Sort by: grade, ovr_rk, pos_rk, overall (descending for grade, ascending for ranks)' },
         limit: { type: 'number', description: 'Max rows (default 50)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_prospect_outcomes',
+    description:
+      "StatHead's own prospect model: draft grade, tier, projected draft slot, and " +
+      'CALIBRATED boom/bust outcome probabilities (boomProb = modeled P(elite/boom outcome), ' +
+      'bustProb = P(bust), outperfPctile = projected percentile vs draft slot). ' +
+      'Use these instead of multiplying your own marginal factors into a "P(Hit)" — that is ' +
+      'over-confident because factors are correlated (see get_metadata analytic caveats). ' +
+      'Boom/bust probabilities cover the 2026 class; grades cover 2026 and 2027. ' +
+      'Probabilities are model estimates, not certainties — treat as calibrated guidance.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        draft_year: { type: 'number', description: 'Draft class. Default 2026.', enum: [2026, 2027] },
+        player_name: { type: 'string', description: 'Filter to one prospect' },
+        position: { type: 'string', description: 'Filter by position', enum: ['QB', 'RB', 'WR', 'TE'] },
+        tier: { type: 'string', description: 'Filter by tier label (substring match)' },
+        sort_by: { type: 'string', description: 'Sort column. grade/boomProb/outperfPctile descending; projPick/projRound/bustProb ascending. Default: grade.' },
+        limit: { type: 'number', description: 'Max prospects (default 60)' },
       },
       required: [],
     },
@@ -1698,6 +1721,57 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
         return `Draft prospects (${data.length} players):\n\n${renderTable(input,rows, cols)}`;
       }
+    }
+
+    case 'get_prospect_outcomes': {
+      const draftYear = (input.draft_year as number) || 2026;
+      const playerName = input.player_name as string | undefined;
+      const position = (input.position as string | undefined)?.toUpperCase();
+      const tier = input.tier as string | undefined;
+      const sortBy = (input.sort_by as string) || 'grade';
+      const limit = clamp((input.limit as number) || 60, 1, 300);
+
+      const [grades, boombust] = await Promise.all([
+        fetchProspectGrades(draftYear),
+        draftYear === 2026 ? fetchProspectBoomBust() : Promise.resolve([] as Awaited<ReturnType<typeof fetchProspectBoomBust>>),
+      ]);
+      if (grades.length === 0) {
+        return `No prospect grades for the ${draftYear} class. Available draft classes: 2026, 2027.`;
+      }
+      const bbByName = new Map<string, (typeof boombust)[number]>();
+      for (const b of boombust) bbByName.set(normalizeNameForMatch(b.name), b);
+
+      const num = (v: unknown): number | '' => (typeof v === 'number' && Number.isFinite(v) ? v : '');
+      let rows = grades
+        .filter((g) => !position || (g.pos || '').toUpperCase() === position)
+        .filter((g) => !playerName || nameMatch(g.name, playerName))
+        .filter((g) => !tier || (g.tier || '').toLowerCase().includes(tier.toLowerCase()))
+        .map((g) => {
+          const b = bbByName.get(normalizeNameForMatch(g.name));
+          return {
+            name: g.name, pos: g.pos, school: g.school, grade: num(g.grade), tier: g.tier,
+            projRound: num(g.projRound), projPick: num(g.projPick),
+            boomProb: b ? num(b.boomProb) : '', bustProb: b ? num(b.bustProb) : '',
+            outperfPctile: b ? num(b.outperfPctile) : '',
+          };
+        });
+
+      const ASC = new Set(['projPick', 'projRound', 'bustProb']);
+      const dir = ASC.has(sortBy) ? 1 : -1;
+      rows.sort((a, b) => {
+        const an = (a as Record<string, unknown>)[sortBy];
+        const bn = (b as Record<string, unknown>)[sortBy];
+        const aok = typeof an === 'number' && Number.isFinite(an);
+        const bok = typeof bn === 'number' && Number.isFinite(bn);
+        if (!aok && !bok) return 0;
+        if (!aok) return 1;
+        if (!bok) return -1;
+        return ((an as number) - (bn as number)) * dir;
+      });
+      rows = rows.slice(0, limit);
+
+      const bbNote = draftYear === 2026 ? '' : ' (boom/bust probabilities are 2026-class only; grades shown)';
+      return `Prospect outcomes — ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are StatHead's calibrated model estimates — see get_metadata caveats:\n\n${renderTable(input, rows)}`;
     }
 
     case 'get_college_stats': {

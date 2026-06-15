@@ -7,7 +7,7 @@ Claude or any AI client.
 
 - 🌐 **Web app** — [stathead.app](https://stathead.app)
   ([QA mirror](https://dachhack.github.io/stathead/))
-- 🤖 **MCP server** — 29 NFL tools for AI projects → [`mcp/`](mcp/)
+- 🤖 **MCP server** — 30 NFL tools for AI projects → [`mcp/`](mcp/)
 - 🧠 **ML pipeline** — projection / dynasty-value / prospect models trained from
   10+ seasons of data
 - 📦 **MIT-licensed code.** ⚠️ The **data** has its own terms —
