@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "mcp": "tsx src/mcp-server.ts",
-    "build:mcp": "esbuild src/mcp-server.ts --bundle --platform=node --format=esm --target=node18 --outfile=mcp/dist/server.mjs && chmod +x mcp/dist/server.mjs",
+    "build:mcp": "node --check mcp/dist/server.mjs && chmod +x mcp/dist/server.mjs",
+    "build:mcp:from-src": "esbuild src/mcp-server.ts --bundle --platform=node --format=esm --target=node18 --outfile=mcp/dist/server.mjs && chmod +x mcp/dist/server.mjs",
     "setup-hooks": "git config core.hooksPath .githooks"
   },
   "dependencies": {

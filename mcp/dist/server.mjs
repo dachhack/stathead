@@ -40481,7 +40481,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.25"
+  version: "1.0.26"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
