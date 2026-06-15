@@ -512,7 +512,9 @@ export const NFL_TOOLS: Tool[] = [
     description:
       'Get ESPN draft prospect rankings and scouting profiles. Includes ESPN grade, position rank, ' +
       'overall rank, physical measurements, and scouting report text (strengths/weaknesses). ' +
-      'Data from 1967-present. Use for prospect evaluation, draft class comparisons, historical draft analysis.',
+      'Coverage: draft classes 1967–2021 only (this ESPN/JackLich10 source is not updated for 2022+). ' +
+      'For recent/2022+ classes use get_rookie_class or get_college_stats. ' +
+      'Use for prospect evaluation, draft class comparisons, historical draft analysis.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -902,7 +904,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const minSeason = input.min_season as number | undefined;
       const maxSeason = input.max_season as number | undefined;
       const sortBy = input.sort_by as string | undefined;
-      const limit = clamp((input.limit as number) || 30, 1, 100);
+      const limit = clamp((input.limit as number) || 30, 1, 500);
 
       let combine = await fetchCombine();
       if (position) combine = combine.filter((c) => c.pos === position.toUpperCase());
@@ -919,11 +921,17 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
           return ascending ? va - vb : vb - va;
         });
       }
+      const total = combine.length;
       combine = combine.slice(0, limit);
+      // Surface truncation instead of silently capping (feedback: limit=200
+      // returned 100 with no warning).
+      const note = total > combine.length
+        ? ` — showing first ${combine.length} of ${total}; raise limit (max 500) or narrow position/min_season/max_season`
+        : '';
 
       const cols = ['season', 'player_name', 'pos', 'school', 'ht', 'wt', 'forty', 'bench', 'vertical', 'broad_jump', 'cone', 'shuttle', 'draft_round', 'draft_ovr'];
       const rows = combine.map((c) => pickColumns(c as unknown as Record<string, unknown>, cols));
-      return `Combine results (${combine.length} players):\n\n${renderTable(input,rows, cols)}`;
+      return `Combine results (${combine.length} players)${note}:\n\n${renderTable(input,rows, cols)}`;
     }
 
     case 'get_draft_picks': {
@@ -1638,10 +1646,14 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         }
         data = data.slice(0, limit);
 
+        if (data.length === 0) {
+          return 'No draft profiles found. Scouting profiles cover the ~2013–2021 draft classes (ESPN via JackLich10) and have no draft-year field, so draft_year is ignored in scouting mode. For 2022+ classes use get_rookie_class or get_college_stats.';
+        }
         const cols = ['player_name', 'pos_abbr', 'school', 'height', 'weight',
           'ovr_rk', 'pos_rk', 'grade', 'text1', 'text2', 'text3', 'text4'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
-        return `Draft profiles (${data.length} prospects):\n\n${renderTable(input,rows, cols)}`;
+        const yrNote = draftYear ? ' (note: scouting profiles have no draft-year field; draft_year was ignored)' : '';
+        return `Draft profiles (${data.length} prospects)${yrNote}:\n\n${renderTable(input,rows, cols)}`;
       } else {
         // Use prospects dataset (includes draft results)
         let data = await fetchDraftProspects();
@@ -1661,6 +1673,9 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         }
         data = data.slice(0, limit);
 
+        if (data.length === 0) {
+          return 'No draft prospects found. Coverage: draft classes 1967–2021 (nflverse/JackLich10); this source is not updated for 2022+. For recent classes use get_rookie_class (draft+combine+rookie production), get_draft_picks, or get_college_stats.';
+        }
         const cols = ['draft_year', 'player_name', 'pos_abbr', 'school', 'round', 'overall',
           'team_abbr', 'height', 'weight', 'ovr_rk', 'pos_rk', 'grade'];
         const rows = data.map((d) => pickColumns(d as unknown as Record<string, unknown>, cols));
