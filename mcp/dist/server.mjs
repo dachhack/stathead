@@ -38609,6 +38609,22 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_adp_with_results",
+    description: "Join preseason ADP to actual season-end fantasy production in one call \u2014 find draft-day values and busts without joining ADP and stats yourself. For a season, returns each drafted skill player's FFC ADP alongside their actual PPR points, positional ADP rank, positional PPR finish (among drafted players), and value = adp_pos_rank \u2212 finish_pos_rank (positive = beat draft slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018\u2013present.",
+    input_schema: {
+      type: "object",
+      properties: {
+        season: { type: "number", description: "Season (FFC ADP ~2018\u2013present)" },
+        scoring: { type: "string", description: "Scoring format. Default ppr.", enum: ["standard", "ppr", "half-ppr"] },
+        teams: { type: "number", description: "League size. Default 12.", enum: [8, 10, 12, 14] },
+        position: { type: "string", description: "Filter to a position", enum: ["QB", "RB", "WR", "TE"] },
+        sort_by: { type: "string", description: "Sort column. value/ppr descending; adp/adp_pos_rank/finish_pos_rank ascending. Default: value (biggest values first)." },
+        limit: { type: "number", description: "Max players (default 60)" }
+      },
+      required: ["season"]
+    }
+  },
+  {
     name: "get_sleeper_trending",
     description: "Get trending player adds or drops from Sleeper fantasy platform. Shows which players are being most added/dropped across all Sleeper leagues. Use for waiver wire analysis and league-wide sentiment.",
     input_schema: {
@@ -39344,6 +39360,65 @@ ${renderTable(input, rows)}`;
 
 ${renderTable(input, rows)}`;
       }
+    }
+    case "get_adp_with_results": {
+      const season = input.season;
+      const scoring = input.scoring || "ppr";
+      const teams = input.teams || 12;
+      const positionFilter = input.position?.toUpperCase();
+      const sortBy = input.sort_by || "value";
+      const limit = clamp(input.limit || 60, 1, 200);
+      const SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE"]);
+      const [ffc, statsRaw] = await Promise.all([
+        fetchFfcADP(season, scoring, teams),
+        fetchPlayerStats(season).catch(() => [])
+      ]);
+      const totals = aggregateToSeasonTotals(statsRaw.filter((s) => s.season_type === "REG"));
+      const statsByName = /* @__PURE__ */ new Map();
+      for (const t of totals) statsByName.set(normalizeNameForMatch(t.player_display_name), t);
+      const rows = ffc.filter((f) => SKILL.has((f.position || "").toUpperCase())).map((f) => {
+        const st = statsByName.get(normalizeNameForMatch(f.name));
+        return {
+          name: f.name,
+          pos: (f.position || "").toUpperCase(),
+          team: f.team,
+          adp: f.adp,
+          games: st ? st.games : "",
+          ppr: st ? st.fantasy_points_ppr : "",
+          adp_pos_rank: "",
+          finish_pos_rank: "",
+          value: ""
+        };
+      });
+      const positions = new Set(rows.map((r) => r.pos));
+      for (const pos of positions) {
+        rows.filter((r) => r.pos === pos).sort((a, b) => a.adp - b.adp).forEach((r, i) => {
+          r.adp_pos_rank = i + 1;
+        });
+        rows.filter((r) => r.pos === pos && typeof r.ppr === "number").sort((a, b) => b.ppr - a.ppr).forEach((r, i) => {
+          r.finish_pos_rank = i + 1;
+        });
+      }
+      for (const r of rows) {
+        r.value = typeof r.adp_pos_rank === "number" && typeof r.finish_pos_rank === "number" ? r.adp_pos_rank - r.finish_pos_rank : "";
+      }
+      let out = positionFilter ? rows.filter((r) => r.pos === positionFilter) : rows;
+      const ASC = /* @__PURE__ */ new Set(["adp", "adp_pos_rank", "finish_pos_rank"]);
+      const dir = ASC.has(sortBy) ? 1 : -1;
+      out = out.slice().sort((a, b) => {
+        const an = a[sortBy];
+        const bn = b[sortBy];
+        const aok = typeof an === "number" && Number.isFinite(an);
+        const bok = typeof bn === "number" && Number.isFinite(bn);
+        if (!aok && !bok) return 0;
+        if (!aok) return 1;
+        if (!bok) return -1;
+        return (an - bn) * dir;
+      }).slice(0, limit);
+      const cols = ["name", "pos", "team", "adp", "adp_pos_rank", "games", "ppr", "finish_pos_rank", "value"];
+      return `ADP vs results for ${season} (${scoring}, ${teams}-team, ${out.length} players, sorted by ${sortBy}; value = adp_pos_rank \u2212 finish_pos_rank, + = beat ADP):
+
+${renderTable(input, out, cols)}`;
     }
     case "get_sleeper_trending": {
       const type = input.type || "add";
@@ -40082,7 +40157,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.11"
+  version: "1.0.12"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};

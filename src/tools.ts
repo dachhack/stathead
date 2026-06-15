@@ -270,6 +270,28 @@ export const NFL_TOOLS: Tool[] = [
     },
   },
   {
+    name: 'get_adp_with_results',
+    description:
+      'Join preseason ADP to actual season-end fantasy production in one call — ' +
+      'find draft-day values and busts without joining ADP and stats yourself. ' +
+      'For a season, returns each drafted skill player\'s FFC ADP alongside their ' +
+      'actual PPR points, positional ADP rank, positional PPR finish (among drafted ' +
+      'players), and value = adp_pos_rank − finish_pos_rank (positive = beat draft ' +
+      'slot). Skill positions (QB/RB/WR/TE). FFC ADP coverage ~2018–present.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        season: { type: 'number', description: 'Season (FFC ADP ~2018–present)' },
+        scoring: { type: 'string', description: 'Scoring format. Default ppr.', enum: ['standard', 'ppr', 'half-ppr'] },
+        teams: { type: 'number', description: 'League size. Default 12.', enum: [8, 10, 12, 14] },
+        position: { type: 'string', description: 'Filter to a position', enum: ['QB', 'RB', 'WR', 'TE'] },
+        sort_by: { type: 'string', description: 'Sort column. value/ppr descending; adp/adp_pos_rank/finish_pos_rank ascending. Default: value (biggest values first).' },
+        limit: { type: 'number', description: 'Max players (default 60)' },
+      },
+      required: ['season'],
+    },
+  },
+  {
     name: 'get_sleeper_trending',
     description:
       'Get trending player adds or drops from Sleeper fantasy platform. ' +
@@ -1102,6 +1124,74 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         const rows = data as unknown as Record<string, unknown>[];
         return `ESPN ADP for ${season} (${data.length} players):\n\n${renderTable(input,rows)}`;
       }
+    }
+
+    case 'get_adp_with_results': {
+      const season = input.season as number;
+      const scoring = ((input.scoring as string) || 'ppr') as 'standard' | 'ppr' | 'half-ppr';
+      const teams = (input.teams as number) || 12;
+      const positionFilter = (input.position as string | undefined)?.toUpperCase();
+      const sortBy = (input.sort_by as string) || 'value';
+      const limit = clamp((input.limit as number) || 60, 1, 200);
+      const SKILL = new Set(['QB', 'RB', 'WR', 'TE']);
+
+      const [ffc, statsRaw] = await Promise.all([
+        fetchFfcADP(season, scoring, teams),
+        fetchPlayerStats(season).catch(() => []),
+      ]);
+      const totals = aggregateToSeasonTotals(statsRaw.filter((s) => s.season_type === 'REG'));
+      const statsByName = new Map<string, SeasonTotals>();
+      for (const t of totals) statsByName.set(normalizeNameForMatch(t.player_display_name), t);
+
+      type Row = {
+        name: string; pos: string; team: string; adp: number;
+        games: number | ''; ppr: number | '';
+        adp_pos_rank: number | ''; finish_pos_rank: number | ''; value: number | '';
+      };
+      const rows: Row[] = ffc
+        .filter((f) => SKILL.has((f.position || '').toUpperCase()))
+        .map((f) => {
+          const st = statsByName.get(normalizeNameForMatch(f.name));
+          return {
+            name: f.name, pos: (f.position || '').toUpperCase(), team: f.team, adp: f.adp,
+            games: st ? st.games : '', ppr: st ? st.fantasy_points_ppr : '',
+            adp_pos_rank: '', finish_pos_rank: '', value: '',
+          };
+        });
+
+      const positions = new Set(rows.map((r) => r.pos));
+      for (const pos of positions) {
+        // positional ADP rank (lower ADP = earlier pick)
+        rows.filter((r) => r.pos === pos)
+          .sort((a, b) => a.adp - b.adp)
+          .forEach((r, i) => { r.adp_pos_rank = i + 1; });
+        // positional PPR finish among drafted players who played
+        rows.filter((r) => r.pos === pos && typeof r.ppr === 'number')
+          .sort((a, b) => (b.ppr as number) - (a.ppr as number))
+          .forEach((r, i) => { r.finish_pos_rank = i + 1; });
+      }
+      for (const r of rows) {
+        r.value = typeof r.adp_pos_rank === 'number' && typeof r.finish_pos_rank === 'number'
+          ? r.adp_pos_rank - r.finish_pos_rank
+          : '';
+      }
+
+      let out = positionFilter ? rows.filter((r) => r.pos === positionFilter) : rows;
+      const ASC = new Set(['adp', 'adp_pos_rank', 'finish_pos_rank']);
+      const dir = ASC.has(sortBy) ? 1 : -1;
+      out = out.slice().sort((a, b) => {
+        const an = (a as unknown as Record<string, unknown>)[sortBy];
+        const bn = (b as unknown as Record<string, unknown>)[sortBy];
+        const aok = typeof an === 'number' && Number.isFinite(an);
+        const bok = typeof bn === 'number' && Number.isFinite(bn);
+        if (!aok && !bok) return 0;
+        if (!aok) return 1;
+        if (!bok) return -1;
+        return ((an as number) - (bn as number)) * dir;
+      }).slice(0, limit);
+
+      const cols = ['name', 'pos', 'team', 'adp', 'adp_pos_rank', 'games', 'ppr', 'finish_pos_rank', 'value'];
+      return `ADP vs results for ${season} (${scoring}, ${teams}-team, ${out.length} players, sorted by ${sortBy}; value = adp_pos_rank − finish_pos_rank, + = beat ADP):\n\n${renderTable(input, out as unknown as Record<string, unknown>[], cols)}`;
     }
 
     case 'get_sleeper_trending': {
