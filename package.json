@@ -7,6 +7,7 @@
     "dev": "vite",
     "build:semantic": "node scripts/build-semantic-layer.js",
     "build:sweep": "node scripts/sweep-projection-config.js",
+    "build:presets": "tsx scripts/precompute-projection-presets.ts",
     "build:features": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' tsx scripts/precompute-features.ts",
     "test:reddit": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/test-reddit-features.ts || echo 'Reddit feature test skipped'",
     "eval:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/evaluate-features.ts || echo 'Feature eval skipped'",

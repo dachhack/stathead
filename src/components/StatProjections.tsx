@@ -1732,6 +1732,33 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     await exportTeamXlsx(teams, season);
   }, [teamGroups, projTeamTotalsMap, season]);
 
+  // Export the UNADJUSTED base projection pool + player meta as JSON. This is
+  // the exact pool the scenario engine + presets consume, so committing it to
+  // public/data/projection-base-<season>.json lets the offline preset
+  // precompute (scripts/precompute-projection-presets.ts) run the real engine
+  // and emit every scenario preset for the MCP — with zero numeric drift,
+  // since it transforms these exact numbers rather than re-deriving them.
+  const exportBasePool = useCallback(() => {
+    const payload = {
+      season,
+      generatedAt: new Date().toISOString(),
+      qbs: qbProjections,
+      rbs: rbProjections,
+      wrs: wrProjections,
+      tes: teProjections,
+      meta: [...playerMetaMap.entries()].map(([key, m]) => ({ key, ...m })),
+    };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `projection-base-${season}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [season, qbProjections, rbProjections, wrProjections, teProjections, playerMetaMap]);
+
   // Team Totals sums ALL players (no per-team position slicing) so passing TDs = receiving TDs
   const teamTotals = useMemo((): TeamTotalRow[] => {
     const byTeam = new Map<string, TeamTotalRow>();
@@ -1839,6 +1866,17 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
 
       {/* View mode + Position tabs */}
       <div className="controls" style={{ marginBottom: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        <div className="control-group">
+          <label className="control-label">Base pool</label>
+          <button
+            className="pos-filter"
+            onClick={exportBasePool}
+            title="Download the unadjusted projection pool + player metadata as JSON. Commit it to public/data/projection-base-<season>.json, then run scripts/precompute-projection-presets.ts to publish all scenario presets to the MCP."
+            style={{ borderColor: 'var(--text-muted)' }}
+          >
+            ⬇ Export base pool
+          </button>
+        </div>
         <div className="control-group">
           <label className="control-label">View</label>
           <div style={{ display: 'flex', gap: 4 }}>

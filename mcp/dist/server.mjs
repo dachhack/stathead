@@ -38889,7 +38889,7 @@ var NFL_TOOLS = [
       properties: {
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
-        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts. "vegas-weighted" regresses each player 25% toward their position mean (conservative, market-efficient). "consensus" blends StatHead\'s projection toward market consensus via internal per-position weights (a derived StatHead output). Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus"] },
+        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
         sort_by: { type: "string", description: "Sort column, descending. Default: ppg." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
@@ -40179,16 +40179,23 @@ ${renderTable(input, rows)}`;
       let scoring = "PPR";
       let baseNote = "";
       let presetNote = "";
-      if (preset === "consensus") {
+      const FILE_PRESETS = {
+        "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
+        "consensus-ml": "per-stat blend toward market consensus via internal weights",
+        "rookie-optimistic": "first-year RB/WR/TE volume boosted (zero-sum) over veteran teammates; rookie-QB rushing bumped",
+        "vet-optimistic": "established veterans boosted, rookies faded",
+        "injury-skeptic": "games haircut for aging / oft-injured players"
+      };
+      if (preset && FILE_PRESETS[preset]) {
         const pdoc = await fetchProjectionPresets();
-        const cons = pdoc?.presets?.consensus;
-        if (!cons?.length) {
-          return "No consensus-preset projections available.";
+        const arr = pdoc?.presets?.[preset];
+        if (!arr?.length) {
+          return `The "${preset}" preset isn't published yet. It is generated offline by running the real scenario engine over the season-projection base pool (export it from the Projections tab, then run scripts/precompute-projection-presets.ts). "consensus" and "vegas-weighted" are available now.`;
         }
-        pool = cons;
+        pool = arr;
         season = pdoc.season;
         baseNote = pdoc.note || "";
-        presetNote = ' Preset "Consensus" applied: StatHead\'s projection blended toward market consensus via internal per-position weights (a derived StatHead output, not a raw third-party feed).';
+        presetNote = ` Preset "${preset}" applied (derived StatHead output): ${FILE_PRESETS[preset]}.`;
       } else {
         const doc = await fetchStatheadProjections();
         if (!doc || !doc.players?.length) {
@@ -40381,7 +40388,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.22"
+  version: "1.0.23"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
