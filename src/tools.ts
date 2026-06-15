@@ -1332,7 +1332,8 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
         if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
         if (week) data = data.filter((d) => d.week_num === week);
-        if (qualifiedOnly) data = data.filter((d) => d.qualified === 'TRUE');
+        // CSV parser coerces "TRUE" -> boolean true; compare tolerantly.
+        if (qualifiedOnly) data = data.filter((d) => String(d.qualified).toUpperCase() === 'TRUE');
 
         const key = sortBy as keyof typeof data[0];
         data.sort((a, b) => {
@@ -1351,7 +1352,8 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
         data = data.filter((d) => d.season === season && d.season_type === 'Regular');
         if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
         if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
-        if (qualifiedOnly) data = data.filter((d) => d.qualified === 'TRUE');
+        // CSV parser coerces "TRUE" -> boolean true; compare tolerantly.
+        if (qualifiedOnly) data = data.filter((d) => String(d.qualified).toUpperCase() === 'TRUE');
 
         const key = sortBy as keyof typeof data[0];
         data.sort((a, b) => {
