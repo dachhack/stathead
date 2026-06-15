@@ -1386,7 +1386,29 @@ export async function fetchContracts(): Promise<Contract[]> {
 
 // --- Depth Charts ---
 export async function fetchDepthCharts(season: number): Promise<DepthChart[]> {
-  return fetchCsv<DepthChart>(nflUrl(`depth_charts/depth_charts_${season}.csv`));
+  // nflverse renamed the depth-chart schema (2024+): club_code, depth_team,
+  // position, full_name, depth_position, week … Normalize back to the shape
+  // every consumer (tools + KTC/feature-store pipeline) already expects.
+  // `??` fallbacks keep older-season files (old column names) working too.
+  const raw = await fetchCsv<Record<string, unknown>>(
+    nflUrl(`depth_charts/depth_charts_${season}.csv`),
+  );
+  return raw.map((r): DepthChart => ({
+    // Old files carry a real `dt` date; new ones only a week — zero-pad so the
+    // "most recent snapshot" string sort stays correct either way.
+    dt: String(r.dt ?? (r.week != null ? String(r.week).padStart(3, '0') : '')),
+    team: String(r.team ?? r.club_code ?? ''),
+    player_name: String(
+      r.player_name ?? r.full_name ?? r.football_name ??
+      `${r.first_name ?? ''} ${r.last_name ?? ''}`.trim(),
+    ),
+    gsis_id: String(r.gsis_id ?? ''),
+    pos_grp: String(r.pos_grp ?? r.depth_position ?? r.formation ?? ''),
+    pos_name: String(r.pos_name ?? r.depth_position ?? ''),
+    pos_abb: String(r.pos_abb ?? r.position ?? ''),
+    pos_slot: Number(r.pos_slot ?? 0),
+    pos_rank: Number(r.pos_rank ?? r.depth_team ?? 0),
+  }));
 }
 
 // --- FTN Charting ---

@@ -37961,7 +37961,24 @@ async function fetchContracts() {
   return fetchCsv(nflUrl(`contracts/historical_contracts.csv`));
 }
 async function fetchDepthCharts(season) {
-  return fetchCsv(nflUrl(`depth_charts/depth_charts_${season}.csv`));
+  const raw = await fetchCsv(
+    nflUrl(`depth_charts/depth_charts_${season}.csv`)
+  );
+  return raw.map((r) => ({
+    // Old files carry a real `dt` date; new ones only a week — zero-pad so the
+    // "most recent snapshot" string sort stays correct either way.
+    dt: String(r.dt ?? (r.week != null ? String(r.week).padStart(3, "0") : "")),
+    team: String(r.team ?? r.club_code ?? ""),
+    player_name: String(
+      r.player_name ?? r.full_name ?? r.football_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()
+    ),
+    gsis_id: String(r.gsis_id ?? ""),
+    pos_grp: String(r.pos_grp ?? r.depth_position ?? r.formation ?? ""),
+    pos_name: String(r.pos_name ?? r.depth_position ?? ""),
+    pos_abb: String(r.pos_abb ?? r.position ?? ""),
+    pos_slot: Number(r.pos_slot ?? 0),
+    pos_rank: Number(r.pos_rank ?? r.depth_team ?? 0)
+  }));
 }
 async function fetchFTNCharting(season) {
   return fetchCsv(nflUrl(`ftn_charting/ftn_charting_${season}.csv`));
@@ -39666,7 +39683,7 @@ ${toMarkdownTable(rows, cols)}`;
         if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
         if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
         if (week) data = data.filter((d) => d.week_num === week);
-        if (qualifiedOnly) data = data.filter((d) => d.qualified === "TRUE");
+        if (qualifiedOnly) data = data.filter((d) => String(d.qualified).toUpperCase() === "TRUE");
         const key = sortBy;
         data.sort((a, b) => {
           const va = typeof a[key] === "number" ? a[key] : 0;
@@ -39697,7 +39714,7 @@ ${toMarkdownTable(rows, cols)}`;
         data = data.filter((d) => d.season === season && d.season_type === "Regular");
         if (playerName) data = data.filter((d) => nameMatch(d.name_display, playerName));
         if (team) data = data.filter((d) => d.team_abb === team.toUpperCase());
-        if (qualifiedOnly) data = data.filter((d) => d.qualified === "TRUE");
+        if (qualifiedOnly) data = data.filter((d) => String(d.qualified).toUpperCase() === "TRUE");
         const key = sortBy;
         data.sort((a, b) => {
           const va = typeof a[key] === "number" ? a[key] : 0;
@@ -39927,7 +39944,7 @@ ${toMarkdownTable(rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.3"
+  version: "1.0.4"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
