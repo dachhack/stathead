@@ -1,0 +1,78 @@
+name: Publish stathead-mcp (token)
+
+# Fallback publisher that authenticates with the NPM_TOKEN secret instead of
+# OIDC Trusted Publishing. Manual dispatch only. Publishes the version in
+# mcp/package.json and can optionally deprecate an older version.
+#
+# Prefer publish-mcp.yml (tokenless Trusted Publishing) once the npm trusted
+# publisher is configured. This workflow exists so releases can ship — and old
+# versions be deprecated — before that setup is done. `npm deprecate` always
+# needs a token (Trusted Publishing only covers `publish`).
+
+on:
+  workflow_dispatch:
+    inputs:
+      deprecate_version:
+        description: 'Optional: version to deprecate after publishing (e.g. 1.0.0). Leave blank to skip.'
+        required: false
+        default: ''
+      deprecate_message:
+        description: 'Deprecation message for that version'
+        required: false
+        default: 'Tool arguments were ignored in this version — please upgrade to the latest.'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    permissions:
+      contents: read
+      id-token: write  # provenance attestation
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build the MCP bundle
+        run: npm run build:mcp
+
+      - name: Smoke test — tools list AND advertise parameters
+        run: |
+          OUT=$(printf '%s\n%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | node mcp/dist/server.mjs)
+          echo "$OUT" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let tools=[];for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(j.id===2)tools=j.result.tools||[];}catch{}}const withParams=tools.filter(t=>Object.keys((t.inputSchema&&t.inputSchema.properties)||{}).length>0).length;console.log(`tools=${tools.length} withParams=${withParams}`);if(tools.length<1){console.error("::error::no tools advertised");process.exit(1)}if(withParams<1){console.error("::error::tools advertise no parameters (schema regression)");process.exit(1)}})'
+
+      - name: Publish to npm (token auth)
+        working-directory: mcp
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Deprecate old version (optional)
+        if: ${{ inputs.deprecate_version != '' }}
+        run: npm deprecate "stathead-mcp@${{ inputs.deprecate_version }}" "${{ inputs.deprecate_message }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          PKG_VER=$(node -p "require('./mcp/package.json').version")
+          echo "Published **stathead-mcp@$PKG_VER** (token auth)" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ inputs.deprecate_version }}" ]; then
+            echo "Deprecated **stathead-mcp@${{ inputs.deprecate_version }}**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "npx -y stathead-mcp" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
