@@ -38886,6 +38886,7 @@ var NFL_TOOLS = [
       properties: {
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
+        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts to the projection. "vegas-weighted" regresses each player 25% toward their position mean (conservative, market-efficient). Omit for the unadjusted base model.', enum: ["vegas-weighted"] },
         sort_by: { type: "string", description: "Sort column, descending. Default: ppg." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
@@ -40167,13 +40168,35 @@ ${renderTable(input, rows)}`;
     case "get_projections": {
       const position = input.position?.toUpperCase();
       const playerName = input.player_name;
+      const preset = input.preset?.toLowerCase();
       const limit = clamp(input.limit || 50, 1, 300);
       const doc = await fetchStatheadProjections();
       if (!doc || !doc.players?.length) {
         return "No StatHead projections available.";
       }
       const sortBy = input.sort_by || "ppg";
-      let rows = doc.players.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
+      let pool = doc.players;
+      let presetNote = "";
+      if (preset === "vegas-weighted" || preset === "vegas") {
+        const VEGAS_FACTOR = 0.25;
+        const sumByPos = /* @__PURE__ */ new Map();
+        const cntByPos = /* @__PURE__ */ new Map();
+        for (const p of pool) {
+          const v = Number(p.ppg);
+          if (!Number.isFinite(v)) continue;
+          sumByPos.set(p.position, (sumByPos.get(p.position) || 0) + v);
+          cntByPos.set(p.position, (cntByPos.get(p.position) || 0) + 1);
+        }
+        pool = pool.map((p) => {
+          const v = Number(p.ppg);
+          const n = cntByPos.get(p.position) || 0;
+          if (!Number.isFinite(v) || n === 0) return p;
+          const mean = sumByPos.get(p.position) / n;
+          return { ...p, ppg: Math.round((v + (mean - v) * VEGAS_FACTOR) * 10) / 10 };
+        });
+        presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
+      }
+      let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
       rows.sort((a, b) => {
         const an = Number(a[sortBy]);
         const bn = Number(b[sortBy]);
@@ -40188,7 +40211,7 @@ ${renderTable(input, rows)}`;
       const cols = ["name", "position", "ppg", "recPG"];
       const out = rows.map((r) => pickColumns(r, cols));
       const scoring = (doc.scoring || "ppr").toUpperCase();
-      return `StatHead projections — ${doc.season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}). ${doc.note || ""}
+      return `StatHead projections — ${doc.season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${doc.note || ""}
 
 ${renderTable(input, out, cols)}`;
     }
@@ -40337,7 +40360,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.20"
+  version: "1.0.21"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
