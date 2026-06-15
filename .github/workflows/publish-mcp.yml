@@ -1,0 +1,95 @@
+name: Publish stathead-mcp to npm
+
+# Publishes the MCP server package (mcp/) to npm. Two ways to trigger:
+#
+#   A. Push a tag matching mcp-v* (e.g. mcp-v1.0.0). The tag version is
+#      strictly verified against mcp/package.json.
+#
+#   B. Run manually from the Actions UI (workflow_dispatch). The version
+#      from mcp/package.json is used as-is — no tag needed. Friendly for
+#      mobile / quick releases. Choose the branch to publish from.
+#
+# Each run rebuilds the bundle (npm run build:mcp) and smoke-tests it (boots
+# the server, asserts it lists tools) BEFORE publishing.
+#
+# One-time setup (do this BEFORE the first release):
+#   1. npmjs.com → Access Tokens → Generate New Token → "Automation"
+#      (or a Granular token with publish rights to `stathead-mcp`).
+#   2. Repo Settings → Secrets and variables → Actions → New repository
+#      secret named NPM_TOKEN with that value.
+#   3. (Optional) Repo Settings → Environments → New environment `npm`
+#      and require a reviewer, to gate every publish behind an approval.
+#
+# Subsequent releases:
+#   1. Bump `version` in mcp/package.json
+#   2. Either: tag mcp-v1.1.0 + push, OR run workflow_dispatch from the UI
+
+on:
+  push:
+    tags:
+      - 'mcp-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write  # enables npm provenance attestation
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build the MCP bundle
+        run: npm run build:mcp
+
+      - name: Verify tag matches package version (tag-triggered only)
+        if: startsWith(github.ref, 'refs/tags/mcp-v')
+        run: |
+          TAG="${GITHUB_REF_NAME#mcp-v}"
+          PKG_VER=$(node -p "require('./mcp/package.json').version")
+          if [ "$TAG" != "$PKG_VER" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME => $TAG does not match mcp/package.json version $PKG_VER"
+            exit 1
+          fi
+
+      - name: Smoke test — server boots and lists tools
+        run: |
+          OUT=$(printf '%s\n%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | node mcp/dist/server.mjs)
+          COUNT=$(node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let n=0;for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(j.id===2)n=j.result.tools.length;}catch{}}console.log(n);})' <<< "$OUT")
+          echo "Tools advertised: $COUNT"
+          if [ "$COUNT" -lt 1 ]; then
+            echo "::error::MCP server advertised no tools — refusing to publish"
+            exit 1
+          fi
+
+      - name: Publish to npm
+        working-directory: mcp
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          PKG_VER=$(node -p "require('./mcp/package.json').version")
+          echo "Published **stathead-mcp@$PKG_VER** from \`${GITHUB_REF_NAME}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "npx -y stathead-mcp" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
