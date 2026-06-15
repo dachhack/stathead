@@ -37989,24 +37989,30 @@ async function fetchNextGenStats(season, type = "passing") {
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${season}_${type}.csv.gz`,
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${type}.csv.gz`
   ];
-  for (const url2 of urls) {
-    const cached2 = csvCache.get(url2);
-    if (cached2) return cached2;
-    const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
-    if (!response.ok) continue;
-    const buf = await response.arrayBuffer();
-    const decompressed = new TextDecoder().decode(
-      await new Response(
-        new Response(buf).body.pipeThrough(new DecompressionStream("gzip"))
-      ).arrayBuffer()
-    );
-    const result = import_papaparse.default.parse(decompressed, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true
-    });
-    csvCache.set(url2, result.data);
-    return result.data;
+  for (let i = 0; i < urls.length; i++) {
+    const url2 = urls[i];
+    const isCombined = i === urls.length - 1;
+    let rows = csvCache.get(url2);
+    if (!rows) {
+      const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
+      if (!response.ok) continue;
+      const buf = await response.arrayBuffer();
+      const decompressed = new TextDecoder().decode(
+        await new Response(
+          new Response(buf).body.pipeThrough(new DecompressionStream("gzip"))
+        ).arrayBuffer()
+      );
+      const result = import_papaparse.default.parse(decompressed, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true
+      });
+      rows = result.data;
+      csvCache.set(url2, rows);
+    }
+    const seasonRows = isCombined ? rows.filter((r) => r.season === season) : rows;
+    if (!isCombined && seasonRows.length <= 10) continue;
+    return seasonRows;
   }
   return [];
 }
@@ -38431,8 +38437,8 @@ function groupByPlayer(rows, idField = "player_id") {
 function groupSnapsByPlayer(snaps) {
   const map2 = /* @__PURE__ */ new Map();
   for (const s of snaps) {
-    const id = s.pfr_player_id;
-    if (!id) continue;
+    if (!s.player) continue;
+    const id = normalizeNameForMatch(s.player);
     const arr = map2.get(id);
     if (arr) arr.push(s);
     else map2.set(id, [s]);
@@ -39819,7 +39825,7 @@ ${renderTable(input, rows, cols)}`;
       const results = [];
       for (const s of totals) {
         const weekly = weeklyByPlayer.get(s.player_id) || [];
-        const playerSnaps = snapsByPlayer.get(s.player_id) || [];
+        const playerSnaps = snapsByPlayer.get(normalizeNameForMatch(s.player_display_name ?? s.player_name)) || [];
         if (s.position === "QB") {
           const qbName = s.player_display_name ?? s.player_name;
           const qbPbp = pbpData.filter(
@@ -40285,7 +40291,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.17"
+  version: "1.0.18"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
