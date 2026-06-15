@@ -1,0 +1,8 @@
+name = "stathead-mcp"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+# The MCP tool bundle (mcp/dist/server.mjs) uses a few Node built-ins
+# (dynamic `import("fs")`, `process.env`) behind runtime guards; nodejs_compat
+# lets them resolve in the Worker. All data is fetched over HTTPS at runtime
+# (GitHub raw + nflverse + Sleeper), so no filesystem is actually used.
+compatibility_flags = ["nodejs_compat"]

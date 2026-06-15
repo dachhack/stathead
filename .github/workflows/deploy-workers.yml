@@ -30,6 +30,7 @@ on:
           - espn-news-proxy
           - fc-proxy
           - ktc-proxy
+          - stathead-mcp
 
 jobs:
   deploy:
@@ -37,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        worker: [espn-news-proxy, fc-proxy, ktc-proxy]
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp]
     steps:
       - name: Decide whether to deploy this worker
         id: gate
