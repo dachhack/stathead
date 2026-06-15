@@ -37823,19 +37823,41 @@ async function fetchSleeperTrending(type = "add", hours = 24, limit = 50) {
   }).filter((r) => r !== null);
 }
 var sleeperProjectionCache = /* @__PURE__ */ new Map();
+async function fetchSleeperWeekRaw(season, week) {
+  const url2 = `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular`;
+  const res = await fetchWithTimeout(url2);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Sleeper projections API returned ${res.status}`);
+  return res.json();
+}
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `${season}-${week ?? "full"}`;
   const cached2 = sleeperProjectionCache.get(cacheKey);
   if (cached2) return cached2;
-  const url2 = week ? `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular` : `${SLEEPER}/projections/nfl/${season}`;
-  const [projRes, players] = await Promise.all([
-    fetchWithTimeout(url2),
-    fetchSleeperPlayers()
-  ]);
-  if (!projRes.ok) throw new Error(`Sleeper projections API returned ${projRes.status}`);
-  const raw = await projRes.json();
+  const players = await fetchSleeperPlayers();
+  const weeks = week ? [week] : Array.from({ length: 18 }, (_, i) => i + 1);
+  const weekRaws = await Promise.all(weeks.map((w) => fetchSleeperWeekRaw(season, w)));
+  const available = weekRaws.filter((r) => r != null);
+  if (available.length === 0) {
+    throw new Error(
+      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper serves only per-week regular-season projections (there is no season-total endpoint); season-long figures here are summed from weeks 1–18, which are not posted until the season is set.`
+    );
+  }
+  const summed = /* @__PURE__ */ new Map();
+  for (const raw of available) {
+    for (const [pid, stats] of Object.entries(raw)) {
+      let acc = summed.get(pid);
+      if (!acc) {
+        acc = {};
+        summed.set(pid, acc);
+      }
+      for (const [statKey, statVal] of Object.entries(stats)) {
+        if (typeof statVal === "number") acc[statKey] = (acc[statKey] || 0) + statVal;
+      }
+    }
+  }
   const projections = [];
-  for (const [pid, stats] of Object.entries(raw)) {
+  for (const [pid, stats] of summed) {
     const p = players.get(pid);
     if (!p || !["QB", "RB", "WR", "TE", "K"].includes(p.position)) continue;
     const passYd = stats.pass_yd || 0;
@@ -37867,6 +37889,14 @@ async function fetchSleeperProjections(season, week) {
       rec_yd: recYd,
       rec_td: recTd
     });
+  }
+  const hasData = projections.some(
+    (p) => p.pass_yd || p.rush_yd || p.rec_yd || p.rec || p.pass_td || p.rush_td || p.rec_td
+  );
+  if (!hasData) {
+    throw new Error(
+      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty. The api.sleeper.app/v1 projections endpoint is no longer populated upstream; live projections now require the api.sleeper.com source.`
+    );
   }
   projections.sort((a, b) => b.pts_ppr - a.pts_ppr);
   sleeperProjectionCache.set(cacheKey, projections);
@@ -38646,12 +38676,12 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_projections",
-    description: "Get Sleeper season or weekly player projections. Includes projected stats and fantasy points by scoring format.",
+    description: "Get Sleeper weekly or season-long player projections. Includes projected stats and fantasy points by scoring format. Sleeper publishes only per-week regular-season projections; pass week for a single week, or omit week to get season totals summed across weeks 1–18 (available once that season's projections are posted).",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year" },
-        week: { type: "number", description: "Week number (omit for season-long)" },
+        week: { type: "number", description: "Week number (omit for season-long totals summed across weeks 1–18)" },
         position: { type: "string", description: "Filter by position" },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
@@ -40255,7 +40285,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.16"
+  version: "1.0.17"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
