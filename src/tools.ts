@@ -36,7 +36,7 @@ export const NFL_TOOLS: Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        season: { type: 'number', description: 'NFL season year (2015-2025)' },
+        season: { type: 'number', description: 'NFL season year. Coverage: 1999 to the latest completed season (nflverse).' },
         position: {
           type: 'string',
           description: 'Filter by position: QB, RB, WR, TE, or ALL',
@@ -224,9 +224,9 @@ export const NFL_TOOLS: Tool[] = [
       type: 'object' as const,
       properties: {
         source: { type: 'string', description: 'Data source', enum: ['ffc', 'espn'] },
-        season: { type: 'number', description: 'Season year' },
+        season: { type: 'number', description: 'Season year. ffc coverage: ~2018–present (older seasons may be unavailable); espn: recent seasons only.' },
         scoring: { type: 'string', description: 'Scoring format (community source only)', enum: ['standard', 'ppr', 'half-ppr'] },
-        teams: { type: 'number', description: 'League size (community source only)', enum: [8, 10, 12, 14] },
+        teams: { type: 'number', description: 'League size, one of 8/10/12/14 (community source only). Default 12.', enum: [8, 10, 12, 14] },
         limit: { type: 'number', description: 'Max rows (default 50)' },
       },
       required: ['source', 'season'],
