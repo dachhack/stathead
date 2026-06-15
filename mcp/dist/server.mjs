@@ -38849,7 +38849,7 @@ var NFL_TOOLS = [
         season: { type: "number", description: "College season. Required for cohort queries (when player_name is omitted)." },
         position: { type: "string", description: "Filter by position abbreviation (e.g. RB, WR, QB)" },
         school: { type: "string", description: "Filter by school name/abbreviation" },
-        sort_by: { type: "string", description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Default: season.' },
+        sort_by: { type: "string", description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Case- and spacing-insensitive, so "rushing_yards" also works. Unknown values return the list of available columns. Default: season.' },
         limit: { type: "number", description: "Max player-seasons (default 100)" }
       },
       required: []
@@ -40143,7 +40143,14 @@ ${renderTable(input, rows)}`;
       }
       let rows = Array.from(pivoted.values());
       if (sortBy) {
-        rows.sort((a, b) => Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0));
+        const normKey = (s) => String(s).toLowerCase().replace(/[\s_]+/g, "");
+        const target = normKey(sortBy);
+        const statNames = Array.from(new Set(data.map((d) => d.statistic)));
+        const resolvedKey = statNames.find((s) => normKey(s) === target);
+        if (!resolvedKey) {
+          return `Unknown sort_by "${sortBy}". Available stat columns for this cohort: ${statNames.join(", ")}. (Matching is case- and spacing-insensitive, so "rushing_yards" resolves to "Rushing Yards".)`;
+        }
+        rows.sort((a, b) => Number(b[resolvedKey] ?? 0) - Number(a[resolvedKey] ?? 0));
       } else {
         rows.sort((a, b) => a.season - b.season);
       }
@@ -40248,7 +40255,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.15"
+  version: "1.0.16"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
