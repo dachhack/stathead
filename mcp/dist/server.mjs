@@ -37823,19 +37823,41 @@ async function fetchSleeperTrending(type = "add", hours = 24, limit = 50) {
   }).filter((r) => r !== null);
 }
 var sleeperProjectionCache = /* @__PURE__ */ new Map();
+async function fetchSleeperWeekRaw(season, week) {
+  const url2 = `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular`;
+  const res = await fetchWithTimeout(url2);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Sleeper projections API returned ${res.status}`);
+  return res.json();
+}
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `${season}-${week ?? "full"}`;
   const cached2 = sleeperProjectionCache.get(cacheKey);
   if (cached2) return cached2;
-  const url2 = week ? `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular` : `${SLEEPER}/projections/nfl/${season}`;
-  const [projRes, players] = await Promise.all([
-    fetchWithTimeout(url2),
-    fetchSleeperPlayers()
-  ]);
-  if (!projRes.ok) throw new Error(`Sleeper projections API returned ${projRes.status}`);
-  const raw = await projRes.json();
+  const players = await fetchSleeperPlayers();
+  const weeks = week ? [week] : Array.from({ length: 18 }, (_, i) => i + 1);
+  const weekRaws = await Promise.all(weeks.map((w) => fetchSleeperWeekRaw(season, w)));
+  const available = weekRaws.filter((r) => r != null);
+  if (available.length === 0) {
+    throw new Error(
+      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper serves only per-week regular-season projections (there is no season-total endpoint); season-long figures here are summed from weeks 1–18, which are not posted until the season is set.`
+    );
+  }
+  const summed = /* @__PURE__ */ new Map();
+  for (const raw of available) {
+    for (const [pid, stats] of Object.entries(raw)) {
+      let acc = summed.get(pid);
+      if (!acc) {
+        acc = {};
+        summed.set(pid, acc);
+      }
+      for (const [statKey, statVal] of Object.entries(stats)) {
+        if (typeof statVal === "number") acc[statKey] = (acc[statKey] || 0) + statVal;
+      }
+    }
+  }
   const projections = [];
-  for (const [pid, stats] of Object.entries(raw)) {
+  for (const [pid, stats] of summed) {
     const p = players.get(pid);
     if (!p || !["QB", "RB", "WR", "TE", "K"].includes(p.position)) continue;
     const passYd = stats.pass_yd || 0;
@@ -37867,6 +37889,14 @@ async function fetchSleeperProjections(season, week) {
       rec_yd: recYd,
       rec_td: recTd
     });
+  }
+  const hasData = projections.some(
+    (p) => p.pass_yd || p.rush_yd || p.rec_yd || p.rec || p.pass_td || p.rush_td || p.rec_td
+  );
+  if (!hasData) {
+    throw new Error(
+      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty. The api.sleeper.app/v1 projections endpoint is no longer populated upstream; live projections now require the api.sleeper.com source.`
+    );
   }
   projections.sort((a, b) => b.pts_ppr - a.pts_ppr);
   sleeperProjectionCache.set(cacheKey, projections);
@@ -37959,24 +37989,30 @@ async function fetchNextGenStats(season, type = "passing") {
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${season}_${type}.csv.gz`,
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${type}.csv.gz`
   ];
-  for (const url2 of urls) {
-    const cached2 = csvCache.get(url2);
-    if (cached2) return cached2;
-    const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
-    if (!response.ok) continue;
-    const buf = await response.arrayBuffer();
-    const decompressed = new TextDecoder().decode(
-      await new Response(
-        new Response(buf).body.pipeThrough(new DecompressionStream("gzip"))
-      ).arrayBuffer()
-    );
-    const result = import_papaparse.default.parse(decompressed, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true
-    });
-    csvCache.set(url2, result.data);
-    return result.data;
+  for (let i = 0; i < urls.length; i++) {
+    const url2 = urls[i];
+    const isCombined = i === urls.length - 1;
+    let rows = csvCache.get(url2);
+    if (!rows) {
+      const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
+      if (!response.ok) continue;
+      const buf = await response.arrayBuffer();
+      const decompressed = new TextDecoder().decode(
+        await new Response(
+          new Response(buf).body.pipeThrough(new DecompressionStream("gzip"))
+        ).arrayBuffer()
+      );
+      const result = import_papaparse.default.parse(decompressed, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true
+      });
+      rows = result.data;
+      csvCache.set(url2, rows);
+    }
+    const seasonRows = isCombined ? rows.filter((r) => r.season === season) : rows;
+    if (!isCombined && seasonRows.length <= 10) continue;
+    return seasonRows;
   }
   return [];
 }
@@ -38038,6 +38074,12 @@ async function fetchProspectBoomBust() {
 }
 async function fetchProspectGrades(year) {
   return await tryPreFetched(`prospect-grades-${year}.json`) ?? [];
+}
+async function fetchStatheadProjections() {
+  return await tryPreFetched("redraft-projections.json");
+}
+async function fetchProjectionPresets() {
+  return await tryPreFetched("redraft-projections-presets.json");
 }
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
@@ -38401,8 +38443,8 @@ function groupByPlayer(rows, idField = "player_id") {
 function groupSnapsByPlayer(snaps) {
   const map2 = /* @__PURE__ */ new Map();
   for (const s of snaps) {
-    const id = s.pfr_player_id;
-    if (!id) continue;
+    if (!s.player) continue;
+    const id = normalizeNameForMatch(s.player);
     const arr = map2.get(id);
     if (arr) arr.push(s);
     else map2.set(id, [s]);
@@ -38646,12 +38688,12 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_projections",
-    description: "Get Sleeper season or weekly player projections. Includes projected stats and fantasy points by scoring format.",
+    description: "Get Sleeper weekly or season-long player projections. Includes projected stats and fantasy points by scoring format. Sleeper publishes only per-week regular-season projections; pass week for a single week, or omit week to get season totals summed across weeks 1–18 (available once that season's projections are posted).",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year" },
-        week: { type: "number", description: "Week number (omit for season-long)" },
+        week: { type: "number", description: "Week number (omit for season-long totals summed across weeks 1–18)" },
         position: { type: "string", description: "Filter by position" },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
@@ -38840,6 +38882,21 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_projections",
+    description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
+        player_name: { type: "string", description: "Filter to one player." },
+        preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
+        sort_by: { type: "string", description: "Sort column, descending. Default: ppg." },
+        limit: { type: "number", description: "Max players (default 50)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_college_stats",
     description: 'Get college football statistics for individual players OR a whole class/cohort. Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit player_name and pass season (optionally position/school) and sort_by to rank. Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
@@ -38849,7 +38906,7 @@ var NFL_TOOLS = [
         season: { type: "number", description: "College season. Required for cohort queries (when player_name is omitted)." },
         position: { type: "string", description: "Filter by position abbreviation (e.g. RB, WR, QB)" },
         school: { type: "string", description: "Filter by school name/abbreviation" },
-        sort_by: { type: "string", description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Default: season.' },
+        sort_by: { type: "string", description: 'Stat column to rank a cohort by, descending (e.g. "Rushing Yards", "Receiving Yards", "Receptions", "Passing Yards"). Case- and spacing-insensitive, so "rushing_yards" also works. Unknown values return the list of available columns. Default: season.' },
         limit: { type: "number", description: "Max player-seasons (default 100)" }
       },
       required: []
@@ -38997,7 +39054,7 @@ async function executeToolInner(name, input) {
           "- **Next Gen Stats** \u2014 advanced tracking metrics",
           "- **Sleeper** \u2014 trending adds/drops, projections",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
-          "- **KeepTradeCut** & **FantasyCalc** \u2014 dynasty/redraft trade values",
+          "- **StatHead (first-party)** \u2014 in-house season PPG projections, prospect boom/bust model, blended dynasty/redraft trade values (market-derived composites, not raw third-party feeds)",
           "- **FantasyPros / DynastyProcess** \u2014 expert consensus rankings",
           "- **ESPN** \u2014 QBR; **FTN** \u2014 charting; **OverTheCap** \u2014 contracts",
           "- **CollegeFootballData (CFBD)** \u2014 college stats & QBR"
@@ -39008,13 +39065,14 @@ async function executeToolInner(name, input) {
           "- Combine: 2000\u2013present \xB7 Injuries: 2009\u2013present \xB7 Snap counts: 2012\u2013present",
           "- Next Gen Stats: 2016\u2013present \xB7 QBR: 2006\u2013present \xB7 FTN charting: 2022\u2013present",
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
-          "- Dynasty/redraft values (KTC, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**"
+          "- StatHead blended dynasty/redraft values, Sleeper trending, expert rankings: **current season only**",
+          "- StatHead in-house season projections (`get_projections`): **2026**"
         ].join("\n"),
         "## Enumerations",
         [
           "- positions: `QB`, `RB`, `WR`, `TE` (some tools also accept `ALL`)",
-          "- scoring (ffc): `standard`, `ppr`, `half-ppr` \xB7 PPR (FantasyCalc): `0`, `0.5`, `1`",
-          "- league sizes (teams): `8`, `10`, `12`, `14` (ffc) / `8`, `10`, `12`, `14`, `16` (FantasyCalc)",
+          "- scoring (ffc): `standard`, `ppr`, `half-ppr`",
+          "- league sizes (teams): `8`, `10`, `12`, `14`",
           "- ADP sources: `ffc`, `espn` \xB7 dynasty formats: `1qb`, `superflex`"
         ].join("\n"),
         "## Output control (all tools except get_metadata)",
@@ -39789,7 +39847,7 @@ ${renderTable(input, rows, cols)}`;
       const results = [];
       for (const s of totals) {
         const weekly = weeklyByPlayer.get(s.player_id) || [];
-        const playerSnaps = snapsByPlayer.get(s.player_id) || [];
+        const playerSnaps = snapsByPlayer.get(normalizeNameForMatch(s.player_display_name ?? s.player_name)) || [];
         if (s.position === "QB") {
           const qbName = s.player_display_name ?? s.player_name;
           const qbPbp = pbpData.filter(
@@ -40110,6 +40168,81 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows)}`;
     }
+    case "get_projections": {
+      const position = input.position?.toUpperCase();
+      const playerName = input.player_name;
+      const preset = input.preset?.toLowerCase();
+      const limit = clamp(input.limit || 50, 1, 300);
+      const sortBy = input.sort_by || "ppg";
+      let pool;
+      let season;
+      let scoring = "PPR";
+      let baseNote = "";
+      let presetNote = "";
+      const FILE_PRESETS = {
+        "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
+        "consensus-ml": "per-stat blend toward market consensus via internal weights",
+        "rookie-optimistic": "first-year RB/WR/TE volume boosted (zero-sum) over veteran teammates; rookie-QB rushing bumped",
+        "vet-optimistic": "established veterans boosted, rookies faded",
+        "injury-skeptic": "games haircut for aging / oft-injured players"
+      };
+      if (preset && FILE_PRESETS[preset]) {
+        const pdoc = await fetchProjectionPresets();
+        const arr = pdoc?.presets?.[preset];
+        if (!arr?.length) {
+          return `The "${preset}" preset isn't published yet. It is generated offline by running the real scenario engine over the season-projection base pool (export it from the Projections tab, then run scripts/precompute-projection-presets.ts). "consensus" and "vegas-weighted" are available now.`;
+        }
+        pool = arr;
+        season = pdoc.season;
+        baseNote = pdoc.note || "";
+        presetNote = ` Preset "${preset}" applied (derived StatHead output): ${FILE_PRESETS[preset]}.`;
+      } else {
+        const doc = await fetchStatheadProjections();
+        if (!doc || !doc.players?.length) {
+          return "No StatHead projections available.";
+        }
+        season = doc.season;
+        scoring = (doc.scoring || "ppr").toUpperCase();
+        baseNote = doc.note || "";
+        pool = doc.players;
+        if (preset === "vegas-weighted" || preset === "vegas") {
+          const VEGAS_FACTOR = 0.25;
+          const sumByPos = /* @__PURE__ */ new Map();
+          const cntByPos = /* @__PURE__ */ new Map();
+          for (const p of pool) {
+            const v = Number(p.ppg);
+            if (!Number.isFinite(v)) continue;
+            sumByPos.set(p.position, (sumByPos.get(p.position) || 0) + v);
+            cntByPos.set(p.position, (cntByPos.get(p.position) || 0) + 1);
+          }
+          pool = pool.map((p) => {
+            const v = Number(p.ppg);
+            const n = cntByPos.get(p.position) || 0;
+            if (!Number.isFinite(v) || n === 0) return p;
+            const mean = sumByPos.get(p.position) / n;
+            return { ...p, ppg: Math.round((v + (mean - v) * VEGAS_FACTOR) * 10) / 10 };
+          });
+          presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
+        }
+      }
+      let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
+      rows.sort((a, b) => {
+        const an = Number(a[sortBy]);
+        const bn = Number(b[sortBy]);
+        const aok = Number.isFinite(an);
+        const bok = Number.isFinite(bn);
+        if (!aok && !bok) return 0;
+        if (!aok) return 1;
+        if (!bok) return -1;
+        return bn - an;
+      });
+      rows = rows.slice(0, limit);
+      const cols = ["name", "position", "ppg", "recPG"];
+      const out = rows.map((r) => pickColumns(r, cols));
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}
+
+${renderTable(input, out, cols)}`;
+    }
     case "get_college_stats": {
       const playerName = input.player_name;
       const season = input.season;
@@ -40143,7 +40276,14 @@ ${renderTable(input, rows)}`;
       }
       let rows = Array.from(pivoted.values());
       if (sortBy) {
-        rows.sort((a, b) => Number(b[sortBy] ?? 0) - Number(a[sortBy] ?? 0));
+        const normKey = (s) => String(s).toLowerCase().replace(/[\s_]+/g, "");
+        const target = normKey(sortBy);
+        const statNames = Array.from(new Set(data.map((d) => d.statistic)));
+        const resolvedKey = statNames.find((s) => normKey(s) === target);
+        if (!resolvedKey) {
+          return `Unknown sort_by "${sortBy}". Available stat columns for this cohort: ${statNames.join(", ")}. (Matching is case- and spacing-insensitive, so "rushing_yards" resolves to "Rushing Yards".)`;
+        }
+        rows.sort((a, b) => Number(b[resolvedKey] ?? 0) - Number(a[resolvedKey] ?? 0));
       } else {
         rows.sort((a, b) => a.season - b.season);
       }
@@ -40248,7 +40388,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.15"
+  version: "1.0.23"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};

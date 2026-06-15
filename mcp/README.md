@@ -18,7 +18,7 @@ go.
 | Discovery | `get_metadata` — sources, season coverage, and valid enums (call this first to scope a question) |
 | Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, depth charts |
 | Games & plays | schedules/results, play-by-play, participation, FTN charting |
-| Fantasy | StatHead blended dynasty values, ADP (FFC / ESPN / Sleeper), `get_adp_with_results` (ADP vs actual finish), trending adds/drops, projections |
+| Fantasy | StatHead blended dynasty values, `get_projections` (StatHead's in-house season PPG model), ADP (FFC / ESPN / Sleeper), `get_adp_with_results` (ADP vs actual finish), trending adds/drops |
 | Draft & college | `get_prospect_outcomes` (calibrated boom/bust probabilities + grades), draft picks, `get_rookie_class` (draft+combine+rookie stats in one call), prospect profiles, combine, college stats (player or cohort), QBR |
 
 ## Quick start
@@ -63,8 +63,9 @@ config.
 
 Most tools fetch live from open upstreams (nflverse, Sleeper,
 FantasyFootballCalculator, ESPN's public endpoints). A handful read committed
-daily snapshots (dynasty values, ADP history, consensus projections), which the
-server fetches from the hosted StatHead site by default.
+daily snapshots (StatHead's blended dynasty values, ADP history, in-house
+season projections), which the server fetches from the hosted StatHead site by
+default.
 
 Please review **[`DATA_SOURCES.md`](../DATA_SOURCES.md)** before redistributing
 any data this server returns — several upstreams are proprietary or paid and
