@@ -76,7 +76,7 @@ All optional, via environment variables:
 
 | Var | Default | Purpose |
 | --- | --- | --- |
-| `STATHEAD_DATA_BASE` | `https://stathead.app/` | Base URL for snapshot data (`<base>data/<file>`). Point it at your own deployment, the GitHub Pages mirror (`https://dachhack.github.io/stathead/`), or a local `http://localhost:5173/` dev server. |
+| `STATHEAD_DATA_BASE` | GitHub raw (data branch) | Base URL for committed snapshot data (`<base>data/<file>`). Defaults to GitHub raw, which serves every file uncompressed/reliably (the Cloudflare host gzips files over its 25 MiB cap, which Node can't decode). Override to point at your own deployment or a local `http://localhost:5173/` dev server. |
 | `VITE_KTC_PROXY` | project worker | CORS proxy for KeepTradeCut. Deploy your own (`workers/ktc-proxy`) to avoid shared rate limits. |
 | `VITE_FC_PROXY` | project worker | CORS proxy for FantasyCalc (`workers/fc-proxy`). |
 | `VITE_ODDS_API_KEY` | — | Enables betting-odds tools ([the-odds-api.com](https://the-odds-api.com)). |

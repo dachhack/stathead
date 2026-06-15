@@ -72,14 +72,19 @@ const IS_PROD = typeof window !== 'undefined' && window.location.hostname !== 'l
 const IS_NODE = typeof window === 'undefined';
 
 // Base URL for committed `/data/` snapshots. In the Vite bundle this is
-// `import.meta.env.BASE_URL`. Outside Vite (the MCP server / standalone
-// scripts run via tsx) that's undefined, so fall back to the hosted site —
-// this lets `stathead-mcp` serve data without a multi-GB local checkout.
-// Override with STATHEAD_DATA_BASE (must end in `/`).
+// `import.meta.env.BASE_URL`. Outside Vite (the MCP server / standalone scripts
+// run via tsx, with no local public/data) we fetch the committed snapshots
+// from GitHub raw — it serves every file uncompressed and reliably, unlike the
+// Cloudflare/Pages host which gzips files over its 25 MiB asset cap (e.g. the
+// ~38 MB cfbd-college-stats.json), a `.gz` path Node's fetch can't decode
+// reliably. Pinned to the data branch so daily snapshot commits flow through.
+// Override with STATHEAD_DATA_BASE (must end in `/` and expose `data/<file>`).
+const GITHUB_RAW_DATA_BASE =
+  'https://raw.githubusercontent.com/dachhack/stathead/refs/heads/claude/nfl-fantasy-workbench-6D1yd/public/';
 const HOSTED_DATA_BASE =
   (IS_NODE && typeof process !== 'undefined'
     ? process.env.STATHEAD_DATA_BASE
-    : undefined) ?? 'https://stathead.app/';
+    : undefined) ?? GITHUB_RAW_DATA_BASE;
 
 function dataBase(): string {
   return import.meta.env?.BASE_URL ?? HOSTED_DATA_BASE;
@@ -283,7 +288,7 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   if (!IS_PROD && !IS_NODE) return null;
   try {
     const base = dataBase();
-    const resp = await fetchWithTimeout(`${base}data/${filename}`);
+    const resp = await fetchWithTimeout(`${base}data/${filename}`, { timeout: LARGE_CSV_TIMEOUT });
     if (resp.ok) return await resp.json();
     // Oversized files are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is absent,

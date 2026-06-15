@@ -37350,7 +37350,8 @@ async function fetchWithTimeout(url2, options) {
 }
 var IS_PROD = typeof window !== "undefined" && window.location.hostname !== "localhost";
 var IS_NODE = typeof window === "undefined";
-var HOSTED_DATA_BASE = (IS_NODE && typeof process !== "undefined" ? process.env.STATHEAD_DATA_BASE : void 0) ?? "https://stathead.app/";
+var GITHUB_RAW_DATA_BASE = "https://raw.githubusercontent.com/dachhack/stathead/refs/heads/claude/nfl-fantasy-workbench-6D1yd/public/";
+var HOSTED_DATA_BASE = (IS_NODE && typeof process !== "undefined" ? process.env.STATHEAD_DATA_BASE : void 0) ?? GITHUB_RAW_DATA_BASE;
 function dataBase() {
   return import.meta.env?.BASE_URL ?? HOSTED_DATA_BASE;
 }
@@ -37387,7 +37388,7 @@ async function tryPreFetched(filename) {
   if (!IS_PROD && !IS_NODE) return null;
   try {
     const base = dataBase();
-    const resp = await fetchWithTimeout(`${base}data/${filename}`);
+    const resp = await fetchWithTimeout(`${base}data/${filename}`, { timeout: LARGE_CSV_TIMEOUT });
     if (resp.ok) return await resp.json();
     const gz = await fetchWithTimeout(`${base}data/${filename}.gz`);
     if (gz.ok && gz.body) {
@@ -38801,7 +38802,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_draft_prospect_data",
-    description: "Get ESPN draft prospect rankings and scouting profiles. Includes ESPN grade, position rank, overall rank, physical measurements, and scouting report text (strengths/weaknesses). Data from 1967-present. Use for prospect evaluation, draft class comparisons, historical draft analysis.",
+    description: "Get ESPN draft prospect rankings and scouting profiles. Includes ESPN grade, position rank, overall rank, physical measurements, and scouting report text (strengths/weaknesses). Coverage: draft classes 1967\u20132021 only (this ESPN/JackLich10 source is not updated for 2022+). For recent/2022+ classes use get_rookie_class or get_college_stats. Use for prospect evaluation, draft class comparisons, historical draft analysis.",
     input_schema: {
       type: "object",
       properties: {
@@ -39135,7 +39136,7 @@ ${renderTable(input, rows, cols)}`;
       const minSeason = input.min_season;
       const maxSeason = input.max_season;
       const sortBy = input.sort_by;
-      const limit = clamp(input.limit || 30, 1, 100);
+      const limit = clamp(input.limit || 30, 1, 500);
       let combine = await fetchCombine();
       if (position) combine = combine.filter((c) => c.pos === position.toUpperCase());
       if (playerName) combine = combine.filter((c) => nameMatch(c.player_name, playerName));
@@ -39150,10 +39151,12 @@ ${renderTable(input, rows, cols)}`;
           return ascending ? va - vb : vb - va;
         });
       }
+      const total = combine.length;
       combine = combine.slice(0, limit);
+      const note = total > combine.length ? ` \u2014 showing first ${combine.length} of ${total}; raise limit (max 500) or narrow position/min_season/max_season` : "";
       const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
       const rows = combine.map((c) => pickColumns(c, cols));
-      return `Combine results (${combine.length} players):
+      return `Combine results (${combine.length} players)${note}:
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -39965,6 +39968,9 @@ ${renderTable(input, rows, cols)}`;
           data.sort((a, b) => (a.pos_rk || 999) - (b.pos_rk || 999));
         }
         data = data.slice(0, limit);
+        if (data.length === 0) {
+          return "No draft profiles found. Scouting profiles cover the ~2013\u20132021 draft classes (ESPN via JackLich10) and have no draft-year field, so draft_year is ignored in scouting mode. For 2022+ classes use get_rookie_class or get_college_stats.";
+        }
         const cols = [
           "player_name",
           "pos_abbr",
@@ -39980,7 +39986,8 @@ ${renderTable(input, rows, cols)}`;
           "text4"
         ];
         const rows = data.map((d) => pickColumns(d, cols));
-        return `Draft profiles (${data.length} prospects):
+        const yrNote = draftYear ? " (note: scouting profiles have no draft-year field; draft_year was ignored)" : "";
+        return `Draft profiles (${data.length} prospects)${yrNote}:
 
 ${renderTable(input, rows, cols)}`;
       } else {
@@ -39999,6 +40006,9 @@ ${renderTable(input, rows, cols)}`;
           data.sort((a, b) => (a.overall || 999) - (b.overall || 999));
         }
         data = data.slice(0, limit);
+        if (data.length === 0) {
+          return "No draft prospects found. Coverage: draft classes 1967\u20132021 (nflverse/JackLich10); this source is not updated for 2022+. For recent classes use get_rookie_class (draft+combine+rookie production), get_draft_picks, or get_college_stats.";
+        }
         const cols = [
           "draft_year",
           "player_name",
@@ -40157,7 +40167,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.12"
+  version: "1.0.13"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
