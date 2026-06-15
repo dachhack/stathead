@@ -11,7 +11,7 @@ go.
 
 ## What you get
 
-27 tools spanning player and team data, including:
+28 tools spanning player and team data, including:
 
 | Area | Tools |
 | --- | --- |
@@ -19,7 +19,7 @@ go.
 | Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, depth charts |
 | Games & plays | schedules/results, play-by-play, participation, FTN charting |
 | Fantasy | StatHead blended dynasty values, ADP (FFC / ESPN / Sleeper), trending adds/drops, projections |
-| Draft & college | draft picks, prospect profiles, combine results, college stats, QBR |
+| Draft & college | draft picks, `get_rookie_class` (draft+combine+rookie stats in one call), prospect profiles, combine, college stats (player or cohort), QBR |
 
 ## Quick start
 
