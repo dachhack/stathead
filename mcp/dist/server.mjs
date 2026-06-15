@@ -38075,6 +38075,12 @@ async function fetchProspectBoomBust() {
 async function fetchProspectGrades(year) {
   return await tryPreFetched(`prospect-grades-${year}.json`) ?? [];
 }
+async function fetchStatheadProjections() {
+  return await tryPreFetched("redraft-projections.json");
+}
+async function fetchConsensusProjections(season) {
+  return await tryPreFetched(`clay-projections-${season}.json`);
+}
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
 }
@@ -38876,6 +38882,22 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_projections",
+    description: `StatHead's first-party season fantasy projections, plus the site's "Consensus" benchmark. source="stathead" (default): StatHead's in-house projected fantasy points-per-game for the upcoming season — veterans via a 2025-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." source="consensus": the site's "Consensus" benchmark from the Mike Clay (ESPN) projection guide — full projected stat lines (passing/rushing/receiving), total fantasy points, and positional rank. Use for forward-looking redraft/dynasty projections and to compare StatHead's model against a market benchmark.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        source: { type: "string", description: 'Projection source. "stathead" = in-house PPG model (2026). "consensus" = Mike Clay/ESPN benchmark with full stat lines (2021–2026). Default: stathead.', enum: ["stathead", "consensus"] },
+        season: { type: "number", description: "Season. stathead: 2026 only. consensus: 2021–2026. Default 2026." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE; consensus also K)." },
+        player_name: { type: "string", description: "Filter to one player." },
+        sort_by: { type: "string", description: "Sort column, descending (pos_rk ascending). stathead default: ppg. consensus default: ff_pt." },
+        limit: { type: "number", description: "Max players (default 50)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_college_stats",
     description: 'Get college football statistics for individual players OR a whole class/cohort. Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit player_name and pass season (optionally position/school) and sort_by to rank. Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
@@ -39034,6 +39056,8 @@ async function executeToolInner(name, input) {
           "- **Sleeper** \u2014 trending adds/drops, projections",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
           "- **KeepTradeCut** & **FantasyCalc** \u2014 dynasty/redraft trade values",
+          "- **StatHead (first-party)** \u2014 in-house season PPG projections, prospect boom/bust model, blended dynasty values",
+          "- **Mike Clay (ESPN)** \u2014 'Consensus' season projection benchmark (full stat lines)",
           "- **FantasyPros / DynastyProcess** \u2014 expert consensus rankings",
           "- **ESPN** \u2014 QBR; **FTN** \u2014 charting; **OverTheCap** \u2014 contracts",
           "- **CollegeFootballData (CFBD)** \u2014 college stats & QBR"
@@ -39044,7 +39068,8 @@ async function executeToolInner(name, input) {
           "- Combine: 2000\u2013present \xB7 Injuries: 2009\u2013present \xB7 Snap counts: 2012\u2013present",
           "- Next Gen Stats: 2016\u2013present \xB7 QBR: 2006\u2013present \xB7 FTN charting: 2022\u2013present",
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
-          "- Dynasty/redraft values (KTC, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**"
+          "- Dynasty/redraft values (KTC, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**",
+          "- Projections: StatHead in-house PPG (`get_projections` source=stathead): **2026** \xB7 Consensus/Mike Clay benchmark (source=consensus): **2021–2026**"
         ].join("\n"),
         "## Enumerations",
         [
@@ -40146,6 +40171,58 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows)}`;
     }
+    case "get_projections": {
+      const source = (input.source || "stathead").toLowerCase();
+      const season = input.season || 2026;
+      const position = input.position?.toUpperCase();
+      const playerName = input.player_name;
+      const limit = clamp(input.limit || 50, 1, 300);
+      const sortNumeric = (rows, key, ascKeys) => {
+        const dir = ascKeys.has(key) ? 1 : -1;
+        rows.sort((a, b) => {
+          const an = Number(a[key]);
+          const bn = Number(b[key]);
+          const aok = Number.isFinite(an);
+          const bok = Number.isFinite(bn);
+          if (!aok && !bok) return 0;
+          if (!aok) return 1;
+          if (!bok) return -1;
+          return (an - bn) * dir;
+        });
+      };
+      if (source === "consensus") {
+        const doc = await fetchConsensusProjections(season);
+        if (!doc || !doc.players?.length) {
+          return `No Consensus projections for ${season}. Coverage: 2021–2026.`;
+        }
+        const sortBy = input.sort_by || "ff_pt";
+        let rows = doc.players.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
+        sortNumeric(rows, sortBy, /* @__PURE__ */ new Set(["pos_rk"]));
+        rows = rows.slice(0, limit);
+        const cols = position === "QB" ? ["name", "team", "position", "pos_rk", "ff_pt", "games", "pass_yds", "pass_td", "pass_int", "rush_yds", "rush_td"] : position === "RB" || position === "WR" || position === "TE" ? ["name", "team", "position", "pos_rk", "ff_pt", "games", "targets", "rec", "rec_yds", "rec_td", "rush_yds", "rush_td"] : ["name", "team", "position", "pos_rk", "ff_pt", "games", "pass_yds", "pass_td", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td"];
+        const out = rows.map((r) => pickColumns(r, cols));
+        return `Consensus projections — ${season} (${rows.length} players, sorted by ${sortBy}). Source: ${doc.source}. External benchmark, not StatHead's own model:
+
+${renderTable(input, out, cols)}`;
+      }
+      if (season !== 2026) {
+        return `StatHead's in-house projection model currently covers 2026 only. For other seasons use source="consensus" (2021–2026).`;
+      }
+      const doc = await fetchStatheadProjections();
+      if (!doc || !doc.players?.length) {
+        return "No StatHead projections available.";
+      }
+      const sortBy = input.sort_by || "ppg";
+      let rows = doc.players.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
+      sortNumeric(rows, sortBy, /* @__PURE__ */ new Set());
+      rows = rows.slice(0, limit);
+      const cols = ["name", "position", "ppg", "recPG"];
+      const out = rows.map((r) => pickColumns(r, cols));
+      const scoring = (doc.scoring || "ppr").toUpperCase();
+      return `StatHead projections — ${doc.season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}). ${doc.note || ""}
+
+${renderTable(input, out, cols)}`;
+    }
     case "get_college_stats": {
       const playerName = input.player_name;
       const season = input.season;
@@ -40291,7 +40368,7 @@ ${renderTable(input, rows, cols)}`;
 // src/mcp-server.ts
 var server = new McpServer({
   name: "stathead",
-  version: "1.0.18"
+  version: "1.0.19"
 });
 function toZodShape(schema) {
   const props = schema.properties ?? {};
