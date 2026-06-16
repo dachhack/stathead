@@ -37773,6 +37773,146 @@ async function fetchEspnADP(season) {
   espnAdpCache.set(season, players);
   return players;
 }
+// ── Consensus current ADP ─────────────────────────────────────────────
+// A reliable current ADP is a multi-source blend, never a single feed:
+// FFC's committed snapshot can lag months (its year-N endpoint serves
+// last-September mocks between seasons), Sleeper draft rooms can price an
+// individual player as an outlier, and ESPN isn't always populated. We
+// combine every available current source — FantasyPros expert-consensus
+// rank (always reachable via DynastyProcess), Sleeper draft ADP, the FFC
+// committed board, and ESPN — weighting each by freshness (~30-day
+// half-life) and confidence, so a stale or thin source can't dominate.
+// FantasyPros (an aggregate of ~15 experts) anchors the blend; single
+// platforms are discounted. Every source is stamped with its own as_of.
+var ADP_TEAM_CANON = { LAR: "LA", WSH: "WAS", JAC: "JAX", AZ: "ARI", ARZ: "ARI", LV: "LV", OAK: "LV", SD: "LAC", STL: "LA", NEP: "NE", GBP: "GB", KCC: "KC", NOS: "NO", SFO: "SF", TBB: "TB" };
+var canonAdpTeam = (t) => t ? (ADP_TEAM_CANON[String(t).toUpperCase()] ?? String(t).toUpperCase()) : "";
+var ADP_SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE"]);
+function adpRecencyWeight(dateIso, halfLifeDays = 30) {
+  if (!dateIso) return 1;
+  const t = Date.parse(dateIso);
+  if (!Number.isFinite(t)) return 1;
+  const days = Math.max(0, (Date.now() - t) / 864e5);
+  return Math.max(0.02, 0.5 ** (days / halfLifeDays));
+}
+function adpSampleWeight(timesDrafted, ref = 50) {
+  if (timesDrafted === void 0 || !Number.isFinite(timesDrafted)) return 0.5;
+  return Math.max(0.1, Math.min(1, timesDrafted / ref));
+}
+// FantasyPros expert-consensus rank (DynastyProcess db_fpecr) — current,
+// multi-expert, reachable everywhere. redraft-overall for 1QB / redraft-op for SF.
+async function fetchFantasyProsAdp(format = "ppr") {
+  const board = format === "2qb" ? "redraft-op" : "redraft-overall";
+  let rows;
+  try {
+    rows = await fetchFantasyRankings();
+  } catch {
+    return { players: [], asOf: null };
+  }
+  let asOf = null;
+  const players = [];
+  for (const r of rows) {
+    if (r.page_type !== board) continue;
+    const pos = String(r.pos || "").toUpperCase();
+    const ecr = Number(r.ecr);
+    if (!ADP_SKILL.has(pos) || !(ecr > 0)) continue;
+    const sd = r.scrape_date != null ? String(r.scrape_date) : null;
+    if (sd && (!asOf || sd > asOf)) asOf = sd;
+    players.push({ name: String(r.player || ""), position: pos, team: canonAdpTeam(r.tm || r.team), adp: ecr });
+  }
+  return { players, asOf };
+}
+// Sleeper draft-room ADP from the committed daily snapshot.
+async function fetchSleeperAdpSnapshot(season, format = "ppr") {
+  const doc = await tryPreFetched(`sleeper-adp-${season}.json`);
+  if (!doc?.players?.length) return { players: [], asOf: null };
+  const players = [];
+  for (const p of doc.players) {
+    const adp = format === "2qb" ? p.adp_2qb : (p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std);
+    const pos = String(p.position || "").toUpperCase();
+    if (!ADP_SKILL.has(pos) || !(adp > 0) || adp >= 999) continue;
+    players.push({ name: String(p.name || ""), position: pos, team: canonAdpTeam(p.team), adp: Number(adp) });
+  }
+  return { players, asOf: doc.fetchedAt ?? null };
+}
+// FFC committed board with meta (draft-date window) + per-player sample.
+async function fetchFfcAdpRawDoc(season, format = "ppr") {
+  const key = format === "2qb" ? "2qb" : "ppr";
+  const doc = await tryPreFetched(`ffc_adp_${key}_${season}.json`);
+  if (!doc?.players?.length) return { players: [], asOf: null };
+  const players = [];
+  for (const p of doc.players) {
+    const pos = String(p.position || "").toUpperCase();
+    if (!ADP_SKILL.has(pos) || !(Number(p.adp) > 0)) continue;
+    players.push({ name: String(p.name || ""), position: pos, team: canonAdpTeam(p.team), adp: Number(p.adp), timesDrafted: Number(p.times_drafted) || 0 });
+  }
+  return { players, asOf: doc.meta?.end_date ?? null };
+}
+// Join every current source by normalized name and compute the weighted
+// blend + the disagreement spread. Base confidence per source: FantasyPros
+// consensus anchors highest; single platforms are discounted; FFC rides its
+// own sample size; all are multiplied by freshness.
+async function buildConsensusAdp(season, format = "ppr") {
+  // ESPN is intentionally excluded from the blend: its live API is slow/
+  // unreachable from some runtimes and returns all-zero ADP in the offseason,
+  // so it would add latency without signal. It stays available as source 'espn'.
+  const [fp, sleeper, ffc] = await Promise.all([
+    fetchFantasyProsAdp(format),
+    fetchSleeperAdpSnapshot(season, format),
+    fetchFfcAdpRawDoc(season, format)
+  ]);
+  const espn = [];
+  const fpW = adpRecencyWeight(fp.asOf);
+  const slW = adpRecencyWeight(sleeper.asOf);
+  const ffcFileW = adpRecencyWeight(ffc.asOf);
+  const byName = /* @__PURE__ */ new Map();
+  const add = (list, src, perW) => {
+    for (const p of list) {
+      const nn = normalizeNameForMatch(p.name);
+      if (!nn) continue;
+      let row = byName.get(nn);
+      if (!row) {
+        row = { name: p.name, position: p.position, team: "", picks: {} };
+        byName.set(nn, row);
+      }
+      if (!row.team && p.team) row.team = p.team;
+      if (row.picks[src] === void 0) row.picks[src] = { adp: Math.round(p.adp * 10) / 10, weight: perW(p) };
+    }
+  };
+  // FantasyPros: aggregate of many experts → highest confidence anchor.
+  add(fp.players, "fp", () => 1 * fpW);
+  // Sleeper: real draft ADP, huge volume, but a single platform with its
+  // own tendencies → discounted so one outlier can't swing the blend.
+  add(sleeper.players, "sleeper", () => 0.7 * slW);
+  // FFC: sample-weighted (times_drafted) and decayed by its draft-window age.
+  add(ffc.players, "ffc", (p) => adpSampleWeight(p.timesDrafted) * ffcFileW);
+  // ESPN: only present when populated; moderate confidence, assume current.
+  add(espn, "espn", () => 0.8);
+  const rows = [];
+  for (const row of byName.values()) {
+    let num = 0, den = 0;
+    const vals = [];
+    for (const k of Object.keys(row.picks)) {
+      const { adp, weight } = row.picks[k];
+      if (!(adp > 0) || adp >= 999 || !(weight > 0)) continue;
+      num += adp * weight;
+      den += weight;
+      vals.push(adp);
+    }
+    if (den <= 0) continue;
+    rows.push({
+      name: row.name, position: row.position, team: row.team,
+      adp: Math.round(num / den * 10) / 10,
+      fp: row.picks.fp?.adp ?? null,
+      sleeper: row.picks.sleeper?.adp ?? null,
+      ffc: row.picks.ffc?.adp ?? null,
+      espn: row.picks.espn?.adp ?? null,
+      sources: vals.length,
+      spread: vals.length > 1 ? Math.round((Math.max(...vals) - Math.min(...vals)) * 10) / 10 : 0
+    });
+  }
+  rows.sort((a, b) => a.adp - b.adp);
+  return { rows, asOf: { fp: fp.asOf, sleeper: sleeper.asOf, ffc: ffc.asOf } };
+}
 var SLEEPER = "https://api.sleeper.app/v1";
 var sleeperPlayersCache = null;
 async function fetchSleeperPlayers() {
@@ -38740,17 +38880,18 @@ var NFL_TOOLS = [
   },
   {
     name: "get_adp",
-    description: "Get Average Draft Position from community (ffc) or ESPN sources. Use for draft value analysis, comparing ADP across platforms.",
+    description: "Get current Average Draft Position. Default source 'consensus' is a reliable multi-source blend (FantasyPros expert-consensus rank + Sleeper draft ADP + FantasyFootballCalculator + ESPN), each weighted by freshness and confidence and stamped with an as_of date \u2014 no single stale or outlier feed can distort it. Per-source columns + a disagreement spread are returned alongside the blended ADP. For a single raw feed pass source 'ffc' or 'espn'. Use for draft value analysis and comparing ADP across platforms.",
     input_schema: {
       type: "object",
       properties: {
-        source: { type: "string", description: "Data source", enum: ["ffc", "espn"] },
-        season: { type: "number", description: "Season year. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
-        scoring: { type: "string", description: "Scoring format (community source only)", enum: ["standard", "ppr", "half-ppr"] },
-        teams: { type: "number", description: "League size, one of 8/10/12/14 (community source only). Default 12.", enum: [8, 10, 12, 14] },
+        source: { type: "string", description: "Data source. 'consensus' (default) = freshness/confidence-weighted blend of all current feeds. 'ffc' / 'espn' = a single raw feed.", enum: ["consensus", "ffc", "espn"] },
+        season: { type: "number", description: "Season year. Defaults to the current draft season. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
+        position: { type: "string", description: "Filter to a position; adds adp_pos_rank (positional draft rank).", enum: ["QB", "RB", "WR", "TE"] },
+        scoring: { type: "string", description: "Scoring format (ffc raw source only; consensus is PPR/1QB).", enum: ["standard", "ppr", "half-ppr"] },
+        teams: { type: "number", description: "League size, one of 8/10/12/14 (ffc raw source only). Default 12.", enum: [8, 10, 12, 14] },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
-      required: ["source", "season"]
+      required: []
     }
   },
   {
@@ -40301,25 +40442,48 @@ ${renderTable(input, rows, cols)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_adp": {
-      const source = input.source;
-      const season = input.season;
+      const source = input.source || "consensus";
+      const season = input.season || FFC_CURRENT_SEASON;
+      const position = input.position?.toUpperCase();
       const limit = clamp(input.limit || 50, 1, 200);
+      if (source === "consensus") {
+        const { rows, asOf } = await buildConsensusAdp(season, "ppr");
+        let out = position ? rows.filter((r) => r.position === position) : rows;
+        if (position) out.forEach((r, i) => { r.adp_pos_rank = i + 1; });
+        if (!out.length) {
+          return `No consensus ADP available for ${season}${position ? ` (${position})` : ""}. Sources (FantasyPros, Sleeper, FFC, ESPN) returned nothing — they may be unpopulated this early in the offseason.`;
+        }
+        out = out.slice(0, limit);
+        const cols = position
+          ? ["name", "position", "team", "adp", "adp_pos_rank", "fp", "sleeper", "ffc", "sources", "spread"]
+          : ["name", "position", "team", "adp", "fp", "sleeper", "ffc", "sources", "spread"];
+        const d = (s) => s ? String(s).slice(0, 10) : "n/a";
+        const fresh = `as_of — FantasyPros ${d(asOf.fp)}, Sleeper ${d(asOf.sleeper)}, FFC ${d(asOf.ffc)}`;
+        return `Consensus current ADP — ${season} PPR/1QB (${out.length} players, sorted by blended ADP). ${fresh}. 'adp' is the freshness/confidence-weighted blend; per-source columns (fp = FantasyPros expert-consensus rank, sleeper = Sleeper draft ADP, ffc = FantasyFootballCalculator) show each input; spread = max−min disagreement. A blank source means it doesn't price that player. Note: a stale FFC window is auto-down-weighted (≈30-day half-life), so the blend tracks live FantasyPros + Sleeper.
+
+${renderTable(input, out, cols)}`;
+      }
       if (source === "ffc") {
         const scoring = input.scoring || "ppr";
         const teams = input.teams || 12;
+        const raw = await fetchFfcAdpRawDoc(season, scoring === "standard" || scoring === "half-ppr" ? "ppr" : "ppr");
         let data = await fetchFfcADP(season, scoring, teams);
+        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
-        const rows = data;
-        return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):
+        const stale = raw.asOf && (Date.now() - Date.parse(raw.asOf)) > 60 * 864e5;
+        const asOfNote = raw.asOf ? ` as_of ${String(raw.asOf).slice(0, 10)}${stale ? " — ⚠️ this committed FFC window is stale (>60d old); for a current number use source 'consensus'" : ""}.` : "";
+        return `FFC raw ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players).${asOfNote}
 
-${renderTable(input, rows)}`;
+${renderTable(input, data)}`;
       } else {
         let data = await fetchEspnADP(season);
+        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
-        const rows = data;
-        return `ESPN ADP for ${season} (${data.length} players):
+        const allZero = data.length > 0 && data.every((p) => !(p.adp > 0));
+        const note = allZero ? " ⚠️ ESPN returned all-zero ADP for this season (not yet populated) — use source 'consensus' for a current number." : "";
+        return `ESPN raw ADP for ${season} (${data.length} players).${note}
 
-${renderTable(input, rows)}`;
+${renderTable(input, data)}`;
       }
     }
     case "get_adp_with_results": {
@@ -41981,7 +42145,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.34";
+var SERVER_VERSION = "1.0.35";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
