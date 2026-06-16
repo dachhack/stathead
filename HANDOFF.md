@@ -1,6 +1,32 @@
 # StatHead — session handoff
 
-Last updated 2026-06-12 (mock draft session). **Resume section directly below;** older notes follow.
+Last updated 2026-06-16 (MCP analysis & feedback). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-06-16, MCP feedback & fixes — `claude/festive-cori-2rhml6`)
+
+Completed a comprehensive real-world analysis using the StatHead MCP tools (2026 A.J. Brown trade, projections vs share model vs ADP bust risk). Surfaced and documented critical issues in the MCP server that need fixing. A new handoff branch with the issues catalogued is ready; user will take fixes from here.
+
+### Delivered
+- **MCP feedback backlog** (`docs/MCP_FEEDBACK_BACKLOG.md`): comprehensive inventory of correctness issues (stale ADP in feature cards, VOR scale mismatch, projection/share model contradiction), broken tools (get_player_metrics/get_team_metrics serialization failures, get_player_season_stats null-deref), model gaps (no bust probability for vets, no coaching features), and DX polish. Each entry: severity, what we saw, why it matters, likely root cause, effort estimate.
+- **Live analysis** (this conversation): showcased how a data-quality issue (stale ADP) silently inverted the analysis conclusion mid-way through, and how the share model blindly ignores coaching history (the Vrabel-reunion insight was invisible to the model).
+
+### Blocking (next session — user will fix)
+1. 🔴 **Stale ADP in feature cards** (`src/lib/adpSources.ts` → `src/tools.ts`): Re-join live ADP at serve time; add assertions; stamp with `as_of` date. *Medium.*
+2. 🔴 **VOR scale ≠ documented thresholds** (`src/lib/modelScoreStore.ts`): Either expose z-scored VOR matching the thresholds, or compute hit/bust labels with matching scale. Better: add calibrated `pHit`/`pBust`. *Small-to-medium.*
+3. 🔴 **Projection PPG ↔ share model contradiction**: Reconcile pipelines or surface team pass volume + implied targets in projections. *Medium.*
+4. 🟠 **`get_player_metrics` + `get_team_metrics` 100% fail**: Non-finite JSON sanitization before serialization. *Small once confirmed.*
+5. 🟠 **`get_player_season_stats` null-deref on 2025 name lookups**: Null-guard `.toLowerCase()` in handler. *Tiny.*
+6. 🟠 **`fields` drops identifier columns** (`player_name`, `team`): Never omit requested identifiers or always include them. *Small.*
+7. 🟡 **No veteran bust probability**: Expose calibrated `pHit`/`pBust` on Hit/Bust card, like prospects. *Medium.*
+8. 🟡 **No coaching features + share model ignores coach×player history**: Major gap; coach-level features (neutral pass rate, target HHI, WR1 target share) + reunions. *Large.*
+9. 🟢 **DX polish**: Add `position` filter to `get_adp`; populate ESPN; expose component stats in `get_projections` (targets/rec/yds/TDs); add `as_of` timestamps. *Small.*
+
+All issues + file locations + root causes in `docs/MCP_FEEDBACK_BACKLOG.md`.
+
+### Not blocked
+- The analysis itself (Brown at pick 18–21 is fairly priced; bust risk ~30% slot base rate, but narrower range than peers; needs Vrabel-funneling to justify) is sound and documented in this conversation.
 
 ---
 
