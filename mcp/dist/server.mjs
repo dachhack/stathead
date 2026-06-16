@@ -41476,6 +41476,7 @@ ${renderTable(input, rows)}`;
           const cell = d.value !== void 0 ? `${d.band} (${d.value})` : d.band;
           out.push(`${d.feature} | ${d.category} | ${cell} | ${d.relationship}`);
         }
+        if (p.dataGaps?.length) out.push(`Data not available (excluded from drivers rather than scored as 0): ${p.dataGaps.join(", ")}.`);
         out.push("");
       }
       out.push("VOR = predicted value over replacement (z-scored fantasy finish); higher = better. Bands are vs the 2026 scored cohort at the position. Proprietary features show a band + direction only (no raw value). These are model drivers, not a hand-multiplied P(hit) — see get_metadata caveats.");

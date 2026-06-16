@@ -46,6 +46,27 @@ function pearson(xs, ys) {
   if (vx <= 0 || vy <= 0) return 0;
   return cov / Math.sqrt(vx * vy);
 }
+// Missing-data handling: the model imputes 0 for absent inputs, which would
+// otherwise read as a misleading "bottom 10% (0)" driver. We detect missing
+// data two ways: the model's coarse availability flags, and a set of
+// positive-domain features where an exact 0 means "not measured" (a composite
+// can be 0 even when its category flag is set — e.g. Speed Score needs weight).
+const ZERO_IS_MISSING = new Set([
+  'speedScore', 'heightAdjSpeedScore', 'relativeAthleticScore', 'forty', 'vertical',
+  'broadJump', 'cone', 'shuttle', 'weight', 'age', 'collegeQBR', 'collegeQBR2yr',
+  'recruitStars', 'recruitRating', 'collegeTeamTalent',
+]);
+function governingFlag(key) {
+  if (/^college/i.test(key) || /^recruit/i.test(key) || key === 'collegeTeamTalent') return 'hasCollegeStats';
+  if (/speedScore|^forty$|vertical|broad|cone|shuttle|relativeAthletic|heightAdj|^weight$/i.test(key)) return 'hasCombineData';
+  return null;
+}
+function featureMissing(key, features) {
+  const flag = governingFlag(key);
+  if (flag && Number(features[flag]) === 0) return true;
+  if (ZERO_IS_MISSING.has(key) && Number(features[key]) === 0) return true;
+  return false;
+}
 function bandFor(pctile) {
   if (pctile >= 90) return 'top 10%';
   if (pctile >= 75) return 'top 25%';
@@ -129,6 +150,9 @@ for (const [pos, c] of Object.entries(cohorts)) {
       if (!st) continue;
       const v = Number(row.features[key]);
       if (!Number.isFinite(v)) continue;
+      // Don't surface a feature whose value is actually missing — it would read
+      // as a bogus "bottom 10% (0)" driver. Reported in dataGaps instead.
+      if (featureMissing(key, row.features)) continue;
       const pct = pctileOf(st.sorted, v);
       const prop = isProprietary(key);
       const imp = importance[pos].find((f) => f.key === key);
@@ -147,11 +171,20 @@ for (const [pos, c] of Object.entries(cohorts)) {
     drivers.sort((a, b) => b._score - a._score);
     const top = drivers.slice(0, TOP_DRIVERS).map(({ _score, ...d }) => d);
     const pred = row.pred;
+    // Say explicitly what the model lacks for this player, rather than scoring
+    // a 0. Category-level from the availability flags.
+    const f = row.features;
+    const dataGaps = [];
+    if (Number(f.hasCollegeStats) === 0) dataGaps.push('college production');
+    if (Number(f.hasCombineData) === 0) dataGaps.push('combine / athletic testing');
+    else if (Number(f.speedScore) === 0 && Number(f.weight) === 0) dataGaps.push('athletic composites (no listed weight)');
+    if (pred.isRookie && Number(f.hasProspectGrade) === 0) dataGaps.push('scouting grade');
     players.push({
       name: row.name, position: pos, team: row.team,
       adp: row.adp, predictedVor: pred.predictedVor, hitProb: pred.hitProb,
       ciLower: pred.ciLower, ciUpper: pred.ciUpper, isRookie: !!pred.isRookie,
       drivers: top,
+      ...(dataGaps.length ? { dataGaps } : {}),
     });
   }
 }
