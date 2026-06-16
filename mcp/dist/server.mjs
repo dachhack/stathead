@@ -38152,6 +38152,9 @@ async function fetchProspectGrades(year) {
 async function fetchStatheadProjections() {
   return await tryPreFetched("redraft-projections.json");
 }
+async function fetchProjectionBase(season) {
+  return await tryPreFetched(`projection-base-${season}.json`);
+}
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
@@ -38892,6 +38895,38 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_sleeper_transactions",
+    description: "Get a Sleeper league's transactions — trades, waiver claims, and free-agent adds/drops — with players and teams resolved to names. Pass a week, or omit it to sweep the season (weeks 1-18). Filter by type. Identify the league by league_id OR username + name. Use for trade history, waiver activity, and roster churn. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        username: { type: "string", description: "Alternative to league_id: with name, finds the league among this user's leagues." },
+        name: { type: "string", description: "League name to match (substring); requires username." },
+        season: { type: "number", description: "Season for username+name lookup (default 2026)." },
+        week: { type: "number", description: "Week (1-18). Omit to sweep the whole season." },
+        type: { type: "string", description: "Filter by transaction type.", enum: ["trade", "waiver", "free_agent"] },
+        limit: { type: "number", description: "Max transactions (default 40)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_user_history",
+    description: "Multi-season Sleeper career history for a user: every league they fielded across recent seasons with record, points, regular-season finish, and championship/runner-up result, plus a career summary (total record, titles, leagues). Identify the user by username/user_id, OR display_name + league_id. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        username: { type: "string", description: "Sleeper username or user_id." },
+        league_id: { type: "string", description: "Alternative to username: with display_name, resolves a manager to their user_id." },
+        display_name: { type: "string", description: "Manager's in-league display or team name; requires league_id." },
+        seasons: { type: "number", description: "How many recent seasons to sweep, ending this year (default 5, max 12)." },
+        limit: { type: "number", description: "Max league-season rows (default 60)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_dynasty_values",
     description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
@@ -39137,7 +39172,7 @@ var NFL_TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        kind: { type: "string", description: "Which board to export. projections = StatHead season PPG (edit Proj PPG). rankings = redraft ECR board (edit My Rank). rookie_rankings = prospect grades/board (edit My Rank).", enum: ["projections", "rankings", "rookie_rankings"] },
+        kind: { type: "string", description: "Which board to export. projections = StatHead season PPG (edit Proj PPG). rankings = redraft ECR board (edit My Rank). rookie_rankings = prospect grades/board (edit My Rank). by_team = first-party by-team projection workbook with live PPR formulas (read-only).", enum: ["projections", "rankings", "rookie_rankings", "by_team"] },
         path: { type: "string", description: "Output file path or directory. If a directory (or omitted), a dated filename is generated there. Default dir: $STATHEAD_DIR or the current working directory." },
         position: { type: "string", description: "Filter to one position (QB, RB, WR, TE)." },
         draft_year: { type: "number", description: "Draft class for rookie_rankings (2026 or 2027). Default 2026.", enum: [2026, 2027] },
@@ -39381,26 +39416,29 @@ function colToNum(letters) {
 }
 
 // Style indices baked into STYLES_XML below.
-var STYLE = { default: 0, header: 1, headerLeft: 2, banner: 3, num1: 4, pct: 5, bold: 6, edit: 7, editHeader: 8 };
+var STYLE = { default: 0, header: 1, headerLeft: 2, banner: 3, num1: 4, pct: 5, bold: 6, edit: 7, editHeader: 8, stat: 9, subLabel: 10, subNum: 11, totLabel: 12, totNum: 13, pts: 14 };
 var STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-  '<numFmts count="2"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0%"/></numFmts>' +
-  '<fonts count="4">' +
+  '<numFmts count="3"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0%"/><numFmt numFmtId="166" formatCode="#,##0;-#,##0;"/></numFmts>' +
+  '<fonts count="5">' +
   '<font><sz val="11"/><name val="Calibri"/></font>' +
   '<font><b/><sz val="9"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
   '<font><b/><sz val="13"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
   '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
   '</fonts>' +
-  '<fills count="5">' +
+  '<fills count="7">' +
   '<fill><patternFill patternType="none"/></fill>' +
   '<fill><patternFill patternType="gray125"/></fill>' +
   '<fill><patternFill patternType="solid"><fgColor rgb="FF1F2937"/><bgColor indexed="64"/></patternFill></fill>' +
   '<fill><patternFill patternType="solid"><fgColor rgb="FF0E7C66"/><bgColor indexed="64"/></patternFill></fill>' +
   '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF3C4"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF1A2230"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF111827"/><bgColor indexed="64"/></patternFill></fill>' +
   '</fills>' +
   '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
   '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-  '<cellXfs count="9">' +
+  '<cellXfs count="15">' +
   '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
   '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
   '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
@@ -39410,6 +39448,12 @@ var STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
   '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
   '<xf numFmtId="164" fontId="3" fillId="4" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
   '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+  '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+  '<xf numFmtId="0" fontId="3" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+  '<xf numFmtId="166" fontId="3" fillId="5" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+  '<xf numFmtId="0" fontId="4" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+  '<xf numFmtId="166" fontId="4" fillId="6" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+  '<xf numFmtId="166" fontId="3" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
   '</cellXfs>' +
   '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
   '</styleSheet>';
@@ -39434,6 +39478,9 @@ function buildSheetXml(sheet, shared) {
         let idx = shared.map.get(cell.v);
         if (idx === void 0) { idx = shared.arr.length; shared.arr.push(cell.v); shared.map.set(cell.v, idx); }
         cells += `<c r="${ref}"${s} t="s"><v>${idx}</v></c>`;
+      } else if (cell.t === "f") {
+        const cv = cell.cv != null ? `<v>${cell.cv}</v>` : "";
+        cells += `<c r="${ref}"${s}><f>${xmlEsc(cell.f)}</f>${cv}</c>`;
       } else if (cell.t === "n") {
         cells += `<c r="${ref}"${s}><v>${cell.v}</v></c>`;
       } else {
@@ -39483,7 +39530,7 @@ async function buildWorkbook(sheets) {
     "</Relationships>";
   const workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-    "<sheets>" + sheets.map((s, i) => `<sheet name="${xmlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + "</sheets></workbook>";
+    "<sheets>" + sheets.map((s, i) => `<sheet name="${xmlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + '</sheets><calcPr calcId="0" fullCalcOnLoad="1"/></workbook>';
   const files = [
     { name: "[Content_Types].xml", data: contentTypes },
     { name: "_rels/.rels", data: rootRels },
@@ -39511,6 +39558,78 @@ function makeBoardSheet(name, title, headers, dataRows, editColIdx, colWidths) {
 function makeMetaSheet(pairs) {
   const rows = pairs.map(([k, v]) => [{ v: String(k), t: "s", s: STYLE.bold }, { v: String(v ?? ""), t: "s" }]);
   return { name: "Meta", rows, columns: [{ width: 16 }, { width: 64 }] };
+}
+
+// By-team projection workbook with LIVE formulas, mirroring the website's
+// exportTeamXlsx: per-team banner, grouped Passing/Rushing/Receiving headers,
+// per-player PPR formula, position subtotals + team total as SUM formulas.
+// `teams` = [{ team, ppr, groups: {QB:[],RB:[],WR:[],TE:[]} }]. Each player has
+// the projection-base volume fields. Output recomputes itself when edited.
+function buildByTeamSheet(teams, season) {
+  const NCOL = 16;
+  const cL = colLetter;
+  const rows = [];
+  const merges = [];
+  const fill = (style) => { const a = new Array(NCOL).fill(null); for (let c = 0; c < NCOL; c++) a[c] = { v: "", t: "s", s: style }; return a; };
+  // Row 1 — title banner
+  const title = fill(STYLE.banner);
+  title[0] = { v: `Stat Head — By-Team Projections (${season})`, t: "s", s: STYLE.banner };
+  rows.push(title); merges.push(`A1:${cL(NCOL)}1`);
+  rows.push([]); // spacer row 2
+  const GROUPS = [[4, 8, "PASSING"], [9, 11, "RUSHING"], [12, 15, "RECEIVING"]];
+  const HEADS = ["Pos", "Player", "Gm", "Att", "Cmp", "Yds", "TD", "Int", "Att", "Yds", "TD", "Tgt", "Rec", "Yds", "TD", "Pts"];
+  const FIELD = [["games", 3], ["passAtt", 4], ["passComp", 5], ["passYds", 6], ["passTD", 7], ["int", 8], ["rushAtt", 9], ["rushYds", 10], ["rushTD", 11], ["tgt", 12], ["rec", 13], ["recYds", 14], ["recTD", 15]];
+  teams.forEach((t, ti) => {
+    // Banner
+    const banner = fill(STYLE.banner);
+    banner[0] = { v: `#${ti + 1}  ${t.team}`, t: "s", s: STYLE.banner };
+    banner[NCOL - 1] = { v: Math.round(t.ppr), t: "n", s: STYLE.banner };
+    rows.push(banner); merges.push(`A${rows.length}:${cL(NCOL - 1)}${rows.length}`);
+    // Group header
+    const gh = fill(STYLE.header);
+    for (const [from, , label] of GROUPS) gh[from - 1] = { v: label, t: "s", s: STYLE.header };
+    rows.push(gh);
+    for (const [from, to] of GROUPS) merges.push(`${cL(from)}${rows.length}:${cL(to)}${rows.length}`);
+    // Column header
+    rows.push(HEADS.map((h, i) => ({ v: h, t: "s", s: i < 2 ? STYLE.headerLeft : STYLE.header })));
+    // Player rows by position, with subtotals
+    const subRows = [];
+    for (const pos of ["QB", "RB", "WR", "TE"]) {
+      const list = t.groups[pos] || [];
+      if (!list.length) continue;
+      const gStart = rows.length + 1;
+      for (const p of list) {
+        const R = rows.length + 1;
+        const cells = new Array(NCOL).fill(null);
+        cells[0] = { v: pos, t: "s", s: STYLE.bold };
+        cells[1] = { v: p.name, t: "s" };
+        for (const [f, col] of FIELD) {
+          const v = Number(p[f]);
+          if (Number.isFinite(v) && v !== 0) cells[col - 1] = { v: Math.round(v * 10) / 10, t: "n", s: STYLE.stat };
+        }
+        cells[15] = { t: "f", f: `F${R}*0.04+G${R}*4+H${R}*-2+J${R}*0.1+K${R}*6+M${R}+N${R}*0.1+O${R}*6`, cv: Math.round(p.pprPts || 0), s: STYLE.pts };
+        rows.push(cells);
+      }
+      const gEnd = rows.length;
+      const sub = new Array(NCOL).fill(null);
+      sub[0] = { v: `${pos} Total`, t: "s", s: STYLE.subLabel };
+      sub[1] = { v: "", t: "s", s: STYLE.subLabel };
+      sub[2] = { v: "", t: "s", s: STYLE.subLabel };
+      for (let c = 4; c <= NCOL; c++) sub[c - 1] = { t: "f", f: `SUM(${cL(c)}${gStart}:${cL(c)}${gEnd})`, s: STYLE.subNum };
+      rows.push(sub); merges.push(`A${rows.length}:B${rows.length}`); subRows.push(rows.length);
+    }
+    if (subRows.length) {
+      const tot = new Array(NCOL).fill(null);
+      tot[0] = { v: "Total", t: "s", s: STYLE.totLabel };
+      tot[1] = { v: "", t: "s", s: STYLE.totLabel };
+      tot[2] = { v: "", t: "s", s: STYLE.totLabel };
+      for (let c = 4; c <= NCOL; c++) tot[c - 1] = { t: "f", f: subRows.map((sr) => `${cL(c)}${sr}`).join("+"), s: STYLE.totNum };
+      rows.push(tot); merges.push(`A${rows.length}:B${rows.length}`);
+    }
+    rows.push([]); // spacer between teams
+  });
+  const widths = [4, 22, 5, 7, 7, 9, 6, 6, 7, 9, 6, 6, 6, 9, 6, 8];
+  return { name: "By Team", rows, columns: widths.map((w) => ({ width: w })), freezeRows: 1, merges };
 }
 
 // Parse a workbook back into { sheetName: rows[][] } of raw cell values
@@ -39669,7 +39788,7 @@ async function executeToolInner(name, input) {
         [
           "- **nflverse** \u2014 play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine (open data)",
           "- **Next Gen Stats** \u2014 advanced tracking metrics",
-          "- **Sleeper** \u2014 trending adds/drops, projections, and league data (user leagues, rosters/standings, matchups, drafts, waiver wire, cross-league exposure)",
+          "- **Sleeper** \u2014 trending adds/drops, projections, and league data (user leagues, rosters/standings, league users, matchups, transactions/trades, drafts, waiver wire, cross-league exposure, multi-season history)",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
           "- **StatHead (first-party)** \u2014 in-house season PPG projections, prospect boom/bust model, blended dynasty/redraft trade values (market-derived composites, not raw third-party feeds)",
           "- **FantasyPros / DynastyProcess** \u2014 expert consensus rankings",
@@ -39699,7 +39818,7 @@ async function executeToolInner(name, input) {
         ].join("\n"),
         "## Bring your own projections / rankings (Excel)",
         [
-          "- `export_excel` writes a styled `.xlsx` of `projections`, `rankings`, or `rookie_rankings` to local disk (same boards the website downloads).",
+          "- `export_excel` writes a styled `.xlsx` of `projections`, `rankings`, `rookie_rankings`, or `by_team` (first-party by-team projection workbook with live PPR formulas) to local disk — same boards the website downloads.",
           "- Edit the highlighted column (Proj PPG, or My Rank) in Excel/Sheets, then `import_excel` reads it back and saves your values as overrides.",
           "- After import, `get_projections` / `get_fantasy_rankings` / `get_prospect_outcomes` auto-use YOUR numbers (flagged in output) until `clear_overrides`.",
           "- Files default to `$STATHEAD_DIR` or the cwd; overrides persist in `$STATHEAD_DIR`/`~/.stathead/overrides.json`."
@@ -40530,6 +40649,111 @@ ${renderTable(input, rows, ["pick", "round", "slot", "player", "pos", "team", "p
       return `Sleeper user snooper — ${user.display_name} (user_id ${user.user_id} · ${season}): ${leagues.length} leagues. Cross-league exposure (top ${rows.length}):
 
 ${renderTable(input, rows, ["player", "position", "team", "leagues", "started", "where"])}`;
+    }
+    case "get_sleeper_transactions": {
+      const id = await resolveSleeperLeagueId(input);
+      const typeFilter = input.type?.toLowerCase();
+      const limit = clamp(input.limit || 40, 1, 200);
+      const weeks = input.week ? [input.week] : Array.from({ length: 18 }, (_, i) => i + 1);
+      const [league, rosters, users, players, ...weekTxns] = await Promise.all([
+        sleeperGet(`/league/${id}`),
+        sleeperGet(`/league/${id}/rosters`),
+        sleeperGet(`/league/${id}/users`),
+        fetchSleeperPlayers(),
+        ...weeks.map((w) => sleeperGet(`/league/${id}/transactions/${w}`).then((t) => ({ w, t })).catch(() => ({ w, t: null })))
+      ]);
+      if (!rosters) return `No Sleeper league found for id "${id}".`;
+      const userById = /* @__PURE__ */ new Map((users || []).map((u) => [u.user_id, u]));
+      const teamByRoster = /* @__PURE__ */ new Map();
+      for (const r of rosters || []) {
+        const u = r.owner_id ? userById.get(r.owner_id) : void 0;
+        teamByRoster.set(r.roster_id, u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`);
+      }
+      const pname = (pid) => resolveSleeperPlayer(pid, players, "").name;
+      let all = [];
+      for (const { w, t } of weekTxns) {
+        for (const tx of t || []) {
+          if (typeFilter && tx.type !== typeFilter) continue;
+          all.push({ ...tx, _week: w });
+        }
+      }
+      all.sort((a, b) => (b.created || 0) - (a.created || 0) || b._week - a._week);
+      all = all.slice(0, limit);
+      if (!all.length) return `No${typeFilter ? ` ${typeFilter}` : ""} transactions found for league "${league?.name || id}"${input.week ? ` week ${input.week}` : ""}.`;
+      const lines = all.map((tx) => {
+        const addsByRoster = /* @__PURE__ */ new Map();
+        const dropsByRoster = /* @__PURE__ */ new Map();
+        for (const [pid, rid] of Object.entries(tx.adds || {})) { if (!addsByRoster.has(rid)) addsByRoster.set(rid, []); addsByRoster.get(rid).push(pname(pid)); }
+        for (const [pid, rid] of Object.entries(tx.drops || {})) { if (!dropsByRoster.has(rid)) dropsByRoster.set(rid, []); dropsByRoster.get(rid).push(pname(pid)); }
+        const head = `wk${tx._week} ${tx.type}${tx.status && tx.status !== "complete" ? ` (${tx.status})` : ""}`;
+        if (tx.type === "trade") {
+          const parts = (tx.roster_ids || []).map((rid) => {
+            const got = addsByRoster.get(rid) || [];
+            const picks = (tx.draft_picks || []).filter((p) => p.owner_id === rid).map((p) => `${p.season} R${p.round}`);
+            const faab = (tx.waiver_budget || []).filter((b) => b.receiver === rid).reduce((s, b) => s + b.amount, 0);
+            const items = [...got, ...picks, ...(faab ? [`$${faab} FAAB`] : [])];
+            return `${teamByRoster.get(rid) || rid} gets ${items.join(", ") || "nothing"}`;
+          });
+          return `${head}: ${parts.join("  |  ")}`;
+        }
+        const rid = (tx.roster_ids || [])[0];
+        const adds = addsByRoster.get(rid) || [];
+        const drops = dropsByRoster.get(rid) || [];
+        const bid = tx.settings?.waiver_bid;
+        return `${head}: ${teamByRoster.get(rid) || rid} ${adds.length ? `adds ${adds.join(", ")}${bid != null ? ` ($${bid})` : ""}` : ""}${adds.length && drops.length ? ", " : ""}${drops.length ? `drops ${drops.join(", ")}` : ""}`;
+      });
+      return `Sleeper transactions — "${league?.name || id}"${input.week ? ` week ${input.week}` : " (season)"} (${all.length}${typeFilter ? ` ${typeFilter}` : ""}):
+
+${lines.join("\n")}`;
+    }
+    case "get_sleeper_user_history": {
+      const limit = clamp(input.limit || 60, 1, 200);
+      const nSeasons = clamp(input.seasons || 5, 1, 12);
+      const user = await resolveSleeperUser(input);
+      const endYear = (/* @__PURE__ */ new Date()).getFullYear();
+      const seasons = Array.from({ length: nSeasons }, (_, i) => String(endYear - i));
+      const perSeason = await Promise.all(seasons.map(async (season) => {
+        try {
+          const leagues = ((await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
+          return leagues.map((league) => ({ season, league }));
+        } catch { return []; }
+      }));
+      let pairs = perSeason.flat();
+      if (!pairs.length) return `No leagues found for ${user.display_name} (user_id ${user.user_id}) in the last ${nSeasons} seasons.`;
+      pairs = pairs.slice(0, 80);
+      const records = await Promise.all(pairs.map(async ({ season, league }) => {
+        try {
+          const rosters = await sleeperGet(`/league/${league.league_id}/rosters`);
+          const mine = (rosters || []).find((r) => r.owner_id === user.user_id) || null;
+          const ranked = [...(rosters || [])].sort((a, b) => (b.settings?.wins ?? 0) - (a.settings?.wins ?? 0) || sleeperPoints(b.settings?.fpts, b.settings?.fpts_decimal) - sleeperPoints(a.settings?.fpts, a.settings?.fpts_decimal));
+          const regRank = mine ? ranked.findIndex((r) => r.roster_id === mine.roster_id) + 1 : 0;
+          let champion = false, runnerUp = false;
+          if (league.status === "complete" && mine) {
+            try {
+              const bracket = await sleeperGet(`/league/${league.league_id}/winners_bracket`);
+              const final = (bracket || []).find((b) => b.p === 1);
+              if (final) { champion = final.w === mine.roster_id; runnerUp = final.l === mine.roster_id; }
+            } catch { }
+          }
+          const f = sleeperLeagueFormat(league);
+          return {
+            season, league: league.name, type: f.type, qb: f.qb,
+            record: `${mine?.settings?.wins ?? 0}-${mine?.settings?.losses ?? 0}${mine?.settings?.ties ? `-${mine.settings.ties}` : ""}`,
+            pf: Math.round(sleeperPoints(mine?.settings?.fpts, mine?.settings?.fpts_decimal) * 10) / 10,
+            reg_rank: regRank ? `${regRank}/${league.total_rosters}` : "",
+            finish: champion ? "🏆 Champion" : runnerUp ? "Runner-up" : "",
+            _w: mine?.settings?.wins ?? 0, _l: mine?.settings?.losses ?? 0, _t: mine?.settings?.ties ?? 0, _champ: champion
+          };
+        } catch { return null; }
+      }));
+      let rows = records.filter((r) => r !== null).sort((a, b) => b.season.localeCompare(a.season) || a.league.localeCompare(b.league));
+      const totW = rows.reduce((s, r) => s + r._w, 0), totL = rows.reduce((s, r) => s + r._l, 0), totT = rows.reduce((s, r) => s + r._t, 0);
+      const titles = rows.filter((r) => r._champ).length;
+      rows = rows.slice(0, limit);
+      const cols = ["season", "league", "type", "qb", "record", "pf", "reg_rank", "finish"];
+      return `Sleeper history — ${user.display_name} (user_id ${user.user_id}): ${rows.length} league-seasons over ${seasons[seasons.length - 1]}-${seasons[0]}. Career: ${totW}-${totL}${totT ? `-${totT}` : ""}, ${titles} title(s).
+
+${renderTable(input, rows, cols)}`;
     }
     case "get_dynasty_values": {
       const format = input.format || "1qb";
@@ -41394,6 +41618,51 @@ ${renderTable(input, rows, cols)}`;
       const Nc = (v, s) => { const num = Number(v); if (v == null || v === "" || !Number.isFinite(num)) return null; const c = { v: num, t: "n" }; if (s) c.s = s; return c; };
       const r1 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 10) / 10 : v;
       const r2 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : v;
+      if (kind === "by_team") {
+        const season = input.draft_year && false ? 0 : 2026;
+        const doc = await fetchProjectionBase(season);
+        if (!doc || !(doc.qbs || doc.rbs || doc.wrs || doc.tes)) {
+          return "No first-party projection-base data available for the by-team export.";
+        }
+        const srcMap = { QB: doc.qbs || [], RB: doc.rbs || [], WR: doc.wrs || [], TE: doc.tes || [] };
+        const wantPos = position && srcMap[position] ? [position] : ["QB", "RB", "WR", "TE"];
+        const byTeam = /* @__PURE__ */ new Map();
+        for (const pos of wantPos) {
+          for (const p of srcMap[pos]) {
+            const tm = p.team || "FA";
+            if (!byTeam.has(tm)) byTeam.set(tm, { QB: [], RB: [], WR: [], TE: [] });
+            byTeam.get(tm)[pos].push(p);
+          }
+        }
+        let teams = [...byTeam.entries()].map(([team, groups]) => {
+          for (const pos of ["QB", "RB", "WR", "TE"]) groups[pos].sort((a, b) => (Number(b.pprPts) || 0) - (Number(a.pprPts) || 0));
+          const ppr = ["QB", "RB", "WR", "TE"].reduce((s, pos) => s + groups[pos].reduce((a, p) => a + (Number(p.pprPts) || 0), 0), 0);
+          return { team, groups, ppr };
+        });
+        teams.sort((a, b) => b.ppr - a.ppr);
+        teams = teams.slice(0, clamp(input.limit || 32, 1, 40));
+        const byTeamBoard = buildByTeamSheet(teams, doc.season || season);
+        const byTeamMeta = makeMetaSheet([
+          ["Template", "stathead-mcp-v1"],
+          ["Kind", "by_team"],
+          ["Season", doc.season || season],
+          ["Source", "StatHead computed projection base (first-party): volume from StatHead's team ensemble × ML share models"],
+          ["Editable", "Read-only export — per-player Pts and all subtotals/totals are live formulas"],
+          ["Exported", (/* @__PURE__ */ new Date()).toISOString()],
+          ["Note", "Edit any stat cell and the sheet recomputes. Not re-importable via import_excel."]
+        ]);
+        const wb2 = await buildWorkbook([byTeamBoard, byTeamMeta]);
+        const fs2 = await import("node:fs");
+        const path2 = await import("node:path");
+        const outPath2 = resolveOutPath(input, datedName("by-team", String(doc.season || season)));
+        fs2.mkdirSync(path2.dirname(path2.resolve(outPath2)), { recursive: true });
+        fs2.writeFileSync(outPath2, wb2);
+        const abs2 = path2.resolve(outPath2);
+        return `Wrote by-team projection workbook (${teams.length} teams) to:
+${abs2}
+
+First-party StatHead projections (no third-party data). Per-player **Pts** and every position subtotal / team total are LIVE formulas — open in Excel/Google Sheets and edit any stat to watch totals recompute. Read-only: this sheet isn't re-importable.`;
+      }
       let board, metaKind, tag, editLabel;
       if (kind === "projections") {
         const doc = await fetchStatheadProjections();
@@ -41489,6 +41758,9 @@ Edit the **${editLabel}** column in Excel/Google Sheets, then run:
           if (k === "board") metaBoard = String(row[1] || "").trim();
         }
       }
+      if (kind === "by_team") {
+        return "The by_team workbook is a read-only projection report (live formulas), not a board with overrides — there's nothing to import. Use export_excel kind=projections/rankings/rookie_rankings for editable boards.";
+      }
       const dataName = Object.keys(sheets).find((n) => n.toLowerCase() !== "meta");
       const grid = (dataName && sheets[dataName]) || [];
       // Locate the header row by content (banner row above it is fine).
@@ -41577,7 +41849,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.32";
+var SERVER_VERSION = "1.0.33";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
