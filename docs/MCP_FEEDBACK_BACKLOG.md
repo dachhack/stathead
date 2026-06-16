@@ -48,8 +48,18 @@ Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
   deploy.** Real fix = stream `response.body` + project only needed columns.
 
 **Remaining (decided with the user, not yet done):**
-- **PBP-memory streaming rewrite** for the metrics tools — user chose "attempt
-  it"; large + unverifiable here (needs Worker runtime). Not started.
+- ~~**PBP-memory streaming rewrite**~~ — ✅ DONE (MCP 1.0.36). `fetchPlayByPlay`
+  now streams `response.body` chunk-by-chunk via a new quote-aware,
+  column-projecting `streamCsvRows`; each consumer (get_team_metrics,
+  get_player_metrics, get_play_by_play) requests only the columns it reads
+  (~20x less retained data), so the 99MB file fits the 128MB Worker cap.
+  Parser unit-tested (quoted commas/escapes/CRLF/embedded-newlines/chunk-
+  boundary/coercion) + all projected column names confirmed in the live header.
+  **Worker-memory behavior is only observable after deploy** (local Node has no
+  cap; the 99MB end-to-end download is too slow to finish in-sandbox).
+  ⚠️ get_player_metrics also loads `pbp_participation` (separate big CSV via
+  fetchCsv) for route estimation — if that OOMs too, give it the same streaming
+  treatment.
 - **Calibrated veteran pHit/pBust** — user chose "full calibrated" — but the VOR
   scale (≈14.9) ≠ the documented z-scored thresholds (0.47), and **sklearn is
   not installed in this env** (`ModuleNotFoundError`), so a Python retrain can't

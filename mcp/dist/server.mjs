@@ -42283,7 +42283,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.35";
+var SERVER_VERSION = "1.0.36";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
