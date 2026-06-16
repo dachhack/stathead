@@ -219,7 +219,7 @@ const MODELS = [
   },
   {
     id: 'valueTrend', label: 'Dynasty Value',
-    blurb: 'Market-consensus dynasty value + trend. A composite of paid market feeds — no first-party feature decomposition, so the live value/trend is shown on the KTC card.',
+    blurb: 'Market-consensus dynasty value + trend. A composite of paid market feeds — no first-party feature decomposition, so the live value/trend is shown on the Dynasty Value card.',
     noteOnly: true,
   },
 ];

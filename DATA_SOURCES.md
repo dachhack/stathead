@@ -83,7 +83,7 @@ and consider whether your usage fits their terms.
 
 > **MCP exposure (important):** the `stathead-mcp` package does **not** serve
 > these raw feeds. `get_dynasty_values` returns StatHead's **blended** value
-> (KTC rescaled to FantasyCalc's scale via `ktc-fc-rescale.json`), labeled as
+> (KTC rescaled to FantasyCalc's scale via `dynasty-fc-rescale.json`), labeled as
 > StatHead's own — the same value the website shows. The raw KTC/FantasyCalc
 > snapshots are inputs used to *compute* that blend, not redistributed verbatim
 > through the tools. A standalone raw-FantasyCalc tool was removed for this

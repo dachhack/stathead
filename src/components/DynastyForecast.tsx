@@ -3,12 +3,12 @@ import {
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   ResponsiveContainer, Area, ComposedChart,
 } from 'recharts';
-import type { KTCPlayer } from '../types';
-import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay } from '../data';
+import type { DynastyPlayer } from '../types';
+import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay } from '../data';
 import {
   loadForecastsForDisplay, getPlayerForecasts,
   type ForecastCache, type ForecastResult,
-} from '../lib/ktcForecast';
+} from '../lib/dynastyForecast';
 import { DocsLink } from './DocsLink';
 
 // ── Forecast types ───────────────────────────────────────────────────
@@ -18,7 +18,7 @@ interface ForecastPoint extends ForecastResult {
 }
 
 interface PlayerForecast {
-  player: KTCPlayer;
+  player: DynastyPlayer;
   currentValue: number;
   forecasts: ForecastPoint[];
   signal: number; // within-position z-score of composite log-return
@@ -101,7 +101,7 @@ function buildChartData(
 
 export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]) => void }) {
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
-  const [players, setPlayers] = useState<KTCPlayer[]>([]);
+  const [players, setPlayers] = useState<DynastyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -123,7 +123,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
             if (!c) throw new Error('Forecast data unavailable');
             return c;
           }),
-          fetchKTCRankingsForDisplay(format),
+          fetchDynastyRankingsForDisplay(format),
         ]);
         if (cancelled) return;
         setForecastCache(cache);
@@ -145,7 +145,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     const player = players.find(p => p.playerID === selectedId);
     const positionByID = new Map<number, string>();
     if (player) positionByID.set(selectedId, player.position);
-    fetchKTCHistoryForDisplay([selectedId], positionByID)
+    fetchDynastyHistoryForDisplay([selectedId], positionByID)
       .then(data => {
         const h = data.find(d => d.playerID === selectedId);
         if (h) {
@@ -165,7 +165,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
     const SIGNAL_WEIGHTS: Record<number, number> = { 7: 0.10, 30: 0.25, 60: 0.25, 90: 0.25, 120: 0.15 };
 
     // First pass: collect raw data + composite scores per position
-    const raw: Array<{ player: KTCPlayer; currentValue: number; forecasts: ForecastPoint[]; composite: number }> = [];
+    const raw: Array<{ player: DynastyPlayer; currentValue: number; forecasts: ForecastPoint[]; composite: number }> = [];
     const compositesByPos = new Map<string, number[]>();
 
     for (const player of players) {
@@ -284,7 +284,7 @@ export function DynastyForecast({ onDataLoaded }: { onDataLoaded?: (d: unknown[]
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ padding: '16px 16px 8px' }}>
-        <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast <DocsLink section="ktc-forecast" title="Forecast model validation — Model Docs" /></h2>
+        <h2 style={{ margin: '0 0 4px', fontSize: 18 }}>Dynasty Value Forecast <DocsLink section="dynasty-forecast" title="Forecast model validation — Model Docs" /></h2>
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
           GBM time-series models predict dynasty value changes at 7/30/60/90 day horizons.
           Signal is a within-position z-score of composite momentum (higher = rising faster than peers).

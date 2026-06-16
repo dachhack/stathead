@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { CombineResult, FantasyRanking, KTCPlayer, SortDirection } from '../types';
-import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay } from '../data';
+import type { CombineResult, FantasyRanking, DynastyPlayer, SortDirection } from '../types';
+import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay } from '../data';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
@@ -51,7 +51,7 @@ interface ProspectRow {
   rookieBest: number;
   rookieWorst: number;
   owned: number;
-  // KTC dynasty
+  // Dynasty
   dynastyValue: number;
   superflexValue: number;
   // Career model prediction
@@ -192,12 +192,12 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
     Promise.all([
       fetchCombine(),
       fetchFantasyRankings(),
-      fetchKTCRankingsForDisplay('1qb'),
+      fetchDynastyRankingsForDisplay('1qb'),
       fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
         .then(r => r.ok ? r.json() : null)
         .catch(() => null),
     ])
-      .then(([combine, fpRankings, ktcPlayers, featureData]) => {
+      .then(([combine, fpRankings, dynastyPlayers, featureData]) => {
         // Career predictions from model
         const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number; boomZ?: number; bustZ?: number; features?: Record<string, number> }>();
         if (featureData?.careerPredictions2026) {
@@ -242,11 +242,11 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           fpMap.set(normalizeName(canonicalizePlayerName(r.player)), r);
         }
 
-        // KTC rookies
-        const ktcRookies = ktcPlayers.filter((p: KTCPlayer) => p.isRookie);
-        const ktcMap = new Map<string, KTCPlayer>();
-        for (const p of ktcRookies) {
-          ktcMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
+        // Dynasty rookies
+        const dynastyRookies = dynastyPlayers.filter((p: DynastyPlayer) => p.isRookie);
+        const dynastyMap = new Map<string, DynastyPlayer>();
+        for (const p of dynastyRookies) {
+          dynastyMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
         }
 
         // Build merged rows from combine as base. `seenNames` tracks every
@@ -262,9 +262,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           seenNames.add(nName);
           const pg = gradeMap.get(nName);
           const fp = fpMap.get(nName);
-          const ktc = ktcMap.get(nName);
+          const dynasty = dynastyMap.get(nName);
           if (fp) fpMap.delete(nName);
-          if (ktc) ktcMap.delete(nName);
+          if (dynasty) dynastyMap.delete(nName);
           if (pg) gradeMap.delete(nName);
           const career = careerMap.get(nName);
           return {
@@ -299,8 +299,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             rookieBest: fp ? fp.best : 0,
             rookieWorst: fp ? fp.worst : 0,
             owned: fp ? (fp.player_owned_avg || 0) : 0,
-            dynastyValue: ktc?.value || 0,
-            superflexValue: ktc?.superflexValue || 0,
+            dynastyValue: dynasty?.value || 0,
+            superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
             combinedScore: career?.combinedScore || 0,
@@ -320,9 +320,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           if (seenNames.has(nName)) continue;
           seenNames.add(nName);
           const fp = fpMap.get(nName);
-          const ktc = ktcMap.get(nName);
+          const dynasty = dynastyMap.get(nName);
           if (fp) fpMap.delete(nName);
-          if (ktc) ktcMap.delete(nName);
+          if (dynasty) dynastyMap.delete(nName);
           const career = careerMap.get(nName);
           allRows.push({
             name: pg.name,
@@ -348,8 +348,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             rookieBest: fp ? fp.best : 0,
             rookieWorst: fp ? fp.worst : 0,
             owned: fp ? (fp.player_owned_avg || 0) : 0,
-            dynastyValue: ktc?.value || 0,
-            superflexValue: ktc?.superflexValue || 0,
+            dynastyValue: dynasty?.value || 0,
+            superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
             combinedScore: career?.combinedScore || 0,
@@ -369,8 +369,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
           const nName = normalizeName(canonicalName);
           if (seenNames.has(nName)) continue;
           seenNames.add(nName);
-          const ktc = ktcMap.get(nName);
-          if (ktc) ktcMap.delete(nName);
+          const dynasty = dynastyMap.get(nName);
+          if (dynasty) dynastyMap.delete(nName);
           const career = careerMap.get(nName);
           allRows.push({
             name: canonicalName,
@@ -389,8 +389,8 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
             rookieBest: fp.best,
             rookieWorst: fp.worst,
             owned: fp.player_owned_avg || 0,
-            dynastyValue: ktc?.value || 0,
-            superflexValue: ktc?.superflexValue || 0,
+            dynastyValue: dynasty?.value || 0,
+            superflexValue: dynasty?.superflexValue || 0,
             predictedCareerPPG: career?.ppg || 0,
             thresholdProbs: career?.thresholdProbs || {},
             combinedScore: career?.combinedScore || 0,

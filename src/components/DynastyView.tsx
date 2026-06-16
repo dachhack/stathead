@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { KTCPlayer } from '../types';
-import { fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
-import { TEP_MULTIPLIERS, TEP_LABELS, type TepLevel } from '../lib/ktcForecast';
+import type { DynastyPlayer } from '../types';
+import { fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
+import { TEP_MULTIPLIERS, TEP_LABELS, type TepLevel } from '../lib/dynastyForecast';
 import { PlayerName } from './PlayerName';
 
 type FormatMode = '1qb' | 'superflex';
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
-// TE Premium: scale TE dynasty values by the same empirical KTC multipliers the
+// TE Premium: scale TE dynasty values by the same empirical Dynasty multipliers the
 // Trade Calculator uses (TE+ 1.11x, TE++ 1.215x, TE+++ 1.32x).
 function tepValueFactor(position: string, level: TepLevel): number {
   return position === 'TE' ? TEP_MULTIPLIERS[level] : 1;
@@ -17,8 +17,8 @@ interface Props {
   onDataLoaded?: (data: unknown[]) => void;
 }
 
-export function KTCView({ onDataLoaded }: Props) {
-  const [players, setPlayers] = useState<KTCPlayer[]>([]);
+export function DynastyView({ onDataLoaded }: Props) {
+  const [players, setPlayers] = useState<DynastyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<FormatMode>('1qb');
@@ -29,17 +29,17 @@ export function KTCView({ onDataLoaded }: Props) {
   // TE Premium level (matches the Trade Calculator's 0–3 scale); persisted.
   const [tepLevel, setTepLevel] = useState<TepLevel>(() => {
     if (typeof localStorage === 'undefined') return 0;
-    const v = Number(localStorage.getItem('ktcTepLevel'));
+    const v = Number(localStorage.getItem('dynastyTepLevel'));
     return v === 1 || v === 2 || v === 3 ? v : 0;
   });
   useEffect(() => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem('ktcTepLevel', String(tepLevel));
+    if (typeof localStorage !== 'undefined') localStorage.setItem('dynastyTepLevel', String(tepLevel));
   }, [tepLevel]);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchKTCRankingsForDisplay;
+    const fetcher = dataSource === 'fc' ? fetchFantasyCalcRankings : fetchDynastyRankingsForDisplay;
     fetcher(format)
       .then((data) => {
         setPlayers(data);
@@ -63,7 +63,7 @@ export function KTCView({ onDataLoaded }: Props) {
     return data;
   }, [players, posFilter, search, showRookies]);
 
-  const displayVal = (p: KTCPlayer) =>
+  const displayVal = (p: DynastyPlayer) =>
     Math.round((format === 'superflex' ? p.superflexValue : p.value) * tepValueFactor(p.position, tepLevel));
 
   const sortedFiltered = useMemo(

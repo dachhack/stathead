@@ -1,6 +1,6 @@
 // Canonical NFL division grouping + ordering. Single source of truth so every
 // team list on the site shows divisions in the same order and teams in the same
-// order within a division. Team codes match the Sleeper/Clay/ESPN convention
+// order within a division. Team codes match the Sleeper/Consensus/ESPN convention
 // (LA, LAC, LV, WAS, JAX).
 export interface Division {
   name: string;

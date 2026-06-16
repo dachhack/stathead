@@ -27,7 +27,7 @@ import { ConsensusAdpView } from './components/ConsensusAdpView';
 import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
 import { SleeperView } from './components/SleeperView';
-import { KTCView } from './components/KTCView';
+import { DynastyView } from './components/DynastyView';
 import { RookieProspectsView } from './components/RookieProspectsView';
 import { Prospects2027View } from './components/Prospects2027View';
 import { TradeCalculator } from './components/TradeCalculator';
@@ -337,7 +337,7 @@ function App() {
         {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'buzz-tracker' && <BuzzTracker />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
-        {tab === 'ktc' && <KTCView onDataLoaded={onDataLoaded} />}
+        {tab === 'ktc' && <DynastyView onDataLoaded={onDataLoaded} />}
           </>
         )}
       </main>

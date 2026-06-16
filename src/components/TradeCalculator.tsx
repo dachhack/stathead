@@ -3,9 +3,9 @@ import { PlayerName } from './PlayerName';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory } from '../types';
-import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay } from '../data';
-import { loadForecastsForDisplay, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type TepLevel } from '../lib/ktcForecast';
+import type { DynastyPlayer, DynastyPlayerHistory } from '../types';
+import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay } from '../data';
+import { loadForecastsForDisplay, getPlayerForecasts, getProjectedValueFromCache, loadRedraftLookup, getRedraftPPG, TEP_MULTIPLIERS, TEP_LABELS, type ForecastCache, type ForecastResult, type RedraftLookup, type TepLevel } from '../lib/dynastyForecast';
 
 const SIDE_A_COLOR = '#6366f1';
 const SIDE_B_COLOR = '#f59e0b';
@@ -80,42 +80,42 @@ interface Props {
 }
 
 export function TradeCalculator({ onDataLoaded }: Props) {
-  const [players, setPlayers] = useState<KTCPlayer[]>([]);
+  const [players, setPlayers] = useState<DynastyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leagueFormat, setLeagueFormat] = useState<'1qb' | 'superflex'>('1qb');
   const [tepLevel, setTepLevel] = useState<TepLevel>(0);
-  const [sideA, setSideA] = useState<KTCPlayer[]>([]);
-  const [sideB, setSideB] = useState<KTCPlayer[]>([]);
+  const [sideA, setSideA] = useState<DynastyPlayer[]>([]);
+  const [sideB, setSideB] = useState<DynastyPlayer[]>([]);
   const [searchA, setSearchA] = useState('');
   const [searchB, setSearchB] = useState('');
-  const [historyData, setHistoryData] = useState<KTCPlayerHistory[]>([]);
+  const [historyData, setHistoryData] = useState<DynastyPlayerHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [tradeDate, setTradeDate] = useState<string>('');
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
   const [redraftLookup, setRedraftLookup] = useState<RedraftLookup | null>(null);
 
-  // KTC only has 1QB and superflex; TEP is an orthogonal overlay
-  const ktcFormat = leagueFormat;
+  // Dynasty only has 1QB and superflex; TEP is an orthogonal overlay
+  const dynastyFormat = leagueFormat;
   // scoringFormat is no longer needed — tepLevel is passed directly to getRedraftPPG
 
   useEffect(() => {
     // Only show full loading spinner on initial load — format switches update silently
     if (players.length === 0) setLoading(true);
-    fetchKTCRankingsForDisplay(ktcFormat as '1qb' | 'superflex')
+    fetchDynastyRankingsForDisplay(dynastyFormat as '1qb' | 'superflex')
       .then((data) => {
         setPlayers(data);
         onDataLoaded?.(data);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
-  }, [ktcFormat, onDataLoaded]);
+  }, [dynastyFormat, onDataLoaded]);
 
-  // Load pre-computed KTC forecasts (fire-and-forget, non-blocking)
+  // Load pre-computed Dynasty forecasts (fire-and-forget, non-blocking)
   useEffect(() => {
-    loadForecastsForDisplay(ktcFormat as '1qb' | 'superflex')
+    loadForecastsForDisplay(dynastyFormat as '1qb' | 'superflex')
       .then(c => { if (c) setForecastCache(c); });
-  }, [ktcFormat]);
+  }, [dynastyFormat]);
 
   // Load redraft PPG projections (one-time, format-independent)
   useEffect(() => {
@@ -136,13 +136,13 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     }
     setHistoryLoading(true);
     const positionByID = new Map(tradePlayers.map((p) => [p.playerID, p.position]));
-    fetchKTCHistoryForDisplay(allTradePlayerIds, positionByID)
+    fetchDynastyHistoryForDisplay(allTradePlayerIds, positionByID)
       .then(setHistoryData)
       .catch(() => setHistoryData([]))
       .finally(() => setHistoryLoading(false));
   }, [allTradePlayerIds, tradePlayers]);
 
-  const getValue = (p: KTCPlayer) => {
+  const getValue = (p: DynastyPlayer) => {
     const base = leagueFormat === '1qb' ? p.value : p.superflexValue;
     if (tepLevel > 0 && p.position === 'TE') {
       return Math.round(base * TEP_MULTIPLIERS[tepLevel]);
@@ -150,8 +150,8 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return base;
   };
 
-  /** Apply TEP boost to a raw KTC value for a player (used for history/forecasts) */
-  const tepAdjust = (p: KTCPlayer, val: number): number =>
+  /** Apply TEP boost to a raw Dynasty value for a player (used for history/forecasts) */
+  const tepAdjust = (p: DynastyPlayer, val: number): number =>
     tepLevel > 0 && p.position === 'TE' ? Math.round(val * TEP_MULTIPLIERS[tepLevel]) : val;
 
   const getHistory = (playerID: number) => {
@@ -174,7 +174,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   }, [forecastCache, sideA, sideB]);
 
   /** Get GBM projected value at ~90 days, falling back to linear trend. */
-  const getProjectedValue = (p: KTCPlayer): number => {
+  const getProjectedValue = (p: DynastyPlayer): number => {
     if (forecastCache) {
       const val = getProjectedValueFromCache(forecastCache, p.playerID, 90);
       if (val !== null) return tepAdjust(p, val);
@@ -198,7 +198,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   };
 
   /** Get redraft projected PPG for a player, adjusted for scoring format. */
-  const getPlayerPPG = (p: KTCPlayer): number | null => {
+  const getPlayerPPG = (p: DynastyPlayer): number | null => {
     if (!redraftLookup) return null;
     return getRedraftPPG(redraftLookup, p.playerName, p.position, tepLevel);
   };
@@ -378,7 +378,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   const hasPlayers = sideA.length > 0 || sideB.length > 0;
 
-  const renderPlayerRow = (p: KTCPlayer, side: KTCPlayer[], setSide: (v: KTCPlayer[]) => void) => {
+  const renderPlayerRow = (p: DynastyPlayer, side: DynastyPlayer[], setSide: (v: DynastyPlayer[]) => void) => {
     const val = getValue(p);
     const proj = getProjectedValue(p);
     const projDelta = proj - val;
@@ -469,11 +469,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
 
   const renderSide = (
     label: string,
-    side: KTCPlayer[],
-    setSide: (p: KTCPlayer[]) => void,
+    side: DynastyPlayer[],
+    setSide: (p: DynastyPlayer[]) => void,
     search: string,
     setSearch: (s: string) => void,
-    suggestions: KTCPlayer[],
+    suggestions: DynastyPlayer[],
     total: number,
     projTotal: number,
     color: string,

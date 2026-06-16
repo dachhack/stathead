@@ -16,7 +16,7 @@
  *    odds) come from src/data.ts fetchers, which read public/data/ locally in
  *    Node and otherwise fetch the committed GitHub-raw snapshots.
  *  - committed local JSON (score-store shards, redraft, depth-order,
- *    feature-matrix, clay, team-projections) is read directly with fs.
+ *    feature-matrix, consensus, team-projections) is read directly with fs.
  */
 
 import fs from 'node:fs';
@@ -27,7 +27,7 @@ import {
   fetchOddsGameLines,
 } from '../src/data';
 import type { DraftPick, FfcADPPlayer, Roster, Game } from '../src/types';
-import { buildProjectionPool, type FeatureMatrixDoc, type ClayDoc } from '../src/lib/buildProjectionPool';
+import { buildProjectionPool, type FeatureMatrixDoc, type ConsensusDoc } from '../src/lib/buildProjectionPool';
 import { PREDICT_SEASON } from '../src/lib/projectionPoolConsts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -65,13 +65,13 @@ async function main() {
   const redraftData = loadJson(path.join(DATA, 'redraft-projections.json'), { players: [] } as { players?: Array<{ name: string; position: string; ppg: number }> });
   const depthOrderData = loadJson(path.join(DATA, 'depth-order-2026.json'), { players: [] } as { players?: Array<{ name: string; team: string; pos: string; teamRank: number }> });
   const featureMatrix = loadJson<FeatureMatrixDoc | null>(path.join(DATA, 'feature-matrix.json'), null);
-  const clayDoc = loadJson<ClayDoc | null>(path.join(DATA, `clay-projections-${PREDICT_SEASON}.json`), null);
+  const consensusDoc = loadJson<ConsensusDoc | null>(path.join(DATA, `clay-projections-${PREDICT_SEASON}.json`), null);
   const teamProjectionsEnsemble = loadJson(path.join(GEN, 'team-projections.json'), { season: 0, teams: {} } as { season: number; teams: Record<string, Record<string, number>> });
 
   const pool = buildProjectionPool({
     adpData, priorStats, draftData, rosters, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
-    featureMatrix, clayDoc, teamProjectionsEnsemble, season,
+    featureMatrix, consensusDoc, teamProjectionsEnsemble, season,
   });
 
   if (pool.error) {

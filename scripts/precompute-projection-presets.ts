@@ -24,7 +24,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ClayStats, type PresetContext } from '../src/lib/scenarioPresets';
+import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ConsensusStats, type PresetContext } from '../src/lib/scenarioPresets';
 import { applyScenarioToProjections, normalizeProjName, type QBProjection, type RBProjection, type WRProjection, type TEProjection } from '../src/lib/projectionsTabEngine';
 import type { SDIOProjection } from '../src/types';
 
@@ -45,24 +45,24 @@ function round2(v: number): number { return Math.round(v * 100) / 100; }
 // ── Consensus (PPR-level blend on the redraft model) ─────────────────
 function buildConsensus(
   redraft: { players: PresetPlayer[] },
-  clayDoc: { players: { name: string; ff_pt: number; games?: number }[] },
+  consensusDoc: { players: { name: string; ff_pt: number; games?: number }[] },
 ): { out: PresetPlayer[]; blended: number } {
-  const clayPpgByName = new Map<string, number>();
-  for (const p of clayDoc.players) {
+  const consensusPpgByName = new Map<string, number>();
+  for (const p of consensusDoc.players) {
     const ff = Number(p.ff_pt);
     const g = Number(p.games) > 0 ? Number(p.games) : 17;
-    if (Number.isFinite(ff)) clayPpgByName.set(normalizeProjName(p.name), ff / g);
+    if (Number.isFinite(ff)) consensusPpgByName.set(normalizeProjName(p.name), ff / g);
   }
   let blended = 0;
   const out = redraft.players.map((p) => {
     const ours = Number(p.ppg);
-    const clayPpg = clayPpgByName.get(normalizeProjName(p.name));
-    if (!Number.isFinite(ours) || clayPpg === undefined || clayPpg <= 0) {
+    const consensusPpg = consensusPpgByName.get(normalizeProjName(p.name));
+    if (!Number.isFinite(ours) || consensusPpg === undefined || consensusPpg <= 0) {
       return { name: p.name, position: p.position, ppg: p.ppg, recPG: p.recPG };
     }
     const w = CONSENSUS_WEIGHT[p.position] ?? CONSENSUS_WEIGHT_DEFAULT;
     blended++;
-    return { name: p.name, position: p.position, ppg: round1(w * clayPpg + (1 - w) * ours), recPG: p.recPG };
+    return { name: p.name, position: p.position, ppg: round1(w * consensusPpg + (1 - w) * ours), recPG: p.recPG };
   });
   return { out, blended };
 }
@@ -100,17 +100,17 @@ function toPpg<T extends { name: string; games: number; pprPts: number }>(arr: T
   });
 }
 
-// Clay-informed context for the consensus-ml preset, built from the committed
+// Consensus-informed context for the consensus-ml preset, built from the committed
 // consensus input. Only the blended OUTPUT is surfaced downstream.
-function buildClayContext(clayDoc: { players: Record<string, number | string>[] } | null): PresetContext | undefined {
-  if (!clayDoc) return undefined;
-  const clayStats = new Map<string, ClayStats>();
-  const clayPpr = new Map<string, number>();
-  for (const p of clayDoc.players) {
+function buildConsensusContext(consensusDoc: { players: Record<string, number | string>[] } | null): PresetContext | undefined {
+  if (!consensusDoc) return undefined;
+  const consensusStats = new Map<string, ConsensusStats>();
+  const consensusPpr = new Map<string, number>();
+  for (const p of consensusDoc.players) {
     const key = normalizeProjName(String(p.name));
     const ppr = Number(p.ff_pt);
-    if (Number.isFinite(ppr)) clayPpr.set(key, ppr);
-    clayStats.set(key, {
+    if (Number.isFinite(ppr)) consensusPpr.set(key, ppr);
+    consensusStats.set(key, {
       position: String(p.position), pos_rk: Number(p.pos_rk) || 0,
       pass_yds: Number(p.pass_yds) || undefined, pass_td: Number(p.pass_td) || undefined, pass_int: Number(p.pass_int) || undefined,
       rush_yds: Number(p.rush_yds) || undefined, rush_td: Number(p.rush_td) || undefined,
@@ -118,7 +118,7 @@ function buildClayContext(clayDoc: { players: Record<string, number | string>[] 
       ppr: Number.isFinite(ppr) ? ppr : 0,
     });
   }
-  return { clayPpr, clayStats };
+  return { consensusPpr, consensusStats };
 }
 
 // preset id -> committed key
@@ -129,16 +129,16 @@ const POOL_PRESETS: Record<string, string> = {
   'preset-consensus-ml': 'consensus-ml',
 };
 
-function buildPoolPresets(pool: BasePool, clayDoc: { players: Record<string, number | string>[] } | null): Record<string, PresetPlayer[]> {
+function buildPoolPresets(pool: BasePool, consensusDoc: { players: Record<string, number | string>[] } | null): Record<string, PresetPlayer[]> {
   const sdio = buildSdio(pool);
   const meta: PresetMeta = new Map();
   for (const m of pool.meta) meta.set(m.key, { isRookie: m.isRookie, yearsExp: m.yearsExp, age: m.age, priorGames: m.priorGames });
-  const ctx = buildClayContext(clayDoc);
+  const ctx = buildConsensusContext(consensusDoc);
   const result: Record<string, PresetPlayer[]> = {};
   for (const preset of SCENARIO_PRESETS) {
     const key = POOL_PRESETS[preset.id];
     if (!key) continue;
-    if (preset.requiresClay && (!ctx || ctx.clayStats?.size === 0)) continue;
+    if (preset.requiresConsensus && (!ctx || ctx.consensusStats?.size === 0)) continue;
     const sc = preset.build(sdio, meta, normalizeProjName, ctx);
     const { qbs, rbs, wrs, tes } = applyScenarioToProjections(pool.qbs, pool.rbs, pool.wrs, pool.tes, sc);
     result[key] = [
@@ -153,14 +153,14 @@ function buildPoolPresets(pool: BasePool, clayDoc: { players: Record<string, num
 
 function main() {
   const redraft = loadJson<{ season: number; players: PresetPlayer[] }>(REDRAFT);
-  const clayPath = path.join(DATA, `clay-projections-${redraft.season}.json`);
-  const clayDoc = fs.existsSync(clayPath) ? loadJson<{ players: Record<string, number | string>[] }>(clayPath) : null;
+  const consensusPath = path.join(DATA, `clay-projections-${redraft.season}.json`);
+  const consensusDoc = fs.existsSync(consensusPath) ? loadJson<{ players: Record<string, number | string>[] }>(consensusPath) : null;
 
   const presets: Record<string, PresetPlayer[]> = {};
 
   // consensus — redraft PPR blend (no pool needed)
-  if (clayDoc) {
-    const { out, blended } = buildConsensus(redraft, clayDoc as { players: { name: string; ff_pt: number; games?: number }[] });
+  if (consensusDoc) {
+    const { out, blended } = buildConsensus(redraft, consensusDoc as { players: { name: string; ff_pt: number; games?: number }[] });
     presets.consensus = out;
     console.log(`  consensus: ${out.length} players (${blended} blended)`);
   } else {
@@ -171,7 +171,7 @@ function main() {
   const basePath = path.join(DATA, `projection-base-${redraft.season}.json`);
   if (fs.existsSync(basePath)) {
     const pool = loadJson<BasePool>(basePath);
-    const poolPresets = buildPoolPresets(pool, clayDoc as { players: Record<string, number | string>[] } | null);
+    const poolPresets = buildPoolPresets(pool, consensusDoc as { players: Record<string, number | string>[] } | null);
     for (const [k, v] of Object.entries(poolPresets)) {
       presets[k] = v;
       console.log(`  ${k}: ${v.length} players (engine over exported pool)`);

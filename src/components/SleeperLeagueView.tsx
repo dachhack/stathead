@@ -3,11 +3,11 @@ import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
-import { fetchKTCRankings, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
-import type { KTCPlayer, Tab, SleeperTrendingRow } from '../types';
+import { fetchDynastyRankings, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
+import type { DynastyPlayer, Tab, SleeperTrendingRow } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { loadBlendedProjections, computePpr, computeCustomScore, computeOptimalLineup, type ClayPlayer, type OptimalLineup } from '../lib/waiverUtils';
+import { loadBlendedProjections, computePpr, computeCustomScore, computeOptimalLineup, type ConsensusPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
 import { normalizeForMatch } from '../lib/nameMatch';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
@@ -178,13 +178,13 @@ interface RosterScore {
  *  superflex value (QBs are worth far more); 1QB leagues use the base value.
  *  Mirrors the per-player + waiver value selection so power rankings,
  *  Win-Now/Rebuild scoring, and roster stats all agree. */
-function ktcValue(k: KTCPlayer, isSuperflex: boolean): number {
+function dynastyValue(k: DynastyPlayer, isSuperflex: boolean): number {
   return isSuperflex ? k.superflexValue : k.value;
 }
 
-function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[], isSuperflex: boolean): RosterScore | null {
-  const ktcByName = new Map<string, KTCPlayer>();
-  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+function scoreRoster(team: LeagueTeam, dynasty: DynastyPlayer[], isSuperflex: boolean): RosterScore | null {
+  const dynastyByName = new Map<string, DynastyPlayer>();
+  for (const p of dynasty) dynastyByName.set(normalizeForMatch(p.playerName), p);
 
   const allPlayers = [...team.starters, ...team.bench].filter((p) => p.position && p.position !== 'DEF' && p.name !== 'Empty');
   let totalValue = 0;
@@ -196,9 +196,9 @@ function scoreRoster(team: LeagueTeam, ktc: KTCPlayer[], isSuperflex: boolean): 
   const assets: { name: string; value: number; age: number }[] = [];
 
   for (const p of allPlayers) {
-    const k = ktcByName.get(normalizeForMatch(p.name));
+    const k = dynastyByName.get(normalizeForMatch(p.name));
     if (!k) continue;
-    const val = ktcValue(k, isSuperflex);
+    const val = dynastyValue(k, isSuperflex);
     if (val <= 0) continue;
     matchedCount++;
     totalValue += val;
@@ -294,7 +294,7 @@ interface PowerRow {
   posStrength: PositionalStrength;
   projPts: number;
   avgPts: number; // projected points per predicted starter
-  avgAge: number; // average age of predicted starters (KTC)
+  avgAge: number; // average age of predicted starters (Dynasty)
   pickVal: number; // total dynasty value of owned rookie picks
 }
 
@@ -302,17 +302,17 @@ type SortKey = 'team' | 'owner' | 'window' | 'value' | 'projPts' | 'avgPts' | 'a
 // Win-now → rebuild ordering, so sorting the Window column groups contenders.
 const WINDOW_ORDER: WindowLabel[] = ['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'];
 
-// Positional strength by dynasty value (KTC) over a resolved player set.
+// Positional strength by dynasty value (Dynasty) over a resolved player set.
 function computePositionalStrength(
   players: RosterPlayer[],
-  ktcByName: Map<string, KTCPlayer>,
+  dynastyByName: Map<string, DynastyPlayer>,
   isSuperflex: boolean,
 ): PositionalStrength {
   const str: PositionalStrength = { qb: 0, rb: 0, wr: 0, te: 0 };
   for (const p of players) {
-    const k = ktcByName.get(normalizeForMatch(p.name));
+    const k = dynastyByName.get(normalizeForMatch(p.name));
     if (!k) continue;
-    const val = ktcValue(k, isSuperflex);
+    const val = dynastyValue(k, isSuperflex);
     if (val <= 0) continue;
     const pos = p.position?.toUpperCase();
     if (pos === 'QB') str.qb += val;
@@ -409,18 +409,18 @@ function computeTeamProjPts(players: RosterPlayer[], projBySleeperIdMap: Map<str
 }
 
 /** Per-starter averages for a resolved player set: projected points per player
- *  and average age (from KTC, matched by name). */
+ *  and average age (from Dynasty, matched by name). */
 function computeStarterAverages(
   players: RosterPlayer[],
   projBySleeperIdMap: Map<string, number>,
-  ktcByName: Map<string, KTCPlayer>,
+  dynastyByName: Map<string, DynastyPlayer>,
 ): { avgPts: number; avgAge: number } {
   let projTotal = 0;
   let ageSum = 0;
   let ageCount = 0;
   for (const p of players) {
     projTotal += projBySleeperIdMap.get(p.id) ?? 0;
-    const k = ktcByName.get(normalizeForMatch(p.name));
+    const k = dynastyByName.get(normalizeForMatch(p.name));
     if (k && k.age > 0) { ageSum += k.age; ageCount++; }
   }
   return {
@@ -431,7 +431,7 @@ function computeStarterAverages(
 
 interface LeaguePowerProps {
   teams: LeagueTeam[];
-  ktc: KTCPlayer[];
+  dynasty: DynastyPlayer[];
   isSuperflex: boolean;
   projBySleeperIdMap: Map<string, number>;
   rosterPositions: string[];
@@ -442,7 +442,7 @@ interface LeaguePowerProps {
   onNavigate?: (tab: Tab) => void;
 }
 
-function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
+function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('optimal');
   // Dynasty only: fold owned rookie-pick value into the Value column + sort.
   const [includePicks, setIncludePicks] = useState(false);
@@ -458,19 +458,19 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rost
   const thSort: CSSProperties = { cursor: 'pointer', userSelect: 'none' };
 
   const rows: PowerRow[] = useMemo(() => {
-    const ktcByName = new Map<string, KTCPlayer>();
-    for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+    const dynastyByName = new Map<string, DynastyPlayer>();
+    for (const p of dynasty) dynastyByName.set(normalizeForMatch(p.playerName), p);
 
     const out: PowerRow[] = [];
     for (const t of teams) {
       const players = selectPlayers(t, viewMode, projBySleeperIdMap, rosterPositions);
       const projPts = computeTeamProjPts(players, projBySleeperIdMap);
-      const { avgPts, avgAge } = computeStarterAverages(players, projBySleeperIdMap, ktcByName);
+      const { avgPts, avgAge } = computeStarterAverages(players, projBySleeperIdMap, dynastyByName);
       const pickVal = pickValueByRosterId.get(t.rosterId) ?? 0;
       if (isDynasty) {
-        const score = scoreRoster(t, ktc, isSuperflex);
+        const score = scoreRoster(t, dynasty, isSuperflex);
         if (!score) continue;
-        const posStrength = computePositionalStrength(players, ktcByName, isSuperflex);
+        const posStrength = computePositionalStrength(players, dynastyByName, isSuperflex);
         out.push({ team: t, score, posStrength, projPts, avgPts, avgAge, pickVal });
       } else {
         const posStrength = computePositionalProjStrength(players, projBySleeperIdMap);
@@ -478,7 +478,7 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rost
       }
     }
     return out;
-  }, [teams, ktc, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, viewMode, isDynasty]);
+  }, [teams, dynasty, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, viewMode, isDynasty]);
 
   const sortedRows = useMemo(() => {
     const keyVal = (r: PowerRow): number | string => {
@@ -515,7 +515,7 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rost
     if (r.posStrength.te > maxPos.te) maxPos.te = r.posStrength.te;
   }
 
-  // Dynasty bars carry KTC value (thousands); redraft bars carry projected points.
+  // Dynasty bars carry Dynasty value (thousands); redraft bars carry projected points.
   const posBar = (val: number, max: number, color: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
       <div style={{ width: 50, height: 8, background: 'var(--bg-tertiary)', borderRadius: 4, overflow: 'hidden' }}>
@@ -568,7 +568,7 @@ function LeaguePowerRankings({ teams, ktc, isSuperflex, projBySleeperIdMap, rost
               </>}
               <th style={thSort} onClick={() => toggleSort('projPts')} title="Projected PPR points (season)">Proj Pts{sortArrow('projPts')}</th>
               <th style={thSort} onClick={() => toggleSort('avgPts')} title="Average projected points per predicted starter">Avg Pts{sortArrow('avgPts')}</th>
-              <th style={thSort} onClick={() => toggleSort('avgAge', 'asc')} title="Average age of predicted starters (KTC)">Avg Age{sortArrow('avgAge')}</th>
+              <th style={thSort} onClick={() => toggleSort('avgAge', 'asc')} title="Average age of predicted starters (Dynasty)">Avg Age{sortArrow('avgAge')}</th>
               <th style={thSort} onClick={() => toggleSort('qb')}>QB{sortArrow('qb')}</th>
               <th style={thSort} onClick={() => toggleSort('rb')}>RB{sortArrow('rb')}</th>
               <th style={thSort} onClick={() => toggleSort('wr')}>WR{sortArrow('wr')}</th>
@@ -642,7 +642,7 @@ interface LeagueWaiverSectionProps {
 function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [rosteredIds, setRosteredIds] = useState<Set<string>>(new Set());
-  const [players, setPlayers] = useState<ClayPlayer[]>([]);
+  const [players, setPlayers] = useState<ConsensusPlayer[]>([]);
   const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
   const [posFilter, setPosFilter] = useState<string>('ALL');
   const [loaded, setLoaded] = useState(false);
@@ -663,7 +663,7 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
 
   const waiverPicks = useMemo(() => {
     if (!players.length || !rosteredIds.size) return [];
-    const out: (ClayPlayer & { pprPts: number })[] = [];
+    const out: (ConsensusPlayer & { pprPts: number })[] = [];
     for (const p of players) {
       if (!p.sleeperId || rosteredIds.has(p.sleeperId)) continue;
       const pprPts = computePpr(p);
@@ -781,7 +781,7 @@ function LeagueWaiverSection({ leagueId }: LeagueWaiverSectionProps) {
 // ── Suggested Waiver Moves (add/drop for the selected team) ──
 
 interface WaiverMove {
-  add: ClayPlayer;
+  add: ConsensusPlayer;
   addProj: number; addValue: number; addTrend: number | null;
   drop: RosterPlayer;
   dropProj: number; dropValue: number;
@@ -792,9 +792,9 @@ interface WaiverSuggestionsProps {
   leagueId: string;
   team: LeagueTeam;
   projMap: Map<string, number>;
-  blendedByName: Map<string, KTCPlayer>;
+  blendedByName: Map<string, DynastyPlayer>;
   trendByName: Map<string, number>;
-  allProjections: ClayPlayer[];
+  allProjections: ConsensusPlayer[];
   isDynasty: boolean;
   isSuperflex: boolean;
 }
@@ -819,7 +819,7 @@ function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, tren
       return k ? (isSuperflex ? k.superflexValue : k.value) : 0;
     };
     const rosterMetric = (p: RosterPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.id) ?? 0);
-    const availMetric = (p: ClayPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.sleeperId ?? '') ?? 0);
+    const availMetric = (p: ConsensusPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.sleeperId ?? '') ?? 0);
 
     // Drop candidates: this team's skill players, worst-first.
     const roster = [...team.starters, ...team.bench]
@@ -834,7 +834,7 @@ function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, tren
       .filter((x) => x.m > 0)
       .sort((a, b) => b.m - a.m);
 
-    const minGain = isDynasty ? 400 : 12; // KTC value vs projected points
+    const minGain = isDynasty ? 400 : 12; // Dynasty value vs projected points
     const usedDrop = new Set<string>();
     const out: WaiverMove[] = [];
     for (const a of avail) {
@@ -929,7 +929,7 @@ function scoreColor(score: number): string {
   return '#ef4444';
 }
 
-// Dynasty assets are priced in KTC value (thousands); redraft assets in
+// Dynasty assets are priced in Dynasty value (thousands); redraft assets in
 // projected season points.
 const fmtAssetValue = (v: number, isDynasty: boolean) =>
   isDynasty ? `${(v / 1000).toFixed(1)}k` : `${v.toFixed(0)} pts`;
@@ -1048,7 +1048,7 @@ function TradeCard({ s, isDynasty }: { s: TradeSuggestion; isDynasty: boolean })
 
 interface TradeSectionProps {
   teams: LeagueTeam[];
-  ktc: KTCPlayer[];
+  dynasty: DynastyPlayer[];
   pickOwnership: Map<number, DraftPick[]>;
   myRosterId?: number;
   myTeamName?: string;
@@ -1059,7 +1059,7 @@ interface TradeSectionProps {
   isSuperflex: boolean;
 }
 
-function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty, isSuperflex }: TradeSectionProps) {
+function TradeSuggestionsSection({ teams, dynasty, pickOwnership, myRosterId, myTeamName, projBySleeperIdMap, projStatsMap, lastSeasonMap, isDynasty, isSuperflex }: TradeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [goals, setGoals] = useState<Map<number, TradeGoal>>(new Map());
   const [suggestions, setSuggestions] = useState<TradeSuggestion[]>([]);
@@ -1072,7 +1072,7 @@ function TradeSuggestionsSection({ teams, ktc, pickOwnership, myRosterId, myTeam
   const doGenerate = async () => {
     setLoading(true);
     try {
-      const results = generateTradeSuggestions(teams, ktc, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty, isSuperflex);
+      const results = generateTradeSuggestions(teams, dynasty, goals, pickOwnership, myRosterId, projBySleeperIdMap, 6, projStatsMap, lastSeasonMap, !isDynasty, isSuperflex);
       setSuggestions(results);
       setGenerated(true);
     } catch {
@@ -1233,10 +1233,10 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const [standingsExpanded, setStandingsExpanded] = useState(false);
   const [matchups, setMatchups] = useState<MatchupsByKey>(new Map());
   const [teamProj, setTeamProj] = useState<TeamProjByTeam | null>(null);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
-  const [blended, setBlended] = useState<KTCPlayer[]>([]); // blended dynasty value (KTC→FC scale)
-  const [fcTrend, setFcTrend] = useState<KTCPlayer[]>([]); // FantasyCalc, for 30-day value trend
-  const [allProjections, setAllProjections] = useState<ClayPlayer[]>([]);
+  const [dynasty, setDynasty] = useState<DynastyPlayer[]>([]);
+  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // blended dynasty value (Dynasty→FC scale)
+  const [fcTrend, setFcTrend] = useState<DynastyPlayer[]>([]); // FantasyCalc, for 30-day value trend
+  const [allProjections, setAllProjections] = useState<ConsensusPlayer[]>([]);
   const [tradedPicks, setTradedPicks] = useState<SleeperTradedPick[]>([]);
   // Optional projection scenario (quick preset or saved) overlaid on proj pts.
   const [projScenarioId, setProjScenarioId] = useState<string>('');
@@ -1258,10 +1258,10 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   const lookedUpUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchMatchups(), fetchTeamProjections(), fetchKTCRankings('1qb')]).then(([m, tp, k]) => {
-      setMatchups(m); setTeamProj(tp); setKtc(k);
+    Promise.all([fetchMatchups(), fetchTeamProjections(), fetchDynastyRankings('1qb')]).then(([m, tp, k]) => {
+      setMatchups(m); setTeamProj(tp); setDynasty(k);
     });
-    fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
+    fetchDynastyRankingsForDisplay('1qb').then(setBlended).catch(() => {});
     fetchFantasyCalcRankings('1qb').then(setFcTrend).catch(() => {});
     loadBlendedProjections().then(setAllProjections);
   }, []);
@@ -1336,13 +1336,13 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
   }, [data]);
 
   // Power rankings + Win-Now/Rebuild scoring run on the same blended (FC-scale)
-  // values shown per-player, falling back to raw KTC only if the rescaled list
+  // values shown per-player, falling back to raw Dynasty only if the rescaled list
   // failed to load. SF awareness is handled downstream via isSuperflex.
-  const powerKtc = useMemo(() => (blended.length ? blended : ktc), [blended, ktc]);
+  const powerDynasty = useMemo(() => (blended.length ? blended : dynasty), [blended, dynasty]);
 
   // Blended dynasty value + FantasyCalc 30-day trend, keyed by normalized name.
   const blendedByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
+    const m = new Map<string, DynastyPlayer>();
     for (const k of blended) m.set(normalizeForMatch(k.playerName), k);
     return m;
   }, [blended]);
@@ -1444,7 +1444,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
     return map;
   }, [allProjections, scoring]);
 
-  const [lastSeasonData, setLastSeasonData] = useState<ClayPlayer[]>([]);
+  const [lastSeasonData, setLastSeasonData] = useState<ConsensusPlayer[]>([]);
   useEffect(() => {
     Promise.all([
       fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-2025.json`)),
@@ -1608,7 +1608,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             <br />Roster: {rosterFormat(data.league.roster_positions)}
           </p>
 
-          {powerKtc.length > 0 && (
+          {powerDynasty.length > 0 && (
             <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0 0' }}>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Projection scenario:</span>
@@ -1627,7 +1627,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
             </div>
             <LeaguePowerRankings
               teams={data.teams}
-              ktc={powerKtc}
+              dynasty={powerDynasty}
               isSuperflex={isSuperflex}
               projBySleeperIdMap={projBySleeperIdMap}
               rosterPositions={data.league.roster_positions ?? []}
@@ -1684,10 +1684,10 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
-          {ktc.length > 0 && (
+          {dynasty.length > 0 && (
             <TradeSuggestionsSection
               teams={data.teams}
-              ktc={ktc}
+              dynasty={dynasty}
               pickOwnership={pickOwnership}
               myRosterId={selected ?? undefined}
               myTeamName={selectedTeam?.teamName}
@@ -1704,7 +1704,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               <div className="sched-section-title" style={{ marginTop: 16 }}>
                 Roster — {selectedTeam.teamName} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(click a team above to switch)</span>
               </div>
-              {isDynasty && powerKtc.length > 0 && (() => { const s = scoreRoster(selectedTeam, powerKtc, isSuperflex); return s ? <WindowBadge score={s} /> : null; })()}
+              {isDynasty && powerDynasty.length > 0 && (() => { const s = scoreRoster(selectedTeam, powerDynasty, isSuperflex); return s ? <WindowBadge score={s} /> : null; })()}
 
               {optimalLineup && (
                 <div style={{ margin: '8px 0 12px', padding: '10px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8 }}>

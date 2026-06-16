@@ -14,7 +14,7 @@
  *   dynasty_values          — current dynasty market values (1qb + superflex)
  *   dynasty_value_history   — daily dynasty value history (per player + date)
  *
- * Backwards-compat views `ktc` and `ktc_history` mirror dynasty_values /
+ * Backwards-compat views `dynasty` and `ktc_history` mirror dynasty_values /
  * dynasty_value_history so user queries saved before the rename keep
  * working. Vendor-named feature columns (rsp*, pdf*) are renamed to
  * source-agnostic scout* / guide* aliases at registration time — see
@@ -209,7 +209,7 @@ async function registerPlayerStats(
   `);
 }
 
-interface KtcRow {
+interface DynastyRow {
   playerID: number;
   playerName: string;
   position: string;
@@ -221,7 +221,7 @@ interface KtcRow {
   isRookie: boolean;
 }
 
-interface KtcHistoryRow {
+interface DynastyHistoryRow {
   playerID: number;
   oneQB?: { valueHistory?: Array<{ d: string; v: number }> };
   superflex?: { valueHistory?: Array<{ d: string; v: number }> };
@@ -260,11 +260,11 @@ interface CrosswalkRec {
 }
 
 async function buildTables(): Promise<Record<string, Record<string, unknown>[]>> {
-  const [fm, cache, ktc1qb, ktcHistory, crosswalk] = await Promise.all([
+  const [fm, cache, dynasty1qb, dynastyHistory, crosswalk] = await Promise.all([
     fetchJson<{ careerPredictions2026?: CareerPrediction2026[] }>('feature-matrix.json'),
     fetchJson<{ rookieCareerModels?: Record<string, { backtestRows?: CareerBacktestRow[] }> }>('model-cache-career-v72.json'),
-    fetchJson<KtcRow[]>('ktc_rankings_1qb.json'),
-    fetchJson<KtcHistoryRow[]>('ktc_history.json'),
+    fetchJson<DynastyRow[]>('ktc_rankings_1qb.json'),
+    fetchJson<DynastyHistoryRow[]>('ktc_history.json'),
     fetchJson<{ players?: CrosswalkRec[] }>('player-crosswalk.json'),
   ]);
 
@@ -315,7 +315,7 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
 
   // Dynasty values — current. The 1qb file carries both `value` (1QB) and
   // `superflexValue`, so one load gives us everything.
-  const dynasty_values: Record<string, unknown>[] = (ktc1qb || []).map((r) => ({
+  const dynasty_values: Record<string, unknown>[] = (dynasty1qb || []).map((r) => ({
     playerID: r.playerID,
     name: r.playerName,
     position: r.position,
@@ -332,12 +332,12 @@ async function buildTables(): Promise<Record<string, Record<string, unknown>[]>>
   // 1QB + Superflex on the same date is a common query so we emit them
   // side-by-side.
   const dynasty_value_history: Record<string, unknown>[] = [];
-  const ktcNameById = new Map<number, { name: string; position: string; team: string }>();
-  for (const r of ktc1qb || []) {
-    ktcNameById.set(r.playerID, { name: r.playerName, position: r.position, team: r.team });
+  const dynastyNameById = new Map<number, { name: string; position: string; team: string }>();
+  for (const r of dynasty1qb || []) {
+    dynastyNameById.set(r.playerID, { name: r.playerName, position: r.position, team: r.team });
   }
-  for (const h of ktcHistory || []) {
-    const info = ktcNameById.get(h.playerID);
+  for (const h of dynastyHistory || []) {
+    const info = dynastyNameById.get(h.playerID);
     const sfMap = new Map((h.superflex?.valueHistory || []).map((p) => [p.d, p.v]));
     const seenDates = new Set<string>();
     for (const p of h.oneQB?.valueHistory || []) {
@@ -461,10 +461,10 @@ export async function getDuckDB(): Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBC
     // 16+ seasons (UNION ALL BY NAME). Run in parallel with other table
     // setup would be nice but registerFileBuffer is single-threaded.
     await registerPlayerStats(db, conn);
-    // Backwards-compat aliases — `ktc` / `ktc_history` were the legacy
+    // Backwards-compat aliases — `dynasty` / `ktc_history` were the legacy
     // table names. Saved user queries from before the rename keep working.
     if (tables.dynasty_values?.length) {
-      await conn.query('CREATE OR REPLACE VIEW ktc AS SELECT * FROM dynasty_values');
+      await conn.query('CREATE OR REPLACE VIEW dynasty AS SELECT * FROM dynasty_values');
     }
     if (tables.dynasty_value_history?.length) {
       await conn.query('CREATE OR REPLACE VIEW ktc_history AS SELECT * FROM dynasty_value_history');
@@ -632,7 +632,7 @@ export const TABLE_DOCS: Array<{
   {
     name: 'dynasty_values',
     description:
-      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies. Aliased as `ktc` for backwards compat.',
+      'Current dynasty market values (1QB + Superflex both). value_1qb, value_superflex on 0-10000 scale. isRookie flags rookies. Aliased as `dynasty` for backwards compat.',
     exampleColumns: ['playerID', 'name', 'position', 'positionRank', 'team', 'age', 'value_1qb', 'value_superflex', 'isRookie'],
   },
   {

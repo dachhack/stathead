@@ -1,7 +1,7 @@
 // Sleeper league import — pull a league's rosters, standings, and settings by
 // league id, then resolve every rostered player to a name / position / team.
 // Sleeper's public API is CORS-open (access-control-allow-origin: *), so this
-// all runs client-side in the browser, like the KTC and ESPN-schedule fetches.
+// all runs client-side in the browser, like the Dynasty and ESPN-schedule fetches.
 // Docs: https://docs.sleeper.com/
 import { fetchSleeperPlayers } from '../data';
 

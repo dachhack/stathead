@@ -4,7 +4,7 @@ The app is built on a KTC-trained forecast but displays every value on
 FantasyCalc's scale. The bridge is a per-player ratio ``fc_value /
 ktc_value`` (with a positional-median fallback for players below a value
 floor or missing from FantasyCalc), precomputed offline into
-``public/data/ktc-fc-rescale.json`` by ``scripts/build-rescale-snapshot.cjs``.
+``public/data/dynasty-fc-rescale.json`` by ``scripts/build-rescale-snapshot.cjs``.
 
 These loaders apply that existing snapshot to the KTC values — they do not
 invent a new blend. The output is the canonical "blended dynasty value"
@@ -58,7 +58,7 @@ def _load_rescaler() -> _Rescaler:
     """Load the committed snapshot; if absent, derive one from the current
     KTC + FantasyCalc snapshots (mirrors buildRescaleSnapshot)."""
     try:
-        return _Rescaler(fetch_json("public/data/ktc-fc-rescale.json"))
+        return _Rescaler(fetch_json("public/data/dynasty-fc-rescale.json"))
     except Exception:
         return _Rescaler(_build_snapshot())
 

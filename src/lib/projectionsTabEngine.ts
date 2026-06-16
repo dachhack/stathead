@@ -610,7 +610,7 @@ export function applyScenarioToProjections(
   }
 
   // Re-sort by adjusted points so the position table re-ranks to reflect the
-  // scenario (e.g. a boosted/Clay-blended player climbs). The empty-scenario
+  // scenario (e.g. a boosted/Consensus-blended player climbs). The empty-scenario
   // path skips this function entirely and keeps the base sort.
   adjQbs.sort((a, b) => b.pprPts - a.pprPts);
   adjRbs.sort((a, b) => b.pprPts - a.pprPts);

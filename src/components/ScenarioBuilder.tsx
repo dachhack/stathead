@@ -30,8 +30,8 @@ interface Props {
   projections: SDIOProjection[];
   freeAgents?: FreeAgentPlayer[];
   playerMeta?: PresetMeta;
-  clayPpr?: Map<string, number>;
-  clayStats?: Map<string, import('../lib/scenarioPresets').ClayStats>;
+  consensusPpr?: Map<string, number>;
+  consensusStats?: Map<string, import('../lib/scenarioPresets').ConsensusStats>;
   normalizeName?: (s: string) => string;
   scenario: ScenarioConfig;
   onChange: (s: ScenarioConfig) => void;
@@ -88,7 +88,7 @@ const STAT_COLS: ('PassingAttempts' | 'PassingCompletions' | 'PassingYards' | 'P
   'RushingAttempts', 'RushingYards', 'RushingTouchdowns', 'Receptions', 'ReceivingYards', 'ReceivingTouchdowns',
 ];
 
-export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, clayPpr, clayStats, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
+export function ScenarioBuilder({ open, onClose, embedded = false, projections, freeAgents = [], playerMeta, consensusPpr, consensusStats, normalizeName, scenario, onChange, rankings = [], adjusted = {}, teamRosters = {} }: Props) {
   const [savedList, setSavedList] = useState<ScenarioConfig[]>([]);
   const [showSaved, setShowSaved] = useState(false);
 
@@ -537,12 +537,12 @@ export function ScenarioBuilder({ open, onClose, embedded = false, projections, 
     update({ freeAgentSignings: (scenario.freeAgentSignings ?? []).filter((s) => s.id !== id) });
 
   // --- Presets ---
-  const hasClay = !!clayPpr && clayPpr.size > 0;
-  const availablePresets = SCENARIO_PRESETS.filter((p) => !p.requiresClay || hasClay);
+  const hasConsensus = !!consensusPpr && consensusPpr.size > 0;
+  const availablePresets = SCENARIO_PRESETS.filter((p) => !p.requiresConsensus || hasConsensus);
   const applyPreset = (id: string) => {
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (!preset) return;
-    const next = preset.build(projections, playerMeta ?? new Map(), norm, { clayPpr, clayStats });
+    const next = preset.build(projections, playerMeta ?? new Map(), norm, { consensusPpr, consensusStats });
     commit({ ...next, id: scenario.id, name: preset.name });
   };
   const resetToBase = () => commit({ ...createEmptyScenario(), id: scenario.id, name: 'New Scenario' });

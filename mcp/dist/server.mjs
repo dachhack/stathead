@@ -38042,7 +38042,7 @@ async function fetchKTCRankings(format = "1qb") {
 var _rescalerPromise = null;
 function loadRescaler() {
   if (_rescalerPromise) return _rescalerPromise;
-  _rescalerPromise = tryPreFetched("ktc-fc-rescale.json").then((snap) => snap ? makeRescaler(snap) : null);
+  _rescalerPromise = tryPreFetched("dynasty-fc-rescale.json").then((snap) => snap ? makeRescaler(snap) : null);
   return _rescalerPromise;
 }
 async function fetchKTCRankingsForDisplay(format = "1qb") {

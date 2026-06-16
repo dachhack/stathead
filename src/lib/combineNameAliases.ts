@@ -3,7 +3,7 @@
 // Different upstream feeds spell the same player differently:
 //   - PFR carries legal names with hyphenated middles ("De'Zhaun-Ryan Stribling")
 //   - FantasyPros uses common-name forms ("Nick Singleton")
-//   - Prospect grades / KTC / nflverse use a third spelling ("Nicholas Singleton")
+//   - Prospect grades / Dynasty / nflverse use a third spelling ("Nicholas Singleton")
 //
 // Without canonicalization, normalizeName produces different keys for each
 // spelling, so the same prospect appears multiple times in the rookie list
@@ -17,7 +17,7 @@
 const PLAYER_NAME_ALIASES: Record<string, string> = {
   // PFR legal name → prospect-store form (combine join)
   "De'Zhaun-Ryan Stribling": "De'Zhaun Stribling",
-  // FantasyPros common form → prospect-grades / KTC form (rookie list dedupe)
+  // FantasyPros common form → prospect-grades / Dynasty form (rookie list dedupe)
   "Nick Singleton": "Nicholas Singleton",
 };
 

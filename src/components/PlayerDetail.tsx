@@ -10,13 +10,13 @@ import {
 } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
-import { loadBlendedProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadBlendedProjections, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
 import { normalizeForMatch } from '../lib/nameMatch';
 import { toSleeperTeam } from '../lib/teamCodes';
 import type { PresetMeta } from '../lib/scenarioPresets';
 import type { PlayerModel, PlayerModelDrivers } from '../lib/playerDetail';
-import type { KTCPlayer, PlayerStats, SleeperPlayer } from '../types';
+import type { DynastyPlayer, PlayerStats, SleeperPlayer } from '../types';
 
 interface Props {
   playerKey: string;
@@ -37,7 +37,7 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
     return () => { alive = false; };
   }, [espnId]);
 
-  // Rookies/incoming players have no KTC team or NFL game log yet, but Sleeper
+  // Rookies/incoming players have no Dynasty team or NFL game log yet, but Sleeper
   // assigns them an NFL team once drafted — use it for the team line + depth chart.
   const sleeperId = data?.crosswalk.sleeper_id;
   const [sleeperTeam, setSleeperTeam] = useState<string | null>(null);
@@ -71,12 +71,12 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
     );
   }
 
-  const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, modelDrivers, gameLog, gameLogSeason } = data;
+  const { crosswalk: cw, career, dynastyCurrent, dynastyHistory, adpHistory, modelDrivers, gameLog, gameLogSeason } = data;
 
-  // Best available current NFL team: KTC → most recent game → Sleeper (rookies).
-  // Normalized to Sleeper codes — KTC says GBP/KCC/… and nflverse says LA for
+  // Best available current NFL team: Dynasty → most recent game → Sleeper (rookies).
+  // Normalized to Sleeper codes — Dynasty says GBP/KCC/… and nflverse says LA for
   // the Rams, and TeamRoster matches against Sleeper's team field.
-  const nflTeam = toSleeperTeam(ktcCurrent?.team || gameLog[0]?.recent_team || sleeperTeam);
+  const nflTeam = toSleeperTeam(dynastyCurrent?.team || gameLog[0]?.recent_team || sleeperTeam);
 
   const headshotUrl = gameLog[0]?.headshot_url
     || (cw.espn_id ? `https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/${cw.espn_id}.png&w=200&h=145` : null);
@@ -120,14 +120,14 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
 
       <Cards>
         {career && <CareerCard career={career} />}
-        {ktcCurrent && <KtcCard current={ktcCurrent} history={ktcHistory} />}
+        {dynastyCurrent && <DynastyCard current={dynastyCurrent} history={dynastyHistory} />}
         {adpHistory.length > 0 && <AdpCard rows={adpHistory} />}
         {overview?.fantasy && <FantasyCard fantasy={overview.fantasy} />}
         <IdsCard cw={cw} />
       </Cards>
 
       {modelDrivers && (
-        <ModelDriversSection drivers={modelDrivers} ktcCurrent={ktcCurrent} position={cw.position} />
+        <ModelDriversSection drivers={modelDrivers} dynastyCurrent={dynastyCurrent} position={cw.position} />
       )}
 
       {gameLog.length > 0 && gameLogSeason && (
@@ -201,9 +201,9 @@ function RotowireSection({ ro }: { ro: PlayerRotowire }) {
 
 const NORM = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
-// Fallback match key for Clay↔Sleeper: last name + team + position. Catches
-// nickname mismatches (Clay "Cameron Ward" vs Sleeper "Cam Ward") and rookies
-// that Clay hasn't stamped with a sleeper_id yet.
+// Fallback match key for Consensus↔Sleeper: last name + team + position. Catches
+// nickname mismatches (Consensus "Cameron Ward" vs Sleeper "Cam Ward") and rookies
+// that Consensus hasn't stamped with a sleeper_id yet.
 const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)$/i;
 const altKey = (name: string, team: string, pos: string) => {
   const last = name.replace(NAME_SUFFIX, '').trim().split(/\s+/).pop() || name;
@@ -212,7 +212,7 @@ const altKey = (name: string, team: string, pos: string) => {
 
 function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
   const [players, setPlayers] = useState<SleeperPlayer[]>([]);
-  const [clay, setClay] = useState<ClayPlayer[]>([]);
+  const [consensus, setConsensus] = useState<ConsensusPlayer[]>([]);
   const [presetMeta, setPresetMeta] = useState<PresetMeta>(new Map());
   const [sortMode, setSortMode] = useState<'depth' | 'proj'>('depth');
   const [projScenarioId, setProjScenarioId] = useState<string>('');
@@ -234,17 +234,17 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
 
   useEffect(() => {
     let alive = true;
-    loadBlendedProjections().then((all) => { if (alive) setClay(all); }).catch(() => {});
+    loadBlendedProjections().then((all) => { if (alive) setConsensus(all); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
-  // Clay projection lookups: by sleeper id, exact normalized name, and a
-  // last-name+team+position fallback (rookies/nicknames Clay hasn't crosswalked).
-  const clayIndex = useMemo(() => {
-    const byId = new Map<string, ClayPlayer>();
-    const byName = new Map<string, ClayPlayer>();
-    const byAlt = new Map<string, ClayPlayer>();
-    for (const c of clay) {
+  // Consensus projection lookups: by sleeper id, exact normalized name, and a
+  // last-name+team+position fallback (rookies/nicknames Consensus hasn't crosswalked).
+  const consensusIndex = useMemo(() => {
+    const byId = new Map<string, ConsensusPlayer>();
+    const byName = new Map<string, ConsensusPlayer>();
+    const byAlt = new Map<string, ConsensusPlayer>();
+    for (const c of consensus) {
       if (c.sleeperId) byId.set(c.sleeperId, c);
       const nn = NORM(c.name);
       if (!byName.has(nn)) byName.set(nn, c);
@@ -253,22 +253,22 @@ function TeamRoster({ team, selfName }: { team: string; selfName: string }) {
       if (!prev || computePpr(c) > computePpr(prev)) byAlt.set(ak, c); // starter wins ties
     }
     return { byId, byName, byAlt };
-  }, [clay]);
-  const matchClay = (p: SleeperPlayer): ClayPlayer | undefined =>
-    clayIndex.byId.get(p.player_id)
-    ?? clayIndex.byName.get(NORM(p.full_name))
-    ?? clayIndex.byAlt.get(altKey(p.full_name, p.team, p.position));
+  }, [consensus]);
+  const matchConsensus = (p: SleeperPlayer): ConsensusPlayer | undefined =>
+    consensusIndex.byId.get(p.player_id)
+    ?? consensusIndex.byName.get(NORM(p.full_name))
+    ?? consensusIndex.byAlt.get(altKey(p.full_name, p.team, p.position));
 
   // Scenario-adjusted PPR by normalized name (null = no scenario selected).
   const adjByName = useMemo(
-    () => buildScenarioPprByName(clay, projScenarioId, presetMeta),
-    [clay, projScenarioId, presetMeta],
+    () => buildScenarioPprByName(consensus, projScenarioId, presetMeta),
+    [consensus, projScenarioId, presetMeta],
   );
 
   if (!players.length) return null;
   const self = NORM(selfName);
   const projFor = (p: SleeperPlayer): number => {
-    const c = matchClay(p);
+    const c = matchConsensus(p);
     if (!c) return 0;
     const base = computePpr(c);
     return adjByName?.get(normalizeForMatch(c.name)) ?? base;
@@ -431,12 +431,12 @@ function CareerCard({ career }: { career: NonNullable<ReturnType<typeof usePlaye
   );
 }
 
-function KtcCard({
+function DynastyCard({
   current,
   history,
 }: {
-  current: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['ktcCurrent'];
-  history: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['ktcHistory'];
+  current: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['dynastyCurrent'];
+  history: NonNullable<ReturnType<typeof usePlayerDetail>['data']>['dynastyHistory'];
 }) {
   if (!current) return null;
   const points = history?.oneQB?.valueHistory || [];
@@ -445,7 +445,7 @@ function KtcCard({
   cutoff.setFullYear(cutoff.getFullYear() - 1);
   const recent = points.filter((p) => new Date(p.d) >= cutoff);
   return (
-    <Card title="KTC Dynasty Value">
+    <Card title="Dynasty Value">
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
         <Stat label="1QB Value" value={String(current.value)} />
         <Stat label="SF Value" value={String(current.superflexValue)} />
@@ -653,10 +653,10 @@ function DriverRow({ d }: { d: NonNullable<PlayerModel['drivers']>[number] }) {
   );
 }
 
-function ModelPanel({ m, position, ktcCurrent }: {
+function ModelPanel({ m, position, dynastyCurrent }: {
   m: PlayerModel;
   position: string;
-  ktcCurrent: KTCPlayer | null;
+  dynastyCurrent: DynastyPlayer | null;
 }) {
   const { main, sub } = predictionLine(m, position);
   return (
@@ -664,7 +664,7 @@ function ModelPanel({ m, position, ktcCurrent }: {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.label}</h3>
         {m.noteOnly
-          ? (ktcCurrent && <span style={{ fontSize: 14, fontWeight: 700 }}>{ktcCurrent.value} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>1QB · {ktcCurrent.position}{ktcCurrent.positionRank}</span></span>)
+          ? (dynastyCurrent && <span style={{ fontSize: 14, fontWeight: 700 }}>{dynastyCurrent.value} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>1QB · {dynastyCurrent.position}{dynastyCurrent.positionRank}</span></span>)
           : main && <span style={{ fontSize: 14, fontWeight: 700 }}>{main}</span>}
       </div>
       {!m.noteOnly && sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
@@ -681,9 +681,9 @@ function ModelPanel({ m, position, ktcCurrent }: {
   );
 }
 
-function ModelDriversSection({ drivers, ktcCurrent, position }: {
+function ModelDriversSection({ drivers, dynastyCurrent, position }: {
   drivers: PlayerModelDrivers;
-  ktcCurrent: KTCPlayer | null;
+  dynastyCurrent: DynastyPlayer | null;
   position: string;
 }) {
   const models = drivers.models.filter((m) => m.noteOnly || (m.drivers && m.drivers.length > 0));
@@ -695,7 +695,7 @@ function ModelDriversSection({ drivers, ktcCurrent, position }: {
         The top features feeding each StatHead model's 2026 prediction for this player.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-        {models.map((m) => <ModelPanel key={m.id} m={m} position={position} ktcCurrent={ktcCurrent} />)}
+        {models.map((m) => <ModelPanel key={m.id} m={m} position={position} dynastyCurrent={dynastyCurrent} />)}
       </div>
       {drivers.dataGaps && drivers.dataGaps.length > 0 && (
         <p style={{ margin: '12px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>

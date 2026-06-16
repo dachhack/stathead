@@ -2,7 +2,7 @@
  * Player-level projection features derived from our team-projection methodology.
  *
  * These are used as additional predictors in the ADP Hit/Bust model and the
- * KTC Dynasty Predictive model to test whether forward-looking projections
+ * Dynasty Predictive model to test whether forward-looking projections
  * improve accuracy over pure prior-season stats.
  *
  * The approach:

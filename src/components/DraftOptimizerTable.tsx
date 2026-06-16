@@ -26,7 +26,7 @@ import { DocsLink } from './DocsLink';
 import { PlayerName } from './PlayerName';
 import type { KitPlayer } from '../lib/draftKit';
 import { buildKitPool, buildSyntheticSdio, kitKey } from '../lib/draftKit';
-import type { ClayStats, PlayerMeta } from '../lib/scenarioPresets';
+import type { ConsensusStats, PlayerMeta } from '../lib/scenarioPresets';
 import { SCENARIO_PRESETS } from '../lib/scenarioPresets';
 
 // Edge Board for the draft prep tool. Backed by the model score-store and
@@ -303,8 +303,8 @@ export function DraftOptimizerTable() {
   const [sleeperFetchedAt, setSleeperFetchedAt] = useState<string | undefined>(undefined);
   const [fcRedraft, setFcRedraft] = useState<FcRedraftEntry[]>([]);
   const [careerScores, setCareerScores] = useState<CareerScoreEntry[]>([]);
-  const [clayPpr, setClayPpr] = useState<Map<string, number>>(new Map());
-  const [clayStats, setClayStats] = useState<Map<string, ClayStats>>(new Map());
+  const [consensusPpr, setConsensusPpr] = useState<Map<string, number>>(new Map());
+  const [consensusStats, setConsensusStats] = useState<Map<string, ConsensusStats>>(new Map());
   const [savedBoards, setSavedBoards] = useState<SavedRankingBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [view, setView] = useState<ViewId>(() => {
@@ -397,7 +397,7 @@ export function DraftOptimizerTable() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => (d ?? { players: [] }))
         .catch(() => ({ players: [] })),
-    ]).then(([adpData, ppgData, shareData, ffcDoc, ffc2qbDoc, manifest, redraftData, fcData, careerData, clayRaw, sleeperDoc]: [
+    ]).then(([adpData, ppgData, shareData, ffcDoc, ffc2qbDoc, manifest, redraftData, fcData, careerData, consensusRaw, sleeperDoc]: [
       AdpScoreEntry[],
       PpgScoreEntry[],
       ShareScoreEntry[],
@@ -425,12 +425,12 @@ export function DraftOptimizerTable() {
           adp2qb: p.adp_2qb ?? 0,
         }))
         .filter((p) => p.adp > 0 || p.adp2qb > 0));
-      // Consensus maps for the requiresClay presets. PPR recomputed from
+      // Consensus maps for the requiresConsensus presets. PPR recomputed from
       // the stat line with our scoring (same as the Projections tab).
       {
         const pprMap = new Map<string, number>();
-        const statsMap = new Map<string, ClayStats>();
-        for (const c of clayRaw ?? []) {
+        const statsMap = new Map<string, ConsensusStats>();
+        for (const c of consensusRaw ?? []) {
           const name = String(c.name ?? '');
           if (!name) continue;
           const ppr = (Number(c.pass_yds) || 0) * 0.04 + (Number(c.pass_td) || 0) * 4 + (Number(c.pass_int) || 0) * -2
@@ -453,8 +453,8 @@ export function DraftOptimizerTable() {
             ppr: Math.round(ppr),
           });
         }
-        setClayPpr(pprMap);
-        setClayStats(statsMap);
+        setConsensusPpr(pprMap);
+        setConsensusStats(statsMap);
       }
       if (!adpData?.length) {
         setError('Draft data not available yet — the build deploys every 2 hours.');
@@ -627,8 +627,8 @@ export function DraftOptimizerTable() {
   // Presets offered in the dropdown — the Consensus pair needs the
   // committed consensus stat file; hide them if it failed to load.
   const availablePresets = useMemo(
-    () => SCENARIO_PRESETS.filter((p) => !p.requiresClay || clayPpr.size > 0),
-    [clayPpr],
+    () => SCENARIO_PRESETS.filter((p) => !p.requiresConsensus || consensusPpr.size > 0),
+    [consensusPpr],
   );
 
   // Active scenario — a built-in preset (id 'preset-*', built fresh
@@ -638,10 +638,10 @@ export function DraftOptimizerTable() {
     if (selectedScenarioId.startsWith('preset-')) {
       const preset = SCENARIO_PRESETS.find((p) => p.id === selectedScenarioId);
       if (!preset || !baseSdio.length) return null;
-      return preset.build(baseSdio, presetMeta, normName, { clayPpr, clayStats });
+      return preset.build(baseSdio, presetMeta, normName, { consensusPpr, consensusStats });
     }
     return scenarios.find((s) => s.id === selectedScenarioId) ?? null;
-  }, [selectedScenarioId, scenarios, baseSdio, presetMeta, clayPpr, clayStats]);
+  }, [selectedScenarioId, scenarios, baseSdio, presetMeta, consensusPpr, consensusStats]);
 
   // Run the scenario engine over the base rows.
   const scenarioSdio = useMemo<SDIOProjection[]>(() => {

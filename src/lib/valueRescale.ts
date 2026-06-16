@@ -1,17 +1,17 @@
 /**
- * KTC → FantasyCalc value rescaling.
+ * Dynasty → FantasyCalc value rescaling.
  *
- * The site displays FC values everywhere but uses a KTC-trained forecast model.
+ * The site displays FC values everywhere but uses a Dynasty-trained forecast model.
  * For each player present in both services we compute a per-player ratio
- *   fc_value / ktc_value
- * and apply it to KTC values (current, history, forecast) so they appear in
+ *   fc_value / dynasty_value
+ * and apply it to Dynasty values (current, history, forecast) so they appear in
  * FC's scale. Players below a value floor or missing from FC fall back to a
  * positional median ratio.
  *
  * Pure utilities — no I/O. The snapshot is built offline (see
  * scripts/build-rescale-snapshot.cjs) and consumed via tryPreFetched.
  */
-import type { KTCPlayer, KTCPlayerHistory, KTCHistoryPoint, FantasyCalcPlayer } from '../types';
+import type { DynastyPlayer, DynastyPlayerHistory, DynastyHistoryPoint, FantasyCalcPlayer } from '../types';
 import { normalizeName } from './featureTypes';
 
 export type RescaleFormat = '1qb' | 'superflex';
@@ -19,26 +19,26 @@ export type RescalePosition = 'QB' | 'RB' | 'WR' | 'TE';
 
 const POSITIONS: readonly RescalePosition[] = ['QB', 'RB', 'WR', 'TE'];
 
-/** Player KTC values below this fall back to the positional median ratio. */
+/** Player Dynasty values below this fall back to the positional median ratio. */
 export const RESCALE_FLOOR = 500;
 
 export interface RescaleSnapshot {
   generatedAt: string;
   floor: number;
-  // Per-player ratios keyed by KTC playerID.
+  // Per-player ratios keyed by Dynasty playerID.
   perPlayer: Record<number, { oneQB?: number; sf?: number }>;
   // Position-median ratios used as fallback.
   positional: Record<RescalePosition, { oneQB: number; sf: number }>;
 }
 
 export interface Rescaler {
-  /** Rescale a single KTC value into FC scale. Returns the original value
+  /** Rescale a single Dynasty value into FC scale. Returns the original value
    *  for unsupported positions (e.g. K, picks). */
-  value(playerID: number, ktcValue: number, position: string, fmt: RescaleFormat): number;
-  /** Rescale every point in a KTC value history. */
-  history(playerID: number, points: KTCHistoryPoint[], position: string, fmt: RescaleFormat): KTCHistoryPoint[];
+  value(playerID: number, dynastyValue: number, position: string, fmt: RescaleFormat): number;
+  /** Rescale every point in a Dynasty value history. */
+  history(playerID: number, points: DynastyHistoryPoint[], position: string, fmt: RescaleFormat): DynastyHistoryPoint[];
   /** Expose the resolved ratio (per-player or positional) for a player+format. */
-  ratio(playerID: number, ktcValue: number, position: string, fmt: RescaleFormat): number | null;
+  ratio(playerID: number, dynastyValue: number, position: string, fmt: RescaleFormat): number | null;
 }
 
 function median(xs: number[]): number {
@@ -52,9 +52,9 @@ function isSupportedPosition(p: string): p is RescalePosition {
   return (POSITIONS as readonly string[]).includes(p);
 }
 
-/** Build a rescale snapshot from current KTC + FC snapshots. */
+/** Build a rescale snapshot from current Dynasty + FC snapshots. */
 export function buildRescaleSnapshot(
-  ktcRankings: KTCPlayer[],
+  dynastyRankings: DynastyPlayer[],
   fcDynasty1qb: FantasyCalcPlayer[],
   fcDynastySf: FantasyCalcPlayer[],
   floor: number = RESCALE_FLOOR,
@@ -71,7 +71,7 @@ export function buildRescaleSnapshot(
     WR: { oneQB: [], sf: [] }, TE: { oneQB: [], sf: [] },
   };
 
-  for (const k of ktcRankings) {
+  for (const k of dynastyRankings) {
     if (!isSupportedPosition(k.position)) continue;
     const key = fcKey(k.playerName, k.position);
     const entry: { oneQB?: number; sf?: number } = {};
@@ -108,11 +108,11 @@ export function buildRescaleSnapshot(
 
 /** Wrap a snapshot in a Rescaler. */
 export function makeRescaler(snap: RescaleSnapshot): Rescaler {
-  const ratio = (playerID: number, ktcValue: number, position: string, fmt: RescaleFormat): number | null => {
+  const ratio = (playerID: number, dynastyValue: number, position: string, fmt: RescaleFormat): number | null => {
     if (!isSupportedPosition(position)) return null;
     const key = fmt === '1qb' ? 'oneQB' : 'sf';
     const player = snap.perPlayer[playerID];
-    if (player && player[key] != null && ktcValue >= snap.floor) {
+    if (player && player[key] != null && dynastyValue >= snap.floor) {
       return player[key]!;
     }
     return snap.positional[position][key];
@@ -120,9 +120,9 @@ export function makeRescaler(snap: RescaleSnapshot): Rescaler {
 
   return {
     ratio,
-    value(playerID, ktcValue, position, fmt) {
-      const r = ratio(playerID, ktcValue, position, fmt);
-      return r == null ? ktcValue : Math.round(ktcValue * r);
+    value(playerID, dynastyValue, position, fmt) {
+      const r = ratio(playerID, dynastyValue, position, fmt);
+      return r == null ? dynastyValue : Math.round(dynastyValue * r);
     },
     history(playerID, points, position, fmt) {
       const r = ratio(playerID, points[points.length - 1]?.v ?? 0, position, fmt);
@@ -132,8 +132,8 @@ export function makeRescaler(snap: RescaleSnapshot): Rescaler {
   };
 }
 
-/** Apply a rescaler to a KTCPlayer, returning a new object with both values rescaled. */
-export function rescaleKTCPlayer(p: KTCPlayer, r: Rescaler): KTCPlayer {
+/** Apply a rescaler to a DynastyPlayer, returning a new object with both values rescaled. */
+export function rescaleDynastyPlayer(p: DynastyPlayer, r: Rescaler): DynastyPlayer {
   return {
     ...p,
     value: r.value(p.playerID, p.value, p.position, '1qb'),
@@ -141,9 +141,9 @@ export function rescaleKTCPlayer(p: KTCPlayer, r: Rescaler): KTCPlayer {
   };
 }
 
-/** Apply a rescaler to a KTCPlayerHistory. Position is needed for the
+/** Apply a rescaler to a DynastyPlayerHistory. Position is needed for the
  *  positional-fallback lookup. */
-export function rescaleKTCHistory(h: KTCPlayerHistory, position: string, r: Rescaler): KTCPlayerHistory {
+export function rescaleDynastyHistory(h: DynastyPlayerHistory, position: string, r: Rescaler): DynastyPlayerHistory {
   return {
     playerID: h.playerID,
     oneQB: { valueHistory: r.history(h.playerID, h.oneQB.valueHistory, position, '1qb') },

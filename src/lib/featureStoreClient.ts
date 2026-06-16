@@ -112,8 +112,8 @@ export const ADP_MODEL_GROUPS = ALL_GROUPS;
 /** Groups used by the rookie career model */
 export const ROOKIE_CAREER_GROUPS = ['profile', 'combine', 'college'] as const;
 
-/** Groups used by the KTC dynasty model */
-export const KTC_MODEL_GROUPS = [
+/** Groups used by the Dynasty model */
+export const Dynasty_MODEL_GROUPS = [
   'profile', 'combine', 'priorStats', 'injuries', 'competition',
   'coaching', 'projection',
 ] as const;

@@ -1,5 +1,5 @@
 // Normalize NFL team abbreviations to Sleeper's codes (GB, KC, NE, NO, SF,
-// TB, LV, JAX, LAR, …). Sources disagree: KTC uses GBP/KCC/NEP/NOS/SFO/TBB/
+// TB, LV, JAX, LAR, …). Sources disagree: Dynasty uses GBP/KCC/NEP/NOS/SFO/TBB/
 // LVR/JAC, nflverse game logs use LA for the Rams, and older feeds use
 // GNB/KAN/NWE/etc. Anything compared against Sleeper rosters (e.g. the
 // player-page depth chart) must pass through this first.

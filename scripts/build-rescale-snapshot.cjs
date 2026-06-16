@@ -97,7 +97,7 @@ function main() {
     positional,
   };
 
-  const outfile = path.join(DIR, 'ktc-fc-rescale.json');
+  const outfile = path.join(DIR, 'dynasty-fc-rescale.json');
   fs.writeFileSync(outfile, JSON.stringify(snap));
   console.log(`Saved ${outfile}`);
   console.log(`  Matched players: ${matched1q} (1QB), ${matchedSf} (SF) of ${ktc.length} KTC players`);

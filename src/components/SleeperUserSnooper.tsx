@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, importLeague, isDynastyLeague, leagueTypeName, leagueFormatInfo, qbFormatLabel, fetchUserHistory, fetchUserTradeActivity, recentSeasons, type SleeperUser, type SleeperLeagueSummary, type UserLeagueRoster, type LeagueImport, type LeagueTeam, type RosterPlayer, type LeagueSeasonRecord, type TradeActivity, type TradeRecord, type TradeSide } from '../lib/sleeper';
 import { dynastyPickValue, overallPickNumber } from '../lib/tradeEngine';
-import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
-import type { SleeperPlayer, KTCPlayer } from '../types';
+import { fetchSleeperPlayers, fetchDynastyRankings } from '../data';
+import type { SleeperPlayer, DynastyPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
-import { loadBlendedProjections, computeOptimalLineup, computePpr, type ClayPlayer } from '../lib/waiverUtils';
+import { loadBlendedProjections, computeOptimalLineup, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 import { normalizeForMatch } from '../lib/nameMatch';
 
@@ -127,13 +127,13 @@ interface RosterScore {
   matchedCount: number;
 }
 
-function scoreRosterSimple(team: LeagueTeam, ktc: KTCPlayer[], isSuperflex: boolean): RosterScore | null {
-  const ktcByName = new Map<string, KTCPlayer>();
-  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+function scoreRosterSimple(team: LeagueTeam, dynasty: DynastyPlayer[], isSuperflex: boolean): RosterScore | null {
+  const dynastyByName = new Map<string, DynastyPlayer>();
+  for (const p of dynasty) dynastyByName.set(normalizeForMatch(p.playerName), p);
   const allPlayers = [...team.starters, ...team.bench].filter((p) => p.position && p.position !== 'DEF' && p.name !== 'Empty');
   let totalValue = 0, youngValue = 0, primeValue = 0, agingValue = 0, ageSum = 0, matchedCount = 0;
   for (const p of allPlayers) {
-    const k = ktcByName.get(normalizeForMatch(p.name));
+    const k = dynastyByName.get(normalizeForMatch(p.name));
     const val = k ? (isSuperflex ? k.superflexValue : k.value) : 0;
     if (!k || val <= 0) continue;
     matchedCount++;
@@ -167,7 +167,7 @@ function windowColor(label: WindowLabel): string {
   }
 }
 
-function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }: { leagueId: string; ktc: KTCPlayer[]; projections: ClayPlayer[]; snoopedUserId?: string; onSnoop: (name: string) => void }) {
+function SnoopLeaguePanel({ leagueId, dynasty, projections, snoopedUserId, onSnoop }: { leagueId: string; dynasty: DynastyPlayer[]; projections: ConsensusPlayer[]; snoopedUserId?: string; onSnoop: (name: string) => void }) {
   const [data, setData] = useState<LeagueImport | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
@@ -203,7 +203,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
       const rosterPlayers = [...t.starters, ...t.bench]
         .filter((p) => p.name !== 'Empty')
         .map((p) => byId.get(p.id))
-        .filter((p): p is ClayPlayer => !!p);
+        .filter((p): p is ConsensusPlayer => !!p);
       if (!rosterPlayers.length) continue;
       const lineup = computeOptimalLineup(rosterPlayers, data.league.roster_positions, scoring);
       map.set(t.rosterId, lineup.totalStarterPts);
@@ -215,7 +215,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
     if (!data) return [];
     const out: { team: LeagueTeam; score: RosterScore | null; projPts: number }[] = [];
     for (const t of data.teams) {
-      const score = ktc.length ? scoreRosterSimple(t, ktc, isSuperflex) : null;
+      const score = dynasty.length ? scoreRosterSimple(t, dynasty, isSuperflex) : null;
       const projPts = projByTeam.get(t.rosterId) ?? 0;
       if (isDynasty) {
         if (score) out.push({ team: t, score, projPts });
@@ -226,7 +226,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
     if (isDynasty) out.sort((a, b) => (b.score?.totalValue ?? 0) - (a.score?.totalValue ?? 0));
     else out.sort((a, b) => b.projPts - a.projPts);
     return out;
-  }, [data, ktc, isDynasty, isSuperflex, projByTeam]);
+  }, [data, dynasty, isDynasty, isSuperflex, projByTeam]);
 
   if (loading) return <div className="loading" style={{ padding: '12px 0' }}><div className="spinner" /><span className="loading-text">Loading league…</span></div>;
   if (error) return <p style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</p>;
@@ -340,7 +340,7 @@ function SnoopLeaguePanel({ leagueId, ktc, projections, snoopedUserId, onSnoop }
 
 // PPR projection map (current-season talent signal) keyed by Sleeper id —
 // shared by the by-year Objective chart and the Leagues-table Objective column.
-function buildProjByPlayer(projections: ClayPlayer[]): Map<string, number> {
+function buildProjByPlayer(projections: ConsensusPlayer[]): Map<string, number> {
   const m = new Map<string, number>();
   for (const p of projections) if (p.sleeperId) m.set(p.sleeperId, computePpr(p));
   return m;
@@ -471,7 +471,7 @@ interface TradeLeagueMeta { superflex: boolean; size: number }
 
 function sideValue(
   side: TradeSide,
-  ktcByName: Map<string, KTCPlayer>,
+  dynastyByName: Map<string, DynastyPlayer>,
   players: Map<string, SleeperPlayer>,
   meta: TradeLeagueMeta | undefined,
 ): number {
@@ -481,7 +481,7 @@ function sideValue(
   for (const pid of side.players) {
     const sp = players.get(pid);
     if (!sp) continue;
-    const k = ktcByName.get(normalizeForMatch(sp.full_name));
+    const k = dynastyByName.get(normalizeForMatch(sp.full_name));
     if (k) v += superflex ? k.superflexValue : k.value;
   }
   // The pick's slot within its round is unknown, so assume mid-round; league
@@ -513,10 +513,10 @@ function SideAssets({ side, players }: { side: TradeSide; players: Map<string, S
   return <>{nodes.map((n, i) => <span key={i}>{i > 0 ? ', ' : ''}{n}</span>)}</>;
 }
 
-function TradeList({ trades, players, ktcByName, leagueMeta }: {
+function TradeList({ trades, players, dynastyByName, leagueMeta }: {
   trades: TradeRecord[];
   players: Map<string, SleeperPlayer>;
-  ktcByName: Map<string, KTCPlayer>;
+  dynastyByName: Map<string, DynastyPlayer>;
   leagueMeta: Map<string, TradeLeagueMeta>;
 }) {
   const MAX = 80;
@@ -550,8 +550,8 @@ function TradeList({ trades, players, ktcByName, leagueMeta }: {
           <tbody>
             {shown.map((t, i) => {
               const meta = leagueMeta.get(t.leagueId);
-              const recv = sideValue(t.received, ktcByName, players, meta);
-              const gave = sideValue(t.gave, ktcByName, players, meta);
+              const recv = sideValue(t.received, dynastyByName, players, meta);
+              const gave = sideValue(t.gave, dynastyByName, players, meta);
               const g = tradeGrade(recv, gave);
               return (
                 <tr key={`${t.leagueId}-${t.created}-${i}`}>
@@ -590,7 +590,7 @@ interface YearSummary {
   champions: number;
 }
 
-function CareerHistorySection({ userId, players, ktc, projections }: { userId: string; players: Map<string, SleeperPlayer>; ktc: KTCPlayer[]; projections: ClayPlayer[] }) {
+function CareerHistorySection({ userId, players, dynasty, projections }: { userId: string; players: Map<string, SleeperPlayer>; dynasty: DynastyPlayer[]; projections: ConsensusPlayer[] }) {
   const [history, setHistory] = useState<LeagueSeasonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeActivity | null>(null);
@@ -679,11 +679,11 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
     [history],
   );
 
-  const ktcByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
-    for (const k of ktc) m.set(normalizeForMatch(k.playerName), k);
+  const dynastyByName = useMemo(() => {
+    const m = new Map<string, DynastyPlayer>();
+    for (const k of dynasty) m.set(normalizeForMatch(k.playerName), k);
     return m;
-  }, [ktc]);
+  }, [dynasty]);
 
   // QB format + size per league (from the season records), so trade grades use
   // superflex values in SF/2QB leagues and size-aware pick pricing.
@@ -892,7 +892,7 @@ function CareerHistorySection({ userId, players, ktc, projections }: { userId: s
         </div>
       )}
       {trades && trades.trades.length > 0 && (
-        <TradeList trades={trades.trades} players={players} ktcByName={ktcByName} leagueMeta={tradeLeagueMeta} />
+        <TradeList trades={trades.trades} players={players} dynastyByName={dynastyByName} leagueMeta={tradeLeagueMeta} />
       )}
 
       {/* Per-league finishes */}
@@ -934,15 +934,15 @@ export function SleeperUserSnooper() {
   const [players, setPlayers] = useState<Map<string, SleeperPlayer>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
-  const [projections, setProjections] = useState<ClayPlayer[]>([]);
+  const [dynasty, setDynasty] = useState<DynastyPlayer[]>([]);
+  const [projections, setProjections] = useState<ConsensusPlayer[]>([]);
   const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
   const [zoom, setZoom] = useState<{ src: string; caption?: string } | null>(null);
   const [season, setSeason] = useState(String(new Date().getFullYear()));
 
   useEffect(() => {
     fetchSleeperPlayers().then(setPlayers);
-    fetchKTCRankings('1qb').then(setKtc);
+    fetchDynastyRankings('1qb').then(setDynasty);
     loadBlendedProjections().then(setProjections);
   }, []);
 
@@ -1051,7 +1051,7 @@ export function SleeperUserSnooper() {
   // age-at-season (reconstructed) weighted by position + current projections —
   // the same proxy the by-year Objective chart uses, so the table column and
   // chart always agree (and it stays accurate on past seasons, where current
-  // KTC values/ages don't reflect the roster as it was then).
+  // Dynasty values/ages don't reflect the roster as it was then).
   const rosterWindows = useMemo(() => {
     if (!result || !players.size) return new Map<string, WindowLabel>();
     const map = new Map<string, WindowLabel>();
@@ -1162,7 +1162,7 @@ export function SleeperUserSnooper() {
           </div>
 
           {/* Career history across seasons */}
-          <CareerHistorySection userId={result.user.user_id} players={players} ktc={ktc} projections={projections} />
+          <CareerHistorySection userId={result.user.user_id} players={players} dynasty={dynasty} projections={projections} />
 
           {/* Position breakdown */}
           {posBreakdown.length > 0 && (
@@ -1281,7 +1281,7 @@ export function SleeperUserSnooper() {
                         </button>
                         {isExpanded && (
                           <div style={{ marginTop: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                            <SnoopLeaguePanel leagueId={r.leagueId} ktc={ktc} projections={projections} snoopedUserId={result.user.user_id} onSnoop={(name) => { setUsername(name); snoop(name); setExpandedLeague(null); }} />
+                            <SnoopLeaguePanel leagueId={r.leagueId} dynasty={dynasty} projections={projections} snoopedUserId={result.user.user_id} onSnoop={(name) => { setUsername(name); snoop(name); setExpandedLeague(null); }} />
                           </div>
                         )}
                       </td>

@@ -70,7 +70,7 @@ export function DocsDynasty() {
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Common Features</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12, marginBottom: 24 }}>
           {[
-            { cat: 'Dynasty', features: ['Sept KTC Value', 'Age'], color: '#6366f1' },
+            { cat: 'Dynasty', features: ['Sept Dynasty Value', 'Age'], color: '#6366f1' },
             { cat: 'Draft', features: ['Draft Round', 'Draft Pick', 'Years in League'], color: '#8b5cf6' },
             { cat: 'Physical', features: ['Weight', 'BMI', '40-Yard Dash', 'Speed Score'], color: '#ec4899' },
             { cat: 'Depth Chart', features: ['Current Rank', 'Prior Rank', 'Rank Change'], color: '#06b6d4' },
