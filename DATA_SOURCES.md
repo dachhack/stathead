@@ -95,9 +95,13 @@ and consider whether your usage fits their terms.
 These are **paid** products. StatHead already handles them carefully and you
 **must** keep doing so:
 
-- **Mike Clay's NFL Projection Guide** (ESPN+) — the PDF is **not committed**;
-  numbers are surfaced only as an **anonymized "Consensus"** source, never
-  attributed to Clay (`scripts/extract_clay_projections.py`).
+- **Mike Clay's NFL Projection Guide** (ESPN+) — the PDF is **not committed**,
+  and the extracted `clay-*.json` numbers are now **gitignored / local-only**
+  (regenerate with `scripts/extract_clay_*.py` from a PDF you own). They are
+  surfaced only as an **anonymized "Consensus"** blend, never attributed to
+  Clay. Only that derived blend ships; the raw per-player extracts must never be
+  committed. (They were briefly committed via `!clay-*` un-ignore rules — that
+  is fixed: the rules are removed and the files untracked.)
 - **Rookie Scouting Portfolio (RSP)** — Matt Waldman's paid guide. The cached
   text is **gitignored**; only derived numeric features are kept
   (`scripts/_extract_rsp_2026.py`).
