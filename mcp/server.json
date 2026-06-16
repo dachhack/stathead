@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.dachhack/stathead-mcp",
-  "description": "Full set of fantasy football data analysis tools — stats, dynasty, projections, prospects",
+  "description": "Full set of fantasy football data analysis tools — stats, dynasty, projections, prospects, Sleeper league analysis, and editable Excel projections/rankings",
   "repository": {
     "url": "https://github.com/dachhack/stathead",
     "source": "github",
     "subfolder": "mcp"
   },
-  "version": "1.0.31",
+  "version": "1.0.32",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "stathead-mcp",
-      "version": "1.0.31",
+      "version": "1.0.32",
       "transport": { "type": "stdio" }
     }
   ]
