@@ -37903,6 +37903,79 @@ async function fetchSleeperProjections(season, week) {
   sleeperProjectionCache.set(cacheKey, projections);
   return projections;
 }
+
+// ── Sleeper league/user helpers (mirror src/lib/sleeper.ts) ──
+// Sleeper's public API is read-only and CORS-open; these power the league,
+// user-leagues, waiver-wire, matchup, draft, and user-snooper MCP tools.
+async function sleeperGet(path) {
+  const res = await fetchWithTimeout(`${SLEEPER}${path}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Sleeper API returned ${res.status} for ${path}`);
+  return res.json();
+}
+var SLEEPER_IDP_SLOTS = /* @__PURE__ */ new Set(["DL", "LB", "DB", "IDP_FLEX", "DE", "DT", "CB", "S", "SS", "FS", "IDP"]);
+function sleeperLeagueFormat(league) {
+  const rp = league?.roster_positions || [];
+  const t = league?.settings?.type;
+  return {
+    type: t === 2 ? "Dynasty" : t === 1 ? "Keeper" : "Redraft",
+    qb: rp.includes("SUPER_FLEX") ? "Superflex" : rp.filter((p) => p === "QB").length >= 2 ? "2QB" : "1QB",
+    idp: rp.some((p) => SLEEPER_IDP_SLOTS.has(p)),
+    bestBall: league?.settings?.best_ball === 1
+  };
+}
+function sleeperFormatLabel(f) {
+  return `${f.type} · ${f.qb}${f.bestBall ? " · Best Ball" : ""}${f.idp ? " · IDP" : ""}`;
+}
+var SLEEPER_DEF_ID = /^[A-Z]{2,4}$/;
+function resolveSleeperPlayer(pid, players, slot) {
+  if (!pid || pid === "0") return { id: pid, name: "Empty", position: "", team: "", slot };
+  const p = players.get(pid);
+  if (p) return { id: pid, name: p.full_name, position: p.position, team: p.team || "", slot };
+  if (SLEEPER_DEF_ID.test(pid)) return { id: pid, name: `${pid} D/ST`, position: "DEF", team: pid, slot };
+  return { id: pid, name: `#${pid}`, position: "?", team: "", slot };
+}
+var sleeperPoints = (whole, dec) => (whole ?? 0) + (dec ?? 0) / 100;
+async function fetchSleeperUserId(username) {
+  const u = await sleeperGet(`/user/${encodeURIComponent(String(username).trim())}`);
+  if (!u?.user_id) throw new Error(`No Sleeper user found for "${username}".`);
+  return u;
+}
+// Identify a Sleeper user from either a username/user_id, OR a display/team name
+// within a known league — this is what lets "tell me more about FootballLover56"
+// (a manager seen in get_sleeper_league) walk to that manager's leagues/snooper.
+async function resolveSleeperUser(input) {
+  if (input.username) {
+    const u = await fetchSleeperUserId(input.username);
+    return { user_id: u.user_id, display_name: u.display_name || u.username || input.username };
+  }
+  if (input.league_id && input.display_name) {
+    const users = await sleeperGet(`/league/${String(input.league_id).trim()}/users`);
+    if (!users) throw new Error(`No Sleeper league found for id "${input.league_id}".`);
+    const q = String(input.display_name).toLowerCase();
+    const match = users.find((u) => (u.display_name || "").toLowerCase().includes(q) || (u.metadata?.team_name || "").toLowerCase().includes(q));
+    if (!match) throw new Error(`No manager matching "${input.display_name}" in league ${input.league_id}. Managers: ${users.map((u) => u.display_name).join(", ")}.`);
+    return { user_id: match.user_id, display_name: match.display_name };
+  }
+  throw new Error("Provide username (or user_id), or league_id + display_name to identify the Sleeper user.");
+}
+// Identify a league from either a league_id OR a username + league name — so
+// "tell me more about the Football Warriors league" resolves without an id.
+async function resolveSleeperLeagueId(input) {
+  if (input.league_id) return String(input.league_id).trim();
+  if (input.username && input.name) {
+    const u = await fetchSleeperUserId(input.username);
+    const season = input.season || 2026;
+    const leagues = ((await sleeperGet(`/user/${u.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
+    const q = String(input.name).toLowerCase();
+    const matches = leagues.filter((l) => (l.name || "").toLowerCase().includes(q));
+    if (matches.length === 1) return matches[0].league_id;
+    if (matches.length > 1) throw new Error(`Multiple ${season} leagues match "${input.name}" for ${u.display_name || input.username}: ${matches.map((l) => `${l.name} (${l.league_id})`).join("; ")}. Pass league_id.`);
+    throw new Error(`No ${season} league matching "${input.name}" for ${u.display_name || input.username}. Their leagues: ${leagues.map((l) => l.name).join(", ") || "(none)"}.`);
+  }
+  throw new Error("Provide league_id, or username + name to find the league.");
+}
+
 var ktcCache = /* @__PURE__ */ new Map();
 async function fetchKTCRankings(format = "1qb") {
   const cached2 = ktcCache.get(format);
@@ -38718,6 +38791,107 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_sleeper_user_leagues",
+    description: "Look up a Sleeper user's fantasy leagues. Identify the user by username/user_id, OR by display_name + league_id (to scout a manager you just saw in get_sleeper_league). Returns each league's id, name, size, status, and format (Dynasty/Keeper/Redraft, Superflex/2QB/1QB, Best Ball, IDP), plus the resolved user_id. This is the entry point of the Sleeper graph: take a league_id from here into get_sleeper_league / get_sleeper_matchups / get_sleeper_waiver_wire. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        username: { type: "string", description: "Sleeper username or user_id." },
+        league_id: { type: "string", description: "Alternative to username: with display_name, resolves a manager seen in a league to their user_id." },
+        display_name: { type: "string", description: "Manager's in-league display or team name; requires league_id." },
+        season: { type: "number", description: "NFL season (default 2026)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_league",
+    description: "Open a Sleeper league: format/settings, standings (W-L, points for/against, each manager's owner_id), and every team's roster with starters (by lineup slot) and bench, resolved to player names. Identify the league by league_id, OR by username + name (e.g. \"the Football Warriors league\") — no id needed. Each manager's owner_id is emitted so you can walk to get_sleeper_user_leagues / get_sleeper_user_snooper for that manager. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id (from get_sleeper_user_leagues or the league URL)." },
+        username: { type: "string", description: "Alternative to league_id: with name, finds the league among this user's leagues." },
+        name: { type: "string", description: "League name to match (substring); requires username." },
+        season: { type: "number", description: "Season for username+name lookup (default 2026)." },
+        team: { type: "string", description: "Filter to one team by owner display name or team name (substring match)." },
+        rosters: { type: "boolean", description: "Include full rosters (default true). Set false for standings + format only." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_league_users",
+    description: "List the managers in a Sleeper league — display name, team name, owner_id, roster_id, and record — without pulling full rosters (a cheap hop). Identify the league by league_id, OR username + name. Use each manager's owner_id (or display_name + this league_id) to walk to get_sleeper_user_leagues / get_sleeper_user_snooper. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        username: { type: "string", description: "Alternative to league_id: with name, finds the league among this user's leagues." },
+        name: { type: "string", description: "League name to match (substring); requires username." },
+        season: { type: "number", description: "Season for username+name lookup (default 2026)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_matchups",
+    description: "Get head-to-head matchups and scores for a Sleeper league in a given week. Pairs teams by matchup, with each team's points and (optionally) starters. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        week: { type: "number", description: "Week number (1-18)." },
+        starters: { type: "boolean", description: "Include each team's starting lineup (default false)." }
+      },
+      required: ["league_id", "week"]
+    }
+  },
+  {
+    name: "get_sleeper_waiver_wire",
+    description: "Find the best available (un-rostered) free agents in a Sleeper league. Cross-references the league's rostered players against all NFL players, then joins Sleeper trending-add counts and StatHead's projected PPG, ranked by waiver interest. Use for waiver-wire and streaming decisions. Source: Sleeper public API + StatHead projections.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE, K, DEF)." },
+        sort_by: { type: "string", description: "Sort column: trending (default, recent add count) or ppg (StatHead projection).", enum: ["trending", "ppg"] },
+        limit: { type: "number", description: "Max players (default 40)." }
+      },
+      required: ["league_id"]
+    }
+  },
+  {
+    name: "get_sleeper_draft",
+    description: "Get Sleeper draft data. Pass draft_id for that draft's full pick board (round, pick, team, player, position). Or pass username (+ season) to list that user's drafts and their ids. Use for draft recaps, keeper/rookie draft analysis. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        draft_id: { type: "string", description: "Sleeper draft id — returns the pick board." },
+        username: { type: "string", description: "Sleeper username — lists the user's drafts (use instead of draft_id)." },
+        season: { type: "number", description: "Season for username lookup (default 2026)." },
+        limit: { type: "number", description: "Max picks/drafts (default 200)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_user_snooper",
+    description: "Scout a Sleeper user across all their leagues for a season: their league list plus cross-league player exposure — which players they roster in the most leagues (and start most), with the league names. Identify the user by username/user_id, OR by display_name + league_id (to scout a manager you just saw in get_sleeper_league). Use to see who a manager is heavily invested in. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        username: { type: "string", description: "Sleeper username or user_id." },
+        league_id: { type: "string", description: "Alternative to username: with display_name, resolves a manager seen in a league to their user_id." },
+        display_name: { type: "string", description: "Manager's in-league display or team name; requires league_id." },
+        season: { type: "number", description: "NFL season (default 2026)." },
+        position: { type: "string", description: "Filter exposure to one position (QB, RB, WR, TE)." },
+        limit: { type: "number", description: "Max players in the exposure table (default 40)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_dynasty_values",
     description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
@@ -38955,6 +39129,46 @@ var NFL_TOOLS = [
       },
       required: ["season"]
     }
+  },
+  {
+    name: "export_excel",
+    noCommon: true,
+    description: "Export StatHead projections, rankings, or rookie rankings to a styled .xlsx workbook on the local disk — the same boards the website lets you download. Edit the highlighted columns in Excel/Sheets (Proj PPG for projections; My Rank for rankings/rookies), then feed the file back with import_excel so YOUR numbers drive every later analysis. Returns the absolute path of the written file.",
+    input_schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Which board to export. projections = StatHead season PPG (edit Proj PPG). rankings = redraft ECR board (edit My Rank). rookie_rankings = prospect grades/board (edit My Rank).", enum: ["projections", "rankings", "rookie_rankings"] },
+        path: { type: "string", description: "Output file path or directory. If a directory (or omitted), a dated filename is generated there. Default dir: $STATHEAD_DIR or the current working directory." },
+        position: { type: "string", description: "Filter to one position (QB, RB, WR, TE)." },
+        draft_year: { type: "number", description: "Draft class for rookie_rankings (2026 or 2027). Default 2026.", enum: [2026, 2027] },
+        limit: { type: "number", description: "Max rows to write (default 300)." }
+      },
+      required: ["kind"]
+    }
+  },
+  {
+    name: "import_excel",
+    noCommon: true,
+    description: "Read back an .xlsx workbook that you exported with export_excel and (optionally) edited, and save your custom values as overrides. After import, get_projections / get_fantasy_rankings / get_prospect_outcomes automatically use YOUR Proj PPG and rankings (flagged in the output) until you run clear_overrides. The workbook kind is auto-detected from its Meta sheet. Returns a summary of what was applied.",
+    input_schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Path to the .xlsx file to import (the one you exported and edited)." }
+      },
+      required: ["path"]
+    }
+  },
+  {
+    name: "clear_overrides",
+    noCommon: true,
+    description: "Remove custom projections/rankings overrides previously saved via import_excel, so analysis tools revert to StatHead's own model. Optionally clear just one kind.",
+    input_schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Which overrides to clear. Default: all.", enum: ["projections", "rankings", "rookie_rankings", "all"] }
+      },
+      required: []
+    }
   }
 ];
 var COMMON_OUTPUT_PARAMS = {
@@ -38969,7 +39183,7 @@ var COMMON_OUTPUT_PARAMS = {
   }
 };
 for (const t of NFL_TOOLS) {
-  if (t.name === "get_metadata") continue;
+  if (t.name === "get_metadata" || t.noCommon) continue;
   const props = t.input_schema.properties;
   for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
     if (!(k in props)) props[k] = v;
@@ -39040,6 +39254,392 @@ function pickColumns(row, cols) {
   }
   return out;
 }
+// ───────────────────────────────────────────────────────────────────────────
+// Excel (OOXML .xlsx) export/import + user override store.
+//
+// Zero new dependencies: the zip container is hand-built and DEFLATE is handled
+// by Node's built-in zlib, so we can both WRITE styled workbooks and READ back
+// the ones Excel/Sheets re-save (which always use deflate). This mirrors the
+// website's ExcelJS export/import (src/lib/rankingsXlsx.ts), giving MCP users
+// the same "download a board, edit it, re-upload it" loop — but over the local
+// filesystem instead of a browser download.
+// ───────────────────────────────────────────────────────────────────────────
+
+var _crcTable = null;
+function crc32(buf) {
+  if (!_crcTable) {
+    _crcTable = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+      _crcTable[n] = c;
+    }
+  }
+  let crc = ~0;
+  for (let i = 0; i < buf.length; i++) crc = _crcTable[(crc ^ buf[i]) & 255] ^ crc >>> 8;
+  return (~crc) >>> 0;
+}
+
+async function zipBuffers(files) {
+  const zlib = await import("node:zlib");
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const f of files) {
+    const nameBuf = Buffer.from(f.name, "utf8");
+    const data = Buffer.isBuffer(f.data) ? f.data : Buffer.from(f.data, "utf8");
+    const crc = crc32(data);
+    const comp = zlib.deflateRawSync(data);
+    const store = comp.length >= data.length;
+    const method = store ? 0 : 8;
+    const body = store ? data : comp;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(67324752, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(33, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(body.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    local.writeUInt16LE(0, 28);
+    parts.push(local, nameBuf, body);
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(33639248, 0);
+    cd.writeUInt16LE(20, 4);
+    cd.writeUInt16LE(20, 6);
+    cd.writeUInt16LE(0, 8);
+    cd.writeUInt16LE(method, 10);
+    cd.writeUInt16LE(0, 12);
+    cd.writeUInt16LE(33, 14);
+    cd.writeUInt32LE(crc, 16);
+    cd.writeUInt32LE(body.length, 20);
+    cd.writeUInt32LE(data.length, 24);
+    cd.writeUInt16LE(nameBuf.length, 28);
+    cd.writeUInt16LE(0, 30);
+    cd.writeUInt16LE(0, 32);
+    cd.writeUInt16LE(0, 34);
+    cd.writeUInt16LE(0, 36);
+    cd.writeUInt32LE(0, 38);
+    cd.writeUInt32LE(offset, 42);
+    central.push(cd, nameBuf);
+    offset += local.length + nameBuf.length + body.length;
+  }
+  const centralBuf = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(101010256, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralBuf.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...parts, centralBuf, end]);
+}
+
+async function unzipBuffers(buf) {
+  const zlib = await import("node:zlib");
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.readUInt32LE(i) === 101010256) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Not a valid .xlsx file (no zip end-of-central-directory).");
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const out = {};
+  for (let i = 0; i < count && p + 46 <= buf.length; i++) {
+    if (buf.readUInt32LE(p) !== 33639248) break;
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const localOff = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    const lNameLen = buf.readUInt16LE(localOff + 26);
+    const lExtraLen = buf.readUInt16LE(localOff + 28);
+    const dataStart = localOff + 30 + lNameLen + lExtraLen;
+    const comp = buf.subarray(dataStart, dataStart + compSize);
+    out[name] = method === 0 ? Buffer.from(comp) : zlib.inflateRawSync(comp);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+function xmlEsc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function colLetter(n) {
+  let s = "";
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
+  return s;
+}
+function colToNum(letters) {
+  let n = 0;
+  for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+
+// Style indices baked into STYLES_XML below.
+var STYLE = { default: 0, header: 1, headerLeft: 2, banner: 3, num1: 4, pct: 5, bold: 6, edit: 7, editHeader: 8 };
+var STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="2"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0%"/></numFmts>' +
+  '<fonts count="4">' +
+  '<font><sz val="11"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="9"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="13"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+  '</fonts>' +
+  '<fills count="5">' +
+  '<fill><patternFill patternType="none"/></fill>' +
+  '<fill><patternFill patternType="gray125"/></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF1F2937"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF0E7C66"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF3C4"/><bgColor indexed="64"/></patternFill></fill>' +
+  '</fills>' +
+  '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="9">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+  '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+  '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '<xf numFmtId="164" fontId="3" fillId="4" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+// Build a worksheet XML from a grid of cells. Each cell: { v, t: "s"|"n",
+// s: styleIndex }. `shared` is the running shared-string table (array + index map).
+function buildSheetXml(sheet, shared) {
+  const { rows, columns, freezeRows, merges } = sheet;
+  let cols = "";
+  if (columns && columns.length) {
+    cols = "<cols>" + columns.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width || 10}" customWidth="1"/>`).join("") + "</cols>";
+  }
+  let body = "";
+  rows.forEach((row, ri) => {
+    const r = ri + 1;
+    let cells = "";
+    row.forEach((cell, ci) => {
+      if (cell == null) return;
+      const ref = colLetter(ci + 1) + r;
+      const s = cell.s ? ` s="${cell.s}"` : "";
+      if (cell.t === "s") {
+        let idx = shared.map.get(cell.v);
+        if (idx === void 0) { idx = shared.arr.length; shared.arr.push(cell.v); shared.map.set(cell.v, idx); }
+        cells += `<c r="${ref}"${s} t="s"><v>${idx}</v></c>`;
+      } else if (cell.t === "n") {
+        cells += `<c r="${ref}"${s}><v>${cell.v}</v></c>`;
+      } else {
+        cells += `<c r="${ref}"${s}/>`;
+      }
+    });
+    body += `<row r="${r}">${cells}</row>`;
+  });
+  let views = "";
+  if (freezeRows) {
+    views = `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${freezeRows}" topLeftCell="A${freezeRows + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>`;
+  }
+  let mergeXml = "";
+  if (merges && merges.length) {
+    mergeXml = `<mergeCells count="${merges.length}">` + merges.map((m) => `<mergeCell ref="${m}"/>`).join("") + "</mergeCells>";
+  }
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    views + cols + `<sheetData>${body}</sheetData>` + mergeXml + "</worksheet>";
+}
+
+// sheets: [{ name, rows, columns?, freezeRows?, merges? }]
+async function buildWorkbook(sheets) {
+  const shared = { arr: [], map: /* @__PURE__ */ new Map() };
+  const sheetXmls = sheets.map((s) => buildSheetXml(s, shared));
+  const sst = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${shared.arr.length}" uniqueCount="${shared.arr.length}">` +
+    shared.arr.map((s) => `<si><t xml:space="preserve">${xmlEsc(s)}</t></si>`).join("") + "</sst>";
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+    sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") +
+    "</Types>";
+  const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    "</Relationships>";
+  const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("") +
+    `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+    `<Relationship Id="rId${sheets.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>` +
+    "</Relationships>";
+  const workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    "<sheets>" + sheets.map((s, i) => `<sheet name="${xmlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + "</sheets></workbook>";
+  const files = [
+    { name: "[Content_Types].xml", data: contentTypes },
+    { name: "_rels/.rels", data: rootRels },
+    { name: "xl/workbook.xml", data: workbook },
+    { name: "xl/_rels/workbook.xml.rels", data: wbRels },
+    { name: "xl/styles.xml", data: STYLES_XML },
+    { name: "xl/sharedStrings.xml", data: sst }
+  ];
+  sheetXmls.forEach((xml, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xml }));
+  return zipBuffers(files);
+}
+
+// A styled board: row 1 = merged title banner, row 2 = column headers (the
+// editable column highlighted), rows 3+ = data. dataRows are arrays of cell
+// objects ({ v, t, s }); editColIdx marks the editable header column.
+function makeBoardSheet(name, title, headers, dataRows, editColIdx, colWidths) {
+  const ncol = headers.length;
+  const banner = [{ v: title, t: "s", s: STYLE.banner }];
+  for (let c = 1; c < ncol; c++) banner.push({ v: "", t: "s", s: STYLE.banner });
+  const header = headers.map((h, i) => ({ v: h, t: "s", s: i === editColIdx ? STYLE.editHeader : i === 1 ? STYLE.headerLeft : STYLE.header }));
+  const rows = [banner, header, ...dataRows];
+  const columns = (colWidths || headers.map(() => 12)).map((w) => ({ width: w }));
+  return { name, rows, columns, freezeRows: 2, merges: [`A1:${colLetter(ncol)}1`] };
+}
+function makeMetaSheet(pairs) {
+  const rows = pairs.map(([k, v]) => [{ v: String(k), t: "s", s: STYLE.bold }, { v: String(v ?? ""), t: "s" }]);
+  return { name: "Meta", rows, columns: [{ width: 16 }, { width: 64 }] };
+}
+
+// Parse a workbook back into { sheetName: rows[][] } of raw cell values
+// (numbers stay numbers, strings stay strings). Enough to header-match on import.
+function parseSharedStrings(xml) {
+  const out = [];
+  if (!xml) return out;
+  const reSi = /<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = reSi.exec(xml))) {
+    const inner = m[1];
+    let text = "";
+    const reT = /<t[^>]*>([\s\S]*?)<\/t>/g;
+    let tm;
+    while ((tm = reT.exec(inner))) text += tm[1];
+    out.push(unxml(text));
+  }
+  return out;
+}
+function unxml(s) {
+  return s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+function parseSheet(xml, sst) {
+  const rows = [];
+  const reRow = /<row[^>]*\br="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  let rm;
+  while ((rm = reRow.exec(xml))) {
+    const rowArr = [];
+    const reCell = /<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cm;
+    while ((cm = reCell.exec(rm[2]))) {
+      const attrs = cm[1];
+      const refMatch = /\br="([A-Z]+)\d+"/.exec(attrs);
+      if (!refMatch) continue;
+      const ci = colToNum(refMatch[1]) - 1;
+      const tMatch = /\bt="([^"]+)"/.exec(attrs);
+      const type = tMatch ? tMatch[1] : "n";
+      const inner = cm[2] || "";
+      let val = null;
+      if (type === "s") {
+        const vM = /<v>([\s\S]*?)<\/v>/.exec(inner);
+        if (vM) val = sst[Number(vM[1])] ?? "";
+      } else if (type === "inlineStr" || type === "str") {
+        const tM = /<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+        val = tM ? unxml(tM[1]) : "";
+      } else {
+        const vM = /<v>([\s\S]*?)<\/v>/.exec(inner);
+        if (vM) { const n = Number(vM[1]); val = Number.isFinite(n) ? n : unxml(vM[1]); }
+      }
+      rowArr[ci] = val;
+    }
+    rows[Number(rm[1]) - 1] = rowArr;
+  }
+  return rows.map((r) => r || []);
+}
+async function readWorkbook(filePath) {
+  const fs = await import("node:fs");
+  const buf = fs.readFileSync(filePath);
+  const parts = await unzipBuffers(buf);
+  const dec = (b) => (b ? b.toString("utf8") : "");
+  const sst = parseSharedStrings(dec(parts["xl/sharedStrings.xml"]));
+  // Map sheet rId -> file via workbook.xml + rels, but names are enough here.
+  const wbXml = dec(parts["xl/workbook.xml"]);
+  const relsXml = dec(parts["xl/_rels/workbook.xml.rels"]);
+  const relTarget = {};
+  let rmatch;
+  const reRel = /<Relationship\b[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g;
+  while ((rmatch = reRel.exec(relsXml))) relTarget[rmatch[1]] = rmatch[2];
+  const sheets = {};
+  const reSheet = /<sheet\b[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g;
+  let sm;
+  let idx = 0;
+  while ((sm = reSheet.exec(wbXml))) {
+    idx++;
+    const name = unxml(sm[1]);
+    let target = relTarget[sm[2]] || `worksheets/sheet${idx}.xml`;
+    if (!target.startsWith("xl/")) target = "xl/" + target.replace(/^\//, "");
+    const sx = dec(parts[target]);
+    sheets[name] = sx ? parseSheet(sx, sst) : [];
+  }
+  return sheets;
+}
+
+// ── Override store (auto-applied by analysis tools) ──
+async function overridesPath() {
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const dir = process.env.STATHEAD_DIR || path.join(os.homedir(), ".stathead");
+  return { dir, file: path.join(dir, "overrides.json") };
+}
+async function loadOverrides() {
+  try {
+    const fs = await import("node:fs");
+    const { file } = await overridesPath();
+    if (!fs.existsSync(file)) return {};
+    return JSON.parse(fs.readFileSync(file, "utf8")) || {};
+  } catch {
+    return {};
+  }
+}
+async function saveOverrides(ov) {
+  const fs = await import("node:fs");
+  const { dir, file } = await overridesPath();
+  fs.mkdirSync(dir, { recursive: true });
+  ov.updated = (/* @__PURE__ */ new Date()).toISOString();
+  fs.writeFileSync(file, JSON.stringify(ov, null, 2));
+  return file;
+}
+
+function resolveOutPath(input, defaultName) {
+  const p = input.path;
+  if (!p) {
+    const base = process.env.STATHEAD_DIR || process.cwd();
+    return require_join(base, defaultName);
+  }
+  // If it looks like a directory (ends with separator or has no .xlsx), append.
+  if (/\.xlsx$/i.test(p)) return p;
+  return require_join(p.replace(/[\\/]+$/, ""), defaultName);
+}
+function require_join(a, b) {
+  const sep = a.includes("\\") && !a.includes("/") ? "\\" : "/";
+  return a.replace(/[\\/]+$/, "") + sep + b;
+}
+function datedName(kind, tag) {
+  const d = /* @__PURE__ */ new Date();
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `stathead-${kind}-${tag}-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}.xlsx`;
+}
+
 async function executeTool(name, input) {
   try {
     const result = await executeToolInner(name, input);
@@ -39069,7 +39669,7 @@ async function executeToolInner(name, input) {
         [
           "- **nflverse** \u2014 play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine (open data)",
           "- **Next Gen Stats** \u2014 advanced tracking metrics",
-          "- **Sleeper** \u2014 trending adds/drops, projections",
+          "- **Sleeper** \u2014 trending adds/drops, projections, and league data (user leagues, rosters/standings, matchups, drafts, waiver wire, cross-league exposure)",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
           "- **StatHead (first-party)** \u2014 in-house season PPG projections, prospect boom/bust model, blended dynasty/redraft trade values (market-derived composites, not raw third-party feeds)",
           "- **FantasyPros / DynastyProcess** \u2014 expert consensus rankings",
@@ -39096,6 +39696,13 @@ async function executeToolInner(name, input) {
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
           "- `output_format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
+        ].join("\n"),
+        "## Bring your own projections / rankings (Excel)",
+        [
+          "- `export_excel` writes a styled `.xlsx` of `projections`, `rankings`, or `rookie_rankings` to local disk (same boards the website downloads).",
+          "- Edit the highlighted column (Proj PPG, or My Rank) in Excel/Sheets, then `import_excel` reads it back and saves your values as overrides.",
+          "- After import, `get_projections` / `get_fantasy_rankings` / `get_prospect_outcomes` auto-use YOUR numbers (flagged in output) until `clear_overrides`.",
+          "- Files default to `$STATHEAD_DIR` or the cwd; overrides persist in `$STATHEAD_DIR`/`~/.stathead/overrides.json`."
         ].join("\n"),
         "## Analytic caveats (read before modeling)",
         [
@@ -39517,10 +40124,33 @@ ${renderTable(input, rows, cols)}`;
       const limit = clamp(input.limit || 50, 1, 200);
       let rankings = await fetchFantasyRankings();
       if (position) rankings = rankings.filter((r) => r.pos === position.toUpperCase());
+      let rkOvNote = "";
+      let rkOvCount = 0;
+      const rkOv = await loadOverrides();
+      if (rkOv.rankings?.byName && Object.keys(rkOv.rankings.byName).length) {
+        // Your board is a single page_type (best-overall or best-<pos>); the raw
+        // feed repeats each player across many boards, so scope to that one to
+        // avoid duplicate rows.
+        const board = rkOv.rankings.board || "best-overall";
+        const scoped = rankings.filter((r) => r.page_type === board);
+        if (scoped.length) rankings = scoped;
+        rankings = rankings.map((r) => {
+          const o = rkOv.rankings.byName[normalizeNameForMatch(r.player)];
+          return o && Number.isFinite(Number(o.rank)) ? { ...r, your_rank: Number(o.rank) } : r;
+        });
+        rkOvCount = rankings.filter((r) => r.your_rank != null).length;
+        if (rkOvCount) {
+          rankings = [...rankings].sort((a, b) => {
+            const av = a.your_rank ?? Infinity, bv = b.your_rank ?? Infinity;
+            return av !== bv ? av - bv : Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9);
+          });
+          rkOvNote = ` — your_rank column reflects ${rkOvCount} ranking(s) from your uploaded sheet (import_excel); board sorted by it. Run clear_overrides to revert`;
+        }
+      }
       rankings = rankings.slice(0, limit);
-      const cols = ["player", "pos", "team", "ecr", "sd", "best", "worst", "player_owned_avg", "page_type"];
+      const cols = (rkOvCount ? ["your_rank"] : []).concat(["player", "pos", "team", "ecr", "sd", "best", "worst", "player_owned_avg", "page_type"]);
       const rows = rankings.map((r) => pickColumns(r, cols));
-      return `Fantasy rankings (${rankings.length} players):
+      return `Fantasy rankings (${rankings.length} players)${rkOvNote}:
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -39644,6 +40274,262 @@ ${renderTable(input, rows, cols)}`;
       return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players):
 
 ${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_user_leagues": {
+      const season = input.season || 2026;
+      const user = await resolveSleeperUser(input);
+      const leagues = (await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || [];
+      const nfl = leagues.filter((l) => l.sport === "nfl");
+      if (!nfl.length) return `No ${season} NFL leagues found for Sleeper user "${user.display_name}" (user_id ${user.user_id}).`;
+      const rows = nfl.map((l) => {
+        const f = sleeperLeagueFormat(l);
+        return { league: l.name, league_id: l.league_id, teams: l.total_rosters, status: l.status, type: f.type, qb: f.qb, best_ball: f.bestBall ? "Y" : "", idp: f.idp ? "Y" : "" };
+      });
+      const cols = ["league", "league_id", "teams", "status", "type", "qb", "best_ball", "idp"];
+      return `Sleeper leagues for ${user.display_name} (user_id ${user.user_id} · ${season} · ${rows.length}). Drill into one with get_sleeper_league (pass its league_id, or username + name); scout exposure with get_sleeper_user_snooper:
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_league": {
+      const id = await resolveSleeperLeagueId(input);
+      const wantRosters = input.rosters !== false;
+      const [league, rosters, users, players] = await Promise.all([
+        sleeperGet(`/league/${id}`),
+        sleeperGet(`/league/${id}/rosters`),
+        sleeperGet(`/league/${id}/users`),
+        fetchSleeperPlayers()
+      ]);
+      if (!league?.league_id) return `No Sleeper league found for id "${id}".`;
+      const userById = /* @__PURE__ */ new Map((users || []).map((u) => [u.user_id, u]));
+      const startSlots = (league.roster_positions || []).filter((p) => p !== "BN");
+      const teams = (rosters || []).map((r) => {
+        const u = r.owner_id ? userById.get(r.owner_id) : void 0;
+        const starterIds = r.starters || [];
+        const starters = starterIds.map((pid, i) => resolveSleeperPlayer(pid, players, startSlots[i] || "FLEX"));
+        const starterSet = /* @__PURE__ */ new Set(starterIds.filter((pid) => pid && pid !== "0"));
+        const bench = (r.players || []).filter((pid) => !starterSet.has(pid)).map((pid) => resolveSleeperPlayer(pid, players, "BN"));
+        return {
+          teamName: u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`,
+          owner: u?.display_name || "—",
+          ownerId: r.owner_id || "",
+          wins: r.settings?.wins ?? 0,
+          losses: r.settings?.losses ?? 0,
+          ties: r.settings?.ties ?? 0,
+          pointsFor: Math.round(sleeperPoints(r.settings?.fpts, r.settings?.fpts_decimal) * 100) / 100,
+          pointsAgainst: Math.round(sleeperPoints(r.settings?.fpts_against, r.settings?.fpts_against_decimal) * 100) / 100,
+          starters,
+          bench
+        };
+      });
+      teams.sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
+      const f = sleeperLeagueFormat(league);
+      const standings = teams.map((t, i) => ({ rank: i + 1, team: t.teamName, owner: t.owner, owner_id: t.ownerId, record: `${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}`, pf: t.pointsFor, pa: t.pointsAgainst }));
+      let out = `Sleeper league "${league.name}" — ${league.season} · ${sleeperFormatLabel(f)} · ${league.total_rosters} teams · status: ${league.status}
+league_id: ${league.league_id}. To scout a manager, pass their owner_id (below) as username to get_sleeper_user_leagues / get_sleeper_user_snooper, or their display name as display_name + this league_id.
+
+Standings:
+${renderTable(input, standings, ["rank", "team", "owner", "owner_id", "record", "pf", "pa"])}`;
+      if (wantRosters) {
+        const filter = input.team ? String(input.team).toLowerCase() : null;
+        const shown = filter ? teams.filter((t) => t.teamName.toLowerCase().includes(filter) || t.owner.toLowerCase().includes(filter)) : teams;
+        if (!shown.length) return out + `
+
+(No team matched "${input.team}".)`;
+        out += "\n\nRosters:";
+        for (const t of shown) {
+          const line = (p) => `${p.slot}: ${p.name}${p.position ? ` (${p.position}${p.team ? ` ${p.team}` : ""})` : ""}`;
+          out += `\n\n${t.teamName} (${t.owner} · owner_id ${t.ownerId}) — ${t.wins}-${t.losses}\n  Starters: ${t.starters.map(line).join("; ")}\n  Bench: ${t.bench.map((p) => `${p.name}${p.position ? ` (${p.position})` : ""}`).join("; ") || "—"}`;
+        }
+      }
+      return out;
+    }
+    case "get_sleeper_league_users": {
+      const id = await resolveSleeperLeagueId(input);
+      const [league, users, rosters] = await Promise.all([
+        sleeperGet(`/league/${id}`),
+        sleeperGet(`/league/${id}/users`),
+        sleeperGet(`/league/${id}/rosters`)
+      ]);
+      if (!users) return `No Sleeper league found for id "${id}".`;
+      const rosterByOwner = /* @__PURE__ */ new Map();
+      for (const r of rosters || []) if (r.owner_id) rosterByOwner.set(r.owner_id, r);
+      let rows = (users || []).map((u) => {
+        const r = rosterByOwner.get(u.user_id);
+        const s = r?.settings;
+        return {
+          team: u.metadata?.team_name || u.display_name || "—",
+          owner: u.display_name || "—",
+          owner_id: u.user_id,
+          roster_id: r?.roster_id ?? "",
+          record: s ? `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}` : "",
+          pf: s ? Math.round(sleeperPoints(s.fpts, s.fpts_decimal) * 100) / 100 : "",
+          _w: s?.wins ?? -1,
+          _pf: s ? sleeperPoints(s.fpts, s.fpts_decimal) : -1
+        };
+      });
+      rows.sort((a, b) => b._w - a._w || b._pf - a._pf);
+      const cols = ["team", "owner", "owner_id", "roster_id", "record", "pf"];
+      const out = rows.map((r) => pickColumns(r, cols));
+      return `Sleeper league "${league?.name || id}" managers (${out.length}). Scout one with get_sleeper_user_leagues / get_sleeper_user_snooper (pass owner_id as username, or display_name + league_id ${id}):
+
+${renderTable(input, out, cols)}`;
+    }
+    case "get_sleeper_matchups": {
+      const id = String(input.league_id || "").trim();
+      const week = input.week;
+      if (!id || !week) return "Provide league_id and week.";
+      const [matchups, rosters, users, players] = await Promise.all([
+        sleeperGet(`/league/${id}/matchups/${week}`),
+        sleeperGet(`/league/${id}/rosters`),
+        sleeperGet(`/league/${id}/users`),
+        input.starters ? fetchSleeperPlayers() : Promise.resolve(/* @__PURE__ */ new Map())
+      ]);
+      if (!matchups?.length) return `No matchups found for league "${id}" week ${week}.`;
+      const userById = /* @__PURE__ */ new Map((users || []).map((u) => [u.user_id, u]));
+      const teamByRoster = /* @__PURE__ */ new Map();
+      for (const r of rosters || []) {
+        const u = r.owner_id ? userById.get(r.owner_id) : void 0;
+        teamByRoster.set(r.roster_id, u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`);
+      }
+      const byMatch = /* @__PURE__ */ new Map();
+      for (const m of matchups) {
+        if (!byMatch.has(m.matchup_id)) byMatch.set(m.matchup_id, []);
+        byMatch.get(m.matchup_id).push(m);
+      }
+      let out = `Sleeper matchups — week ${week} (${byMatch.size} games):\n`;
+      const startersOf = (m) => (m.starters || []).map((pid) => resolveSleeperPlayer(pid, players, "").name).filter((n) => n && n !== "Empty").join(", ");
+      for (const [mid, side] of byMatch) {
+        const [a, b] = side;
+        const nameA = teamByRoster.get(a?.roster_id) || "?";
+        const nameB = b ? teamByRoster.get(b.roster_id) || "?" : "(bye)";
+        const ptsA = Math.round((a?.points ?? 0) * 100) / 100;
+        const ptsB = b ? Math.round((b.points ?? 0) * 100) / 100 : 0;
+        out += `\n#${mid}: ${nameA} ${ptsA} — ${ptsB} ${nameB}`;
+        if (input.starters) {
+          out += `\n   ${nameA}: ${startersOf(a)}`;
+          if (b) out += `\n   ${nameB}: ${startersOf(b)}`;
+        }
+      }
+      return out;
+    }
+    case "get_sleeper_waiver_wire": {
+      const id = String(input.league_id || "").trim();
+      if (!id) return "Provide league_id.";
+      const position = input.position?.toUpperCase();
+      const sortBy = (input.sort_by || "trending").toLowerCase();
+      const limit = clamp(input.limit || 40, 1, 200);
+      const SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
+      const [rosters, players, trending, projDoc] = await Promise.all([
+        sleeperGet(`/league/${id}/rosters`),
+        fetchSleeperPlayers(),
+        fetchSleeperTrending("add", 24, 200).catch(() => []),
+        fetchStatheadProjections().catch(() => null)
+      ]);
+      if (!rosters) return `No Sleeper league found for id "${id}".`;
+      const rostered = /* @__PURE__ */ new Set();
+      for (const r of rosters) for (const pid of r.players || []) rostered.add(pid);
+      const addCount = /* @__PURE__ */ new Map();
+      for (const t of trending) addCount.set(t.full_name, t.count);
+      const ppgByName = /* @__PURE__ */ new Map();
+      for (const p of projDoc?.players || []) ppgByName.set(normalizeNameForMatch(p.name), Number(p.ppg));
+      let rows = [];
+      for (const [pid, p] of players) {
+        if (rostered.has(pid)) continue;
+        if (!SKILL.has(p.position)) continue;
+        if (position && p.position !== position) continue;
+        if (!p.team) continue;
+        const ppg = ppgByName.get(normalizeNameForMatch(p.full_name));
+        rows.push({
+          player: p.full_name,
+          position: p.position,
+          team: p.team,
+          trending_adds: addCount.get(p.full_name) || 0,
+          proj_ppg: Number.isFinite(ppg) ? Math.round(ppg * 10) / 10 : "",
+          status: p.status && p.status !== "Active" ? p.status : ""
+        });
+      }
+      rows = rows.filter((r) => r.trending_adds > 0 || Number.isFinite(Number(r.proj_ppg)));
+      if (sortBy === "ppg") rows.sort((a, b) => (Number(b.proj_ppg) || -1) - (Number(a.proj_ppg) || -1) || b.trending_adds - a.trending_adds);
+      else rows.sort((a, b) => b.trending_adds - a.trending_adds || (Number(b.proj_ppg) || -1) - (Number(a.proj_ppg) || -1));
+      rows = rows.slice(0, limit);
+      const cols = ["player", "position", "team", "trending_adds", "proj_ppg", "status"];
+      return `Sleeper waiver wire — available free agents in league ${id} (${rows.length}, sorted by ${sortBy}):
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_draft": {
+      const limit = clamp(input.limit || 200, 1, 400);
+      if (!input.draft_id) {
+        if (!input.username) return "Provide draft_id for a pick board, or username to list a user's drafts.";
+        const season = input.season || 2026;
+        const user = await fetchSleeperUserId(input.username);
+        const drafts = (await sleeperGet(`/user/${user.user_id}/drafts/nfl/${season}`)) || [];
+        if (!drafts.length) return `No ${season} drafts found for "${user.display_name || input.username}".`;
+        const rows = drafts.slice(0, limit).map((d) => ({ draft_id: d.draft_id, type: d.type, status: d.status, teams: d.settings?.teams ?? "", rounds: d.settings?.rounds ?? "", start: d.start_time ? new Date(d.start_time).toISOString().slice(0, 10) : "" }));
+        return `Sleeper drafts for ${user.display_name || input.username} (${season}, ${rows.length}). Pass a draft_id for its board:
+
+${renderTable(input, rows, ["draft_id", "type", "status", "teams", "rounds", "start"])}`;
+      }
+      const [draft, picks, players] = await Promise.all([
+        sleeperGet(`/draft/${input.draft_id}`),
+        sleeperGet(`/draft/${input.draft_id}/picks`),
+        fetchSleeperPlayers()
+      ]);
+      if (!picks?.length) return `No picks found for draft "${input.draft_id}".`;
+      const rows = picks.slice(0, limit).map((pk) => {
+        const p = pk.player_id ? players.get(pk.player_id) : null;
+        const meta = pk.metadata || {};
+        return {
+          pick: pk.pick_no,
+          round: pk.round,
+          slot: pk.draft_slot,
+          player: p?.full_name || (meta.first_name ? `${meta.first_name} ${meta.last_name}` : pk.player_id || ""),
+          pos: p?.position || meta.position || "",
+          team: p?.team || meta.team || "",
+          picked_by_roster: pk.roster_id ?? ""
+        };
+      });
+      const typeNote = draft ? `${draft.type || "draft"} · ${draft.season || ""} · ${draft.settings?.teams ?? "?"} teams` : "";
+      return `Sleeper draft ${input.draft_id} ${typeNote} (${rows.length} picks):
+
+${renderTable(input, rows, ["pick", "round", "slot", "player", "pos", "team", "picked_by_roster"])}`;
+    }
+    case "get_sleeper_user_snooper": {
+      const season = input.season || 2026;
+      const position = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 40, 1, 200);
+      const user = await resolveSleeperUser(input);
+      const leagues = ((await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
+      if (!leagues.length) return `No ${season} NFL leagues found for "${user.display_name}" (user_id ${user.user_id}).`;
+      const players = await fetchSleeperPlayers();
+      const ownership = /* @__PURE__ */ new Map();
+      await Promise.all(leagues.map(async (lg) => {
+        try {
+          const rosters = await sleeperGet(`/league/${lg.league_id}/rosters`);
+          const mine = (rosters || []).find((r) => r.owner_id === user.user_id);
+          if (!mine) return;
+          const starterSet = /* @__PURE__ */ new Set(mine.starters || []);
+          for (const pid of mine.players || []) {
+            if (!pid || pid === "0") continue;
+            let e = ownership.get(pid);
+            if (!e) {
+              const rp = resolveSleeperPlayer(pid, players, "");
+              e = { player: rp.name, position: rp.position || "?", team: rp.team || "", leagues: 0, started: 0, names: [] };
+              ownership.set(pid, e);
+            }
+            e.leagues++;
+            if (starterSet.has(pid)) e.started++;
+            e.names.push(lg.name);
+          }
+        } catch { }
+      }));
+      let rows = [...ownership.values()];
+      if (position) rows = rows.filter((r) => r.position === position);
+      rows.sort((a, b) => b.leagues - a.leagues || b.started - a.started);
+      rows = rows.slice(0, limit).map((r) => ({ player: r.player, position: r.position, team: r.team, leagues: r.leagues, started: r.started, where: r.names.slice(0, 6).join(", ") }));
+      return `Sleeper user snooper — ${user.display_name} (user_id ${user.user_id} · ${season}): ${leagues.length} leagues. Cross-league exposure (top ${rows.length}):
+
+${renderTable(input, rows, ["player", "position", "team", "leagues", "started", "where"])}`;
     }
     case "get_dynasty_values": {
       const format = input.format || "1qb";
@@ -40243,6 +41129,17 @@ ${renderTable(input, rows, cols)}`;
           outperfPctile: b ? num(b.outperfPctile) : ""
         };
       });
+      let rkBoardNote = "";
+      let rkBoardCount = 0;
+      const poOv = await loadOverrides();
+      if (poOv.rookies?.byName && Object.keys(poOv.rookies.byName).length) {
+        rows = rows.map((r) => {
+          const o = poOv.rookies.byName[normalizeNameForMatch(r.name)];
+          const your_rank = o && Number.isFinite(Number(o.rank)) ? Number(o.rank) : "";
+          if (your_rank !== "") rkBoardCount++;
+          return { your_rank, ...r };
+        });
+      }
       const ASC = /* @__PURE__ */ new Set(["projPick", "projRound", "bustProb"]);
       const dir = ASC.has(sortBy) ? 1 : -1;
       rows.sort((a, b) => {
@@ -40255,9 +41152,14 @@ ${renderTable(input, rows, cols)}`;
         if (!bok) return -1;
         return (an - bn) * dir;
       });
+      if (rkBoardCount && !input.sort_by) {
+        const yr = (v) => v === "" || v == null || !Number.isFinite(Number(v)) ? Infinity : Number(v);
+        rows.sort((a, b) => yr(a.your_rank) - yr(b.your_rank));
+        rkBoardNote = ` your_rank reflects ${rkBoardCount} pick(s) from your uploaded sheet (import_excel); sorted by it. Run clear_overrides to revert.`;
+      }
       rows = rows.slice(0, limit);
       const bbNote = draftYear === 2026 ? "" : " (boom/bust probabilities are 2026-class only; grades shown)";
-      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
+      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}.${rkBoardNote} boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
 
 ${renderTable(input, rows)}`;
     }
@@ -40318,6 +41220,17 @@ ${renderTable(input, rows)}`;
           presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
         }
       }
+      let ovNote = "";
+      const ovDoc = await loadOverrides();
+      if (ovDoc.projections?.byName) {
+        let ovCount = 0;
+        pool = pool.map((p) => {
+          const o = ovDoc.projections.byName[normalizeNameForMatch(p.name)];
+          if (o && Number.isFinite(Number(o.ppg))) { ovCount++; return { ...p, ppg: Number(o.ppg) }; }
+          return p;
+        });
+        if (ovCount) ovNote = ` ${ovCount} value(s) overridden from your uploaded sheet (import_excel); run clear_overrides to revert.`;
+      }
       let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
       rows.sort((a, b) => {
         const an = Number(a[sortBy]);
@@ -40332,7 +41245,7 @@ ${renderTable(input, rows)}`;
       rows = rows.slice(0, limit);
       const cols = ["name", "position", "ppg", "recPG"];
       const out = rows.map((r) => pickColumns(r, cols));
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}${ovNote}
 
 ${renderTable(input, out, cols)}`;
     }
@@ -40473,13 +41386,198 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
+    case "export_excel": {
+      const kind = (input.kind || "").toLowerCase();
+      const position = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 300, 1, 1e3);
+      const S = (v, s) => { const c = { v: String(v ?? ""), t: "s" }; if (s) c.s = s; return c; };
+      const Nc = (v, s) => { const num = Number(v); if (v == null || v === "" || !Number.isFinite(num)) return null; const c = { v: num, t: "n" }; if (s) c.s = s; return c; };
+      const r1 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 10) / 10 : v;
+      const r2 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : v;
+      let board, metaKind, tag, editLabel;
+      if (kind === "projections") {
+        const doc = await fetchStatheadProjections();
+        if (!doc || !doc.players?.length) return "No StatHead projections available to export.";
+        const season = doc.season;
+        const scoring = (doc.scoring || "ppr").toUpperCase();
+        let pool = doc.players.filter((p) => !position || (p.position || "").toUpperCase() === position);
+        pool.sort((a, b) => Number(b.ppg || 0) - Number(a.ppg || 0));
+        pool = pool.slice(0, limit);
+        const headers = ["Rank", "Player", "Pos", "Proj PPG", "Rec/G"];
+        const dataRows = pool.map((p, i) => [Nc(i + 1), S(p.name), S(p.position), Nc(r1(p.ppg), STYLE.edit), Nc(r1(p.recPG), STYLE.num1)]);
+        board = makeBoardSheet("Projections", `Stat Head — Projections (${season} · ${scoring}) — edit Proj PPG`, headers, dataRows, 3, [6, 26, 6, 11, 8]);
+        metaKind = "projections"; tag = String(season); editLabel = "Proj PPG";
+        var metaInfo = [["Season", season], ["Scoring", scoring]];
+      } else if (kind === "rankings") {
+        const boardId = position ? `best-${position.toLowerCase()}` : "best-overall";
+        let rk = await fetchFantasyRankings();
+        let scoped = rk.filter((r) => r.page_type === boardId);
+        if (!scoped.length && position) scoped = rk.filter((r) => (r.pos || "").toUpperCase() === position);
+        rk = scoped;
+        rk.sort((a, b) => Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9));
+        rk = rk.slice(0, limit);
+        const headers = ["My Rank", "Player", "Pos", "Team", "ECR", "Owned %"];
+        const dataRows = rk.map((r, i) => [Nc(i + 1, STYLE.edit), S(r.player), S(r.pos), S(r.team || ""), Nc(r1(r.ecr), STYLE.num1), Nc(r.player_owned_avg != null ? Math.round(r.player_owned_avg) : null)]);
+        board = makeBoardSheet("Rankings", `Stat Head — Rankings${position ? ` (${position})` : ""} — edit My Rank`, headers, dataRows, 0, [8, 26, 6, 7, 8, 8]);
+        metaKind = "rankings"; tag = position ? position.toLowerCase() : "overall"; editLabel = "My Rank";
+        var metaInfo = [["Board", boardId]];
+      } else if (kind === "rookie_rankings") {
+        const draftYear = input.draft_year || 2026;
+        const [grades, boombust] = await Promise.all([
+          fetchProspectGrades(draftYear),
+          draftYear === 2026 ? fetchProspectBoomBust() : Promise.resolve([])
+        ]);
+        if (!grades.length) return `No prospect grades for the ${draftYear} class. Available: 2026, 2027.`;
+        const bbByName = /* @__PURE__ */ new Map();
+        for (const b of boombust) bbByName.set(normalizeNameForMatch(b.name), b);
+        let rows = grades.filter((g) => !position || (g.pos || "").toUpperCase() === position);
+        rows.sort((a, b) => Number(b.grade || 0) - Number(a.grade || 0));
+        rows = rows.slice(0, limit);
+        const headers = ["My Rank", "Player", "Pos", "School", "Grade", "Tier", "Proj Pick", "Boom%", "Bust%"];
+        const dataRows = rows.map((g, i) => {
+          const b = bbByName.get(normalizeNameForMatch(g.name));
+          return [Nc(i + 1, STYLE.edit), S(g.name), S(g.pos), S(g.school || ""), Nc(r1(g.grade), STYLE.num1), S(g.tier || ""), Nc(g.projPick), Nc(b ? r2(b.boomProb) : null), Nc(b ? r2(b.bustProb) : null)];
+        });
+        board = makeBoardSheet("Rookie Rankings", `Stat Head — Rookie Rankings (${draftYear})${position ? ` · ${position}` : ""} — edit My Rank`, headers, dataRows, 0, [8, 24, 6, 14, 7, 16, 9, 8, 8]);
+        metaKind = "rookie_rankings"; tag = String(draftYear); editLabel = "My Rank";
+        var metaInfo = [["Draft Year", draftYear]];
+      } else {
+        return `Unknown kind "${input.kind}". Use projections, rankings, or rookie_rankings.`;
+      }
+      const meta = makeMetaSheet([
+        ["Template", "stathead-mcp-v1"],
+        ["Kind", metaKind],
+        ...metaInfo,
+        ["Editable column", editLabel],
+        ["Exported", (/* @__PURE__ */ new Date()).toISOString()],
+        ["How to use", `Edit the ${editLabel} column, then run import_excel with this file's path.`],
+        ["Note", "Re-imported values auto-apply to analysis until you run clear_overrides."]
+      ]);
+      const wb = await buildWorkbook([board, meta]);
+      const fs = await import("node:fs");
+      const pathMod = await import("node:path");
+      const outPath = resolveOutPath(input, datedName(metaKind, tag));
+      fs.mkdirSync(pathMod.dirname(pathMod.resolve(outPath)), { recursive: true });
+      fs.writeFileSync(outPath, wb);
+      const abs = pathMod.resolve(outPath);
+      const nRows = board.rows.length - 2;
+      return `Wrote ${metaKind} workbook (${nRows} rows) to:
+${abs}
+
+Edit the **${editLabel}** column in Excel/Google Sheets, then run:
+  import_excel  path="${abs}"
+— your values will auto-apply to get_projections / get_fantasy_rankings / get_prospect_outcomes until you run clear_overrides.`;
+    }
+    case "import_excel": {
+      const fs = await import("node:fs");
+      const file = input.path;
+      if (!file) return "Provide path to the .xlsx file to import.";
+      if (!fs.existsSync(file)) return `File not found: ${file}`;
+      let sheets;
+      try {
+        sheets = await readWorkbook(file);
+      } catch (e) {
+        return `Could not read workbook: ${e instanceof Error ? e.message : String(e)}`;
+      }
+      const metaGrid = sheets["Meta"] || sheets["meta"] || Object.entries(sheets).find(([n]) => n.toLowerCase() === "meta")?.[1];
+      let kind = null;
+      let metaBoard = null;
+      if (metaGrid) {
+        for (const row of metaGrid) {
+          const k = String(row[0] || "").toLowerCase();
+          if (k === "kind") kind = String(row[1] || "").toLowerCase().trim();
+          if (k === "board") metaBoard = String(row[1] || "").trim();
+        }
+      }
+      const dataName = Object.keys(sheets).find((n) => n.toLowerCase() !== "meta");
+      const grid = (dataName && sheets[dataName]) || [];
+      // Locate the header row by content (banner row above it is fine).
+      let headerIdx = -1;
+      const colMap = {};
+      for (let i = 0; i < Math.min(grid.length, 8) && headerIdx < 0; i++) {
+        const row = grid[i] || [];
+        const m = {};
+        row.forEach((cell, ci) => {
+          const t = String(cell ?? "").toLowerCase().trim();
+          if (!t) return;
+          if (t === "rank" || t === "my rank" || t === "#") m.rank = ci;
+          else if (t === "player" || t === "name") m.name = ci;
+          else if (t === "pos" || t === "position") m.pos = ci;
+          else if (t === "proj ppg" || t === "ppg" || t === "points") m.ppg = ci;
+          else if (t === "grade") m.grade = ci;
+          else if (t === "ecr") m.ecr = ci;
+          else if (t === "tier") m.tier = ci;
+        });
+        if (m.name != null) { headerIdx = i; Object.assign(colMap, m); }
+      }
+      if (headerIdx < 0) return 'No header row with a "Player" column found — is this a Stat Head export_excel workbook?';
+      if (!kind) {
+        if (colMap.ppg != null) kind = "projections";
+        else if (colMap.grade != null || colMap.tier != null) kind = "rookie_rankings";
+        else kind = "rankings";
+      }
+      const entries = [];
+      for (let i = headerIdx + 1; i < grid.length; i++) {
+        const row = grid[i] || [];
+        const name = String(row[colMap.name] ?? "").trim();
+        if (!name) continue;
+        const pos = String(row[colMap.pos] ?? "").trim().toUpperCase();
+        entries.push({ name, pos, row });
+      }
+      const ov = await loadOverrides();
+      let applied = 0;
+      const num = (ci, row) => { if (ci == null) return null; const n = Number(row[ci]); return Number.isFinite(n) ? n : null; };
+      if (kind === "projections") {
+        const byName = {};
+        for (const e of entries) {
+          const ppg = num(colMap.ppg, e.row);
+          if (ppg == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, position: e.pos, ppg };
+          applied++;
+        }
+        ov.projections = { byName, imported: file };
+      } else if (kind === "rookie_rankings") {
+        const byName = {};
+        for (const e of entries) {
+          const rank = num(colMap.rank, e.row);
+          if (rank == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, pos: e.pos, rank };
+          applied++;
+        }
+        ov.rookies = { byName, imported: file };
+      } else {
+        const byName = {};
+        for (const e of entries) {
+          const rank = num(colMap.rank, e.row);
+          if (rank == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, position: e.pos, rank };
+          applied++;
+        }
+        ov.rankings = { byName, board: metaBoard || "best-overall", imported: file };
+      }
+      const saved = await saveOverrides(ov);
+      const target = kind === "projections" ? "get_projections" : kind === "rookie_rankings" ? "get_prospect_outcomes" : "get_fantasy_rankings";
+      return `Imported ${applied} ${kind} override(s) from ${file}.
+Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.`;
+    }
+    case "clear_overrides": {
+      const which = (input.kind || "all").toLowerCase();
+      const ov = await loadOverrides();
+      const had = [];
+      const drop = (k, label) => { if (ov[k]) { had.push(label); delete ov[k]; } };
+      if (which === "all" || which === "projections") drop("projections", "projections");
+      if (which === "all" || which === "rankings") drop("rankings", "rankings");
+      if (which === "all" || which === "rookie_rankings") drop("rookies", "rookie_rankings");
+      await saveOverrides(ov);
+      return had.length ? `Cleared overrides: ${had.join(", ")}. Analysis tools now use StatHead's own model.` : "No matching overrides were set.";
+    }
     default:
       return `Unknown tool: ${name}`;
   }
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.27";
+var SERVER_VERSION = "1.0.31";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
