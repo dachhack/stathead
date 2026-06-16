@@ -18,6 +18,10 @@ on:
     branches: [claude/nfl-fantasy-workbench-6D1yd]
     paths:
       - 'workers/**'
+      # The stathead-mcp worker bundles the shared MCP tool definitions, so a
+      # change to that bundle (e.g. new tools) must redeploy it too — otherwise
+      # the remote connector serves a stale toolset.
+      - 'mcp/dist/server.mjs'
       - '.github/workflows/deploy-workers.yml'
   workflow_dispatch:
     inputs:
