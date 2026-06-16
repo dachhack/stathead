@@ -31,11 +31,14 @@ export interface ClayStats {
 
 // Optional external inputs a preset may consult. `clayPpr` is the local-only
 // Clay projection set (PPR by normalized name) — present only when the
-// gitignored runtime file exists, so Clay-dependent presets are hidden in the
-// public deploy.
+// gitignored runtime file exists. `presetPpr` carries the CI-precomputed,
+// derived blend for a given preset id (season PPR by normalized name), read
+// from redraft-projections-presets.json — so the Consensus presets work in the
+// public deploy without shipping any Clay data to the browser.
 export interface PresetContext {
   clayPpr?: Map<string, number>;
   clayStats?: Map<string, ClayStats>;
+  presetPpr?: Map<string, Map<string, number>>;
 }
 
 // A preset is a factory: given the live projection pool + metadata it produces
@@ -83,6 +86,23 @@ function vol(p: SDIOProjection, deltas: Partial<VolumeOverride>): VolumeOverride
     volumeDelta: 0,
     ...deltas,
   };
+}
+
+// Turn a precomputed season-PPR map (normalized name → PPR) into per-player
+// points overrides against the live pool. Used by the Consensus presets so the
+// public deploy applies the CI-derived blend without any Clay data client-side.
+function applyPrecomputed(
+  players: SDIOProjection[],
+  normalize: (s: string) => string,
+  ppr: Map<string, number>,
+): PointsOverride[] {
+  const overrides: PointsOverride[] = [];
+  for (const p of players) {
+    const v = ppr.get(normalize(p.Name));
+    if (v === undefined || v <= 0) continue;
+    overrides.push({ playerId: p.PlayerID, playerName: p.Name, team: p.Team, position: p.Position, ppr: Math.round(v) });
+  }
+  return overrides;
 }
 
 // ── Rookie optimistic ──────────────────────────────────────────────
@@ -213,6 +233,12 @@ const consensus: ScenarioPreset = {
   requiresClay: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus');
+    // Prefer the CI-precomputed derived blend (no Clay in the browser).
+    const pre = ctx?.presetPpr?.get('preset-consensus');
+    if (pre && pre.size > 0) {
+      sc.pointsOverrides = applyPrecomputed(players, normalize, pre);
+      return sc;
+    }
     const clay = ctx?.clayPpr;
     if (!clay || clay.size === 0) return sc;
     const overrides: PointsOverride[] = [];
@@ -270,6 +296,12 @@ const consensusMlOptimized: ScenarioPreset = {
   requiresClay: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus ML Optimized');
+    // Prefer the CI-precomputed derived blend (no Clay in the browser).
+    const pre = ctx?.presetPpr?.get('preset-consensus-ml');
+    if (pre && pre.size > 0) {
+      sc.pointsOverrides = applyPrecomputed(players, normalize, pre);
+      return sc;
+    }
     const clayMap = ctx?.clayStats;
     const clayPprFallback = ctx?.clayPpr;
     if ((!clayMap || clayMap.size === 0) && (!clayPprFallback || clayPprFallback.size === 0)) return sc;
