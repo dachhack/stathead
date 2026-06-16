@@ -189,6 +189,9 @@ const MCP_TOOLS: { fn: string; desc: string }[] = [
   { fn: 'get_dynasty_values', desc: 'In-house blended dynasty trade values (1QB + SF)' },
   { fn: 'get_rookie_snap_share', desc: 'Weekly rookie snap-share ramp tracker' },
   { fn: 'get_play_by_play', desc: 'Filterable play-by-play (player, red zone, down…)' },
+  { fn: 'get_sleeper_league', desc: 'Open a Sleeper league: format, standings, rosters' },
+  { fn: 'get_sleeper_user_snooper', desc: 'Scout a manager’s cross-league player exposure' },
+  { fn: 'export_excel', desc: 'Export projections/rankings to Excel — edit & re-import your own' },
   { fn: 'get_metadata', desc: 'Capabilities, coverage, and analytic caveats' },
 ];
 
@@ -333,7 +336,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
           A full set of fantasy football data-analysis tools, queryable straight from Claude (or any{' '}
           <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>MCP</a>{' '}
           client) — player stats, play-by-play, Next Gen Stats, snap counts, dynasty values, calibrated prospect
-          outcomes, season projections with scenario presets, and more. Published to npm as{' '}
+          outcomes, season projections with scenario presets, Sleeper league analysis (leagues, rosters, matchups,
+          waivers, drafts), and an Excel round-trip so you can edit projections/rankings and feed your own numbers
+          back into analysis. Published to npm as{' '}
           <code style={{ background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 3 }}>stathead-mcp</code>{' '}
           — no clone, no API key.
         </p>
@@ -398,7 +403,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div className="py-note" style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>
-          Or just run it: <code>npx -y stathead-mcp</code>. ~30 tools total, calibrated and documented (call{' '}
+          Or just run it: <code>npx -y stathead-mcp</code>. ~40 tools total, calibrated and documented (call{' '}
           <code>get_metadata</code> first to scope a question). On{' '}
           <a href="https://www.npmjs.com/package/stathead-mcp" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>npm</a>{' '}
           · source in{' '}
