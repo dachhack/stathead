@@ -12,6 +12,14 @@
  * "drivers": where they land vs the positional cohort (percentile band) and
  * which way that pushes the projection.
  *
+ * Each player also carries a `models[]` array breaking the SAME drivers logic
+ * out across every model that scores them — Hit/Bust (VOR), Season Projection
+ * (PPG), Rookie Career / Prospect, Usage Share, and a market-derived Dynasty
+ * Value note. Drivers are computed against each model's OWN target + cohort
+ * (so the percentile band + relationship are model-specific), and the web
+ * player card renders one panel per model. The legacy top-level `drivers`
+ * field (= the Hit/Bust model) is kept for the MCP get_player_features tool.
+ *
  * Proprietary policy: any feature sourced from a paid product (KTC / FantasyCalc
  * / Clay / RSP / Beast / PFF, etc.) is SANITIZED — we keep only a qualitative
  * magnitude band + direction and a generic label, never the raw value or the
@@ -78,43 +86,64 @@ function bandFor(pctile) {
 }
 
 const fm = JSON.parse(fs.readFileSync(path.join(DATA, 'feature-matrix.json'), 'utf8'));
-const importance = fm.featureImportance || {};
-const predRows = fm.predRows || [];      // 2026 scored players + feature vectors
-const preds = fm.predictions2026 || [];  // 2026 predictions (VOR, hit prob, CI)
+const importance = fm.featureImportance || {};        // Hit/Bust (VOR) model
+const vetImportance = fm.vetFeatureImportance || {};  // Season projection (PPG) model
+const rookieImportance = fm.rookieFeatureImportance || {}; // Rookie career (prospect) model
+const predRows = fm.predRows || [];          // 2026 scored players + 266-feature vectors
+const preds = fm.predictions2026 || [];      // VOR / hit prob / CI
+const ppgPreds = fm.ppgPredictions2026 || []; // season PPG projection
+const careerPreds = fm.careerPredictions2026 || []; // rookie career model (own 85-feature vectors)
+
+// Usage-share model inputs — mirror SHARE_FEATURE_KEYS in
+// scripts/train_projection_models.py. Shares have no per-feature importance, so
+// drivers rank purely by how far the player sits from the cohort median.
+const SHARE_FEATURE_KEYS = [
+  'priorTeamTargetShare', 'priorTeamTouchShare', 'priorTargetShare',
+  'priorSnapPct', 'depthChartRank', 'teamSamePosCount',
+  'contractAPY', 'age', 'yearsInLeague', 'priorPPG',
+  'nflDraftPick', 'priorReceptions', 'priorTargets', 'priorCarries',
+  'teamTargetHHI', 'vegasImpliedTotal',
+  'adp', 'teamElitePassCatchers', 'priorWOPR',
+];
+
+let shareScores = [];
+try {
+  shareScores = JSON.parse(fs.readFileSync(path.join(DATA, 'score-store/shares.json'), 'utf8'));
+} catch { /* shares are optional — the Usage Share panel is just skipped */ }
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-const predByKey = new Map(preds.map((p) => [norm(p.name) + '|' + p.position, p]));
+const pk = (name, pos) => norm(name) + '|' + pos;
 
-// Per-position cohorts of feature vectors (from predRows) for percentile +
-// correlation-direction against predictedVor.
-const cohorts = {}; // pos -> { rows: [{feat, vor}], keys:Set }
-for (const r of predRows) {
-  const pos = r.position;
-  const pred = predByKey.get(norm(r.name) + '|' + pos);
-  if (!pred || typeof pred.predictedVor !== 'number') continue;
-  (cohorts[pos] ??= { rows: [], values: {} }).rows.push({ name: r.name, team: r.team, adp: r.adp, features: r.features || {}, pred });
-}
-
-// Build per-position feature stats: sorted value arrays (percentile) + direction.
-const statsByPos = {};
-for (const [pos, c] of Object.entries(cohorts)) {
-  const keys = new Set();
-  for (const row of c.rows) for (const k of Object.keys(row.features)) keys.add(k);
-  const byKey = {};
-  const vors = c.rows.map((r) => r.pred.predictedVor);
-  for (const k of keys) {
-    const vals = [], paired = [], pv = [];
-    for (let i = 0; i < c.rows.length; i++) {
-      const v = Number(c.rows[i].features[k]);
-      if (Number.isFinite(v)) { vals.push(v); paired.push(v); pv.push(vors[i]); }
-    }
-    if (vals.length < 5) continue;
-    const sorted = [...vals].sort((a, b) => a - b);
-    const dir = pearson(paired, pv);
-    byKey[k] = { sorted, dir };
+// ── Label / category lookup, pooled across every model's importance list ────
+const keyMeta = {}; // key -> { label, category }
+for (const imp of [importance, vetImportance, rookieImportance]) {
+  for (const list of Object.values(imp)) {
+    for (const f of list) if (f.key && !keyMeta[f.key]) keyMeta[f.key] = { label: f.label || humanize(f.key), category: f.category || '' };
   }
-  statsByPos[pos] = byKey;
 }
+// Categories for share-only keys not present in any importance list.
+const SHARE_CATEGORY = {
+  priorTeamTargetShare: 'Share', priorTeamTouchShare: 'Share', priorTargetShare: 'Share',
+  priorSnapPct: 'Usage', depthChartRank: 'Profile', teamSamePosCount: 'Competition',
+  contractAPY: 'Contract', age: 'Profile', yearsInLeague: 'Profile', priorPPG: 'Prior',
+  nflDraftPick: 'Draft', priorReceptions: 'Prior', priorTargets: 'Prior', priorCarries: 'Prior',
+  teamTargetHHI: 'Competition', vegasImpliedTotal: 'Vegas', adp: 'Draft',
+  teamElitePassCatchers: 'Competition', priorWOPR: 'Prior',
+};
+const labelOf = (key) => keyMeta[key]?.label || humanize(key);
+const categoryOf = (key) => keyMeta[key]?.category || SHARE_CATEGORY[key] || '';
+
+// ── Lookups joined by normalized name|position ──────────────────────────────
+const predByKey = new Map(preds.map((p) => [pk(p.name, p.position), p]));
+const ppgByKey = new Map(ppgPreds.map((p) => [pk(p.name, p.position), p]));
+const careerByKey = new Map(careerPreds.map((p) => [pk(p.name, p.position), p]));
+const shareByKey = new Map(shareScores.map((p) => [pk(p.name, p.position), p]));
+
+// Feature source per player: the scored-pool vector (266 keys) for everything
+// except the rookie career model, which keeps its own 85-key training vector.
+const featByKey = new Map();
+for (const r of predRows) featByKey.set(pk(r.name, r.position), r.features || {});
+
 const pctileOf = (sorted, v) => {
   if (!sorted || !sorted.length) return null;
   let lo = 0; for (const s of sorted) { if (s < v) lo++; else break; }
@@ -122,78 +151,196 @@ const pctileOf = (sorted, v) => {
 };
 const dirText = (d) => d > 0.05 ? 'higher → stronger projection' : d < -0.05 ? 'higher → weaker projection' : 'mixed / weak relationship';
 
-// Feature importance, trimmed + annotated with direction + proprietary flag.
+// ── Model registry ──────────────────────────────────────────────────────────
+// Each model declares: a target series to correlate drivers against, the
+// feature source + importance weights, the cohort of players to score, and how
+// to render the headline prediction. `valueTrend` is intentionally note-only —
+// dynasty value is a market-derived composite with no first-party feature model.
+const importanceKeys = (imp, pos) => (imp[pos] || []).slice(0, IMPORTANCE_KEEP).map((f) => f.key);
+const importanceWeight = (imp, pos) => {
+  const m = {};
+  for (const f of (imp[pos] || [])) m[f.key] = f.importance || 0;
+  return m;
+};
+
+const MODELS = [
+  {
+    id: 'hitBust', label: 'Hit / Bust (VOR)',
+    blurb: 'Per-position gradient-boosted model predicting value over replacement vs ADP.',
+    keysByPos: (pos) => importanceKeys(importance, pos),
+    weightByPos: (pos) => importanceWeight(importance, pos),
+    featureSource: (k) => featByKey.get(k),
+    target: (k) => predByKey.get(k)?.predictedVor,
+    eligible: (k) => typeof predByKey.get(k)?.predictedVor === 'number',
+    prediction: (k) => {
+      const p = predByKey.get(k);
+      return { vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper };
+    },
+  },
+  {
+    id: 'projection', label: 'Season Projection (PPG)',
+    blurb: 'Veteran PPG blend (prior actual + 2yr avg + age curve) over team-volume shares.',
+    keysByPos: (pos) => importanceKeys(vetImportance, pos),
+    weightByPos: (pos) => importanceWeight(vetImportance, pos),
+    featureSource: (k) => featByKey.get(k),
+    target: (k) => ppgByKey.get(k)?.predictedPPG,
+    eligible: (k) => typeof ppgByKey.get(k)?.predictedPPG === 'number',
+    prediction: (k) => ({ ppg: ppgByKey.get(k).predictedPPG }),
+  },
+  {
+    id: 'rookieCareer', label: 'Rookie Career / Prospect',
+    blurb: 'Best-2-of-3-seasons PPG model from draft capital, college production, and athletic testing.',
+    keysByPos: (pos) => importanceKeys(rookieImportance, pos),
+    weightByPos: (pos) => importanceWeight(rookieImportance, pos),
+    featureSource: (k) => careerByKey.get(k)?.features,
+    target: (k) => careerByKey.get(k)?.predictedCareerPPG,
+    eligible: (k) => typeof careerByKey.get(k)?.predictedCareerPPG === 'number',
+    prediction: (k) => {
+      const c = careerByKey.get(k);
+      return {
+        careerPPG: c.predictedCareerPPG, tier: c.modelTier, percentile: c.percentile,
+        boomProb: c.boomProb, bustProb: c.bustProb,
+      };
+    },
+  },
+  {
+    id: 'share', label: 'Usage Share',
+    blurb: 'Predicted share of team targets / carries from prior usage, competition, and depth chart.',
+    positions: new Set(['RB', 'WR', 'TE']),
+    keysByPos: () => SHARE_FEATURE_KEYS,
+    weightByPos: () => ({}), // no importance — rank by deviation from median
+    featureSource: (k) => featByKey.get(k),
+    target: (k) => shareByKey.get(k)?.predTargetShare,
+    eligible: (k) => typeof shareByKey.get(k)?.predTargetShare === 'number',
+    prediction: (k) => {
+      const s = shareByKey.get(k);
+      return { targetShare: s.predTargetShare, rushShare: s.predRushShare };
+    },
+  },
+  {
+    id: 'valueTrend', label: 'Dynasty Value',
+    blurb: 'Market-consensus dynasty value + trend. A composite of paid market feeds — no first-party feature decomposition, so the live value/trend is shown on the KTC card.',
+    noteOnly: true,
+  },
+];
+
+// ── Per-model, per-position feature stats (sorted values + direction) ────────
+// Computed inside each model's OWN cohort against its OWN target, so the
+// percentile band and relationship are model-specific.
+function buildStats(model) {
+  const byPos = {}; // pos -> key -> { sorted, dir }
+  const cohorts = {}; // pos -> [{ key }]
+  for (const k of featByKey.keys()) {
+    const pos = k.split('|')[1];
+    if (model.positions && !model.positions.has(pos)) continue;
+    if (!model.eligible(k)) continue;
+    (cohorts[pos] ??= []).push(k);
+  }
+  for (const [pos, keys] of Object.entries(cohorts)) {
+    const out = {};
+    for (const fk of model.keysByPos(pos)) {
+      const vals = [], pv = [];
+      for (const k of keys) {
+        const feats = model.featureSource(k);
+        const v = Number(feats?.[fk]);
+        const t = Number(model.target(k));
+        if (Number.isFinite(v) && Number.isFinite(t)) { vals.push(v); pv.push(t); }
+      }
+      if (vals.length < 5) continue;
+      out[fk] = { sorted: [...vals].sort((a, b) => a - b), dir: pearson(vals, pv) };
+    }
+    byPos[pos] = out;
+  }
+  return byPos;
+}
+const statsByModel = Object.fromEntries(MODELS.filter((m) => !m.noteOnly).map((m) => [m.id, buildStats(m)]));
+
+// Drivers for one (player, model): top features by |pctile-50| × importance.
+function driversFor(model, key, pos) {
+  const stats = statsByModel[model.id]?.[pos] || {};
+  const feats = model.featureSource(key) || {};
+  const weights = model.weightByPos(pos);
+  const out = [];
+  for (const fk of model.keysByPos(pos)) {
+    const st = stats[fk];
+    if (!st) continue;
+    const v = Number(feats[fk]);
+    if (!Number.isFinite(v)) continue;
+    if (featureMissing(fk, feats)) continue; // imputed-0 reads as a bogus driver
+    const pct = pctileOf(st.sorted, v) ?? 50;
+    const prop = isProprietary(fk);
+    const d = {
+      feature: prop ? `${categoryOf(fk) || 'Market'} signal` : labelOf(fk),
+      category: categoryOf(fk),
+      band: bandFor(pct), pctile: pct,
+      relationship: dirText(st.dir),
+    };
+    if (!prop) d.value = Math.round(v * 1000) / 1000;
+    // No importance (share model) → weight 1, so ranking falls back to deviation.
+    const w = (model.id === 'share') ? 1 : (weights[fk] || 0);
+    d._score = Math.abs(pct - 50) * w;
+    out.push(d);
+  }
+  out.sort((a, b) => b._score - a._score);
+  return out.slice(0, TOP_DRIVERS).map(({ _score, ...d }) => d);
+}
+
+// Per-position Hit/Bust importance, trimmed + annotated (legacy MCP artifact).
 const impOut = {};
 const catalog = {};
 for (const [pos, list] of Object.entries(importance)) {
   impOut[pos] = list.slice(0, IMPORTANCE_KEEP).map((f) => {
     const prop = isProprietary(f.key);
-    const dir = statsByPos[pos]?.[f.key]?.dir ?? 0;
+    const dir = statsByModel.hitBust?.[pos]?.[f.key]?.dir ?? 0;
     const label = prop ? `${f.category || 'Market'} signal` : (f.label || humanize(f.key));
     catalog[f.key] = { label, category: f.category || '', proprietary: prop };
     return { label, category: f.category || '', importance: Math.round(f.importance * 1000) / 1000, relationship: dirText(dir) };
   });
 }
 
-// Per-player drivers: that position's most important features, with the
-// player's band + direction. Sanitize proprietary features.
-const importanceKeysByPos = Object.fromEntries(
-  Object.entries(importance).map(([pos, list]) => [pos, list.map((f) => f.key)]),
-);
+// ── Assemble per-player records (one per scored player) ──────────────────────
 const players = [];
-for (const [pos, c] of Object.entries(cohorts)) {
-  const impKeys = importanceKeysByPos[pos] || [];
-  for (const row of c.rows) {
-    const drivers = [];
-    for (const key of impKeys) {
-      const st = statsByPos[pos]?.[key];
-      if (!st) continue;
-      const v = Number(row.features[key]);
-      if (!Number.isFinite(v)) continue;
-      // Don't surface a feature whose value is actually missing — it would read
-      // as a bogus "bottom 10% (0)" driver. Reported in dataGaps instead.
-      if (featureMissing(key, row.features)) continue;
-      const pct = pctileOf(st.sorted, v);
-      const prop = isProprietary(key);
-      const imp = importance[pos].find((f) => f.key === key);
-      const d = {
-        feature: prop ? `${imp?.category || 'Market'} signal` : (imp?.label || humanize(key)),
-        category: imp?.category || '',
-        band: bandFor(pct ?? 50),
-        relationship: dirText(st.dir),
-      };
-      if (!prop) d.value = Math.round(v * 1000) / 1000;
-      // rank by how notable: deviation from median × importance
-      d._score = Math.abs((pct ?? 50) - 50) * (imp?.importance || 0);
-      drivers.push(d);
-      if (drivers.length >= impKeys.length) break;
-    }
-    drivers.sort((a, b) => b._score - a._score);
-    const top = drivers.slice(0, TOP_DRIVERS).map(({ _score, ...d }) => d);
-    const pred = row.pred;
-    // Say explicitly what the model lacks for this player, rather than scoring
-    // a 0. Category-level from the availability flags.
-    const f = row.features;
-    const dataGaps = [];
-    if (Number(f.hasCollegeStats) === 0) dataGaps.push('college production');
-    if (Number(f.hasCombineData) === 0) dataGaps.push('combine / athletic testing');
-    else if (Number(f.speedScore) === 0 && Number(f.weight) === 0) dataGaps.push('athletic composites (no listed weight)');
-    if (pred.isRookie && Number(f.hasProspectGrade) === 0) dataGaps.push('scouting grade');
-    players.push({
-      name: row.name, position: pos, team: row.team,
-      adp: row.adp, predictedVor: pred.predictedVor, hitProb: pred.hitProb,
-      ciLower: pred.ciLower, ciUpper: pred.ciUpper, isRookie: !!pred.isRookie,
-      drivers: top,
-      ...(dataGaps.length ? { dataGaps } : {}),
-    });
+for (const r of predRows) {
+  const pos = r.position;
+  const key = pk(r.name, pos);
+  const pred = predByKey.get(key);
+  if (!pred || typeof pred.predictedVor !== 'number') continue;
+  const f = r.features || {};
+
+  // What the (scored-player) model lacks for this player — reported instead of
+  // scoring an imputed 0.
+  const dataGaps = [];
+  if (Number(f.hasCollegeStats) === 0) dataGaps.push('college production');
+  if (Number(f.hasCombineData) === 0) dataGaps.push('combine / athletic testing');
+  else if (Number(f.speedScore) === 0 && Number(f.weight) === 0) dataGaps.push('athletic composites (no listed weight)');
+  if (pred.isRookie && Number(f.hasProspectGrade) === 0) dataGaps.push('scouting grade');
+
+  // Each model that scores this player.
+  const models = [];
+  for (const m of MODELS) {
+    if (m.noteOnly) { models.push({ id: m.id, label: m.label, blurb: m.blurb, noteOnly: true }); continue; }
+    if (m.positions && !m.positions.has(pos)) continue;
+    if (!m.eligible(key)) continue;
+    const drivers = driversFor(m, key, pos);
+    if (!drivers.length && m.id !== 'hitBust') continue;
+    models.push({ id: m.id, label: m.label, blurb: m.blurb, prediction: m.prediction(key), drivers });
   }
+
+  players.push({
+    name: r.name, position: pos, team: r.team,
+    adp: r.adp, predictedVor: pred.predictedVor, hitProb: pred.hitProb,
+    ciLower: pred.ciLower, ciUpper: pred.ciUpper, isRookie: !!pred.isRookie,
+    drivers: models.find((m) => m.id === 'hitBust')?.drivers ?? [], // legacy MCP field
+    models,
+    ...(dataGaps.length ? { dataGaps } : {}),
+  });
 }
 players.sort((a, b) => (b.predictedVor ?? -99) - (a.predictedVor ?? -99));
 
 const out = {
   season: SEASON,
   generatedAt: new Date().toISOString(),
-  note: 'Derived StatHead model output. Per-player feature drivers show where a player lands vs the positional cohort and which way that pushes the projection; proprietary-sourced features are shown only as a qualitative band + direction (no raw value or source).',
+  note: 'Derived StatHead model output. Per-player feature drivers show where a player lands vs the positional cohort for that model and which way that pushes the prediction; proprietary-sourced features are shown only as a qualitative band + direction (no raw value or source). Each player carries a models[] breakdown (Hit/Bust, Season Projection, Rookie Career, Usage Share, Dynasty Value); the top-level drivers field is the Hit/Bust model, kept for the MCP get_player_features tool.',
   posThresholds: fm.posThresholds || {},
   shareModelSummary: fm.shareModelSummary || {},
   featureImportance: impOut,
@@ -202,6 +349,9 @@ const out = {
 };
 const outPath = path.join(DATA, `model-eval-${SEASON}.json`);
 fs.writeFileSync(outPath, JSON.stringify(out));
+const modelCounts = {};
+for (const p of players) for (const m of p.models || []) modelCounts[m.id] = (modelCounts[m.id] || 0) + 1;
 console.log(`Wrote ${outPath}`);
 console.log(`  players: ${players.length}  positions: ${Object.keys(impOut).join(',')}  size: ${(fs.statSync(outPath).size / 1024).toFixed(0)} KB`);
-console.log(`  sample: ${players[0]?.name} (${players[0]?.position}) VOR ${players[0]?.predictedVor} — drivers: ${players[0]?.drivers.slice(0,3).map((d) => d.feature).join(', ')}`);
+console.log(`  models per-player coverage: ${Object.entries(modelCounts).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+console.log(`  sample: ${players[0]?.name} (${players[0]?.position}) — models: ${(players[0]?.models || []).map((m) => m.id).join(', ')}`);

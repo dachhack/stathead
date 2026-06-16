@@ -33,14 +33,70 @@ export interface AdpSeasonRow {
   yearsInLeague?: number;
 }
 
+/** One feature driving a model's score (see scripts/build-model-eval.mjs). */
+export interface ModelDriver {
+  feature: string;
+  category: string;
+  band: string;
+  pctile: number;
+  relationship: string;
+  value?: number;
+}
+
+/** A single model that scores the player, with its top feature drivers. */
+export interface PlayerModel {
+  id: string;
+  label: string;
+  blurb?: string;
+  prediction?: Record<string, number | string>;
+  drivers?: ModelDriver[];
+  noteOnly?: boolean;
+}
+
+export interface PlayerModelDrivers {
+  models: PlayerModel[];
+  dataGaps?: string[];
+}
+
 export interface PlayerDetailData {
   crosswalk: CrosswalkRec;
   career: CareerPrediction | null;
   ktcCurrent: KTCPlayer | null;
   ktcHistory: KTCPlayerHistory | null;
   adpHistory: AdpSeasonRow[];
+  modelDrivers: PlayerModelDrivers | null;
   gameLog: PlayerStats[];
   gameLogSeason: number | null;
+}
+
+// Mirror the player keying in scripts/build-model-eval.mjs (lowercase, strip
+// every non-alphanumeric incl. spaces) so the card resolves the same record.
+const modelEvalKey = (name: string, pos: string) =>
+  `${String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')}|${pos}`;
+
+/**
+ * Per-model feature drivers for one player (model-eval-<season>.json). Covers
+ * the 2026 scored skill-position pool; null for everyone else.
+ */
+async function loadModelDrivers(rec: CrosswalkRec): Promise<PlayerModelDrivers | null> {
+  try {
+    const resp = await fetch(`${import.meta.env.BASE_URL}data/model-eval-2026.json`);
+    if (!resp.ok) return null;
+    const doc = (await resp.json()) as {
+      players?: Array<{ name: string; position: string; models?: PlayerModel[]; dataGaps?: string[] }>;
+    };
+    const players = doc.players || [];
+    // Prefer an exact name+position match; fall back to any of the player's
+    // listed positions, then to a name-only match (handles position drift).
+    const positions = [rec.position, ...(rec.all_positions || [])].filter(Boolean);
+    const hit =
+      players.find((p) => positions.some((pos) => modelEvalKey(p.name, p.position) === modelEvalKey(rec.display_name, pos)))
+      ?? players.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, '') === rec.display_name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    if (!hit || !hit.models?.length) return null;
+    return { models: hit.models, dataGaps: hit.dataGaps };
+  } catch {
+    return null;
+  }
 }
 
 async function loadCareer(rec: CrosswalkRec): Promise<CareerPrediction | null> {
@@ -143,10 +199,11 @@ async function loadGameLog(rec: CrosswalkRec): Promise<{ rows: PlayerStats[]; se
 }
 
 export async function loadPlayerDetail(rec: CrosswalkRec): Promise<PlayerDetailData> {
-  const [career, ktc, adpHistory, gameLog] = await Promise.all([
+  const [career, ktc, adpHistory, modelDrivers, gameLog] = await Promise.all([
     loadCareer(rec),
     loadKtc(rec),
     loadAdpHistory(rec),
+    loadModelDrivers(rec),
     loadGameLog(rec),
   ]);
   return {
@@ -155,6 +212,7 @@ export async function loadPlayerDetail(rec: CrosswalkRec): Promise<PlayerDetailD
     ktcCurrent: ktc.current,
     ktcHistory: ktc.history,
     adpHistory,
+    modelDrivers,
     gameLog: gameLog.rows,
     gameLogSeason: gameLog.season,
   };
