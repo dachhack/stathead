@@ -37588,21 +37588,104 @@ async function fetchAdvancedStatsSeason(season, type = "pass") {
   const all = await fetchCsv(nflUrl(`pfr_advstats/advstats_season_${type}.csv`));
   return all.filter((s) => s.season === season);
 }
-async function fetchPlayByPlay(season) {
+function projectRow(row, columns) {
+  const out = {};
+  for (const c of columns) out[c] = row[c];
+  return out;
+}
+// Streaming, column-projecting CSV reader. Reads response.body chunk-by-chunk
+// and keeps only the requested columns (and rows passing `filter`), so the full
+// CSV text and a full per-row object array never coexist in memory. This is what
+// lets the ~99MB play-by-play file run inside the Cloudflare Worker's 128MB cap
+// (a full parse OOMs). Quote-aware (RFC4180-ish: handles quoted commas/newlines
+// and "" escapes) and safe across chunk boundaries.
+async function streamCsvRows(response, { columns, filter, typed = true } = {}) {
+  const coerce = typed
+    ? (v) => {
+        if (v === "") return "";
+        const n = Number(v);
+        return Number.isFinite(n) && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(v) ? n : v;
+      }
+    : (v) => v;
+  let header = null;
+  let keep = null;
+  const out = [];
+  const emit = (fields) => {
+    if (!header) {
+      header = fields;
+      if (columns) {
+        const want = new Set(columns);
+        keep = [];
+        for (let i = 0; i < header.length; i++) if (want.has(header[i])) keep.push({ name: header[i], idx: i });
+      }
+      return;
+    }
+    let row;
+    if (keep) {
+      row = {};
+      for (const k of keep) row[k.name] = coerce(fields[k.idx]);
+    } else {
+      row = {};
+      for (let i = 0; i < header.length; i++) row[header[i]] = coerce(fields[i]);
+    }
+    if (!filter || filter(row)) out.push(row);
+  };
+  let field = "", record = [], inQuotes = false, pendingQuote = false, sawAny = false;
+  const endField = () => { record.push(field); field = ""; };
+  const endRecord = () => { endField(); emit(record); record = []; sawAny = false; };
+  const feed = (chunk) => {
+    for (let i = 0; i < chunk.length; i++) {
+      const c = chunk[i];
+      sawAny = true;
+      if (inQuotes) {
+        if (pendingQuote) {
+          pendingQuote = false;
+          if (c === '"') { field += '"'; continue; }
+          inQuotes = false;
+        } else if (c === '"') { pendingQuote = true; continue; }
+        else { field += c; continue; }
+      }
+      if (c === '"') inQuotes = true;
+      else if (c === ",") endField();
+      else if (c === "\n") endRecord();
+      else if (c === "\r") { /* CRLF — ignore */ }
+      else field += c;
+    }
+  };
+  if (response.body && typeof response.body.pipeThrough === "function") {
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      feed(value);
+    }
+  } else {
+    feed(await response.text());
+  }
+  if (sawAny || field.length || record.length) endRecord();
+  return out;
+}
+// Pass `opts.columns` (a projection) and/or `opts.filter` so heavy callers only
+// materialize the slice of play-by-play they need. The no_play guard is always
+// applied; play_type is always retained so it can run.
+async function fetchPlayByPlay(season, opts = {}) {
+  const cols = opts.columns ? Array.from(/* @__PURE__ */ new Set([...opts.columns, "play_type"])) : null;
+  const base = (row) => row.play_type && row.play_type !== "no_play";
+  const filter = opts.filter ? (row) => base(row) && opts.filter(row) : base;
+  // Local file (Node/dev): no streaming needed, parse + project in-process.
+  const local = await readLocalFile(`play_by_play_${season}.csv`);
+  if (local != null) {
+    const parsed = import_papaparse.default.parse(local, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    let rows = parsed.data.filter(filter);
+    if (cols) rows = rows.map((r) => projectRow(r, cols));
+    return rows;
+  }
   const url2 = nflUrl(`pbp/play_by_play_${season}.csv`);
   const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
   if (!response.ok) {
     throw new Error(`Failed to fetch PBP for ${season}: ${response.status}`);
   }
-  const text = await response.text();
-  const result = import_papaparse.default.parse(text, {
-    header: true,
-    dynamicTyping: true,
-    skipEmptyLines: true
-  });
-  return result.data.filter(
-    (row) => row.play_type && row.play_type !== "no_play"
-  );
+  return streamCsvRows(response, { columns: cols, filter });
 }
 async function fetchPbpParticipation(season) {
   return fetchCsv(nflUrl(`pbp_participation/pbp_participation_${season}.csv`));
@@ -40375,7 +40458,14 @@ ${renderTable(input, rows)}`;
       const week = input.week;
       const redZone = input.red_zone;
       const limit = clamp(input.limit || 50, 1, 200);
-      let plays = await fetchPlayByPlay(season);
+      // Project only the columns this tool returns/filters on — keeps the
+      // ~99MB season file streamable under the Worker's memory cap.
+      let plays = await fetchPlayByPlay(season, { columns: [
+        "game_id", "play_id", "week", "qtr", "down", "ydstogo", "yardline_100",
+        "posteam", "defteam", "play_type", "yards_gained", "epa", "wpa", "wp",
+        "passer_player_name", "rusher_player_name", "receiver_player_name",
+        "air_yards", "yards_after_catch", "pass_location"
+      ] });
       if (playerName) {
         const q = playerName.toLowerCase().trim();
         const last = q.split(/\s+/).pop();
@@ -41184,7 +41274,12 @@ ${renderTable(input, rows, cols)}`;
         fetchPlayerStats(season),
         fetchSnapCounts(season),
         fetchGames(),
-        fetchPlayByPlay(season)
+        // Only the PBP columns the QB metrics + routes estimation read — streams
+        // the 99MB file under the Worker's memory cap.
+        fetchPlayByPlay(season, { columns: [
+          "game_id", "play_id", "passer_player_name", "rusher_player_name",
+          "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"
+        ] })
       ]);
       const regWeekly = raw.filter((s) => s.season_type === "REG");
       let totals = aggregateToSeasonTotals(regWeekly);
@@ -41895,7 +41990,13 @@ ${renderTable(input, rows, cols)}`;
       const sortBy = input.sort_by || "total_epa_per_play";
       const [games, pbpData] = await Promise.all([
         fetchGames(),
-        fetchPlayByPlay(season)
+        // Only the columns computeTeamMetrics reads — streams the 99MB file
+        // under the Worker's memory cap.
+        fetchPlayByPlay(season, { columns: [
+          "posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential",
+          "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100",
+          "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"
+        ] })
       ]);
       let metrics = computeAllTeamMetrics(season, games, pbpData);
       if (team) {
