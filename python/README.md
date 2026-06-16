@@ -160,7 +160,7 @@ Every row-shaped loader carries a `player_key` column that joins to
 KTC rankings rescaled into FantasyCalc's scale via a per-player ratio
 (`fc_value / ktc_value`, with a positional-median fallback below a value
 floor). The ratio snapshot is built offline and committed as
-`public/data/ktc-fc-rescale.json`; the loader just applies it. No raw KTC
+`public/data/dynasty-fc-rescale.json`; the loader just applies it. No raw KTC
 value is exposed — only the rescaled blend.
 
 ## Feature columns

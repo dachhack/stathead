@@ -2083,12 +2083,12 @@ async function main() {
   {
     const y1Fraction = (pos: string, pick: number): number => {
       // Y1 fraction of best-2-of-3 career PPG. Calibrated against Mike
-      // Clay's 2026 projection set: at the prior 0.60 / 0.45 R1 levels,
-      // Carnell Tate / Jordyn Tyson / Sadiq were 4 PPG below Clay (the
+      // Consensus's 2026 projection set: at the prior 0.60 / 0.45 R1 levels,
+      // Carnell Tate / Jordyn Tyson / Sadiq were 4 PPG below Consensus (the
       // gold-standard public projector treats top-pick rookies as near-
       // immediate starters). New levels also pull down R3+ RB picks
       // where we were over-projecting depth backs (Kaelon Black 0.45
-      // vs Clay's implied 0.25).
+      // vs Consensus's implied 0.25).
       if (pos === 'RB') {
         if (pick <= 32)  return 0.85;
         if (pick <= 64)  return 0.55;
