@@ -39393,7 +39393,7 @@ for (const t of NFL_TOOLS) {
   }
 }
 function normalizeNameForMatch(s) {
-  return s.toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
+  return String(s ?? "").toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
 }
 function nameMatch(fullName, query) {
   return normalizeNameForMatch(fullName).includes(normalizeNameForMatch(query));
@@ -39425,6 +39425,11 @@ var fmtCell = (val) => {
   if (typeof val === "number") return Number.isInteger(val) ? String(val) : val.toFixed(2);
   return String(val);
 };
+// Identifier columns are always returned so a projected/bulk pull can still
+// be tied back to a player and team. Requesting fields=stat_a,stat_b used to
+// silently drop the name/team; now the identifiers that exist in the row are
+// re-prepended regardless of the `fields` projection.
+var ALWAYS_KEEP_COLS = ["player_name", "player_display_name", "name", "full_name", "player", "position", "pos", "team", "recent_team", "tm"];
 function resolveCols(rows, cols, fields) {
   const base = cols ?? (rows[0] ? Object.keys(rows[0]) : []);
   if (fields == null || fields === "") return base;
@@ -39432,7 +39437,18 @@ function resolveCols(rows, cols, fields) {
   if (want.length === 0) return base;
   const available = new Set(base);
   const chosen = want.filter((w) => available.has(w));
-  return chosen.length > 0 ? chosen : base;
+  if (chosen.length === 0) return base;
+  // Re-prepend any identifier columns present in the data (in canonical order)
+  // that the projection didn't already include, so names/teams are never lost.
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const c of ALWAYS_KEEP_COLS) {
+    if (available.has(c) && !seen.has(c)) { out.push(c); seen.add(c); }
+  }
+  for (const c of chosen) {
+    if (!seen.has(c)) { out.push(c); seen.add(c); }
+  }
+  return out;
 }
 function renderTable(input, rows, cols) {
   if (rows.length === 0) return "(no results)";
@@ -41630,6 +41646,19 @@ ${renderTable(input, rows)}`;
       let matches = doc.players.filter((p) => nameMatch(p.name, q) && (!posFilter || p.position === posFilter));
       if (!matches.length) return `No scored player matching "${q}"${posFilter ? ` (${posFilter})` : ""}. Coverage: 2026 scored skill players (QB/RB/WR/TE). Try get_prospect_outcomes for draft prospects or get_projections for a PPG projection.`;
       if (matches.length > 5) matches = matches.slice(0, 5);
+      // ADP is the top hit/bust feature, but the model-eval artifact bakes in
+      // whatever ADP the feature pipeline scored on at build time, which can
+      // drift from the live market. Re-join the live consensus ADP at serve
+      // time so the card shows the current number alongside the scored one
+      // (the prediction itself is still the scored value — flagged when stale).
+      const liveAdp = /* @__PURE__ */ new Map();
+      let liveAdpAsOf = null;
+      try {
+        const con = await buildConsensusAdp(doc.season || 2026, "ppr");
+        liveAdpAsOf = con.asOf?.fp || con.asOf?.sleeper || null;
+        for (const r of con.rows) liveAdp.set(normalizeNameForMatch(r.name), r.adp);
+      } catch {
+      }
       const fmt = (v, d = 1) => typeof v === "number" && Number.isFinite(v) ? Number(v.toFixed(d)) : v;
       const predictionLine = (m, pos) => {
         const pr = m.prediction || {};
@@ -41661,7 +41690,15 @@ ${renderTable(input, rows)}`;
       };
       const out = [];
       for (const p of matches) {
-        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ADP ${p.adp}`);
+        const live = liveAdp.get(normalizeNameForMatch(p.name));
+        let adpStr = `scored-ADP ${p.adp}`;
+        if (typeof live === "number") {
+          adpStr += ` · live consensus ADP ${live}`;
+          if (typeof p.adp === "number" && Math.abs(live - p.adp) >= 5) {
+            adpStr += ` ⚠️ (model was scored on ${p.adp}; market has moved — see get_adp for the live blend${liveAdpAsOf ? `, as of ${String(liveAdpAsOf).slice(0, 10)}` : ""})`;
+          }
+        }
+        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ${adpStr}`);
         // Newer artifacts carry a per-model breakdown; fall back to the legacy
         // single (Hit/Bust) drivers list for older model-eval files.
         const models = Array.isArray(p.models) && p.models.length ? p.models : [{ id: "hitBust", label: "Hit / Bust (VOR)", prediction: { vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper }, drivers: p.drivers || [] }];
