@@ -15,7 +15,8 @@ import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from
 import { normalizeForMatch } from '../lib/nameMatch';
 import { toSleeperTeam } from '../lib/teamCodes';
 import type { PresetMeta } from '../lib/scenarioPresets';
-import type { PlayerStats, SleeperPlayer } from '../types';
+import type { PlayerModel, PlayerModelDrivers } from '../lib/playerDetail';
+import type { KTCPlayer, PlayerStats, SleeperPlayer } from '../types';
 
 interface Props {
   playerKey: string;
@@ -70,7 +71,7 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
     );
   }
 
-  const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, gameLog, gameLogSeason } = data;
+  const { crosswalk: cw, career, ktcCurrent, ktcHistory, adpHistory, modelDrivers, gameLog, gameLogSeason } = data;
 
   // Best available current NFL team: KTC → most recent game → Sleeper (rookies).
   // Normalized to Sleeper codes — KTC says GBP/KCC/… and nflverse says LA for
@@ -124,6 +125,10 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
         {overview?.fantasy && <FantasyCard fantasy={overview.fantasy} />}
         <IdsCard cw={cw} />
       </Cards>
+
+      {modelDrivers && (
+        <ModelDriversSection drivers={modelDrivers} ktcCurrent={ktcCurrent} position={cw.position} />
+      )}
 
       {gameLog.length > 0 && gameLogSeason && (
         <GameLogSection season={gameLogSeason} rows={gameLog} position={cw.position} />
@@ -565,6 +570,138 @@ function Stat({ label, value }: { label: string; value: string | undefined }) {
     <div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontSize: 15, fontWeight: 600 }}>{value ?? '—'}</div>
+    </div>
+  );
+}
+
+// ── Model feature drivers ─────────────────────────────────────────────────
+// One panel per model that scores the player, listing the top features that
+// pushed its prediction and where the player lands vs the positional cohort.
+// Data: public/data/model-eval-2026.json (built by scripts/build-model-eval.mjs).
+
+function pctlColor(p: number): string {
+  if (p >= 90) return '#22c55e';
+  if (p >= 75) return '#4ade80';
+  if (p >= 60) return '#a3e635';
+  if (p >= 40) return '#facc15';
+  if (p >= 20) return '#fb923c';
+  return '#ef4444';
+}
+
+// Translate a feature's percentile into "how good is this for the player",
+// honoring the model's learned direction. Returns null for weak/mixed signals
+// so the bar reads as neutral rather than implying a good/bad lean.
+function goodness(relationship: string, pctile: number): number | null {
+  if (relationship.includes('weaker')) return 100 - pctile;
+  if (relationship.includes('stronger')) return pctile;
+  return null;
+}
+
+function fmtNum(v: number | string | undefined, digits = 1): string {
+  const n = typeof v === 'string' ? Number(v) : v;
+  if (n == null || !Number.isFinite(n)) return '—';
+  return n.toFixed(digits);
+}
+
+function predictionLine(m: PlayerModel, position: string): { main: string; sub?: string } {
+  const p = m.prediction || {};
+  switch (m.id) {
+    case 'hitBust': {
+      const ci = (typeof p.ciLower === 'number' && typeof p.ciUpper === 'number')
+        ? `80% CI ${fmtNum(p.ciLower)}–${fmtNum(p.ciUpper)}` : undefined;
+      return { main: `VOR ${fmtNum(p.vor)} · ${p.hitProb ?? ''}`, sub: ci };
+    }
+    case 'projection':
+      return { main: `${fmtNum(p.ppg)} PPG`, sub: 'projected fantasy points / game' };
+    case 'rookieCareer': {
+      const bits: string[] = [];
+      if (p.tier != null) bits.push(`Tier ${p.tier}`);
+      if (p.percentile != null) bits.push(`${fmtNum(p.percentile, 0)}th pctl`);
+      if (typeof p.boomProb === 'number') bits.push(`boom ${fmtNum(p.boomProb, 0)}%`);
+      return { main: `${fmtNum(p.careerPPG)} career PPG`, sub: bits.join(' · ') || undefined };
+    }
+    case 'share': {
+      const t = typeof p.targetShare === 'number' ? `${fmtNum(p.targetShare * 100)}% of team targets` : '';
+      const sub = (position === 'RB' && typeof p.rushShare === 'number' && p.rushShare > 0)
+        ? `${fmtNum(p.rushShare * 100, 0)}% of team carries` : undefined;
+      return { main: t || 'usage share', sub };
+    }
+    default:
+      return { main: '' };
+  }
+}
+
+function DriverRow({ d }: { d: NonNullable<PlayerModel['drivers']>[number] }) {
+  const good = goodness(d.relationship, d.pctile);
+  const barPct = good ?? d.pctile;
+  const color = good != null ? pctlColor(good) : 'var(--text-muted)';
+  const arrow = good == null ? '~' : d.relationship.includes('weaker') ? '↓' : '↑';
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '118px 1fr 16px 40px', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      <span title={`${d.category}${d.category ? ' · ' : ''}${d.relationship}`}
+        style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {d.feature}
+      </span>
+      <div title={`${d.band} (pctl ${d.pctile})`} style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: `${barPct}%`, height: '100%', background: color, borderRadius: 3 }} />
+      </div>
+      <span title={d.relationship} style={{ fontSize: 11, color, textAlign: 'center' }}>{arrow}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        {d.value != null ? fmtNum(d.value, Math.abs(d.value) < 1 && d.value !== 0 ? 2 : 1) : '—'}
+      </span>
+    </div>
+  );
+}
+
+function ModelPanel({ m, position, ktcCurrent }: {
+  m: PlayerModel;
+  position: string;
+  ktcCurrent: KTCPlayer | null;
+}) {
+  const { main, sub } = predictionLine(m, position);
+  return (
+    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <h3 style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.label}</h3>
+        {m.noteOnly
+          ? (ktcCurrent && <span style={{ fontSize: 14, fontWeight: 700 }}>{ktcCurrent.value} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>1QB · {ktcCurrent.position}{ktcCurrent.positionRank}</span></span>)
+          : main && <span style={{ fontSize: 14, fontWeight: 700 }}>{main}</span>}
+      </div>
+      {!m.noteOnly && sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
+      {m.blurb && <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{m.blurb}</p>}
+      {!m.noteOnly && m.drivers && m.drivers.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 6 }}>
+            Top drivers · bar = percentile vs position (greener = helps this player) · ↑/↓ = feature's pull on the score · value
+          </div>
+          {m.drivers.map((d, i) => <DriverRow key={i} d={d} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModelDriversSection({ drivers, ktcCurrent, position }: {
+  drivers: PlayerModelDrivers;
+  ktcCurrent: KTCPlayer | null;
+  position: string;
+}) {
+  const models = drivers.models.filter((m) => m.noteOnly || (m.drivers && m.drivers.length > 0));
+  if (!models.length) return null;
+  return (
+    <div style={{ marginTop: 24 }}>
+      <h2 style={{ fontSize: 16, margin: '0 0 4px' }}>What's Behind Each Score</h2>
+      <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+        The top features feeding each StatHead model's 2026 prediction for this player.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+        {models.map((m) => <ModelPanel key={m.id} m={m} position={position} ktcCurrent={ktcCurrent} />)}
+      </div>
+      {drivers.dataGaps && drivers.dataGaps.length > 0 && (
+        <p style={{ margin: '12px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          Data not available (excluded from drivers rather than scored as 0): {drivers.dataGaps.join(', ')}.
+        </p>
+      )}
     </div>
   );
 }

@@ -39123,13 +39123,13 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_features",
-    description: "Feature evaluation for a SCORED player: the model's prediction (value-over-replacement, hit probability, confidence interval) plus the top feature 'drivers' — where the player lands vs the positional cohort (percentile band) and which way that feature pushes the projection. Proprietary/paid-sourced features are shown only as a qualitative magnitude band + direction (never a raw value or source). Use to explain WHY a player is scored the way they are. Coverage: 2026 scored skill players (QB/RB/WR/TE).",
+    description: "Feature evaluation for a SCORED player, broken out PER MODEL that scores them: Hit/Bust (VOR), Season Projection (PPG), Rookie Career/Prospect (rookies), Usage Share (RB/WR/TE), and a market-derived Dynasty Value note. Each model shows its prediction plus the top feature 'drivers' — where the player lands vs the positional cohort FOR THAT MODEL (percentile band) and which way the feature pushes that model's prediction. Proprietary/paid-sourced features are shown only as a qualitative magnitude band + direction (never a raw value or source). Use to explain WHY a player is scored the way they are. Coverage: 2026 scored skill players (QB/RB/WR/TE).",
     input_schema: {
       type: "object",
       properties: {
         player_name: { type: "string", description: "Player to explain (case-insensitive partial match)." },
         position: { type: "string", description: "Disambiguate by position if the name matches several.", enum: ["QB", "RB", "WR", "TE"] },
-        limit: { type: "number", description: "Max feature drivers to show (default 8)." }
+        limit: { type: "number", description: "Max feature drivers to show per model (default 8)." }
       },
       required: ["player_name"]
     }
@@ -41466,20 +41466,57 @@ ${renderTable(input, rows)}`;
       let matches = doc.players.filter((p) => nameMatch(p.name, q) && (!posFilter || p.position === posFilter));
       if (!matches.length) return `No scored player matching "${q}"${posFilter ? ` (${posFilter})` : ""}. Coverage: 2026 scored skill players (QB/RB/WR/TE). Try get_prospect_outcomes for draft prospects or get_projections for a PPG projection.`;
       if (matches.length > 5) matches = matches.slice(0, 5);
+      const fmt = (v, d = 1) => typeof v === "number" && Number.isFinite(v) ? Number(v.toFixed(d)) : v;
+      const predictionLine = (m, pos) => {
+        const pr = m.prediction || {};
+        switch (m.id) {
+          case "hitBust": return `VOR ${pr.vor} (${pr.hitProb}); 80% CI ${pr.ciLower}–${pr.ciUpper}.`;
+          case "projection": return `${pr.ppg} projected PPG.`;
+          case "rookieCareer": {
+            const bits = [];
+            if (pr.tier != null) bits.push(`Tier ${pr.tier}`);
+            if (pr.percentile != null) bits.push(`${fmt(pr.percentile, 0)}th pctl`);
+            if (typeof pr.boomProb === "number") bits.push(`boom ${fmt(pr.boomProb, 0)}% / bust ${fmt(pr.bustProb, 0)}%`);
+            return `${pr.careerPPG} career PPG${bits.length ? ` — ${bits.join("; ")}` : ""}.`;
+          }
+          case "share": {
+            const t = typeof pr.targetShare === "number" ? `${fmt(pr.targetShare * 100)}% of team targets` : "usage share";
+            const r = pos === "RB" && typeof pr.rushShare === "number" && pr.rushShare > 0 ? `; ${fmt(pr.rushShare * 100, 0)}% of team carries` : "";
+            return `${t}${r}.`;
+          }
+          default: return "";
+        }
+      };
+      const driverTable = (drivers) => {
+        const lines = ["feature | category | player | relationship\n--- | --- | --- | ---"];
+        for (const d of drivers.slice(0, limit)) {
+          const cell = d.value !== void 0 ? `${d.band} (${d.value})` : d.band;
+          lines.push(`${d.feature} | ${d.category} | ${cell} | ${d.relationship}`);
+        }
+        return lines.join("\n");
+      };
       const out = [];
       for (const p of matches) {
-        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""}`);
-        out.push(`Prediction: VOR ${p.predictedVor} (${p.hitProb}); 80% CI ${p.ciLower}–${p.ciUpper}; ADP ${p.adp}.`);
-        out.push("Top feature drivers (where they land vs the positional field):");
-        out.push("feature | category | player | relationship\n--- | --- | --- | ---");
-        for (const d of p.drivers.slice(0, limit)) {
-          const cell = d.value !== void 0 ? `${d.band} (${d.value})` : d.band;
-          out.push(`${d.feature} | ${d.category} | ${cell} | ${d.relationship}`);
+        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ADP ${p.adp}`);
+        // Newer artifacts carry a per-model breakdown; fall back to the legacy
+        // single (Hit/Bust) drivers list for older model-eval files.
+        const models = Array.isArray(p.models) && p.models.length ? p.models : [{ id: "hitBust", label: "Hit / Bust (VOR)", prediction: { vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper }, drivers: p.drivers || [] }];
+        for (const m of models) {
+          out.push(`### ${m.label}`);
+          if (m.blurb) out.push(`_${m.blurb}_`);
+          if (m.noteOnly) { out.push(""); continue; }
+          const line = predictionLine(m, p.position);
+          if (line) out.push(`Prediction: ${line}`);
+          if (m.drivers?.length) {
+            out.push("Top feature drivers (where they land vs the field for this model):");
+            out.push(driverTable(m.drivers));
+          }
+          out.push("");
         }
         if (p.dataGaps?.length) out.push(`Data not available (excluded from drivers rather than scored as 0): ${p.dataGaps.join(", ")}.`);
         out.push("");
       }
-      out.push("VOR = predicted value over replacement (z-scored fantasy finish); higher = better. Bands are vs the 2026 scored cohort at the position. Proprietary features show a band + direction only (no raw value). These are model drivers, not a hand-multiplied P(hit) — see get_metadata caveats.");
+      out.push("Each model's drivers are computed against its OWN target and positional cohort, so the percentile band + relationship are model-specific. VOR = predicted value over replacement (z-scored fantasy finish); higher = better. Dynasty Value is a market-derived composite (no first-party feature decomposition). Proprietary features show a band + direction only (no raw value). These are model drivers, not a hand-multiplied P(hit) — see get_metadata caveats.");
       return out.join("\n");
     }
     case "get_projections": {
