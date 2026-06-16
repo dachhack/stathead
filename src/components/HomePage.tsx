@@ -330,7 +330,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>— for Claude &amp; AI assistants</span>
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, marginBottom: 14, lineHeight: 1.55 }}>
-          Query StatHead&apos;s analytics straight from Claude (or any{' '}
+          A full set of fantasy football data-analysis tools, queryable straight from Claude (or any{' '}
           <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>MCP</a>{' '}
           client) — player stats, play-by-play, Next Gen Stats, snap counts, dynasty values, calibrated prospect
           outcomes, season projections with scenario presets, and more. Published to npm as{' '}

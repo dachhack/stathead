@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.dachhack/stathead-mcp",
-  "description": "NFL fantasy-football analytics: stats, play-by-play, Next Gen Stats, dynasty values & projections",
+  "description": "Full set of fantasy football data analysis tools — stats, dynasty, projections, prospects",
   "repository": {
     "url": "https://github.com/dachhack/stathead",
     "source": "github",
     "subfolder": "mcp"
   },
-  "version": "1.0.26",
+  "version": "1.0.27",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "stathead-mcp",
-      "version": "1.0.26",
+      "version": "1.0.27",
       "transport": { "type": "stdio" }
     }
   ]
