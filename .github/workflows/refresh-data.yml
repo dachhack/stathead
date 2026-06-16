@@ -109,6 +109,13 @@ jobs:
             echo "CLAY_PROJECTIONS_B64 not set — refreshed base pool only; existing Consensus presets preserved."
           fi
 
+      # Distill the big feature-matrix.json (~25 MB) into the compact, MCP-served
+      # model-eval artifact: per-position feature importance + each scored
+      # player's feature drivers (proprietary features sanitized to band+direction).
+      # Runs after `npm run build` produced feature-matrix.json.
+      - name: Build model-eval artifact
+        run: node scripts/build-model-eval.mjs
+
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
       # their synthetic COL keys to canonical NFL gsis-based keys as soon
@@ -153,6 +160,7 @@ jobs:
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
                   public/data/projection-base-2026.json \
+                  public/data/model-eval-2026.json \
                   public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \
                   public/data/score-store/ \
