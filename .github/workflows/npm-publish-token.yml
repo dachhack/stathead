@@ -20,6 +20,16 @@ on:
         description: 'Deprecation message for that version'
         required: false
         default: 'Tool arguments were ignored in this version — please upgrade to the latest.'
+  workflow_call:
+    inputs:
+      deprecate_version:
+        type: string
+        required: false
+        default: ''
+      deprecate_message:
+        type: string
+        required: false
+        default: 'Tool arguments were ignored in this version — please upgrade to the latest.'
 
 permissions:
   contents: read

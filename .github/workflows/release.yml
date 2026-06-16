@@ -1,0 +1,45 @@
+name: Release (npm + registry + prod)
+
+# One-click release. Runs the three steps in order, each reusing its existing
+# standalone workflow (no duplicated logic):
+#   1. Publish stathead-mcp to npm (token auth, with smoke test)
+#   2. List/refresh it in the official MCP Registry
+#   3. Promote the site to production (stathead.app)
+#
+# Run from the Actions tab on the dev branch (claude/nfl-fantasy-workbench-6D1yd).
+# Each step still has its own workflow for ad-hoc runs; this just chains them.
+
+on:
+  workflow_dispatch:
+    inputs:
+      deprecate_version:
+        description: 'Optional: older npm version to deprecate after publishing (e.g. 1.0.25). Leave blank to skip.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  npm:
+    uses: ./.github/workflows/npm-publish-token.yml
+    secrets: inherit
+    with:
+      deprecate_version: ${{ inputs.deprecate_version }}
+
+  registry:
+    needs: npm
+    uses: ./.github/workflows/publish-mcp-registry.yml
+    secrets: inherit
+
+  promote-prod:
+    needs: registry
+    uses: ./.github/workflows/promote-prod.yml
+    secrets: inherit
+    with:
+      source_ref: claude/nfl-fantasy-workbench-6D1yd
