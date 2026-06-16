@@ -37941,6 +37941,40 @@ async function fetchSleeperUserId(username) {
   if (!u?.user_id) throw new Error(`No Sleeper user found for "${username}".`);
   return u;
 }
+// Identify a Sleeper user from either a username/user_id, OR a display/team name
+// within a known league — this is what lets "tell me more about FootballLover56"
+// (a manager seen in get_sleeper_league) walk to that manager's leagues/snooper.
+async function resolveSleeperUser(input) {
+  if (input.username) {
+    const u = await fetchSleeperUserId(input.username);
+    return { user_id: u.user_id, display_name: u.display_name || u.username || input.username };
+  }
+  if (input.league_id && input.display_name) {
+    const users = await sleeperGet(`/league/${String(input.league_id).trim()}/users`);
+    if (!users) throw new Error(`No Sleeper league found for id "${input.league_id}".`);
+    const q = String(input.display_name).toLowerCase();
+    const match = users.find((u) => (u.display_name || "").toLowerCase().includes(q) || (u.metadata?.team_name || "").toLowerCase().includes(q));
+    if (!match) throw new Error(`No manager matching "${input.display_name}" in league ${input.league_id}. Managers: ${users.map((u) => u.display_name).join(", ")}.`);
+    return { user_id: match.user_id, display_name: match.display_name };
+  }
+  throw new Error("Provide username (or user_id), or league_id + display_name to identify the Sleeper user.");
+}
+// Identify a league from either a league_id OR a username + league name — so
+// "tell me more about the Football Warriors league" resolves without an id.
+async function resolveSleeperLeagueId(input) {
+  if (input.league_id) return String(input.league_id).trim();
+  if (input.username && input.name) {
+    const u = await fetchSleeperUserId(input.username);
+    const season = input.season || 2026;
+    const leagues = ((await sleeperGet(`/user/${u.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
+    const q = String(input.name).toLowerCase();
+    const matches = leagues.filter((l) => (l.name || "").toLowerCase().includes(q));
+    if (matches.length === 1) return matches[0].league_id;
+    if (matches.length > 1) throw new Error(`Multiple ${season} leagues match "${input.name}" for ${u.display_name || input.username}: ${matches.map((l) => `${l.name} (${l.league_id})`).join("; ")}. Pass league_id.`);
+    throw new Error(`No ${season} league matching "${input.name}" for ${u.display_name || input.username}. Their leagues: ${leagues.map((l) => l.name).join(", ") || "(none)"}.`);
+  }
+  throw new Error("Provide league_id, or username + name to find the league.");
+}
 
 var ktcCache = /* @__PURE__ */ new Map();
 async function fetchKTCRankings(format = "1qb") {
@@ -38758,27 +38792,32 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_user_leagues",
-    description: "Look up a Sleeper user's fantasy leagues by username. Returns each league's id, name, size, status, and format (Dynasty/Keeper/Redraft, Superflex/2QB/1QB, Best Ball, IDP). Use the returned league_id with get_sleeper_league, get_sleeper_matchups, or get_sleeper_waiver_wire. Source: Sleeper public API.",
+    description: "Look up a Sleeper user's fantasy leagues. Identify the user by username/user_id, OR by display_name + league_id (to scout a manager you just saw in get_sleeper_league). Returns each league's id, name, size, status, and format (Dynasty/Keeper/Redraft, Superflex/2QB/1QB, Best Ball, IDP), plus the resolved user_id. This is the entry point of the Sleeper graph: take a league_id from here into get_sleeper_league / get_sleeper_matchups / get_sleeper_waiver_wire. Source: Sleeper public API.",
     input_schema: {
       type: "object",
       properties: {
-        username: { type: "string", description: "Sleeper username (or user_id)." },
+        username: { type: "string", description: "Sleeper username or user_id." },
+        league_id: { type: "string", description: "Alternative to username: with display_name, resolves a manager seen in a league to their user_id." },
+        display_name: { type: "string", description: "Manager's in-league display or team name; requires league_id." },
         season: { type: "number", description: "NFL season (default 2026)." }
       },
-      required: ["username"]
+      required: []
     }
   },
   {
     name: "get_sleeper_league",
-    description: "Import a Sleeper league by league_id: format/settings, standings (W-L, points for/against), and every team's roster with starters (by lineup slot) and bench, resolved to player names. Use for league analysis, roster evaluation, trade targets. Source: Sleeper public API.",
+    description: "Open a Sleeper league: format/settings, standings (W-L, points for/against, each manager's owner_id), and every team's roster with starters (by lineup slot) and bench, resolved to player names. Identify the league by league_id, OR by username + name (e.g. \"the Football Warriors league\") — no id needed. Each manager's owner_id is emitted so you can walk to get_sleeper_user_leagues / get_sleeper_user_snooper for that manager. Source: Sleeper public API.",
     input_schema: {
       type: "object",
       properties: {
         league_id: { type: "string", description: "Sleeper league id (from get_sleeper_user_leagues or the league URL)." },
+        username: { type: "string", description: "Alternative to league_id: with name, finds the league among this user's leagues." },
+        name: { type: "string", description: "League name to match (substring); requires username." },
+        season: { type: "number", description: "Season for username+name lookup (default 2026)." },
         team: { type: "string", description: "Filter to one team by owner display name or team name (substring match)." },
         rosters: { type: "boolean", description: "Include full rosters (default true). Set false for standings + format only." }
       },
-      required: ["league_id"]
+      required: []
     }
   },
   {
@@ -38824,16 +38863,18 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_user_snooper",
-    description: "Scout a Sleeper user across all their leagues for a season: their league list plus cross-league player exposure — which players they roster in the most leagues (and start most), with the league names. Use to see who a manager is heavily invested in. Source: Sleeper public API.",
+    description: "Scout a Sleeper user across all their leagues for a season: their league list plus cross-league player exposure — which players they roster in the most leagues (and start most), with the league names. Identify the user by username/user_id, OR by display_name + league_id (to scout a manager you just saw in get_sleeper_league). Use to see who a manager is heavily invested in. Source: Sleeper public API.",
     input_schema: {
       type: "object",
       properties: {
-        username: { type: "string", description: "Sleeper username (or user_id)." },
+        username: { type: "string", description: "Sleeper username or user_id." },
+        league_id: { type: "string", description: "Alternative to username: with display_name, resolves a manager seen in a league to their user_id." },
+        display_name: { type: "string", description: "Manager's in-league display or team name; requires league_id." },
         season: { type: "number", description: "NFL season (default 2026)." },
         position: { type: "string", description: "Filter exposure to one position (QB, RB, WR, TE)." },
         limit: { type: "number", description: "Max players in the exposure table (default 40)." }
       },
-      required: ["username"]
+      required: []
     }
   },
   {
@@ -40222,22 +40263,21 @@ ${renderTable(input, rows, cols)}`;
     }
     case "get_sleeper_user_leagues": {
       const season = input.season || 2026;
-      const user = await fetchSleeperUserId(input.username);
+      const user = await resolveSleeperUser(input);
       const leagues = (await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || [];
       const nfl = leagues.filter((l) => l.sport === "nfl");
-      if (!nfl.length) return `No ${season} NFL leagues found for Sleeper user "${user.display_name || input.username}".`;
+      if (!nfl.length) return `No ${season} NFL leagues found for Sleeper user "${user.display_name}" (user_id ${user.user_id}).`;
       const rows = nfl.map((l) => {
         const f = sleeperLeagueFormat(l);
         return { league: l.name, league_id: l.league_id, teams: l.total_rosters, status: l.status, type: f.type, qb: f.qb, best_ball: f.bestBall ? "Y" : "", idp: f.idp ? "Y" : "" };
       });
       const cols = ["league", "league_id", "teams", "status", "type", "qb", "best_ball", "idp"];
-      return `Sleeper leagues for ${user.display_name || input.username} (${season}, ${rows.length}):
+      return `Sleeper leagues for ${user.display_name} (user_id ${user.user_id} · ${season} · ${rows.length}). Drill into one with get_sleeper_league (pass its league_id, or username + name); scout exposure with get_sleeper_user_snooper:
 
 ${renderTable(input, rows, cols)}`;
     }
     case "get_sleeper_league": {
-      const id = String(input.league_id || "").trim();
-      if (!id) return "Provide league_id.";
+      const id = await resolveSleeperLeagueId(input);
       const wantRosters = input.rosters !== false;
       const [league, rosters, users, players] = await Promise.all([
         sleeperGet(`/league/${id}`),
@@ -40257,6 +40297,7 @@ ${renderTable(input, rows, cols)}`;
         return {
           teamName: u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`,
           owner: u?.display_name || "—",
+          ownerId: r.owner_id || "",
           wins: r.settings?.wins ?? 0,
           losses: r.settings?.losses ?? 0,
           ties: r.settings?.ties ?? 0,
@@ -40268,11 +40309,12 @@ ${renderTable(input, rows, cols)}`;
       });
       teams.sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
       const f = sleeperLeagueFormat(league);
-      const standings = teams.map((t, i) => ({ rank: i + 1, team: t.teamName, owner: t.owner, record: `${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}`, pf: t.pointsFor, pa: t.pointsAgainst }));
+      const standings = teams.map((t, i) => ({ rank: i + 1, team: t.teamName, owner: t.owner, owner_id: t.ownerId, record: `${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}`, pf: t.pointsFor, pa: t.pointsAgainst }));
       let out = `Sleeper league "${league.name}" — ${league.season} · ${sleeperFormatLabel(f)} · ${league.total_rosters} teams · status: ${league.status}
+league_id: ${league.league_id}. To scout a manager, pass their owner_id (below) as username to get_sleeper_user_leagues / get_sleeper_user_snooper, or their display name as display_name + this league_id.
 
 Standings:
-${renderTable(input, standings, ["rank", "team", "owner", "record", "pf", "pa"])}`;
+${renderTable(input, standings, ["rank", "team", "owner", "owner_id", "record", "pf", "pa"])}`;
       if (wantRosters) {
         const filter = input.team ? String(input.team).toLowerCase() : null;
         const shown = filter ? teams.filter((t) => t.teamName.toLowerCase().includes(filter) || t.owner.toLowerCase().includes(filter)) : teams;
@@ -40282,7 +40324,7 @@ ${renderTable(input, standings, ["rank", "team", "owner", "record", "pf", "pa"])
         out += "\n\nRosters:";
         for (const t of shown) {
           const line = (p) => `${p.slot}: ${p.name}${p.position ? ` (${p.position}${p.team ? ` ${p.team}` : ""})` : ""}`;
-          out += `\n\n${t.teamName} (${t.owner}) — ${t.wins}-${t.losses}\n  Starters: ${t.starters.map(line).join("; ")}\n  Bench: ${t.bench.map((p) => `${p.name}${p.position ? ` (${p.position})` : ""}`).join("; ") || "—"}`;
+          out += `\n\n${t.teamName} (${t.owner} · owner_id ${t.ownerId}) — ${t.wins}-${t.losses}\n  Starters: ${t.starters.map(line).join("; ")}\n  Bench: ${t.bench.map((p) => `${p.name}${p.position ? ` (${p.position})` : ""}`).join("; ") || "—"}`;
         }
       }
       return out;
@@ -40411,9 +40453,9 @@ ${renderTable(input, rows, ["pick", "round", "slot", "player", "pos", "team", "p
       const season = input.season || 2026;
       const position = input.position?.toUpperCase();
       const limit = clamp(input.limit || 40, 1, 200);
-      const user = await fetchSleeperUserId(input.username);
+      const user = await resolveSleeperUser(input);
       const leagues = ((await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
-      if (!leagues.length) return `No ${season} NFL leagues found for "${user.display_name || input.username}".`;
+      if (!leagues.length) return `No ${season} NFL leagues found for "${user.display_name}" (user_id ${user.user_id}).`;
       const players = await fetchSleeperPlayers();
       const ownership = /* @__PURE__ */ new Map();
       await Promise.all(leagues.map(async (lg) => {
@@ -40440,7 +40482,7 @@ ${renderTable(input, rows, ["pick", "round", "slot", "player", "pos", "team", "p
       if (position) rows = rows.filter((r) => r.position === position);
       rows.sort((a, b) => b.leagues - a.leagues || b.started - a.started);
       rows = rows.slice(0, limit).map((r) => ({ player: r.player, position: r.position, team: r.team, leagues: r.leagues, started: r.started, where: r.names.slice(0, 6).join(", ") }));
-      return `Sleeper user snooper — ${user.display_name || input.username} (${season}): ${leagues.length} leagues. Cross-league exposure (top ${rows.length}):
+      return `Sleeper user snooper — ${user.display_name} (user_id ${user.user_id} · ${season}): ${leagues.length} leagues. Cross-league exposure (top ${rows.length}):
 
 ${renderTable(input, rows, ["player", "position", "team", "leagues", "started", "where"])}`;
     }
@@ -41490,7 +41532,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.29";
+var SERVER_VERSION = "1.0.30";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
