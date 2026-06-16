@@ -11,7 +11,7 @@ go.
 
 ## What you get
 
-33 tools spanning player and team data, including:
+39 tools spanning player and team data, including:
 
 | Area | Tools |
 | --- | --- |
@@ -19,6 +19,7 @@ go.
 | Players | season stats, weekly/game logs, snap counts, injuries, advanced stats, Next Gen Stats, rosters, contracts, depth charts |
 | Games & plays | schedules/results, play-by-play, participation, FTN charting |
 | Fantasy | StatHead blended dynasty values, `get_projections` (StatHead's in-house season PPG model), ADP (FFC / ESPN / Sleeper), `get_adp_with_results` (ADP vs actual finish), trending adds/drops |
+| Sleeper leagues | `get_sleeper_user_leagues`, `get_sleeper_league` (standings + rosters), `get_sleeper_matchups`, `get_sleeper_waiver_wire` (free agents × trending × projections), `get_sleeper_draft`, `get_sleeper_user_snooper` (cross-league exposure) |
 | Draft & college | `get_prospect_outcomes` (calibrated boom/bust probabilities + grades), draft picks, `get_rookie_class` (draft+combine+rookie stats in one call), prospect profiles, combine, college stats (player or cohort), QBR |
 | Your own numbers | `export_excel` / `import_excel` / `clear_overrides` — download a styled projections / rankings / rookie-rankings workbook, edit it, re-upload it, and have your values drive every later query |
 

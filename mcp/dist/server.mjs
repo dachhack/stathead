@@ -37903,6 +37903,45 @@ async function fetchSleeperProjections(season, week) {
   sleeperProjectionCache.set(cacheKey, projections);
   return projections;
 }
+
+// ── Sleeper league/user helpers (mirror src/lib/sleeper.ts) ──
+// Sleeper's public API is read-only and CORS-open; these power the league,
+// user-leagues, waiver-wire, matchup, draft, and user-snooper MCP tools.
+async function sleeperGet(path) {
+  const res = await fetchWithTimeout(`${SLEEPER}${path}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Sleeper API returned ${res.status} for ${path}`);
+  return res.json();
+}
+var SLEEPER_IDP_SLOTS = /* @__PURE__ */ new Set(["DL", "LB", "DB", "IDP_FLEX", "DE", "DT", "CB", "S", "SS", "FS", "IDP"]);
+function sleeperLeagueFormat(league) {
+  const rp = league?.roster_positions || [];
+  const t = league?.settings?.type;
+  return {
+    type: t === 2 ? "Dynasty" : t === 1 ? "Keeper" : "Redraft",
+    qb: rp.includes("SUPER_FLEX") ? "Superflex" : rp.filter((p) => p === "QB").length >= 2 ? "2QB" : "1QB",
+    idp: rp.some((p) => SLEEPER_IDP_SLOTS.has(p)),
+    bestBall: league?.settings?.best_ball === 1
+  };
+}
+function sleeperFormatLabel(f) {
+  return `${f.type} · ${f.qb}${f.bestBall ? " · Best Ball" : ""}${f.idp ? " · IDP" : ""}`;
+}
+var SLEEPER_DEF_ID = /^[A-Z]{2,4}$/;
+function resolveSleeperPlayer(pid, players, slot) {
+  if (!pid || pid === "0") return { id: pid, name: "Empty", position: "", team: "", slot };
+  const p = players.get(pid);
+  if (p) return { id: pid, name: p.full_name, position: p.position, team: p.team || "", slot };
+  if (SLEEPER_DEF_ID.test(pid)) return { id: pid, name: `${pid} D/ST`, position: "DEF", team: pid, slot };
+  return { id: pid, name: `#${pid}`, position: "?", team: "", slot };
+}
+var sleeperPoints = (whole, dec) => (whole ?? 0) + (dec ?? 0) / 100;
+async function fetchSleeperUserId(username) {
+  const u = await sleeperGet(`/user/${encodeURIComponent(String(username).trim())}`);
+  if (!u?.user_id) throw new Error(`No Sleeper user found for "${username}".`);
+  return u;
+}
+
 var ktcCache = /* @__PURE__ */ new Map();
 async function fetchKTCRankings(format = "1qb") {
   const cached2 = ktcCache.get(format);
@@ -38718,6 +38757,86 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_sleeper_user_leagues",
+    description: "Look up a Sleeper user's fantasy leagues by username. Returns each league's id, name, size, status, and format (Dynasty/Keeper/Redraft, Superflex/2QB/1QB, Best Ball, IDP). Use the returned league_id with get_sleeper_league, get_sleeper_matchups, or get_sleeper_waiver_wire. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        username: { type: "string", description: "Sleeper username (or user_id)." },
+        season: { type: "number", description: "NFL season (default 2026)." }
+      },
+      required: ["username"]
+    }
+  },
+  {
+    name: "get_sleeper_league",
+    description: "Import a Sleeper league by league_id: format/settings, standings (W-L, points for/against), and every team's roster with starters (by lineup slot) and bench, resolved to player names. Use for league analysis, roster evaluation, trade targets. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id (from get_sleeper_user_leagues or the league URL)." },
+        team: { type: "string", description: "Filter to one team by owner display name or team name (substring match)." },
+        rosters: { type: "boolean", description: "Include full rosters (default true). Set false for standings + format only." }
+      },
+      required: ["league_id"]
+    }
+  },
+  {
+    name: "get_sleeper_matchups",
+    description: "Get head-to-head matchups and scores for a Sleeper league in a given week. Pairs teams by matchup, with each team's points and (optionally) starters. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        week: { type: "number", description: "Week number (1-18)." },
+        starters: { type: "boolean", description: "Include each team's starting lineup (default false)." }
+      },
+      required: ["league_id", "week"]
+    }
+  },
+  {
+    name: "get_sleeper_waiver_wire",
+    description: "Find the best available (un-rostered) free agents in a Sleeper league. Cross-references the league's rostered players against all NFL players, then joins Sleeper trending-add counts and StatHead's projected PPG, ranked by waiver interest. Use for waiver-wire and streaming decisions. Source: Sleeper public API + StatHead projections.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE, K, DEF)." },
+        sort_by: { type: "string", description: "Sort column: trending (default, recent add count) or ppg (StatHead projection).", enum: ["trending", "ppg"] },
+        limit: { type: "number", description: "Max players (default 40)." }
+      },
+      required: ["league_id"]
+    }
+  },
+  {
+    name: "get_sleeper_draft",
+    description: "Get Sleeper draft data. Pass draft_id for that draft's full pick board (round, pick, team, player, position). Or pass username (+ season) to list that user's drafts and their ids. Use for draft recaps, keeper/rookie draft analysis. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        draft_id: { type: "string", description: "Sleeper draft id — returns the pick board." },
+        username: { type: "string", description: "Sleeper username — lists the user's drafts (use instead of draft_id)." },
+        season: { type: "number", description: "Season for username lookup (default 2026)." },
+        limit: { type: "number", description: "Max picks/drafts (default 200)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_sleeper_user_snooper",
+    description: "Scout a Sleeper user across all their leagues for a season: their league list plus cross-league player exposure — which players they roster in the most leagues (and start most), with the league names. Use to see who a manager is heavily invested in. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        username: { type: "string", description: "Sleeper username (or user_id)." },
+        season: { type: "number", description: "NFL season (default 2026)." },
+        position: { type: "string", description: "Filter exposure to one position (QB, RB, WR, TE)." },
+        limit: { type: "number", description: "Max players in the exposure table (default 40)." }
+      },
+      required: ["username"]
+    }
+  },
+  {
     name: "get_dynasty_values",
     description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
@@ -39495,7 +39614,7 @@ async function executeToolInner(name, input) {
         [
           "- **nflverse** \u2014 play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine (open data)",
           "- **Next Gen Stats** \u2014 advanced tracking metrics",
-          "- **Sleeper** \u2014 trending adds/drops, projections",
+          "- **Sleeper** \u2014 trending adds/drops, projections, and league data (user leagues, rosters/standings, matchups, drafts, waiver wire, cross-league exposure)",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
           "- **StatHead (first-party)** \u2014 in-house season PPG projections, prospect boom/bust model, blended dynasty/redraft trade values (market-derived composites, not raw third-party feeds)",
           "- **FantasyPros / DynastyProcess** \u2014 expert consensus rankings",
@@ -40100,6 +40219,230 @@ ${renderTable(input, rows, cols)}`;
       return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players):
 
 ${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_user_leagues": {
+      const season = input.season || 2026;
+      const user = await fetchSleeperUserId(input.username);
+      const leagues = (await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || [];
+      const nfl = leagues.filter((l) => l.sport === "nfl");
+      if (!nfl.length) return `No ${season} NFL leagues found for Sleeper user "${user.display_name || input.username}".`;
+      const rows = nfl.map((l) => {
+        const f = sleeperLeagueFormat(l);
+        return { league: l.name, league_id: l.league_id, teams: l.total_rosters, status: l.status, type: f.type, qb: f.qb, best_ball: f.bestBall ? "Y" : "", idp: f.idp ? "Y" : "" };
+      });
+      const cols = ["league", "league_id", "teams", "status", "type", "qb", "best_ball", "idp"];
+      return `Sleeper leagues for ${user.display_name || input.username} (${season}, ${rows.length}):
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_league": {
+      const id = String(input.league_id || "").trim();
+      if (!id) return "Provide league_id.";
+      const wantRosters = input.rosters !== false;
+      const [league, rosters, users, players] = await Promise.all([
+        sleeperGet(`/league/${id}`),
+        sleeperGet(`/league/${id}/rosters`),
+        sleeperGet(`/league/${id}/users`),
+        fetchSleeperPlayers()
+      ]);
+      if (!league?.league_id) return `No Sleeper league found for id "${id}".`;
+      const userById = /* @__PURE__ */ new Map((users || []).map((u) => [u.user_id, u]));
+      const startSlots = (league.roster_positions || []).filter((p) => p !== "BN");
+      const teams = (rosters || []).map((r) => {
+        const u = r.owner_id ? userById.get(r.owner_id) : void 0;
+        const starterIds = r.starters || [];
+        const starters = starterIds.map((pid, i) => resolveSleeperPlayer(pid, players, startSlots[i] || "FLEX"));
+        const starterSet = /* @__PURE__ */ new Set(starterIds.filter((pid) => pid && pid !== "0"));
+        const bench = (r.players || []).filter((pid) => !starterSet.has(pid)).map((pid) => resolveSleeperPlayer(pid, players, "BN"));
+        return {
+          teamName: u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`,
+          owner: u?.display_name || "—",
+          wins: r.settings?.wins ?? 0,
+          losses: r.settings?.losses ?? 0,
+          ties: r.settings?.ties ?? 0,
+          pointsFor: Math.round(sleeperPoints(r.settings?.fpts, r.settings?.fpts_decimal) * 100) / 100,
+          pointsAgainst: Math.round(sleeperPoints(r.settings?.fpts_against, r.settings?.fpts_against_decimal) * 100) / 100,
+          starters,
+          bench
+        };
+      });
+      teams.sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
+      const f = sleeperLeagueFormat(league);
+      const standings = teams.map((t, i) => ({ rank: i + 1, team: t.teamName, owner: t.owner, record: `${t.wins}-${t.losses}${t.ties ? `-${t.ties}` : ""}`, pf: t.pointsFor, pa: t.pointsAgainst }));
+      let out = `Sleeper league "${league.name}" — ${league.season} · ${sleeperFormatLabel(f)} · ${league.total_rosters} teams · status: ${league.status}
+
+Standings:
+${renderTable(input, standings, ["rank", "team", "owner", "record", "pf", "pa"])}`;
+      if (wantRosters) {
+        const filter = input.team ? String(input.team).toLowerCase() : null;
+        const shown = filter ? teams.filter((t) => t.teamName.toLowerCase().includes(filter) || t.owner.toLowerCase().includes(filter)) : teams;
+        if (!shown.length) return out + `
+
+(No team matched "${input.team}".)`;
+        out += "\n\nRosters:";
+        for (const t of shown) {
+          const line = (p) => `${p.slot}: ${p.name}${p.position ? ` (${p.position}${p.team ? ` ${p.team}` : ""})` : ""}`;
+          out += `\n\n${t.teamName} (${t.owner}) — ${t.wins}-${t.losses}\n  Starters: ${t.starters.map(line).join("; ")}\n  Bench: ${t.bench.map((p) => `${p.name}${p.position ? ` (${p.position})` : ""}`).join("; ") || "—"}`;
+        }
+      }
+      return out;
+    }
+    case "get_sleeper_matchups": {
+      const id = String(input.league_id || "").trim();
+      const week = input.week;
+      if (!id || !week) return "Provide league_id and week.";
+      const [matchups, rosters, users, players] = await Promise.all([
+        sleeperGet(`/league/${id}/matchups/${week}`),
+        sleeperGet(`/league/${id}/rosters`),
+        sleeperGet(`/league/${id}/users`),
+        input.starters ? fetchSleeperPlayers() : Promise.resolve(/* @__PURE__ */ new Map())
+      ]);
+      if (!matchups?.length) return `No matchups found for league "${id}" week ${week}.`;
+      const userById = /* @__PURE__ */ new Map((users || []).map((u) => [u.user_id, u]));
+      const teamByRoster = /* @__PURE__ */ new Map();
+      for (const r of rosters || []) {
+        const u = r.owner_id ? userById.get(r.owner_id) : void 0;
+        teamByRoster.set(r.roster_id, u?.metadata?.team_name || u?.display_name || `Team ${r.roster_id}`);
+      }
+      const byMatch = /* @__PURE__ */ new Map();
+      for (const m of matchups) {
+        if (!byMatch.has(m.matchup_id)) byMatch.set(m.matchup_id, []);
+        byMatch.get(m.matchup_id).push(m);
+      }
+      let out = `Sleeper matchups — week ${week} (${byMatch.size} games):\n`;
+      const startersOf = (m) => (m.starters || []).map((pid) => resolveSleeperPlayer(pid, players, "").name).filter((n) => n && n !== "Empty").join(", ");
+      for (const [mid, side] of byMatch) {
+        const [a, b] = side;
+        const nameA = teamByRoster.get(a?.roster_id) || "?";
+        const nameB = b ? teamByRoster.get(b.roster_id) || "?" : "(bye)";
+        const ptsA = Math.round((a?.points ?? 0) * 100) / 100;
+        const ptsB = b ? Math.round((b.points ?? 0) * 100) / 100 : 0;
+        out += `\n#${mid}: ${nameA} ${ptsA} — ${ptsB} ${nameB}`;
+        if (input.starters) {
+          out += `\n   ${nameA}: ${startersOf(a)}`;
+          if (b) out += `\n   ${nameB}: ${startersOf(b)}`;
+        }
+      }
+      return out;
+    }
+    case "get_sleeper_waiver_wire": {
+      const id = String(input.league_id || "").trim();
+      if (!id) return "Provide league_id.";
+      const position = input.position?.toUpperCase();
+      const sortBy = (input.sort_by || "trending").toLowerCase();
+      const limit = clamp(input.limit || 40, 1, 200);
+      const SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
+      const [rosters, players, trending, projDoc] = await Promise.all([
+        sleeperGet(`/league/${id}/rosters`),
+        fetchSleeperPlayers(),
+        fetchSleeperTrending("add", 24, 200).catch(() => []),
+        fetchStatheadProjections().catch(() => null)
+      ]);
+      if (!rosters) return `No Sleeper league found for id "${id}".`;
+      const rostered = /* @__PURE__ */ new Set();
+      for (const r of rosters) for (const pid of r.players || []) rostered.add(pid);
+      const addCount = /* @__PURE__ */ new Map();
+      for (const t of trending) addCount.set(t.full_name, t.count);
+      const ppgByName = /* @__PURE__ */ new Map();
+      for (const p of projDoc?.players || []) ppgByName.set(normalizeNameForMatch(p.name), Number(p.ppg));
+      let rows = [];
+      for (const [pid, p] of players) {
+        if (rostered.has(pid)) continue;
+        if (!SKILL.has(p.position)) continue;
+        if (position && p.position !== position) continue;
+        if (!p.team) continue;
+        const ppg = ppgByName.get(normalizeNameForMatch(p.full_name));
+        rows.push({
+          player: p.full_name,
+          position: p.position,
+          team: p.team,
+          trending_adds: addCount.get(p.full_name) || 0,
+          proj_ppg: Number.isFinite(ppg) ? Math.round(ppg * 10) / 10 : "",
+          status: p.status && p.status !== "Active" ? p.status : ""
+        });
+      }
+      rows = rows.filter((r) => r.trending_adds > 0 || Number.isFinite(Number(r.proj_ppg)));
+      if (sortBy === "ppg") rows.sort((a, b) => (Number(b.proj_ppg) || -1) - (Number(a.proj_ppg) || -1) || b.trending_adds - a.trending_adds);
+      else rows.sort((a, b) => b.trending_adds - a.trending_adds || (Number(b.proj_ppg) || -1) - (Number(a.proj_ppg) || -1));
+      rows = rows.slice(0, limit);
+      const cols = ["player", "position", "team", "trending_adds", "proj_ppg", "status"];
+      return `Sleeper waiver wire — available free agents in league ${id} (${rows.length}, sorted by ${sortBy}):
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_sleeper_draft": {
+      const limit = clamp(input.limit || 200, 1, 400);
+      if (!input.draft_id) {
+        if (!input.username) return "Provide draft_id for a pick board, or username to list a user's drafts.";
+        const season = input.season || 2026;
+        const user = await fetchSleeperUserId(input.username);
+        const drafts = (await sleeperGet(`/user/${user.user_id}/drafts/nfl/${season}`)) || [];
+        if (!drafts.length) return `No ${season} drafts found for "${user.display_name || input.username}".`;
+        const rows = drafts.slice(0, limit).map((d) => ({ draft_id: d.draft_id, type: d.type, status: d.status, teams: d.settings?.teams ?? "", rounds: d.settings?.rounds ?? "", start: d.start_time ? new Date(d.start_time).toISOString().slice(0, 10) : "" }));
+        return `Sleeper drafts for ${user.display_name || input.username} (${season}, ${rows.length}). Pass a draft_id for its board:
+
+${renderTable(input, rows, ["draft_id", "type", "status", "teams", "rounds", "start"])}`;
+      }
+      const [draft, picks, players] = await Promise.all([
+        sleeperGet(`/draft/${input.draft_id}`),
+        sleeperGet(`/draft/${input.draft_id}/picks`),
+        fetchSleeperPlayers()
+      ]);
+      if (!picks?.length) return `No picks found for draft "${input.draft_id}".`;
+      const rows = picks.slice(0, limit).map((pk) => {
+        const p = pk.player_id ? players.get(pk.player_id) : null;
+        const meta = pk.metadata || {};
+        return {
+          pick: pk.pick_no,
+          round: pk.round,
+          slot: pk.draft_slot,
+          player: p?.full_name || (meta.first_name ? `${meta.first_name} ${meta.last_name}` : pk.player_id || ""),
+          pos: p?.position || meta.position || "",
+          team: p?.team || meta.team || "",
+          picked_by_roster: pk.roster_id ?? ""
+        };
+      });
+      const typeNote = draft ? `${draft.type || "draft"} · ${draft.season || ""} · ${draft.settings?.teams ?? "?"} teams` : "";
+      return `Sleeper draft ${input.draft_id} ${typeNote} (${rows.length} picks):
+
+${renderTable(input, rows, ["pick", "round", "slot", "player", "pos", "team", "picked_by_roster"])}`;
+    }
+    case "get_sleeper_user_snooper": {
+      const season = input.season || 2026;
+      const position = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 40, 1, 200);
+      const user = await fetchSleeperUserId(input.username);
+      const leagues = ((await sleeperGet(`/user/${user.user_id}/leagues/nfl/${season}`)) || []).filter((l) => l.sport === "nfl");
+      if (!leagues.length) return `No ${season} NFL leagues found for "${user.display_name || input.username}".`;
+      const players = await fetchSleeperPlayers();
+      const ownership = /* @__PURE__ */ new Map();
+      await Promise.all(leagues.map(async (lg) => {
+        try {
+          const rosters = await sleeperGet(`/league/${lg.league_id}/rosters`);
+          const mine = (rosters || []).find((r) => r.owner_id === user.user_id);
+          if (!mine) return;
+          const starterSet = /* @__PURE__ */ new Set(mine.starters || []);
+          for (const pid of mine.players || []) {
+            if (!pid || pid === "0") continue;
+            let e = ownership.get(pid);
+            if (!e) {
+              const rp = resolveSleeperPlayer(pid, players, "");
+              e = { player: rp.name, position: rp.position || "?", team: rp.team || "", leagues: 0, started: 0, names: [] };
+              ownership.set(pid, e);
+            }
+            e.leagues++;
+            if (starterSet.has(pid)) e.started++;
+            e.names.push(lg.name);
+          }
+        } catch { }
+      }));
+      let rows = [...ownership.values()];
+      if (position) rows = rows.filter((r) => r.position === position);
+      rows.sort((a, b) => b.leagues - a.leagues || b.started - a.started);
+      rows = rows.slice(0, limit).map((r) => ({ player: r.player, position: r.position, team: r.team, leagues: r.leagues, started: r.started, where: r.names.slice(0, 6).join(", ") }));
+      return `Sleeper user snooper — ${user.display_name || input.username} (${season}): ${leagues.length} leagues. Cross-league exposure (top ${rows.length}):
+
+${renderTable(input, rows, ["player", "position", "team", "leagues", "started", "where"])}`;
     }
     case "get_dynasty_values": {
       const format = input.format || "1qb";
@@ -41147,7 +41490,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.28";
+var SERVER_VERSION = "1.0.29";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
