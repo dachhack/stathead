@@ -193,6 +193,7 @@ const MCP_TOOLS: { fn: string; desc: string }[] = [
   { fn: 'get_dynasty_values', desc: 'In-house blended dynasty trade values (1QB + SF)' },
   { fn: 'get_rookie_snap_share', desc: 'Weekly rookie snap-share ramp tracker' },
   { fn: 'get_play_by_play', desc: 'Filterable play-by-play (player, red zone, down…)' },
+  { fn: 'get_player_features', desc: 'Why a player is scored as they are — feature drivers & direction' },
   { fn: 'get_sleeper_league', desc: 'Open a Sleeper league: format, standings, rosters' },
   { fn: 'get_sleeper_user_snooper', desc: 'Scout a manager’s cross-league player exposure' },
   { fn: 'export_excel', desc: 'Export projections/rankings to Excel — edit & re-import your own' },

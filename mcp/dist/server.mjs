@@ -38155,6 +38155,9 @@ async function fetchStatheadProjections() {
 async function fetchProjectionBase(season) {
   return await tryPreFetched(`projection-base-${season}.json`);
 }
+async function fetchModelEval(season) {
+  return await tryPreFetched(`model-eval-${season}.json`);
+}
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
@@ -39108,6 +39111,30 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_model_docs",
+    description: "How StatHead's models work and what drives them: a methodology overview (scored-player VOR hit/bust model, season projection pipeline, dynasty value, share models), the hit/bust thresholds and share-model cross-validation fit, and the TOP FEATURE IMPORTANCE per position (each feature's category, weight, and the direction of its relationship to the projection). Use to understand or explain the model. For one player's feature breakdown use get_player_features. Coverage: 2026.",
+    input_schema: {
+      type: "object",
+      properties: {
+        position: { type: "string", description: "Limit the feature-importance section to one position (QB, RB, WR, TE).", enum: ["QB", "RB", "WR", "TE"] }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_player_features",
+    description: "Feature evaluation for a SCORED player: the model's prediction (value-over-replacement, hit probability, confidence interval) plus the top feature 'drivers' — where the player lands vs the positional cohort (percentile band) and which way that feature pushes the projection. Proprietary/paid-sourced features are shown only as a qualitative magnitude band + direction (never a raw value or source). Use to explain WHY a player is scored the way they are. Coverage: 2026 scored skill players (QB/RB/WR/TE).",
+    input_schema: {
+      type: "object",
+      properties: {
+        player_name: { type: "string", description: "Player to explain (case-insensitive partial match)." },
+        position: { type: "string", description: "Disambiguate by position if the name matches several.", enum: ["QB", "RB", "WR", "TE"] },
+        limit: { type: "number", description: "Max feature drivers to show (default 8)." }
+      },
+      required: ["player_name"]
+    }
+  },
+  {
     name: "get_projections",
     description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026.`,
     input_schema: {
@@ -39825,7 +39852,7 @@ async function executeToolInner(name, input) {
         ].join("\n"),
         "## Analytic caveats (read before modeling)",
         [
-          "- These tools return **data**, not calibrated probabilities. Don't multiply marginal factors (base-rate \xD7 athleticism \xD7 age \xD7 opportunity) and call the product P(Hit) \u2014 the factors are correlated, so the result is systematically over-confident. Use such products as **ordinal ranking only**, or compare to historical joint-distribution comps.",
+          "- These tools return **data**, not calibrated probabilities. Don't multiply marginal factors (base-rate \xD7 athleticism \xD7 age \xD7 opportunity) and call the product P(Hit) \u2014 the factors are correlated, so the result is systematically over-confident. Use such products as **ordinal ranking only**, or compare to historical joint-distribution comps. For how the models weight factors call `get_model_docs`; for one player's drivers, `get_player_features`.",
           "- Empirical base rates with small n (<~20) have wide error bands (\xB1~10pp). Treat single-cell rates as estimates, not point predictions.",
           "- ECR and ADP reflect **market consensus**, not true probability. Compare to historical hit rates for ground truth.",
           "- Position PPG baselines differ: TE PPG \u2265 9 \u2248 WR PPG \u2265 11 \u2248 QB PPG \u2265 16. Don't compare PPG across positions without adjusting.",
@@ -41387,6 +41414,73 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows)}`;
     }
+    case "get_model_docs": {
+      const doc = await fetchModelEval(2026);
+      const posFilter = input.position?.toUpperCase();
+      const lines = [];
+      lines.push("# StatHead — model documentation");
+      lines.push("StatHead's outputs are model predictions, not certainties. The pieces:");
+      lines.push([
+        "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR, a z-scored fantasy finish) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. A player is a \"hit\"/\"bust\" when predicted VOR clears the position thresholds below. Per-player drivers: get_player_features.",
+        "- **Season projection pipeline (get_projections)**: team volume from a Ridge+LightGBM team ensemble is split to players by ML target/rush-share models, with games (health) and age-curve adjustments; veterans blend prior-year actual + 2yr avg + age curve, rookies use the rookie career model. By-team workbook: export_excel kind=by_team.",
+        "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale.",
+        "- **Prospect grades (get_prospect_outcomes)**: draft grade/tier + calibrated, draft-slot-relative boom/bust."
+      ].join("\n"));
+      if (doc) {
+        if (doc.posThresholds && Object.keys(doc.posThresholds).length) {
+          lines.push("\n## Hit / bust thresholds (predicted VOR)");
+          lines.push("pos | hit ≥ | bust ≤\n--- | --- | ---");
+          for (const [pos, t] of Object.entries(doc.posThresholds)) {
+            if (posFilter && pos !== posFilter) continue;
+            lines.push(`${pos} | ${t.hit} | ${t.bust}`);
+          }
+        }
+        if (doc.shareModelSummary && Object.keys(doc.shareModelSummary).length) {
+          lines.push("\n## Share-model fit (cross-validated)");
+          lines.push("model | cv R² | cv MAE | n\n--- | --- | --- | ---");
+          for (const [k, m] of Object.entries(doc.shareModelSummary)) {
+            lines.push(`${k} | ${m.cvR2 ?? ""} | ${m.cvMAE ?? ""} | ${m.n ?? ""}`);
+          }
+        }
+        const fi = doc.featureImportance || {};
+        lines.push("\n## Top feature importance by position");
+        lines.push("Relationship = direction vs the projection; proprietary/paid features are shown only as an anonymized category signal.");
+        for (const [pos, list] of Object.entries(fi)) {
+          if (posFilter && pos !== posFilter) continue;
+          lines.push(`\n**${pos}**`);
+          lines.push("feature | category | importance | relationship\n--- | --- | --- | ---");
+          for (const f of list) lines.push(`${f.label} | ${f.category} | ${f.importance} | ${f.relationship}`);
+        }
+        lines.push(`\n(${doc.note})`);
+      } else {
+        lines.push("\n(Feature-importance detail unavailable — model-eval artifact not found.)");
+      }
+      return lines.join("\n");
+    }
+    case "get_player_features": {
+      const doc = await fetchModelEval(2026);
+      if (!doc || !doc.players?.length) return "No model-eval data available.";
+      const q = input.player_name;
+      const posFilter = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 8, 1, 20);
+      let matches = doc.players.filter((p) => nameMatch(p.name, q) && (!posFilter || p.position === posFilter));
+      if (!matches.length) return `No scored player matching "${q}"${posFilter ? ` (${posFilter})` : ""}. Coverage: 2026 scored skill players (QB/RB/WR/TE). Try get_prospect_outcomes for draft prospects or get_projections for a PPG projection.`;
+      if (matches.length > 5) matches = matches.slice(0, 5);
+      const out = [];
+      for (const p of matches) {
+        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""}`);
+        out.push(`Prediction: VOR ${p.predictedVor} (${p.hitProb}); 80% CI ${p.ciLower}–${p.ciUpper}; ADP ${p.adp}.`);
+        out.push("Top feature drivers (where they land vs the positional field):");
+        out.push("feature | category | player | relationship\n--- | --- | --- | ---");
+        for (const d of p.drivers.slice(0, limit)) {
+          const cell = d.value !== void 0 ? `${d.band} (${d.value})` : d.band;
+          out.push(`${d.feature} | ${d.category} | ${cell} | ${d.relationship}`);
+        }
+        out.push("");
+      }
+      out.push("VOR = predicted value over replacement (z-scored fantasy finish); higher = better. Bands are vs the 2026 scored cohort at the position. Proprietary features show a band + direction only (no raw value). These are model drivers, not a hand-multiplied P(hit) — see get_metadata caveats.");
+      return out.join("\n");
+    }
     case "get_projections": {
       const position = input.position?.toUpperCase();
       const playerName = input.player_name;
@@ -41849,7 +41943,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.33";
+var SERVER_VERSION = "1.0.34";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
