@@ -79,13 +79,20 @@ claude mcp add stathead -- npx -y stathead-mcp
 Use the same `command`/`args` (`npx -y stathead-mcp`) in the client's MCP
 config.
 
-### Claude mobile apps / claude.ai web (remote connector)
+### Claude mobile apps / claude.ai web / Claude Desktop (remote connector)
 
-Those clients take a **URL**, not a local command. The same tools are hosted
-over MCP's Streamable HTTP transport by a Cloudflare Worker
-(`workers/stathead-mcp/`, deployed via `deploy-workers.yml`). Add its URL under
-**Settings → Connectors → Add custom connector**. The npm/stdio package above
-stays the path for Claude Desktop / Code.
+Prefer a URL over a local command? The same tools are hosted over MCP's
+Streamable HTTP transport by a Cloudflare Worker (`workers/stathead-mcp/`,
+deployed via `deploy-workers.yml`):
+
+```
+https://stathead-mcp.dachhack.workers.dev
+```
+
+Add it under **Settings → Connectors → Add custom connector**, paste the URL,
+and save — no command, no API key. (A `GET` to that URL returns a small health
+payload; clients `POST` JSON-RPC to it.) The npm/stdio package above stays the
+path for Claude Code and Cursor.
 
 ## Data sources & freshness
 
