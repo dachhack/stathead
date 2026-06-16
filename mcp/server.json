@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.dachhack/stathead-mcp",
-  "description": "Full set of fantasy football data analysis tools — stats, dynasty, projections, prospects, Sleeper league analysis, and editable Excel projections/rankings",
+  "description": "Fantasy football analytics: stats, dynasty, projections, prospects, Sleeper leagues, Excel I/O",
   "repository": {
     "url": "https://github.com/dachhack/stathead",
     "source": "github",
