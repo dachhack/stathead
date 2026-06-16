@@ -38955,6 +38955,46 @@ var NFL_TOOLS = [
       },
       required: ["season"]
     }
+  },
+  {
+    name: "export_excel",
+    noCommon: true,
+    description: "Export StatHead projections, rankings, or rookie rankings to a styled .xlsx workbook on the local disk — the same boards the website lets you download. Edit the highlighted columns in Excel/Sheets (Proj PPG for projections; My Rank for rankings/rookies), then feed the file back with import_excel so YOUR numbers drive every later analysis. Returns the absolute path of the written file.",
+    input_schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Which board to export. projections = StatHead season PPG (edit Proj PPG). rankings = redraft ECR board (edit My Rank). rookie_rankings = prospect grades/board (edit My Rank).", enum: ["projections", "rankings", "rookie_rankings"] },
+        path: { type: "string", description: "Output file path or directory. If a directory (or omitted), a dated filename is generated there. Default dir: $STATHEAD_DIR or the current working directory." },
+        position: { type: "string", description: "Filter to one position (QB, RB, WR, TE)." },
+        draft_year: { type: "number", description: "Draft class for rookie_rankings (2026 or 2027). Default 2026.", enum: [2026, 2027] },
+        limit: { type: "number", description: "Max rows to write (default 300)." }
+      },
+      required: ["kind"]
+    }
+  },
+  {
+    name: "import_excel",
+    noCommon: true,
+    description: "Read back an .xlsx workbook that you exported with export_excel and (optionally) edited, and save your custom values as overrides. After import, get_projections / get_fantasy_rankings / get_prospect_outcomes automatically use YOUR Proj PPG and rankings (flagged in the output) until you run clear_overrides. The workbook kind is auto-detected from its Meta sheet. Returns a summary of what was applied.",
+    input_schema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Path to the .xlsx file to import (the one you exported and edited)." }
+      },
+      required: ["path"]
+    }
+  },
+  {
+    name: "clear_overrides",
+    noCommon: true,
+    description: "Remove custom projections/rankings overrides previously saved via import_excel, so analysis tools revert to StatHead's own model. Optionally clear just one kind.",
+    input_schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Which overrides to clear. Default: all.", enum: ["projections", "rankings", "rookie_rankings", "all"] }
+      },
+      required: []
+    }
   }
 ];
 var COMMON_OUTPUT_PARAMS = {
@@ -38969,7 +39009,7 @@ var COMMON_OUTPUT_PARAMS = {
   }
 };
 for (const t of NFL_TOOLS) {
-  if (t.name === "get_metadata") continue;
+  if (t.name === "get_metadata" || t.noCommon) continue;
   const props = t.input_schema.properties;
   for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
     if (!(k in props)) props[k] = v;
@@ -39040,6 +39080,392 @@ function pickColumns(row, cols) {
   }
   return out;
 }
+// ───────────────────────────────────────────────────────────────────────────
+// Excel (OOXML .xlsx) export/import + user override store.
+//
+// Zero new dependencies: the zip container is hand-built and DEFLATE is handled
+// by Node's built-in zlib, so we can both WRITE styled workbooks and READ back
+// the ones Excel/Sheets re-save (which always use deflate). This mirrors the
+// website's ExcelJS export/import (src/lib/rankingsXlsx.ts), giving MCP users
+// the same "download a board, edit it, re-upload it" loop — but over the local
+// filesystem instead of a browser download.
+// ───────────────────────────────────────────────────────────────────────────
+
+var _crcTable = null;
+function crc32(buf) {
+  if (!_crcTable) {
+    _crcTable = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+      _crcTable[n] = c;
+    }
+  }
+  let crc = ~0;
+  for (let i = 0; i < buf.length; i++) crc = _crcTable[(crc ^ buf[i]) & 255] ^ crc >>> 8;
+  return (~crc) >>> 0;
+}
+
+async function zipBuffers(files) {
+  const zlib = await import("node:zlib");
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const f of files) {
+    const nameBuf = Buffer.from(f.name, "utf8");
+    const data = Buffer.isBuffer(f.data) ? f.data : Buffer.from(f.data, "utf8");
+    const crc = crc32(data);
+    const comp = zlib.deflateRawSync(data);
+    const store = comp.length >= data.length;
+    const method = store ? 0 : 8;
+    const body = store ? data : comp;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(67324752, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt16LE(0, 10);
+    local.writeUInt16LE(33, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(body.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    local.writeUInt16LE(0, 28);
+    parts.push(local, nameBuf, body);
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(33639248, 0);
+    cd.writeUInt16LE(20, 4);
+    cd.writeUInt16LE(20, 6);
+    cd.writeUInt16LE(0, 8);
+    cd.writeUInt16LE(method, 10);
+    cd.writeUInt16LE(0, 12);
+    cd.writeUInt16LE(33, 14);
+    cd.writeUInt32LE(crc, 16);
+    cd.writeUInt32LE(body.length, 20);
+    cd.writeUInt32LE(data.length, 24);
+    cd.writeUInt16LE(nameBuf.length, 28);
+    cd.writeUInt16LE(0, 30);
+    cd.writeUInt16LE(0, 32);
+    cd.writeUInt16LE(0, 34);
+    cd.writeUInt16LE(0, 36);
+    cd.writeUInt32LE(0, 38);
+    cd.writeUInt32LE(offset, 42);
+    central.push(cd, nameBuf);
+    offset += local.length + nameBuf.length + body.length;
+  }
+  const centralBuf = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(101010256, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralBuf.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...parts, centralBuf, end]);
+}
+
+async function unzipBuffers(buf) {
+  const zlib = await import("node:zlib");
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.readUInt32LE(i) === 101010256) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Not a valid .xlsx file (no zip end-of-central-directory).");
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const out = {};
+  for (let i = 0; i < count && p + 46 <= buf.length; i++) {
+    if (buf.readUInt32LE(p) !== 33639248) break;
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const localOff = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    const lNameLen = buf.readUInt16LE(localOff + 26);
+    const lExtraLen = buf.readUInt16LE(localOff + 28);
+    const dataStart = localOff + 30 + lNameLen + lExtraLen;
+    const comp = buf.subarray(dataStart, dataStart + compSize);
+    out[name] = method === 0 ? Buffer.from(comp) : zlib.inflateRawSync(comp);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+function xmlEsc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function colLetter(n) {
+  let s = "";
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
+  return s;
+}
+function colToNum(letters) {
+  let n = 0;
+  for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+
+// Style indices baked into STYLES_XML below.
+var STYLE = { default: 0, header: 1, headerLeft: 2, banner: 3, num1: 4, pct: 5, bold: 6, edit: 7, editHeader: 8 };
+var STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="2"><numFmt numFmtId="164" formatCode="0.0"/><numFmt numFmtId="165" formatCode="0%"/></numFmts>' +
+  '<fonts count="4">' +
+  '<font><sz val="11"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="9"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="13"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+  '<font><b/><sz val="11"/><name val="Calibri"/></font>' +
+  '</fonts>' +
+  '<fills count="5">' +
+  '<fill><patternFill patternType="none"/></fill>' +
+  '<fill><patternFill patternType="gray125"/></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF1F2937"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF0E7C66"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF3C4"/><bgColor indexed="64"/></patternFill></fill>' +
+  '</fills>' +
+  '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="9">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left"/></xf>' +
+  '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+  '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '<xf numFmtId="164" fontId="3" fillId="4" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center"/></xf>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+// Build a worksheet XML from a grid of cells. Each cell: { v, t: "s"|"n",
+// s: styleIndex }. `shared` is the running shared-string table (array + index map).
+function buildSheetXml(sheet, shared) {
+  const { rows, columns, freezeRows, merges } = sheet;
+  let cols = "";
+  if (columns && columns.length) {
+    cols = "<cols>" + columns.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width || 10}" customWidth="1"/>`).join("") + "</cols>";
+  }
+  let body = "";
+  rows.forEach((row, ri) => {
+    const r = ri + 1;
+    let cells = "";
+    row.forEach((cell, ci) => {
+      if (cell == null) return;
+      const ref = colLetter(ci + 1) + r;
+      const s = cell.s ? ` s="${cell.s}"` : "";
+      if (cell.t === "s") {
+        let idx = shared.map.get(cell.v);
+        if (idx === void 0) { idx = shared.arr.length; shared.arr.push(cell.v); shared.map.set(cell.v, idx); }
+        cells += `<c r="${ref}"${s} t="s"><v>${idx}</v></c>`;
+      } else if (cell.t === "n") {
+        cells += `<c r="${ref}"${s}><v>${cell.v}</v></c>`;
+      } else {
+        cells += `<c r="${ref}"${s}/>`;
+      }
+    });
+    body += `<row r="${r}">${cells}</row>`;
+  });
+  let views = "";
+  if (freezeRows) {
+    views = `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${freezeRows}" topLeftCell="A${freezeRows + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>`;
+  }
+  let mergeXml = "";
+  if (merges && merges.length) {
+    mergeXml = `<mergeCells count="${merges.length}">` + merges.map((m) => `<mergeCell ref="${m}"/>`).join("") + "</mergeCells>";
+  }
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    views + cols + `<sheetData>${body}</sheetData>` + mergeXml + "</worksheet>";
+}
+
+// sheets: [{ name, rows, columns?, freezeRows?, merges? }]
+async function buildWorkbook(sheets) {
+  const shared = { arr: [], map: /* @__PURE__ */ new Map() };
+  const sheetXmls = sheets.map((s) => buildSheetXml(s, shared));
+  const sst = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${shared.arr.length}" uniqueCount="${shared.arr.length}">` +
+    shared.arr.map((s) => `<si><t xml:space="preserve">${xmlEsc(s)}</t></si>`).join("") + "</sst>";
+  const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+    sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") +
+    "</Types>";
+  const rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    "</Relationships>";
+  const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("") +
+    `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+    `<Relationship Id="rId${sheets.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>` +
+    "</Relationships>";
+  const workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    "<sheets>" + sheets.map((s, i) => `<sheet name="${xmlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + "</sheets></workbook>";
+  const files = [
+    { name: "[Content_Types].xml", data: contentTypes },
+    { name: "_rels/.rels", data: rootRels },
+    { name: "xl/workbook.xml", data: workbook },
+    { name: "xl/_rels/workbook.xml.rels", data: wbRels },
+    { name: "xl/styles.xml", data: STYLES_XML },
+    { name: "xl/sharedStrings.xml", data: sst }
+  ];
+  sheetXmls.forEach((xml, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xml }));
+  return zipBuffers(files);
+}
+
+// A styled board: row 1 = merged title banner, row 2 = column headers (the
+// editable column highlighted), rows 3+ = data. dataRows are arrays of cell
+// objects ({ v, t, s }); editColIdx marks the editable header column.
+function makeBoardSheet(name, title, headers, dataRows, editColIdx, colWidths) {
+  const ncol = headers.length;
+  const banner = [{ v: title, t: "s", s: STYLE.banner }];
+  for (let c = 1; c < ncol; c++) banner.push({ v: "", t: "s", s: STYLE.banner });
+  const header = headers.map((h, i) => ({ v: h, t: "s", s: i === editColIdx ? STYLE.editHeader : i === 1 ? STYLE.headerLeft : STYLE.header }));
+  const rows = [banner, header, ...dataRows];
+  const columns = (colWidths || headers.map(() => 12)).map((w) => ({ width: w }));
+  return { name, rows, columns, freezeRows: 2, merges: [`A1:${colLetter(ncol)}1`] };
+}
+function makeMetaSheet(pairs) {
+  const rows = pairs.map(([k, v]) => [{ v: String(k), t: "s", s: STYLE.bold }, { v: String(v ?? ""), t: "s" }]);
+  return { name: "Meta", rows, columns: [{ width: 16 }, { width: 64 }] };
+}
+
+// Parse a workbook back into { sheetName: rows[][] } of raw cell values
+// (numbers stay numbers, strings stay strings). Enough to header-match on import.
+function parseSharedStrings(xml) {
+  const out = [];
+  if (!xml) return out;
+  const reSi = /<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = reSi.exec(xml))) {
+    const inner = m[1];
+    let text = "";
+    const reT = /<t[^>]*>([\s\S]*?)<\/t>/g;
+    let tm;
+    while ((tm = reT.exec(inner))) text += tm[1];
+    out.push(unxml(text));
+  }
+  return out;
+}
+function unxml(s) {
+  return s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+function parseSheet(xml, sst) {
+  const rows = [];
+  const reRow = /<row[^>]*\br="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  let rm;
+  while ((rm = reRow.exec(xml))) {
+    const rowArr = [];
+    const reCell = /<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cm;
+    while ((cm = reCell.exec(rm[2]))) {
+      const attrs = cm[1];
+      const refMatch = /\br="([A-Z]+)\d+"/.exec(attrs);
+      if (!refMatch) continue;
+      const ci = colToNum(refMatch[1]) - 1;
+      const tMatch = /\bt="([^"]+)"/.exec(attrs);
+      const type = tMatch ? tMatch[1] : "n";
+      const inner = cm[2] || "";
+      let val = null;
+      if (type === "s") {
+        const vM = /<v>([\s\S]*?)<\/v>/.exec(inner);
+        if (vM) val = sst[Number(vM[1])] ?? "";
+      } else if (type === "inlineStr" || type === "str") {
+        const tM = /<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+        val = tM ? unxml(tM[1]) : "";
+      } else {
+        const vM = /<v>([\s\S]*?)<\/v>/.exec(inner);
+        if (vM) { const n = Number(vM[1]); val = Number.isFinite(n) ? n : unxml(vM[1]); }
+      }
+      rowArr[ci] = val;
+    }
+    rows[Number(rm[1]) - 1] = rowArr;
+  }
+  return rows.map((r) => r || []);
+}
+async function readWorkbook(filePath) {
+  const fs = await import("node:fs");
+  const buf = fs.readFileSync(filePath);
+  const parts = await unzipBuffers(buf);
+  const dec = (b) => (b ? b.toString("utf8") : "");
+  const sst = parseSharedStrings(dec(parts["xl/sharedStrings.xml"]));
+  // Map sheet rId -> file via workbook.xml + rels, but names are enough here.
+  const wbXml = dec(parts["xl/workbook.xml"]);
+  const relsXml = dec(parts["xl/_rels/workbook.xml.rels"]);
+  const relTarget = {};
+  let rmatch;
+  const reRel = /<Relationship\b[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g;
+  while ((rmatch = reRel.exec(relsXml))) relTarget[rmatch[1]] = rmatch[2];
+  const sheets = {};
+  const reSheet = /<sheet\b[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g;
+  let sm;
+  let idx = 0;
+  while ((sm = reSheet.exec(wbXml))) {
+    idx++;
+    const name = unxml(sm[1]);
+    let target = relTarget[sm[2]] || `worksheets/sheet${idx}.xml`;
+    if (!target.startsWith("xl/")) target = "xl/" + target.replace(/^\//, "");
+    const sx = dec(parts[target]);
+    sheets[name] = sx ? parseSheet(sx, sst) : [];
+  }
+  return sheets;
+}
+
+// ── Override store (auto-applied by analysis tools) ──
+async function overridesPath() {
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const dir = process.env.STATHEAD_DIR || path.join(os.homedir(), ".stathead");
+  return { dir, file: path.join(dir, "overrides.json") };
+}
+async function loadOverrides() {
+  try {
+    const fs = await import("node:fs");
+    const { file } = await overridesPath();
+    if (!fs.existsSync(file)) return {};
+    return JSON.parse(fs.readFileSync(file, "utf8")) || {};
+  } catch {
+    return {};
+  }
+}
+async function saveOverrides(ov) {
+  const fs = await import("node:fs");
+  const { dir, file } = await overridesPath();
+  fs.mkdirSync(dir, { recursive: true });
+  ov.updated = (/* @__PURE__ */ new Date()).toISOString();
+  fs.writeFileSync(file, JSON.stringify(ov, null, 2));
+  return file;
+}
+
+function resolveOutPath(input, defaultName) {
+  const p = input.path;
+  if (!p) {
+    const base = process.env.STATHEAD_DIR || process.cwd();
+    return require_join(base, defaultName);
+  }
+  // If it looks like a directory (ends with separator or has no .xlsx), append.
+  if (/\.xlsx$/i.test(p)) return p;
+  return require_join(p.replace(/[\\/]+$/, ""), defaultName);
+}
+function require_join(a, b) {
+  const sep = a.includes("\\") && !a.includes("/") ? "\\" : "/";
+  return a.replace(/[\\/]+$/, "") + sep + b;
+}
+function datedName(kind, tag) {
+  const d = /* @__PURE__ */ new Date();
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `stathead-${kind}-${tag}-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}.xlsx`;
+}
+
 async function executeTool(name, input) {
   try {
     const result = await executeToolInner(name, input);
@@ -39096,6 +39522,13 @@ async function executeToolInner(name, input) {
         [
           '- `fields`: comma-separated column projection, e.g. "player_name,games,fantasy_points_ppr"',
           "- `output_format`: `table` (default) | `csv` | `jsonl` \u2014 use csv/jsonl to roughly halve tokens on large pulls"
+        ].join("\n"),
+        "## Bring your own projections / rankings (Excel)",
+        [
+          "- `export_excel` writes a styled `.xlsx` of `projections`, `rankings`, or `rookie_rankings` to local disk (same boards the website downloads).",
+          "- Edit the highlighted column (Proj PPG, or My Rank) in Excel/Sheets, then `import_excel` reads it back and saves your values as overrides.",
+          "- After import, `get_projections` / `get_fantasy_rankings` / `get_prospect_outcomes` auto-use YOUR numbers (flagged in output) until `clear_overrides`.",
+          "- Files default to `$STATHEAD_DIR` or the cwd; overrides persist in `$STATHEAD_DIR`/`~/.stathead/overrides.json`."
         ].join("\n"),
         "## Analytic caveats (read before modeling)",
         [
@@ -39517,10 +39950,33 @@ ${renderTable(input, rows, cols)}`;
       const limit = clamp(input.limit || 50, 1, 200);
       let rankings = await fetchFantasyRankings();
       if (position) rankings = rankings.filter((r) => r.pos === position.toUpperCase());
+      let rkOvNote = "";
+      let rkOvCount = 0;
+      const rkOv = await loadOverrides();
+      if (rkOv.rankings?.byName && Object.keys(rkOv.rankings.byName).length) {
+        // Your board is a single page_type (best-overall or best-<pos>); the raw
+        // feed repeats each player across many boards, so scope to that one to
+        // avoid duplicate rows.
+        const board = rkOv.rankings.board || "best-overall";
+        const scoped = rankings.filter((r) => r.page_type === board);
+        if (scoped.length) rankings = scoped;
+        rankings = rankings.map((r) => {
+          const o = rkOv.rankings.byName[normalizeNameForMatch(r.player)];
+          return o && Number.isFinite(Number(o.rank)) ? { ...r, your_rank: Number(o.rank) } : r;
+        });
+        rkOvCount = rankings.filter((r) => r.your_rank != null).length;
+        if (rkOvCount) {
+          rankings = [...rankings].sort((a, b) => {
+            const av = a.your_rank ?? Infinity, bv = b.your_rank ?? Infinity;
+            return av !== bv ? av - bv : Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9);
+          });
+          rkOvNote = ` — your_rank column reflects ${rkOvCount} ranking(s) from your uploaded sheet (import_excel); board sorted by it. Run clear_overrides to revert`;
+        }
+      }
       rankings = rankings.slice(0, limit);
-      const cols = ["player", "pos", "team", "ecr", "sd", "best", "worst", "player_owned_avg", "page_type"];
+      const cols = (rkOvCount ? ["your_rank"] : []).concat(["player", "pos", "team", "ecr", "sd", "best", "worst", "player_owned_avg", "page_type"]);
       const rows = rankings.map((r) => pickColumns(r, cols));
-      return `Fantasy rankings (${rankings.length} players):
+      return `Fantasy rankings (${rankings.length} players)${rkOvNote}:
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -40243,6 +40699,17 @@ ${renderTable(input, rows, cols)}`;
           outperfPctile: b ? num(b.outperfPctile) : ""
         };
       });
+      let rkBoardNote = "";
+      let rkBoardCount = 0;
+      const poOv = await loadOverrides();
+      if (poOv.rookies?.byName && Object.keys(poOv.rookies.byName).length) {
+        rows = rows.map((r) => {
+          const o = poOv.rookies.byName[normalizeNameForMatch(r.name)];
+          const your_rank = o && Number.isFinite(Number(o.rank)) ? Number(o.rank) : "";
+          if (your_rank !== "") rkBoardCount++;
+          return { your_rank, ...r };
+        });
+      }
       const ASC = /* @__PURE__ */ new Set(["projPick", "projRound", "bustProb"]);
       const dir = ASC.has(sortBy) ? 1 : -1;
       rows.sort((a, b) => {
@@ -40255,9 +40722,14 @@ ${renderTable(input, rows, cols)}`;
         if (!bok) return -1;
         return (an - bn) * dir;
       });
+      if (rkBoardCount && !input.sort_by) {
+        const yr = (v) => v === "" || v == null || !Number.isFinite(Number(v)) ? Infinity : Number(v);
+        rows.sort((a, b) => yr(a.your_rank) - yr(b.your_rank));
+        rkBoardNote = ` your_rank reflects ${rkBoardCount} pick(s) from your uploaded sheet (import_excel); sorted by it. Run clear_overrides to revert.`;
+      }
       rows = rows.slice(0, limit);
       const bbNote = draftYear === 2026 ? "" : " (boom/bust probabilities are 2026-class only; grades shown)";
-      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}. boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
+      return `Prospect outcomes \u2014 ${draftYear} class (${rows.length} players, sorted by ${sortBy})${bbNote}.${rkBoardNote} boomProb/bustProb are RELATIVE to draft slot (P of beating/missing the slot-based expectation), not absolute fantasy outcomes \u2014 use grade/projPick for absolute value; see get_metadata caveats:
 
 ${renderTable(input, rows)}`;
     }
@@ -40318,6 +40790,17 @@ ${renderTable(input, rows)}`;
           presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
         }
       }
+      let ovNote = "";
+      const ovDoc = await loadOverrides();
+      if (ovDoc.projections?.byName) {
+        let ovCount = 0;
+        pool = pool.map((p) => {
+          const o = ovDoc.projections.byName[normalizeNameForMatch(p.name)];
+          if (o && Number.isFinite(Number(o.ppg))) { ovCount++; return { ...p, ppg: Number(o.ppg) }; }
+          return p;
+        });
+        if (ovCount) ovNote = ` ${ovCount} value(s) overridden from your uploaded sheet (import_excel); run clear_overrides to revert.`;
+      }
       let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
       rows.sort((a, b) => {
         const an = Number(a[sortBy]);
@@ -40332,7 +40815,7 @@ ${renderTable(input, rows)}`;
       rows = rows.slice(0, limit);
       const cols = ["name", "position", "ppg", "recPG"];
       const out = rows.map((r) => pickColumns(r, cols));
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}${ovNote}
 
 ${renderTable(input, out, cols)}`;
     }
@@ -40473,13 +40956,198 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
+    case "export_excel": {
+      const kind = (input.kind || "").toLowerCase();
+      const position = input.position?.toUpperCase();
+      const limit = clamp(input.limit || 300, 1, 1e3);
+      const S = (v, s) => { const c = { v: String(v ?? ""), t: "s" }; if (s) c.s = s; return c; };
+      const Nc = (v, s) => { const num = Number(v); if (v == null || v === "" || !Number.isFinite(num)) return null; const c = { v: num, t: "n" }; if (s) c.s = s; return c; };
+      const r1 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 10) / 10 : v;
+      const r2 = (v) => Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : v;
+      let board, metaKind, tag, editLabel;
+      if (kind === "projections") {
+        const doc = await fetchStatheadProjections();
+        if (!doc || !doc.players?.length) return "No StatHead projections available to export.";
+        const season = doc.season;
+        const scoring = (doc.scoring || "ppr").toUpperCase();
+        let pool = doc.players.filter((p) => !position || (p.position || "").toUpperCase() === position);
+        pool.sort((a, b) => Number(b.ppg || 0) - Number(a.ppg || 0));
+        pool = pool.slice(0, limit);
+        const headers = ["Rank", "Player", "Pos", "Proj PPG", "Rec/G"];
+        const dataRows = pool.map((p, i) => [Nc(i + 1), S(p.name), S(p.position), Nc(r1(p.ppg), STYLE.edit), Nc(r1(p.recPG), STYLE.num1)]);
+        board = makeBoardSheet("Projections", `Stat Head — Projections (${season} · ${scoring}) — edit Proj PPG`, headers, dataRows, 3, [6, 26, 6, 11, 8]);
+        metaKind = "projections"; tag = String(season); editLabel = "Proj PPG";
+        var metaInfo = [["Season", season], ["Scoring", scoring]];
+      } else if (kind === "rankings") {
+        const boardId = position ? `best-${position.toLowerCase()}` : "best-overall";
+        let rk = await fetchFantasyRankings();
+        let scoped = rk.filter((r) => r.page_type === boardId);
+        if (!scoped.length && position) scoped = rk.filter((r) => (r.pos || "").toUpperCase() === position);
+        rk = scoped;
+        rk.sort((a, b) => Number(a.ecr ?? 1e9) - Number(b.ecr ?? 1e9));
+        rk = rk.slice(0, limit);
+        const headers = ["My Rank", "Player", "Pos", "Team", "ECR", "Owned %"];
+        const dataRows = rk.map((r, i) => [Nc(i + 1, STYLE.edit), S(r.player), S(r.pos), S(r.team || ""), Nc(r1(r.ecr), STYLE.num1), Nc(r.player_owned_avg != null ? Math.round(r.player_owned_avg) : null)]);
+        board = makeBoardSheet("Rankings", `Stat Head — Rankings${position ? ` (${position})` : ""} — edit My Rank`, headers, dataRows, 0, [8, 26, 6, 7, 8, 8]);
+        metaKind = "rankings"; tag = position ? position.toLowerCase() : "overall"; editLabel = "My Rank";
+        var metaInfo = [["Board", boardId]];
+      } else if (kind === "rookie_rankings") {
+        const draftYear = input.draft_year || 2026;
+        const [grades, boombust] = await Promise.all([
+          fetchProspectGrades(draftYear),
+          draftYear === 2026 ? fetchProspectBoomBust() : Promise.resolve([])
+        ]);
+        if (!grades.length) return `No prospect grades for the ${draftYear} class. Available: 2026, 2027.`;
+        const bbByName = /* @__PURE__ */ new Map();
+        for (const b of boombust) bbByName.set(normalizeNameForMatch(b.name), b);
+        let rows = grades.filter((g) => !position || (g.pos || "").toUpperCase() === position);
+        rows.sort((a, b) => Number(b.grade || 0) - Number(a.grade || 0));
+        rows = rows.slice(0, limit);
+        const headers = ["My Rank", "Player", "Pos", "School", "Grade", "Tier", "Proj Pick", "Boom%", "Bust%"];
+        const dataRows = rows.map((g, i) => {
+          const b = bbByName.get(normalizeNameForMatch(g.name));
+          return [Nc(i + 1, STYLE.edit), S(g.name), S(g.pos), S(g.school || ""), Nc(r1(g.grade), STYLE.num1), S(g.tier || ""), Nc(g.projPick), Nc(b ? r2(b.boomProb) : null), Nc(b ? r2(b.bustProb) : null)];
+        });
+        board = makeBoardSheet("Rookie Rankings", `Stat Head — Rookie Rankings (${draftYear})${position ? ` · ${position}` : ""} — edit My Rank`, headers, dataRows, 0, [8, 24, 6, 14, 7, 16, 9, 8, 8]);
+        metaKind = "rookie_rankings"; tag = String(draftYear); editLabel = "My Rank";
+        var metaInfo = [["Draft Year", draftYear]];
+      } else {
+        return `Unknown kind "${input.kind}". Use projections, rankings, or rookie_rankings.`;
+      }
+      const meta = makeMetaSheet([
+        ["Template", "stathead-mcp-v1"],
+        ["Kind", metaKind],
+        ...metaInfo,
+        ["Editable column", editLabel],
+        ["Exported", (/* @__PURE__ */ new Date()).toISOString()],
+        ["How to use", `Edit the ${editLabel} column, then run import_excel with this file's path.`],
+        ["Note", "Re-imported values auto-apply to analysis until you run clear_overrides."]
+      ]);
+      const wb = await buildWorkbook([board, meta]);
+      const fs = await import("node:fs");
+      const pathMod = await import("node:path");
+      const outPath = resolveOutPath(input, datedName(metaKind, tag));
+      fs.mkdirSync(pathMod.dirname(pathMod.resolve(outPath)), { recursive: true });
+      fs.writeFileSync(outPath, wb);
+      const abs = pathMod.resolve(outPath);
+      const nRows = board.rows.length - 2;
+      return `Wrote ${metaKind} workbook (${nRows} rows) to:
+${abs}
+
+Edit the **${editLabel}** column in Excel/Google Sheets, then run:
+  import_excel  path="${abs}"
+— your values will auto-apply to get_projections / get_fantasy_rankings / get_prospect_outcomes until you run clear_overrides.`;
+    }
+    case "import_excel": {
+      const fs = await import("node:fs");
+      const file = input.path;
+      if (!file) return "Provide path to the .xlsx file to import.";
+      if (!fs.existsSync(file)) return `File not found: ${file}`;
+      let sheets;
+      try {
+        sheets = await readWorkbook(file);
+      } catch (e) {
+        return `Could not read workbook: ${e instanceof Error ? e.message : String(e)}`;
+      }
+      const metaGrid = sheets["Meta"] || sheets["meta"] || Object.entries(sheets).find(([n]) => n.toLowerCase() === "meta")?.[1];
+      let kind = null;
+      let metaBoard = null;
+      if (metaGrid) {
+        for (const row of metaGrid) {
+          const k = String(row[0] || "").toLowerCase();
+          if (k === "kind") kind = String(row[1] || "").toLowerCase().trim();
+          if (k === "board") metaBoard = String(row[1] || "").trim();
+        }
+      }
+      const dataName = Object.keys(sheets).find((n) => n.toLowerCase() !== "meta");
+      const grid = (dataName && sheets[dataName]) || [];
+      // Locate the header row by content (banner row above it is fine).
+      let headerIdx = -1;
+      const colMap = {};
+      for (let i = 0; i < Math.min(grid.length, 8) && headerIdx < 0; i++) {
+        const row = grid[i] || [];
+        const m = {};
+        row.forEach((cell, ci) => {
+          const t = String(cell ?? "").toLowerCase().trim();
+          if (!t) return;
+          if (t === "rank" || t === "my rank" || t === "#") m.rank = ci;
+          else if (t === "player" || t === "name") m.name = ci;
+          else if (t === "pos" || t === "position") m.pos = ci;
+          else if (t === "proj ppg" || t === "ppg" || t === "points") m.ppg = ci;
+          else if (t === "grade") m.grade = ci;
+          else if (t === "ecr") m.ecr = ci;
+          else if (t === "tier") m.tier = ci;
+        });
+        if (m.name != null) { headerIdx = i; Object.assign(colMap, m); }
+      }
+      if (headerIdx < 0) return 'No header row with a "Player" column found — is this a Stat Head export_excel workbook?';
+      if (!kind) {
+        if (colMap.ppg != null) kind = "projections";
+        else if (colMap.grade != null || colMap.tier != null) kind = "rookie_rankings";
+        else kind = "rankings";
+      }
+      const entries = [];
+      for (let i = headerIdx + 1; i < grid.length; i++) {
+        const row = grid[i] || [];
+        const name = String(row[colMap.name] ?? "").trim();
+        if (!name) continue;
+        const pos = String(row[colMap.pos] ?? "").trim().toUpperCase();
+        entries.push({ name, pos, row });
+      }
+      const ov = await loadOverrides();
+      let applied = 0;
+      const num = (ci, row) => { if (ci == null) return null; const n = Number(row[ci]); return Number.isFinite(n) ? n : null; };
+      if (kind === "projections") {
+        const byName = {};
+        for (const e of entries) {
+          const ppg = num(colMap.ppg, e.row);
+          if (ppg == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, position: e.pos, ppg };
+          applied++;
+        }
+        ov.projections = { byName, imported: file };
+      } else if (kind === "rookie_rankings") {
+        const byName = {};
+        for (const e of entries) {
+          const rank = num(colMap.rank, e.row);
+          if (rank == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, pos: e.pos, rank };
+          applied++;
+        }
+        ov.rookies = { byName, imported: file };
+      } else {
+        const byName = {};
+        for (const e of entries) {
+          const rank = num(colMap.rank, e.row);
+          if (rank == null) continue;
+          byName[normalizeNameForMatch(e.name)] = { name: e.name, position: e.pos, rank };
+          applied++;
+        }
+        ov.rankings = { byName, board: metaBoard || "best-overall", imported: file };
+      }
+      const saved = await saveOverrides(ov);
+      const target = kind === "projections" ? "get_projections" : kind === "rookie_rankings" ? "get_prospect_outcomes" : "get_fantasy_rankings";
+      return `Imported ${applied} ${kind} override(s) from ${file}.
+Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.`;
+    }
+    case "clear_overrides": {
+      const which = (input.kind || "all").toLowerCase();
+      const ov = await loadOverrides();
+      const had = [];
+      const drop = (k, label) => { if (ov[k]) { had.push(label); delete ov[k]; } };
+      if (which === "all" || which === "projections") drop("projections", "projections");
+      if (which === "all" || which === "rankings") drop("rankings", "rankings");
+      if (which === "all" || which === "rookie_rankings") drop("rookies", "rookie_rankings");
+      await saveOverrides(ov);
+      return had.length ? `Cleared overrides: ${had.join(", ")}. Analysis tools now use StatHead's own model.` : "No matching overrides were set.";
+    }
     default:
       return `Unknown tool: ${name}`;
   }
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.27";
+var SERVER_VERSION = "1.0.28";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
