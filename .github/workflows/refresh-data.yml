@@ -75,17 +75,39 @@ jobs:
           fi
           echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
 
-      # Rebuild the projection base pool headlessly — the SAME pure builder the
-      # Projections tab uses (src/lib/buildProjectionPool.ts) — then run the
-      # scenario-engine presets over it, so the MCP's preset projections refresh
-      # automatically with the data. Both outputs are derived StatHead numbers;
-      # the intermediate pool (projection-base-2026.json) is gitignored and not
-      # committed — only the blended/derived presets file ships. Runs after
-      # `npm run build` so feature-matrix.json + score-store shards exist.
-      - name: Build projection presets
+      # Rebuild the FIRST-PARTY projection base pool headlessly — the SAME pure
+      # builder the Projections tab uses (src/lib/buildProjectionPool.ts) — then
+      # run the scenario-engine presets over it so the MCP's preset projections
+      # refresh automatically with the data. Both outputs are derived StatHead
+      # numbers and committed: projection-base-2026.json powers the MCP's
+      # by-team Excel; redraft-projections-presets.json powers preset queries.
+      #
+      # The Consensus preset blends toward Mike Clay's paid (ESPN+) numbers,
+      # which we must NOT commit or ship. We materialize the raw extract from
+      # the CLAY_PROJECTIONS_B64 secret (base64 of gzipped
+      # clay-projections-<season>.json) ONLY here — after `npm run build`, so it
+      # never enters dist/ — use it to rebuild the derived presets, then delete
+      # it (it's also gitignored, so it can never be committed). build:pool needs
+      # no Clay (Clay never touches the base pool's stat lines). If the secret is
+      # unset, the base pool still refreshes and the existing committed presets
+      # (with Consensus) are preserved untouched.
+      # Runs after `npm run build` so feature-matrix.json + score-store exist.
+      - name: Build projection base + presets
+        env:
+          CLAY_PROJECTIONS_B64: ${{ secrets.CLAY_PROJECTIONS_B64 }}
         run: |
+          SEASON=2026
           npm run build:pool
-          npm run build:presets
+          if [ -n "$CLAY_PROJECTIONS_B64" ]; then
+            printf '%s' "$CLAY_PROJECTIONS_B64" | base64 -d | gunzip > "public/data/clay-projections-${SEASON}.json" \
+              && echo "Materialized clay-projections-${SEASON}.json ($(du -h public/data/clay-projections-${SEASON}.json | cut -f1)) from secret"
+            npm run build:presets
+            rm -f public/data/clay-projections-*.json public/data/clay-team-projections-*.json \
+                  public/data/clay-unit-grades-*.json public/data/clay-matchups-*.json
+            echo "Rebuilt Consensus presets; deleted raw Clay extracts (never committed/shipped)."
+          else
+            echo "CLAY_PROJECTIONS_B64 not set — refreshed base pool only; existing Consensus presets preserved."
+          fi
 
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
@@ -130,6 +152,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
+                  public/data/projection-base-2026.json \
                   public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \
                   public/data/score-store/ \
