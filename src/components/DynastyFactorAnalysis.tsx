@@ -3,14 +3,14 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Label,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory, PlayerStats } from '../types';
-import { fetchKTCRankings, fetchKTCHistory, fetchPlayerStats, fetchCombine, fetchDraftPicks } from '../data';
+import type { DynastyPlayer, DynastyPlayerHistory, PlayerStats } from '../types';
+import { fetchDynastyRankings, fetchDynastyHistory, fetchPlayerStats, fetchCombine, fetchDraftPicks } from '../data';
 import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
 
 interface RBFactorRow {
   name: string;
   team: string;
-  // KTC values
+  // Dynasty values
   septValue: number;
   decValue: number;
   valueDelta: number;
@@ -80,7 +80,7 @@ function pearson(xs: number[], ys: number[]): number {
 }
 
 
-// Extract value closest to a target month from KTC history
+// Extract value closest to a target month from Dynasty history
 function getValueNearMonth(
   history: { d: string; v: number }[],
   year: number,
@@ -126,7 +126,7 @@ const FACTORS: { key: keyof RBFactorRow; label: string; desc: string }[] = [
   { key: 'earlyRushEPA', label: 'Early Rush EPA', desc: 'Rushing EPA weeks 1-4' },
   { key: 'earlyRecEPA', label: 'Early Rec EPA', desc: 'Receiving EPA weeks 1-4' },
   { key: 'earlyGames', label: 'Early Games', desc: 'Games played weeks 1-4' },
-  { key: 'septValue', label: 'Sept KTC Value', desc: 'Starting dynasty value in September' },
+  { key: 'septValue', label: 'Sept Dynasty Value', desc: 'Starting dynasty value in September' },
   // Draft capital
   { key: 'draftRound', label: 'Draft Round', desc: 'NFL draft round (1-7, 8=UDFA)' },
   { key: 'draftPick', label: 'Draft Pick', desc: 'Overall draft pick number' },
@@ -145,10 +145,10 @@ const FACTORS: { key: keyof RBFactorRow; label: string; desc: string }[] = [
   { key: 'speedScore', label: 'Speed Score', desc: 'Barnwell Speed Score: (wt * 200) / (40^4)' },
 ];
 
-// Season to analyze — current KTC history likely covers 2023-2025
+// Season to analyze — current Dynasty history likely covers 2023-2025
 const ANALYSIS_SEASONS = [2023, 2024];
 
-export function KTCFactorAnalysis() {
+export function DynastyFactorAnalysis() {
   const [data, setData] = useState<RBFactorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,13 +159,13 @@ export function KTCFactorAnalysis() {
   useEffect(() => {
     async function analyze() {
       try {
-        // 1. Get KTC rankings to get RB player IDs
-        const ktcPlayers = await fetchKTCRankings('1qb');
-        const rbs = ktcPlayers.filter((p) => p.position === 'RB' && p.playerID > 0);
+        // 1. Get Dynasty rankings to get RB player IDs
+        const dynastyPlayers = await fetchDynastyRankings('1qb');
+        const rbs = dynastyPlayers.filter((p) => p.position === 'RB' && p.playerID > 0);
 
         // 2. Fetch history for all RBs (batch)
-        const histories = await fetchKTCHistory(rbs.map((r) => r.playerID));
-        const historyMap = new Map<number, KTCPlayerHistory>();
+        const histories = await fetchDynastyHistory(rbs.map((r) => r.playerID));
+        const historyMap = new Map<number, DynastyPlayerHistory>();
         for (const h of histories) historyMap.set(h.playerID, h);
 
         // 3. Fetch combine + draft data
@@ -186,9 +186,9 @@ export function KTCFactorAnalysis() {
           if (d.position === 'RB') draftByName.set(normalizeName(d.pfr_player_name), d);
         }
 
-        // Build a name → KTC player map for matching
-        const ktcByName = new Map<string, KTCPlayer>();
-        for (const p of rbs) ktcByName.set(normalizeName(p.playerName), p);
+        // Build a name → Dynasty player map for matching
+        const dynastyByName = new Map<string, DynastyPlayer>();
+        for (const p of rbs) dynastyByName.set(normalizeName(p.playerName), p);
 
         const rows: RBFactorRow[] = [];
 
@@ -207,12 +207,12 @@ export function KTCFactorAnalysis() {
             byPlayer.get(key)!.push(s);
           }
 
-          // 4. For each RB, match KTC history + stats
+          // 4. For each RB, match Dynasty history + stats
           for (const [normalName, weeks] of byPlayer) {
-            const ktcPlayer = ktcByName.get(normalName);
-            if (!ktcPlayer) continue;
+            const dynastyPlayer = dynastyByName.get(normalName);
+            if (!dynastyPlayer) continue;
 
-            const history = historyMap.get(ktcPlayer.playerID);
+            const history = historyMap.get(dynastyPlayer.playerID);
             if (!history) continue;
 
             const valueHistory = history.oneQB?.valueHistory;
@@ -375,10 +375,10 @@ export function KTCFactorAnalysis() {
       <div className="loading">
         <div className="spinner" />
         <div className="loading-text">
-          Analyzing KTC value changes vs performance, draft capital &amp; physical traits...
+          Analyzing Dynasty value changes vs performance, draft capital &amp; physical traits...
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Fetching KTC history + player stats + combine + draft for {ANALYSIS_SEASONS.join(', ')}
+            Fetching Dynasty history + player stats + combine + draft for {ANALYSIS_SEASONS.join(', ')}
           </span>
         </div>
       </div>
@@ -533,7 +533,7 @@ export function KTCFactorAnalysis() {
                 stroke="var(--border)"
               >
                 <Label
-                  value="KTC Value Change (Sep → Dec)"
+                  value="Dynasty Value Change (Sep → Dec)"
                   angle={-90}
                   position="insideLeft"
                   offset={10}

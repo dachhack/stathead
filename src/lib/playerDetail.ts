@@ -1,7 +1,7 @@
 import { normalizeName } from './featureTypes';
 import type { CrosswalkRec } from './playerLookup';
-import type { KTCPlayer, KTCPlayerHistory, PlayerStats } from '../types';
-import { fetchKTCRankingsForDisplay, fetchKTCHistoryForDisplay, fetchPlayerStats } from '../data';
+import type { DynastyPlayer, DynastyPlayerHistory, PlayerStats } from '../types';
+import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay, fetchPlayerStats } from '../data';
 
 export interface CareerPrediction {
   name: string;
@@ -61,8 +61,8 @@ export interface PlayerModelDrivers {
 export interface PlayerDetailData {
   crosswalk: CrosswalkRec;
   career: CareerPrediction | null;
-  ktcCurrent: KTCPlayer | null;
-  ktcHistory: KTCPlayerHistory | null;
+  dynastyCurrent: DynastyPlayer | null;
+  dynastyHistory: DynastyPlayerHistory | null;
   adpHistory: AdpSeasonRow[];
   modelDrivers: PlayerModelDrivers | null;
   gameLog: PlayerStats[];
@@ -133,14 +133,14 @@ async function loadCareer(rec: CrosswalkRec): Promise<CareerPrediction | null> {
   return null;
 }
 
-async function loadKtc(rec: CrosswalkRec): Promise<{ current: KTCPlayer | null; history: KTCPlayerHistory | null }> {
+async function loadDynasty(rec: CrosswalkRec): Promise<{ current: DynastyPlayer | null; history: DynastyPlayerHistory | null }> {
   if (!rec.ktc_id) return { current: null, history: null };
   try {
-    const rankings = await fetchKTCRankingsForDisplay('1qb');
+    const rankings = await fetchDynastyRankingsForDisplay('1qb');
     const current = rankings.find((p) => p.playerID === rec.ktc_id) || null;
     const positionByID = new Map<number, string>();
     if (current) positionByID.set(current.playerID, current.position);
-    const history = await fetchKTCHistoryForDisplay([rec.ktc_id], positionByID);
+    const history = await fetchDynastyHistoryForDisplay([rec.ktc_id], positionByID);
     const hist = history.find((h) => h.playerID === rec.ktc_id) || null;
     return { current, history: hist };
   } catch {
@@ -199,9 +199,9 @@ async function loadGameLog(rec: CrosswalkRec): Promise<{ rows: PlayerStats[]; se
 }
 
 export async function loadPlayerDetail(rec: CrosswalkRec): Promise<PlayerDetailData> {
-  const [career, ktc, adpHistory, modelDrivers, gameLog] = await Promise.all([
+  const [career, dynasty, adpHistory, modelDrivers, gameLog] = await Promise.all([
     loadCareer(rec),
-    loadKtc(rec),
+    loadDynasty(rec),
     loadAdpHistory(rec),
     loadModelDrivers(rec),
     loadGameLog(rec),
@@ -209,8 +209,8 @@ export async function loadPlayerDetail(rec: CrosswalkRec): Promise<PlayerDetailD
   return {
     crosswalk: rec,
     career,
-    ktcCurrent: ktc.current,
-    ktcHistory: ktc.history,
+    dynastyCurrent: dynasty.current,
+    dynastyHistory: dynasty.history,
     adpHistory,
     modelDrivers,
     gameLog: gameLog.rows,

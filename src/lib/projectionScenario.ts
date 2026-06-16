@@ -1,21 +1,21 @@
 /**
  * Projection scenarios — apply the Scenario Builder's quick presets and the
- * user's saved scenarios to the Clay/Consensus projected points shown in the
+ * user's saved scenarios to the Consensus/Consensus projected points shown in the
  * Sleeper League View and player-card rosters.
  *
- * Those surfaces work off Clay projections (ClayPlayer + computePpr), while the
- * scenario engine operates on SDIOProjection stat lines. ClayPlayer carries the
+ * Those surfaces work off Consensus projections (ConsensusPlayer + computePpr), while the
+ * scenario engine operates on SDIOProjection stat lines. ConsensusPlayer carries the
  * same counting stats, and scenarioEngine.recalcPoints reproduces computePpr
- * exactly, so we bridge Clay -> SDIOProjection, run the real applyScenario /
+ * exactly, so we bridge Consensus -> SDIOProjection, run the real applyScenario /
  * preset machinery, and read the adjusted FantasyPointsPPR back out. This is
  * the same engine the Projections tab uses, so results stay consistent — and it
  * needs no SportsDataIO key (works in the public deploy).
  */
 import type { ScenarioConfig, SDIOProjection, SleeperPlayer } from '../types';
-import type { ClayPlayer } from './waiverUtils';
+import type { ConsensusPlayer } from './waiverUtils';
 import { computePpr } from './waiverUtils';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from './scenarioEngine';
-import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ClayStats } from './scenarioPresets';
+import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ConsensusStats } from './scenarioPresets';
 import { normalizeForMatch } from './nameMatch';
 
 export interface ProjectionScenarioOption {
@@ -49,10 +49,10 @@ export function buildPresetMeta(sleeper: Map<string, SleeperPlayer>): PresetMeta
   return meta;
 }
 
-// ClayPlayer -> SDIOProjection. recalcPoints uses Passing/Rushing/Receiving
-// yards+TDs, Receptions, INTs and fumbles; Clay lacks INT/fumbles (computePpr
+// ConsensusPlayer -> SDIOProjection. recalcPoints uses Passing/Rushing/Receiving
+// yards+TDs, Receptions, INTs and fumbles; Consensus lacks INT/fumbles (computePpr
 // ignores them too), so the bridged base PPR matches computePpr exactly.
-function clayToSdioProjections(clay: ClayPlayer[]): SDIOProjection[] {
+function consensusToSdioProjections(consensus: ConsensusPlayer[]): SDIOProjection[] {
   const zero = {
     PassingAttempts: 0, PassingCompletions: 0, PassingYards: 0, PassingTouchdowns: 0,
     PassingInterceptions: 0, RushingAttempts: 0, RushingYards: 0, RushingTouchdowns: 0,
@@ -60,7 +60,7 @@ function clayToSdioProjections(clay: ClayPlayer[]): SDIOProjection[] {
     FumblesLost: 0, FieldGoalsMade: 0, ExtraPointsMade: 0,
   };
   let id = 1;
-  return clay.map((c) => {
+  return consensus.map((c) => {
     // Scale stat components to the blended total so applyScenario's recompute
     // stays consistent with computePpr (which already returns the blend).
     const s = c.blendScale ?? 1;
@@ -79,22 +79,22 @@ function clayToSdioProjections(clay: ClayPlayer[]): SDIOProjection[] {
   }) as SDIOProjection[];
 }
 
-function resolveScenario(clay: ClayPlayer[], sdio: SDIOProjection[], optionId: string, meta: PresetMeta): ScenarioConfig | null {
+function resolveScenario(consensus: ConsensusPlayer[], sdio: SDIOProjection[], optionId: string, meta: PresetMeta): ScenarioConfig | null {
   const preset = SCENARIO_PRESETS.find((p) => p.id === optionId);
   if (preset) {
-    const clayPpr = new Map<string, number>();
-    const clayStats = new Map<string, ClayStats>();
-    for (const c of clay) {
+    const consensusPpr = new Map<string, number>();
+    const consensusStats = new Map<string, ConsensusStats>();
+    for (const c of consensus) {
       const key = normalizeForMatch(c.name);
-      clayPpr.set(key, computePpr(c));
-      clayStats.set(key, {
+      consensusPpr.set(key, computePpr(c));
+      consensusStats.set(key, {
         position: c.position, pos_rk: 0, ppr: computePpr(c),
         pass_yds: c.pass_yds, pass_td: c.pass_td,
         rush_yds: c.rush_yds, rush_td: c.rush_td,
         rec: c.rec, rec_yds: c.rec_yds, rec_td: c.rec_td,
       });
     }
-    return preset.build(sdio, meta, normalizeForMatch, { clayPpr, clayStats });
+    return preset.build(sdio, meta, normalizeForMatch, { consensusPpr, consensusStats });
   }
   return loadAllScenarios().find((s) => s.id === optionId) ?? null;
 }
@@ -104,13 +104,13 @@ function resolveScenario(clay: ClayPlayer[], sdio: SDIOProjection[], optionId: s
  * nothing is selected / the scenario is empty (callers fall back to base PPR).
  */
 export function buildScenarioPprByName(
-  clay: ClayPlayer[],
+  consensus: ConsensusPlayer[],
   optionId: string,
   meta: PresetMeta,
 ): Map<string, number> | null {
-  if (!optionId || !clay.length) return null;
-  const sdio = clayToSdioProjections(clay);
-  const scenario = resolveScenario(clay, sdio, optionId, meta);
+  if (!optionId || !consensus.length) return null;
+  const sdio = consensusToSdioProjections(consensus);
+  const scenario = resolveScenario(consensus, sdio, optionId, meta);
   if (!scenario || isScenarioEmpty(scenario)) return null;
   const adjusted = applyScenario(sdio, scenario);
   const out = new Map<string, number>();

@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, isDynastyLeague, type SleeperLeagueSummary } from '../lib/sleeper';
-import { fetchSleeperTrending, fetchKTCRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
-import { loadBlendedProjections, computePpr, type ClayPlayer } from '../lib/waiverUtils';
-import type { SleeperTrendingRow, KTCPlayer } from '../types';
+import { fetchSleeperTrending, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings } from '../data';
+import { loadBlendedProjections, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
+import type { SleeperTrendingRow, DynastyPlayer } from '../types';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 
@@ -24,8 +24,8 @@ interface Candidate {
   projPpr: number;   // 0 when not projected
   posRk: number;
   adds: number;      // 0 when not trending
-  ktcValue: number;  // dynasty market value (1QB); 0 when unmatched
-  ktcTrend: number | null; // 30-day KTC value change; null when unknown
+  dynastyValue: number;  // dynasty market value (1QB); 0 when unmatched
+  dynastyTrend: number | null; // 30-day Dynasty value change; null when unknown
   availableIn: string[];
 }
 
@@ -39,8 +39,8 @@ const SORT_ACCESSOR: Record<SortKey, (c: Candidate) => number | string> = {
   pos: (c) => c.position,
   team: (c) => c.team,
   proj: (c) => c.projPpr,
-  value: (c) => c.ktcValue,
-  valueTrend: (c) => c.ktcTrend ?? 0,
+  value: (c) => c.dynastyValue,
+  valueTrend: (c) => c.dynastyTrend ?? 0,
   adds: (c) => c.adds,
   avail: (c) => c.availableIn.length,
 };
@@ -49,9 +49,9 @@ export function SleeperWaiverWire() {
   const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
   const [leagues, setLeagues] = useState<LeagueAvailability[]>([]);
   const [trending, setTrending] = useState<SleeperTrendingRow[]>([]);
-  const [clayPlayers, setClayPlayers] = useState<ClayPlayer[]>([]);
-  const [blended, setBlended] = useState<KTCPlayer[]>([]); // KTC rescaled to FC scale (the app's canonical value)
-  const [fc, setFc] = useState<KTCPlayer[]>([]);           // FantasyCalc — used for the 30-day trend
+  const [consensusPlayers, setConsensusPlayers] = useState<ConsensusPlayer[]>([]);
+  const [blended, setBlended] = useState<DynastyPlayer[]>([]); // Dynasty rescaled to FC scale (the app's canonical value)
+  const [fc, setFc] = useState<DynastyPlayer[]>([]);           // FantasyCalc — used for the 30-day trend
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posFilter, setPosFilter] = useState<string>('ALL');
@@ -63,14 +63,14 @@ export function SleeperWaiverWire() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadBlendedProjections().then(setClayPlayers);
+    loadBlendedProjections().then(setConsensusPlayers);
     fetchSleeperTrending('add', 24, 100).then(setTrending).catch(() => {});
-    fetchKTCRankingsForDisplay('1qb').then(setBlended).catch(() => {});
+    fetchDynastyRankingsForDisplay('1qb').then(setBlended).catch(() => {});
     fetchFantasyCalcRankings('1qb').then(setFc).catch(() => {});
   }, []);
 
   const valueByName = useMemo(() => {
-    const m = new Map<string, KTCPlayer>();
+    const m = new Map<string, DynastyPlayer>();
     for (const k of blended) m.set(norm(k.playerName), k);
     return m;
   }, [blended]);
@@ -126,13 +126,13 @@ export function SleeperWaiverWire() {
   const candidates = useMemo(() => {
     if (!effectiveLeagues.length) return [];
     const byId = new Map<string, Candidate>();
-    for (const p of clayPlayers) {
+    for (const p of consensusPlayers) {
       if (!p.sleeperId) continue;
       const ppr = computePpr(p);
       if (ppr <= 0) continue;
       byId.set(p.sleeperId, {
         sleeperId: p.sleeperId, name: p.name, position: p.position, team: p.team,
-        projPpr: ppr, posRk: p.pos_rk, adds: 0, ktcValue: 0, ktcTrend: null, availableIn: [],
+        projPpr: ppr, posRk: p.pos_rk, adds: 0, dynastyValue: 0, dynastyTrend: null, availableIn: [],
       });
     }
     for (const t of trending) {
@@ -140,20 +140,20 @@ export function SleeperWaiverWire() {
       if (ex) ex.adds = t.count;
       else byId.set(t.player_id, {
         sleeperId: t.player_id, name: t.full_name, position: t.position, team: t.team,
-        projPpr: 0, posRk: 0, adds: t.count, ktcValue: 0, ktcTrend: null, availableIn: [],
+        projPpr: 0, posRk: 0, adds: t.count, dynastyValue: 0, dynastyTrend: null, availableIn: [],
       });
     }
     const out: Candidate[] = [];
     for (const c of byId.values()) {
       const v = valueByName.get(norm(c.name));
-      if (v) c.ktcValue = sf ? v.superflexValue : v.value;
+      if (v) c.dynastyValue = sf ? v.superflexValue : v.value;
       const tr = trendByName.get(norm(c.name));
-      c.ktcTrend = tr ?? null;
+      c.dynastyTrend = tr ?? null;
       c.availableIn = effectiveLeagues.filter((la) => !la.rosteredIds.has(c.sleeperId)).map((la) => la.league.name);
       if (c.availableIn.length > 0) out.push(c);
     }
     return out;
-  }, [effectiveLeagues, clayPlayers, trending, valueByName, trendByName, sf]);
+  }, [effectiveLeagues, consensusPlayers, trending, valueByName, trendByName, sf]);
 
   const rows = useMemo(() => {
     let list = posFilter === 'ALL' ? candidates : candidates.filter((c) => c.position === posFilter);
@@ -162,7 +162,7 @@ export function SleeperWaiverWire() {
     list = [...list].sort((a, b) => {
       // Players with no value-trend always sort to the bottom, regardless of dir.
       if (sortKey === 'valueTrend') {
-        const an = a.ktcTrend == null, bn = b.ktcTrend == null;
+        const an = a.dynastyTrend == null, bn = b.dynastyTrend == null;
         if (an !== bn) return an ? 1 : -1;
       }
       const av = get(a), bv = get(b);
@@ -304,7 +304,7 @@ export function SleeperWaiverWire() {
                         { k: 'pos', label: 'Pos' },
                         { k: 'team', label: 'Team' },
                         { k: 'proj', label: 'Proj PPR', title: 'Consensus PPR projection (full season)' },
-                        { k: 'value', label: `Dyn Value${sf ? ' (SF)' : ''}`, title: `Blended dynasty value — KTC rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})` },
+                        { k: 'value', label: `Dyn Value${sf ? ' (SF)' : ''}`, title: `Blended dynasty value — Dynasty rescaled to FantasyCalc scale (${sf ? 'Superflex' : '1QB'})` },
                         { k: 'valueTrend', label: 'Val Trend', title: '30-day change in dynasty value (FantasyCalc)' },
                         { k: 'adds', label: 'Adds', title: 'Sleeper adds, last 24h' },
                         { k: 'avail', label: 'Available In', title: 'Leagues where this player is unrostered' },
@@ -336,9 +336,9 @@ export function SleeperWaiverWire() {
                           {' '}{c.team}
                         </td>
                         <td style={{ fontWeight: 600 }}>{c.projPpr > 0 ? c.projPpr.toFixed(1) : '—'}{c.projPpr > 0 && c.posRk ? <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 10 }}> {c.position}{c.posRk}</span> : null}</td>
-                        <td>{c.ktcValue > 0 ? c.ktcValue.toLocaleString() : '—'}</td>
-                        <td style={{ color: c.ktcTrend == null ? 'var(--text-muted)' : c.ktcTrend > 0 ? '#22c55e' : c.ktcTrend < 0 ? '#ef4444' : 'var(--text-muted)' }}>
-                          {c.ktcTrend == null ? '—' : `${c.ktcTrend > 0 ? '+' : ''}${c.ktcTrend.toLocaleString()}`}
+                        <td>{c.dynastyValue > 0 ? c.dynastyValue.toLocaleString() : '—'}</td>
+                        <td style={{ color: c.dynastyTrend == null ? 'var(--text-muted)' : c.dynastyTrend > 0 ? '#22c55e' : c.dynastyTrend < 0 ? '#ef4444' : 'var(--text-muted)' }}>
+                          {c.dynastyTrend == null ? '—' : `${c.dynastyTrend > 0 ? '+' : ''}${c.dynastyTrend.toLocaleString()}`}
                         </td>
                         <td style={{ color: c.adds > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: c.adds > 0 ? 600 : 400 }}>{c.adds > 0 ? `+${c.adds}` : '—'}</td>
                         <td style={{ fontSize: 11 }}>{availCell(c)}</td>

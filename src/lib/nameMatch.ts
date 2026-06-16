@@ -11,14 +11,14 @@
  */
 
 /** Alpha-only, space-insensitive key (strips spaces too). Used for exact
- *  roster-name joins against KTC / Sleeper, where spacing/punctuation varies
+ *  roster-name joins against Dynasty / Sleeper, where spacing/punctuation varies
  *  but the letter sequence is stable. */
 export function normalizeForMatch(name: string): string {
   return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
 }
 
 /** Lowercase, keep only a-z and spaces (drops digits, punctuation, accents
- *  wholesale), collapse whitespace. The light-touch matcher used by the KTC /
+ *  wholesale), collapse whitespace. The light-touch matcher used by the Dynasty /
  *  career name joins. */
 export function normalizeNameSimple(name: string | null | undefined): string {
   if (!name) return '';
@@ -31,7 +31,7 @@ export function normalizeNameSimple(name: string | null | undefined): string {
 
 /** Accent-aware matcher: Unicode-decompose then drop combining marks (e-acute
  *  -> e, n-tilde -> n), strip the punctuation/apostrophe variants that differ
- *  across combine / FantasyPros / KTC feeds, drop generational suffixes
+ *  across combine / FantasyPros / Dynasty feeds, drop generational suffixes
  *  anywhere, and collapse whitespace. Used by the rookie/prospect views that
  *  join noisy multi-source name strings. */
 export function normalizeNameUnicode(name: string): string {

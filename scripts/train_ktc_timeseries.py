@@ -46,7 +46,7 @@ short horizons, agreement between the two is a sanity signal.
 Full-data models are trained on every feasible sample and serialized via
 lgb_to_js_gbm (init=0, lr=1 invariant from f22f844).
 
-Output: public/data/model-cache-ktc-v2.json  (v2 — v1 was the dead-end
+Output: public/data/model-cache-dynasty-v2.json  (v2 — v1 was the dead-end
 valueDeltaPct port that motivated this reframe).
 
 Usage:
@@ -74,7 +74,7 @@ KTC_HISTORY_PATH = DATA_DIR / 'ktc_history.json'
 KTC_RANKINGS_PATH = DATA_DIR / 'ktc_rankings_1qb.json'
 TRAINING_CACHE_PATH = DATA_DIR / 'training-rows-cache-v49.json'
 NFLVERSE_WEEKLY_PATH = DATA_DIR / 'nflverse_weekly_2025.json'
-OUTPUT_PATH = DATA_DIR / 'model-cache-ktc-v2.json'
+OUTPUT_PATH = DATA_DIR / 'model-cache-dynasty-v2.json'
 
 POSITIONS = ('QB', 'RB', 'WR', 'TE')
 
@@ -252,7 +252,7 @@ def feature_names_for(pos):
 
 # ── Feature pruning (Commit C.2a) ───────────────────────────────────────
 # Derived from scripts/ablate_ktc_features.py run on the Commit B model
-# cache; see public/data/ktc-feature-ablation.json for per-(pos, horizon)
+# cache; see public/data/dynasty-feature-ablation.json for per-(pos, horizon)
 # ΔpgR² values.
 #
 # DROP_GLOBAL: features whose ablation Δ is ≤ 0 at essentially every
@@ -1046,7 +1046,7 @@ BASE_LGB_PARAMS = {
 BASE_N_ROUNDS = 60
 
 # ── Per-(position, horizon) swept hyperparams (Commit C.2b) ───────────
-# Winners from the 48-config sweep in public/data/ktc-hyperparam-sweep.json.
+# Winners from the 48-config sweep in public/data/dynasty-hyperparam-sweep.json.
 # Each entry overrides BASE_LGB_PARAMS + BASE_N_ROUNDS for that pair.
 # Keys that match the baseline (QB_H90, TE_H120) are omitted — they use
 # BASE_LGB_PARAMS / BASE_N_ROUNDS as-is.
@@ -1297,7 +1297,7 @@ def main():
     forecasts = generate_player_forecasts(
         results, players, fast_by_pid, slow_by_pid, weekly_by_key, wcd)
     for fmt in ('1qb', 'superflex'):
-        forecast_path = DATA_DIR / f'ktc-forecasts-{fmt}.json'
+        forecast_path = DATA_DIR / f'dynasty-forecasts-{fmt}.json'
         out = apply_format(forecasts, fmt)
         with open(forecast_path, 'w') as f:
             json.dump(out, f)

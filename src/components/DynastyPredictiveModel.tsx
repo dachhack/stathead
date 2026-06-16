@@ -4,9 +4,9 @@ import {
   ResponsiveContainer, Label, ReferenceLine,
   BarChart, Bar,
 } from 'recharts';
-import type { KTCPlayer, KTCPlayerHistory, ScenarioConfig } from '../types';
+import type { DynastyPlayer, DynastyPlayerHistory, ScenarioConfig } from '../types';
 import {
-  fetchKTCRankings, fetchKTCHistory, fetchPlayerStats,
+  fetchDynastyRankings, fetchDynastyHistory, fetchPlayerStats,
   fetchCombine, fetchDraftPicks, fetchInjuries, fetchGames,
   fetchSnapCounts, aggregateToSeasonTotals, fetchDepthCharts,
   fetchFantasyCalcRankings,
@@ -15,7 +15,7 @@ import { trainRidgeRegression, predict, type TrainedModel } from '../lib/ridge';
 import { trainGBMWithCI, predictGBM } from '../lib/gbm';
 import { computePlayerProjectionFeatures } from '../lib/playerProjection';
 import { loadAllScenarios } from '../lib/scenarioEngine';
-import { loadShards, KTC_MODEL_GROUPS } from '../lib/featureStoreClient';
+import { loadShards, Dynasty_MODEL_GROUPS } from '../lib/featureStoreClient';
 import { normalizeNameSimple as normalizeName } from '../lib/nameMatch';
 
 // ── Types ──
@@ -55,7 +55,7 @@ interface PlayerPrediction {
   predictedDecValue: number;
   ciLower: number | null;     // 80% CI lower bound (pct)
   ciUpper: number | null;     // 80% CI upper bound (pct)
-  ciLowerAbs: number | null;  // converted to absolute KTC points
+  ciLowerAbs: number | null;  // converted to absolute Dynasty points
   ciUpperAbs: number | null;
   topDrivers: FeatureContrib[];
   allDrivers: FeatureContrib[];
@@ -68,7 +68,7 @@ interface FeatureDef { key: string; label: string; category: string }
 
 // Shared features across all positions
 const COMMON_FEATURES: FeatureDef[] = [
-  { key: 'septValue', label: 'Sept KTC Value', category: 'Dynasty' },
+  { key: 'septValue', label: 'Sept Dynasty Value', category: 'Dynasty' },
   { key: 'age', label: 'Age', category: 'Dynasty' },
   { key: 'draftRound', label: 'Draft Round', category: 'Draft' },
   { key: 'draftPick', label: 'Draft Pick', category: 'Draft' },
@@ -182,13 +182,13 @@ const TRAIN_SEASONS = [2024, 2025];
 
 // ── Component ──
 
-interface KTCPredictiveModelProps {
+interface DynastyPredictiveModelProps {
   initialPlayer?: string | null;
   scenario?: ScenarioConfig; // kept for API compat, overridden by local dropdown
   dataSource?: 'ktc' | 'fc';
 }
 
-export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPredictiveModelProps) {
+export function DynastyPredictiveModel({ initialPlayer, dataSource = 'ktc' }: DynastyPredictiveModelProps) {
   const [position, setPosition] = useState<Position>('RB');
   const [rookieFilter, setRookieFilter] = useState<RookieFilter>('all');
   const [modelType, setModelType] = useState<ModelType>('gbm');
@@ -231,14 +231,14 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
     async function run() {
       try {
         // ── 1. Fetch all base data ──
-        setLoadingStatus('Loading KTC rankings...');
-        const ktcPlayers = await fetchKTCRankings('1qb');
-        const posPlayers = ktcPlayers.filter((p) => p.position === position && p.playerID > 0);
+        setLoadingStatus('Loading Dynasty rankings...');
+        const dynastyPlayers = await fetchDynastyRankings('1qb');
+        const posPlayers = dynastyPlayers.filter((p) => p.position === position && p.playerID > 0);
         if (cancelled) return;
 
-        setLoadingStatus('Loading KTC history...');
-        const histories = await fetchKTCHistory(posPlayers.map((r) => r.playerID));
-        const historyMap = new Map<number, KTCPlayerHistory>();
+        setLoadingStatus('Loading Dynasty history...');
+        const histories = await fetchDynastyHistory(posPlayers.map((r) => r.playerID));
+        const historyMap = new Map<number, DynastyPlayerHistory>();
         for (const h of histories) historyMap.set(h.playerID, h);
         if (cancelled) return;
 
@@ -247,8 +247,8 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
         if (cancelled) return;
 
         // Build lookup maps (by normalized name)
-        const ktcByName = new Map<string, KTCPlayer>();
-        for (const p of posPlayers) ktcByName.set(normalizeName(p.playerName), p);
+        const dynastyByName = new Map<string, DynastyPlayer>();
+        for (const p of posPlayers) dynastyByName.set(normalizeName(p.playerName), p);
 
         // Map combine positions to our Position type
         const combinePos = position === 'RB' ? 'RB' : position === 'WR' ? 'WR' : position === 'TE' ? 'TE' : 'QB';
@@ -264,7 +264,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
 
         // ── Load shared features from feature store (pre-computed) ──
         setLoadingStatus('Loading feature store...');
-        const storeFeatures = await loadShards([...KTC_MODEL_GROUPS]).catch(() => new Map());
+        const storeFeatures = await loadShards([...Dynasty_MODEL_GROUPS]).catch(() => new Map());
 
         // ── 2. Build training rows for each season ──
         const rows: ModelRow[] = [];
@@ -382,16 +382,16 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
             currentTeamByName.set(normalizeName(s.player_display_name), s.recent_team);
           }
 
-          // ── For each player with KTC data, build a feature row ──
-          for (const [normalName, ktcPlayer] of ktcByName) {
-            const history = historyMap.get(ktcPlayer.playerID);
+          // ── For each player with Dynasty data, build a feature row ──
+          for (const [normalName, dynastyPlayer] of dynastyByName) {
+            const history = historyMap.get(dynastyPlayer.playerID);
             if (!history?.oneQB?.valueHistory?.length) continue;
 
             const septVal = getValueNearMonth(history.oneQB.valueHistory, season, 9);
             const decVal = getValueNearMonth(history.oneQB.valueHistory, season, 12);
             if (septVal == null || decVal == null) continue;
 
-            const team = currentTeamByName.get(normalName) || ktcPlayer.team;
+            const team = currentTeamByName.get(normalName) || dynastyPlayer.team;
             const prior = priorByName.get(normalName);
             const combine = combineByName.get(normalName);
             const draft = draftByName.get(normalName);
@@ -431,7 +431,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
             const stored = storeFeatures.get(storeKey) || {};
 
             const features: Record<string, number> = {
-              // KTC-specific features (not in feature store)
+              // Dynasty-specific features (not in feature store)
               septValue: septVal,
               depthChartChange: dcChange,
               priorDepthChartRank: priorDcRank,
@@ -441,7 +441,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
               teamWins: tw,
               teamPPG: Math.round(tppg * 10) / 10,
               // Shared features: prefer store, fall back to inline
-              age: stored.age || ktcPlayer.age || 0,
+              age: stored.age || dynastyPlayer.age || 0,
               draftRound: stored.nflDraftRound || draft?.round || 8,
               draftPick: stored.nflDraftPick || draft?.pick || 300,
               yearsInLeague: stored.yearsInLeague ?? yrsInLeague,
@@ -468,18 +468,18 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
               priorGamesOut: stored.priorGamesOut ?? injHist.out,
               priorGamesMissed: stored.priorGamesMissed ?? gamesMissed,
               // Projection features from store or inline
-              projTeamPassAtt: stored.projTeamPassAtt ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTeamPassAtt ?? 0; })(),
-              projTeamPassVolChg: stored.projTeamPassVolChg ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTeamPassVolChg ?? 0; })(),
-              projPlayerPPR: stored.projPlayerPPR ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projPlayerPPR ?? 0; })(),
-              projPlayerVsExpected: stored.projPlayerVsExpected ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projPlayerVsExpected ?? 0; })(),
-              projTargetShare: stored.projTargetShare ?? (() => { const pf = projFeatures.get(normalizeName(ktcPlayer.playerName)); return pf?.projTargetShare ?? 0; })(),
+              projTeamPassAtt: stored.projTeamPassAtt ?? (() => { const pf = projFeatures.get(normalizeName(dynastyPlayer.playerName)); return pf?.projTeamPassAtt ?? 0; })(),
+              projTeamPassVolChg: stored.projTeamPassVolChg ?? (() => { const pf = projFeatures.get(normalizeName(dynastyPlayer.playerName)); return pf?.projTeamPassVolChg ?? 0; })(),
+              projPlayerPPR: stored.projPlayerPPR ?? (() => { const pf = projFeatures.get(normalizeName(dynastyPlayer.playerName)); return pf?.projPlayerPPR ?? 0; })(),
+              projPlayerVsExpected: stored.projPlayerVsExpected ?? (() => { const pf = projFeatures.get(normalizeName(dynastyPlayer.playerName)); return pf?.projPlayerVsExpected ?? 0; })(),
+              projTargetShare: stored.projTargetShare ?? (() => { const pf = projFeatures.get(normalizeName(dynastyPlayer.playerName)); return pf?.projTargetShare ?? 0; })(),
             };
 
             rows.push({
-              name: ktcPlayer.playerName,
+              name: dynastyPlayer.playerName,
               team,
               season,
-              playerID: ktcPlayer.playerID,
+              playerID: dynastyPlayer.playerID,
               yearsInLeague: yrsInLeague,
               septValue: septVal,
               decValue: decVal,
@@ -729,7 +729,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
           {loadingStatus}
           <br />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            Joining KTC history + stats + combine + draft + injuries + games + snaps
+            Joining Dynasty history + stats + combine + draft + injuries + games + snaps
           </span>
         </div>
       </div>
@@ -814,7 +814,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
 
       <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
         {modelType === 'gbm' ? 'Gradient boosting' : 'Ridge regression'} model trained on {model.n} {position}-seasons ({TRAIN_SEASONS.join(', ')}).
-        Uses {activeDefs.length} features across {categories.length - 1} categories to predict Sep→Dec KTC % change.
+        Uses {activeDefs.length} features across {categories.length - 1} categories to predict Sep→Dec Dynasty % change.
         {modelType === 'gbm' && ' 80% confidence intervals via quantile regression.'}
         {rookieFilter !== 'all' && ` Filtered to ${rookieFilter === 'rookie' ? 'rookies (≤1 yr)' : 'veterans (2+ yrs)'}.`}
       </p>
@@ -1063,7 +1063,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
               tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
               tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v}`}
             >
-              <Label value="Predicted KTC Change" position="bottom" offset={-5} style={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+              <Label value="Predicted Dynasty Change" position="bottom" offset={-5} style={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
             </XAxis>
             <YAxis
               type="category"
@@ -1174,14 +1174,14 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
             <div>
               <h4 style={{ margin: 0 }}>{selectedPrediction.name} ({selectedPrediction.team})</h4>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                KTC: {selectedPrediction.septValue.toLocaleString()}
+                Dynasty: {selectedPrediction.septValue.toLocaleString()}
                 {selectedPrediction.fcValue != null && (
                   <span style={{ color: '#10b981', marginLeft: 8 }}>
                     FC: {selectedPrediction.fcValue.toLocaleString()}
                   </span>
                 )}
                 {' → '}
-                Predicted Dec: {selectedPrediction.predictedDecValue.toLocaleString()} KTC
+                Predicted Dec: {selectedPrediction.predictedDecValue.toLocaleString()} Dynasty
                 {' '}
                 (<span style={{ color: selectedPrediction.predictedDelta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                   {selectedPrediction.predictedDelta >= 0 ? '+' : ''}{selectedPrediction.predictedDelta.toLocaleString()}
@@ -1267,7 +1267,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
                       <br />
                       Contribution: <span style={{ color: d.contribution >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                         {d.contribution >= 0 ? '+' : ''}{d.contribution}
-                      </span> KTC points
+                      </span> Dynasty points
                     </div>
                   );
                 }}
@@ -1306,7 +1306,7 @@ export function KTCPredictiveModel({ initialPlayer, dataSource = 'ktc' }: KTCPre
               <tr>
                 <th>Player</th>
                 <th>Team</th>
-                <th>KTC Value</th>
+                <th>Dynasty Value</th>
                 <th style={{ color: '#10b981' }}>FC Value</th>
                 <th>Predicted Change</th>
                 <th>Predicted Dec</th>

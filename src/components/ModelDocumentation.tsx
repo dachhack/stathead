@@ -349,20 +349,20 @@ export function ModelDocumentation() {
   const [modelType, setModelType] = useState<'gbm' | 'ridge'>('gbm');
   const [modelView, setModelView] = useState<'combined' | 'rookie' | 'rookie-predraft' | 'veteran'>('combined');
   const [modelCategory, setModelCategory] = useState<'vor' | 'ppg' | 'shares' | 'hitbust' | 'career' | 'rookie-boombust'>('vor');
-  const [section, setSection] = useState<'projection' | 'rookie' | 'ktc-forecast' | 'draft-kit'>(() => {
+  const [section, setSection] = useState<'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit'>(() => {
     // One-shot deep link from DocsLink (set just before navigating here).
     try {
       const target = localStorage.getItem(DOCS_SECTION_KEY);
       if (target) {
         localStorage.removeItem(DOCS_SECTION_KEY);
-        if (['projection', 'rookie', 'ktc-forecast', 'draft-kit'].includes(target)) {
-          return target as 'projection' | 'rookie' | 'ktc-forecast' | 'draft-kit';
+        if (['projection', 'rookie', 'dynasty-forecast', 'draft-kit'].includes(target)) {
+          return target as 'projection' | 'rookie' | 'dynasty-forecast' | 'draft-kit';
         }
       }
     } catch { /* ignore */ }
     return 'projection';
   });
-  const [ktcModels, setKtcModels] = useState<Record<string, {
+  const [dynastyModels, setDynastyModels] = useState<Record<string, {
     position: string; horizon: number; n: number;
     cvR2: number | null; cvMae: number | null; cvScheme: string;
     cvR2PlayerGrouped: number | null; cvR2WalkForward: number | null;
@@ -413,8 +413,8 @@ export function ModelDocumentation() {
     }
     load();
 
-    // Load KTC time-series model cache (lightweight — only metrics, no trees)
-    fetch(`${import.meta.env.BASE_URL}data/model-cache-ktc-v2.json`)
+    // Load Dynasty time-series model cache (lightweight — only metrics, no trees)
+    fetch(`${import.meta.env.BASE_URL}data/model-cache-dynasty-v2.json`)
       .then(r => r.ok ? r.json() : null)
       .then(cache => {
         if (!cache?.models) return;
@@ -428,7 +428,7 @@ export function ModelDocumentation() {
             cvResidualStd: m.cvResidualStd, inSampleR2: m.inSampleR2,
           };
         }
-        setKtcModels(summary);
+        setDynastyModels(summary);
       })
       .catch(() => {});
   }, []);
@@ -527,7 +527,7 @@ export function ModelDocumentation() {
           {([
             { key: 'projection' as const, label: 'Projection Validation', desc: 'Veteran VOR / PPG / Hit-Bust' },
             { key: 'rookie' as const, label: 'Rookie Career Validation', desc: 'Best 2-of-3 PPG model' },
-            { key: 'ktc-forecast' as const, label: 'Dynasty Forecast Validation', desc: 'Dynasty value time-series models' },
+            { key: 'dynasty-forecast' as const, label: 'Dynasty Forecast Validation', desc: 'Dynasty value time-series models' },
             { key: 'draft-kit' as const, label: 'Draft Kit & Taxi Validation', desc: 'VBD engine + taxi verdict backtests' },
           ]).map(({ key, label, desc }) => (
             <button
@@ -551,8 +551,8 @@ export function ModelDocumentation() {
           ))}
         </div>
 
-        {section === 'ktc-forecast' && (
-          <KTCForecastValidation models={ktcModels} />
+        {section === 'dynasty-forecast' && (
+          <DynastyForecastValidation models={dynastyModels} />
         )}
 
         {section === 'draft-kit' && <DraftKitValidation />}
@@ -2199,9 +2199,9 @@ export function ModelDocumentation() {
   );
 }
 
-// ── KTC Forecast Validation Section ─────────────────────────────────
+// ── Dynasty Forecast Validation Section ─────────────────────────────────
 
-function KTCForecastValidation({ models }: { models: Record<string, any> | null }) {
+function DynastyForecastValidation({ models }: { models: Record<string, any> | null }) {
   if (!models) {
     return (
       <div style={{ padding: 16, color: 'var(--text-muted)', fontSize: 13 }}>
@@ -2220,7 +2220,7 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
         <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Dynasty Value Forecast Pipeline</h3>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 12px' }}>
           Per-(position, horizon) LightGBM models predict log-returns on dynasty market values.
-          Trained on 6 months of daily KTC price history (Oct 2025 &ndash; Apr 2026) with
+          Trained on 6 months of daily Dynasty price history (Oct 2025 &ndash; Apr 2026) with
           fast features (momentum, volatility, rank), slow features (age, draft capital,
           production), and weekly NFL stats features (snap%, targets, carries).
           Forecast outputs are rescaled per-player into FantasyCalc&apos;s value scale for display.
@@ -2251,14 +2251,14 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                <th style={ktcTh}>Pos</th>
-                <th style={ktcTh}>H (days)</th>
-                <th style={ktcThR}>N</th>
-                <th style={ktcThR}>pgR²</th>
-                <th style={ktcThR}>wfR²</th>
-                <th style={ktcThR}>MAE</th>
-                <th style={ktcThR}>Resid Std</th>
-                <th style={ktcThR}>In-Sample R²</th>
+                <th style={dynastyTh}>Pos</th>
+                <th style={dynastyTh}>H (days)</th>
+                <th style={dynastyThR}>N</th>
+                <th style={dynastyThR}>pgR²</th>
+                <th style={dynastyThR}>wfR²</th>
+                <th style={dynastyThR}>MAE</th>
+                <th style={dynastyThR}>Resid Std</th>
+                <th style={dynastyThR}>In-Sample R²</th>
               </tr>
             </thead>
             <tbody>
@@ -2272,20 +2272,20 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
                     <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '5px 8px', color: posColors[pos], fontWeight: 700 }}>{pos}</td>
                       <td style={{ padding: '5px 8px' }}>{h}</td>
-                      <td style={ktcTdR}>{m.n.toLocaleString()}</td>
+                      <td style={dynastyTdR}>{m.n.toLocaleString()}</td>
                       <td style={{
-                        ...ktcTdR,
+                        ...dynastyTdR,
                         color: pgR2 != null && pgR2 > 0.1 ? '#22c55e' : pgR2 != null && pgR2 > 0.02 ? '#a3e635' : 'var(--text-secondary)',
                         fontWeight: 600,
                       }}>
                         {pgR2 != null ? pgR2.toFixed(4) : '-'}
                       </td>
-                      <td style={ktcTdR}>
+                      <td style={dynastyTdR}>
                         {m.cvR2WalkForward != null ? m.cvR2WalkForward.toFixed(4) : '-'}
                       </td>
-                      <td style={ktcTdR}>{m.cvMae != null ? m.cvMae.toFixed(5) : '-'}</td>
-                      <td style={ktcTdR}>{m.cvResidualStd != null ? m.cvResidualStd.toFixed(4) : '-'}</td>
-                      <td style={ktcTdR}>{m.inSampleR2.toFixed(4)}</td>
+                      <td style={dynastyTdR}>{m.cvMae != null ? m.cvMae.toFixed(5) : '-'}</td>
+                      <td style={dynastyTdR}>{m.cvResidualStd != null ? m.cvResidualStd.toFixed(4) : '-'}</td>
+                      <td style={dynastyTdR}>{m.inSampleR2.toFixed(4)}</td>
                     </tr>
                   );
                 })
@@ -2325,11 +2325,11 @@ function KTCForecastValidation({ models }: { models: Record<string, any> | null 
   );
 }
 
-const ktcTh: React.CSSProperties = {
+const dynastyTh: React.CSSProperties = {
   padding: '5px 8px', textAlign: 'left', fontSize: 11,
   color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase',
 };
-const ktcThR: React.CSSProperties = { ...ktcTh, textAlign: 'right' };
-const ktcTdR: React.CSSProperties = {
+const dynastyThR: React.CSSProperties = { ...dynastyTh, textAlign: 'right' };
+const dynastyTdR: React.CSSProperties = {
   padding: '5px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
 };

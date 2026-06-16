@@ -13,7 +13,7 @@ Pipeline:
   3. For each feature index, train K=5 player-grouped folds with that
      column removed from X and feature_names — not zeroed, so the GBM
      doesn't waste leaves on a constant column. Record ΔpgR² = baseline - ablated.
-  4. Emit public/data/ktc-feature-ablation.json with per-(pos, H) rank
+  4. Emit public/data/dynasty-feature-ablation.json with per-(pos, H) rank
      tables and a top-level "feature group summary" (fast / slow / weekly).
 
 Runtime: ~20-30 minutes on /tmp/lgb-verify (20 models × 74 fits × 5 folds).
@@ -45,7 +45,7 @@ from train_ktc_timeseries import (  # noqa: E402
 from train_projection_models import train_lgb_model  # noqa: E402
 
 
-OUTPUT_PATH = Path('public/data/ktc-feature-ablation.json')
+OUTPUT_PATH = Path('public/data/dynasty-feature-ablation.json')
 
 
 def player_grouped_cv_for_ablation(X, y, pids, feature_names,

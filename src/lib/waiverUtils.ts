@@ -1,5 +1,5 @@
 import { bust } from './buildHash';
-export interface ClayPlayer {
+export interface ConsensusPlayer {
   name: string;
   team: string;
   position: string;
@@ -18,7 +18,7 @@ export interface ClayPlayer {
   // Multiplier that rescales this player's PPR/custom score to the in-house
   // model's blended projection (redraft-projections.json). Set by
   // loadBlendedProjections; raw stat components are left untouched so detailed
-  // stat displays stay sane. Undefined = no blend available (use raw Clay).
+  // stat displays stay sane. Undefined = no blend available (use raw Consensus).
   blendScale?: number;
 }
 
@@ -31,7 +31,7 @@ interface CrosswalkRec {
 
 const normName = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
 
-export function computePpr(p: ClayPlayer): number {
+export function computePpr(p: ConsensusPlayer): number {
   const raw = (
     p.pass_yds * 0.04 + p.pass_td * 4 +
     p.rush_yds * 0.1 + p.rush_td * 6 +
@@ -41,7 +41,7 @@ export function computePpr(p: ClayPlayer): number {
   return p.blendScale !== undefined ? raw * p.blendScale : raw;
 }
 
-export function computeCustomScore(p: ClayPlayer, scoring: Record<string, number>): number {
+export function computeCustomScore(p: ConsensusPlayer, scoring: Record<string, number>): number {
   const raw = (
     p.pass_yds * (scoring['pass_yd'] ?? 0.04) +
     p.pass_td * (scoring['pass_td'] ?? 4) +
@@ -52,13 +52,13 @@ export function computeCustomScore(p: ClayPlayer, scoring: Record<string, number
     p.rec * (scoring['rec'] ?? 1)
   );
   // Scale proportionally toward the blended model total (the model has no stat
-  // breakdown, so we keep Clay's mix and match its PPR total).
+  // breakdown, so we keep Consensus's mix and match its PPR total).
   return p.blendScale !== undefined ? raw * p.blendScale : raw;
 }
 
 export interface OptimalLineup {
-  starters: { player: ClayPlayer; slot: string; pts: number }[];
-  bench: { player: ClayPlayer; pts: number }[];
+  starters: { player: ConsensusPlayer; slot: string; pts: number }[];
+  bench: { player: ConsensusPlayer; pts: number }[];
   totalStarterPts: number;
 }
 
@@ -66,7 +66,7 @@ const FLEX_ELIGIBLE = new Set(['RB', 'WR', 'TE']);
 const SUPER_FLEX_ELIGIBLE = new Set(['QB', 'RB', 'WR', 'TE']);
 
 export function computeOptimalLineup(
-  allPlayers: ClayPlayer[],
+  allPlayers: ConsensusPlayer[],
   rosterPositions: string[],
   scoring: Record<string, number>,
 ): OptimalLineup {
@@ -75,7 +75,7 @@ export function computeOptimalLineup(
 
   const slots = rosterPositions.filter((s) => s !== 'BN');
   const used = new Set<string>();
-  const starters: { player: ClayPlayer; slot: string; pts: number }[] = [];
+  const starters: { player: ConsensusPlayer; slot: string; pts: number }[] = [];
 
   // Fill fixed-position slots first (QB, RB, WR, TE)
   for (const slot of slots) {
@@ -114,10 +114,10 @@ export function computeOptimalLineup(
   return { starters, bench, totalStarterPts };
 }
 
-let clayCache: ClayPlayer[] | null = null;
+let consensusCache: ConsensusPlayer[] | null = null;
 
-export async function loadClayProjections(): Promise<ClayPlayer[]> {
-  if (clayCache) return clayCache;
+export async function loadConsensusProjections(): Promise<ConsensusPlayer[]> {
+  if (consensusCache) return consensusCache;
 
   const [projRes, cwRes] = await Promise.all([
     fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-2026.json`)),
@@ -159,12 +159,12 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
     ? ((await projRes.json()) as { players?: Record<string, unknown>[] })
     : null;
   if (!projData?.players?.length) {
-    clayCache = await loadBaseProjections(resolveSleeper);
-    return clayCache;
+    consensusCache = await loadBaseProjections(resolveSleeper);
+    return consensusCache;
   }
   const players = projData.players;
 
-  clayCache = players
+  consensusCache = players
     .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(String(p.position ?? '')))
     .map((p) => ({
       name: String(p.name ?? ''),
@@ -183,19 +183,19 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
       rec_yds: Number(p.rec_yds) || 0,
       rec_td: Number(p.rec_td) || 0,
     }));
-  return clayCache;
+  return consensusCache;
 }
 
 /**
- * Build ClayPlayer rows from the shippable season-projection base pool
- * (projection-base-2026.json) — the public-deploy fallback when Clay is absent.
+ * Build ConsensusPlayer rows from the shippable season-projection base pool
+ * (projection-base-2026.json) — the public-deploy fallback when Consensus is absent.
  * Stat components are real season totals, so computePpr and the scenario engine
  * (which needs the breakdown) both work; loadBlendedProjections then rescales
- * each to the redraft-projections.json consensus PPG just as it does for Clay.
+ * each to the redraft-projections.json consensus PPG just as it does for Consensus.
  */
 async function loadBaseProjections(
   resolveSleeper: (name: string, position: string, key: string) => string | null,
-): Promise<ClayPlayer[]> {
+): Promise<ConsensusPlayer[]> {
   let base: Record<string, Array<Record<string, unknown>>> | null = null;
   try {
     const r = await fetch(bust(`${import.meta.env.BASE_URL}data/projection-base-2026.json`));
@@ -204,7 +204,7 @@ async function loadBaseProjections(
   if (!base) return [];
 
   const POS_ARRAYS: Array<[string, string]> = [['QB', 'qbs'], ['RB', 'rbs'], ['WR', 'wrs'], ['TE', 'tes']];
-  const out: ClayPlayer[] = [];
+  const out: ConsensusPlayer[] = [];
   for (const [position, arrKey] of POS_ARRAYS) {
     for (const p of base[arrKey] ?? []) {
       const name = String(p.name ?? '');
@@ -235,26 +235,26 @@ const GAMES = 17;
 const lastName = (name: string) =>
   normName((name.replace(/\s+(jr|sr|ii|iii|iv|v)$/i, '').trim().split(/\s+/).pop()) || name);
 
-let blendedCache: ClayPlayer[] | null = null;
+let blendedCache: ConsensusPlayer[] | null = null;
 
 /**
- * Clay projections rescaled to the in-house model's blended projection
+ * Consensus projections rescaled to the in-house model's blended projection
  * (redraft-projections.json — the "Consensus" base shown on the Projections tab
  * and My Rankings). Sets `blendScale` so computePpr/computeCustomScore return the
  * blended total while leaving raw stat components intact. Players the model
- * doesn't carry keep raw Clay. Use this — not loadClayProjections — anywhere we
- * display projected points, so we never ship raw Clay.
+ * doesn't carry keep raw Consensus. Use this — not loadConsensusProjections — anywhere we
+ * display projected points, so we never ship raw Consensus.
  */
-export async function loadBlendedProjections(): Promise<ClayPlayer[]> {
+export async function loadBlendedProjections(): Promise<ConsensusPlayer[]> {
   if (blendedCache) return blendedCache;
-  const clay = await loadClayProjections();
+  const consensus = await loadConsensusProjections();
 
   let model: { name?: unknown; position?: unknown; ppg?: unknown }[] = [];
   try {
     const r = await fetch(bust(`${import.meta.env.BASE_URL}data/redraft-projections.json`));
     if (r.ok) model = ((await r.json())?.players ?? []) as typeof model;
-  } catch { /* fall through to raw Clay */ }
-  if (!model.length) { blendedCache = clay; return clay; }
+  } catch { /* fall through to raw Consensus */ }
+  if (!model.length) { blendedCache = consensus; return consensus; }
 
   const ppgByName = new Map<string, number>();      // normName -> model PPG
   const ppgByLastPos = new Map<string, number>();   // lastName|pos -> model PPG (nickname fallback)
@@ -268,21 +268,21 @@ export async function loadBlendedProjections(): Promise<ClayPlayer[]> {
     if (!ppgByLastPos.has(k)) ppgByLastPos.set(k, ppg);
   }
 
-  const rawPpr = (p: ClayPlayer) =>
+  const rawPpr = (p: ConsensusPlayer) =>
     p.pass_yds * 0.04 + p.pass_td * 4 + p.rush_yds * 0.1 + p.rush_td * 6 + p.rec_yds * 0.1 + p.rec_td * 6 + p.rec;
 
-  blendedCache = clay.map((c) => {
+  blendedCache = consensus.map((c) => {
     const ppg = ppgByName.get(normName(c.name)) ?? ppgByLastPos.get(`${lastName(c.name)}|${c.position}`);
     const base = rawPpr(c);
-    if (ppg === undefined || base <= 0) return c; // model lacks player → raw Clay
+    if (ppg === undefined || base <= 0) return c; // model lacks player → raw Consensus
     return { ...c, blendScale: (ppg * GAMES) / base };
   });
   return blendedCache;
 }
 
 export function filterAvailable(
-  players: ClayPlayer[],
+  players: ConsensusPlayer[],
   rosteredIds: Set<string>,
-): ClayPlayer[] {
+): ConsensusPlayer[] {
   return players.filter((p) => p.sleeperId && !rosteredIds.has(p.sleeperId));
 }

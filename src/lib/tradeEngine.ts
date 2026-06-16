@@ -1,5 +1,5 @@
 import type { LeagueTeam, SleeperTradedPick } from './sleeper';
-import type { KTCPlayer } from '../types';
+import type { DynastyPlayer } from '../types';
 import { normalizeForMatch } from './nameMatch';
 
 export type TradeGoal = 'win-now' | 'rebuild' | 'balanced';
@@ -105,14 +105,14 @@ interface TeamProfile {
 
 function buildTeamProfile(
   team: LeagueTeam,
-  ktcByName: Map<string, KTCPlayer>,
+  dynastyByName: Map<string, DynastyPlayer>,
   picks: DraftPick[],
   goal: TradeGoal,
   projMap?: Map<string, number>,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
   // Redraft leagues value, compare, and rank everything on projected season
-  // points instead of dynasty (KTC) value.
+  // points instead of dynasty (Dynasty) value.
   useProjectedValue = false,
   // SF/2QB leagues price players on the superflex value (QBs are worth far
   // more); 1QB leagues use the base value — matching the power rankings.
@@ -124,10 +124,10 @@ function buildTeamProfile(
 
   for (const p of [...team.starters, ...team.bench]) {
     if (p.name === 'Empty' || !p.position || p.position === 'DEF') continue;
-    const k = ktcByName.get(normalizeForMatch(p.name));
+    const k = dynastyByName.get(normalizeForMatch(p.name));
     const proj = projMap?.get(p.id) ?? 0;
     // In redraft mode the trade currency is projected points; include any player
-    // with a projection. In dynasty mode it's KTC value (SF value in SF leagues).
+    // with a projection. In dynasty mode it's Dynasty value (SF value in SF leagues).
     const value = useProjectedValue ? proj : ((isSuperflex ? k?.superflexValue : k?.value) ?? 0);
     if (value <= 0) continue;
     assets.push({
@@ -371,7 +371,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export function generateTradeSuggestions(
   teams: LeagueTeam[],
-  ktc: KTCPlayer[],
+  dynasty: DynastyPlayer[],
   goals: Map<number, TradeGoal>,
   pickOwnership: Map<number, DraftPick[]>,
   myRosterId?: number,
@@ -379,20 +379,20 @@ export function generateTradeSuggestions(
   maxSuggestions = 6,
   projStatsMap?: Map<string, TradeAssetStats>,
   lastSeasonMap?: Map<string, { pts: number; posRank: number }>,
-  // Redraft: value, compare, and rank on projected points instead of KTC value.
+  // Redraft: value, compare, and rank on projected points instead of Dynasty value.
   useProjectedValue = false,
   // Dynasty SF/2QB leagues: price players on superflex value.
   isSuperflex = false,
 ): TradeSuggestion[] {
   rngState = Date.now();
 
-  const ktcByName = new Map<string, KTCPlayer>();
-  for (const p of ktc) ktcByName.set(normalizeForMatch(p.playerName), p);
+  const dynastyByName = new Map<string, DynastyPlayer>();
+  for (const p of dynasty) dynastyByName.set(normalizeForMatch(p.playerName), p);
 
   const profiles = new Map<number, TeamProfile>();
   for (const t of teams) {
     const goal = goals.get(t.rosterId) ?? 'balanced';
-    profiles.set(t.rosterId, buildTeamProfile(t, ktcByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue, isSuperflex));
+    profiles.set(t.rosterId, buildTeamProfile(t, dynastyByName, pickOwnership.get(t.rosterId) ?? [], goal, projMap, projStatsMap, lastSeasonMap, useProjectedValue, isSuperflex));
   }
 
   const myProfile = myRosterId ? profiles.get(myRosterId) : undefined;

@@ -11,7 +11,7 @@ allow more capacity.
 
 This script runs a targeted grid search per (pos, H) using the same player-
 grouped CV that the trainer uses as its primary long-horizon metric, and
-writes the winning configs to public/data/ktc-hyperparam-sweep.json. The
+writes the winning configs to public/data/dynasty-hyperparam-sweep.json. The
 trainer then reads that file via an LGB_PARAMS_PER_PAIR override dict
 baked directly into train_ktc_timeseries.py.
 
@@ -91,7 +91,7 @@ from train_projection_models import train_lgb_model  # noqa: E402,F401  (transit
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = REPO_ROOT / '.cache'
-SWEEP_OUT = REPO_ROOT / 'public' / 'data' / 'ktc-hyperparam-sweep.json'
+SWEEP_OUT = REPO_ROOT / 'public' / 'data' / 'dynasty-hyperparam-sweep.json'
 
 # ── Grid definition ─────────────────────────────────────────────────────
 

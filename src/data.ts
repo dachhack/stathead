@@ -19,8 +19,8 @@ import type {
   SleeperPlayer,
   SleeperTrendingRow,
   SleeperProjection,
-  KTCPlayer,
-  KTCPlayerHistory,
+  DynastyPlayer,
+  DynastyPlayerHistory,
   FantasyCalcPlayer,
   NextGenStats,
   Roster,
@@ -1032,35 +1032,35 @@ export async function fetchSleeperProjections(
 
 // --- KeepTradeCut (scrapes embedded playersArray from HTML) ---
 
-const ktcCache = new Map<string, KTCPlayer[]>();
+const dynastyCache = new Map<string, DynastyPlayer[]>();
 
-export async function fetchKTCRankings(
+export async function fetchDynastyRankings(
   format: '1qb' | 'superflex' = '1qb'
-): Promise<KTCPlayer[]> {
-  const cached = ktcCache.get(format);
+): Promise<DynastyPlayer[]> {
+  const cached = dynastyCache.get(format);
   if (cached) return cached;
 
   // Try pre-fetched data first
-  const preFetched = await tryPreFetched<KTCPlayer[]>(`ktc_rankings_${format}.json`);
+  const preFetched = await tryPreFetched<DynastyPlayer[]>(`ktc_rankings_${format}.json`);
   if (preFetched && preFetched.length > 0) {
     preFetched.sort((a, b) => b.value - a.value);
-    ktcCache.set(format, preFetched);
+    dynastyCache.set(format, preFetched);
     return preFetched;
   }
 
-  const allPlayers: KTCPlayer[] = [];
+  const allPlayers: DynastyPlayer[] = [];
   const seen = new Set<number>(); // deduplicate playerIDs across pages
   const formatParam = format === '1qb' ? '1' : '0';
 
-  // KTC paginates across 10 pages
+  // Dynasty paginates across 10 pages
   for (let page = 0; page < 10; page++) {
-    const ktcPath = `/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
+    const dynastyPath = `/dynasty-rankings?page=${page}&filters=QB|WR|RB|TE|RDP&format=${formatParam}`;
     const url = IS_PROD
-      ? `${KTC_PROXY}${ktcPath}`
-      : `https://keeptradecut.com${ktcPath}`;
+      ? `${KTC_PROXY}${dynastyPath}`
+      : `https://keeptradecut.com${dynastyPath}`;
     const response = await fetchWithTimeout(url);
     if (!response.ok) {
-      if (page === 0) throw new Error(`KTC returned ${response.status}`);
+      if (page === 0) throw new Error(`Dynasty returned ${response.status}`);
       break; // Later pages may not exist
     }
 
@@ -1069,7 +1069,7 @@ export async function fetchKTCRankings(
     // Extract the playersArray variable embedded in the page's script tags
     const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
     if (!match) {
-      if (page === 0) throw new Error('Could not find player data in KTC page');
+      if (page === 0) throw new Error('Could not find player data in Dynasty page');
       break;
     }
 
@@ -1080,7 +1080,7 @@ export async function fetchKTCRankings(
         const id = Number(p.playerID) || 0;
         if (seen.has(id)) continue; // deduplicate across pages
         seen.add(id);
-        // KTC moved values into nested objects: oneQBValues.value / superflexValues.value
+        // Dynasty moved values into nested objects: oneQBValues.value / superflexValues.value
         // Support both old flat shape (p.value) and new nested shape for resilience
         const oneQB = p.oneQBValues as Record<string, unknown> | undefined;
         const sf    = p.superflexValues as Record<string, unknown> | undefined;
@@ -1103,40 +1103,40 @@ export async function fetchKTCRankings(
       }
       if (added === 0) break; // no new players on this page — stop early
     } catch {
-      if (page === 0) throw new Error('Failed to parse KTC player data');
+      if (page === 0) throw new Error('Failed to parse Dynasty player data');
       break;
     }
   }
 
   // Sort by value descending
   allPlayers.sort((a, b) => b.value - a.value);
-  ktcCache.set(format, allPlayers);
+  dynastyCache.set(format, allPlayers);
   return allPlayers;
 }
 
-// --- KTC Player History (POST endpoint) ---
+// --- Dynasty Player History (POST endpoint) ---
 
-const ktcHistoryCache = new Map<number, KTCPlayerHistory>();
+const dynastyHistoryCache = new Map<number, DynastyPlayerHistory>();
 
-export async function fetchKTCHistory(
+export async function fetchDynastyHistory(
   playerIDs: number[]
-): Promise<KTCPlayerHistory[]> {
+): Promise<DynastyPlayerHistory[]> {
   // Try loading pre-fetched history (already parsed into {d,v} objects)
-  if (ktcHistoryCache.size === 0) {
-    const preFetched = await tryPreFetched<KTCPlayerHistory[]>('ktc_history.json');
+  if (dynastyHistoryCache.size === 0) {
+    const preFetched = await tryPreFetched<DynastyPlayerHistory[]>('ktc_history.json');
     if (preFetched) {
       for (const entry of preFetched) {
-        ktcHistoryCache.set(entry.playerID, entry);
+        dynastyHistoryCache.set(entry.playerID, entry);
       }
     }
   }
 
   // Return cached entries where available, fetch the rest
-  const results: KTCPlayerHistory[] = [];
+  const results: DynastyPlayerHistory[] = [];
   const toFetch: number[] = [];
 
   for (const id of playerIDs) {
-    const cached = ktcHistoryCache.get(id);
+    const cached = dynastyHistoryCache.get(id);
     if (cached) {
       results.push(cached);
     } else {
@@ -1155,12 +1155,12 @@ export async function fetchKTCHistory(
     });
 
     if (!response.ok) {
-      throw new Error(`KTC history API returned ${response.status}`);
+      throw new Error(`Dynasty history API returned ${response.status}`);
     }
 
     const raw = await response.json();
     for (const entry of raw) {
-      // KTC returns valueHistory as packed strings "YYMMDDVVVV..."
+      // Dynasty returns valueHistory as packed strings "YYMMDDVVVV..."
       // Convert to { d: "YYYY-MM-DD", v: number } objects
       const parseHistory = (arr: (string | { d: string; v: number })[]) =>
         arr.map((item) => {
@@ -1172,12 +1172,12 @@ export async function fetchKTCHistory(
           const v = Number(s.slice(6));
           return { d: `20${yy}-${mm}-${dd}`, v };
         });
-      const parsed: KTCPlayerHistory = {
+      const parsed: DynastyPlayerHistory = {
         playerID: entry.playerID,
         oneQB: { valueHistory: parseHistory(entry.oneQB.valueHistory) },
         superflex: { valueHistory: parseHistory(entry.superflex.valueHistory) },
       };
-      ktcHistoryCache.set(parsed.playerID, parsed);
+      dynastyHistoryCache.set(parsed.playerID, parsed);
       results.push(parsed);
     }
   }
@@ -1185,17 +1185,17 @@ export async function fetchKTCHistory(
   return results;
 }
 
-// --- KTC → FantasyCalc value rescaling (for display) ---
+// --- Dynasty → FantasyCalc value rescaling (for display) ---
 //
-// The site shows FC values everywhere but uses a KTC-trained forecast model.
+// The site shows FC values everywhere but uses a Dynasty-trained forecast model.
 // These wrappers apply a per-player ratio (see scripts/build-rescale-snapshot.cjs)
-// to KTC values so they appear in FC's scale. Raw fetchers above stay
-// untouched because the ML training pipeline expects native KTC scale.
+// to Dynasty values so they appear in FC's scale. Raw fetchers above stay
+// untouched because the ML training pipeline expects native Dynasty scale.
 
 import {
   makeRescaler,
-  rescaleKTCPlayer,
-  rescaleKTCHistory,
+  rescaleDynastyPlayer,
+  rescaleDynastyHistory,
   type Rescaler,
   type RescaleSnapshot,
 } from './lib/valueRescale';
@@ -1204,44 +1204,44 @@ let _rescalerPromise: Promise<Rescaler | null> | null = null;
 
 export function loadRescaler(): Promise<Rescaler | null> {
   if (_rescalerPromise) return _rescalerPromise;
-  _rescalerPromise = tryPreFetched<RescaleSnapshot>('ktc-fc-rescale.json')
+  _rescalerPromise = tryPreFetched<RescaleSnapshot>('dynasty-fc-rescale.json')
     .then(snap => snap ? makeRescaler(snap) : null);
   return _rescalerPromise;
 }
 
-export async function fetchKTCRankingsForDisplay(
+export async function fetchDynastyRankingsForDisplay(
   format: '1qb' | 'superflex' = '1qb',
-): Promise<KTCPlayer[]> {
+): Promise<DynastyPlayer[]> {
   const [raw, rescaler] = await Promise.all([
-    fetchKTCRankings(format),
+    fetchDynastyRankings(format),
     loadRescaler(),
   ]);
   if (!rescaler) return raw;
-  const out = raw.map(p => rescaleKTCPlayer(p, rescaler));
+  const out = raw.map(p => rescaleDynastyPlayer(p, rescaler));
   // Re-sort by rescaled value since per-player ratios can change order
   out.sort((a, b) => (format === '1qb' ? b.value - a.value : b.superflexValue - a.superflexValue));
   return out;
 }
 
-export async function fetchKTCHistoryForDisplay(
+export async function fetchDynastyHistoryForDisplay(
   playerIDs: number[],
   positionByID: Map<number, string>,
-): Promise<KTCPlayerHistory[]> {
+): Promise<DynastyPlayerHistory[]> {
   const [raw, rescaler] = await Promise.all([
-    fetchKTCHistory(playerIDs),
+    fetchDynastyHistory(playerIDs),
     loadRescaler(),
   ]);
   if (!rescaler) return raw;
-  return raw.map(h => rescaleKTCHistory(h, positionByID.get(h.playerID) ?? '', rescaler));
+  return raw.map(h => rescaleDynastyHistory(h, positionByID.get(h.playerID) ?? '', rescaler));
 }
 
-// --- FantasyCalc Rankings (normalized to KTCPlayer shape) ---
+// --- FantasyCalc Rankings (normalized to DynastyPlayer shape) ---
 
-const fcCache = new Map<string, KTCPlayer[]>();
+const fcCache = new Map<string, DynastyPlayer[]>();
 
 export async function fetchFantasyCalcRankings(
   format: '1qb' | 'superflex' = '1qb'
-): Promise<KTCPlayer[]> {
+): Promise<DynastyPlayer[]> {
   const cacheKey = format;
   const cached = fcCache.get(cacheKey);
   if (cached) return cached;
@@ -1279,7 +1279,7 @@ export async function fetchFantasyCalcRankings(
     sfMap.set(item.player.id, item.value);
   }
 
-  const results: KTCPlayer[] = oneQbData
+  const results: DynastyPlayer[] = oneQbData
     .filter((item) => item.player.position !== 'PICK')
     .map((item) => ({
       playerID: item.player.id,
@@ -1403,7 +1403,7 @@ export async function fetchContracts(): Promise<Contract[]> {
 export async function fetchDepthCharts(season: number): Promise<DepthChart[]> {
   // nflverse renamed the depth-chart schema (2024+): club_code, depth_team,
   // position, full_name, depth_position, week … Normalize back to the shape
-  // every consumer (tools + KTC/feature-store pipeline) already expects.
+  // every consumer (tools + Dynasty/feature-store pipeline) already expects.
   // `??` fallbacks keep older-season files (old column names) working too.
   const raw = await fetchCsv<Record<string, unknown>>(
     nflUrl(`depth_charts/depth_charts_${season}.csv`),

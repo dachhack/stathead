@@ -157,7 +157,7 @@ export interface SleeperProjection {
 }
 
 // --- KeepTradeCut ---
-export interface KTCPlayer {
+export interface DynastyPlayer {
   playerID: number;
   playerName: string;
   position: string;
@@ -171,15 +171,15 @@ export interface KTCPlayer {
   trend30Day?: number;
 }
 
-export interface KTCHistoryPoint {
+export interface DynastyHistoryPoint {
   d: string; // date string
   v: number; // value
 }
 
-export interface KTCPlayerHistory {
+export interface DynastyPlayerHistory {
   playerID: number;
-  oneQB: { valueHistory: KTCHistoryPoint[] };
-  superflex: { valueHistory: KTCHistoryPoint[] };
+  oneQB: { valueHistory: DynastyHistoryPoint[] };
+  superflex: { valueHistory: DynastyHistoryPoint[] };
 }
 
 export type Tab =
@@ -941,7 +941,7 @@ export interface PlayerMovement {
 }
 
 // Set a player's projection to an absolute PPR target (e.g. the "Consensus"
-// preset blends toward Mike Clay's numbers). Counting stats are scaled by
+// preset blends toward the consensus numbers). Counting stats are scaled by
 // target/current so the stat line stays internally consistent. Non-zero-sum.
 export interface PointsOverride {
   playerId: number;

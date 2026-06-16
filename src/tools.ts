@@ -9,7 +9,7 @@ import {
   fetchSnapCounts, fetchCombine, fetchDraftPicks, fetchInjuries,
   fetchAdvancedStats, fetchAdvancedStatsSeason, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
-  fetchKTCRankingsForDisplay, fetchFfcADP, fetchEspnADP,
+  fetchDynastyRankingsForDisplay, fetchFfcADP, fetchEspnADP,
   fetchNextGenStats, fetchRosters, fetchContracts,
   fetchDepthCharts, fetchFTNCharting, fetchTrades,
   fetchPbpParticipation,
@@ -805,7 +805,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
           '- Combine: 2000–present · Injuries: 2009–present · Snap counts: 2012–present',
           '- Next Gen Stats: 2016–present · QBR: 2006–present · FTN charting: 2022–present',
           '- FFC ADP: **~2018–present** (older may be unavailable); ESPN ADP: recent seasons',
-          '- Dynasty/redraft values (KTC, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**',
+          '- Dynasty/redraft values (Dynasty, FantasyCalc), Sleeper trending/projections, expert rankings: **current season only**',
         ].join('\n'),
         '## Enumerations',
         [
@@ -1278,7 +1278,7 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       // StatHead's blended dynasty value (market consensus rescaled to a
       // common scale) — the same canonical value the website shows, not a
       // raw third-party feed.
-      let data = await fetchKTCRankingsForDisplay(format);
+      let data = await fetchDynastyRankingsForDisplay(format);
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
       if (playerName) data = data.filter((d) => nameMatch(d.playerName, playerName));
       data = data.slice(0, limit);

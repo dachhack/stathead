@@ -104,19 +104,19 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   const [playerMetaMap, setPlayerMetaMap] = useState<PresetMeta>(new Map());
   // Full current roster per team (for the Scenario Builder's collapsible roster view).
   const [teamRosterMap, setTeamRosterMap] = useState<Record<string, { name: string; position: string; jersey: number; yearsExp: number; status: string }[]>>({});
-  // Local-only Clay projection PPR by normalized name, for the "Consensus"
-  // preset. Sourced from a gitignored runtime file (public/data/clay/) so Clay's
+  // Local-only Consensus projection PPR by normalized name, for the "Consensus"
+  // preset. Sourced from a gitignored runtime file (public/data/consensus/) so Consensus's
   // proprietary numbers are never committed — empty (preset hidden) in the
   // public deploy where the file is absent.
-  const [clayPprMap, setClayPprMap] = useState<Map<string, number>>(new Map());
-  const [clayStatsMap, setClayStatsMap] = useState<Map<string, import('../lib/scenarioPresets').ClayStats>>(new Map());
+  const [consensusPprMap, setConsensusPprMap] = useState<Map<string, number>>(new Map());
+  const [consensusStatsMap, setConsensusStatsMap] = useState<Map<string, import('../lib/scenarioPresets').ConsensusStats>>(new Map());
   // CI-precomputed Consensus blends (preset id → normalized name → season PPR),
   // from redraft-projections-presets.json. Lets the Consensus presets work in
-  // the public deploy without shipping Clay to the browser.
+  // the public deploy without shipping Consensus to the browser.
   const [presetPprMap, setPresetPprMap] = useState<Map<string, Map<string, number>>>(new Map());
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
   // Lifted out of the projection effect so the by-team grouping memo can
-  // consult Clay's depth ordering directly. Belt-and-suspenders against
+  // consult Consensus's depth ordering directly. Belt-and-suspenders against
   // edge cases where pprPts ordering doesn't perfectly match depth (e.g.
   // a starter rookie whose Y1 projection misses a pool reconciliation
   // step and lands behind a vet's ML-shared volume).
@@ -186,17 +186,17 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
 
   // Quick scenario swap from the projection views: pick a preset or saved
   // scenario and push it up as the active scenario (same materialization the
-  // Scenario Builder uses). Clay-only presets are hidden without Clay data.
-  const hasClay = clayPprMap.size > 0;
+  // Scenario Builder uses). Consensus-only presets are hidden without Consensus data.
+  const hasConsensus = consensusPprMap.size > 0;
   const projScenarioOptions = useMemo(() => {
-    // A Clay-dependent preset is offered when EITHER local Clay data is present
+    // A Consensus-dependent preset is offered when EITHER local Consensus data is present
     // OR its CI-precomputed derived blend loaded (public deploy).
     const presets = SCENARIO_PRESETS
-      .filter((p) => !p.requiresClay || hasClay || (presetPprMap.get(p.id)?.size ?? 0) > 0)
+      .filter((p) => !p.requiresConsensus || hasConsensus || (presetPprMap.get(p.id)?.size ?? 0) > 0)
       .map((p) => ({ id: p.id, name: p.name, kind: 'preset' as const }));
     const saved = loadAllScenarios().map((s) => ({ id: s.id, name: s.name, kind: 'saved' as const }));
     return [...presets, ...saved];
-  }, [hasClay, presetPprMap]);
+  }, [hasConsensus, presetPprMap]);
   const activeScenarioVal = isScenarioEmpty(scenario)
     ? ''
     : (projScenarioOptions.find((o) => o.id === scenario.id)?.id ?? 'custom');
@@ -205,7 +205,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     if (!id) { onScenarioChange(createEmptyScenario()); return; }
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (preset) {
-      const next = preset.build(searchProjections, playerMetaMap ?? new Map(), normalizeName, { clayPpr: clayPprMap, clayStats: clayStatsMap, presetPpr: presetPprMap });
+      const next = preset.build(searchProjections, playerMetaMap ?? new Map(), normalizeName, { consensusPpr: consensusPprMap, consensusStats: consensusStatsMap, presetPpr: presetPprMap });
       onScenarioChange({ ...next, id: preset.id, name: preset.name });
       return;
     }
@@ -302,7 +302,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, clayDoc, presetsDoc] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, consensusDoc, presetsDoc] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -319,7 +319,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
           fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           // CI-precomputed, DERIVED preset blends (Consensus, etc.) — lets the
-          // Consensus presets work in the public deploy without shipping Clay.
+          // Consensus presets work in the public deploy without shipping Consensus.
           fetch(`${import.meta.env.BASE_URL}data/redraft-projections-presets.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
         if (cancelled) return;
@@ -328,7 +328,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         const pool = buildProjectionPool({
           adpData, priorStats, draftData, rosters, gamesData, oddsLines,
           shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
-          featureMatrix, clayDoc, teamProjectionsEnsemble, season,
+          featureMatrix, consensusDoc, teamProjectionsEnsemble, season,
         });
         if (cancelled) return;
 
@@ -348,8 +348,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         if (!cancelled && pool.freeAgents) setFreeAgentList(pool.freeAgents);
         if (!cancelled) setPlayerMetaMap(pool.meta);
         if (!cancelled) setTeamRosterMap(pool.teamRosterMap);
-        setClayPprMap(pool.clayPprMap);
-        setClayStatsMap(pool.clayStatsMap);
+        setConsensusPprMap(pool.consensusPprMap);
+        setConsensusStatsMap(pool.consensusStatsMap);
 
         const { qbs, rbs, wrs, tes } = pool;
 
@@ -476,7 +476,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     for (const p of dispRbs) { if (p.team) ensure(p.team).rbs.push(p); }
     for (const p of dispWrs) { if (p.team) ensure(p.team).wrs.push(p); }
     for (const p of dispTes) { if (p.team) ensure(p.team).tes.push(p); }
-    // Depth-chart-aware sort. Primary: Clay's depth ordering (lower
+    // Depth-chart-aware sort. Primary: Consensus's depth ordering (lower
     // index = starter). Tiebreaker: projected pprPts. Anything not in
     // the depth chart gets rank 9999 and sorts purely by pprPts. This
     // is intentionally redundant with the candidatesByTeamPos sort —
@@ -636,8 +636,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         projections={searchProjections}
         freeAgents={freeAgentList}
         playerMeta={playerMetaMap}
-        clayPpr={clayPprMap}
-        clayStats={clayStatsMap}
+        consensusPpr={consensusPprMap}
+        consensusStats={consensusStatsMap}
         normalizeName={normalizeName}
         scenario={scenario}
         onChange={(sc) => onScenarioChange?.(sc)}

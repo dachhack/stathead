@@ -8,14 +8,14 @@
 //
 // The two fetches that used to be inline in the effect (feature-matrix.json and
 // clay-projections-<season>.json) are now hoisted into the caller's fetch phase
-// and passed in as `featureMatrix` / `clayDoc`.
+// and passed in as `featureMatrix` / `consensusDoc`.
 
 import {
   computePPR,
   normalizeProjName as normalizeName,
   type QBProjection, type RBProjection, type WRProjection, type TEProjection,
 } from './projectionsTabEngine';
-import type { PresetMeta, PlayerMeta, ClayStats } from './scenarioPresets';
+import type { PresetMeta, PlayerMeta, ConsensusStats } from './scenarioPresets';
 import type {
   SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, FreeAgentPlayer, PlayerStats,
 } from '../types';
@@ -43,7 +43,7 @@ export interface FeatureMatrixDoc {
   ppgPredictions2026?: Array<Record<string, unknown>>;
   [k: string]: unknown;
 }
-export interface ClayDoc {
+export interface ConsensusDoc {
   players?: Array<Record<string, number | string>>;
   [k: string]: unknown;
 }
@@ -63,7 +63,7 @@ export interface BuildProjectionPoolInputs {
   // Hoisted out of the effect: feature-matrix.json (the PPG fallback source)
   // and clay-projections-<season>.json (the Consensus preset source).
   featureMatrix: FeatureMatrixDoc | null;
-  clayDoc: ClayDoc | null;
+  consensusDoc: ConsensusDoc | null;
   // team-projections.json ensemble (imported in the browser, read from fs in Node).
   teamProjectionsEnsemble: { season: number; teams: Record<string, Record<string, number>> };
   season: number;
@@ -82,8 +82,8 @@ export interface BuildProjectionPoolResult {
   projPPGMap: Map<string, number>;
   freeAgents: FreeAgentPlayer[] | null;
   teamRosterMap: Record<string, { name: string; position: string; jersey: number; yearsExp: number; status: string }[]>;
-  clayPprMap: Map<string, number>;
-  clayStatsMap: Map<string, ClayStats>;
+  consensusPprMap: Map<string, number>;
+  consensusStatsMap: Map<string, ConsensusStats>;
   projTeamTotals: Map<string, TeamTotalRow>;
   oddsSource: 'live' | 'historical';
 }
@@ -100,7 +100,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   const {
     adpData, priorStats, draftData, rosters, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
-    featureMatrix, clayDoc, teamProjectionsEnsemble,
+    featureMatrix, consensusDoc, teamProjectionsEnsemble,
   } = inputs;
 
   // ── Projections mode: current/future season ──
@@ -109,7 +109,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   // depth-order model (scripts/train_depth_order_model.py ->
   // depth-order-2026.json). Used as the primary sort key so the modeled
   // starter wins over community ADP — handles rookies without ADP and
-  // offseason role changes ADP lags. Replaces the prior Clay-derived
+  // offseason role changes ADP lags. Replaces the prior Consensus-derived
   // depth chart; teams/players the model misses fall back to ADP order.
   // LOSO top-1 hit rate: QB 69.5% / RB 69.1% / WR 63.4% / TE 69.8%.
   const depthChart: Record<string, Record<string, string[]>> = {};
@@ -186,7 +186,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
       qbs: [], rbs: [], wrs: [], tes: [],
       meta: new Map(), depthChart, projAdpMap, projPPGMap,
       freeAgents: null, teamRosterMap: {},
-      clayPprMap: new Map(), clayStatsMap: new Map(),
+      consensusPprMap: new Map(), consensusStatsMap: new Map(),
       projTeamTotals: new Map(), oddsSource: 'historical',
     };
   }
@@ -300,18 +300,18 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
 
   // ── Consensus projections for the "Consensus" preset ──
   // Committed at public/data/clay-projections-<season>.json (extracted by
-  // scripts/extract_clay_projections.py; surfaced only as "Consensus").
+  // scripts/extract_consensus_projections.py; surfaced only as "Consensus").
   // PPR is recomputed from the stat line with our scoring so it's
   // consistent with our projections and format-agnostic to the source's
   // own points column.
-  const clayPprMap = new Map<string, number>();
-  const clayStatsMap = new Map<string, ClayStats>();
+  const consensusPprMap = new Map<string, number>();
+  const consensusStatsMap = new Map<string, ConsensusStats>();
   {
-    const clayRaw = clayDoc?.players;
-    if (Array.isArray(clayRaw)) {
-      const clayMap = clayPprMap;
-      const csMap = clayStatsMap;
-      for (const c of clayRaw as Array<Record<string, number | string>>) {
+    const consensusRaw = consensusDoc?.players;
+    if (Array.isArray(consensusRaw)) {
+      const consensusMap = consensusPprMap;
+      const csMap = consensusStatsMap;
+      for (const c of consensusRaw as Array<Record<string, number | string>>) {
         const name = String(c.name ?? '');
         if (!name) continue;
         const ppr = computePPR({
@@ -321,7 +321,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
         });
         const nk = normalizeName(name);
         if (ppr > 0) {
-          clayMap.set(nk, Math.round(ppr));
+          consensusMap.set(nk, Math.round(ppr));
           csMap.set(nk, {
             position: String(c.position ?? ''),
             pos_rk: Number(c.pos_rk) || 999,
@@ -352,8 +352,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     const draft = draftByName.get(name);
     if (!draft || draft.season !== PREDICT_SEASON) return 0;
     const pick = draft.pick || 999;
-    // Calibrated against Mike Clay's 2026 projection set — at the
-    // prior shares we were ~4 PPG below Clay on top rookie WRs/TEs
+    // Calibrated against the consensus 2026 projection set — at the
+    // prior shares we were ~4 PPG below Consensus on top rookie WRs/TEs
     // (Tate, Tyson, Sadiq) and ~1.5 PPG too high on R3+ RB depth.
     // These are workload shares (target/rush share of position
     // pool); R1 WRs see WR1-level targets, R1 RBs lead-back carry
@@ -761,9 +761,9 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     addedNames.add(nn);
   }
 
-  // Sort each team+pos group. Primary: Clay's depth chart (lower
+  // Sort each team+pos group. Primary: Consensus's depth chart (lower
   // index = starter). Secondary: ADP. Tertiary: prior PPR. Players
-  // not in Clay's depth chart get rank 9999 and fall through to
+  // not in Consensus's depth chart get rank 9999 and fall through to
   // ADP-based ordering — same as before for that subset.
   for (const [key, list] of candidatesByTeamPos) {
     const [team, pos] = key.split(':');
@@ -1330,8 +1330,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     projPPGMap,
     freeAgents,
     teamRosterMap,
-    clayPprMap,
-    clayStatsMap,
+    consensusPprMap,
+    consensusStatsMap,
     projTeamTotals: ptmMap,
     oddsSource: usingLiveOdds ? 'live' : 'historical',
   };

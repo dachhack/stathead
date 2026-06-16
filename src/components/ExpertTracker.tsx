@@ -3,8 +3,8 @@ import {
   fetchSleeperUser, fetchUserLeagues, fetchUserRostersAcrossLeagues, leagueTypeName,
   type UserLeagueRoster, type SleeperLeagueSummary,
 } from '../lib/sleeper';
-import { fetchSleeperPlayers, fetchKTCRankings } from '../data';
-import type { SleeperPlayer, Tab, KTCPlayer } from '../types';
+import { fetchSleeperPlayers, fetchDynastyRankings } from '../data';
+import type { SleeperPlayer, Tab, DynastyPlayer } from '../types';
 import { PlayerName } from './PlayerName';
 import { PlayerAvatar } from './PlayerAvatar';
 import { teamLogoUrl } from '../lib/teamLogo';
@@ -17,7 +17,7 @@ import {
 
 const SLEEPER = 'https://api.sleeper.app/v1';
 
-// Trade grading: value the two sides with KTC dynasty values (+ rookie-pick
+// Trade grading: value the two sides with Dynasty values (+ rookie-pick
 // value) and grade by the share of total value the manager received.
 function letterGrade(ratio: number): string {
   if (ratio >= 0.62) return 'A';
@@ -142,7 +142,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
   const [gCands, setGCands] = useState<GenCandidates | null>(null);
   const [nameDoc, setNameDoc] = useState<ExpertNamesDoc | null>(null); // local dev file, or unlocked
   const [encNames, setEncNames] = useState<EncryptedNames | null>(null); // deployed encrypted blob
-  const [ktcByName, setKtcByName] = useState<Map<string, KTCPlayer>>(new Map());
+  const [dynastyByName, setDynastyByName] = useState<Map<string, DynastyPlayer>>(new Map());
   const [graphFmt, setGraphFmt] = useState<'all' | 'dynasty' | 'redraft'>('all');
   const [ownSort, setOwnSort] = useState<ColSort>({ k: 'rosters', d: -1 });
   const [addSort, setAddSort] = useState<ColSort>({ k: 'experts', d: -1 });
@@ -167,10 +167,10 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     // a previously unlocked copy (sessionStorage) or the encrypted blob.
     load<ExpertNamesDoc>('expert-names.json', (v) => setNameDoc(v?.names ? v : loadCachedUnlockedNames()));
     fetchEncryptedNames().then(setEncNames).catch(() => {});
-    fetchKTCRankings('superflex').then((ks) => {
-      const m = new Map<string, KTCPlayer>();
+    fetchDynastyRankings('superflex').then((ks) => {
+      const m = new Map<string, DynastyPlayer>();
       for (const k of ks) m.set(normalizeForMatch(k.playerName), k);
-      setKtcByName(m);
+      setDynastyByName(m);
     }).catch(() => {});
   }, []);
   const hasPipeline = !!(gOwn?.players?.length || gAdds?.adds?.length || gTrades?.trades?.length);
@@ -188,12 +188,12 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     return true;
   }, [encNames]);
 
-  // ── Trade grading (client-side, KTC dynasty values) ──
+  // ── Trade grading (client-side, Dynasty values) ──
   const valuePlayer = useCallback((id: string, sf: boolean): number => {
-    const k = ktcByName.get(normalizeForMatch(players.get(id)?.full_name ?? ''));
+    const k = dynastyByName.get(normalizeForMatch(players.get(id)?.full_name ?? ''));
     if (!k) return 0;
     return sf ? k.superflexValue : k.value;
-  }, [ktcByName, players]);
+  }, [dynastyByName, players]);
   const gradeTrade = useCallback((t: GenTrade): { got: number; gave: number; ratio: number; grade: string } => {
     let got = 0, gave = 0;
     for (const id of t.received) got += valuePlayer(id, t.sf);
@@ -206,7 +206,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
 
   // Per-expert average grade ratio + count, ranked (anonymized index → name if local).
   const expertRanking = useMemo((): RankRow[] => {
-    if (!gTrades || ktcByName.size === 0) return [];
+    if (!gTrades || dynastyByName.size === 0) return [];
     const agg = new Map<number, { sum: number; n: number }>();
     for (const t of gTrades.trades) {
       if (t.expert == null) continue;
@@ -222,7 +222,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
     }
     return rows.sort((x, y) => y.avg - x.avg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gTrades, ktcByName, gradeTrade, nameDoc]);
+  }, [gTrades, dynastyByName, gradeTrade, nameDoc]);
 
   const rankedWithUser = useMemo(() => {
     const rows = [...expertRanking];
@@ -573,7 +573,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                 <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                     {g.got + g.gave > 0 && (
-                      <span title={`Got ${Math.round(g.got).toLocaleString()} vs gave ${Math.round(g.gave).toLocaleString()} (KTC value)`}
+                      <span title={`Got ${Math.round(g.got).toLocaleString()} vs gave ${Math.round(g.gave).toLocaleString()} (Dynasty value)`}
                         style={{ fontSize: 12, fontWeight: 800, color: gradeColor(g.grade), border: `1px solid ${gradeColor(g.grade)}`, borderRadius: 4, padding: '0 6px' }}>{g.grade}</span>
                     )}
                     {t.expert != null && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{expertLabel(t.expert)}</span>}
@@ -594,7 +594,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
           {dataView === 'rank' && (
             <div>
               <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
-                Experts ranked by average trade grade (KTC dynasty value received ÷ total value moved). Enter a
+                Experts ranked by average trade grade (Dynasty value received ÷ total value moved). Enter a
                 username to grade your trades + see your player overlap, and slot yourself into the list.
               </p>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
@@ -604,7 +604,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                   onKeyDown={(e) => { if (e.key === 'Enter') void runCompare(); }}
                   style={{ padding: '5px 10px', fontSize: 13, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 180 }}
                 />
-                <button onClick={() => { void runCompare(); }} disabled={comparing || !ktcByName.size} style={{ ...btn(true), padding: '5px 12px', fontSize: 12 }}>
+                <button onClick={() => { void runCompare(); }} disabled={comparing || !dynastyByName.size} style={{ ...btn(true), padding: '5px 12px', fontSize: 12 }}>
                   {comparing ? 'Grading…' : 'Compare me'}
                 </button>
                 {compareErr && <span style={{ fontSize: 11, color: '#ef4444' }}>{compareErr}</span>}
@@ -626,7 +626,7 @@ export function ExpertTracker({ onNavigate }: { onNavigate?: (tab: Tab) => void 
                   </tbody>
                 </table>
               </div>
-              {!ktcByName.size && <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Loading KTC values for grading…</p>}
+              {!dynastyByName.size && <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Loading Dynasty values for grading…</p>}
             </div>
           )}
 

@@ -19,8 +19,8 @@ export interface PlayerMeta {
 
 export type PresetMeta = Map<string, PlayerMeta>;
 
-// Per-player Clay stat line for stat-level blending (ML Optimized preset).
-export interface ClayStats {
+// Per-player Consensus stat line for stat-level blending (ML Optimized preset).
+export interface ConsensusStats {
   position: string;
   pos_rk: number;
   pass_yds?: number; pass_td?: number; pass_int?: number;
@@ -29,26 +29,26 @@ export interface ClayStats {
   ppr: number;
 }
 
-// Optional external inputs a preset may consult. `clayPpr` is the local-only
-// Clay projection set (PPR by normalized name) — present only when the
+// Optional external inputs a preset may consult. `consensusPpr` is the local-only
+// Consensus projection set (PPR by normalized name) — present only when the
 // gitignored runtime file exists. `presetPpr` carries the CI-precomputed,
 // derived blend for a given preset id (season PPR by normalized name), read
 // from redraft-projections-presets.json — so the Consensus presets work in the
-// public deploy without shipping any Clay data to the browser.
+// public deploy without shipping any Consensus data to the browser.
 export interface PresetContext {
-  clayPpr?: Map<string, number>;
-  clayStats?: Map<string, ClayStats>;
+  consensusPpr?: Map<string, number>;
+  consensusStats?: Map<string, ConsensusStats>;
   presetPpr?: Map<string, Map<string, number>>;
 }
 
 // A preset is a factory: given the live projection pool + metadata it produces
 // a ready-to-apply ScenarioConfig built entirely from existing scenario levers.
-// `requiresClay` presets are only offered when `ctx.clayPpr` has data.
+// `requiresConsensus` presets are only offered when `ctx.consensusPpr` has data.
 export interface ScenarioPreset {
   id: string;
   name: string;
   description: string;
-  requiresClay?: boolean;
+  requiresConsensus?: boolean;
   build: (
     players: SDIOProjection[],
     meta: PresetMeta,
@@ -90,7 +90,7 @@ function vol(p: SDIOProjection, deltas: Partial<VolumeOverride>): VolumeOverride
 
 // Turn a precomputed season-PPR map (normalized name → PPR) into per-player
 // points overrides against the live pool. Used by the Consensus presets so the
-// public deploy applies the CI-derived blend without any Clay data client-side.
+// public deploy applies the CI-derived blend without any Consensus data client-side.
 function applyPrecomputed(
   players: SDIOProjection[],
   normalize: (s: string) => string,
@@ -211,13 +211,13 @@ const vegasWeighted: ScenarioPreset = {
   },
 };
 
-// ── Consensus (per-position Clay blend) ──────────────────────────────
-// Blend each player's projection toward Mike Clay's numbers at the PPR level
+// ── Consensus (per-position Consensus blend) ──────────────────────────────
+// Blend each player's projection toward the consensus numbers at the PPR level
 // (counting stats keep our shape, scaled to the blended PPG).
 // Weights derived from 5-year blend study (2021-2025, n=704 non-rookie
 // player-seasons) averaging MAE-optimal and Spearman-optimal across
-// season-total and per-game normalization. See scripts/clay_blend_study.py.
-// LOCAL-ONLY: depends on the gitignored Clay set (ctx.clayPpr); this preset is
+// season-total and per-game normalization. See scripts/consensus_blend_study.py.
+// LOCAL-ONLY: depends on the gitignored Consensus set (ctx.consensusPpr); this preset is
 // hidden in the public deploy where that data is absent.
 const CONSENSUS_CLAY_WEIGHT: Record<string, number> = {
   QB: 0.75,
@@ -230,24 +230,24 @@ const consensus: ScenarioPreset = {
   id: 'preset-consensus',
   name: 'Consensus',
   description: 'Per-position consensus blend (5yr study: QB/RB 75%, WR 55%, TE 85%).',
-  requiresClay: true,
+  requiresConsensus: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus');
-    // Prefer the CI-precomputed derived blend (no Clay in the browser).
+    // Prefer the CI-precomputed derived blend (no Consensus in the browser).
     const pre = ctx?.presetPpr?.get('preset-consensus');
     if (pre && pre.size > 0) {
       sc.pointsOverrides = applyPrecomputed(players, normalize, pre);
       return sc;
     }
-    const clay = ctx?.clayPpr;
-    if (!clay || clay.size === 0) return sc;
+    const consensus = ctx?.consensusPpr;
+    if (!consensus || consensus.size === 0) return sc;
     const overrides: PointsOverride[] = [];
     for (const p of players) {
-      const clayPpr = clay.get(normalize(p.Name));
-      if (clayPpr === undefined || clayPpr <= 0) continue;
+      const consensusPpr = consensus.get(normalize(p.Name));
+      if (consensusPpr === undefined || consensusPpr <= 0) continue;
       const ours = p.FantasyPointsPPR || 0;
       const w = CONSENSUS_CLAY_WEIGHT[p.Position] ?? CONSENSUS_CLAY_WEIGHT_DEFAULT;
-      const blended = w * clayPpr + (1 - w) * ours;
+      const blended = w * consensusPpr + (1 - w) * ours;
       overrides.push({
         playerId: p.PlayerID,
         playerName: p.Name,
@@ -264,11 +264,11 @@ const consensus: ScenarioPreset = {
 // ── Consensus ML Optimized (per-stat + tier-aware blend) ─────────────
 // Instead of blending at the PPR level, blends each counting stat
 // independently using weights optimized across 2021-2025 (n=704).
-// Key insight: Clay excels at TDs and role-based stats (RB rush yards)
+// Key insight: Consensus excels at TDs and role-based stats (RB rush yards)
 // but our baseline is better at volume stats (WR rec yards, QB pass yards).
-// Blending per-stat captures this — e.g. trust Clay on rush_td (w=1.0)
+// Blending per-stat captures this — e.g. trust Consensus on rush_td (w=1.0)
 // but lean toward us on pass_yds (w=0.38).
-// See scripts/clay_blend_study.py for derivation.
+// See scripts/consensus_blend_study.py for derivation.
 const STAT_WEIGHTS: Record<string, Record<string, number>> = {
   QB: { pass_yds: 0.38, pass_td: 0.90, pass_int: 0.00, rush_yds: 0.68, rush_td: 0.46 },
   RB: { rush_yds: 0.94, rush_td: 1.00, rec: 0.65, rec_yds: 0.45, rec_td: 1.00 },
@@ -282,7 +282,7 @@ const PPR_SCORING: Record<string, number> = {
   rec: 1, rec_yds: 0.1, rec_td: 6,
 };
 
-// Mapping from Clay stat keys to our SDIOProjection field names
+// Mapping from Consensus stat keys to our SDIOProjection field names
 const CLAY_TO_SDIO: Record<string, keyof SDIOProjection> = {
   pass_yds: 'PassingYards', pass_td: 'PassingTouchdowns', pass_int: 'PassingInterceptions',
   rush_yds: 'RushingYards', rush_td: 'RushingTouchdowns',
@@ -292,34 +292,34 @@ const CLAY_TO_SDIO: Record<string, keyof SDIOProjection> = {
 const consensusMlOptimized: ScenarioPreset = {
   id: 'preset-consensus-ml',
   name: 'Consensus ML Optimized',
-  description: 'Per-stat blend: trust Clay on TDs/rushing, lean on us for volume/yardage (5yr study, n=704).',
-  requiresClay: true,
+  description: 'Per-stat blend: trust Consensus on TDs/rushing, lean on us for volume/yardage (5yr study, n=704).',
+  requiresConsensus: true,
   build: (players, _meta, normalize, ctx) => {
     const sc = base('Consensus ML Optimized');
-    // Prefer the CI-precomputed derived blend (no Clay in the browser).
+    // Prefer the CI-precomputed derived blend (no Consensus in the browser).
     const pre = ctx?.presetPpr?.get('preset-consensus-ml');
     if (pre && pre.size > 0) {
       sc.pointsOverrides = applyPrecomputed(players, normalize, pre);
       return sc;
     }
-    const clayMap = ctx?.clayStats;
-    const clayPprFallback = ctx?.clayPpr;
-    if ((!clayMap || clayMap.size === 0) && (!clayPprFallback || clayPprFallback.size === 0)) return sc;
+    const consensusMap = ctx?.consensusStats;
+    const consensusPprFallback = ctx?.consensusPpr;
+    if ((!consensusMap || consensusMap.size === 0) && (!consensusPprFallback || consensusPprFallback.size === 0)) return sc;
     const overrides: PointsOverride[] = [];
     for (const p of players) {
       const key = normalize(p.Name);
-      const cs = clayMap?.get(key);
+      const cs = consensusMap?.get(key);
       if (cs) {
         const posWeights = STAT_WEIGHTS[p.Position];
         if (!posWeights) continue;
         let blendedPpr = 0;
         for (const [stat, pprMult] of Object.entries(PPR_SCORING)) {
-          const clayVal = cs[stat as keyof ClayStats] as number | undefined;
+          const consensusVal = cs[stat as keyof ConsensusStats] as number | undefined;
           const sdioField = CLAY_TO_SDIO[stat];
           const oursVal = sdioField ? (p[sdioField] as number) || 0 : 0;
-          if (clayVal !== undefined && stat in posWeights) {
+          if (consensusVal !== undefined && stat in posWeights) {
             const w = posWeights[stat];
-            blendedPpr += (w * clayVal + (1 - w) * oursVal) * pprMult;
+            blendedPpr += (w * consensusVal + (1 - w) * oursVal) * pprMult;
           } else {
             blendedPpr += oursVal * pprMult;
           }
@@ -331,7 +331,7 @@ const consensusMlOptimized: ScenarioPreset = {
         });
       } else {
         // Fall back to PPR-level blend if no stat line
-        const cPpr = clayPprFallback?.get(key);
+        const cPpr = consensusPprFallback?.get(key);
         if (cPpr !== undefined && cPpr > 0) {
           const ours = p.FantasyPointsPPR || 0;
           const w = CONSENSUS_CLAY_WEIGHT[p.Position] ?? CONSENSUS_CLAY_WEIGHT_DEFAULT;

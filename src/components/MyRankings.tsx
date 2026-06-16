@@ -166,7 +166,7 @@ const STORAGE_KEY = 'stathead-my-rankings';
 const GAMES = 17;
 const CURRENT_SEASON = 2026;
 
-// Non-clay quick presets offered here (clay-blend presets would no-op without Clay).
+// Non-consensus quick presets offered here (consensus-blend presets would no-op without Consensus).
 const MR_PRESET_IDS = new Set(['preset-rookie-optimistic', 'preset-vet-optimistic', 'preset-injury-skeptic', 'preset-vegas-weighted']);
 
 const BASE = import.meta.env.BASE_URL;
@@ -507,7 +507,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   );
 
   // Resolve active scenario: a selected quick preset or saved scenario overrides
-  // the prop scenario. Clay-blend presets are excluded (handled via MR_PRESET_IDS).
+  // the prop scenario. Consensus-blend presets are excluded (handled via MR_PRESET_IDS).
   const activeScenario = useMemo(() => {
     if (selectedScenarioId.startsWith('preset-')) {
       const preset = SCENARIO_PRESETS.find(p => p.id === selectedScenarioId);

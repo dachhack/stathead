@@ -1,6 +1,6 @@
 // 2026 NFL schedule + strength-of-schedule, fetched live from ESPN's public
 // scoreboard API at runtime (client-side; the app already does live fetches
-// like KTC). Includes preseason. Opponent strength for SOS comes from our own
+// like Dynasty). Includes preseason. Opponent strength for SOS comes from our own
 // team offensive projections.
 import teamProjections from '../generated/team-projections.json';
 
@@ -163,7 +163,7 @@ export interface UnitGrades {
 }
 export type UnitGradesByTeam = Record<string, UnitGrades>;
 
-/** Load the committed Consensus unit grades (scripts/extract_clay_unit_grades.py).
+/** Load the committed Consensus unit grades (scripts/extract_consensus_unit_grades.py).
  *  Returns null when absent so SOS falls back to the offense-only proxy. */
 export async function fetchUnitGrades(season = SCHEDULE_SEASON): Promise<UnitGradesByTeam | null> {
   try {

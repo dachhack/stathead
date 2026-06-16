@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PlayerName } from './PlayerName';
-import { fetchCombine, fetchFantasyRankings, fetchKTCRankingsForDisplay, fetchRosters } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchRosters } from '../data';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
   CombineResult,
   FantasyRanking,
-  KTCPlayer,
+  DynastyPlayer,
   Roster,
   ScenarioConfig,
   SDIOProjection,
@@ -155,7 +155,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
 
   const [combine, setCombine] = useState<CombineResult[]>([]);
   const [fpRanks, setFpRanks] = useState<FantasyRanking[]>([]);
-  const [ktc, setKtc] = useState<KTCPlayer[]>([]);
+  const [dynasty, setDynasty] = useState<DynastyPlayer[]>([]);
   const [careerMap, setCareerMap] = useState<Map<string, CareerPrediction>>(new Map());
   const [redraft, setRedraft] = useState<RedraftPlayer[]>([]);
   const [rosters, setRosters] = useState<Roster[]>([]);
@@ -181,15 +181,15 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     Promise.all([
       fetchCombine().catch(() => [] as CombineResult[]),
       fetchFantasyRankings().catch(() => [] as FantasyRanking[]),
-      fetchKTCRankingsForDisplay('1qb').catch(() => [] as KTCPlayer[]),
+      fetchDynastyRankingsForDisplay('1qb').catch(() => [] as DynastyPlayer[]),
       fetch(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
       fetchRosters(DRAFT_YEAR).catch(() => [] as Roster[]),
     ])
-      .then(([combineData, fpData, ktcData, featureData, redraftData, rosterData]) => {
+      .then(([combineData, fpData, dynastyData, featureData, redraftData, rosterData]) => {
         setCombine(combineData);
         setFpRanks(fpData);
-        setKtc(ktcData);
+        setDynasty(dynastyData);
         setRedraft((redraftData?.players ?? []) as RedraftPlayer[]);
         setRosters(rosterData);
 
@@ -313,9 +313,9 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     const fpMap = new Map<string, FantasyRanking>();
     for (const r of rookieFp) fpMap.set(normalizeName(canonicalizePlayerName(r.player)), r);
 
-    const ktcRookies = ktc.filter(p => p.isRookie);
-    const ktcMap = new Map<string, KTCPlayer>();
-    for (const p of ktcRookies) ktcMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
+    const dynastyRookies = dynasty.filter(p => p.isRookie);
+    const dynastyMap = new Map<string, DynastyPlayer>();
+    for (const p of dynastyRookies) dynastyMap.set(normalizeName(canonicalizePlayerName(p.playerName)), p);
 
     const seen = new Set<string>();
     const rows: ProspectRankRow[] = [];
@@ -326,7 +326,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       school: string,
       pg?: ProspectGrade,
       fp?: FantasyRanking,
-      ktcP?: KTCPlayer,
+      dynastyP?: DynastyPlayer,
     ): ProspectRankRow | null => {
       const nn = normalizeName(name);
       const id = makeId(name, pos);
@@ -384,7 +384,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
         projPick: pg?.projPick || 0,
         scoutTier: pg?.tier || '',
         rookieEcr: fp?.ecr ?? 999,
-        dynastyValue: ktcP?.value || 0,
+        dynastyValue: dynastyP?.value || 0,
         predictedCareerPPG: career?.ppg || 0,
         modelTier: career?.modelTier || 0,
         percentile: career?.percentile || 0,
@@ -410,36 +410,36 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       const nn = normalizeName(canonicalName);
       const pg = gradeMap.get(nn);
       const fp = fpMap.get(nn);
-      const ktcP = ktcMap.get(nn);
+      const dynastyP = dynastyMap.get(nn);
       const pos = pg?.pos || c.pos || '';
-      const row = buildRow(canonicalName, pos, c.school || pg?.school || '', pg, fp, ktcP);
+      const row = buildRow(canonicalName, pos, c.school || pg?.school || '', pg, fp, dynastyP);
       if (row) {
         rows.push(row);
         gradeMap.delete(nn);
         fpMap.delete(nn);
-        ktcMap.delete(nn);
+        dynastyMap.delete(nn);
       }
     }
 
     // Add graded prospects not in combine
     for (const [nn, pg] of gradeMap) {
       const fp = fpMap.get(nn);
-      const ktcP = ktcMap.get(nn);
-      const row = buildRow(canonicalizePlayerName(pg.name), pg.pos, pg.school, pg, fp, ktcP);
+      const dynastyP = dynastyMap.get(nn);
+      const row = buildRow(canonicalizePlayerName(pg.name), pg.pos, pg.school, pg, fp, dynastyP);
       if (row) {
         rows.push(row);
         fpMap.delete(nn);
-        ktcMap.delete(nn);
+        dynastyMap.delete(nn);
       }
     }
 
     // Add FantasyPros rookies not yet matched
     for (const [nn, fp] of fpMap) {
-      const ktcP = ktcMap.get(nn);
-      const row = buildRow(canonicalizePlayerName(fp.player), fp.pos || '', '', undefined, fp, ktcP);
+      const dynastyP = dynastyMap.get(nn);
+      const row = buildRow(canonicalizePlayerName(fp.player), fp.pos || '', '', undefined, fp, dynastyP);
       if (row) {
         rows.push(row);
-        ktcMap.delete(nn);
+        dynastyMap.delete(nn);
       }
     }
 
@@ -455,7 +455,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
     });
 
     return rows;
-  }, [combine, fpRanks, ktc, careerMap, projByName, teamByName, teamTotals]);
+  }, [combine, fpRanks, dynasty, careerMap, projByName, teamByName, teamTotals]);
 
   // Apply custom order + locks
   const rankedRows = useMemo(() => {
