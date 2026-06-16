@@ -19,6 +19,12 @@ on:
       source_ref:
         description: QA branch, tag, or SHA to promote to stathead.app
         default: claude/nfl-fantasy-workbench-6D1yd
+  workflow_call:
+    inputs:
+      source_ref:
+        type: string
+        required: false
+        default: claude/nfl-fantasy-workbench-6D1yd
 
 permissions:
   contents: write
