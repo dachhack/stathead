@@ -110,6 +110,10 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   // public deploy where the file is absent.
   const [clayPprMap, setClayPprMap] = useState<Map<string, number>>(new Map());
   const [clayStatsMap, setClayStatsMap] = useState<Map<string, import('../lib/scenarioPresets').ClayStats>>(new Map());
+  // CI-precomputed Consensus blends (preset id → normalized name → season PPR),
+  // from redraft-projections-presets.json. Lets the Consensus presets work in
+  // the public deploy without shipping Clay to the browser.
+  const [presetPprMap, setPresetPprMap] = useState<Map<string, Map<string, number>>>(new Map());
   const [projTeamTotalsMap, setProjTeamTotalsMap] = useState<Map<string, TeamTotalRow>>(new Map());
   // Lifted out of the projection effect so the by-team grouping memo can
   // consult Clay's depth ordering directly. Belt-and-suspenders against
@@ -185,12 +189,14 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   // Scenario Builder uses). Clay-only presets are hidden without Clay data.
   const hasClay = clayPprMap.size > 0;
   const projScenarioOptions = useMemo(() => {
+    // A Clay-dependent preset is offered when EITHER local Clay data is present
+    // OR its CI-precomputed derived blend loaded (public deploy).
     const presets = SCENARIO_PRESETS
-      .filter((p) => !p.requiresClay || hasClay)
+      .filter((p) => !p.requiresClay || hasClay || (presetPprMap.get(p.id)?.size ?? 0) > 0)
       .map((p) => ({ id: p.id, name: p.name, kind: 'preset' as const }));
     const saved = loadAllScenarios().map((s) => ({ id: s.id, name: s.name, kind: 'saved' as const }));
     return [...presets, ...saved];
-  }, [hasClay]);
+  }, [hasClay, presetPprMap]);
   const activeScenarioVal = isScenarioEmpty(scenario)
     ? ''
     : (projScenarioOptions.find((o) => o.id === scenario.id)?.id ?? 'custom');
@@ -199,7 +205,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     if (!id) { onScenarioChange(createEmptyScenario()); return; }
     const preset = SCENARIO_PRESETS.find((p) => p.id === id);
     if (preset) {
-      const next = preset.build(searchProjections, playerMetaMap ?? new Map(), normalizeName, { clayPpr: clayPprMap, clayStats: clayStatsMap });
+      const next = preset.build(searchProjections, playerMetaMap ?? new Map(), normalizeName, { clayPpr: clayPprMap, clayStats: clayStatsMap, presetPpr: presetPprMap });
       onScenarioChange({ ...next, id: preset.id, name: preset.name });
       return;
     }
@@ -296,7 +302,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, clayDoc] = await Promise.all([
+        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, clayDoc, presetsDoc] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
@@ -312,6 +318,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           // and clay-projections-<season>.json (Consensus preset source).
           fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
           fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+          // CI-precomputed, DERIVED preset blends (Consensus, etc.) — lets the
+          // Consensus presets work in the public deploy without shipping Clay.
+          fetch(`${import.meta.env.BASE_URL}data/redraft-projections-presets.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
         if (cancelled) return;
 
@@ -343,6 +352,32 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         setClayStatsMap(pool.clayStatsMap);
 
         const { qbs, rbs, wrs, tes } = pool;
+
+        // Build the precomputed Consensus blends into season-PPR overrides:
+        // the presets file stores per-game PPG, so multiply by each player's
+        // projected games from the live pool. Keyed by preset id.
+        if (!cancelled) {
+          const gamesByName = new Map<string, number>();
+          for (const p of [...qbs, ...rbs, ...wrs, ...tes]) gamesByName.set(normalizeName(p.name), p.games);
+          const fileKeyById: Record<string, string> = { 'preset-consensus': 'consensus', 'preset-consensus-ml': 'consensus-ml' };
+          const presets = (presetsDoc as { presets?: Record<string, Array<{ name: string; ppg: number }>> } | null)?.presets;
+          const built = new Map<string, Map<string, number>>();
+          if (presets) {
+            for (const [presetId, fileKey] of Object.entries(fileKeyById)) {
+              const list = presets[fileKey];
+              if (!Array.isArray(list)) continue;
+              const m = new Map<string, number>();
+              for (const pl of list) {
+                const key = normalizeName(pl.name);
+                const season = (Number(pl.ppg) || 0) * (gamesByName.get(key) ?? 17);
+                if (season > 0) m.set(key, season);
+              }
+              if (m.size) built.set(presetId, m);
+            }
+          }
+          setPresetPprMap(built);
+        }
+
         if (!cancelled) {
           setQBProjections(qbs);
           setRBProjections(rbs);
