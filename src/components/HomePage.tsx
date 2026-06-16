@@ -176,6 +176,10 @@ const MCP_CONFIG = `{
   }
 }`;
 
+// Remote (Streamable HTTP) endpoint for clients that take a URL — claude.ai
+// web, the Claude mobile apps, and Claude Desktop's custom connectors.
+const MCP_CONNECTOR_URL = 'https://stathead-mcp.dachhack.workers.dev';
+
 const MCP_LINKS: { href: string; label: string; icon: string; title: string }[] = [
   { href: 'https://www.npmjs.com/package/stathead-mcp', label: 'npm', icon: '\u{1F4E6}', title: 'stathead-mcp on npm' },
   { href: 'https://registry.modelcontextprotocol.io/v0/servers?search=stathead', label: 'MCP Registry', icon: '\u{1F50C}', title: 'io.github.dachhack/stathead-mcp in the official MCP Registry' },
@@ -389,6 +393,38 @@ export function HomePage({ onNavigate }: HomePageProps) {
         >
           <code>{MCP_CONFIG}</code>
         </pre>
+
+        <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Add to claude.ai, mobile &amp; Desktop (connector)
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, marginBottom: 8, lineHeight: 1.55 }}>
+          No install — these clients take a URL. Go to{' '}
+          <strong>Settings → Connectors → Add custom connector</strong>, paste the URL below, and save:
+        </p>
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '10px 14px', marginBottom: 8,
+          }}
+        >
+          <code style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', wordBreak: 'break-all' }}>{MCP_CONNECTOR_URL}</code>
+          <button
+            type="button"
+            onClick={() => { void navigator.clipboard?.writeText(MCP_CONNECTOR_URL); }}
+            style={{
+              marginLeft: 'auto', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              color: 'var(--text-secondary)', background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)', borderRadius: 5, padding: '4px 10px',
+            }}
+          >
+            Copy
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, marginBottom: 16, lineHeight: 1.55 }}>
+          Hosted over MCP&rsquo;s Streamable HTTP transport (Cloudflare Worker) — same {' '}
+          tools as the npm package, no API key. The <code>npx</code> config above stays the path for Claude Code &amp; Cursor.
+        </p>
 
         <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           Sample tools
