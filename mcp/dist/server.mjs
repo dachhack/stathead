@@ -38821,6 +38821,20 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_sleeper_league_users",
+    description: "List the managers in a Sleeper league — display name, team name, owner_id, roster_id, and record — without pulling full rosters (a cheap hop). Identify the league by league_id, OR username + name. Use each manager's owner_id (or display_name + this league_id) to walk to get_sleeper_user_leagues / get_sleeper_user_snooper. Source: Sleeper public API.",
+    input_schema: {
+      type: "object",
+      properties: {
+        league_id: { type: "string", description: "Sleeper league id." },
+        username: { type: "string", description: "Alternative to league_id: with name, finds the league among this user's leagues." },
+        name: { type: "string", description: "League name to match (substring); requires username." },
+        season: { type: "number", description: "Season for username+name lookup (default 2026)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_sleeper_matchups",
     description: "Get head-to-head matchups and scores for a Sleeper league in a given week. Pairs teams by matchup, with each team's points and (optionally) starters. Source: Sleeper public API.",
     input_schema: {
@@ -40329,6 +40343,37 @@ ${renderTable(input, standings, ["rank", "team", "owner", "owner_id", "record", 
       }
       return out;
     }
+    case "get_sleeper_league_users": {
+      const id = await resolveSleeperLeagueId(input);
+      const [league, users, rosters] = await Promise.all([
+        sleeperGet(`/league/${id}`),
+        sleeperGet(`/league/${id}/users`),
+        sleeperGet(`/league/${id}/rosters`)
+      ]);
+      if (!users) return `No Sleeper league found for id "${id}".`;
+      const rosterByOwner = /* @__PURE__ */ new Map();
+      for (const r of rosters || []) if (r.owner_id) rosterByOwner.set(r.owner_id, r);
+      let rows = (users || []).map((u) => {
+        const r = rosterByOwner.get(u.user_id);
+        const s = r?.settings;
+        return {
+          team: u.metadata?.team_name || u.display_name || "—",
+          owner: u.display_name || "—",
+          owner_id: u.user_id,
+          roster_id: r?.roster_id ?? "",
+          record: s ? `${s.wins ?? 0}-${s.losses ?? 0}${s.ties ? `-${s.ties}` : ""}` : "",
+          pf: s ? Math.round(sleeperPoints(s.fpts, s.fpts_decimal) * 100) / 100 : "",
+          _w: s?.wins ?? -1,
+          _pf: s ? sleeperPoints(s.fpts, s.fpts_decimal) : -1
+        };
+      });
+      rows.sort((a, b) => b._w - a._w || b._pf - a._pf);
+      const cols = ["team", "owner", "owner_id", "roster_id", "record", "pf"];
+      const out = rows.map((r) => pickColumns(r, cols));
+      return `Sleeper league "${league?.name || id}" managers (${out.length}). Scout one with get_sleeper_user_leagues / get_sleeper_user_snooper (pass owner_id as username, or display_name + league_id ${id}):
+
+${renderTable(input, out, cols)}`;
+    }
     case "get_sleeper_matchups": {
       const id = String(input.league_id || "").trim();
       const week = input.week;
@@ -41532,7 +41577,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.30";
+var SERVER_VERSION = "1.0.31";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
