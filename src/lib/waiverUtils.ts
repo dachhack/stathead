@@ -123,15 +123,12 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
     fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-2026.json`)),
     fetch(bust(`${import.meta.env.BASE_URL}data/player-crosswalk.json`)),
   ]);
-  if (!projRes.ok) return [];
-  const projData = (await projRes.json()) as { players?: Record<string, unknown>[] };
-  const players = projData.players ?? [];
 
-  // Resolve a clay projection's Sleeper id from the crosswalk. Prefer the
-  // record the projection is keyed to, but if that record's position
-  // contradicts the projection (e.g. the rookie WR Antonio Williams is keyed to
-  // the retired RB's record), fall back to a UNIQUE name+position match — which
-  // points at the correct split-out record.
+  // Resolve a projection's Sleeper id from the crosswalk. Prefer the record the
+  // projection is keyed to, but if that record's position contradicts the
+  // projection (e.g. the rookie WR Antonio Williams is keyed to the retired
+  // RB's record), fall back to a UNIQUE name+position match — which points at
+  // the correct split-out record.
   const recByKey = new Map<string, CrosswalkRec>();
   const sleeperByNamePos = new Map<string, string | null>(); // null = ambiguous
   if (cwRes.ok) {
@@ -153,6 +150,20 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
     return rec?.sleeper_id ?? null;
   };
 
+  // Mike Clay's projections are a paid product, so clay-projections-*.json is
+  // gitignored and ABSENT from the public deploy (see .gitignore). When it's
+  // missing we fall back to the shippable first-party season-projection base
+  // (projection-base-2026.json) so projected points still render everywhere
+  // (player-card rosters, waiver wire, league view) — never a blank column.
+  const projData = projRes.ok
+    ? ((await projRes.json()) as { players?: Record<string, unknown>[] })
+    : null;
+  if (!projData?.players?.length) {
+    clayCache = await loadBaseProjections(resolveSleeper);
+    return clayCache;
+  }
+  const players = projData.players;
+
   clayCache = players
     .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(String(p.position ?? '')))
     .map((p) => ({
@@ -173,6 +184,51 @@ export async function loadClayProjections(): Promise<ClayPlayer[]> {
       rec_td: Number(p.rec_td) || 0,
     }));
   return clayCache;
+}
+
+/**
+ * Build ClayPlayer rows from the shippable season-projection base pool
+ * (projection-base-2026.json) — the public-deploy fallback when Clay is absent.
+ * Stat components are real season totals, so computePpr and the scenario engine
+ * (which needs the breakdown) both work; loadBlendedProjections then rescales
+ * each to the redraft-projections.json consensus PPG just as it does for Clay.
+ */
+async function loadBaseProjections(
+  resolveSleeper: (name: string, position: string, key: string) => string | null,
+): Promise<ClayPlayer[]> {
+  let base: Record<string, Array<Record<string, unknown>>> | null = null;
+  try {
+    const r = await fetch(bust(`${import.meta.env.BASE_URL}data/projection-base-2026.json`));
+    if (r.ok) base = await r.json();
+  } catch { /* no shippable base either → empty (callers degrade gracefully) */ }
+  if (!base) return [];
+
+  const POS_ARRAYS: Array<[string, string]> = [['QB', 'qbs'], ['RB', 'rbs'], ['WR', 'wrs'], ['TE', 'tes']];
+  const out: ClayPlayer[] = [];
+  for (const [position, arrKey] of POS_ARRAYS) {
+    for (const p of base[arrKey] ?? []) {
+      const name = String(p.name ?? '');
+      if (!name) continue;
+      out.push({
+        name,
+        team: String(p.team ?? ''),
+        position,
+        player_key: '',
+        pos_rk: 0,
+        ff_pt: Number(p.pprPts) || 0,
+        games: Number(p.games) || GAMES,
+        sleeperId: resolveSleeper(name, position, ''),
+        pass_yds: Number(p.passYds) || 0,
+        pass_td: Number(p.passTD) || 0,
+        rush_yds: Number(p.rushYds) || 0,
+        rush_td: Number(p.rushTD) || 0,
+        rec: Number(p.rec) || 0,
+        rec_yds: Number(p.recYds) || 0,
+        rec_td: Number(p.recTD) || 0,
+      });
+    }
+  }
+  return out;
 }
 
 const GAMES = 17;
