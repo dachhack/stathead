@@ -40479,7 +40479,7 @@ ${renderTable(input, rows, cols)}`;
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.26";
+var SERVER_VERSION = "1.0.27";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
