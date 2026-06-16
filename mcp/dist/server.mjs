@@ -37687,8 +37687,24 @@ async function fetchPlayByPlay(season, opts = {}) {
   }
   return streamCsvRows(response, { columns: cols, filter });
 }
-async function fetchPbpParticipation(season) {
-  return fetchCsv(nflUrl(`pbp_participation/pbp_participation_${season}.csv`));
+// Like fetchPlayByPlay: stream + project so the (large) participation file
+// doesn't OOM the Worker. Route estimation only needs 3 columns.
+async function fetchPbpParticipation(season, opts = {}) {
+  const cols = opts.columns ? Array.from(/* @__PURE__ */ new Set(opts.columns)) : null;
+  const local = await readLocalFile(`pbp_participation_${season}.csv`);
+  if (local != null) {
+    const parsed = import_papaparse.default.parse(local, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    let rows = parsed.data;
+    if (opts.filter) rows = rows.filter(opts.filter);
+    if (cols) rows = rows.map((r) => projectRow(r, cols));
+    return rows;
+  }
+  const url2 = nflUrl(`pbp_participation/pbp_participation_${season}.csv`);
+  const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch PBP participation for ${season}: ${response.status}`);
+  }
+  return streamCsvRows(response, { columns: cols, filter: opts.filter });
 }
 var DYNASTYPROCESS = "https://github.com/dynastyprocess/data/raw/master/files";
 async function fetchFantasyRankings() {
@@ -41341,7 +41357,7 @@ ${renderTable(input, rows, cols)}`;
           })
         );
         fetches.push(
-          fetchPbpParticipation(season).then((participation) => {
+          fetchPbpParticipation(season, { columns: ["nflverse_game_id", "play_id", "offense_players"] }).then((participation) => {
             routeMap = estimateRoutesRun(participation, pbpData);
           }).catch(() => {
             routeMap = void 0;
@@ -42283,7 +42299,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.36";
+var SERVER_VERSION = "1.0.37";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

@@ -57,9 +57,10 @@ Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
   boundary/coercion) + all projected column names confirmed in the live header.
   **Worker-memory behavior is only observable after deploy** (local Node has no
   cap; the 99MB end-to-end download is too slow to finish in-sandbox).
-  ⚠️ get_player_metrics also loads `pbp_participation` (separate big CSV via
-  fetchCsv) for route estimation — if that OOMs too, give it the same streaming
-  treatment.
+  `pbp_participation` (the other big CSV get_player_metrics loads, for route
+  estimation) got the same streaming treatment in 1.0.37 — projected to its 3
+  needed columns (nflverse_game_id, play_id, offense_players), confirmed present
+  in the 2023/2024 headers.
 - **Calibrated veteran pHit/pBust** — user chose "full calibrated" — but the VOR
   scale (≈14.9) ≠ the documented z-scored thresholds (0.47), and **sklearn is
   not installed in this env** (`ModuleNotFoundError`), so a Python retrain can't
