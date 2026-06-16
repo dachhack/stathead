@@ -176,6 +176,12 @@ const MCP_CONFIG = `{
   }
 }`;
 
+const MCP_LINKS: { href: string; label: string; icon: string; title: string }[] = [
+  { href: 'https://www.npmjs.com/package/stathead-mcp', label: 'npm', icon: '\u{1F4E6}', title: 'stathead-mcp on npm' },
+  { href: 'https://registry.modelcontextprotocol.io/v0/servers?search=stathead', label: 'MCP Registry', icon: '\u{1F50C}', title: 'io.github.dachhack/stathead-mcp in the official MCP Registry' },
+  { href: 'https://github.com/dachhack/stathead/tree/main/mcp', label: 'Source', icon: '\u{1F5C2}', title: 'MCP server source on GitHub' },
+];
+
 const MCP_TOOLS: { fn: string; desc: string }[] = [
   { fn: 'get_player_metrics', desc: 'Advanced per-player metrics: NGS, snaps, EPA, routes' },
   { fn: 'get_prospect_outcomes', desc: 'Calibrated rookie boom/bust probabilities + grades' },
@@ -331,6 +337,34 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <code style={{ background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 3 }}>stathead-mcp</code>{' '}
           — no clone, no API key.
         </p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          {MCP_LINKS.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              target="_blank"
+              rel="noreferrer"
+              title={l.title}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
+                borderRadius: 999,
+                padding: '4px 12px',
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ color: '#6366f1' }}>{l.icon}</span>
+              {l.label}
+            </a>
+          ))}
+        </div>
 
         <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 8, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           Add to Claude Desktop / Code
