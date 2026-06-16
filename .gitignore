@@ -36,6 +36,7 @@ public/data/*
 !public/data/qb-beast-ablation.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
+!public/data/projection-base-*.json
 !public/data/prospect-boom-bust.json
 !public/data/prospect-grades-*.json
 !public/data/depth-order-2026.json
