@@ -10,10 +10,14 @@ dist
 public/data/*
 !public/data/schedule-*.json
 !public/data/redraft-projections-presets.json
-!public/data/clay-projections-*.json
-!public/data/clay-unit-grades-*.json
-!public/data/clay-matchups-*.json
-!public/data/clay-team-projections-*.json
+# Mike Clay's NFL Projection Guide (ESPN+) is a paid product — its raw extracts
+# are LOCAL-ONLY (regenerate via scripts/extract_clay_*.py from a PDF you own).
+# Never commit clay-*.json; only the derived/anonymized blends ship. See
+# DATA_SOURCES.md ("Paid products — never redistribute the source").
+public/data/clay-projections-*.json
+public/data/clay-unit-grades-*.json
+public/data/clay-matchups-*.json
+public/data/clay-team-projections-*.json
 !public/data/training-rows-cache-*.json
 !public/data/trained-models-cache-*.json
 !public/data/model-cache-*.json
