@@ -41749,14 +41749,15 @@ ${renderTable(input, rows)}`;
       lines.push("# StatHead — model documentation");
       lines.push("StatHead's outputs are model predictions, not certainties. The pieces:");
       lines.push([
-        "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR, a z-scored fantasy finish) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. A player is a \"hit\"/\"bust\" when predicted VOR clears the position thresholds below. Per-player drivers: get_player_features.",
+        "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. Because raw VOR doesn't discriminate within the draftable pool (every drafted player clears the absolute threshold), get_player_features reports a CALIBRATED Hit/Bust % relative to DRAFT COST: the historical rate at which players drafted near that ADP beat/missed their slot, tilted by the model's value-vs-ADP lean, evaluated at the live consensus ADP. Per-player drivers + Hit/Bust %: get_player_features.",
         "- **Season projection pipeline (get_projections)**: team volume from a Ridge+LightGBM team ensemble is split to players by ML target/rush-share models, with games (health) and age-curve adjustments; veterans blend prior-year actual + 2yr avg + age curve, rookies use the rookie career model. By-team workbook: export_excel kind=by_team.",
         "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale.",
         "- **Prospect grades (get_prospect_outcomes)**: draft grade/tier + calibrated, draft-slot-relative boom/bust."
       ].join("\n"));
       if (doc) {
         if (doc.posThresholds && Object.keys(doc.posThresholds).length) {
-          lines.push("\n## Hit / bust thresholds (predicted VOR)");
+          lines.push("\n## Hit / bust thresholds (raw z-scored VOR — internal)");
+          lines.push("Note: these absolute thresholds are calibrated against the whole historical population, so nearly every DRAFTABLE player clears them — they don't discriminate. get_player_features reports the calibrated, ADP-relative Hit/Bust % instead. Thresholds kept for reference:");
           lines.push("pos | hit ≥ | bust ≤\n--- | --- | ---");
           for (const [pos, t] of Object.entries(doc.posThresholds)) {
             if (posFilter && pos !== posFilter) continue;
@@ -41808,10 +41809,36 @@ ${renderTable(input, rows)}`;
       } catch {
       }
       const fmt = (v, d = 1) => typeof v === "number" && Number.isFinite(v) ? Number(v.toFixed(d)) : v;
-      const predictionLine = (m, pos) => {
+      // Calibrated hit/bust vs ADP: interpolate the per-position historical
+      // base-rate curve at the LIVE consensus ADP, then tilt by the model's lean
+      // (how far it ranks the player vs their ADP peers). Recomputing here means
+      // the probabilities track the live market, not the stale card ADP.
+      const hbCurveAt = (pos, adp) => {
+        const c = doc.hitBustCalib?.[pos];
+        if (!c?.length) return null;
+        if (adp <= c[0].adp) return c[0];
+        if (adp >= c[c.length - 1].adp) return c[c.length - 1];
+        for (let i = 1; i < c.length; i++) {
+          if (adp <= c[i].adp) { const a = c[i - 1], b = c[i], t = (adp - a.adp) / (b.adp - a.adp); return { hit: a.hit + (b.hit - a.hit) * t, bust: a.bust + (b.bust - a.bust) * t }; }
+        }
+        return c[c.length - 1];
+      };
+      const calibHB = (pos, adp, lean) => {
+        const base = hbCurveAt(pos, adp);
+        if (!base || !(adp > 0)) return null;
+        const shift = 0.12 * Math.tanh((lean || 0) * 2.5);
+        const cl = (x) => Math.max(1, Math.min(99, Math.round(x * 100)));
+        return { pHit: cl(base.hit + shift), pBust: cl(base.bust - shift) };
+      };
+      const hbLabel = (h, b) => b >= h + 12 ? "elevated bust risk" : h >= b + 12 ? "value lean" : "fairly priced vs ADP";
+      const predictionLine = (m, pos, adp) => {
         const pr = m.prediction || {};
         switch (m.id) {
-          case "hitBust": return `VOR ${pr.vor} (${pr.hitProb}); 80% CI ${pr.ciLower}–${pr.ciUpper}.`;
+          case "hitBust": {
+            const hb = calibHB(pos, adp, pr.calibLean) || (typeof pr.pHit === "number" ? { pHit: pr.pHit, pBust: pr.pBust } : null);
+            const probStr = hb ? `Hit ${hb.pHit}% / Bust ${hb.pBust}% vs ADP (${hbLabel(hb.pHit, hb.pBust)})` : (pr.hitProb || "");
+            return `${probStr}. VOR ${pr.vor} (80% CI ${pr.ciLower}–${pr.ciUpper}; raw model scale).`;
+          }
           case "projection": return `${pr.ppg} projected PPG.`;
           case "rookieCareer": {
             const bits = [];
@@ -41854,7 +41881,7 @@ ${renderTable(input, rows)}`;
           out.push(`### ${m.label}`);
           if (m.blurb) out.push(`_${m.blurb}_`);
           if (m.noteOnly) { out.push(""); continue; }
-          const line = predictionLine(m, p.position);
+          const line = predictionLine(m, p.position, typeof live === "number" ? live : p.adp);
           if (line) out.push(`Prediction: ${line}`);
           if (m.drivers?.length) {
             out.push("Top feature drivers (where they land vs the field for this model):");
@@ -41865,7 +41892,7 @@ ${renderTable(input, rows)}`;
         if (p.dataGaps?.length) out.push(`Data not available (excluded from drivers rather than scored as 0): ${p.dataGaps.join(", ")}.`);
         out.push("");
       }
-      out.push("Each model's drivers are computed against its OWN target and positional cohort, so the percentile band + relationship are model-specific. VOR = predicted value over replacement (z-scored fantasy finish); higher = better. Dynasty Value is a market-derived composite (no first-party feature decomposition). Proprietary features show a band + direction only (no raw value). These are model drivers, not a hand-multiplied P(hit) — see get_metadata caveats.");
+      out.push("Hit/Bust % are calibrated against draft cost: the historical rate at which players drafted near this ADP beat (Hit) or missed (Bust) their slot, tilted by how far this model ranks the player vs their ADP peers — computed at the LIVE consensus ADP, so they discriminate within the draftable pool (unlike the raw VOR scale, where every drafted player clears the absolute threshold). Each model's drivers are computed against its OWN target and positional cohort, so the percentile band + relationship are model-specific. Dynasty Value is a market-derived composite (no first-party feature decomposition). Proprietary features show a band + direction only. These are model drivers/calibrated rates, not a hand-multiplied P(hit) — see get_metadata caveats.");
       return out.join("\n");
     }
     case "get_projections": {
@@ -42362,7 +42389,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.42";
+var SERVER_VERSION = "1.0.43";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

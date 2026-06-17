@@ -15,6 +15,22 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 5 — calibrated veteran Hit/Bust vs ADP (MCP 1.0.43):**
+- 🔴/🟡 **VOR label was uninformative + no veteran bust probability — fixed.** Root
+  cause: the absolute VOR threshold is calibrated against the whole historical
+  population, so 100% of the DRAFTABLE pool clears "hit" (even after z-scoring) —
+  it can't discriminate. Replaced with a **calibrated Hit/Bust % relative to
+  draft cost**: per-position historical base rates (ground-truth isHit/isBust by
+  ADP from the training cache) tilted by the model's value-vs-ADP lean, computed
+  at the **live consensus ADP** at serve time (also fixes the stale-ADP-on-card
+  concern). build-model-eval emits a per-position base-rate curve (`hitBustCalib`)
+  + per-player `calibLean`; get_player_features interpolates at the live ADP.
+- Verified: A.J. Brown (live ADP 22.8) Hit 27% / Bust 9% (value lean); Cooper
+  Kupp (235.8) Hit 8% / Bust 65% (elevated bust risk); Bijan (1.4) 33%/4%. Tracks
+  draft cost and the model's lean; discriminates within the draftable pool.
+- No retrain needed (sklearn unavailable) — calibration is pure historical base
+  rates + model ranks, all in build-model-eval.mjs (Node).
+
 **Round 4 — get_player_metrics target_share/wopr/racr fix + clock/score on PBP (MCP 1.0.40–1.0.42):**
 - 🔴 **target_share / air_yards_share / wopr / racr were a single game, not the
   season.** computeSkillMetrics read `lastWeek` (the player's final weekly row),
