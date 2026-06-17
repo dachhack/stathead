@@ -37588,24 +37588,123 @@ async function fetchAdvancedStatsSeason(season, type = "pass") {
   const all = await fetchCsv(nflUrl(`pfr_advstats/advstats_season_${type}.csv`));
   return all.filter((s) => s.season === season);
 }
-async function fetchPlayByPlay(season) {
+function projectRow(row, columns) {
+  const out = {};
+  for (const c of columns) out[c] = row[c];
+  return out;
+}
+// Streaming, column-projecting CSV reader. Reads response.body chunk-by-chunk
+// and keeps only the requested columns (and rows passing `filter`), so the full
+// CSV text and a full per-row object array never coexist in memory. This is what
+// lets the ~99MB play-by-play file run inside the Cloudflare Worker's 128MB cap
+// (a full parse OOMs). Quote-aware (RFC4180-ish: handles quoted commas/newlines
+// and "" escapes) and safe across chunk boundaries.
+async function streamCsvRows(response, { columns, filter, typed = true } = {}) {
+  const coerce = typed
+    ? (v) => {
+        if (v === "") return "";
+        const n = Number(v);
+        return Number.isFinite(n) && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(v) ? n : v;
+      }
+    : (v) => v;
+  let header = null;
+  let keep = null;
+  const out = [];
+  const emit = (fields) => {
+    if (!header) {
+      header = fields;
+      if (columns) {
+        const want = new Set(columns);
+        keep = [];
+        for (let i = 0; i < header.length; i++) if (want.has(header[i])) keep.push({ name: header[i], idx: i });
+      }
+      return;
+    }
+    let row;
+    if (keep) {
+      row = {};
+      for (const k of keep) row[k.name] = coerce(fields[k.idx]);
+    } else {
+      row = {};
+      for (let i = 0; i < header.length; i++) row[header[i]] = coerce(fields[i]);
+    }
+    if (!filter || filter(row)) out.push(row);
+  };
+  let field = "", record = [], inQuotes = false, pendingQuote = false, sawAny = false;
+  const endField = () => { record.push(field); field = ""; };
+  const endRecord = () => { endField(); emit(record); record = []; sawAny = false; };
+  const feed = (chunk) => {
+    for (let i = 0; i < chunk.length; i++) {
+      const c = chunk[i];
+      sawAny = true;
+      if (inQuotes) {
+        if (pendingQuote) {
+          pendingQuote = false;
+          if (c === '"') { field += '"'; continue; }
+          inQuotes = false;
+        } else if (c === '"') { pendingQuote = true; continue; }
+        else { field += c; continue; }
+      }
+      if (c === '"') inQuotes = true;
+      else if (c === ",") endField();
+      else if (c === "\n") endRecord();
+      else if (c === "\r") { /* CRLF — ignore */ }
+      else field += c;
+    }
+  };
+  if (response.body && typeof response.body.pipeThrough === "function") {
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      feed(value);
+    }
+  } else {
+    feed(await response.text());
+  }
+  if (sawAny || field.length || record.length) endRecord();
+  return out;
+}
+// Pass `opts.columns` (a projection) and/or `opts.filter` so heavy callers only
+// materialize the slice of play-by-play they need. The no_play guard is always
+// applied; play_type is always retained so it can run.
+async function fetchPlayByPlay(season, opts = {}) {
+  const cols = opts.columns ? Array.from(/* @__PURE__ */ new Set([...opts.columns, "play_type"])) : null;
+  const base = (row) => row.play_type && row.play_type !== "no_play";
+  const filter = opts.filter ? (row) => base(row) && opts.filter(row) : base;
+  // Local file (Node/dev): no streaming needed, parse + project in-process.
+  const local = await readLocalFile(`play_by_play_${season}.csv`);
+  if (local != null) {
+    const parsed = import_papaparse.default.parse(local, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    let rows = parsed.data.filter(filter);
+    if (cols) rows = rows.map((r) => projectRow(r, cols));
+    return rows;
+  }
   const url2 = nflUrl(`pbp/play_by_play_${season}.csv`);
   const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
   if (!response.ok) {
     throw new Error(`Failed to fetch PBP for ${season}: ${response.status}`);
   }
-  const text = await response.text();
-  const result = import_papaparse.default.parse(text, {
-    header: true,
-    dynamicTyping: true,
-    skipEmptyLines: true
-  });
-  return result.data.filter(
-    (row) => row.play_type && row.play_type !== "no_play"
-  );
+  return streamCsvRows(response, { columns: cols, filter });
 }
-async function fetchPbpParticipation(season) {
-  return fetchCsv(nflUrl(`pbp_participation/pbp_participation_${season}.csv`));
+// Like fetchPlayByPlay: stream + project so the (large) participation file
+// doesn't OOM the Worker. Route estimation only needs 3 columns.
+async function fetchPbpParticipation(season, opts = {}) {
+  const cols = opts.columns ? Array.from(/* @__PURE__ */ new Set(opts.columns)) : null;
+  const local = await readLocalFile(`pbp_participation_${season}.csv`);
+  if (local != null) {
+    const parsed = import_papaparse.default.parse(local, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    let rows = parsed.data;
+    if (opts.filter) rows = rows.filter(opts.filter);
+    if (cols) rows = rows.map((r) => projectRow(r, cols));
+    return rows;
+  }
+  const url2 = nflUrl(`pbp_participation/pbp_participation_${season}.csv`);
+  const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch PBP participation for ${season}: ${response.status}`);
+  }
+  return streamCsvRows(response, { columns: cols, filter: opts.filter });
 }
 var DYNASTYPROCESS = "https://github.com/dynastyprocess/data/raw/master/files";
 async function fetchFantasyRankings() {
@@ -37773,6 +37872,146 @@ async function fetchEspnADP(season) {
   espnAdpCache.set(season, players);
   return players;
 }
+// ── Consensus current ADP ─────────────────────────────────────────────
+// A reliable current ADP is a multi-source blend, never a single feed:
+// FFC's committed snapshot can lag months (its year-N endpoint serves
+// last-September mocks between seasons), Sleeper draft rooms can price an
+// individual player as an outlier, and ESPN isn't always populated. We
+// combine every available current source — FantasyPros expert-consensus
+// rank (always reachable via DynastyProcess), Sleeper draft ADP, the FFC
+// committed board, and ESPN — weighting each by freshness (~30-day
+// half-life) and confidence, so a stale or thin source can't dominate.
+// FantasyPros (an aggregate of ~15 experts) anchors the blend; single
+// platforms are discounted. Every source is stamped with its own as_of.
+var ADP_TEAM_CANON = { LAR: "LA", WSH: "WAS", JAC: "JAX", AZ: "ARI", ARZ: "ARI", LV: "LV", OAK: "LV", SD: "LAC", STL: "LA", NEP: "NE", GBP: "GB", KCC: "KC", NOS: "NO", SFO: "SF", TBB: "TB" };
+var canonAdpTeam = (t) => t ? (ADP_TEAM_CANON[String(t).toUpperCase()] ?? String(t).toUpperCase()) : "";
+var ADP_SKILL = /* @__PURE__ */ new Set(["QB", "RB", "WR", "TE"]);
+function adpRecencyWeight(dateIso, halfLifeDays = 30) {
+  if (!dateIso) return 1;
+  const t = Date.parse(dateIso);
+  if (!Number.isFinite(t)) return 1;
+  const days = Math.max(0, (Date.now() - t) / 864e5);
+  return Math.max(0.02, 0.5 ** (days / halfLifeDays));
+}
+function adpSampleWeight(timesDrafted, ref = 50) {
+  if (timesDrafted === void 0 || !Number.isFinite(timesDrafted)) return 0.5;
+  return Math.max(0.1, Math.min(1, timesDrafted / ref));
+}
+// FantasyPros expert-consensus rank (DynastyProcess db_fpecr) — current,
+// multi-expert, reachable everywhere. redraft-overall for 1QB / redraft-op for SF.
+async function fetchFantasyProsAdp(format = "ppr") {
+  const board = format === "2qb" ? "redraft-op" : "redraft-overall";
+  let rows;
+  try {
+    rows = await fetchFantasyRankings();
+  } catch {
+    return { players: [], asOf: null };
+  }
+  let asOf = null;
+  const players = [];
+  for (const r of rows) {
+    if (r.page_type !== board) continue;
+    const pos = String(r.pos || "").toUpperCase();
+    const ecr = Number(r.ecr);
+    if (!ADP_SKILL.has(pos) || !(ecr > 0)) continue;
+    const sd = r.scrape_date != null ? String(r.scrape_date) : null;
+    if (sd && (!asOf || sd > asOf)) asOf = sd;
+    players.push({ name: String(r.player || ""), position: pos, team: canonAdpTeam(r.tm || r.team), adp: ecr });
+  }
+  return { players, asOf };
+}
+// Sleeper draft-room ADP from the committed daily snapshot.
+async function fetchSleeperAdpSnapshot(season, format = "ppr") {
+  const doc = await tryPreFetched(`sleeper-adp-${season}.json`);
+  if (!doc?.players?.length) return { players: [], asOf: null };
+  const players = [];
+  for (const p of doc.players) {
+    const adp = format === "2qb" ? p.adp_2qb : (p.adp_ppr ?? p.adp_half_ppr ?? p.adp_std);
+    const pos = String(p.position || "").toUpperCase();
+    if (!ADP_SKILL.has(pos) || !(adp > 0) || adp >= 999) continue;
+    players.push({ name: String(p.name || ""), position: pos, team: canonAdpTeam(p.team), adp: Number(adp) });
+  }
+  return { players, asOf: doc.fetchedAt ?? null };
+}
+// FFC committed board with meta (draft-date window) + per-player sample.
+async function fetchFfcAdpRawDoc(season, format = "ppr") {
+  const key = format === "2qb" ? "2qb" : "ppr";
+  const doc = await tryPreFetched(`ffc_adp_${key}_${season}.json`);
+  if (!doc?.players?.length) return { players: [], asOf: null };
+  const players = [];
+  for (const p of doc.players) {
+    const pos = String(p.position || "").toUpperCase();
+    if (!ADP_SKILL.has(pos) || !(Number(p.adp) > 0)) continue;
+    players.push({ name: String(p.name || ""), position: pos, team: canonAdpTeam(p.team), adp: Number(p.adp), timesDrafted: Number(p.times_drafted) || 0 });
+  }
+  return { players, asOf: doc.meta?.end_date ?? null };
+}
+// Join every current source by normalized name and compute the weighted
+// blend + the disagreement spread. Base confidence per source: FantasyPros
+// consensus anchors highest; single platforms are discounted; FFC rides its
+// own sample size; all are multiplied by freshness.
+async function buildConsensusAdp(season, format = "ppr") {
+  // ESPN is intentionally excluded from the blend: its live API is slow/
+  // unreachable from some runtimes and returns all-zero ADP in the offseason,
+  // so it would add latency without signal. It stays available as source 'espn'.
+  const [fp, sleeper, ffc] = await Promise.all([
+    fetchFantasyProsAdp(format),
+    fetchSleeperAdpSnapshot(season, format),
+    fetchFfcAdpRawDoc(season, format)
+  ]);
+  const espn = [];
+  const fpW = adpRecencyWeight(fp.asOf);
+  const slW = adpRecencyWeight(sleeper.asOf);
+  const ffcFileW = adpRecencyWeight(ffc.asOf);
+  const byName = /* @__PURE__ */ new Map();
+  const add = (list, src, perW) => {
+    for (const p of list) {
+      const nn = normalizeNameForMatch(p.name);
+      if (!nn) continue;
+      let row = byName.get(nn);
+      if (!row) {
+        row = { name: p.name, position: p.position, team: "", picks: {} };
+        byName.set(nn, row);
+      }
+      if (!row.team && p.team) row.team = p.team;
+      if (row.picks[src] === void 0) row.picks[src] = { adp: Math.round(p.adp * 10) / 10, weight: perW(p) };
+    }
+  };
+  // FantasyPros: aggregate of many experts → highest confidence anchor.
+  add(fp.players, "fp", () => 1 * fpW);
+  // Sleeper: real draft ADP, huge volume, but a single platform with its
+  // own tendencies → discounted so one outlier can't swing the blend.
+  add(sleeper.players, "sleeper", () => 0.7 * slW);
+  // FFC: sample-weighted (times_drafted) and decayed by its draft-window age.
+  add(ffc.players, "ffc", (p) => adpSampleWeight(p.timesDrafted) * ffcFileW);
+  // ESPN: only present when populated; moderate confidence, assume current.
+  add(espn, "espn", () => 0.8);
+  const rows = [];
+  for (const row of byName.values()) {
+    let num = 0, den = 0;
+    const vals = [];
+    for (const k of Object.keys(row.picks)) {
+      const { adp, weight } = row.picks[k];
+      if (!(adp > 0) || adp >= 999 || !(weight > 0)) continue;
+      num += adp * weight;
+      den += weight;
+      vals.push(adp);
+    }
+    if (den <= 0) continue;
+    rows.push({
+      name: row.name, position: row.position, team: row.team,
+      adp: Math.round(num / den * 10) / 10,
+      fp: row.picks.fp?.adp ?? null,
+      sleeper: row.picks.sleeper?.adp ?? null,
+      ffc: row.picks.ffc?.adp ?? null,
+      espn: row.picks.espn?.adp ?? null,
+      sources: vals.length,
+      spread: vals.length > 1 ? Math.round((Math.max(...vals) - Math.min(...vals)) * 10) / 10 : 0
+    });
+  }
+  rows.sort((a, b) => a.adp - b.adp);
+  return { rows, asOf: { fp: fp.asOf, sleeper: sleeper.asOf, ffc: ffc.asOf } };
+}
 var SLEEPER = "https://api.sleeper.app/v1";
 var sleeperPlayersCache = null;
 async function fetchSleeperPlayers() {
@@ -37824,43 +38063,42 @@ async function fetchSleeperTrending(type = "add", hours = 24, limit = 50) {
   }).filter((r) => r !== null);
 }
 var sleeperProjectionCache = /* @__PURE__ */ new Map();
-async function fetchSleeperWeekRaw(season, week) {
-  const url2 = `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular`;
-  const res = await fetchWithTimeout(url2);
+// The legacy api.sleeper.app/v1 projections endpoint stopped returning stats.
+// The current endpoint (no /v1) returns an array of { player_id, player, stats }
+// — season totals when no week is given, a single week otherwise — and IS
+// populated. Migrate to it (this is the same host/path family the ADP fetcher
+// already uses successfully).
+async function fetchSleeperProjectionRows(season, week) {
+  const pos = ["QB", "RB", "WR", "TE", "K"].map((p) => `position[]=${p}`).join("&");
+  const path = week ? `projections/nfl/${season}/${week}` : `projections/nfl/${season}`;
+  const url2 = `https://api.sleeper.app/${path}?season_type=regular&${pos}&order_by=pts_ppr`;
+  const res = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Sleeper projections API returned ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : Object.values(data);
 }
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `${season}-${week ?? "full"}`;
   const cached2 = sleeperProjectionCache.get(cacheKey);
   if (cached2) return cached2;
-  const players = await fetchSleeperPlayers();
-  const weeks = week ? [week] : Array.from({ length: 18 }, (_, i) => i + 1);
-  const weekRaws = await Promise.all(weeks.map((w) => fetchSleeperWeekRaw(season, w)));
-  const available = weekRaws.filter((r) => r != null);
-  if (available.length === 0) {
+  const rows = await fetchSleeperProjectionRows(season, week);
+  if (!rows || rows.length === 0) {
     throw new Error(
-      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper serves only per-week regular-season projections (there is no season-total endpoint); season-long figures here are summed from weeks 1–18, which are not posted until the season is set.`
+      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper posts regular-season projections once that season is set; try the current/recent season (season-long) or a specific week.`
     );
   }
-  const summed = /* @__PURE__ */ new Map();
-  for (const raw of available) {
-    for (const [pid, stats] of Object.entries(raw)) {
-      let acc = summed.get(pid);
-      if (!acc) {
-        acc = {};
-        summed.set(pid, acc);
-      }
-      for (const [statKey, statVal] of Object.entries(stats)) {
-        if (typeof statVal === "number") acc[statKey] = (acc[statKey] || 0) + statVal;
-      }
-    }
-  }
+  // The new endpoint embeds a `player` object per row, so we only fall back to
+  // the (large) players map if some rows lack it — usually never.
+  const playersMap = rows.length && rows[0].player ? null : await fetchSleeperPlayers().catch(() => /* @__PURE__ */ new Map());
   const projections = [];
-  for (const [pid, stats] of summed) {
-    const p = players.get(pid);
-    if (!p || !["QB", "RB", "WR", "TE", "K"].includes(p.position)) continue;
+  for (const row of rows) {
+    const stats = row.stats || {};
+    const pid = String(row.player_id ?? row.player?.player_id ?? "");
+    const pl = row.player || (playersMap && playersMap.get(pid)) || {};
+    const position = pl.position || (Array.isArray(pl.fantasy_positions) ? pl.fantasy_positions[0] : void 0);
+    if (!["QB", "RB", "WR", "TE", "K"].includes(position)) continue;
+    const name = pl.full_name || `${pl.first_name ?? ""} ${pl.last_name ?? ""}`.trim();
     const passYd = stats.pass_yd || 0;
     const passTd = stats.pass_td || 0;
     const passInt = stats.pass_int || 0;
@@ -37875,9 +38113,9 @@ async function fetchSleeperProjections(season, week) {
     const ptsHalfPpr = ptsStd + rec * 0.5;
     projections.push({
       player_id: pid,
-      full_name: p.full_name,
-      position: p.position,
-      team: p.team || "FA",
+      full_name: name,
+      position,
+      team: pl.team || "FA",
       pts_std: Math.round(ptsStd * 10) / 10,
       pts_half_ppr: Math.round(ptsHalfPpr * 10) / 10,
       pts_ppr: Math.round(ptsPpr * 10) / 10,
@@ -37896,7 +38134,7 @@ async function fetchSleeperProjections(season, week) {
   );
   if (!hasData) {
     throw new Error(
-      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty. The api.sleeper.app/v1 projections endpoint is no longer populated upstream; live projections now require the api.sleeper.com source.`
+      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty upstream.`
     );
   }
   projections.sort((a, b) => b.pts_ppr - a.pts_ppr);
@@ -38740,17 +38978,18 @@ var NFL_TOOLS = [
   },
   {
     name: "get_adp",
-    description: "Get Average Draft Position from community (ffc) or ESPN sources. Use for draft value analysis, comparing ADP across platforms.",
+    description: "Get current Average Draft Position. Default source 'consensus' is a reliable multi-source blend (FantasyPros expert-consensus rank + Sleeper draft ADP + FantasyFootballCalculator + ESPN), each weighted by freshness and confidence and stamped with an as_of date \u2014 no single stale or outlier feed can distort it. Per-source columns + a disagreement spread are returned alongside the blended ADP. For a single raw feed pass source 'ffc' or 'espn'. Use for draft value analysis and comparing ADP across platforms.",
     input_schema: {
       type: "object",
       properties: {
-        source: { type: "string", description: "Data source", enum: ["ffc", "espn"] },
-        season: { type: "number", description: "Season year. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
-        scoring: { type: "string", description: "Scoring format (community source only)", enum: ["standard", "ppr", "half-ppr"] },
-        teams: { type: "number", description: "League size, one of 8/10/12/14 (community source only). Default 12.", enum: [8, 10, 12, 14] },
+        source: { type: "string", description: "Data source. 'consensus' (default) = freshness/confidence-weighted blend of all current feeds. 'ffc' / 'espn' = a single raw feed.", enum: ["consensus", "ffc", "espn"] },
+        season: { type: "number", description: "Season year. Defaults to the current draft season. ffc coverage: ~2018\u2013present (older seasons may be unavailable); espn: recent seasons only." },
+        position: { type: "string", description: "Filter to a position; adds adp_pos_rank (positional draft rank).", enum: ["QB", "RB", "WR", "TE"] },
+        scoring: { type: "string", description: "Scoring format (ffc raw source only; consensus is PPR/1QB).", enum: ["standard", "ppr", "half-ppr"] },
+        teams: { type: "number", description: "League size, one of 8/10/12/14 (ffc raw source only). Default 12.", enum: [8, 10, 12, 14] },
         limit: { type: "number", description: "Max rows (default 50)" }
       },
-      required: ["source", "season"]
+      required: []
     }
   },
   {
@@ -38784,7 +39023,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_projections",
-    description: "Get Sleeper weekly or season-long player projections. Includes projected stats and fantasy points by scoring format. Sleeper publishes only per-week regular-season projections; pass week for a single week, or omit week to get season totals summed across weeks 1–18 (available once that season's projections are posted).",
+    description: "Get Sleeper weekly or season-long player projections (projected stats + fantasy points by scoring format). Pass week for a single week, or omit week for Sleeper's season-total projection. Source: Sleeper's current projections endpoint.",
     input_schema: {
       type: "object",
       properties: {
@@ -39245,20 +39484,35 @@ var COMMON_OUTPUT_PARAMS = {
   }
 };
 for (const t of NFL_TOOLS) {
-  if (t.name === "get_metadata" || t.noCommon) continue;
-  const props = t.input_schema.properties;
-  for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
-    if (!(k in props)) props[k] = v;
+  if (t.name === "get_metadata") continue;
+  if (!t.noCommon) {
+    const props = t.input_schema.properties;
+    for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
+      if (!(k in props)) props[k] = v;
+    }
+  }
+  // Surface get_metadata at the point of need — it's easy to forget but carries
+  // season coverage, valid enums, and the analytic caveats.
+  if (t.description && !/get_metadata/.test(t.description)) {
+    t.description += " See also: get_metadata for season coverage, valid enums, and analytic caveats.";
   }
 }
 function normalizeNameForMatch(s) {
-  return s.toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
+  return String(s ?? "").toLowerCase().replace(/[.'`'']/g, "").replace(/-/g, " ").replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/\s+/g, " ").trim();
 }
 function nameMatch(fullName, query) {
   return normalizeNameForMatch(fullName).includes(normalizeNameForMatch(query));
 }
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
+}
+// Speed score = weight(lb) * 200 / forty^4 — the standard size-adjusted speed
+// metric. Pre-computed so callers don't have to (a common ask). Needs both a
+// weight and a 40 time; returns null otherwise.
+function speedScore(wt, forty) {
+  const w = Number(wt), f = Number(forty);
+  if (!Number.isFinite(w) || !Number.isFinite(f) || w <= 0 || f <= 0) return null;
+  return Math.round(w * 200 / f ** 4 * 10) / 10;
 }
 function toMarkdownTable(rows, columns) {
   if (rows.length === 0) return "(no results)";
@@ -39284,6 +39538,11 @@ var fmtCell = (val) => {
   if (typeof val === "number") return Number.isInteger(val) ? String(val) : val.toFixed(2);
   return String(val);
 };
+// Identifier columns are always returned so a projected/bulk pull can still
+// be tied back to a player and team. Requesting fields=stat_a,stat_b used to
+// silently drop the name/team; now the identifiers that exist in the row are
+// re-prepended regardless of the `fields` projection.
+var ALWAYS_KEEP_COLS = ["player_name", "player_display_name", "name", "full_name", "player", "position", "pos", "team", "recent_team", "tm"];
 function resolveCols(rows, cols, fields) {
   const base = cols ?? (rows[0] ? Object.keys(rows[0]) : []);
   if (fields == null || fields === "") return base;
@@ -39291,7 +39550,18 @@ function resolveCols(rows, cols, fields) {
   if (want.length === 0) return base;
   const available = new Set(base);
   const chosen = want.filter((w) => available.has(w));
-  return chosen.length > 0 ? chosen : base;
+  if (chosen.length === 0) return base;
+  // Re-prepend any identifier columns present in the data (in canonical order)
+  // that the projection didn't already include, so names/teams are never lost.
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const c of ALWAYS_KEEP_COLS) {
+    if (available.has(c) && !seen.has(c)) { out.push(c); seen.add(c); }
+  }
+  for (const c of chosen) {
+    if (!seen.has(c)) { out.push(c); seen.add(c); }
+  }
+  return out;
 }
 function renderTable(input, rows, cols) {
   if (rows.length === 0) return "(no results)";
@@ -40081,9 +40351,9 @@ ${renderTable(input, out, cols)}`;
       const total = combine.length;
       combine = combine.slice(0, limit);
       const note = total > combine.length ? ` \u2014 showing first ${combine.length} of ${total}; raise limit (max 500) or narrow position/min_season/max_season` : "";
-      const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
-      const rows = combine.map((c) => pickColumns(c, cols));
-      return `Combine results (${combine.length} players)${note}:
+      const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "speed_score", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
+      const rows = combine.map((c) => ({ ...pickColumns(c, cols), speed_score: speedScore(c.wt, c.forty) }));
+      return `Combine results (${combine.length} players)${note} (speed_score = wt*200/forty^4):
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -40143,6 +40413,7 @@ ${renderTable(input, rows, cols)}`;
           forty: c ? num(c.forty) : "",
           vertical: c ? num(c.vertical) : "",
           wt: c ? num(c.wt) : "",
+          speed_score: c ? (speedScore(c.wt, c.forty) ?? "") : "",
           rookie_games: st ? num(st.games) : "",
           rookie_rush_yds: st ? num(st.rushing_yards) : "",
           rookie_rec: st ? num(st.receptions) : "",
@@ -40218,7 +40489,14 @@ ${renderTable(input, rows)}`;
       const week = input.week;
       const redZone = input.red_zone;
       const limit = clamp(input.limit || 50, 1, 200);
-      let plays = await fetchPlayByPlay(season);
+      // Project only the columns this tool returns/filters on — keeps the
+      // ~99MB season file streamable under the Worker's memory cap.
+      let plays = await fetchPlayByPlay(season, { columns: [
+        "game_id", "play_id", "week", "qtr", "down", "ydstogo", "yardline_100",
+        "posteam", "defteam", "play_type", "yards_gained", "epa", "wpa", "wp",
+        "passer_player_name", "rusher_player_name", "receiver_player_name",
+        "air_yards", "yards_after_catch", "pass_location"
+      ] });
       if (playerName) {
         const q = playerName.toLowerCase().trim();
         const last = q.split(/\s+/).pop();
@@ -40301,25 +40579,48 @@ ${renderTable(input, rows, cols)}`;
 ${renderTable(input, rows, cols)}`;
     }
     case "get_adp": {
-      const source = input.source;
-      const season = input.season;
+      const source = input.source || "consensus";
+      const season = input.season || FFC_CURRENT_SEASON;
+      const position = input.position?.toUpperCase();
       const limit = clamp(input.limit || 50, 1, 200);
+      if (source === "consensus") {
+        const { rows, asOf } = await buildConsensusAdp(season, "ppr");
+        let out = position ? rows.filter((r) => r.position === position) : rows;
+        if (position) out.forEach((r, i) => { r.adp_pos_rank = i + 1; });
+        if (!out.length) {
+          return `No consensus ADP available for ${season}${position ? ` (${position})` : ""}. Sources (FantasyPros, Sleeper, FFC, ESPN) returned nothing — they may be unpopulated this early in the offseason.`;
+        }
+        out = out.slice(0, limit);
+        const cols = position
+          ? ["name", "position", "team", "adp", "adp_pos_rank", "fp", "sleeper", "ffc", "sources", "spread"]
+          : ["name", "position", "team", "adp", "fp", "sleeper", "ffc", "sources", "spread"];
+        const d = (s) => s ? String(s).slice(0, 10) : "n/a";
+        const fresh = `as_of — FantasyPros ${d(asOf.fp)}, Sleeper ${d(asOf.sleeper)}, FFC ${d(asOf.ffc)}`;
+        return `Consensus current ADP — ${season} PPR/1QB (${out.length} players, sorted by blended ADP). ${fresh}. 'adp' is the freshness/confidence-weighted blend; per-source columns (fp = FantasyPros expert-consensus rank, sleeper = Sleeper draft ADP, ffc = FantasyFootballCalculator) show each input; spread = max−min disagreement. A blank source means it doesn't price that player. Note: a stale FFC window is auto-down-weighted (≈30-day half-life), so the blend tracks live FantasyPros + Sleeper.
+
+${renderTable(input, out, cols)}`;
+      }
       if (source === "ffc") {
         const scoring = input.scoring || "ppr";
         const teams = input.teams || 12;
+        const raw = await fetchFfcAdpRawDoc(season, scoring === "standard" || scoring === "half-ppr" ? "ppr" : "ppr");
         let data = await fetchFfcADP(season, scoring, teams);
+        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
-        const rows = data;
-        return `Community ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players):
+        const stale = raw.asOf && (Date.now() - Date.parse(raw.asOf)) > 60 * 864e5;
+        const asOfNote = raw.asOf ? ` as_of ${String(raw.asOf).slice(0, 10)}${stale ? " — ⚠️ this committed FFC window is stale (>60d old); for a current number use source 'consensus'" : ""}.` : "";
+        return `FFC raw ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players).${asOfNote}
 
-${renderTable(input, rows)}`;
+${renderTable(input, data)}`;
       } else {
         let data = await fetchEspnADP(season);
+        if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
-        const rows = data;
-        return `ESPN ADP for ${season} (${data.length} players):
+        const allZero = data.length > 0 && data.every((p) => !(p.adp > 0));
+        const note = allZero ? " ⚠️ ESPN returned all-zero ADP for this season (not yet populated) — use source 'consensus' for a current number." : "";
+        return `ESPN raw ADP for ${season} (${data.length} players).${note}
 
-${renderTable(input, rows)}`;
+${renderTable(input, data)}`;
       }
     }
     case "get_adp_with_results": {
@@ -41004,7 +41305,12 @@ ${renderTable(input, rows, cols)}`;
         fetchPlayerStats(season),
         fetchSnapCounts(season),
         fetchGames(),
-        fetchPlayByPlay(season)
+        // Only the PBP columns the QB metrics + routes estimation read — streams
+        // the 99MB file under the Worker's memory cap.
+        fetchPlayByPlay(season, { columns: [
+          "game_id", "play_id", "passer_player_name", "rusher_player_name",
+          "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"
+        ] })
       ]);
       const regWeekly = raw.filter((s) => s.season_type === "REG");
       let totals = aggregateToSeasonTotals(regWeekly);
@@ -41066,7 +41372,7 @@ ${renderTable(input, rows, cols)}`;
           })
         );
         fetches.push(
-          fetchPbpParticipation(season).then((participation) => {
+          fetchPbpParticipation(season, { columns: ["nflverse_game_id", "play_id", "offense_players"] }).then((participation) => {
             routeMap = estimateRoutesRun(participation, pbpData);
           }).catch(() => {
             routeMap = void 0;
@@ -41466,6 +41772,19 @@ ${renderTable(input, rows)}`;
       let matches = doc.players.filter((p) => nameMatch(p.name, q) && (!posFilter || p.position === posFilter));
       if (!matches.length) return `No scored player matching "${q}"${posFilter ? ` (${posFilter})` : ""}. Coverage: 2026 scored skill players (QB/RB/WR/TE). Try get_prospect_outcomes for draft prospects or get_projections for a PPG projection.`;
       if (matches.length > 5) matches = matches.slice(0, 5);
+      // ADP is the top hit/bust feature, but the model-eval artifact bakes in
+      // whatever ADP the feature pipeline scored on at build time, which can
+      // drift from the live market. Re-join the live consensus ADP at serve
+      // time so the card shows the current number alongside the scored one
+      // (the prediction itself is still the scored value — flagged when stale).
+      const liveAdp = /* @__PURE__ */ new Map();
+      let liveAdpAsOf = null;
+      try {
+        const con = await buildConsensusAdp(doc.season || 2026, "ppr");
+        liveAdpAsOf = con.asOf?.fp || con.asOf?.sleeper || null;
+        for (const r of con.rows) liveAdp.set(normalizeNameForMatch(r.name), r.adp);
+      } catch {
+      }
       const fmt = (v, d = 1) => typeof v === "number" && Number.isFinite(v) ? Number(v.toFixed(d)) : v;
       const predictionLine = (m, pos) => {
         const pr = m.prediction || {};
@@ -41497,7 +41816,15 @@ ${renderTable(input, rows)}`;
       };
       const out = [];
       for (const p of matches) {
-        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ADP ${p.adp}`);
+        const live = liveAdp.get(normalizeNameForMatch(p.name));
+        let adpStr = `scored-ADP ${p.adp}`;
+        if (typeof live === "number") {
+          adpStr += ` · live consensus ADP ${live}`;
+          if (typeof p.adp === "number" && Math.abs(live - p.adp) >= 5) {
+            adpStr += ` ⚠️ (model was scored on ${p.adp}; market has moved — see get_adp for the live blend${liveAdpAsOf ? `, as of ${String(liveAdpAsOf).slice(0, 10)}` : ""})`;
+          }
+        }
+        out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ${adpStr}`);
         // Newer artifacts carry a per-model breakdown; fall back to the legacy
         // single (Hit/Bust) drivers list for older model-eval files.
         const models = Array.isArray(p.models) && p.models.length ? p.models : [{ id: "hitBust", label: "Hit / Bust (VOR)", prediction: { vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper }, drivers: p.drivers || [] }];
@@ -41694,7 +42021,13 @@ ${renderTable(input, rows, cols)}`;
       const sortBy = input.sort_by || "total_epa_per_play";
       const [games, pbpData] = await Promise.all([
         fetchGames(),
-        fetchPlayByPlay(season)
+        // Only the columns computeTeamMetrics reads — streams the 99MB file
+        // under the Worker's memory cap.
+        fetchPlayByPlay(season, { columns: [
+          "posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential",
+          "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100",
+          "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"
+        ] })
       ]);
       let metrics = computeAllTeamMetrics(season, games, pbpData);
       if (team) {
@@ -41959,10 +42292,42 @@ Edit the **${editLabel}** column in Excel/Google Sheets, then run:
         }
         ov.rankings = { byName, board: metaBoard || "best-overall", imported: file };
       }
+      // Diff summary: show what actually changed vs StatHead's own projection,
+      // so the analyst can confirm the right edits applied without re-querying.
+      let diffBlock = "";
+      if (kind === "projections" && ov.projections?.byName) {
+        const baseDoc = await fetchStatheadProjections().catch(() => null);
+        const baseByName = /* @__PURE__ */ new Map();
+        if (baseDoc?.players) for (const p of baseDoc.players) baseByName.set(normalizeNameForMatch(p.name), Number(p.ppg));
+        const changes = [];
+        let unchanged = 0;
+        for (const k of Object.keys(ov.projections.byName)) {
+          const o = ov.projections.byName[k];
+          const base = baseByName.get(k);
+          if (!Number.isFinite(base)) { changes.push({ name: o.name, base: null, val: o.ppg, d: Infinity }); continue; }
+          const d = Math.round((o.ppg - base) * 10) / 10;
+          if (Math.abs(d) >= 0.1) changes.push({ name: o.name, base, val: o.ppg, d });
+          else unchanged++;
+        }
+        changes.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+        if (changes.length) {
+          const lines = changes.slice(0, 15).map(
+            (c) => c.base == null ? `  ${c.name}: (no model base) → ${c.val}` : `  ${c.name}: ${c.base} → ${c.val} (${c.d >= 0 ? "+" : ""}${c.d})`
+          );
+          if (changes.length > 15) lines.push(`  … and ${changes.length - 15} more changed`);
+          if (unchanged) lines.push(`  ${unchanged} unchanged`);
+          diffBlock = `
+Changes vs StatHead model:
+${lines.join("\n")}`;
+        } else if (unchanged) {
+          diffBlock = `
+All ${unchanged} imported value(s) match the StatHead model (no changes).`;
+        }
+      }
       const saved = await saveOverrides(ov);
       const target = kind === "projections" ? "get_projections" : kind === "rookie_rankings" ? "get_prospect_outcomes" : "get_fantasy_rankings";
       return `Imported ${applied} ${kind} override(s) from ${file}.
-Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.`;
+Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.${diffBlock}`;
     }
     case "clear_overrides": {
       const which = (input.kind || "all").toLowerCase();
@@ -41981,7 +42346,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.34";
+var SERVER_VERSION = "1.0.38";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

@@ -48,13 +48,14 @@
  * disagreement signal.
  */
 
-import { fetchFfcADP, fetchEspnADP, fetchFantasyCalcValues } from '../data';
+import { fetchFfcADP, fetchEspnADP, fetchFantasyCalcValues, fetchFantasyRankings } from '../data';
 import { normName } from './nameUtils';
 
-export type AdpSourceKey = 'ffc' | 'sleeper' | 'espn' | 'fc';
+export type AdpSourceKey = 'fp' | 'ffc' | 'sleeper' | 'espn' | 'fc';
 export type AdpFormat = '1qb' | 'sf';
 
 export const ADP_SOURCE_LABELS: Record<AdpSourceKey, string> = {
+  fp: 'FantasyPros',
   ffc: 'FFC',
   sleeper: 'Sleeper',
   espn: 'ESPN',
@@ -62,6 +63,7 @@ export const ADP_SOURCE_LABELS: Record<AdpSourceKey, string> = {
 };
 
 export const ADP_SOURCE_TITLES: Record<AdpSourceKey, string> = {
+  fp: 'FantasyPros expert-consensus rank (DynastyProcess) — a multi-expert consensus, refreshed daily and reachable everywhere',
   ffc: 'FantasyFootballCalculator mock-draft ADP',
   sleeper: 'Sleeper draft-room ADP',
   espn: 'ESPN live-draft ADP',
@@ -204,6 +206,30 @@ async function loadFfcSnapshot(season: number, format: AdpFormat): Promise<RawEn
   return raw ? mapFfcRaw(raw, false) : [];
 }
 
+// FantasyPros expert-consensus rank (DynastyProcess db_fpecr). A consensus of
+// many experts, refreshed daily and reachable from every runtime (plain GitHub
+// raw), so it anchors the current blend even when FFC's window is stale or a
+// single platform prices a player as an outlier. redraft-overall = 1QB,
+// redraft-op = superflex. ECR is a consensus draft rank ≈ ADP.
+async function loadFantasyPros(format: AdpFormat): Promise<RawEntry[]> {
+  const board = format === 'sf' ? 'redraft-op' : 'redraft-overall';
+  try {
+    const rows = await fetchFantasyRankings();
+    return rows
+      .filter((r) => r.page_type === board && SKILL.has((r.pos || '').toUpperCase()) && Number(r.ecr) > 0)
+      .map((r) => ({
+        name: r.player,
+        position: (r.pos || '').toUpperCase(),
+        team: canonTeam(r.team),
+        adp: Number(r.ecr),
+        // Consensus of ~15 experts → high confidence; decayed by scrape age.
+        weight: recencyWeight(r.scrape_date),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 async function loadEspn(season: number): Promise<RawEntry[]> {
   try {
     const players = await fetchEspnADP(season);
@@ -251,19 +277,22 @@ export async function loadHistoricAdpSources(season: number, format: AdpFormat =
     loadFfcSnapshot(season, format),
     loadSleeper(season, format, false),
   ]);
-  return { season, format, sources: { ffc, sleeper, espn: [], fc: [] } };
+  // FantasyPros db_fpecr is current-season only (no historical snapshots), so
+  // the research/training regime omits it to stay deterministic.
+  return { season, format, sources: { fp: [], ffc, sleeper, espn: [], fc: [] } };
 }
 
 /** Current regime: every live + daily-refreshed source. The input for
  *  scoring, projections, and draft optimization. ESPN has no SF ADP. */
 export async function loadCurrentAdpSources(season: number, format: AdpFormat = '1qb'): Promise<AdpSourceData> {
-  const [ffc, sleeper, espn, fc] = await Promise.all([
+  const [fp, ffc, sleeper, espn, fc] = await Promise.all([
+    loadFantasyPros(format),
     loadFfcCurrent(season, format),
     loadSleeper(season, format, true),
     format === '1qb' ? loadEspn(season) : Promise.resolve([] as RawEntry[]),
     loadFc(format),
   ]);
-  return { season, format, sources: { ffc, sleeper, espn, fc } };
+  return { season, format, sources: { fp, ffc, sleeper, espn, fc } };
 }
 
 /** Route to the right regime for the requested season. */
