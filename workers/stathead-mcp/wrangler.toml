@@ -6,3 +6,12 @@ compatibility_date = "2024-12-01"
 # lets them resolve in the Worker. All data is fetched over HTTPS at runtime
 # (GitHub raw + nflverse + Sleeper), so no filesystem is actually used.
 compatibility_flags = ["nodejs_compat"]
+
+# Privacy-respecting usage counter. Analytics Engine auto-creates the dataset on
+# first write (no setup), has no write-rate limits, and we only record the MCP
+# method + tool name — never IPs or request bodies. Read it at GET /stats (after
+# setting CF_ACCOUNT_ID + CF_ANALYTICS_TOKEN secrets) or via the Cloudflare
+# dashboard / Analytics Engine SQL on the `stathead_mcp_usage` dataset.
+[[analytics_engine_datasets]]
+binding = "USAGE"
+dataset = "stathead_mcp_usage"
