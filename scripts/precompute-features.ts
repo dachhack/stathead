@@ -2582,7 +2582,12 @@ async function main() {
   }
 
   const output = { ...result, models, posThresholds, predictions2026, featureImportance, rookieFeatureImportance, rookiePreDraftFeatureImportance, vetFeatureImportance, ppgModels, ppgPredictions2026, residualModels: residualModelsOutput, residualPredictions2026, draftSim2025, shareModelSummary, rookieCareerModels, rookieCareerModelsPostDraft, careerPredictions2026 };
-  const json = JSON.stringify(output);
+  // Round non-integer numbers to 6 significant figures when serializing. The
+  // file is browser-fetched (My Rankings, Model Docs, …) under a 25 MiB host cap
+  // and full float64 precision (15–17 digits) is wasted on feature inputs and
+  // model thresholds. 6 sig figs is ample and trims the file well under the cap.
+  const json = JSON.stringify(output, (_k, v) =>
+    typeof v === 'number' && Number.isFinite(v) && !Number.isInteger(v) ? Number(v.toPrecision(6)) : v);
   writeFileSync('public/data/feature-matrix.json', json);
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
