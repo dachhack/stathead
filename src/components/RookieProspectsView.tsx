@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { CombineResult, FantasyRanking, DynastyPlayer, SortDirection } from '../types';
-import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchMaybeGz } from '../data';
 import { loadCareerScores } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
@@ -193,7 +193,7 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       fetchCombine(),
       fetchFantasyRankings(),
       fetchDynastyRankingsForDisplay('1qb'),
-      fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
+      fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
         .then(r => r.ok ? r.json() : null)
         .catch(() => null),
     ])

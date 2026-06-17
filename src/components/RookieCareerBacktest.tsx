@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchMaybeGz } from '../data';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow, RookieCareerModelResult } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
@@ -83,7 +84,7 @@ export function RookieCareerBacktest() {
 
       let d: any = null;
       try {
-        const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
+        const resp = await fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) d = await resp.json();
       } catch {}
       // Load prospect store for feature enrichment

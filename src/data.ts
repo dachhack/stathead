@@ -304,6 +304,24 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   }
 }
 
+/**
+ * Fetch a static asset, transparently falling back to a gzipped `.gz` sibling.
+ * postbuild-pages gzips oversized JSON (e.g. feature-matrix.json, ~24 MiB) and
+ * drops the raw to stay under the 25 MiB host cap, so in production the raw path
+ * 404s and we inflate the `.gz`. In dev the raw file is served and used directly.
+ * Returns a Response so callers keep their existing `.ok` / `.json()` handling.
+ */
+export async function fetchMaybeGz(url: string): Promise<Response> {
+  const r = await fetch(url);
+  if (r.ok) return r;
+  const gz = await fetch(`${url}.gz`);
+  if (gz.ok && gz.body) {
+    const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+    return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  return r; // propagate the original non-OK response; callers handle !ok
+}
+
 /** Build a URL for an nflverse CSV file. In prod, serves from local /data/filename.csv */
 function nflUrl(releaseSubpath: string): string {
   if (IS_PROD) {

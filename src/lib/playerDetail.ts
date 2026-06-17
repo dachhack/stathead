@@ -1,7 +1,7 @@
 import { normalizeName } from './featureTypes';
 import type { CrosswalkRec } from './playerLookup';
 import type { DynastyPlayer, DynastyPlayerHistory, PlayerStats } from '../types';
-import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay, fetchPlayerStats } from '../data';
+import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay, fetchPlayerStats, fetchMaybeGz } from '../data';
 
 export interface CareerPrediction {
   name: string;
@@ -102,7 +102,7 @@ async function loadModelDrivers(rec: CrosswalkRec): Promise<PlayerModelDrivers |
 async function loadCareer(rec: CrosswalkRec): Promise<CareerPrediction | null> {
   // 2026 rookies: feature-matrix.json has `player_key` already stamped.
   try {
-    const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
+    const resp = await fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
     if (resp.ok) {
       const doc = (await resp.json()) as { careerPredictions2026?: Array<CareerPrediction & { player_key?: string }> };
       const hit = (doc.careerPredictions2026 || []).find((p) => p.player_key === rec.player_key);

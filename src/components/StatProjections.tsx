@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchMaybeGz } from '../data';
 import { PlayerName } from './PlayerName';
 import { bust } from '../lib/buildHash';
 import {
@@ -316,7 +317,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
           fetch(`${import.meta.env.BASE_URL}data/depth-order-2026.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
           // Hoisted out of the pure builder: feature-matrix.json (PPG fallback)
           // and clay-projections-<season>.json (Consensus preset source).
-          fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
           fetch(bust(`${import.meta.env.BASE_URL}data/clay-projections-${PREDICT_SEASON}.json`)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           // CI-precomputed, DERIVED preset blends (Consensus, etc.) — lets the
           // Consensus presets work in the public deploy without shipping Consensus.
