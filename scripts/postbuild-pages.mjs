@@ -18,9 +18,9 @@
  *   3. Fail the build if anything still served exceeds the cap — a loud,
  *      early signal instead of a cryptic wrangler upload error.
  *
- * NOTE: only gzip files whose loader is gz-aware. feature-matrix.json is
- * fetched with a plain `fetch().json()` in several components and stays
- * under the cap, so it is deliberately left raw.
+ * NOTE: only gzip files whose loader is gz-aware. feature-matrix.json is now
+ * fetched via fetchMaybeGz() (src/data.ts), which falls back to the `.gz`
+ * sibling, so it is gzipped here too (it had crept up to the cap raw).
  */
 import { existsSync, rmSync, readFileSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
@@ -42,7 +42,7 @@ const gzipDrop = (fp) => {
 rmSync(`${DATA}/cfbd`, { recursive: true, force: true });
 
 // 2a. Oversized JSON loaded via the gz-aware tryPreFetched fallback.
-const GZIP_RUNTIME_JSON = ['cfbd-college-stats.json'];
+const GZIP_RUNTIME_JSON = ['cfbd-college-stats.json', 'feature-matrix.json'];
 for (const name of GZIP_RUNTIME_JSON) {
   const p = `${DATA}/${name}`;
   if (existsSync(p)) gzipDrop(p);

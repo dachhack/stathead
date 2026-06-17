@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchFfcADP } from '../data';
+import { fetchFfcADP, fetchMaybeGz } from '../data';
 import { applyScenario, isScenarioEmpty } from '../lib/scenarioEngine';
 import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, boomPct, bustPct } from '../lib/nameUtils';
@@ -84,7 +84,7 @@ export function ExternalRankings2026({ scenario }: { scenario?: ScenarioConfig }
       fetch(`${BASE}data/score-store/ppg.json`).then(r => r.json()).catch(() => [] as PPGScoreEntry[]),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.json()).catch(() => ({ players: [] })),
       // Fallback when score-store shards are stale/empty.
-      fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
+      fetchMaybeGz(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
     ]).then(([ffcData, adpData, ppgData, rdData, featureMatrix]) => {
       setFfc(ffcData);
 

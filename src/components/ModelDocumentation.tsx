@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchMaybeGz } from '../data';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
@@ -374,7 +375,7 @@ export function ModelDocumentation() {
     async function load() {
       let d: any = null;
       try {
-        const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
+        const resp = await fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) d = await resp.json();
       } catch { /* network error */ }
 

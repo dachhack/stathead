@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchFfcADP } from '../data';
+import { fetchFfcADP, fetchMaybeGz } from '../data';
 import { applyScenario, createEmptyScenario, isScenarioEmpty, loadAllScenarios, saveScenario } from '../lib/scenarioEngine';
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta } from '../lib/scenarioPresets';
 import { buildSyntheticSdio } from '../lib/draftKit';
@@ -260,7 +260,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetch(`${BASE}data/feature-store/priorStats.json`).then(r => r.json()).catch(() => ({})),
       fetch(`${BASE}data/feature-store/competition.json`).then(r => r.json()).catch(() => ({})),
       // Fallback source — if score-store shards are empty, hydrate from the monolithic matrix.
-      fetch(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
+      fetchMaybeGz(`${BASE}data/feature-matrix.json`).then(r => r.json()).catch(() => null),
       // FFC's offseason ADP is thin (~170 players) and adp.json only covers the
       // model pool, so teams/ADP need deeper local fallbacks: FantasyCalc
       // redraft (team + rank + age/yoe, rookie-inclusive) and the depth-chart

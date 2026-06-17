@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { fetchMaybeGz } from '../data';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Label, Legend,
@@ -264,7 +265,7 @@ export function ADPFactorAnalysis({ scenario: _scenarioProp, initialView }: { sc
         // Try precomputed build-time data (only for default settings, no scenario)
         if (vorBasis === 'ppg' && !activeScenario) {
           try {
-            const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
+            const resp = await fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
             if (resp.ok) {
               setLoadingStatus('Loading precomputed data...');
               const data = await resp.json();

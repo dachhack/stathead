@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PlayerName } from './PlayerName';
-import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchRosters } from '../data';
+import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchRosters, fetchMaybeGz } from '../data';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
@@ -182,7 +182,7 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetchCombine().catch(() => [] as CombineResult[]),
       fetchFantasyRankings().catch(() => [] as FantasyRanking[]),
       fetchDynastyRankingsForDisplay('1qb').catch(() => [] as DynastyPlayer[]),
-      fetch(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetchMaybeGz(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
       fetchRosters(DRAFT_YEAR).catch(() => [] as Roster[]),
     ])

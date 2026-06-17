@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { fetchMaybeGz } from '../data';
 import { trainRookieCareerModels } from '../lib/rookieCareerModel';
 import type { RookieCareerBacktestRow } from '../lib/rookieCareerModel';
 import { assemblePlayerRows } from '../lib/featureStoreClient';
@@ -122,7 +123,7 @@ export function ZapComparison() {
       const pred2026Map = new Map<string, any>();
       let backtestRows: RookieCareerBacktestRow[] = [];
       try {
-        const resp = await fetch(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
+        const resp = await fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`);
         if (resp.ok) {
           const d = await resp.json();
           if (d.careerPredictions2026) {
