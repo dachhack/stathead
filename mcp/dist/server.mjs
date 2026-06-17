@@ -38744,7 +38744,7 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "epa", "wpa", "wp", "passer_player_name", "rusher_player_name", "receiver_player_name", "air_yards", "yards_after_catch", "pass_location"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "epa", "wpa", "wp", "passer_player_name", "rusher_player_name", "receiver_player_name", "air_yards", "yards_after_catch", "pass_location"];
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -40610,6 +40610,7 @@ ${renderTable(input, rows)}`;
         "game_id",
         "week",
         "qtr",
+        "time",
         "down",
         "ydstogo",
         "yardline_100",
@@ -42329,7 +42330,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.39";
+var SERVER_VERSION = "1.0.40";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

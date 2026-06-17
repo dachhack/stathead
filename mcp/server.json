@@ -7,13 +7,13 @@
     "source": "github",
     "subfolder": "mcp"
   },
-  "version": "1.0.39",
+  "version": "1.0.40",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "stathead-mcp",
-      "version": "1.0.39",
+      "version": "1.0.40",
       "transport": { "type": "stdio" }
     }
   ]
