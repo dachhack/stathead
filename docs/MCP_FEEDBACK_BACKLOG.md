@@ -15,6 +15,20 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 2 — consolidated-report polish (MCP 1.0.38):**
+- **get_sleeper_projections migrated** off the dead `api.sleeper.app/v1` endpoint
+  to the current `api.sleeper.app/projections/nfl/<season>[/<week>]` endpoint
+  (array of `{player, stats}`, populated) — verified live (Bijan 2026 ≈ 324.9
+  PPR). Season-long now uses Sleeper's season projection directly (no week-sum).
+- **speed_score pre-computed** (weight×200/forty⁴) on get_combine_results and
+  get_rookie_class so analysts don't hand-roll it.
+- **import_excel diff summary**: projections imports now print old→new changes
+  vs the StatHead model (sorted by |Δ|, top 15 + unchanged count), not just a count.
+- **"See also: get_metadata"** appended to every tool description (surfaces
+  coverage/enums/caveats at point of need).
+- Note: the report's "combine silent truncation" (P1) was already fixed
+  (handler appends "showing first N of M; raise limit…").
+
 **Done (verified locally against the bundle):**
 - **Reliable current ADP feed (🔴 + the user's priority).** New default
   `get_adp` source **`consensus`** — a freshness/confidence-weighted blend of

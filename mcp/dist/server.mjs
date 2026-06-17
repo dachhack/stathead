@@ -38063,43 +38063,42 @@ async function fetchSleeperTrending(type = "add", hours = 24, limit = 50) {
   }).filter((r) => r !== null);
 }
 var sleeperProjectionCache = /* @__PURE__ */ new Map();
-async function fetchSleeperWeekRaw(season, week) {
-  const url2 = `${SLEEPER}/projections/nfl/${season}/${week}?season_type=regular`;
-  const res = await fetchWithTimeout(url2);
+// The legacy api.sleeper.app/v1 projections endpoint stopped returning stats.
+// The current endpoint (no /v1) returns an array of { player_id, player, stats }
+// — season totals when no week is given, a single week otherwise — and IS
+// populated. Migrate to it (this is the same host/path family the ADP fetcher
+// already uses successfully).
+async function fetchSleeperProjectionRows(season, week) {
+  const pos = ["QB", "RB", "WR", "TE", "K"].map((p) => `position[]=${p}`).join("&");
+  const path = week ? `projections/nfl/${season}/${week}` : `projections/nfl/${season}`;
+  const url2 = `https://api.sleeper.app/${path}?season_type=regular&${pos}&order_by=pts_ppr`;
+  const res = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Sleeper projections API returned ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : Object.values(data);
 }
 async function fetchSleeperProjections(season, week) {
   const cacheKey = `${season}-${week ?? "full"}`;
   const cached2 = sleeperProjectionCache.get(cacheKey);
   if (cached2) return cached2;
-  const players = await fetchSleeperPlayers();
-  const weeks = week ? [week] : Array.from({ length: 18 }, (_, i) => i + 1);
-  const weekRaws = await Promise.all(weeks.map((w) => fetchSleeperWeekRaw(season, w)));
-  const available = weekRaws.filter((r) => r != null);
-  if (available.length === 0) {
+  const rows = await fetchSleeperProjectionRows(season, week);
+  if (!rows || rows.length === 0) {
     throw new Error(
-      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper serves only per-week regular-season projections (there is no season-total endpoint); season-long figures here are summed from weeks 1–18, which are not posted until the season is set.`
+      `Sleeper has no projections for ${season}${week ? ` week ${week}` : ""}. Sleeper posts regular-season projections once that season is set; try the current/recent season (season-long) or a specific week.`
     );
   }
-  const summed = /* @__PURE__ */ new Map();
-  for (const raw of available) {
-    for (const [pid, stats] of Object.entries(raw)) {
-      let acc = summed.get(pid);
-      if (!acc) {
-        acc = {};
-        summed.set(pid, acc);
-      }
-      for (const [statKey, statVal] of Object.entries(stats)) {
-        if (typeof statVal === "number") acc[statKey] = (acc[statKey] || 0) + statVal;
-      }
-    }
-  }
+  // The new endpoint embeds a `player` object per row, so we only fall back to
+  // the (large) players map if some rows lack it — usually never.
+  const playersMap = rows.length && rows[0].player ? null : await fetchSleeperPlayers().catch(() => /* @__PURE__ */ new Map());
   const projections = [];
-  for (const [pid, stats] of summed) {
-    const p = players.get(pid);
-    if (!p || !["QB", "RB", "WR", "TE", "K"].includes(p.position)) continue;
+  for (const row of rows) {
+    const stats = row.stats || {};
+    const pid = String(row.player_id ?? row.player?.player_id ?? "");
+    const pl = row.player || (playersMap && playersMap.get(pid)) || {};
+    const position = pl.position || (Array.isArray(pl.fantasy_positions) ? pl.fantasy_positions[0] : void 0);
+    if (!["QB", "RB", "WR", "TE", "K"].includes(position)) continue;
+    const name = pl.full_name || `${pl.first_name ?? ""} ${pl.last_name ?? ""}`.trim();
     const passYd = stats.pass_yd || 0;
     const passTd = stats.pass_td || 0;
     const passInt = stats.pass_int || 0;
@@ -38114,9 +38113,9 @@ async function fetchSleeperProjections(season, week) {
     const ptsHalfPpr = ptsStd + rec * 0.5;
     projections.push({
       player_id: pid,
-      full_name: p.full_name,
-      position: p.position,
-      team: p.team || "FA",
+      full_name: name,
+      position,
+      team: pl.team || "FA",
       pts_std: Math.round(ptsStd * 10) / 10,
       pts_half_ppr: Math.round(ptsHalfPpr * 10) / 10,
       pts_ppr: Math.round(ptsPpr * 10) / 10,
@@ -38135,7 +38134,7 @@ async function fetchSleeperProjections(season, week) {
   );
   if (!hasData) {
     throw new Error(
-      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty. The api.sleeper.app/v1 projections endpoint is no longer populated upstream; live projections now require the api.sleeper.com source.`
+      `Sleeper returned ${projections.length} projection rows for ${season}${week ? ` week ${week}` : ""} but every stat value was empty upstream.`
     );
   }
   projections.sort((a, b) => b.pts_ppr - a.pts_ppr);
@@ -39024,7 +39023,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_sleeper_projections",
-    description: "Get Sleeper weekly or season-long player projections. Includes projected stats and fantasy points by scoring format. Sleeper publishes only per-week regular-season projections; pass week for a single week, or omit week to get season totals summed across weeks 1–18 (available once that season's projections are posted).",
+    description: "Get Sleeper weekly or season-long player projections (projected stats + fantasy points by scoring format). Pass week for a single week, or omit week for Sleeper's season-total projection. Source: Sleeper's current projections endpoint.",
     input_schema: {
       type: "object",
       properties: {
@@ -39485,10 +39484,17 @@ var COMMON_OUTPUT_PARAMS = {
   }
 };
 for (const t of NFL_TOOLS) {
-  if (t.name === "get_metadata" || t.noCommon) continue;
-  const props = t.input_schema.properties;
-  for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
-    if (!(k in props)) props[k] = v;
+  if (t.name === "get_metadata") continue;
+  if (!t.noCommon) {
+    const props = t.input_schema.properties;
+    for (const [k, v] of Object.entries(COMMON_OUTPUT_PARAMS)) {
+      if (!(k in props)) props[k] = v;
+    }
+  }
+  // Surface get_metadata at the point of need — it's easy to forget but carries
+  // season coverage, valid enums, and the analytic caveats.
+  if (t.description && !/get_metadata/.test(t.description)) {
+    t.description += " See also: get_metadata for season coverage, valid enums, and analytic caveats.";
   }
 }
 function normalizeNameForMatch(s) {
@@ -39499,6 +39505,14 @@ function nameMatch(fullName, query) {
 }
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
+}
+// Speed score = weight(lb) * 200 / forty^4 — the standard size-adjusted speed
+// metric. Pre-computed so callers don't have to (a common ask). Needs both a
+// weight and a 40 time; returns null otherwise.
+function speedScore(wt, forty) {
+  const w = Number(wt), f = Number(forty);
+  if (!Number.isFinite(w) || !Number.isFinite(f) || w <= 0 || f <= 0) return null;
+  return Math.round(w * 200 / f ** 4 * 10) / 10;
 }
 function toMarkdownTable(rows, columns) {
   if (rows.length === 0) return "(no results)";
@@ -40337,9 +40351,9 @@ ${renderTable(input, out, cols)}`;
       const total = combine.length;
       combine = combine.slice(0, limit);
       const note = total > combine.length ? ` \u2014 showing first ${combine.length} of ${total}; raise limit (max 500) or narrow position/min_season/max_season` : "";
-      const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
-      const rows = combine.map((c) => pickColumns(c, cols));
-      return `Combine results (${combine.length} players)${note}:
+      const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "speed_score", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
+      const rows = combine.map((c) => ({ ...pickColumns(c, cols), speed_score: speedScore(c.wt, c.forty) }));
+      return `Combine results (${combine.length} players)${note} (speed_score = wt*200/forty^4):
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -40399,6 +40413,7 @@ ${renderTable(input, rows, cols)}`;
           forty: c ? num(c.forty) : "",
           vertical: c ? num(c.vertical) : "",
           wt: c ? num(c.wt) : "",
+          speed_score: c ? (speedScore(c.wt, c.forty) ?? "") : "",
           rookie_games: st ? num(st.games) : "",
           rookie_rush_yds: st ? num(st.rushing_yards) : "",
           rookie_rec: st ? num(st.receptions) : "",
@@ -42277,10 +42292,42 @@ Edit the **${editLabel}** column in Excel/Google Sheets, then run:
         }
         ov.rankings = { byName, board: metaBoard || "best-overall", imported: file };
       }
+      // Diff summary: show what actually changed vs StatHead's own projection,
+      // so the analyst can confirm the right edits applied without re-querying.
+      let diffBlock = "";
+      if (kind === "projections" && ov.projections?.byName) {
+        const baseDoc = await fetchStatheadProjections().catch(() => null);
+        const baseByName = /* @__PURE__ */ new Map();
+        if (baseDoc?.players) for (const p of baseDoc.players) baseByName.set(normalizeNameForMatch(p.name), Number(p.ppg));
+        const changes = [];
+        let unchanged = 0;
+        for (const k of Object.keys(ov.projections.byName)) {
+          const o = ov.projections.byName[k];
+          const base = baseByName.get(k);
+          if (!Number.isFinite(base)) { changes.push({ name: o.name, base: null, val: o.ppg, d: Infinity }); continue; }
+          const d = Math.round((o.ppg - base) * 10) / 10;
+          if (Math.abs(d) >= 0.1) changes.push({ name: o.name, base, val: o.ppg, d });
+          else unchanged++;
+        }
+        changes.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+        if (changes.length) {
+          const lines = changes.slice(0, 15).map(
+            (c) => c.base == null ? `  ${c.name}: (no model base) → ${c.val}` : `  ${c.name}: ${c.base} → ${c.val} (${c.d >= 0 ? "+" : ""}${c.d})`
+          );
+          if (changes.length > 15) lines.push(`  … and ${changes.length - 15} more changed`);
+          if (unchanged) lines.push(`  ${unchanged} unchanged`);
+          diffBlock = `
+Changes vs StatHead model:
+${lines.join("\n")}`;
+        } else if (unchanged) {
+          diffBlock = `
+All ${unchanged} imported value(s) match the StatHead model (no changes).`;
+        }
+      }
       const saved = await saveOverrides(ov);
       const target = kind === "projections" ? "get_projections" : kind === "rookie_rankings" ? "get_prospect_outcomes" : "get_fantasy_rankings";
       return `Imported ${applied} ${kind} override(s) from ${file}.
-Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.`;
+Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Run clear_overrides to revert.${diffBlock}`;
     }
     case "clear_overrides": {
       const which = (input.kind || "all").toLowerCase();
@@ -42299,7 +42346,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.37";
+var SERVER_VERSION = "1.0.38";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
