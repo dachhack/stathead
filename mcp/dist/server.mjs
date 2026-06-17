@@ -38531,7 +38531,7 @@ function computeQBMetrics(input) {
   };
 }
 function computeSkillMetrics(input) {
-  const { seasonTotals: s, weeklyStats, snaps, ngsRec, ngsRush, pfrRec, routesRun } = input;
+  const { seasonTotals: s, weeklyStats, snaps, ngsRec, ngsRush, pfrRec, routesRun, teamTargets = 0, teamAirYards = 0 } = input;
   const name = s.player_display_name ?? s.player_name;
   const totalSnaps = snaps.reduce((a, sn) => a + safe(sn.offense_snaps), 0);
   const totalTeamSnaps = snaps.length > 0 ? snaps.reduce((a, sn) => {
@@ -38548,7 +38548,21 @@ function computeSkillMetrics(input) {
   if (pfrRec) {
     recDrops = pfrRec.reduce((a, w) => a + safe(w.receiving_drop), 0);
   }
-  const lastWeek = weeklyStats.length > 0 ? weeklyStats[weeklyStats.length - 1] : null;
+  // Season target / air-yards share: reconstruct each week's TEAM total from
+  // that week's player stat ÷ its share, then sum — so the season figure tracks
+  // total usage. (Previously these read a single game — the player's LAST week —
+  // which misrepresented the season and didn't track the targets column.)
+  // teamTargets / teamAirYards are the EXACT team totals over this player's
+  // played weeks (summed in computePlayerMetrics from every player's weekly
+  // rows), so the shares are precise rather than reconstructed from rounded
+  // per-week shares.
+  const playerAirYards = weeklyStats.reduce((a, w) => a + safe(w.receiving_air_yards), 0);
+  const targetShareSeason = teamTargets > 0 ? s.targets / teamTargets : null;
+  const airYardsShareSeason = teamAirYards > 0 ? playerAirYards / teamAirYards : null;
+  // WOPR = 1.5*target_share + 0.7*air_yards_share; RACR = rec yards / air yards.
+  const woprSeason = (targetShareSeason != null || airYardsShareSeason != null)
+    ? 1.5 * (targetShareSeason ?? 0) + 0.7 * (airYardsShareSeason ?? 0) : null;
+  const racrSeason = playerAirYards > 0 ? s.receiving_yards / playerAirYards : null;
   return {
     player_id: s.player_id,
     player_name: name,
@@ -38577,10 +38591,10 @@ function computeSkillMetrics(input) {
     receiving_epa: recEpa,
     receiving_epa_per_target: ratio(recEpa, s.targets),
     // Target profile
-    target_share: lastWeek?.target_share != null ? lastWeek.target_share * 100 : null,
-    air_yards_share: lastWeek?.air_yards_share != null ? lastWeek.air_yards_share * 100 : null,
-    wopr: lastWeek?.wopr ?? null,
-    racr: lastWeek?.racr ?? null,
+    target_share: targetShareSeason != null ? Math.round(targetShareSeason * 1e3) / 10 : null,
+    air_yards_share: airYardsShareSeason != null ? Math.round(airYardsShareSeason * 1e3) / 10 : null,
+    wopr: woprSeason != null ? Math.round(woprSeason * 1e3) / 1e3 : null,
+    racr: racrSeason != null ? Math.round(racrSeason * 1e3) / 1e3 : null,
     // NGS receiving
     avg_cushion: ngsRec?.avg_cushion ?? null,
     avg_separation: ngsRec?.avg_separation ?? null,
@@ -38772,6 +38786,17 @@ async function computePlayerMetrics(season, opts = {}) {
   const isSkill = position === "RB" || position === "WR" || position === "TE";
   const weeklyByPlayer = groupByPlayer(regWeekly);
   const snapsByPlayer = groupSnapsByPlayer(snaps);
+  // Exact team target / air-yards totals per team-week — for precise season
+  // target_share / air_yards_share / wopr / racr (vs reconstructing from rounded
+  // per-week shares, and vs the old single-game lastWeek bug).
+  const teamWeek = /* @__PURE__ */ new Map();
+  for (const w of regWeekly) {
+    const k = `${w.recent_team}|${w.week}`;
+    let o = teamWeek.get(k);
+    if (!o) { o = { tgt: 0, ay: 0 }; teamWeek.set(k, o); }
+    o.tgt += safe(w.targets);
+    o.ay += safe(w.receiving_air_yards);
+  }
   let ngsPassMap, ngsRecMap, ngsRushMap, pfrPassByPlayer, pfrRecByPlayer, ftnData, routeMap;
   const fetches = [];
   if (isQB || !isSkill) {
@@ -38807,7 +38832,9 @@ async function computePlayerMetrics(season, opts = {}) {
       const qbFtn = ftnData?.filter((f) => qbGameIds.has(f.nflverse_game_id));
       results.push(computeQBMetrics({ seasonTotals: s, weeklyStats: weekly, pbp: pbpData, ngsPass: ngsPassMap?.get(s.player_id), pfrPass: pfrPassByPlayer?.get(s.player_id), ftn: qbFtn }));
     } else {
-      results.push(computeSkillMetrics({ seasonTotals: s, weeklyStats: weekly, snaps: playerSnaps, ngsRec: ngsRecMap?.get(s.player_id), ngsRush: ngsRushMap?.get(s.player_id), pfrRec: pfrRecByPlayer?.get(s.player_id), routesRun: routeMap?.get(s.player_id) }));
+      let teamTargets = 0, teamAirYards = 0;
+      for (const w of weekly) { const o = teamWeek.get(`${w.recent_team}|${w.week}`); if (o) { teamTargets += o.tgt; teamAirYards += o.ay; } }
+      results.push(computeSkillMetrics({ seasonTotals: s, weeklyStats: weekly, snaps: playerSnaps, ngsRec: ngsRecMap?.get(s.player_id), ngsRush: ngsRushMap?.get(s.player_id), pfrRec: pfrRecByPlayer?.get(s.player_id), routesRun: routeMap?.get(s.player_id), teamTargets, teamAirYards }));
     }
   }
   return results;
@@ -42335,7 +42362,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.41";
+var SERVER_VERSION = "1.0.42";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

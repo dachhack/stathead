@@ -15,6 +15,20 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 4 — get_player_metrics target_share/wopr/racr fix + clock/score on PBP (MCP 1.0.40–1.0.42):**
+- 🔴 **target_share / air_yards_share / wopr / racr were a single game, not the
+  season.** computeSkillMetrics read `lastWeek` (the player's final weekly row),
+  so the values didn't track season targets — e.g. 2025 Diggs (102 tgt) showed
+  15% while Henry (87 tgt) showed 25%. Now computed from EXACT team totals
+  (team targets / air yards summed per team-week across all players, over the
+  player's played weeks): Diggs 21.2% > Henry 18% > Henderson 8.7% — monotonic
+  with targets; Brown 2024 = 34.3% (PHI's very low pass volume — verified by two
+  independent methods). Required regenerating the player-metrics artifacts.
+- **Game clock + scoring on get_play_by_play:** added `time` (game clock at
+  snap), `total_home_score`/`total_away_score` (running score), and
+  `sp`/`touchdown`/`field_goal_result`. (nflverse's literal `play_clock` field is
+  0 for 100% of plays, so it was left out.)
+
 **Round 3 — metrics tools fixed via precomputed artifacts (MCP 1.0.39):**
 - The streaming rewrite (1.0.36/37) did NOT fix the metrics tools on the hosted
   Worker — a follow-up test confirmed get_player_metrics / get_team_metrics /
