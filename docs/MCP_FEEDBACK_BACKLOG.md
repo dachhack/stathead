@@ -15,6 +15,22 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 6 — coaching tendencies + coach×player reunion (MCP 1.0.44):**
+- 🟡 **Coaching/scheme data gap (the largest model gap) — data+tool half shipped.**
+  New `get_coach_tendencies` tool + `coach-tendencies.json` artifact: per head
+  coach (career + last-3 avg) neutral pass rate, pace, shotgun, RZ TD rate, PPG,
+  target HHI (concentration), WR1/RB/TE target share, plus a coach×player
+  **reunion** lookup (a player's target share / PPG / games under a coach). Built
+  from the team-metrics artifacts (backfilled 2016–2025) + nflverse game coaches
+  + player target shares — no PBP at serve time, no retrain. Resolves by coach
+  name, team+season (incl. the upcoming season), or player.
+- Verified the motivating case: Vrabel career 51.6% neutral pass / 23% WR1 share
+  / HHI 0.13; A.J. Brown under Vrabel (TEN 2019–21) ran **20% / 22.9% / 20.9%**
+  target share — i.e. ~21%, refining the report's ~25% hand-estimate.
+- **Still deferred (needs ML session):** feeding these coach features INTO the
+  trained share model (sklearn retrain) — this round ships the descriptive
+  data/tool, not the model integration.
+
 **Round 5 — calibrated veteran Hit/Bust vs ADP (MCP 1.0.43):**
 - 🔴/🟡 **VOR label was uninformative + no veteran bust probability — fixed.** Root
   cause: the absolute VOR threshold is calibrated against the whole historical

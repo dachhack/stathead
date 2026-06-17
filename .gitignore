@@ -43,6 +43,7 @@ public/data/clay-team-projections-*.json
 !public/data/projection-base-*.json
 !public/data/model-eval-*.json
 !public/data/team-metrics-*.json
+!public/data/coach-tendencies.json
 !public/data/player-metrics-*.json
 !public/data/pbp-slim-*.json.gz
 !public/data/prospect-boom-bust.json

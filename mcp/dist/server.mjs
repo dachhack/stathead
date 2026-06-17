@@ -38396,6 +38396,9 @@ async function fetchProjectionBase(season) {
 async function fetchModelEval(season) {
   return await tryPreFetched(`model-eval-${season}.json`);
 }
+async function fetchCoachTendencies() {
+  return await tryPreFetched("coach-tendencies.json");
+}
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
@@ -39551,6 +39554,20 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_coach_tendencies",
+    description: "Head-coach scheme + usage tendencies and a coach×player reunion lookup — so you don't have to hand-reconstruct what a coach does or how he used a player. Per coach (career + last-3-season averages): neutral-script pass rate, pass rate, plays/game (pace), shotgun rate, RZ TD rate, PPG, target concentration (HHI), and WR1 / RB / TE target share (the WR1's name per season). Pass a coach by name, or a team+season to resolve that team's coach. Add player_name to see that player's target share / PPG / games UNDER this coach (the reunion signal, e.g. A.J. Brown under Mike Vrabel), or player_name alone for the player's full coaching history. Coverage: 2016–present (head coach = nflverse credited game coach, a play-caller proxy). Note: this is descriptive data; it is not (yet) wired into the share-model projection.",
+    input_schema: {
+      type: "object",
+      properties: {
+        coach: { type: "string", description: "Head coach name (case-insensitive partial match)." },
+        team: { type: "string", description: "Team abbreviation — with season, resolves that team's head coach." },
+        season: { type: "number", description: "Season — with team, resolves that team's head coach (also scopes the reunion lookup)." },
+        player_name: { type: "string", description: "Show this player's usage under the resolved coach; or, alone, the player's coaching history." }
+      },
+      required: []
+    }
+  },
+  {
     name: "export_excel",
     noCommon: true,
     description: "Export StatHead projections, rankings, or rookie rankings to a styled .xlsx workbook on the local disk — the same boards the website lets you download. Edit the highlighted columns in Excel/Sheets (Proj PPG for projections; My Rank for rankings/rookies), then feed the file back with import_excel so YOUR numbers drive every later analysis. Returns the absolute path of the written file.",
@@ -40202,7 +40219,7 @@ async function executeToolInner(name, input) {
         "NFL fantasy-football analytics. Call this to scope a question before querying.",
         "## Data sources",
         [
-          "- **nflverse** \u2014 play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine (open data)",
+          "- **nflverse** \u2014 play-by-play, player/weekly stats, rosters, snap counts, injuries, depth charts, draft picks, combine, game head coaches (open data)",
           "- **Next Gen Stats** \u2014 advanced tracking metrics",
           "- **Sleeper** \u2014 trending adds/drops, projections, and league data (user leagues, rosters/standings, league users, matchups, transactions/trades, drafts, waiver wire, cross-league exposure, multi-season history)",
           "- **FantasyFootballCalculator (ffc)** & **ESPN** \u2014 ADP",
@@ -42118,6 +42135,63 @@ ${renderTable(input, rows, cols)}`;
 
 ${renderTable(input, rows, cols)}`;
     }
+    case "get_coach_tendencies": {
+      const doc = await fetchCoachTendencies();
+      if (!doc?.coaches) return "No coach-tendencies data available.";
+      const cnorm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const coachQ = input.coach;
+      const team = input.team?.toUpperCase();
+      const season = input.season;
+      const playerName = input.player_name;
+      // Resolve the coach (by name, or via team+season).
+      let coachName = null;
+      if (coachQ) {
+        const names = Object.keys(doc.coaches);
+        coachName = names.find((n) => nameMatch(n, coachQ)) || names.find((n) => cnorm(n).includes(cnorm(coachQ)));
+      } else if (team && season != null) {
+        coachName = doc.byTeamSeason?.[`${season}:${team}`] || null;
+      }
+      const findPlayerRows = (q) => {
+        const nq = cnorm(q);
+        if (doc.reunionsByPlayer?.[nq]) return doc.reunionsByPlayer[nq];
+        const k = Object.keys(doc.reunionsByPlayer || {}).find((x) => x === nq || x.includes(nq) || nq.includes(x));
+        return k ? doc.reunionsByPlayer[k] : [];
+      };
+      // Player-only: their full coaching history.
+      if (!coachName && playerName) {
+        const rows2 = findPlayerRows(playerName).slice().sort((a, b) => a.season - b.season);
+        if (!rows2.length) return `No coaching history found for "${playerName}" (coverage ${doc.seasons?.[0]}–${doc.seasons?.[doc.seasons.length - 1]}, skill positions).`;
+        const cols2 = ["season", "team", "coach", "position", "targetShare", "ppg", "games"];
+        return `Coaching history for "${rows2[0].name}" (target share % of team targets, PPG):\n\n${renderTable(input, rows2, cols2)}`;
+      }
+      if (!coachName) {
+        return coachQ
+          ? `No coach matching "${coachQ}". Coverage: ${doc.seasons?.[0]}–${doc.seasons?.[doc.seasons.length - 1]} head coaches. Pass a coach name, a team+season, or a player_name.`
+          : "Provide a coach name, a team + season, or a player_name.";
+      }
+      const c = doc.coaches[coachName];
+      const pctKeys = ["neutralPassRate", "passRate", "shotgunRate", "noHuddleRate", "rzTdRate", "wr1TargetShare", "rbTargetShare", "teTargetShare"];
+      const rowFrom = (label, a) => ({ scope: label, neutral_pass: a.neutralPassRate, pass_rate: a.passRate, plays_g: a.playsPerGame, shotgun: a.shotgunRate, rz_td: a.rzTdRate, ppg: a.ppg, target_HHI: a.targetHHI, wr1_tgt_share: a.wr1TargetShare, rb_tgt_share: a.rbTargetShare, te_tgt_share: a.teTargetShare });
+      const aggCols = ["scope", "neutral_pass", "pass_rate", "plays_g", "shotgun", "rz_td", "ppg", "target_HHI", "wr1_tgt_share", "rb_tgt_share", "te_tgt_share"];
+      const aggRows = [rowFrom("career", c.career), rowFrom(`recent (last ${Math.min(3, c.seasonsCount)})`, c.recent)];
+      const seasonCols = ["season", "team", "neutralPassRate", "passRate", "playsPerGame", "shotgunRate", "targetHHI", "wr1", "wr1TargetShare", "rbTargetShare", "teTargetShare", "ppg"];
+      const out = [];
+      out.push(`# ${coachName} — head coach tendencies (${c.seasonRange[0]}–${c.seasonRange[1]}, ${c.seasonsCount} seasons, ${c.teams.join("/")})`);
+      out.push("Rates are %; target_HHI = sum of squared team target shares (higher = more concentrated). WR1 = the season's top-target WR.");
+      out.push("\n## Career vs recent");
+      out.push(renderTable(input, aggRows, aggCols));
+      out.push("\n## By season");
+      out.push(renderTable(input, c.seasons, seasonCols));
+      if (playerName) {
+        const pr = findPlayerRows(playerName).filter((r) => r.coach === coachName).sort((a, b) => a.season - b.season);
+        out.push(`\n## ${playerName} under ${coachName}`);
+        out.push(pr.length
+          ? renderTable(input, pr, ["season", "team", "position", "targetShare", "ppg", "games"])
+          : `(no seasons found for "${playerName}" under ${coachName} in ${doc.seasons?.[0]}–${doc.seasons?.[doc.seasons.length - 1]})`);
+      }
+      out.push("\nHead coach = nflverse credited game coach (play-caller proxy). Descriptive data — not yet wired into the share-model projection.");
+      return out.join("\n");
+    }
     case "export_excel": {
       const kind = (input.kind || "").toLowerCase();
       const position = input.position?.toUpperCase();
@@ -42389,7 +42463,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.43";
+var SERVER_VERSION = "1.0.44";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
@@ -42453,7 +42527,7 @@ if (!IS_CF_WORKER) {
     process.exit(1);
   });
 }
-export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts };
+export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts, computeTeamMetricsForSeason, fetchPlayerStats, aggregateToSeasonTotals, fetchGames };
 /*! Bundled license information:
 
 papaparse/papaparse.js:

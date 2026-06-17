@@ -1,7 +1,7 @@
 {
   "name": "stathead-mcp",
   "mcpName": "io.github.dachhack/stathead-mcp",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "description": "Full set of fantasy football data analysis tools — NFL stats, play-by-play, Next Gen Stats, dynasty values, projections, prospects, Sleeper league analysis, and editable Excel projections/rankings — as an MCP server for Claude and any MCP client.",
   "license": "MIT",
   "author": "dachhack",
