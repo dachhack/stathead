@@ -8,9 +8,69 @@ bust risk vs. draft range). Ordered by severity. Each entry: **what we saw**,
 Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken tool
 · 🟡 model/feature gap · 🟢 polish/DX.
 
+Status legend: ✅ fixed · ⚠️ partial · ❌ open (verified by re-test).
+
+---
+
+## Verification log (2026-06-16, two re-test rounds)
+
+**Fixed ✅**
+- `get_team_metrics` — was 100% crash, now returns data (NE 2025: 53.1% pass,
+  55.1% neutral, 28.8 PPG; values plausible).
+- `get_player_metrics` — was 100% crash, now runs. Single-player values look
+  correct (A.J. Brown 2024: 27.78% target share, 2.52 YPRR). **But see new bug
+  below — multi-row `target_share`/`wopr` are misaligned.**
+- `get_adp` — identifier columns (`player_name`, `team`) now returned; `as_of`
+  timestamps + staleness warnings added; **new `consensus` source** blends
+  FantasyPros + Sleeper + FFC with freshness weighting + per-source spread.
+  Directly addresses the stale-ADP correctness issue.
+- `get_player_season_stats` — null-deref on 2025 name lookups resolved (with
+  `position`); now returns `player_display_name` + `recent_team`.
+
+**Partial ⚠️**
+- `get_player_features` ADP — now *flags* staleness ("scored-ADP 30.6 · live
+  consensus ADP 22.8 ⚠️"), but the Hit/Bust model is **still scored on 30.6**
+  (VOR, driver bands, label unchanged). Transparency added; re-scoring pending.
+  See "Stale & inconsistent ADP" below.
+
+**Open ❌**
+- `get_player_metrics` / `get_team_metrics` multi-row `target_share`/`wopr`
+  misaligned — see new entry below.
+- `get_player_season_stats` without `position` on 2025 — still errors (now a
+  serialization error rather than null-deref); `position` is the workaround.
+- VOR scale vs documented thresholds; projection↔share reconciliation; veteran
+  bust probability; coaching features — all unaddressed (expected, bigger lifts).
+
 ---
 
 ## 🔴 Data correctness
+
+### `target_share` / `wopr` misaligned in multi-row `get_player_metrics` (NEW)
+**What we saw**: filtering `get_player_metrics` by team (NE 2025) returns a
+`target_share` column that does **not** track the `targets` column:
+
+| Player | targets | target_share shown |
+| --- | --- | --- |
+| Stefon Diggs | 102 | 15 |
+| Hunter Henry | 87 | 25 |
+| Mack Hollins | 65 | 21.43 |
+| TreVeyon Henderson | 42 | 0 |
+
+The player with the most targets shows a *lower* share than teammates with
+fewer; an RB with 42 targets shows 0%. `wopr` is similarly off (Diggs lowest
+despite most targets). The **single-player** path is correct (Brown 2024 =
+27.78%), so the bug is in the team/multi-row aggregation — likely a wrong/
+per-player denominator, a join/sort misalignment, or NaN→0.
+*Why it matters*: target share is the headline usage metric; wrong values here
+silently corrupt any role/efficiency analysis. We had to fall back to raw
+`targets` and compute shares by hand again.
+*Root cause / fix*: inspect the `target_share`/`wopr` computation in the
+multi-row branch of `get_player_metrics` (`src/tools.ts` / metrics query); make
+the denominator the team's total pass volume and ensure column alignment after
+the sort.
+*Effort*: small-to-medium.
+*Status*: ❌ open (introduced/exposed by the serialization fix that made the
+tool run at all).
 
 ### Stale & inconsistent ADP in model cards
 **What we saw**: `get_player_features` reports an `ADP` that diverges sharply
@@ -36,6 +96,11 @@ Refresh the ADP join at serve time (or on a schedule) against
 `src/lib/adpSources.ts`; stamp each ADP with an `as_of` date; add a build
 assertion that feature-matrix ADP == latest `adpSources` ADP within tolerance.
 *Effort*: medium.
+*Status*: ⚠️ partial — the card now **flags** the staleness ("scored-ADP 30.6 ·
+live consensus ADP 22.8 ⚠️, as of 2026-06-12") and a fresh `consensus` source
+exists, but the Hit/Bust model is **still scored on the stale 30.6** (VOR,
+driver percentile bands, and label unchanged). Re-score on the consensus ADP to
+close this — Brown's true ~22.8 would lower his VOR/value.
 
 ### VOR scale doesn't match the documented hit/bust thresholds
 **What we saw**: `get_player_features` prints e.g. `VOR 14.9 (Likely Hit)`,
