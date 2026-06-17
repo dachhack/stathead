@@ -15,6 +15,23 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 7 — coach scheme features INTO the share model (retrain):**
+- 🟡 **Model-integration half of the coaching gap — done.** Added 4 leakage-safe
+  head-coach scheme features (`coachHistNeutralPass`, `coachHistTargetHHI`,
+  `coachHistWR1Share`, `newCoachFlag`; coach history < season) to the share
+  model. Measured first: LOSO target-share R² lift WR 0.319→0.327, RB
+  0.346→0.351, **TE 0.132→0.190** (TE usage is the most scheme-dependent). The
+  reunion features were dropped — they rank near-bottom (redundant with
+  `priorTargetShare`).
+- Plumbing: `backfill_coach_share_features.py` patches the training cache;
+  `SHARE_FEATURE_KEYS` += the 4; share models retrained
+  (`model-cache-share-v58.json`); `precompute-features.ts` computes the same 4 for
+  2026 pred rows (219/258) so scoring matches training; feature-matrix + shares +
+  model-eval regenerated. No Worker redeploy needed (data read live).
+- Honest note: the headline Brown case barely moved (0.158→0.16) — WR coach
+  signal is marginal and prior usage dominates; the real model win is TE + new-
+  coach situations. sklearn/lightgbm were pip-installed to enable the retrain.
+
 **Round 6 — coaching tendencies + coach×player reunion (MCP 1.0.44):**
 - 🟡 **Coaching/scheme data gap (the largest model gap) — data+tool half shipped.**
   New `get_coach_tendencies` tool + `coach-tendencies.json` artifact: per head

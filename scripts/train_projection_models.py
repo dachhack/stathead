@@ -981,6 +981,10 @@ SHARE_FEATURE_KEYS = [
     'teamTargetHHI', 'vegasImpliedTotal',
     # V2 additions: +0.049 avg R² across all 15 share models
     'adp', 'teamElitePassCatchers', 'priorWOPR',
+    # V3: head-coach scheme features (leakage-safe, coach history < season).
+    # Backfilled by backfill_coach_share_features.py; computed for 2026 in
+    # precompute-features.ts. Strongest lift for TE (scheme-driven usage).
+    'coachHistNeutralPass', 'coachHistTargetHHI', 'coachHistWR1Share', 'newCoachFlag',
 ]
 
 SHARE_TARGETS = [
