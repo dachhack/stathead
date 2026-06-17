@@ -41887,7 +41887,7 @@ ${renderTable(input, rows)}`;
         if (typeof live === "number") {
           adpStr += ` · live consensus ADP ${live}`;
           if (typeof p.adp === "number" && Math.abs(live - p.adp) >= 5) {
-            adpStr += ` ⚠️ (model was scored on ${p.adp}; market has moved — see get_adp for the live blend${liveAdpAsOf ? `, as of ${String(liveAdpAsOf).slice(0, 10)}` : ""})`;
+            adpStr += ` ⚠️ (model was scored on ${p.adp}; market has moved — Hit/Bust % use the live ADP, but the feature-driver rows below still reflect the scored ${p.adp}. See get_adp for the live blend${liveAdpAsOf ? `, as of ${String(liveAdpAsOf).slice(0, 10)}` : ""})`;
           }
         }
         out.push(`## ${p.name} — ${p.position}${p.team ? ` (${p.team})` : ""}${p.isRookie ? " · rookie" : ""} · ${adpStr}`);
@@ -42463,7 +42463,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.44";
+var SERVER_VERSION = "1.0.45";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
