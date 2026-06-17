@@ -523,6 +523,35 @@ async function main() {
   }
   console.log(`  PPG predictions: ${ppgPredictions2026.length} players`);
 
+  // Head-coach scheme features for 2026 share scoring. Mirrors
+  // scripts/backfill_coach_share_features.py (training side); coach history is
+  // restricted to seasons < PREDICT_SEASON (leakage-safe). Source:
+  // coach-tendencies.json (build-coach-tendencies.mjs).
+  try {
+    const coachDoc = JSON.parse(readFileSync('public/data/coach-tendencies.json', 'utf-8'));
+    const byTS: Record<string, string> = coachDoc.byTeamSeason || {};
+    const coachesC: Record<string, { seasons?: Array<Record<string, number>> }> = coachDoc.coaches || {};
+    const cmean = (xs: number[]) => { const v = xs.filter((x) => typeof x === 'number'); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; };
+    let cf = 0;
+    for (const r of result.predRows as Array<{ name: string; team: string; features: Record<string, number> }>) {
+      const co = r.team ? byTS[`${PREDICT_SEASON}:${r.team}`] : undefined;
+      const f = { coachHistNeutralPass: 0, coachHistTargetHHI: 0, coachHistWR1Share: 0, newCoachFlag: 0 };
+      if (co && coachesC[co]) {
+        const cs = (coachesC[co].seasons || []).filter((s) => (s.season as number) < PREDICT_SEASON);
+        f.coachHistNeutralPass = cmean(cs.map((s) => s.neutralPassRate)) / 100;
+        f.coachHistTargetHHI = cmean(cs.map((s) => s.targetHHI));
+        f.coachHistWR1Share = cmean(cs.map((s) => s.wr1TargetShare)) / 100;
+        const prevc = byTS[`${PREDICT_SEASON - 1}:${r.team}`];
+        f.newCoachFlag = prevc && prevc !== co ? 1 : 0;
+      }
+      Object.assign(r.features, f);
+      if (f.coachHistNeutralPass) cf++;
+    }
+    console.log(`  Coach scheme features set on ${cf}/${result.predRows.length} pred rows`);
+  } catch (e) {
+    console.warn('  [warn] coach scheme features:', (e as Error).message);
+  }
+
   // Share predictions for 2026
   console.log('  Scoring 2026 share predictions...');
   const SHARE_PRED_TARGETS = [
