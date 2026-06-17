@@ -14,11 +14,33 @@
  * a thin transport adapter — stateless request/response JSON-RPC, no session
  * state. All data is fetched over HTTPS at runtime, so it runs read-only.
  *
+ * Privacy-respecting usage counter: each MCP request records ONE Analytics
+ * Engine data point with just the method (and tool name for tools/call) — no
+ * IPs, no request bodies, no user identifiers. Read aggregates at GET /stats
+ * (when CF_ACCOUNT_ID + CF_ANALYTICS_TOKEN are set), or in the Cloudflare
+ * dashboard / Analytics Engine SQL on the `stathead_mcp_usage` dataset.
+ *
  * Deploy:  npx wrangler deploy   (from workers/stathead-mcp/)
  */
 
 // @ts-expect-error — JS bundle without type declarations; shapes asserted below.
 import { NFL_TOOLS, executeTool, SERVER_VERSION } from '../../../mcp/dist/server.mjs';
+
+// Minimal Cloudflare runtime types (no @cloudflare/workers-types dependency).
+interface AnalyticsEngineDataset {
+  writeDataPoint(event: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
+}
+interface ExecutionContext {
+  waitUntil(p: Promise<unknown>): void;
+}
+interface Env {
+  USAGE?: AnalyticsEngineDataset;
+  // Optional — set both to enable the GET /stats summary endpoint:
+  //   wrangler secret put CF_ACCOUNT_ID
+  //   wrangler secret put CF_ANALYTICS_TOKEN   (token with Account Analytics: Read)
+  CF_ACCOUNT_ID?: string;
+  CF_ANALYTICS_TOKEN?: string;
+}
 
 interface ToolDef {
   name: string;
@@ -39,10 +61,9 @@ interface JsonRpcMessage {
 const TOOLS = NFL_TOOLS as ToolDef[];
 const VERSION = (SERVER_VERSION as string) || '0.0.0';
 const DEFAULT_PROTOCOL = '2025-06-18';
+const USAGE_DATASET = 'stathead_mcp_usage';
 
 function corsHeaders(origin: string | null): Record<string, string> {
-  // A remote MCP endpoint is a public, server-to-server API (all data is
-  // public NFL stats), so CORS is permissive; reflect the origin when present.
   return {
     'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -56,10 +77,21 @@ function isNotification(msg: JsonRpcMessage): boolean {
   return msg.id === undefined || msg.id === null;
 }
 
-async function handleMessage(msg: JsonRpcMessage): Promise<object | null> {
+// Privacy-respecting usage event: method + tool name only. No PII.
+function recordUsage(env: Env, method: string, tool: string): void {
+  if (!env?.USAGE) return;
+  try {
+    env.USAGE.writeDataPoint({ indexes: [method], blobs: [method, tool], doubles: [1] });
+  } catch {
+    // never let metrics break a request
+  }
+}
+
+async function handleMessage(msg: JsonRpcMessage, env: Env): Promise<object | null> {
   const { id, method, params } = msg;
   switch (method) {
     case 'initialize':
+      recordUsage(env, 'initialize', '');
       return {
         jsonrpc: '2.0',
         id,
@@ -70,6 +102,7 @@ async function handleMessage(msg: JsonRpcMessage): Promise<object | null> {
         },
       };
     case 'tools/list':
+      recordUsage(env, 'tools/list', '');
       return {
         jsonrpc: '2.0',
         id,
@@ -84,6 +117,7 @@ async function handleMessage(msg: JsonRpcMessage): Promise<object | null> {
     case 'tools/call': {
       const name = params?.name as string;
       const args = (params?.arguments as Record<string, unknown>) ?? {};
+      recordUsage(env, 'tools/call', name || 'unknown');
       try {
         const result = (await executeTool(name, args)) as ToolResult;
         const text =
@@ -110,18 +144,62 @@ async function handleMessage(msg: JsonRpcMessage): Promise<object | null> {
   }
 }
 
+// GET /stats — aggregate usage from Analytics Engine (last 30 days). Requires
+// CF_ACCOUNT_ID + CF_ANALYTICS_TOKEN secrets; otherwise returns a hint.
+async function handleStats(env: Env): Promise<object> {
+  if (!env.CF_ACCOUNT_ID || !env.CF_ANALYTICS_TOKEN) {
+    return {
+      counting: true,
+      dataset: USAGE_DATASET,
+      note: 'Usage is being recorded. To view it here, set CF_ACCOUNT_ID + CF_ANALYTICS_TOKEN worker secrets, or query the dataset in the Cloudflare dashboard / Analytics Engine SQL API.',
+    };
+  }
+  const sql = `SELECT index1 AS method, blob2 AS tool, sum(_sample_interval) AS count
+    FROM ${USAGE_DATASET}
+    WHERE timestamp > NOW() - INTERVAL '30' DAY
+    GROUP BY method, tool
+    ORDER BY count DESC
+    LIMIT 100`;
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/analytics_engine/sql`,
+      { method: 'POST', headers: { Authorization: `Bearer ${env.CF_ANALYTICS_TOKEN}` }, body: sql },
+    );
+    if (!res.ok) return { error: `Analytics query failed: ${res.status}`, detail: (await res.text()).slice(0, 300) };
+    const data = (await res.json()) as { data?: Array<{ method: string; tool: string; count: number }> };
+    const rows = data.data ?? [];
+    const total = rows.reduce((s, r) => s + Number(r.count || 0), 0);
+    const byMethod: Record<string, number> = {};
+    const toolCalls: Record<string, number> = {};
+    for (const r of rows) {
+      byMethod[r.method] = (byMethod[r.method] || 0) + Number(r.count || 0);
+      if (r.method === 'tools/call' && r.tool) toolCalls[r.tool] = (toolCalls[r.tool] || 0) + Number(r.count || 0);
+    }
+    return { window: 'last 30 days', total_requests: total, by_method: byMethod, tool_calls: toolCalls };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     const origin = request.headers.get('Origin');
     const cors = corsHeaders(origin);
+    const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    // A GET returns a small discovery/health payload (and confirms the URL is
-    // live when you paste it into a browser).
+    // GET /stats → usage summary; GET anything else → discovery/health.
     if (request.method === 'GET') {
+      if (url.pathname === '/stats') {
+        const stats = await handleStats(env);
+        return new Response(JSON.stringify(stats, null, 2), {
+          status: 200,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
       return new Response(
         JSON.stringify({
           name: 'stathead-mcp',
@@ -129,6 +207,7 @@ export default {
           transport: 'streamable-http',
           tools: TOOLS.length,
           usage: 'POST JSON-RPC (MCP) to this URL. Add it as a custom connector in Claude.',
+          stats: '/stats',
         }),
         { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } },
       );
@@ -149,11 +228,10 @@ export default {
     }
 
     const messages = Array.isArray(body) ? (body as JsonRpcMessage[]) : [body as JsonRpcMessage];
-    const responses = (await Promise.all(messages.map(handleMessage))).filter(
+    const responses = (await Promise.all(messages.map((m) => handleMessage(m, env)))).filter(
       (r): r is object => r !== null,
     );
 
-    // All-notification batch → 202 Accepted with no body (MCP spec).
     if (responses.length === 0) {
       return new Response(null, { status: 202, headers: cors });
     }

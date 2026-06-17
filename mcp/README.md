@@ -67,6 +67,13 @@ over MCP's Streamable HTTP transport by a Cloudflare Worker
 **Settings → Connectors → Add custom connector**. The npm/stdio package above
 stays the path for Claude Desktop / Code.
 
+The Worker records a privacy-respecting usage counter (MCP method + tool name
+only — no IPs or request bodies) to a Cloudflare Analytics Engine dataset
+(`stathead_mcp_usage`). View aggregates at `GET /stats` once you set the
+`CF_ACCOUNT_ID` + `CF_ANALYTICS_TOKEN` worker secrets (`wrangler secret put …`),
+or query the dataset in the Cloudflare dashboard. npm download counts don't see
+remote-connector usage — this does.
+
 ## Data sources & freshness
 
 Most tools fetch live from open upstreams (nflverse, Sleeper,
