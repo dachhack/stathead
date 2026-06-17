@@ -38735,6 +38735,98 @@ function computeAllTeamMetrics(season, games, pbp) {
     (team) => computeTeamMetrics({ team, season, games: regGames, pbp: regPbp })
   );
 }
+// ── Shared metric computation (used by both the live handlers and the offline
+// artifact builder) ──────────────────────────────────────────────────────────
+// The full-season play-by-play CSV is ~99MB; fetching + parsing it inside a
+// request exceeds the hosted Worker's limits. So these computations are run
+// offline (scripts/build-metrics-artifacts.mjs) into small committed JSON, and
+// the handlers serve those when present, falling back to live compute (used by
+// the npm/stdio build, which has no such limits).
+var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
+var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "field_goal_result", "epa", "wpa", "wp", "passer_player_name", "rusher_player_name", "receiver_player_name", "air_yards", "yards_after_catch", "pass_location"];
+async function computeTeamMetricsForSeason(season) {
+  const [games, pbpData] = await Promise.all([
+    fetchGames(),
+    fetchPlayByPlay(season, { columns: PBP_TEAM_COLS })
+  ]);
+  return computeAllTeamMetrics(season, games, pbpData);
+}
+// Full player-metrics compute. opts filters the player pool BEFORE the (cheap)
+// metric math; the offline builder passes only minGames so it scores everyone.
+async function computePlayerMetrics(season, opts = {}) {
+  const { position, team, playerName, minGames = 1 } = opts;
+  const [raw, snaps, , pbpData] = await Promise.all([
+    fetchPlayerStats(season),
+    fetchSnapCounts(season),
+    fetchGames(),
+    fetchPlayByPlay(season, { columns: PBP_PLAYER_COLS })
+  ]);
+  const regWeekly = raw.filter((s) => s.season_type === "REG");
+  let totals = aggregateToSeasonTotals(regWeekly);
+  if (position) totals = totals.filter((p) => p.position === position);
+  if (team) totals = totals.filter((p) => p.recent_team === team.toUpperCase());
+  if (playerName) totals = totals.filter((p) => nameMatch(p.player_display_name, playerName));
+  totals = totals.filter((p) => p.games >= minGames);
+  const isQB = position === "QB" || !position && totals.every((p) => p.position === "QB");
+  const isSkill = position === "RB" || position === "WR" || position === "TE";
+  const weeklyByPlayer = groupByPlayer(regWeekly);
+  const snapsByPlayer = groupSnapsByPlayer(snaps);
+  let ngsPassMap, ngsRecMap, ngsRushMap, pfrPassByPlayer, pfrRecByPlayer, ftnData, routeMap;
+  const fetches = [];
+  if (isQB || !isSkill) {
+    fetches.push(
+      fetchNextGenStats(season, "passing").then((d) => { ngsPassMap = indexNGSByPlayer(d); }),
+      fetchAdvancedStats(season, "pass").then((d) => {
+        pfrPassByPlayer = /* @__PURE__ */ new Map();
+        for (const row of d) { const id = row.pfr_player_id; if (!id) continue; const arr = pfrPassByPlayer.get(id); if (arr) arr.push(row); else pfrPassByPlayer.set(id, [row]); }
+      })
+    );
+    if (season >= 2022) fetches.push(fetchFTNCharting(season).then((d) => { ftnData = d; }));
+  }
+  if (isSkill || !isQB) {
+    fetches.push(
+      fetchNextGenStats(season, "receiving").then((d) => { ngsRecMap = indexNGSByPlayer(d); }),
+      fetchNextGenStats(season, "rushing").then((d) => { ngsRushMap = indexNGSByPlayer(d); }),
+      fetchAdvancedStats(season, "rec").then((d) => {
+        pfrRecByPlayer = /* @__PURE__ */ new Map();
+        for (const row of d) { const id = row.pfr_player_id; if (!id) continue; const arr = pfrRecByPlayer.get(id); if (arr) arr.push(row); else pfrRecByPlayer.set(id, [row]); }
+      }),
+      fetchPbpParticipation(season, { columns: ["nflverse_game_id", "play_id", "offense_players"] }).then((participation) => { routeMap = estimateRoutesRun(participation, pbpData); }).catch(() => { routeMap = void 0; })
+    );
+  }
+  await Promise.all(fetches);
+  const results = [];
+  for (const s of totals) {
+    const weekly = weeklyByPlayer.get(s.player_id) || [];
+    const playerSnaps = snapsByPlayer.get(normalizeNameForMatch(s.player_display_name ?? s.player_name)) || [];
+    if (s.position === "QB") {
+      const qbName = s.player_display_name ?? s.player_name;
+      const qbPbp = pbpData.filter((p) => p.passer_player_name === qbName || p.rusher_player_name === qbName);
+      const qbGameIds = new Set(qbPbp.map((p) => p.game_id));
+      const qbFtn = ftnData?.filter((f) => qbGameIds.has(f.nflverse_game_id));
+      results.push(computeQBMetrics({ seasonTotals: s, weeklyStats: weekly, pbp: pbpData, ngsPass: ngsPassMap?.get(s.player_id), pfrPass: pfrPassByPlayer?.get(s.player_id), ftn: qbFtn }));
+    } else {
+      results.push(computeSkillMetrics({ seasonTotals: s, weeklyStats: weekly, snaps: playerSnaps, ngsRec: ngsRecMap?.get(s.player_id), ngsRush: ngsRushMap?.get(s.player_id), pfrRec: pfrRecByPlayer?.get(s.player_id), routesRun: routeMap?.get(s.player_id) }));
+    }
+  }
+  return results;
+}
+async function fetchPbpSlim(season) {
+  return fetchPlayByPlay(season, { columns: PBP_SLIM_COLS });
+}
+// Offline artifact builder — invoked by scripts/build-metrics-artifacts.mjs.
+async function buildMetricsArtifacts(season) {
+  // Sequential (not Promise.all) so only one full ~99MB PBP parse is resident at
+  // a time — keeps the offline builder's peak memory bounded.
+  const team = await computeTeamMetricsForSeason(season);
+  const allPlayers = await computePlayerMetrics(season, { minGames: 1 });
+  // The tool only serves QB/RB/WR/TE — drop defensive/ST rows (some nflverse
+  // stat files include them) so the artifact stays lean and on-domain.
+  const players = allPlayers.filter((p) => p.position === "QB" || p.position === "RB" || p.position === "WR" || p.position === "TE");
+  const pbpSlim = await fetchPbpSlim(season);
+  return { season, generatedAt: new Date().toISOString(), team, players, pbpSlim };
+}
 function indexNGSByPlayer(rows) {
   const map2 = /* @__PURE__ */ new Map();
   const sorted = [...rows].sort((a, b) => a.week - b.week);
@@ -40489,14 +40581,11 @@ ${renderTable(input, rows)}`;
       const week = input.week;
       const redZone = input.red_zone;
       const limit = clamp(input.limit || 50, 1, 200);
-      // Project only the columns this tool returns/filters on — keeps the
-      // ~99MB season file streamable under the Worker's memory cap.
-      let plays = await fetchPlayByPlay(season, { columns: [
-        "game_id", "play_id", "week", "qtr", "down", "ydstogo", "yardline_100",
-        "posteam", "defteam", "play_type", "yards_gained", "epa", "wpa", "wp",
-        "passer_player_name", "rusher_player_name", "receiver_player_name",
-        "air_yards", "yards_after_catch", "pass_location"
-      ] });
+      // Prefer the precomputed slim PBP artifact (the hosted Worker can't
+      // fetch+parse the 99MB raw file in-request); fall back to live streaming
+      // (npm/stdio build). Both carry only the columns this tool returns/filters.
+      const prePbp = await tryPreFetched(`pbp-slim-${season}.json`);
+      let plays = Array.isArray(prePbp?.pbpSlim) ? prePbp.pbpSlim : Array.isArray(prePbp) ? prePbp : await fetchPbpSlim(season);
       if (playerName) {
         const q = playerName.toLowerCase().trim();
         const last = q.split(/\s+/).pop();
@@ -40521,6 +40610,9 @@ ${renderTable(input, rows)}`;
         "game_id",
         "week",
         "qtr",
+        "time",
+        "total_home_score",
+        "total_away_score",
         "down",
         "ydstogo",
         "yardline_100",
@@ -40528,6 +40620,9 @@ ${renderTable(input, rows)}`;
         "defteam",
         "play_type",
         "yards_gained",
+        "sp",
+        "touchdown",
+        "field_goal_result",
         "epa",
         "wpa",
         "wp",
@@ -41301,116 +41396,16 @@ ${renderTable(input, rows, cols)}`;
       const sortBy = input.sort_by || "fantasy_points_ppr";
       const minGames = input.min_games || 4;
       const limit = clamp(input.limit || 20, 1, 50);
-      const [raw, snaps, , pbpData] = await Promise.all([
-        fetchPlayerStats(season),
-        fetchSnapCounts(season),
-        fetchGames(),
-        // Only the PBP columns the QB metrics + routes estimation read — streams
-        // the 99MB file under the Worker's memory cap.
-        fetchPlayByPlay(season, { columns: [
-          "game_id", "play_id", "passer_player_name", "rusher_player_name",
-          "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"
-        ] })
-      ]);
-      const regWeekly = raw.filter((s) => s.season_type === "REG");
-      let totals = aggregateToSeasonTotals(regWeekly);
-      if (position) totals = totals.filter((p) => p.position === position);
-      if (team) totals = totals.filter((p) => p.recent_team === team.toUpperCase());
-      if (playerName) totals = totals.filter((p) => nameMatch(p.player_display_name, playerName));
-      totals = totals.filter((p) => p.games >= minGames);
-      const isQB = position === "QB" || !position && totals.every((p) => p.position === "QB");
-      const isSkill = position === "RB" || position === "WR" || position === "TE";
-      const weeklyByPlayer = groupByPlayer(regWeekly);
-      const snapsByPlayer = groupSnapsByPlayer(snaps);
-      let ngsPassMap;
-      let ngsRecMap;
-      let ngsRushMap;
-      let pfrPassByPlayer;
-      let pfrRecByPlayer;
-      let ftnData;
-      let routeMap;
-      const fetches = [];
-      if (isQB || !isSkill) {
-        fetches.push(
-          fetchNextGenStats(season, "passing").then((d) => {
-            ngsPassMap = indexNGSByPlayer(d);
-          }),
-          fetchAdvancedStats(season, "pass").then((d) => {
-            pfrPassByPlayer = /* @__PURE__ */ new Map();
-            for (const row of d) {
-              const id = row.pfr_player_id;
-              if (!id) continue;
-              const arr = pfrPassByPlayer.get(id);
-              if (arr) arr.push(row);
-              else pfrPassByPlayer.set(id, [row]);
-            }
-          })
-        );
-        if (season >= 2022) {
-          fetches.push(fetchFTNCharting(season).then((d) => {
-            ftnData = d;
-          }));
-        }
-      }
-      if (isSkill || !isQB) {
-        fetches.push(
-          fetchNextGenStats(season, "receiving").then((d) => {
-            ngsRecMap = indexNGSByPlayer(d);
-          }),
-          fetchNextGenStats(season, "rushing").then((d) => {
-            ngsRushMap = indexNGSByPlayer(d);
-          }),
-          fetchAdvancedStats(season, "rec").then((d) => {
-            pfrRecByPlayer = /* @__PURE__ */ new Map();
-            for (const row of d) {
-              const id = row.pfr_player_id;
-              if (!id) continue;
-              const arr = pfrRecByPlayer.get(id);
-              if (arr) arr.push(row);
-              else pfrRecByPlayer.set(id, [row]);
-            }
-          })
-        );
-        fetches.push(
-          fetchPbpParticipation(season, { columns: ["nflverse_game_id", "play_id", "offense_players"] }).then((participation) => {
-            routeMap = estimateRoutesRun(participation, pbpData);
-          }).catch(() => {
-            routeMap = void 0;
-          })
-        );
-      }
-      await Promise.all(fetches);
-      const results = [];
-      for (const s of totals) {
-        const weekly = weeklyByPlayer.get(s.player_id) || [];
-        const playerSnaps = snapsByPlayer.get(normalizeNameForMatch(s.player_display_name ?? s.player_name)) || [];
-        if (s.position === "QB") {
-          const qbName = s.player_display_name ?? s.player_name;
-          const qbPbp = pbpData.filter(
-            (p) => p.passer_player_name === qbName || p.rusher_player_name === qbName
-          );
-          const qbGameIds = new Set(qbPbp.map((p) => p.game_id));
-          const qbFtn = ftnData?.filter((f) => qbGameIds.has(f.nflverse_game_id));
-          results.push(computeQBMetrics({
-            seasonTotals: s,
-            weeklyStats: weekly,
-            pbp: pbpData,
-            ngsPass: ngsPassMap?.get(s.player_id),
-            pfrPass: pfrPassByPlayer?.get(s.player_id),
-            ftn: qbFtn
-          }));
-        } else {
-          results.push(computeSkillMetrics({
-            seasonTotals: s,
-            weeklyStats: weekly,
-            snaps: playerSnaps,
-            ngsRec: ngsRecMap?.get(s.player_id),
-            ngsRush: ngsRushMap?.get(s.player_id),
-            pfrRec: pfrRecByPlayer?.get(s.player_id),
-            routesRun: routeMap?.get(s.player_id)
-          }));
-        }
-      }
+      // Prefer the precomputed artifact (the hosted Worker can't fetch+parse the
+      // 99MB PBP file in-request); fall back to live compute (npm/stdio build).
+      const preP = await tryPreFetched(`player-metrics-${season}.json`);
+      let results = Array.isArray(preP?.players) ? preP.players : Array.isArray(preP) ? preP : await computePlayerMetrics(season, { position, team, playerName, minGames });
+      // Apply display filters — a no-op on the already-filtered live path; the
+      // actual filtering for the (whole-pool) artifact path.
+      const teamU = team ? team.toUpperCase() : null;
+      results = results.filter(
+        (r) => (!position || r.position === position) && (!teamU || r.team === teamU) && (!playerName || nameMatch(r.player_name, playerName)) && ((r.games ?? 0) >= minGames)
+      );
       const sKey = sortBy;
       results.sort((a, b) => {
         const va = a[sKey];
@@ -42019,17 +42014,11 @@ ${renderTable(input, rows, cols)}`;
       const season = input.season;
       const team = input.team;
       const sortBy = input.sort_by || "total_epa_per_play";
-      const [games, pbpData] = await Promise.all([
-        fetchGames(),
-        // Only the columns computeTeamMetrics reads — streams the 99MB file
-        // under the Worker's memory cap.
-        fetchPlayByPlay(season, { columns: [
-          "posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential",
-          "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100",
-          "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"
-        ] })
-      ]);
-      let metrics = computeAllTeamMetrics(season, games, pbpData);
+      // Prefer the precomputed artifact (committed JSON) — the hosted Worker
+      // can't fetch+parse the 99MB PBP file within request limits. Fall back to
+      // live compute (npm/stdio build, no such limits).
+      const pre = await tryPreFetched(`team-metrics-${season}.json`);
+      let metrics = Array.isArray(pre?.team) ? pre.team : Array.isArray(pre) ? pre : await computeTeamMetricsForSeason(season);
       if (team) {
         metrics = metrics.filter((m) => m.team === team.toUpperCase());
       }
@@ -42346,7 +42335,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.38";
+var SERVER_VERSION = "1.0.41";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
@@ -42410,7 +42399,7 @@ if (!IS_CF_WORKER) {
     process.exit(1);
   });
 }
-export { NFL_TOOLS, executeTool, SERVER_VERSION };
+export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts };
 /*! Bundled license information:
 
 papaparse/papaparse.js:
