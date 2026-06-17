@@ -94,6 +94,88 @@ const preds = fm.predictions2026 || [];      // VOR / hit prob / CI
 const ppgPreds = fm.ppgPredictions2026 || []; // season PPG projection
 const careerPreds = fm.careerPredictions2026 || []; // rookie career model (own 85-feature vectors)
 
+// ── Calibrated hit/bust vs draft cost ───────────────────────────────────────
+// The absolute VOR threshold can't discriminate within the draftable pool
+// (every drafted player clears it). Instead calibrate P(hit)/P(bust) RELATIVE
+// TO ADP from history: the empirical rate at which players drafted near a slot
+// beat / missed their cost (ground-truth isHit/isBust in the training cache),
+// tilted by how far THIS model ranks the player above/below their ADP peers.
+// We emit (a) a per-position base-rate curve over ADP and (b) a per-player
+// model "lean", so get_player_features can recompute pHit/pBust against the
+// LIVE consensus ADP at serve time (the card's ADP drifts from the market).
+const nrm2 = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const pk2 = (name, pos) => nrm2(name) + '|' + pos;
+function loadTrainingRows() {
+  const f = fs.readdirSync(DATA)
+    .filter((x) => /^training-rows-cache-v\d+\.json$/.test(x))
+    .sort((a, b) => Number(a.match(/v(\d+)/)[1]) - Number(b.match(/v(\d+)/)[1])).pop();
+  if (!f) return [];
+  const d = JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
+  return (d.rows || d).filter((r) => r && r.adp > 0 && r.adp < 300 && r.position);
+}
+const histByPos = {};
+for (const r of loadTrainingRows()) (histByPos[r.position] ??= []).push(r);
+for (const pos of Object.keys(histByPos)) histByPos[pos].sort((a, b) => a.adp - b.adp);
+// Smoothed base rate at an ADP = mean isHit / isBust over the nearest-by-ADP
+// historical players at that position (k-NN in ADP space).
+function baseRatesAt(pos, adp) {
+  const arr = histByPos[pos];
+  if (!arr || arr.length < 12) return null;
+  const K = Math.min(80, Math.max(30, Math.round(arr.length * 0.15)));
+  const near = arr.map((r) => [Math.abs(r.adp - adp), r]).sort((a, b) => a[0] - b[0]).slice(0, K);
+  const hit = near.reduce((s, x) => s + (x[1].isHit ? 1 : 0), 0) / near.length;
+  const bust = near.reduce((s, x) => s + (x[1].isBust ? 1 : 0), 0) / near.length;
+  return { hit, bust };
+}
+// Per-position base-rate curve sampled over ADP (interpolated at serve time).
+const ADP_GRID = [1, 3, 6, 10, 15, 20, 25, 30, 40, 50, 65, 80, 100, 120, 150, 180, 220, 260];
+const hitBustCalib = {};
+for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+  if (!histByPos[pos]) continue;
+  hitBustCalib[pos] = ADP_GRID.map((adp) => {
+    const b = baseRatesAt(pos, adp);
+    return b ? { adp, hit: Math.round(b.hit * 1000) / 1000, bust: Math.round(b.bust * 1000) / 1000 } : null;
+  }).filter(Boolean);
+}
+// 2026 within-position ranks: predictedVor (desc=better) vs ADP (asc=earlier).
+// lean>0 ⇒ the model ranks the player better than their ADP slot ⇒ undervalued.
+const posRankCtx = {};
+for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+  const list = preds.filter((p) => p.position === pos && typeof p.predictedVor === 'number' && p.adp > 0);
+  const vorRank = new Map([...list].sort((a, b) => b.predictedVor - a.predictedVor).map((p, i) => [pk2(p.name, pos), i]));
+  const adpRank = new Map([...list].sort((a, b) => a.adp - b.adp).map((p, i) => [pk2(p.name, pos), i]));
+  posRankCtx[pos] = { vorRank, adpRank, n: list.length };
+}
+function modelLean(name, pos) {
+  const ctx = posRankCtx[pos];
+  if (!ctx || ctx.n < 5) return 0;
+  const k = pk2(name, pos);
+  const vr = ctx.vorRank.get(k), ar = ctx.adpRank.get(k);
+  if (vr == null || ar == null) return 0;
+  return Math.round(((ar - vr) / ctx.n) * 1000) / 1000; // -1..1
+}
+const clamp01 = (x) => Math.max(0.01, Math.min(0.99, x));
+function interpCurve(curve, adp) {
+  if (!curve || !curve.length) return null;
+  if (adp <= curve[0].adp) return curve[0];
+  if (adp >= curve[curve.length - 1].adp) return curve[curve.length - 1];
+  for (let i = 1; i < curve.length; i++) {
+    if (adp <= curve[i].adp) {
+      const a = curve[i - 1], b = curve[i], t = (adp - a.adp) / (b.adp - a.adp);
+      return { hit: a.hit + (b.hit - a.hit) * t, bust: a.bust + (b.bust - a.bust) * t };
+    }
+  }
+  return curve[curve.length - 1];
+}
+// Calibrated pHit/pBust at a given ADP + lean (base rate dominates; the model
+// lean shifts each by at most ~±12pp).
+function calibHitBust(pos, adp, lean) {
+  const base = interpCurve(hitBustCalib[pos], adp);
+  if (!base) return null;
+  const shift = 0.12 * Math.tanh((lean || 0) * 2.5);
+  return { pHit: Math.round(clamp01(base.hit + shift) * 100), pBust: Math.round(clamp01(base.bust - shift) * 100) };
+}
+
 // Usage-share model inputs — mirror SHARE_FEATURE_KEYS in
 // scripts/train_projection_models.py. Shares have no per-feature importance, so
 // drivers rank purely by how far the player sits from the cohort median.
@@ -166,7 +248,7 @@ const importanceWeight = (imp, pos) => {
 const MODELS = [
   {
     id: 'hitBust', label: 'Hit / Bust (VOR)',
-    blurb: 'Per-position gradient-boosted model predicting value over replacement vs ADP.',
+    blurb: 'Per-position gradient-boosted VOR model; Hit/Bust % calibrated against historical hit/bust rates by draft slot, tilted by the model’s value-vs-ADP lean.',
     keysByPos: (pos) => importanceKeys(importance, pos),
     weightByPos: (pos) => importanceWeight(importance, pos),
     featureSource: (k) => featByKey.get(k),
@@ -174,7 +256,15 @@ const MODELS = [
     eligible: (k) => typeof predByKey.get(k)?.predictedVor === 'number',
     prediction: (k) => {
       const p = predByKey.get(k);
-      return { vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper };
+      const lean = modelLean(p.name, p.position);
+      // Offline pHit/pBust uses the (possibly stale) card ADP; get_player_features
+      // recomputes against the live consensus ADP using calibLean + the curve.
+      const cal = calibHitBust(p.position, p.adp, lean);
+      return {
+        vor: p.predictedVor, hitProb: p.hitProb, ciLower: p.ciLower, ciUpper: p.ciUpper,
+        calibLean: lean,
+        ...(cal ? { pHit: cal.pHit, pBust: cal.pBust } : {}),
+      };
     },
   },
   {
@@ -342,6 +432,7 @@ const out = {
   generatedAt: new Date().toISOString(),
   note: 'Derived StatHead model output. Per-player feature drivers show where a player lands vs the positional cohort for that model and which way that pushes the prediction; proprietary-sourced features are shown only as a qualitative band + direction (no raw value or source). Each player carries a models[] breakdown (Hit/Bust, Season Projection, Rookie Career, Usage Share, Dynasty Value); the top-level drivers field is the Hit/Bust model, kept for the MCP get_player_features tool.',
   posThresholds: fm.posThresholds || {},
+  hitBustCalib,
   shareModelSummary: fm.shareModelSummary || {},
   featureImportance: impOut,
   catalog,
