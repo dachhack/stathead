@@ -38804,22 +38804,22 @@ async function computePlayerMetrics(season, opts = {}) {
   const fetches = [];
   if (isQB || !isSkill) {
     fetches.push(
-      fetchNextGenStats(season, "passing").then((d) => { ngsPassMap = indexNGSByPlayer(d); }),
+      fetchNextGenStats(season, "passing").then((d) => { ngsPassMap = indexNGSByPlayer(d); }).catch(() => {}),
       fetchAdvancedStats(season, "pass").then((d) => {
         pfrPassByPlayer = /* @__PURE__ */ new Map();
         for (const row of d) { const id = row.pfr_player_id; if (!id) continue; const arr = pfrPassByPlayer.get(id); if (arr) arr.push(row); else pfrPassByPlayer.set(id, [row]); }
-      })
+      }).catch(() => {})
     );
-    if (season >= 2022) fetches.push(fetchFTNCharting(season).then((d) => { ftnData = d; }));
+    if (season >= 2022) fetches.push(fetchFTNCharting(season).then((d) => { ftnData = d; }).catch(() => {}));
   }
   if (isSkill || !isQB) {
     fetches.push(
-      fetchNextGenStats(season, "receiving").then((d) => { ngsRecMap = indexNGSByPlayer(d); }),
-      fetchNextGenStats(season, "rushing").then((d) => { ngsRushMap = indexNGSByPlayer(d); }),
+      fetchNextGenStats(season, "receiving").then((d) => { ngsRecMap = indexNGSByPlayer(d); }).catch(() => {}),
+      fetchNextGenStats(season, "rushing").then((d) => { ngsRushMap = indexNGSByPlayer(d); }).catch(() => {}),
       fetchAdvancedStats(season, "rec").then((d) => {
         pfrRecByPlayer = /* @__PURE__ */ new Map();
         for (const row of d) { const id = row.pfr_player_id; if (!id) continue; const arr = pfrRecByPlayer.get(id); if (arr) arr.push(row); else pfrRecByPlayer.set(id, [row]); }
-      }),
+      }).catch(() => {}),
       fetchPbpParticipation(season, { columns: ["nflverse_game_id", "play_id", "offense_players"] }).then((participation) => { routeMap = estimateRoutesRun(participation, pbpData); }).catch(() => { routeMap = void 0; })
     );
   }
@@ -42463,7 +42463,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.45";
+var SERVER_VERSION = "1.0.46";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
