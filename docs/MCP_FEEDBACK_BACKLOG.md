@@ -15,6 +15,26 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 3 — metrics tools fixed via precomputed artifacts (MCP 1.0.39):**
+- The streaming rewrite (1.0.36/37) did NOT fix the metrics tools on the hosted
+  Worker — a follow-up test confirmed get_player_metrics / get_team_metrics /
+  get_play_by_play still failed 100% ("Invalid content from server", a hard
+  worker crash that bypasses try/catch). Root cause is the request-time ~99MB
+  PBP fetch+parse itself exceeding Worker limits — streaming cut memory but not
+  the download/parse time within the proxy timeout.
+- **Fix:** precompute offline and serve committed JSON (like model-eval /
+  projections). New `scripts/build-metrics-artifacts.mjs` + bundle export
+  `buildMetricsArtifacts(season)` write `team-metrics-<season>.json`,
+  `player-metrics-<season>.json`, `pbp-slim-<season>.json.gz`. The three
+  handlers read the artifact first and fall back to live compute (npm/stdio,
+  no limits). Compute is shared between the builder and the live path so they
+  can't drift. CI: `.github/workflows/build-metrics-artifacts.yml` (weekly +
+  dispatch). Committed 2024 + 2025; CI backfills others.
+- Verified locally: PHI 2024 ppg 27.24 / 1375 plays (exact baseline match),
+  A.J. Brown yprr 2.52 / 27.8% target share, real PBP — all served from the
+  artifacts. (The hosted-Worker memory/timeout is sidestepped entirely since no
+  99MB fetch happens in-request.)
+
 **Round 2 — consolidated-report polish (MCP 1.0.38):**
 - **get_sleeper_projections migrated** off the dead `api.sleeper.app/v1` endpoint
   to the current `api.sleeper.app/projections/nfl/<season>[/<week>]` endpoint
