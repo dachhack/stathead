@@ -38761,7 +38761,7 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "complete_pass", "passing_yards", "pass_touchdown", "rushing_yards", "rush_touchdown", "receiving_yards", "sack", "interception", "fumble", "fumble_lost", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "return_team", "return_yards", "kickoff_returner_player_id", "kickoff_returner_player_name", "punt_returner_player_id", "punt_returner_player_name", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "complete_pass", "passing_yards", "pass_touchdown", "rushing_yards", "rush_touchdown", "receiving_yards", "sack", "interception", "fumble", "fumble_lost", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -39070,13 +39070,13 @@ var NFL_TOOLS = [
   },
   {
     name: "get_play_by_play",
-    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result. Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
+    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result; and kick/punt return columns: return_yards, return_team, kickoff_returner_player_id, kickoff_returner_player_name, punt_returner_player_id, punt_returner_player_name (note: yards_gained is 0 on return plays — use return_yards). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year" },
         game_id: { type: "string", description: "Filter to a single game by its canonical nflverse game_id (e.g. 2024_04_BUF_BAL). Returns the complete game (~130-170 plays). Get valid ids from get_games." },
-        player_ids: { type: "string", description: "Comma-separated stable gsis ids (e.g. 00-0033077,00-0037247). Returns only plays where one of these is the passer, rusher, receiver, kicker, or TD scorer — the cheap way to bulk-extract a roster's plays (shrinks payloads ~5-10x). Combine with week for a full week of a roster in one call." },
+        player_ids: { type: "string", description: "Comma-separated stable gsis ids (e.g. 00-0033077,00-0037247). Returns only plays where one of these is the passer, rusher, receiver, kicker, kickoff/punt returner, or TD scorer — the cheap way to bulk-extract a roster's plays (shrinks payloads ~5-10x). Combine with week for a full week of a roster in one call." },
         player_name: { type: "string", description: "Filter to plays involving this player (passer, rusher, or receiver). For multiple players use player_ids." },
         team: { type: "string", description: "Filter by team on offense (posteam). Accepts a single team (KC) or a comma-separated list (KC,SF,BUF)." },
         play_type: { type: "string", description: "Filter: pass, run, punt, kickoff, field_goal", enum: ["pass", "run", "punt", "kickoff", "field_goal"] },
@@ -39091,7 +39091,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_fantasy_pbp",
-    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
+    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Return events: {kind: kr|pr, yards, td} (kickoff/punt returns, attributed to the returner). Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
     input_schema: {
       type: "object",
       properties: {
@@ -39774,7 +39774,7 @@ function parseTeamList(raw) {
 // playMatchesIds: a play involves a player if their gsis id is the passer,
 // rusher, receiver, kicker, or scoring (TD) player on the play. (Defensive
 // turnover plays are team-attributed — filter by team / defteam for DST.)
-var PBP_PLAYER_ID_COLS = ["passer_player_id", "rusher_player_id", "receiver_player_id", "kicker_player_id", "td_player_id"];
+var PBP_PLAYER_ID_COLS = ["passer_player_id", "rusher_player_id", "receiver_player_id", "kicker_player_id", "kickoff_returner_player_id", "punt_returner_player_id", "td_player_id"];
 function playMatchesIds(play, idSet) {
   for (const c of PBP_PLAYER_ID_COLS) {
     const v = play[c];
@@ -40814,6 +40814,15 @@ ${renderTable(input, plays, base)}`;
         } else if (p.play_type === "extra_point") {
           if (p.kicker_player_id && (!playerIds || playerIds.has(p.kicker_player_id))) {
             events.push({ ...base2, team: p.posteam, player_id: p.kicker_player_id, player_name: p.kicker_player_name, kind: "xp", distance: n(p.kick_distance), result: p.extra_point_result ?? null, made: made(p.extra_point_result) ? 1 : 0 });
+          }
+        } else if (p.play_type === "kickoff" || p.play_type === "punt") {
+          const isKick = p.play_type === "kickoff";
+          const rid = isKick ? p.kickoff_returner_player_id : p.punt_returner_player_id;
+          const rname = isKick ? p.kickoff_returner_player_name : p.punt_returner_player_name;
+          if (rid && (!playerIds || playerIds.has(rid))) {
+            const rtm = p.return_team || p.defteam;
+            offenseTeams.add(rtm);
+            events.push({ ...base2, team: rtm, player_id: rid, player_name: rname, kind: isKick ? "kr" : "pr", yards: n(p.return_yards), td: n(p.return_touchdown), is_reception: false, is_target: false });
           }
         }
         // Team-defense (per-play) events — attributed to the defending team.
@@ -42684,7 +42693,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.50";
+var SERVER_VERSION = "1.0.51";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
