@@ -15,6 +15,35 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 10 — bulk PBP extraction: player_ids/team-list filter, cursor, + a
+fantasy play-log endpoint (MCP 1.0.49):**
+- 🟢 **`get_play_by_play` player/team bulk filter (highest leverage).** New
+  `player_ids` param (comma-separated gsis; matches if the id is the passer,
+  rusher, receiver, kicker, or TD scorer on the play) and `team` now accepts a
+  comma-separated list. Returning only relevant plays shrinks payloads ~5–10×,
+  killing the token-cap auto-save and proxy rejections on bulk pulls. One
+  week of a roster now fits in a single call.
+- 🟢 **Cursor pagination + raised cap.** Added `offset` (the result header
+  reports the next offset when more rows remain) and bumped the row cap
+  250→1000. A season is now ~14 calls instead of ~203.
+- 🟡 **New `get_fantasy_pbp` tool (the "build-anyway" version).** Week-level,
+  gsis-attributed, fantasy-shaped event log so consumers need neither the
+  crosswalk nor a client-side play reducer. Offensive events
+  `{kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target,
+  two_point}`, kicker `{kind: fg|xp, distance, result, made}`, team-defense
+  `{kind: def, sack, interception, fumble_recovered, def_td, safety}` + a
+  `points_allowed` summary per team-game. `player_ids` scopes offense/kicker
+  events and auto-scopes team-defense to those players' teams.
+- Plumbing: added typed columns to `PBP_SLIM_COLS` (`complete_pass`,
+  `passing_yards`/`rushing_yards`/`receiving_yards`,
+  `pass_touchdown`/`rush_touchdown`) so the fantasy log is exact, not
+  heuristic; all 2016–2025 artifacts regenerated (~2.7 MB gz each, under cap).
+- Verified on 2025: Allen wk1 player-filter (64 plays, all involve him),
+  offset paging headers, and `get_fantasy_pbp` for DAL@PHI — Hurts 152 pass
+  yds (matches official), points_allowed PHI 20 / DAL 24 (matches 24-20
+  final), FG/XP/def/reception events all resolve; roster-scoped pull correctly
+  limited to BUF.
+
 **Round 9 — kicker + defense/ST PBP columns for K & DST scoring (MCP 1.0.48):**
 - 🟡 **`get_play_by_play` now exposes kicker/defense/special-teams columns via
   `fields`.** Root cause was twofold: the slim artifact only stored 28 columns
