@@ -39108,7 +39108,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_crosswalk",
-    description: "Player ID crosswalk: maps the stable nflverse gsis_id (the *_player_id in get_play_by_play) to a canonical full name and cross-source IDs (pfr_id, sleeper_id, espn_id, pff_id, yahoo_id, sportradar_id, rotowire_id, fantasy_data_id, esb_id). Use to resolve the abbreviated PBP names (e.g. J.Allen) to a real player and to join PBP against name-keyed endpoints. Filter by player_id (gsis), player_name, position, or active season.",
+    description: "Player ID crosswalk: maps the stable nflverse gsis_id (the *_player_id in get_play_by_play) to a canonical full name and cross-source IDs (pfr_id, sleeper_id, espn_id, pff_id, yahoo_id, sportradar_id, rotowire_id, fantasy_data_id, esb_id), plus a ready-to-use ESPN headshot URL (espn_headshot) derived from espn_id. Use to resolve the abbreviated PBP names (e.g. J.Allen) to a real player, to join PBP against name-keyed endpoints, and to surface player photos in apps. Filter by player_id (gsis), player_name, position, or active season.",
     input_schema: {
       type: "object",
       properties: {
@@ -40882,6 +40882,7 @@ ${renderTable(input, out, cols)}`;
         "pfr_id",
         "sleeper_id",
         "espn_id",
+        "espn_headshot",
         "pff_id",
         "yahoo_id",
         "sportradar_id",
@@ -40891,7 +40892,13 @@ ${renderTable(input, out, cols)}`;
         "earliest_season",
         "latest_season"
       ];
-      const rows = players.map((p) => pickColumns(p, cols));
+      // ESPN headshots are served from a deterministic CDN path keyed by espn_id,
+      // so we derive the URL rather than storing it. Apps can drop it straight in.
+      const rows = players.map((p) => {
+        const r = pickColumns(p, cols);
+        if (p.espn_id) r.espn_headshot = `https://a.espncdn.com/i/headshots/nfl/players/full/${p.espn_id}.png`;
+        return r;
+      });
       return `Player crosswalk (${players.length} results):
 
 ${renderTable(input, rows, cols)}`;
@@ -42677,7 +42684,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.49";
+var SERVER_VERSION = "1.0.50";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
