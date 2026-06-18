@@ -15,6 +15,27 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 9 — kicker + defense/ST PBP columns for K & DST scoring (MCP 1.0.48):**
+- 🟡 **`get_play_by_play` now exposes kicker/defense/special-teams columns via
+  `fields`.** Root cause was twofold: the slim artifact only stored 28 columns
+  *and* the handler pre-stripped to a fixed curated set *before* `fields` was
+  applied, so projecting K/DST columns came back absent. Fixed both — the
+  default view stays lean, but `fields` can now project any slim column.
+- New selectable columns (added to `PBP_SLIM_COLS`, all 2016–2025 artifacts
+  regenerated): **kicker** — `kicker_player_id`, `kicker_player_name`,
+  `kick_distance`, `extra_point_result`; **defense/turnovers** — `sack`,
+  `interception`, `fumble`, `fumble_lost`, `fumble_recovery_1_team`, `safety`;
+  **TD attribution** — `td_player_id`, `td_team`, `return_touchdown` (separates
+  defensive/ST TDs from offensive — previously a pick-6 was indistinguishable
+  from an offensive TD); **two-point** — `two_point_attempt`,
+  `two_point_conv_result`.
+- Verified on 2025_01_DAL_PHI: FGs (B.Aubrey 41/53 made w/ `kick_distance`),
+  TD attribution (`td_team`/`td_player_id`), sacks, fumbles all resolve.
+  Artifact size grew ~2.37→2.53 MB gz (well under the 25 MiB cap). Note: when
+  projecting with `fields`, callers should include `game_id`/`play_id`/
+  `posteam`/`defteam` themselves if needed for joins (PBP has no auto-kept
+  identifier columns).
+
 **Round 8 — game-sim joinability: game_id filter, game_id in get_games, stable
 PBP player IDs + crosswalk tool (MCP 1.0.47):**
 - 🟡 **`get_play_by_play` now filters by `game_id`.** One full game per call
