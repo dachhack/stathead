@@ -38761,7 +38761,7 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "field_goal_result", "epa", "wpa", "wp", "passer_player_name", "rusher_player_name", "receiver_player_name", "air_yards", "yards_after_catch", "pass_location"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "field_goal_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location"];
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -38942,7 +38942,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_games",
-    description: "Get NFL game results and schedules. Includes scores, spreads, totals, weather, surface. Use for team records, point totals, home/away splits, divisional matchups.",
+    description: "Get NFL game results and schedules. Includes the canonical nflverse game_id (e.g. 2024_04_BUF_BAL, handles neutral-site/relocated games correctly), scores, spreads, totals, weather, surface. Use for team records, point totals, home/away splits, divisional matchups, or to enumerate game_ids to feed get_play_by_play.",
     input_schema: {
       type: "object",
       properties: {
@@ -39070,20 +39070,36 @@ var NFL_TOOLS = [
   },
   {
     name: "get_play_by_play",
-    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC. Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency. WARNING: Large dataset \u2014 always filter by player, team, or situation.",
+    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap).",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year" },
+        game_id: { type: "string", description: "Filter to a single game by its canonical nflverse game_id (e.g. 2024_04_BUF_BAL). Returns the complete game (~130-170 plays). Get valid ids from get_games." },
         player_name: { type: "string", description: "Filter to plays involving this player (passer, rusher, or receiver)" },
         team: { type: "string", description: "Filter by team on offense (posteam)" },
         play_type: { type: "string", description: "Filter: pass, run, punt, kickoff, field_goal", enum: ["pass", "run", "punt", "kickoff", "field_goal"] },
         down: { type: "number", description: "Filter by down (1-4)" },
         week: { type: "number", description: "Filter by week" },
         red_zone: { type: "boolean", description: "If true, only plays inside the 20" },
-        limit: { type: "number", description: "Max rows (default 50, max 200)" }
+        limit: { type: "number", description: "Max rows (default 50, max 250)" }
       },
       required: ["season"]
+    }
+  },
+  {
+    name: "get_player_crosswalk",
+    description: "Player ID crosswalk: maps the stable nflverse gsis_id (the *_player_id in get_play_by_play) to a canonical full name and cross-source IDs (pfr_id, sleeper_id, espn_id, pff_id, yahoo_id, sportradar_id, rotowire_id, fantasy_data_id, esb_id). Use to resolve the abbreviated PBP names (e.g. J.Allen) to a real player and to join PBP against name-keyed endpoints. Filter by player_id (gsis), player_name, position, or active season.",
+    input_schema: {
+      type: "object",
+      properties: {
+        player_id: { type: "string", description: "Look up by stable id — accepts gsis_id (00-00..., matches PBP *_player_id), pfr_id, sleeper_id, or espn_id" },
+        player_name: { type: "string", description: "Filter by player name (fuzzy, matches any known alias)" },
+        position: { type: "string", description: "Filter by position (e.g. QB, RB, WR, TE)" },
+        season: { type: "number", description: "Filter to players active in this season (earliest_season <= season <= latest_season)" },
+        limit: { type: "number", description: "Max rows (default 50, max 200)" }
+      },
+      required: []
     }
   },
   {
@@ -40361,6 +40377,7 @@ ${renderTable(input, rows, cols)}`;
       );
       games = games.slice(-limit);
       const cols = [
+        "game_id",
         "season",
         "week",
         "game_type",
@@ -40623,8 +40640,9 @@ ${renderTable(input, rows)}`;
       const playType = input.play_type;
       const down = input.down;
       const week = input.week;
+      const gameId = input.game_id;
       const redZone = input.red_zone;
-      const limit = clamp(input.limit || 50, 1, 200);
+      const limit = clamp(input.limit || 50, 1, 250);
       // Prefer the precomputed slim PBP artifact (the hosted Worker can't
       // fetch+parse the 99MB raw file in-request); fall back to live streaming
       // (npm/stdio build). Both carry only the columns this tool returns/filters.
@@ -40644,6 +40662,7 @@ ${renderTable(input, rows)}`;
           (p) => matchName(p.passer_player_name) || matchName(p.rusher_player_name) || matchName(p.receiver_player_name)
         );
       }
+      if (gameId) plays = plays.filter((p) => p.game_id === gameId);
       if (team) plays = plays.filter((p) => p.posteam === team.toUpperCase());
       if (playType) plays = plays.filter((p) => p.play_type === playType);
       if (down) plays = plays.filter((p) => p.down === down);
@@ -40671,14 +40690,62 @@ ${renderTable(input, rows)}`;
         "wpa",
         "wp",
         "passer_player_name",
+        "passer_player_id",
         "rusher_player_name",
+        "rusher_player_id",
         "receiver_player_name",
+        "receiver_player_id",
         "air_yards",
         "yards_after_catch",
         "pass_location"
       ];
       const rows = plays.map((p) => pickColumns(p, cols));
       return `Play-by-play for ${season} (${plays.length} plays):
+
+${renderTable(input, rows, cols)}`;
+    }
+    case "get_player_crosswalk": {
+      const playerId = input.player_id;
+      const playerName = input.player_name;
+      const position = input.position?.toUpperCase();
+      const season = input.season;
+      const limit = clamp(input.limit || 50, 1, 200);
+      const cw = await tryPreFetched("player-crosswalk.json");
+      let players = Array.isArray(cw?.players) ? cw.players : Array.isArray(cw) ? cw : [];
+      if (!players.length) return "Player crosswalk is unavailable.";
+      if (playerId) {
+        const q = String(playerId).trim();
+        players = players.filter(
+          (p) => p.gsis_id === q || p.pfr_id === q || p.sleeper_id === q || p.espn_id === q || p.player_key === q
+        );
+      }
+      if (playerName) {
+        players = players.filter((p) => {
+          if (nameMatch(p.display_name, playerName)) return true;
+          return Array.isArray(p.all_names) && p.all_names.some((n) => nameMatch(n, playerName));
+        });
+      }
+      if (position) players = players.filter((p) => p.position === position || Array.isArray(p.all_positions) && p.all_positions.includes(position));
+      if (season) players = players.filter((p) => (p.earliest_season ?? 0) <= season && (p.latest_season ?? 9999) >= season);
+      players = players.slice(0, limit);
+      const cols = [
+        "display_name",
+        "position",
+        "gsis_id",
+        "pfr_id",
+        "sleeper_id",
+        "espn_id",
+        "pff_id",
+        "yahoo_id",
+        "sportradar_id",
+        "esb_id",
+        "college",
+        "birth_date",
+        "earliest_season",
+        "latest_season"
+      ];
+      const rows = players.map((p) => pickColumns(p, cols));
+      return `Player crosswalk (${players.length} results):
 
 ${renderTable(input, rows, cols)}`;
     }
@@ -42463,7 +42530,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.46";
+var SERVER_VERSION = "1.0.47";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
@@ -42527,7 +42594,7 @@ if (!IS_CF_WORKER) {
     process.exit(1);
   });
 }
-export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts, computeTeamMetricsForSeason, fetchPlayerStats, aggregateToSeasonTotals, fetchGames };
+export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts, computeTeamMetricsForSeason, fetchPlayerStats, aggregateToSeasonTotals, fetchGames, fetchPbpSlim };
 /*! Bundled license information:
 
 papaparse/papaparse.js:

@@ -15,6 +15,27 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 8 — game-sim joinability: game_id filter, game_id in get_games, stable
+PBP player IDs + crosswalk tool (MCP 1.0.47):**
+- 🟡 **`get_play_by_play` now filters by `game_id`.** One full game per call
+  (~130–170 plays) — the way to page a whole season: list games (now emit
+  `game_id`) and fetch one id at a time. Row cap bumped 200→250 so an OT game
+  can't truncate.
+- 🟡 **`get_games` now emits the canonical `game_id`** (e.g. `2024_04_BUF_BAL`) —
+  no more fragile `{season}_{week}_{away}_{home}` reconstruction for
+  neutral-site/relocated games.
+- 🟡 **Stable player IDs on PBP rows.** Added `passer_player_id`,
+  `rusher_player_id`, `receiver_player_id` (nflverse gsis_id) alongside the
+  abbreviated names — disambiguates surname collisions and joins cleanly to
+  name-keyed endpoints. Added to `PBP_SLIM_COLS`; all pbp-slim artifacts
+  (2016–2025) regenerated (new `scripts/build-pbp-slim.mjs`, pbp-only so it
+  doesn't perturb team/player-metrics artifacts).
+- 🟡 **New `get_player_crosswalk` tool.** Maps a stable id (gsis/pfr/sleeper/espn)
+  → canonical full name + every cross-source id (pfr/sleeper/espn/pff/yahoo/
+  sportradar/esb) + position/college/birth/active-season span. Backed by the
+  existing `player-crosswalk.json` (12,267 players). Filter by `player_id`,
+  `player_name`, `position`, or active `season`.
+
 **Round 7 — coach scheme features INTO the share model (retrain):**
 - 🟡 **Model-integration half of the coaching gap — done.** Added 4 leakage-safe
   head-coach scheme features (`coachHistNeutralPass`, `coachHistTargetHHI`,
