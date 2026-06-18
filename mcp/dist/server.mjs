@@ -38761,7 +38761,7 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "sack", "interception", "fumble", "fumble_lost", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "complete_pass", "passing_yards", "pass_touchdown", "rushing_yards", "rush_touchdown", "receiving_yards", "sack", "interception", "fumble", "fumble_lost", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -39076,13 +39076,32 @@ var NFL_TOOLS = [
       properties: {
         season: { type: "number", description: "NFL season year" },
         game_id: { type: "string", description: "Filter to a single game by its canonical nflverse game_id (e.g. 2024_04_BUF_BAL). Returns the complete game (~130-170 plays). Get valid ids from get_games." },
-        player_name: { type: "string", description: "Filter to plays involving this player (passer, rusher, or receiver)" },
-        team: { type: "string", description: "Filter by team on offense (posteam)" },
+        player_ids: { type: "string", description: "Comma-separated stable gsis ids (e.g. 00-0033077,00-0037247). Returns only plays where one of these is the passer, rusher, receiver, kicker, or TD scorer — the cheap way to bulk-extract a roster's plays (shrinks payloads ~5-10x). Combine with week for a full week of a roster in one call." },
+        player_name: { type: "string", description: "Filter to plays involving this player (passer, rusher, or receiver). For multiple players use player_ids." },
+        team: { type: "string", description: "Filter by team on offense (posteam). Accepts a single team (KC) or a comma-separated list (KC,SF,BUF)." },
         play_type: { type: "string", description: "Filter: pass, run, punt, kickoff, field_goal", enum: ["pass", "run", "punt", "kickoff", "field_goal"] },
         down: { type: "number", description: "Filter by down (1-4)" },
         week: { type: "number", description: "Filter by week" },
         red_zone: { type: "boolean", description: "If true, only plays inside the 20" },
-        limit: { type: "number", description: "Max rows (default 50, max 250)" }
+        offset: { type: "number", description: "Skip this many matched rows before returning (cursor pagination). The result header reports the next offset when more rows remain." },
+        limit: { type: "number", description: "Max rows (default 50, max 1000). For wide bulk pulls use output_format=csv/jsonl + fields." }
+      },
+      required: ["season"]
+    }
+  },
+  {
+    name: "get_fantasy_pbp",
+    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
+    input_schema: {
+      type: "object",
+      properties: {
+        season: { type: "number", description: "NFL season year" },
+        week: { type: "number", description: "Filter to a single week (recommended — keeps the call small)" },
+        game_id: { type: "string", description: "Filter to a single game (canonical nflverse game_id)" },
+        player_ids: { type: "string", description: "Comma-separated gsis ids — emit only events for these players (offensive/kicker). Team-defense events are emitted for the teams these players are on if team_defense is true." },
+        team: { type: "string", description: "Filter to one team or a comma-separated list (matches the player's offensive team; for DST, the defending team)." },
+        team_defense: { type: "boolean", description: "Include team-defense events + points_allowed (default true)" },
+        limit: { type: "number", description: "Max events (default 1000, max 5000)" }
       },
       required: ["season"]
     }
@@ -39737,6 +39756,31 @@ function pickColumns(row, cols) {
     if (row[c] !== void 0) out[c] = row[c];
   }
   return out;
+}
+// Bulk-extraction helpers for play-by-play filtering.
+// parseIdList: comma/space-separated gsis ids -> Set (null if empty).
+function parseIdList(raw) {
+  if (raw == null) return null;
+  const ids = (Array.isArray(raw) ? raw : String(raw).split(/[,\s]+/)).map((s) => String(s).trim()).filter(Boolean);
+  return ids.length ? new Set(ids) : null;
+}
+// parseTeamList: returns an upper-cased Set only when a *list* (>1) is given, so
+// the single-team path keeps its existing semantics; null otherwise.
+function parseTeamList(raw) {
+  if (raw == null) return null;
+  const teams = (Array.isArray(raw) ? raw : String(raw).split(/[,\s]+/)).map((s) => String(s).trim().toUpperCase()).filter(Boolean);
+  return teams.length > 1 ? new Set(teams) : null;
+}
+// playMatchesIds: a play involves a player if their gsis id is the passer,
+// rusher, receiver, kicker, or scoring (TD) player on the play. (Defensive
+// turnover plays are team-attributed — filter by team / defteam for DST.)
+var PBP_PLAYER_ID_COLS = ["passer_player_id", "rusher_player_id", "receiver_player_id", "kicker_player_id", "td_player_id"];
+function playMatchesIds(play, idSet) {
+  for (const c of PBP_PLAYER_ID_COLS) {
+    const v = play[c];
+    if (v && idSet.has(v)) return true;
+  }
+  return false;
 }
 // ───────────────────────────────────────────────────────────────────────────
 // Excel (OOXML .xlsx) export/import + user override store.
@@ -40642,7 +40686,10 @@ ${renderTable(input, rows)}`;
       const week = input.week;
       const gameId = input.game_id;
       const redZone = input.red_zone;
-      const limit = clamp(input.limit || 50, 1, 250);
+      const playerIds = parseIdList(input.player_ids);
+      const teamSet = parseTeamList(input.team);
+      const offset = Math.max(0, Number(input.offset) || 0);
+      const limit = clamp(input.limit || 50, 1, 1e3);
       // Prefer the precomputed slim PBP artifact (the hosted Worker can't
       // fetch+parse the 99MB raw file in-request); fall back to live streaming
       // (npm/stdio build). Both carry only the columns this tool returns/filters.
@@ -40663,12 +40710,16 @@ ${renderTable(input, rows)}`;
         );
       }
       if (gameId) plays = plays.filter((p) => p.game_id === gameId);
-      if (team) plays = plays.filter((p) => p.posteam === team.toUpperCase());
+      if (playerIds) plays = plays.filter((p) => playMatchesIds(p, playerIds));
+      if (teamSet) plays = plays.filter((p) => teamSet.has(p.posteam));
+      else if (team) plays = plays.filter((p) => p.posteam === team.toUpperCase());
       if (playType) plays = plays.filter((p) => p.play_type === playType);
       if (down) plays = plays.filter((p) => p.down === down);
       if (week) plays = plays.filter((p) => p.week === week);
       if (redZone) plays = plays.filter((p) => p.yardline_100 <= 20);
-      plays = plays.slice(0, limit);
+      const totalMatched = plays.length;
+      plays = plays.slice(offset, offset + limit);
+      const nextOffset = offset + plays.length;
       const cols = [
         "game_id",
         "week",
@@ -40707,9 +40758,98 @@ ${renderTable(input, rows)}`;
       // already carry only PBP_SLIM_COLS keys, so renderTable projects to the
       // resolved columns.
       const base = input.fields ? PBP_SLIM_COLS : cols;
-      return `Play-by-play for ${season} (${plays.length} plays):
+      const more = nextOffset < totalMatched;
+      const pageNote = offset > 0 || more ? ` [rows ${offset}-${nextOffset} of ${totalMatched}${more ? `; more available — pass offset=${nextOffset}` : ""}]` : "";
+      return `Play-by-play for ${season} (${plays.length} plays${pageNote}):
 
 ${renderTable(input, plays, base)}`;
+    }
+    case "get_fantasy_pbp": {
+      const season = input.season;
+      const week = input.week;
+      const gameId = input.game_id;
+      const playerIds = parseIdList(input.player_ids);
+      const teamArg = parseTeamList(input.team) ?? (input.team ? /* @__PURE__ */ new Set([String(input.team).trim().toUpperCase()]) : null);
+      const wantDef = input.team_defense !== false;
+      const limit = clamp(input.limit || 5e3, 1, 5e3);
+      const [prePbp, games] = await Promise.all([
+        tryPreFetched(`pbp-slim-${season}.json`),
+        fetchGames()
+      ]);
+      let plays = Array.isArray(prePbp?.pbpSlim) ? prePbp.pbpSlim : Array.isArray(prePbp) ? prePbp : await fetchPbpSlim(season);
+      if (gameId) plays = plays.filter((p) => p.game_id === gameId);
+      if (week) plays = plays.filter((p) => p.week === week);
+      // Order chronologically: by game, then play sequence.
+      plays = plays.slice().sort((a, b) => a.game_id < b.game_id ? -1 : a.game_id > b.game_id ? 1 : (a.play_id || 0) - (b.play_id || 0));
+      const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
+      const made = (r) => r === "made" || r === "good";
+      // Team scope for defense events: explicit team filter wins; else derive
+      // from the rostered players' offensive teams; else every team in scope.
+      const offenseTeams = /* @__PURE__ */ new Set();
+      const events = [];
+      for (const p of plays) {
+        const onOff = !playerIds || playMatchesIds(p, playerIds);
+        const base2 = { game_id: p.game_id, qtr: p.qtr, time: p.time };
+        const twoPt = n(p.two_point_attempt) === 1;
+        const twoRes = twoPt ? p.two_point_conv_result ?? null : null;
+        if (p.play_type === "pass") {
+          if (p.passer_player_id && (!playerIds || playerIds.has(p.passer_player_id))) {
+            offenseTeams.add(p.posteam);
+            events.push({ ...base2, team: p.posteam, player_id: p.passer_player_id, player_name: p.passer_player_name, kind: "pass", yards: n(p.passing_yards), td: n(p.pass_touchdown), is_reception: false, is_target: false, two_point: twoPt ? 1 : 0, two_point_result: twoRes, interception: n(p.interception), sack: n(p.sack) });
+          }
+          if (p.receiver_player_id && (!playerIds || playerIds.has(p.receiver_player_id))) {
+            offenseTeams.add(p.posteam);
+            const complete = n(p.complete_pass) === 1;
+            events.push({ ...base2, team: p.posteam, player_id: p.receiver_player_id, player_name: p.receiver_player_name, kind: complete ? "rec" : "incomplete", yards: complete ? n(p.receiving_yards) : 0, td: complete ? n(p.pass_touchdown) : 0, is_reception: complete, is_target: true, two_point: twoPt ? 1 : 0, two_point_result: twoRes });
+          }
+        } else if (p.play_type === "run") {
+          if (p.rusher_player_id && (!playerIds || playerIds.has(p.rusher_player_id))) {
+            offenseTeams.add(p.posteam);
+            events.push({ ...base2, team: p.posteam, player_id: p.rusher_player_id, player_name: p.rusher_player_name, kind: "rush", yards: n(p.rushing_yards), td: n(p.rush_touchdown), is_reception: false, is_target: false, two_point: twoPt ? 1 : 0, two_point_result: twoRes });
+          }
+        } else if (p.play_type === "field_goal") {
+          if (p.kicker_player_id && (!playerIds || playerIds.has(p.kicker_player_id))) {
+            events.push({ ...base2, team: p.posteam, player_id: p.kicker_player_id, player_name: p.kicker_player_name, kind: "fg", distance: n(p.kick_distance), result: p.field_goal_result ?? null, made: made(p.field_goal_result) ? 1 : 0 });
+          }
+        } else if (p.play_type === "extra_point") {
+          if (p.kicker_player_id && (!playerIds || playerIds.has(p.kicker_player_id))) {
+            events.push({ ...base2, team: p.posteam, player_id: p.kicker_player_id, player_name: p.kicker_player_name, kind: "xp", distance: n(p.kick_distance), result: p.extra_point_result ?? null, made: made(p.extra_point_result) ? 1 : 0 });
+          }
+        }
+        // Team-defense (per-play) events — attributed to the defending team.
+        if (wantDef && onOff) {
+          const defTd = n(p.touchdown) === 1 && p.td_team && p.td_team === p.defteam ? 1 : 0;
+          const sack = n(p.sack), intc = n(p.interception), fumRec = n(p.fumble_lost), saf = n(p.safety);
+          if (sack || intc || fumRec || saf || defTd) {
+            events.push({ ...base2, team: p.defteam, kind: "def", sack, interception: intc, fumble_recovered: fumRec, def_td: defTd, safety: saf });
+          }
+        }
+      }
+      // points_allowed summary per team-game (one row per team per game in scope).
+      if (wantDef) {
+        const teamScope = teamArg ?? (playerIds ? offenseTeams : null);
+        const inScope = new Set(plays.map((p) => p.game_id));
+        for (const g of games) {
+          if (g.season !== season) continue;
+          if (!inScope.has(g.game_id)) continue;
+          for (const [tm, opp] of [[g.home_team, g.away_score], [g.away_team, g.home_score]]) {
+            if (teamScope && !teamScope.has(tm)) continue;
+            events.push({ game_id: g.game_id, team: tm, kind: "points_allowed", points: n(opp) });
+          }
+        }
+      }
+      // Defense scope filter (per-play def events): keep to the requested/derived teams.
+      let out = events;
+      const defScope = teamArg ?? (playerIds ? offenseTeams : null);
+      if (defScope) out = out.filter((e) => e.kind === "def" || e.kind === "points_allowed" ? defScope.has(e.team) : true);
+      const totalEvents = out.length;
+      out = out.slice(0, limit);
+      const cols = ["game_id", "qtr", "time", "team", "player_id", "player_name", "kind", "yards", "td", "is_reception", "is_target", "two_point", "two_point_result", "interception", "sack", "fumble_recovered", "def_td", "safety", "distance", "result", "made", "points"];
+      const wk = week ? ` week ${week}` : "";
+      const trunc = totalEvents > out.length ? ` of ${totalEvents} — truncated; narrow with week/player_ids or raise limit` : "";
+      return `Fantasy play log for ${season}${wk} (${out.length} events${trunc}):
+
+${renderTable(input, out, cols)}`;
     }
     case "get_player_crosswalk": {
       const playerId = input.player_id;
@@ -42537,7 +42677,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.48";
+var SERVER_VERSION = "1.0.49";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
