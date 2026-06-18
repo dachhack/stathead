@@ -15,6 +15,28 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 12 — kick/punt return yardage + returner columns (MCP 1.0.51):**
+- 🟡 **`get_play_by_play` now exposes return detail** (was silently dropped —
+  only `return_touchdown` worked). Added to `PBP_SLIM_COLS` (all 2016–2025
+  artifacts regenerated): `return_yards`, `return_team`,
+  `kickoff_returner_player_id`/`_name`, `punt_returner_player_id`/`_name`.
+  (Note: the requester's `kick_returner_*` names were actually
+  `kickoff_returner_*` in nflverse.) `yards_gained` reads 0 on return plays, so
+  `return_yards` is the one to use.
+- Returner gsis ids now also feed the `player_ids` filter, so a roster pull
+  picks up its players' return plays.
+- 🟡 **`get_fantasy_pbp` emits return events** `{kind: kr|pr, yards, td}`
+  attributed to the returner (gsis). Return TDs continue to also count as ST
+  TDs in the team-defense `def_td`.
+- Verified on 2025 wk1: punt returns project (R.Shaheed 7 yds, NO), fantasy log
+  emits 118 KR + 85 PR events (G.Dortch KR 22 yds), returner ids crosswalkable.
+
+**Round 11 — espn_headshot URL on get_player_crosswalk (MCP 1.0.50):**
+- 🟢 Derived a ready-to-use ESPN headshot URL from `espn_id`
+  (`https://a.espncdn.com/i/headshots/nfl/players/full/<espn_id>.png`) so apps
+  can surface player photos. Computed in the handler (no data regen); omitted
+  when a player has no `espn_id`. URL verified 200 image/png.
+
 **Round 10 — bulk PBP extraction: player_ids/team-list filter, cursor, + a
 fantasy play-log endpoint (MCP 1.0.49):**
 - 🟢 **`get_play_by_play` player/team bulk filter (highest leverage).** New
