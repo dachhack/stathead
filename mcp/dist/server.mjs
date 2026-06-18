@@ -38761,7 +38761,7 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "field_goal_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "sack", "interception", "fumble", "fumble_lost", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -39070,7 +39070,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_play_by_play",
-    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap).",
+    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result. Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
     input_schema: {
       type: "object",
       properties: {
@@ -40699,10 +40699,17 @@ ${renderTable(input, rows)}`;
         "yards_after_catch",
         "pass_location"
       ];
-      const rows = plays.map((p) => pickColumns(p, cols));
+      // Default to the lean view above; when the caller projects with `fields`,
+      // widen the selectable base to every slim column so K / DST scoring
+      // columns (kicker_player_id, kick_distance, extra_point_result, sack,
+      // interception, fumble[_lost], fumble_recovery_1_team, safety, td_player_id,
+      // td_team, return_touchdown, two_point_*) can be surfaced. The slim rows
+      // already carry only PBP_SLIM_COLS keys, so renderTable projects to the
+      // resolved columns.
+      const base = input.fields ? PBP_SLIM_COLS : cols;
       return `Play-by-play for ${season} (${plays.length} plays):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, plays, base)}`;
     }
     case "get_player_crosswalk": {
       const playerId = input.player_id;
@@ -42530,7 +42537,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.47";
+var SERVER_VERSION = "1.0.48";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
