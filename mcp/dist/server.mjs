@@ -39035,16 +39035,17 @@ var NFL_TOOLS = [
   },
   {
     name: "get_injuries",
-    description: "Get weekly injury reports. Includes injury type, practice status, game status. Use for injury impact analysis, availability questions.",
+    description: "Get weekly NFL injury reports (nflverse, 2009+). Per player-week: gsis_id (joinable to get_play_by_play / get_player_crosswalk), primary + secondary injury, practice participation (primary/secondary injury + practice_status), and final game report_status (Out/Doubtful/Questionable). Use for injury impact analysis, weekly availability, and attaching injury status to a roster.",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year (2009+)" },
+        player_ids: { type: "string", description: "Comma-separated gsis ids — attach injury status to a specific roster in one call" },
         player_name: { type: "string", description: "Filter by player name" },
         team: { type: "string", description: "Filter by team" },
         week: { type: "number", description: "Filter by week" },
-        status: { type: "string", description: "Filter by status: Out, Doubtful, Questionable, Probable" },
-        limit: { type: "number", description: "Max rows (default 50)" }
+        status: { type: "string", description: "Filter by final game status: Out, Doubtful, Questionable" },
+        limit: { type: "number", description: "Max rows (default 50, max 500)" }
       },
       required: ["season"]
     }
@@ -40640,17 +40641,19 @@ ${renderTable(input, rows)}`;
     case "get_injuries": {
       const season = input.season;
       const playerName = input.player_name;
+      const playerIds = parseIdList(input.player_ids ?? input.player_id);
       const team = input.team;
       const week = input.week;
       const status = input.status;
-      const limit = clamp(input.limit || 50, 1, 200);
+      const limit = clamp(input.limit || 50, 1, 500);
       let injuries = await fetchInjuries(season);
+      if (playerIds) injuries = injuries.filter((i) => i.gsis_id && playerIds.has(i.gsis_id));
       if (playerName) injuries = injuries.filter((i) => nameMatch(i.full_name, playerName));
       if (team) injuries = injuries.filter((i) => i.team === team.toUpperCase());
       if (week) injuries = injuries.filter((i) => i.week === week);
       if (status) injuries = injuries.filter((i) => i.report_status === status);
       injuries = injuries.slice(0, limit);
-      const cols = ["week", "full_name", "position", "team", "report_primary_injury", "report_status", "practice_status"];
+      const cols = ["week", "gsis_id", "full_name", "position", "team", "report_primary_injury", "report_secondary_injury", "report_status", "practice_primary_injury", "practice_secondary_injury", "practice_status"];
       const rows = injuries.map((i) => pickColumns(i, cols));
       return `Injury reports for ${season} (${injuries.length} entries):
 
@@ -42693,7 +42696,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.51";
+var SERVER_VERSION = "1.0.52";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
