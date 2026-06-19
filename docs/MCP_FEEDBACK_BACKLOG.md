@@ -15,6 +15,16 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 15 — 2-point conversions in player stats (MCP 1.0.54):**
+- 🟢 2pt conversions were already in PBP (`two_point_attempt`,
+  `two_point_conv_result`) and `get_fantasy_pbp` (`two_point` flag +
+  `two_point_result` on offensive events). The gap was the player stats tools:
+  the season aggregation computed `passing/rushing/receiving_2pt_conversions`
+  but the handlers dropped them. Now in the default output of
+  `get_player_season_stats` + `get_player_weekly_stats`, and both tools widen to
+  full-column `fields` projection (also reaches fumbles_lost splits,
+  special_teams_tds, and any raw nflverse weekly column). Handler-only, no regen.
+
 **Round 14 — per-player committed turnovers (INT thrown / fumble lost) (MCP 1.0.53):**
 - 🟡 **Turnovers now attributed to the committing offensive player**, not just
   the defense. `get_fantasy_pbp` emits `{kind: int_thrown, turnover: 1}` (to the
