@@ -38904,7 +38904,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_season_stats",
-    description: "Get aggregated season totals for NFL players. Returns rushing, passing, receiving, and fantasy stats. Supports filtering by position (QB, RB, WR, TE) and sorting by any stat column. Use this for questions about player performance, fantasy points, rankings, comparisons.",
+    description: "Get aggregated season totals for NFL players. Returns rushing, passing, receiving, fantasy stats, and 2-point conversions (passing_2pt_conversions, rushing_2pt_conversions, receiving_2pt_conversions). Supports filtering by position (QB, RB, WR, TE) and sorting by any stat column. With `fields` you can project any aggregated column (also exposes fumbles_lost splits, special_teams_tds). Use this for questions about player performance, fantasy points, rankings, comparisons.",
     input_schema: {
       type: "object",
       properties: {
@@ -38927,7 +38927,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_weekly_stats",
-    description: "Get week-by-week stats for specific player(s) in a season. Use this for game logs, weekly trends, consistency analysis, boom/bust analysis.",
+    description: "Get week-by-week stats for specific player(s) in a season. Includes 2-point conversions (passing/rushing/receiving_2pt_conversions); with `fields` you can project any raw nflverse weekly column. Use this for game logs, weekly trends, consistency analysis, boom/bust analysis.",
     input_schema: {
       type: "object",
       properties: {
@@ -40363,13 +40363,18 @@ async function executeToolInner(name, input) {
         "receptions",
         "receiving_yards",
         "receiving_tds",
+        "passing_2pt_conversions",
+        "rushing_2pt_conversions",
+        "receiving_2pt_conversions",
         "fantasy_points",
         "fantasy_points_ppr"
       ];
-      const rows = totals.map((p) => pickColumns(p, cols));
+      // Lean default; with `fields` the caller can project any aggregated column
+      // (incl. fumbles_lost / special_teams_tds). Pass full rows so they're reachable.
+      const displayBase = input.fields ? null : cols;
       return `${season} season stats (${totals.length} players, sorted by ${sortBy}):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, totals, displayBase)}`;
     }
     case "get_player_weekly_stats": {
       const season = input.season;
@@ -40401,13 +40406,18 @@ ${renderTable(input, rows, cols)}`;
         "receptions",
         "receiving_yards",
         "receiving_tds",
+        "passing_2pt_conversions",
+        "rushing_2pt_conversions",
+        "receiving_2pt_conversions",
         "fantasy_points",
         "fantasy_points_ppr"
       ];
-      const rows = filtered.map((p) => pickColumns(p, cols));
+      // Lean default; with `fields` the caller can project any raw nflverse weekly
+      // column. Pass full rows so they're reachable.
+      const displayBase = input.fields ? null : cols;
       return `Weekly stats for "${playerName}" in ${season} (weeks ${weekStart}-${weekEnd}):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, filtered, displayBase)}`;
     }
     case "get_games": {
       const season = input.season;
@@ -42704,7 +42714,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.53";
+var SERVER_VERSION = "1.0.54";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
