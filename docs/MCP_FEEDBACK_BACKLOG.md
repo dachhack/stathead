@@ -15,6 +15,27 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 14 — per-player committed turnovers (INT thrown / fumble lost) (MCP 1.0.53):**
+- 🟡 **Turnovers now attributed to the committing offensive player**, not just
+  the defense. `get_fantasy_pbp` emits `{kind: int_thrown, turnover: 1}` (to the
+  passer) and `{kind: fumble_lost, turnover: 1}` (to the ball carrier who lost
+  it). The team-defense takeaway events are unchanged — these are the offense
+  side of the same play.
+- `get_play_by_play` exposes the attribution columns: `interception` (+ the
+  existing `passer_player_id` = who threw it) and `fumble_lost` (+ new
+  `fumbled_1_player_id` / `fumbled_1_player_name` / `fumbled_1_team` = who lost
+  it). Added to `PBP_SLIM_COLS`; all 2016–2025 artifacts regenerated. The
+  fumbler id also feeds the `player_ids` filter.
+- Verified 2025 wk1: 16 int_thrown (B.Young CAR → his gsis) + 14 fumble_lost
+  (D.Henry BAL → his gsis).
+
+**Round 13 — enrich get_injuries: gsis_id, secondary/practice detail, roster
+filter (MCP 1.0.52):**
+- 🟢 Weekly nflverse injury reports already existed; exposed the dropped
+  `gsis_id` (join key) plus `report_secondary_injury`,
+  `practice_primary_injury`, `practice_secondary_injury`, and added a
+  `player_ids` (gsis) roster filter. Handler-only, no regen.
+
 **Round 12 — kick/punt return yardage + returner columns (MCP 1.0.51):**
 - 🟡 **`get_play_by_play` now exposes return detail** (was silently dropped —
   only `return_touchdown` worked). Added to `PBP_SLIM_COLS` (all 2016–2025
