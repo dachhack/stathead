@@ -15,6 +15,20 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 17 — stable player-id keys across the joinable tools (MCP 1.0.56–1.0.57):**
+- 1.0.56: added `play_id` to `get_fantasy_pbp` events (traceable to the
+  `get_play_by_play` source row; not unique within the fantasy log since one
+  play fans out to multiple events).
+- 1.0.57: surfaced the stable id in the default output of every joinable tool
+  that was emitting name-only rows — gsis where the source carries it
+  (`get_player_weekly_stats` `player_id`, `get_rosters` `gsis_id`,
+  `get_next_gen_stats` `player_gsis_id`, `get_depth_charts` `gsis_id`,
+  `get_player_metrics` `player_id`), and the native stable id where gsis isn't
+  in-source (`get_snap_counts` `pfr_player_id`, `get_combine_results`
+  `pfr_id`/`cfb_id` — both crosswalkable). `get_rosters`/`get_snap_counts`/
+  `get_depth_charts` also widened to full `fields` projection (rosters exposes
+  espn/pfr/sleeper/esb ids). Handler-only, no regen.
+
 **Round 16 — real (wall-clock) timestamps on PBP (MCP 1.0.55):**
 - 🟢 Added `game_date`, `start_time` (kickoff), and `time_of_day` (the real UTC
   instant a play was run — vs the game-clock `time`) to `PBP_SLIM_COLS`;
