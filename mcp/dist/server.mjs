@@ -40390,6 +40390,7 @@ ${renderTable(input, totals, displayBase)}`;
       filtered.sort((a, b) => a.week - b.week);
       if (filtered.length === 0) return `No weekly stats found for "${playerName}" in ${season}.`;
       const cols = [
+        "player_id",
         "player_display_name",
         "week",
         "opponent_team",
@@ -40461,11 +40462,13 @@ ${renderTable(input, rows, cols)}`;
       if (position) snaps = snaps.filter((s) => s.position === position);
       if (team) snaps = snaps.filter((s) => s.team === team.toUpperCase());
       snaps = snaps.slice(0, limit);
-      const cols = ["player", "position", "team", "week", "opponent", "offense_snaps", "offense_pct", "defense_snaps", "defense_pct"];
-      const rows = snaps.map((s) => pickColumns(s, cols));
+      // snap_counts has no native gsis; pfr_player_id is the stable key
+      // (crosswalk to gsis via get_player_crosswalk player_id=<pfr_id>).
+      const cols = ["pfr_player_id", "player", "position", "team", "week", "opponent", "offense_snaps", "offense_pct", "defense_snaps", "defense_pct"];
+      const displayBase = input.fields ? null : cols;
       return `Snap counts for ${season} (${snaps.length} entries):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, snaps, displayBase)}`;
     }
     case "get_rookie_snap_share": {
       const season = input.season || LATEST_COMPLETED_SEASON;
@@ -40559,7 +40562,7 @@ ${renderTable(input, out, cols)}`;
       const total = combine.length;
       combine = combine.slice(0, limit);
       const note = total > combine.length ? ` \u2014 showing first ${combine.length} of ${total}; raise limit (max 500) or narrow position/min_season/max_season` : "";
-      const cols = ["season", "player_name", "pos", "school", "ht", "wt", "forty", "speed_score", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
+      const cols = ["season", "pfr_id", "cfb_id", "player_name", "pos", "school", "ht", "wt", "forty", "speed_score", "bench", "vertical", "broad_jump", "cone", "shuttle", "draft_round", "draft_ovr"];
       const rows = combine.map((c) => ({ ...pickColumns(c, cols), speed_score: speedScore(c.wt, c.forty) }));
       return `Combine results (${combine.length} players)${note} (speed_score = wt*200/forty^4):
 
@@ -41500,7 +41503,7 @@ ${renderTable(input, rows, cols)}`;
       if (team) stats = stats.filter((s) => s.team_abbr === team.toUpperCase());
       if (week) stats = stats.filter((s) => s.week === week);
       stats = stats.slice(0, limit);
-      const baseCols = ["player_display_name", "player_position", "team_abbr", "week"];
+      const baseCols = ["player_gsis_id", "player_display_name", "player_position", "team_abbr", "week"];
       const typeCols = {
         passing: [
           "avg_time_to_throw",
@@ -41561,6 +41564,7 @@ ${renderTable(input, rows, cols)}`;
       if (status) rosters = rosters.filter((r) => r.status === status.toUpperCase());
       rosters = rosters.slice(0, limit);
       const cols = [
+        "gsis_id",
         "full_name",
         "position",
         "team",
@@ -41574,10 +41578,12 @@ ${renderTable(input, rows, cols)}`;
         "draft_club",
         "draft_number"
       ];
-      const rows = rosters.map((r) => pickColumns(r, cols));
+      // With `fields` the caller can also project the cross-source ids carried by
+      // the roster row (espn_id, pfr_id, sleeper_id, esb_id, ...).
+      const displayBase = input.fields ? null : cols;
       return `Rosters for ${season} (${rosters.length} players):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, rosters, displayBase)}`;
     }
     case "get_contracts": {
       const playerName = input.player_name;
@@ -41624,11 +41630,11 @@ ${renderTable(input, rows, cols)}`;
       });
       charts.sort((a, b) => a.pos_rank - b.pos_rank || a.team.localeCompare(b.team));
       charts = charts.slice(0, limit);
-      const cols = ["team", "player_name", "pos_abb", "pos_rank", "pos_grp"];
-      const rows = charts.map((c) => pickColumns(c, cols));
+      const cols = ["gsis_id", "team", "player_name", "pos_abb", "pos_rank", "pos_grp"];
+      const displayBase = input.fields ? null : cols;
       return `Depth charts for ${season} (${charts.length} entries, rank 1=starter):
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, charts, displayBase)}`;
     }
     case "get_ftn_charting": {
       const season = input.season;
@@ -41711,6 +41717,7 @@ ${renderTable(input, rows, cols)}`;
       });
       const sliced = results.slice(0, limit);
       const qbCols = [
+        "player_id",
         "player_name",
         "team",
         "games",
@@ -41743,6 +41750,7 @@ ${renderTable(input, rows, cols)}`;
         "fantasy_ppg"
       ];
       const skillCols = [
+        "player_id",
         "player_name",
         "position",
         "team",
@@ -41783,7 +41791,7 @@ ${renderTable(input, rows, cols)}`;
       let cols;
       if (hasQBs && !hasSkill) cols = qbCols;
       else if (hasSkill && !hasQBs) cols = skillCols;
-      else cols = ["player_name", "position", "team", "games", "fantasy_points_ppr", "total_epa"];
+      else cols = ["player_id", "player_name", "position", "team", "games", "fantasy_points_ppr", "total_epa"];
       const rows = sliced.map((r) => pickColumns(r, cols));
       return `Player metrics for ${season} (${sliced.length} players, sorted by ${sortBy}):
 
@@ -42714,7 +42722,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.56";
+var SERVER_VERSION = "1.0.57";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
