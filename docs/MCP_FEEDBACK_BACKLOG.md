@@ -15,6 +15,15 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 16 — real (wall-clock) timestamps on PBP (MCP 1.0.55):**
+- 🟢 Added `game_date`, `start_time` (kickoff), and `time_of_day` (the real UTC
+  instant a play was run — vs the game-clock `time`) to `PBP_SLIM_COLS`;
+  projectable on `get_play_by_play`. `time_of_day` is a full ISO UTC timestamp
+  (e.g. `2025-09-07T17:02:38.787Z`), monotonic per play. `get_fantasy_pbp`
+  events now carry `game_date` + `time_of_day` for true chronological ordering.
+  All 2016–2025 artifacts regenerated; coverage reported per season (2025 =
+  100%).
+
 **Round 15 — 2-point conversions in player stats (MCP 1.0.54):**
 - 🟢 2pt conversions were already in PBP (`two_point_attempt`,
   `two_point_conv_result`) and `get_fantasy_pbp` (`two_point` flag +
