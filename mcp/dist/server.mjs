@@ -39092,7 +39092,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_fantasy_pbp",
-    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Committed-turnover events (attributed to the offensive player, not the defense): {kind: int_thrown (passer) | fumble_lost (ball carrier), turnover: 1}. Return events: {kind: kr|pr, yards, td} (kickoff/punt returns, attributed to the returner). Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
+    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Committed-turnover events (attributed to the offensive player, not the defense): {kind: int_thrown (passer) | fumble_lost (ball carrier), turnover: 1}. Return events: {kind: kr|pr, yards, td} (kickoff/punt returns, attributed to the returner). Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Every event carries game_id + play_id (traceable back to the get_play_by_play source row; note one play can fan out to multiple events, so play_id is not unique here) and game_date + time_of_day for chronological ordering. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
     input_schema: {
       type: "object",
       properties: {
@@ -40802,7 +40802,7 @@ ${renderTable(input, plays, base)}`;
       const events = [];
       for (const p of plays) {
         const onOff = !playerIds || playMatchesIds(p, playerIds);
-        const base2 = { game_id: p.game_id, game_date: p.game_date, qtr: p.qtr, time: p.time, time_of_day: p.time_of_day || null };
+        const base2 = { game_id: p.game_id, play_id: p.play_id, game_date: p.game_date, qtr: p.qtr, time: p.time, time_of_day: p.time_of_day || null };
         const twoPt = n(p.two_point_attempt) === 1;
         const twoRes = twoPt ? p.two_point_conv_result ?? null : null;
         if (p.play_type === "pass") {
@@ -40874,7 +40874,7 @@ ${renderTable(input, plays, base)}`;
       if (defScope) out = out.filter((e) => e.kind === "def" || e.kind === "points_allowed" ? defScope.has(e.team) : true);
       const totalEvents = out.length;
       out = out.slice(0, limit);
-      const cols = ["game_id", "game_date", "qtr", "time", "time_of_day", "team", "player_id", "player_name", "kind", "yards", "td", "is_reception", "is_target", "two_point", "two_point_result", "turnover", "interception", "sack", "fumble_recovered", "def_td", "safety", "distance", "result", "made", "points"];
+      const cols = ["game_id", "play_id", "game_date", "qtr", "time", "time_of_day", "team", "player_id", "player_name", "kind", "yards", "td", "is_reception", "is_target", "two_point", "two_point_result", "turnover", "interception", "sack", "fumble_recovered", "def_td", "safety", "distance", "result", "made", "points"];
       const wk = week ? ` week ${week}` : "";
       const trunc = totalEvents > out.length ? ` of ${totalEvents} — truncated; narrow with week/player_ids or raise limit` : "";
       return `Fantasy play log for ${season}${wk} (${out.length} events${trunc}):
@@ -42714,7 +42714,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.55";
+var SERVER_VERSION = "1.0.56";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
