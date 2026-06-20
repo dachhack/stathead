@@ -39071,7 +39071,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_play_by_play",
-    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result; and kick/punt return columns: return_yards, return_team, kickoff_returner_player_id, kickoff_returner_player_name, punt_returner_player_id, punt_returner_player_name (note: yards_gained is 0 on return plays — use return_yards); and committed-turnover attribution: interception (+ passer_player_id = who threw it), fumble_lost (+ fumbled_1_player_id/fumbled_1_player_name/fumbled_1_team = who lost it); and real (wall-clock) time: game_date, start_time (kickoff), time_of_day (UTC time the play was run — vs the game-clock `time` field; note nflverse populates it for most recent-season plays but it can be sparse/older-season gaps). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To page through a full season, list games with get_games (which now emits game_id) and fetch one game_id at a time (~130-170 plays/game fits under the 250-row cap). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
+    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result; and kick/punt return columns: return_yards, return_team, kickoff_returner_player_id, kickoff_returner_player_name, punt_returner_player_id, punt_returner_player_name (note: yards_gained is 0 on return plays — use return_yards); and committed-turnover attribution: interception (+ passer_player_id = who threw it), fumble_lost (+ fumbled_1_player_id/fumbled_1_player_name/fumbled_1_team = who lost it); and real (wall-clock) time: game_date, start_time (kickoff), time_of_day (UTC time the play was run — vs the game-clock `time` field; note nflverse populates it for most recent-season plays but it can be sparse/older-season gaps). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To pull an ENTIRE WEEK set limit ~3000 (a week is ~2400 plays) with week=N; to pull a WHOLE SEASON set a high limit (e.g. limit=50000, season ~43k plays) — for these large pulls always use output_format=jsonl or csv (optionally + fields) to keep the payload compact. You can also page with offset (the header reports the next offset and the total). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
     input_schema: {
       type: "object",
       properties: {
@@ -39085,7 +39085,7 @@ var NFL_TOOLS = [
         week: { type: "number", description: "Filter by week" },
         red_zone: { type: "boolean", description: "If true, only plays inside the 20" },
         offset: { type: "number", description: "Skip this many matched rows before returning (cursor pagination). The result header reports the next offset when more rows remain." },
-        limit: { type: "number", description: "Max rows (default 50, max 1000). For wide bulk pulls use output_format=csv/jsonl + fields." }
+        limit: { type: "number", description: "Max rows (default 50, max 60000). Set ~3000 for a full week, ~50000 for a whole season. For large pulls use output_format=jsonl/csv (+ fields) to keep the payload compact; offset still works for chunking." }
       },
       required: ["season"]
     }
@@ -39102,7 +39102,7 @@ var NFL_TOOLS = [
         player_ids: { type: "string", description: "Comma-separated gsis ids — emit only events for these players (offensive/kicker). Team-defense events are emitted for the teams these players are on if team_defense is true." },
         team: { type: "string", description: "Filter to one team or a comma-separated list (matches the player's offensive team; for DST, the defending team)." },
         team_defense: { type: "boolean", description: "Include team-defense events + points_allowed (default true)" },
-        limit: { type: "number", description: "Max events (default 1000, max 5000)" }
+        limit: { type: "number", description: "Max events (default 5000 — covers a full week; max 80000 — a whole season is ~62k events). Use output_format=jsonl for large pulls." }
       },
       required: ["season"]
     }
@@ -40705,7 +40705,10 @@ ${renderTable(input, rows)}`;
       const playerIds = parseIdList(input.player_ids);
       const teamSet = parseTeamList(input.team);
       const offset = Math.max(0, Number(input.offset) || 0);
-      const limit = clamp(input.limit || 50, 1, 1e3);
+      // Default stays small; max is high enough for a full week (~2.4k plays) or a
+      // whole season (~43k) in one call. Large pulls: use output_format=jsonl/csv
+      // (+ fields) to keep them compact; offset still works for chunking.
+      const limit = clamp(input.limit || 50, 1, 6e4);
       // Prefer the precomputed slim PBP artifact (the hosted Worker can't
       // fetch+parse the 99MB raw file in-request); fall back to live streaming
       // (npm/stdio build). Both carry only the columns this tool returns/filters.
@@ -40787,7 +40790,8 @@ ${renderTable(input, plays, base)}`;
       const playerIds = parseIdList(input.player_ids);
       const teamArg = parseTeamList(input.team) ?? (input.team ? /* @__PURE__ */ new Set([String(input.team).trim().toUpperCase()]) : null);
       const wantDef = input.team_defense !== false;
-      const limit = clamp(input.limit || 5e3, 1, 5e3);
+      // Default covers a full week of events (~3.5k); max allows a whole season (~62k).
+      const limit = clamp(input.limit || 5e3, 1, 8e4);
       const [prePbp, games] = await Promise.all([
         tryPreFetched(`pbp-slim-${season}.json`),
         fetchGames()
@@ -42722,7 +42726,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.57";
+var SERVER_VERSION = "1.0.58";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
