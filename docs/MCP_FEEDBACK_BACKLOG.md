@@ -15,6 +15,16 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 18 — allow whole-week / whole-season PBP in one call (MCP 1.0.58):**
+- 🟢 Raised the row caps so a full week or whole season comes back in a single
+  call (the 1000 cap was forcing offset loops). `get_play_by_play` max
+  1000→60000 (week ~2.4k, season ~43k); `get_fantasy_pbp` max 5000→80000
+  (season ~62k events). Defaults unchanged (50 / 5000). Guidance added to the
+  tool descriptions: use output_format=jsonl/csv (+ fields) for large pulls;
+  offset cursor still available for chunking. Verified 2025: week=1 → 2357
+  plays, whole season → 42,584 plays, fantasy whole season → 61,464 events,
+  all complete.
+
 **Round 17 — stable player-id keys across the joinable tools (MCP 1.0.56–1.0.57):**
 - 1.0.56: added `play_id` to `get_fantasy_pbp` events (traceable to the
   `get_play_by_play` source row; not unique within the fantasy log since one
