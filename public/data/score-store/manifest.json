@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-20T20:34:23.883Z",
+  "updatedAt": "2026-06-20T22:33:28.997Z",
   "models": {
     "career": {
       "version": "v51",
@@ -37,7 +37,7 @@
       "sqrtSlope": -1.010538,
       "sqrtIntercept": 18.8715,
       "n": 852,
-      "poolOffset": 2.382
+      "poolOffset": 2.381
     },
     "TE": {
       "sqrtSlope": -0.655279,
