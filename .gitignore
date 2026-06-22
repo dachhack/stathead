@@ -64,6 +64,7 @@ public/data/clay-team-projections-*.json
 !public/data/rsp-qb-features.json
 !public/data/manual-cfbd-overrides.json
 !public/data/player-crosswalk.json
+!public/data/player-id-map.json
 !public/data/player-aliases.json
 !public/data/player-promotions.json
 !public/data/player-conflicts.json
