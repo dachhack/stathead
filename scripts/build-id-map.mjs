@@ -18,18 +18,35 @@ import path from 'node:path';
 import { fetchRosters } from '../mcp/dist/server.mjs';
 
 const DATA = path.resolve(import.meta.dirname, '..', 'public/data');
-const LATEST = 2025; // current/most-recent season for team/pos/headshot enrichment
 const espnShot = (id) => `https://a.espncdn.com/i/headshots/nfl/players/full/${id}.png`;
 
 async function run() {
   const cwRaw = JSON.parse(readFileSync(path.join(DATA, 'player-crosswalk.json'), 'utf8'));
   const players = Array.isArray(cwRaw.players) ? cwRaw.players : cwRaw;
 
-  // Latest two seasons of rosters -> gsis map for current team/pos/headshot/espn.
+  // Enrich current team/pos/headshot/espn from the most recent rosters. Seasons
+  // come from argv, else the current + prior year (later season wins); a season
+  // nflverse hasn't published yet just yields an empty set (caught).
+  const argYears = process.argv.slice(2).map(Number).filter(Boolean);
+  const thisYear = new Date().getUTCFullYear();
+  const seasons = (argYears.length ? argYears : [thisYear - 2, thisYear - 1, thisYear]).sort((a, b) => a - b);
+  // Merge oldest -> newest, field by field: a newer season updates team/pos and
+  // fills ids/headshot, but a blank in the newer season never clobbers a value
+  // the older season had (offseason rosters are sparse).
   const rosterMap = new Map();
-  for (const yr of [LATEST - 1, LATEST]) {
+  for (const yr of seasons) {
     const ros = await fetchRosters(yr).catch(() => []);
-    for (const r of ros) if (r.gsis_id) rosterMap.set(r.gsis_id, r);
+    for (const r of ros) {
+      if (!r.gsis_id) continue;
+      const cur = rosterMap.get(r.gsis_id) || {};
+      rosterMap.set(r.gsis_id, {
+        espn_id: r.espn_id || cur.espn_id,
+        sleeper_id: r.sleeper_id || cur.sleeper_id,
+        headshot_url: r.headshot_url || cur.headshot_url,
+        team: r.team || cur.team,
+        position: r.position || cur.position,
+      });
+    }
   }
 
   const out = [];
