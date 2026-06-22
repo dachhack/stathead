@@ -15,6 +15,19 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 21 — IDP fantasy events + slim hosted id-map (MCP 1.0.61):**
+- 🟡 **`get_fantasy_pbp` per-defender IDP events** (opt-in `idp=true`, default
+  off): `{kind: tackle (tackle_type solo|assist) | tfl | sack (sack=1/0.5) |
+  qb_hit | int | pd | ff | fr | def_td}`, each keyed to the defender's gsis,
+  team=defteam. Filter to a roster with player_ids. No regen (1.0.60 artifacts
+  already carry the columns).
+- 🟢 **Slim hosted id-map** `public/data/player-id-map.json` (new
+  `scripts/build-id-map.mjs`): 12,267 players, 1.76 MB (vs Sleeper's ~5 MB),
+  compact `{gsis, sleeper, espn, name, pos, team, headshot}` — replaces the
+  client-side Sleeper directory download for runtime id mapping. Fetch directly
+  from the hosted data base. Exported `fetchRosters` from the bundle for the
+  builder.
+
 **Round 20 — per-defender IDP attribution in PBP (MCP 1.0.60):**
 - 🔴 **IDP unblocked.** Added the standard nflverse per-defender id columns to
   `PBP_SLIM_COLS` (project via fields, all gsis/crosswalkable): solo_tackle_1/2,

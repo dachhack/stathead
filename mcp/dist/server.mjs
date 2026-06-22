@@ -39101,7 +39101,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_fantasy_pbp",
-    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Committed-turnover events (attributed to the offensive player, not the defense): {kind: int_thrown (passer) | fumble_lost (ball carrier), turnover: 1}. Return events: {kind: kr|pr, yards, td} (kickoff/punt returns, attributed to the returner). Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Every event carries game_id + play_id (traceable back to the get_play_by_play source row; note one play can fan out to multiple events, so play_id is not unique here) and game_date + time_of_day for chronological ordering. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
+    description: "Week-level fantasy play log: returns per-player ordered scoring/touch events already reduced to fantasy shape (gsis-attributed), so consumers don't need the crosswalk or a client-side play reducer. One small call per week. Offensive events: {kind: pass|rush|rec|incomplete, yards, td, is_reception, is_target, two_point}. Committed-turnover events (attributed to the offensive player, not the defense): {kind: int_thrown (passer) | fumble_lost (ball carrier), turnover: 1}. Return events: {kind: kr|pr, yards, td} (kickoff/punt returns, attributed to the returner). Kicker events: {kind: fg|xp, distance, result}. Team-defense events (keyed by team = the defense): {kind: def, sack, interception, fumble_recovered, def_td, safety} plus a points_allowed summary per team-game. Per-defender IDP events (opt-in via idp=true; each credited defender's gsis): {kind: tackle (tackle_type solo|assist) | tfl | sack (sack=1 or 0.5 for half) | qb_hit | int | pd | ff | fr | def_td}. Every event carries game_id + play_id (traceable back to the get_play_by_play source row; note one play can fan out to multiple events, so play_id is not unique here) and game_date + time_of_day for chronological ordering. Filter to a roster with player_ids. Use output_format=jsonl for extraction.",
     input_schema: {
       type: "object",
       properties: {
@@ -39111,7 +39111,8 @@ var NFL_TOOLS = [
         player_ids: { type: "string", description: "Comma-separated gsis ids — emit only events for these players (offensive/kicker). Team-defense events are emitted for the teams these players are on if team_defense is true." },
         team: { type: "string", description: "Filter to one team or a comma-separated list (matches the player's offensive team; for DST, the defending team)." },
         team_defense: { type: "boolean", description: "Include team-defense events + points_allowed (default true)" },
-        limit: { type: "number", description: "Max events (default 5000 — covers a full week; max 80000 — a whole season is ~62k events). Use output_format=jsonl for large pulls." }
+        idp: { type: "boolean", description: "Include per-defender IDP events (tackles, sacks, TFL, QB hits, INTs, passes defended, forced fumbles, recoveries, def TDs), each keyed to the defender's gsis (default false). Filter to a roster with player_ids." },
+        limit: { type: "number", description: "Max events (default 5000 — covers a full week; max 80000. A whole season is ~62k offense events; with idp=true it's much larger, so page by week)." }
       },
       required: ["season"]
     }
@@ -40802,6 +40803,7 @@ ${renderTable(input, plays, base)}`;
       const playerIds = parseIdList(input.player_ids);
       const teamArg = parseTeamList(input.team) ?? (input.team ? /* @__PURE__ */ new Set([String(input.team).trim().toUpperCase()]) : null);
       const wantDef = input.team_defense !== false;
+      const wantIdp = input.idp === true;
       // Default covers a full week of events (~3.5k); max allows a whole season (~62k).
       const limit = clamp(input.limit || 5e3, 1, 8e4);
       const [prePbp, games] = await Promise.all([
@@ -40873,6 +40875,33 @@ ${renderTable(input, plays, base)}`;
             events.push({ ...base2, team: p.defteam, kind: "def", sack, interception: intc, fumble_recovered: fumRec, def_td: defTd, safety: saf });
           }
         }
+        // Per-defender IDP events (opt-in) — each credited defender's gsis.
+        if (wantIdp) {
+          const pushDef = (pid, kind, extra) => {
+            if (!pid || playerIds && !playerIds.has(pid)) return;
+            events.push({ ...base2, team: p.defteam, player_id: pid, kind, ...extra });
+          };
+          pushDef(p.solo_tackle_1_player_id, "tackle", { tackle_type: "solo" });
+          pushDef(p.solo_tackle_2_player_id, "tackle", { tackle_type: "solo" });
+          pushDef(p.assist_tackle_1_player_id, "tackle", { tackle_type: "assist" });
+          pushDef(p.assist_tackle_2_player_id, "tackle", { tackle_type: "assist" });
+          pushDef(p.assist_tackle_3_player_id, "tackle", { tackle_type: "assist" });
+          pushDef(p.assist_tackle_4_player_id, "tackle", { tackle_type: "assist" });
+          pushDef(p.tackle_for_loss_1_player_id, "tfl");
+          pushDef(p.tackle_for_loss_2_player_id, "tfl");
+          pushDef(p.sack_player_id, "sack", { sack: 1 });
+          pushDef(p.half_sack_1_player_id, "sack", { sack: 0.5 });
+          pushDef(p.half_sack_2_player_id, "sack", { sack: 0.5 });
+          pushDef(p.qb_hit_1_player_id, "qb_hit");
+          pushDef(p.qb_hit_2_player_id, "qb_hit");
+          pushDef(p.interception_player_id, "int");
+          pushDef(p.pass_defense_1_player_id, "pd");
+          pushDef(p.pass_defense_2_player_id, "pd");
+          pushDef(p.forced_fumble_player_1_player_id, "ff");
+          pushDef(p.forced_fumble_player_2_player_id, "ff");
+          pushDef(p.fumble_recovery_1_player_id, "fr");
+          if (n(p.touchdown) === 1 && p.td_team && p.td_team === p.defteam && p.td_player_id) pushDef(p.td_player_id, "def_td", { td: 1 });
+        }
       }
       // points_allowed summary per team-game (one row per team per game in scope).
       if (wantDef) {
@@ -40893,7 +40922,7 @@ ${renderTable(input, plays, base)}`;
       if (defScope) out = out.filter((e) => e.kind === "def" || e.kind === "points_allowed" ? defScope.has(e.team) : true);
       const totalEvents = out.length;
       out = out.slice(0, limit);
-      const cols = ["game_id", "play_id", "game_date", "qtr", "time", "time_of_day", "team", "player_id", "player_name", "kind", "yards", "td", "is_reception", "is_target", "two_point", "two_point_result", "turnover", "interception", "sack", "fumble_recovered", "def_td", "safety", "distance", "result", "made", "points"];
+      const cols = ["game_id", "play_id", "game_date", "qtr", "time", "time_of_day", "team", "player_id", "player_name", "kind", "yards", "td", "is_reception", "is_target", "two_point", "two_point_result", "turnover", "tackle_type", "interception", "sack", "fumble_recovered", "def_td", "safety", "distance", "result", "made", "points"];
       const wk = week ? ` week ${week}` : "";
       const trunc = totalEvents > out.length ? ` of ${totalEvents} — truncated; narrow with week/player_ids or raise limit` : "";
       return `Fantasy play log for ${season}${wk} (${out.length} events${trunc}):
@@ -42756,7 +42785,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.60";
+var SERVER_VERSION = "1.0.61";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
@@ -42820,7 +42849,7 @@ if (!IS_CF_WORKER) {
     process.exit(1);
   });
 }
-export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts, computeTeamMetricsForSeason, fetchPlayerStats, aggregateToSeasonTotals, fetchGames, fetchPbpSlim };
+export { NFL_TOOLS, executeTool, SERVER_VERSION, buildMetricsArtifacts, computeTeamMetricsForSeason, fetchPlayerStats, aggregateToSeasonTotals, fetchGames, fetchPbpSlim, fetchRosters };
 /*! Bundled license information:
 
 papaparse/papaparse.js:
