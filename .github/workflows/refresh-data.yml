@@ -130,6 +130,12 @@ jobs:
       - name: Rebuild player crosswalk
         run: python3 scripts/build-player-crosswalk.py
 
+      # Rebuild the slim runtime id-map (sleeper<->gsis<->espn + name/pos/team/
+      # headshot) from the freshly-rebuilt crosswalk + current rosters, so apps
+      # can map ids at runtime without the ~5MB Sleeper directory. Never fatal.
+      - name: Rebuild player id-map
+        run: node scripts/build-id-map.mjs || echo "id-map build failed (non-fatal)"
+
       # Re-gzip the freshly-downloaded current-season roster + depth chart so
       # the committed .csv.gz fallback snapshots stay current. download-data.sh
       # force-refreshes these every run (the live build uses the .csv), but the
@@ -168,6 +174,7 @@ jobs:
                   public/data/depth_charts_2026.csv.gz \
                   public/data/depth-starters-2026.json \
                   public/data/player-crosswalk.json \
+                  public/data/player-id-map.json \
                   public/data/player-aliases.json \
                   public/data/player-promotions.json \
                   public/data/player-conflicts.json \
