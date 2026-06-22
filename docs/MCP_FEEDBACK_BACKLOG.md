@@ -15,6 +15,20 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 20 — per-defender IDP attribution in PBP (MCP 1.0.60):**
+- 🔴 **IDP unblocked.** Added the standard nflverse per-defender id columns to
+  `PBP_SLIM_COLS` (project via fields, all gsis/crosswalkable): solo_tackle_1/2,
+  assist_tackle_1..4, tackle_for_loss_1/2, sack_player_id, half_sack_1/2,
+  qb_hit_1/2, interception_player_id, pass_defense_1/2, forced_fumble_player_2
+  (forced_fumble_1 + fumble_recovery_1 already added in R19; defensive/ST TD
+  scorer = td_player_id with td_team=defteam). All 2016–2025 artifacts
+  regenerated (~3.8 MB gz, under cap).
+- The crosswalk already covers the IDP universe (5,773 defensive players: LB/DB/
+  DL/CB/S…); espn_id + headshot resolve for defenders via the R19 roster
+  fallback (verified: tackler 00-0034780 → Isaac Yiadom DB w/ headshot).
+- Verified 2025 wk1: sack/QB-hit/TFL credited to the defender, INT vs
+  pass-defense to distinct players.
+
 **Round 19 — Drip League batch: headshots for rookies, fair_catch + exact fumble
 attribution, kickoff schedule (MCP 1.0.59):**
 - 🟢 **get_player_crosswalk headshots for fresh rookies.** espn_id genuinely
