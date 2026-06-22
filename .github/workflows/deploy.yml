@@ -11,7 +11,9 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # Latest deploy wins. With `false`, back-to-back merges overlap and the second
+  # run's deploy step 400s on GitHub Pages' "one in-progress deployment" limit.
+  cancel-in-progress: true
 
 jobs:
   build:
