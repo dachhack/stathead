@@ -38761,7 +38761,10 @@ function computeAllTeamMetrics(season, games, pbp) {
 // the npm/stdio build, which has no such limits).
 var PBP_TEAM_COLS = ["posteam", "defteam", "pass_attempt", "rush_attempt", "score_differential", "qtr", "epa", "success", "interception", "fumble_lost", "yardline_100", "touchdown", "shotgun", "no_huddle", "air_yards", "yards_gained"];
 var PBP_PLAYER_COLS = ["game_id", "play_id", "passer_player_name", "rusher_player_name", "qb_dropback", "qb_scramble", "rush_attempt", "pass_attempt"];
-var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "game_date", "start_time", "time_of_day", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "return_team", "return_yards", "kickoff_returner_player_id", "kickoff_returner_player_name", "punt_returner_player_id", "punt_returner_player_name", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "complete_pass", "passing_yards", "pass_touchdown", "rushing_yards", "rush_touchdown", "receiving_yards", "sack", "interception", "fumble", "fumble_lost", "fumbled_1_player_id", "fumbled_1_player_name", "fumbled_1_team", "fumble_recovery_1_team", "safety", "two_point_attempt", "two_point_conv_result"];
+var PBP_SLIM_COLS = ["game_id", "play_id", "week", "qtr", "time", "game_date", "start_time", "time_of_day", "total_home_score", "total_away_score", "down", "ydstogo", "yardline_100", "posteam", "defteam", "play_type", "yards_gained", "sp", "touchdown", "td_player_id", "td_team", "return_touchdown", "return_team", "return_yards", "kickoff_returner_player_id", "kickoff_returner_player_name", "punt_returner_player_id", "punt_returner_player_name", "fair_catch", "field_goal_result", "kicker_player_name", "kicker_player_id", "kick_distance", "extra_point_result", "epa", "wpa", "wp", "passer_player_name", "passer_player_id", "rusher_player_name", "rusher_player_id", "receiver_player_name", "receiver_player_id", "air_yards", "yards_after_catch", "pass_location", "complete_pass", "passing_yards", "pass_touchdown", "rushing_yards", "rush_touchdown", "receiving_yards", "sack", "interception", "fumble", "fumble_lost", "fumbled_1_player_id", "fumbled_1_player_name", "fumbled_1_team", "fumble_recovery_1_team", "fumble_recovery_1_player_id", "fumble_recovery_1_player_name", "forced_fumble_player_1_player_id", "forced_fumble_player_1_player_name", "safety", "two_point_attempt", "two_point_conv_result"];
+// fair_catch is derived (punt_fair_catch || kickoff_fair_catch); fetch the two raw
+// flags from the CSV, then collapse them in fetchPbpSlim.
+var PBP_SLIM_FETCH_COLS = PBP_SLIM_COLS.flatMap((c) => c === "fair_catch" ? ["punt_fair_catch", "kickoff_fair_catch"] : [c]);
 async function computeTeamMetricsForSeason(season) {
   const [games, pbpData] = await Promise.all([
     fetchGames(),
@@ -38843,7 +38846,13 @@ async function computePlayerMetrics(season, opts = {}) {
   return results;
 }
 async function fetchPbpSlim(season) {
-  return fetchPlayByPlay(season, { columns: PBP_SLIM_COLS });
+  const rows = await fetchPlayByPlay(season, { columns: PBP_SLIM_FETCH_COLS });
+  for (const r of rows) {
+    r.fair_catch = r.punt_fair_catch === 1 || r.kickoff_fair_catch === 1 ? 1 : 0;
+    delete r.punt_fair_catch;
+    delete r.kickoff_fair_catch;
+  }
+  return rows;
 }
 // Offline artifact builder — invoked by scripts/build-metrics-artifacts.mjs.
 async function buildMetricsArtifacts(season) {
@@ -38942,7 +38951,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_games",
-    description: "Get NFL game results and schedules. Includes the canonical nflverse game_id (e.g. 2024_04_BUF_BAL, handles neutral-site/relocated games correctly), scores, spreads, totals, weather, surface. Use for team records, point totals, home/away splits, divisional matchups, or to enumerate game_ids to feed get_play_by_play.",
+    description: "Get NFL game results and schedules. Includes the canonical nflverse game_id (e.g. 2024_04_BUF_BAL, handles neutral-site/relocated games correctly), scheduled kickoff (gameday = date, weekday, gametime = kickoff in US Eastern HH:MM), home/away/week, scores, spreads, totals, weather, surface. Use for team records, point totals, home/away splits, deriving day/time windows, bye weeks (a team absent from a week's games is on bye), or to enumerate game_ids to feed get_play_by_play.",
     input_schema: {
       type: "object",
       properties: {
@@ -39071,7 +39080,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_play_by_play",
-    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result; and kick/punt return columns: return_yards, return_team, kickoff_returner_player_id, kickoff_returner_player_name, punt_returner_player_id, punt_returner_player_name (note: yards_gained is 0 on return plays — use return_yards); and committed-turnover attribution: interception (+ passer_player_id = who threw it), fumble_lost (+ fumbled_1_player_id/fumbled_1_player_name/fumbled_1_team = who lost it); and real (wall-clock) time: game_date, start_time (kickoff), time_of_day (UTC time the play was run — vs the game-clock `time` field; note nflverse populates it for most recent-season plays but it can be sparse/older-season gaps). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To pull an ENTIRE WEEK set limit ~3000 (a week is ~2400 plays) with week=N; to pull a WHOLE SEASON set a high limit (e.g. limit=50000, season ~43k plays) — for these large pulls always use output_format=jsonl or csv (optionally + fields) to keep the payload compact. You can also page with offset (the header reports the next offset and the total). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
+    description: "Get play-by-play data with EPA, WPA, win probability, air yards, YAC, and stable player IDs (passer/rusher/receiver_player_id = nflverse gsis_id, joinable to get_player_crosswalk). Default view is lean; pass `fields` to project any of these slim columns \u2014 including kicker/defense/special-teams columns for K & DST fantasy scoring: kicker_player_id, kicker_player_name, kick_distance, extra_point_result; sack, interception, fumble, fumble_lost, fumble_recovery_1_team, safety; td_player_id, td_team, return_touchdown (separates defensive/ST TDs from offensive); two_point_attempt, two_point_conv_result; and kick/punt return columns: return_yards, return_team, kickoff_returner_player_id, kickoff_returner_player_name, punt_returner_player_id, punt_returner_player_name, fair_catch (note: yards_gained is 0 on return plays — use return_yards); committed-turnover + recovery attribution: interception (+ passer_player_id = who threw it), fumble_lost (+ fumbled_1_player_id/_name/fumbled_1_team = who lost it, fumble_recovery_1_player_id/_name = who recovered, forced_fumble_player_1_player_id/_name = who forced it); and real (wall-clock) time: game_date, start_time (kickoff), time_of_day (UTC time the play was run — vs the game-clock `time` field; note nflverse populates it for most recent-season plays but it can be sparse/older-season gaps). Use for situational analysis (red zone, 3rd down, 2-minute drill), play type breakdowns, EPA-based efficiency, scoring K/DST, or pulling a complete game with game_id. WARNING: Large dataset \u2014 always filter by game_id, player, team, or situation. To pull an ENTIRE WEEK set limit ~3000 (a week is ~2400 plays) with week=N; to pull a WHOLE SEASON set a high limit (e.g. limit=50000, season ~43k plays) — for these large pulls always use output_format=jsonl or csv (optionally + fields) to keep the payload compact. You can also page with offset (the header reports the next offset and the total). When projecting with `fields`, include game_id/play_id/posteam/defteam yourself if you need them for joins.",
     input_schema: {
       type: "object",
       properties: {
@@ -39109,7 +39118,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_crosswalk",
-    description: "Player ID crosswalk: maps the stable nflverse gsis_id (the *_player_id in get_play_by_play) to a canonical full name and cross-source IDs (pfr_id, sleeper_id, espn_id, pff_id, yahoo_id, sportradar_id, rotowire_id, fantasy_data_id, esb_id), plus a ready-to-use ESPN headshot URL (espn_headshot) derived from espn_id. Use to resolve the abbreviated PBP names (e.g. J.Allen) to a real player, to join PBP against name-keyed endpoints, and to surface player photos in apps. Filter by player_id (gsis), player_name, position, or active season.",
+    description: "Player ID crosswalk: maps the stable nflverse gsis_id (the *_player_id in get_play_by_play) to a canonical full name and cross-source IDs (pfr_id, sleeper_id, espn_id, pff_id, yahoo_id, sportradar_id, rotowire_id, fantasy_data_id, esb_id), plus ready-to-use headshot URLs: espn_headshot (ESPN CDN, when espn_id is known) and headshot (best available — falls back to the roster headshot_url for fresh/in-season rookies ESPN hasn't indexed yet). espn_id and sleeper_id are backfilled from the season rosters when the static crosswalk lags. Use to resolve the abbreviated PBP names (e.g. J.Allen) to a real player, to join PBP against name-keyed endpoints, and to surface player photos in apps. Filter by player_id (gsis), player_name, position, or active season.",
     input_schema: {
       type: "object",
       properties: {
@@ -40437,6 +40446,9 @@ ${renderTable(input, filtered, displayBase)}`;
         "season",
         "week",
         "game_type",
+        "gameday",
+        "weekday",
+        "gametime",
         "away_team",
         "away_score",
         "home_team",
@@ -40920,6 +40932,7 @@ ${renderTable(input, out, cols)}`;
         "sleeper_id",
         "espn_id",
         "espn_headshot",
+        "headshot",
         "pff_id",
         "yahoo_id",
         "sportradar_id",
@@ -40929,11 +40942,28 @@ ${renderTable(input, out, cols)}`;
         "earliest_season",
         "latest_season"
       ];
-      // ESPN headshots are served from a deterministic CDN path keyed by espn_id,
-      // so we derive the URL rather than storing it. Apps can drop it straight in.
+      // The static crosswalk lags fresh/in-season rookies (blank espn_id). Fill
+      // gaps from the season rosters (espn_id + sleeper_id when present, and a
+      // headshot_url that is populated even when ESPN hasn't indexed the player).
+      let rosterMap;
+      if (players.some((p) => !p.espn_id || !p.sleeper_id)) {
+        const seasons = [...new Set(players.filter((p) => !p.espn_id || !p.sleeper_id).map((p) => p.latest_season).filter(Boolean))]
+          .filter((y) => y >= LATEST_COMPLETED_SEASON - 1).slice(-2);
+        if (!seasons.length) seasons.push(LATEST_COMPLETED_SEASON);
+        rosterMap = /* @__PURE__ */ new Map();
+        const rosterSets = await Promise.all(seasons.map((y) => fetchRosters(y).catch(() => [])));
+        for (const set of rosterSets) for (const r of set) if (r.gsis_id) rosterMap.set(r.gsis_id, r);
+      }
+      // ESPN headshots are served from a deterministic CDN path keyed by espn_id.
+      const espnShot = (id) => `https://a.espncdn.com/i/headshots/nfl/players/full/${id}.png`;
       const rows = players.map((p) => {
         const r = pickColumns(p, cols);
-        if (p.espn_id) r.espn_headshot = `https://a.espncdn.com/i/headshots/nfl/players/full/${p.espn_id}.png`;
+        const ros = rosterMap?.get(p.gsis_id);
+        const espnId = p.espn_id || ros?.espn_id || null;
+        if (espnId) r.espn_id = espnId;
+        if (!r.sleeper_id && ros?.sleeper_id) r.sleeper_id = ros.sleeper_id;
+        r.espn_headshot = espnId ? espnShot(espnId) : null;
+        r.headshot = espnId ? espnShot(espnId) : ros?.headshot_url || null;
         return r;
       });
       return `Player crosswalk (${players.length} results):
@@ -42726,7 +42756,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.58";
+var SERVER_VERSION = "1.0.59";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

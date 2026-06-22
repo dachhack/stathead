@@ -15,6 +15,27 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
 (documented inline below).
 
+**Round 19 — Drip League batch: headshots for rookies, fair_catch + exact fumble
+attribution, kickoff schedule (MCP 1.0.59):**
+- 🟢 **get_player_crosswalk headshots for fresh rookies.** espn_id genuinely
+  lags for unindexed in-season rookies (nflverse rosters also null them), so a
+  new `headshot` field falls back to the roster `headshot_url` (NFL.com) when no
+  espn_id — apps can source photos from Stathead alone. espn_id + sleeper_id are
+  also backfilled from the season rosters when the static crosswalk lags;
+  `espn_headshot` stays ESPN-specific.
+- 🟡 **PBP fair_catch + exact fumble attribution.** Added a derived `fair_catch`
+  (punt||kickoff) plus `fumble_recovery_1_player_id`/`_name` and
+  `forced_fumble_player_1_player_id`/`_name` to `PBP_SLIM_COLS`
+  (`fumbled_1_player_id` was already there) — resolves multi-player fumbles. All
+  2016–2025 artifacts regenerated. (return_yards + kickoff/punt_returner ids
+  were already projectable since 1.0.51.)
+- 🟢 **get_games kickoff schedule.** Added `gameday`/`weekday`/`gametime` (ET
+  kickoff) to the default output — derive day/time windows and byes (a team
+  absent from a week is on bye) from Stathead.
+- Payload ergonomics (#5) already shipped earlier: game_id filter (1.0.47),
+  offset cursor (1.0.49), raised caps to whole-week/season (1.0.58),
+  jsonl/csv + fields projection.
+
 **Round 18 — allow whole-week / whole-season PBP in one call (MCP 1.0.58):**
 - 🟢 Raised the row caps so a full week or whole season comes back in a single
   call (the 1000 cap was forcing offset loops). `get_play_by_play` max
