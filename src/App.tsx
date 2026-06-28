@@ -6,6 +6,7 @@ import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
 import { ExpertTracker } from './components/ExpertTracker';
 import { parsePlayerHash, setPlayerHash } from './lib/hashRoute';
+import { parseSnoopQuery, setSnoopQuery } from './lib/snoopRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
 import { FantasyScoring } from './components/FantasyScoring';
@@ -114,7 +115,11 @@ const TAB_GROUPS: TabGroup[] = [
 
 
 function App() {
-  const [tab, setTab] = useState<Tab>('home');
+  // A `?snoop=<username>` share link deep-links straight into the Sleeper User
+  // Snooper tab (the component itself reads the username from the same param).
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== 'undefined' && parseSnoopQuery(window.location.search) ? 'sleeper-snooper' : 'home',
+  );
   const [season, setSeason] = useState(2026);
   const [chatOpen, setChatOpen] = useState(false);
   const [extraData, setExtraData] = useState<unknown[]>([]);
@@ -159,6 +164,12 @@ function App() {
   useEffect(() => {
     if (tabFirstRender.current) { tabFirstRender.current = false; return; }
     if (parsePlayerHash(window.location.hash)) setPlayerHash(null);
+  }, [tab]);
+
+  // Keep the shareable `?snoop=` param scoped to the snooper tab: clear it when
+  // the user navigates elsewhere (the snooper writes it back on each lookup).
+  useEffect(() => {
+    if (tab !== 'sleeper-snooper') setSnoopQuery(null);
   }, [tab]);
 
   const onDataLoaded = useCallback((data: unknown[]) => {

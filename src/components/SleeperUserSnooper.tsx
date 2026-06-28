@@ -9,6 +9,7 @@ import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { loadBlendedProjections, computeOptimalLineup, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList, ResponsiveContainer } from 'recharts';
 import { normalizeForMatch } from '../lib/nameMatch';
+import { parseSnoopQuery, setSnoopQuery, buildSnoopShareUrl } from '../lib/snoopRoute';
 
 const LS_KEY = 'sleeper_snoop_user';
 
@@ -929,7 +930,12 @@ function CareerHistorySection({ userId, players, dynasty, projections }: { userI
 }
 
 export function SleeperUserSnooper() {
-  const [username, setUsername] = useState(() => localStorage.getItem(LS_KEY) ?? '');
+  // A `?snoop=<username>` share link takes precedence over the last-used
+  // username from localStorage so deep links load the intended user.
+  const [username, setUsername] = useState(
+    () => parseSnoopQuery(window.location.search) ?? localStorage.getItem(LS_KEY) ?? '',
+  );
+  const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<SnoopResult | null>(null);
   const [players, setPlayers] = useState<Map<string, SleeperPlayer>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -960,6 +966,9 @@ export function SleeperUserSnooper() {
       .then((rosters) => {
         setResult({ user, leagues, rosters });
         localStorage.setItem(LS_KEY, trimmed);
+        // Reflect the canonical username in the URL so it's directly shareable.
+        setSnoopQuery(user.username);
+        setCopied(false);
       })
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : String(e)); setResult(null); })
       .finally(() => setLoading(false));
@@ -985,6 +994,15 @@ export function SleeperUserSnooper() {
     if (username) snoop(username);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const copyShareLink = () => {
+    if (!result) return;
+    const url = buildSnoopShareUrl(result.user.username);
+    navigator.clipboard?.writeText(url).then(
+      () => { setCopied(true); setTimeout(() => setCopied(false), 2000); },
+      () => { /* clipboard unavailable — ignore */ },
+    );
+  };
 
   const ownership = useMemo(() => {
     if (!result || !players.size) return [];
@@ -1092,6 +1110,15 @@ export function SleeperUserSnooper() {
         <button className="format-tab active" onClick={() => snoop(username)} disabled={loading}>
           {loading ? 'Snooping…' : 'Snoop'}
         </button>
+        {result && (
+          <button
+            className="format-tab"
+            onClick={copyShareLink}
+            title="Copy a shareable link to this user's snoop results"
+          >
+            {copied ? '✓ Copied' : '🔗 Share'}
+          </button>
+        )}
       </div>
 
       {loading && <div className="loading"><div className="spinner" /><div className="loading-text">Fetching leagues &amp; rosters…</div></div>}
