@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-03T22:25:44.605Z",
+  "updatedAt": "2026-07-04T00:42:05.603Z",
   "models": {
     "career": {
       "version": "v51",
@@ -9,15 +9,15 @@
     },
     "adp": {
       "version": "v50",
-      "count": 246
+      "count": 245
     },
     "ppg": {
       "version": "v50",
-      "count": 342
+      "count": 341
     },
     "volumes": {
       "version": "v1",
-      "count": 246
+      "count": 245
     }
   },
   "adpCurves": {
@@ -31,7 +31,7 @@
       "sqrtSlope": -1.140401,
       "sqrtIntercept": 19.9294,
       "n": 655,
-      "poolOffset": 2.222
+      "poolOffset": 2.217
     },
     "WR": {
       "sqrtSlope": -1.010538,
