@@ -414,6 +414,15 @@ export function aggregateToSeasonTotals(
     const key = `${week.player_id}-${week.season}`;
     const existing = playerMap.get(key);
 
+    // Milestone-game flags for bonus scoring (SFB16) — counted per weekly
+    // row here because season totals can't recover them later.
+    const weekPassYds = week.passing_yards || 0;
+    const weekScrimYds = (week.rushing_yards || 0) + (week.receiving_yards || 0);
+    const w300 = weekPassYds >= 300 ? 1 : 0;
+    const w400 = weekPassYds >= 400 ? 1 : 0;
+    const w100 = weekScrimYds >= 100 ? 1 : 0;
+    const w200 = weekScrimYds >= 200 ? 1 : 0;
+
     if (!existing) {
       playerMap.set(key, {
         player_id: week.player_id,
@@ -446,6 +455,12 @@ export function aggregateToSeasonTotals(
         rushing_2pt_conversions: week.rushing_2pt_conversions || 0,
         receiving_2pt_conversions: week.receiving_2pt_conversions || 0,
         special_teams_tds: week.special_teams_tds || 0,
+        rushing_first_downs: week.rushing_first_downs || 0,
+        receiving_first_downs: week.receiving_first_downs || 0,
+        games_300_pass: w300,
+        games_400_pass: w400,
+        games_100_scrim: w100,
+        games_200_scrim: w200,
       });
     } else {
       existing.games += 1;
@@ -470,6 +485,12 @@ export function aggregateToSeasonTotals(
       existing.rushing_2pt_conversions += week.rushing_2pt_conversions || 0;
       existing.receiving_2pt_conversions += week.receiving_2pt_conversions || 0;
       existing.special_teams_tds += week.special_teams_tds || 0;
+      existing.rushing_first_downs = (existing.rushing_first_downs || 0) + (week.rushing_first_downs || 0);
+      existing.receiving_first_downs = (existing.receiving_first_downs || 0) + (week.receiving_first_downs || 0);
+      existing.games_300_pass = (existing.games_300_pass || 0) + w300;
+      existing.games_400_pass = (existing.games_400_pass || 0) + w400;
+      existing.games_100_scrim = (existing.games_100_scrim || 0) + w100;
+      existing.games_200_scrim = (existing.games_200_scrim || 0) + w200;
       // Update team to most recent
       existing.recent_team = week.recent_team;
     }

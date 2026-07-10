@@ -26,7 +26,7 @@ export interface RankingsXlsxRow {
 
 export interface RankingsXlsxMeta {
   boardName: string;
-  scoring: 'ppr' | 'half' | 'standard';
+  scoring: 'ppr' | 'half' | 'standard' | 'sfb';
   season: number;
   scenarioName?: string;
 }
@@ -153,7 +153,7 @@ export interface ImportedRankingRow {
 
 export interface ImportedRankings {
   boardName?: string;
-  scoring?: 'ppr' | 'half' | 'standard';
+  scoring?: 'ppr' | 'half' | 'standard' | 'sfb';
   scenarioName?: string;
   rows: ImportedRankingRow[];
 }
@@ -206,7 +206,7 @@ export async function importRankingsXlsx(data: ArrayBuffer): Promise<ImportedRan
       const val = cellText(row.getCell(2));
       if (key === 'board name' && val) out.boardName = val;
       if (key === 'scenario' && val) out.scenarioName = val;
-      if (key === 'scoring' && ['ppr', 'half', 'standard'].includes(val.toLowerCase())) {
+      if (key === 'scoring' && ['ppr', 'half', 'standard', 'sfb'].includes(val.toLowerCase())) {
         out.scoring = val.toLowerCase() as ImportedRankings['scoring'];
       }
     }
