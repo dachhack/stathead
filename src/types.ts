@@ -242,7 +242,8 @@ export type Tab =
   | 'my-rankings'
   | 'my-prospects'
   | 'taxi-squad'
-  | 'data-query';
+  | 'data-query'
+  | 'sfb-cheatsheet';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {

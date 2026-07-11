@@ -106,6 +106,12 @@ __pycache__/
 .venv/
 pdfs/
 
+# Footballguys SFB cheatsheet (paid product) — LOCAL-ONLY, never committed.
+# Regenerate from a PDF you own:
+#   pdftotext -layout <cheatsheet.pdf> - | npx tsx scripts/parse-sfb-cheatsheet.ts > public/data/sfb16-cheatsheet.json
+# (already covered by the public/data/* ignore; listed here for discoverability)
+public/data/sfb16-cheatsheet.json
+
 # Proprietary inputs (Clay PDFs + parsed dataset) — never committed.
 /private/
 # Local-only Clay projection set consumed at runtime by the "Consensus" preset.
