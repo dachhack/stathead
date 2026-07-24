@@ -24,6 +24,7 @@ import {
 import projectionConfig from '../generated/projection-config.json';
 import teamProjectionsEnsemble from '../generated/team-projections.json';
 import { buildProjectionPool, type TeamTotalRow, type AdpModelEntry } from '../lib/buildProjectionPool';
+import { computeSFBPoints, SFB_LABEL } from '../lib/sfbScoring';
 import {
   PREDICT_SEASON, POSITIONS, type Position, TEAM_POS_LIMITS,
 } from '../lib/projectionPoolConsts';
@@ -92,6 +93,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   const [error, setError] = useState<string | null>(null);
   const [selectedPos, setSelectedPos] = useState<Position>('RB');
   const [viewMode, setViewMode] = useState<ViewMode>('position');
+  // Scoring for the position tables/cards: PPR (the engine's native scale)
+  // or Scott Fish Bowl 16 (re-scored from each row's stat line for display).
+  const [projScoring, setProjScoring] = useState<'ppr' | 'sfb'>('ppr');
   const [qbProjections, setQBProjections] = useState<QBProjection[]>([]);
   const [rbProjections, setRBProjections] = useState<RBProjection[]>([]);
   const [wrProjections, setWRProjections] = useState<WRProjection[]>([]);
@@ -141,6 +145,31 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
     }
     return applyScenarioToProjections(qbProjections, rbProjections, wrProjections, teProjections, scenario);
   }, [isActuals, qbProjections, rbProjections, wrProjections, teProjections, scenario]);
+
+  // Position-table display arrays with a display-points field: PPR passes
+  // pprPts through untouched (original order kept); SFB re-scores each
+  // row's stat line and re-ranks. Display-only — the engine, scenario
+  // math, and team views stay on the native PPR pool.
+  const { qbs: tableQbs, rbs: tableRbs, wrs: tableWrs, tes: tableTes } = useMemo(() => {
+    const score = <T extends { games: number; pprPts: number }>(arr: T[], pos: string): (T & { dispPts: number })[] => {
+      if (projScoring !== 'sfb') return arr.map((p) => ({ ...p, dispPts: p.pprPts }));
+      return arr
+        .map((p) => {
+          const o = p as unknown as Record<string, number>;
+          return {
+            ...p,
+            dispPts: Math.round(computeSFBPoints({
+              position: pos, games: p.games,
+              passAtt: o.passAtt || 0, passYds: o.passYds || 0, passTD: o.passTD || 0,
+              rushAtt: o.rushAtt || 0, rushYds: o.rushYds || 0, rushTD: o.rushTD || 0,
+              rec: o.rec || 0, recYds: o.recYds || 0, recTD: o.recTD || 0,
+            })),
+          };
+        })
+        .sort((a, b) => b.dispPts - a.dispPts);
+    };
+    return { qbs: score(dispQbs, 'QB'), rbs: score(dispRbs, 'RB'), wrs: score(dispWrs, 'WR'), tes: score(dispTes, 'TE') };
+  }, [projScoring, dispQbs, dispRbs, dispWrs, dispTes]);
 
   // Scenario-adjusted overall rankings for the Scenario Builder's rankings panel.
   const builderRankings = useMemo(() => {
@@ -405,11 +434,11 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
   const fmtADP = (adp: number) => adp >= 500 ? '—' : adp.toFixed(1);
 
   const currentData = useMemo(() => {
-    if (selectedPos === 'QB') return dispQbs;
-    if (selectedPos === 'RB') return dispRbs;
-    if (selectedPos === 'WR') return dispWrs;
-    return dispTes;
-  }, [selectedPos, dispQbs, dispRbs, dispWrs, dispTes]);
+    if (selectedPos === 'QB') return tableQbs;
+    if (selectedPos === 'RB') return tableRbs;
+    if (selectedPos === 'WR') return tableWrs;
+    return tableTes;
+  }, [selectedPos, tableQbs, tableRbs, tableWrs, tableTes]);
 
   // Boom/bust z-scores from the ADP model's CI bounds, computed within
   // position. Returns a name → { boomZ, bustZ } lookup so the position
@@ -750,6 +779,28 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
             </div>
           </div>
         )}
+        {viewMode === 'position' && (
+          <div className="control-group">
+            <label className="control-label">Scoring</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                className={`pos-filter ${projScoring === 'ppr' ? 'active' : ''}`}
+                onClick={() => setProjScoring('ppr')}
+                style={{ borderColor: 'var(--text-muted)' }}
+              >
+                PPR
+              </button>
+              <button
+                className={`pos-filter ${projScoring === 'sfb' ? 'active' : ''}`}
+                onClick={() => setProjScoring('sfb')}
+                title="Scott Fish Bowl 16 — 6-pt passing TDs, 0.5/reception + 0.5/first down (TE +1 on both), no turnover penalties, +10 big-play and milestone-game bonuses. First downs and bonuses are estimated from each player's stat line."
+                style={{ borderColor: 'var(--text-muted)' }}
+              >
+                {SFB_LABEL}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Team view */}
@@ -1084,7 +1135,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
       {/* Summary cards */}
       {viewMode === 'position' && <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         {POSITIONS.map((pos) => {
-          const data = pos === 'QB' ? dispQbs : pos === 'RB' ? dispRbs : pos === 'WR' ? dispWrs : dispTes;
+          const data = pos === 'QB' ? tableQbs : pos === 'RB' ? tableRbs : pos === 'WR' ? tableWrs : tableTes;
           const top = data[0];
           return (
             <div
@@ -1105,7 +1156,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                 <div>{data.length} {isActuals ? 'players' : 'players projected'}</div>
                 {top && <div>#{1}: <strong style={{ color: 'var(--text-primary)' }}>{top.name}</strong></div>}
-                {top && <div>{top.pprPts} PPR pts</div>}
+                {top && <div>{top.dispPts} {projScoring === 'sfb' ? SFB_LABEL : 'PPR'} pts</div>}
               </div>
             </div>
           );
@@ -1150,7 +1201,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
               {selectedPos === 'TE' && (
                 <th colSpan={4} style={{ textAlign: 'center', borderBottom: `2px solid ${POS_COLORS.TE}` }}>RECEIVING</th>
               )}
-              <th colSpan={5} style={{ textAlign: 'center', borderBottom: '2px solid #f59e0b' }}>PPR</th>
+              <th colSpan={5} style={{ textAlign: 'center', borderBottom: '2px solid #f59e0b' }}>{projScoring === 'sfb' ? SFB_LABEL : 'PPR'}</th>
             </tr>
             <tr>
               <th></th>
@@ -1181,7 +1232,9 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <th>Tgt</th><th>Rec</th><th>Yds</th><th>TD</th>
                 </>
               )}
-              <th title="Total PPR points over projected games">Pts</th>
+              <th title={projScoring === 'sfb'
+                ? 'Total SFB16 points over projected games (first downs & big-play bonuses estimated from the stat line)'
+                : 'Total PPR points over projected games'}>Pts</th>
               <th title="Scenario-adjusted PPG (projected points ÷ games)">PPG</th>
               <th title="Model-predicted PPG (ADP-free model)">Proj PPG</th>
               <th title="Boom z-score within position — CI upside spread normalized to position peers. >+1 = unusually wide upside.">Boom z</th>
@@ -1189,8 +1242,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
             </tr>
           </thead>
           <tbody>
-            {selectedPos === 'QB' && dispQbs.map((p, i) => {
-              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+            {selectedPos === 'QB' && tableQbs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.dispPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
               const z = lookupZ(p.name);
               return (
@@ -1208,7 +1261,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td>{p.rushAtt}</td>
                   <td>{p.rushYds}</td>
                   <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
-                  <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.QB }}>{p.dispPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
@@ -1216,8 +1269,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                 </tr>
               );
             })}
-            {selectedPos === 'RB' && dispRbs.map((p, i) => {
-              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+            {selectedPos === 'RB' && tableRbs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.dispPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
               const z = lookupZ(p.name);
               return (
@@ -1234,7 +1287,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td>{p.rec}</td>
                   <td>{p.recYds}</td>
                   <td style={{ fontWeight: 700 }}>{p.recTD}</td>
-                  <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.RB }}>{p.dispPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
@@ -1242,8 +1295,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                 </tr>
               );
             })}
-            {selectedPos === 'WR' && dispWrs.map((p, i) => {
-              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+            {selectedPos === 'WR' && tableWrs.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.dispPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
               const z = lookupZ(p.name);
               return (
@@ -1260,7 +1313,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td>{p.rushAtt}</td>
                   <td>{p.rushYds}</td>
                   <td style={{ fontWeight: 700 }}>{p.rushTD}</td>
-                  <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.WR }}>{p.dispPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>
@@ -1268,8 +1321,8 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                 </tr>
               );
             })}
-            {selectedPos === 'TE' && dispTes.map((p, i) => {
-              const scenPPG = p.games > 0 ? Math.round((p.pprPts / p.games) * 10) / 10 : 0;
+            {selectedPos === 'TE' && tableTes.map((p, i) => {
+              const scenPPG = p.games > 0 ? Math.round((p.dispPts / p.games) * 10) / 10 : 0;
               const projPPG = projPPGMap.get(normalizeName(p.name.replace(/^★\s*/, ''))) ?? 0;
               const z = lookupZ(p.name);
               return (
@@ -1283,7 +1336,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
                   <td>{p.rec}</td>
                   <td>{p.recYds.toLocaleString()}</td>
                   <td style={{ fontWeight: 700 }}>{p.recTD}</td>
-                  <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.pprPts}</td>
+                  <td style={{ fontWeight: 700, color: POS_COLORS.TE }}>{p.dispPts}</td>
                   <td style={{ fontWeight: 700 }}>{scenPPG > 0 ? scenPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{projPPG > 0 ? projPPG.toFixed(1) : '—'}</td>
                   <td style={{ color: zColor(z.boomZ), fontWeight: 600 }}>{fmtZCell(z.boomZ)}</td>

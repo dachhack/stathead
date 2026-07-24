@@ -6,6 +6,7 @@ import { buildSyntheticSdio } from '../lib/draftKit';
 import { normName, positionStats, zScore } from '../lib/nameUtils';
 import { blendPicks, fetchFfcRaw, recencyWeight, sampleWeight } from '../lib/adpSources';
 import { applyScenarioToProjections, loadProjectionBase, type ProjectionBase } from '../lib/projectionsTabEngine';
+import { computeSFBPoints } from '../lib/sfbScoring';
 import { exportRankingsXlsx, importRankingsXlsx } from '../lib/rankingsXlsx';
 import type { ScenarioConfig, FfcADPPlayer, PointsOverride, SDIOProjection } from '../types';
 import { DocsLink } from './DocsLink';
@@ -113,6 +114,14 @@ interface ToolProjEntry {
   rec: number;
   tgt: number;
   rushAtt: number;
+  // Full stat line so alternate scoring (SFB) can re-score from scratch.
+  passAtt: number;
+  passYds: number;
+  passTD: number;
+  rushYds: number;
+  rushTD: number;
+  recYds: number;
+  recTD: number;
 }
 
 interface RankingRow {
@@ -244,7 +253,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
   // tab) — lets this page run the tab's own scenario engine for exact parity.
   const [projBase, setProjBase] = useState<ProjectionBase | null>(null);
   // League scoring format — re-scores PPG from the projected stat line.
-  const [scoringFormat, setScoringFormat] = useState<'ppr' | 'half' | 'standard'>('ppr');
+  const [scoringFormat, setScoringFormat] = useState<'ppr' | 'half' | 'standard' | 'sfb'>('ppr');
 
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
@@ -566,6 +575,13 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
           rec: o.rec || 0,
           tgt: o.tgt || 0,
           rushAtt: o.rushAtt || 0,
+          passAtt: o.passAtt || 0,
+          passYds: o.passYds || 0,
+          passTD: o.passTD || 0,
+          rushYds: o.rushYds || 0,
+          rushTD: o.rushTD || 0,
+          recYds: o.recYds || 0,
+          recTD: o.recTD || 0,
         });
       }
     };
@@ -654,6 +670,16 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
         let pts = toolP.pprPts;
         if (scoringFormat === 'half') pts -= 0.5 * toolP.rec;
         else if (scoringFormat === 'standard') pts -= toolP.rec;
+        else if (scoringFormat === 'sfb') {
+          // SFB adds points (TE premium, first downs, big-play bonuses)
+          // rather than subtracting — re-score the full stat line.
+          pts = computeSFBPoints({
+            position, games: toolP.games,
+            passAtt: toolP.passAtt, passYds: toolP.passYds, passTD: toolP.passTD,
+            rushAtt: toolP.rushAtt, rushYds: toolP.rushYds, rushTD: toolP.rushTD,
+            rec: toolP.rec, recYds: toolP.recYds, recTD: toolP.recTD,
+          });
+        }
         ppg = Math.max(0, Math.round((pts / GAMES) * 10) / 10);
       } else {
         // Fallback (no cached Projections-tab base, or player outside its
@@ -667,7 +693,19 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             const scenPts = sdioP.FantasyPointsPPR ?? 0;
             if (basePts > 0) ppg *= scenPts / basePts;
           }
-          if (scoringFormat !== 'ppr') {
+          if (scoringFormat === 'sfb') {
+            // No exact tool line here — scale the displayed PPG by the
+            // synthetic line's SFB/PPR ratio so the model PPG stays the
+            // anchor while the magnitude moves to SFB scale.
+            const sfbPts = computeSFBPoints({
+              position, games: GAMES,
+              passAtt: sdioP.PassingAttempts || 0, passYds: sdioP.PassingYards || 0, passTD: sdioP.PassingTouchdowns || 0,
+              rushAtt: sdioP.RushingAttempts || 0, rushYds: sdioP.RushingYards || 0, rushTD: sdioP.RushingTouchdowns || 0,
+              rec: sdioP.Receptions || 0, recYds: sdioP.ReceivingYards || 0, recTD: sdioP.ReceivingTouchdowns || 0,
+            });
+            const pprPts = sdioP.FantasyPointsPPR || 0;
+            if (pprPts > 0 && sfbPts > 0) ppg *= sfbPts / pprPts;
+          } else if (scoringFormat !== 'ppr') {
             // Receptions in the synthetic line are real (recPG-based), so
             // subtracting reception points per game re-scores exactly.
             const recPG = (sdioP.Receptions || 0) / GAMES;
@@ -1075,7 +1113,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
           {/* League scoring */}
           <select
             value={scoringFormat}
-            onChange={e => setScoringFormat(e.target.value as 'ppr' | 'half' | 'standard')}
+            onChange={e => setScoringFormat(e.target.value as 'ppr' | 'half' | 'standard' | 'sfb')}
             title="League scoring — re-scores PPG from the projected stat line"
             style={{
               background: 'var(--bg-secondary)', border: '1px solid var(--border)',
@@ -1086,6 +1124,7 @@ export function MyRankings({ scenario }: { scenario: ScenarioConfig }) {
             <option value="ppr">PPR</option>
             <option value="half">Half-PPR</option>
             <option value="standard">Standard</option>
+            <option value="sfb">Scott Fish Bowl</option>
           </select>
           <input
             value={rankingName}

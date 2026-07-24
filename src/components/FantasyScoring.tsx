@@ -16,6 +16,7 @@ const FORMAT_LABELS: Record<ScoringFormat, string> = {
   standard: 'Standard',
   half_ppr: 'Half PPR',
   ppr: 'Full PPR',
+  sfb: 'Scott Fish Bowl',
   custom: 'Custom',
 };
 
@@ -31,6 +32,10 @@ const SETTING_LABELS: Record<keyof ScoringSettings, string> = {
   fumble_lost: 'Fumble Lost',
   two_pt_conversion: '2-Pt Conversion',
   special_teams_td: 'Special Teams TD',
+  first_down: 'Rush/Rec 1st Down',
+  te_reception_bonus: 'TE Rec Bonus',
+  te_first_down_bonus: 'TE 1st Down Bonus',
+  big_play_bonus: 'Big Play Bonus',
 };
 
 type ScoredPlayer = SeasonTotals & { customPoints: number };

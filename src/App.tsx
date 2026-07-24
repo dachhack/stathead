@@ -24,6 +24,7 @@ import { ScheduleView } from './components/ScheduleView';
 import { SleeperLeagueView } from './components/SleeperLeagueView';
 import { SleeperUserSnooper } from './components/SleeperUserSnooper';
 import { SleeperWaiverWire } from './components/SleeperWaiverWire';
+import { SFBCheatsheet } from './components/SFBCheatsheet';
 import { ConsensusAdpView } from './components/ConsensusAdpView';
 import { ExternalRankings2026 } from './components/ExternalRankings2026';
 import { RookieRBChart } from './components/RookieRBChart';
@@ -107,6 +108,7 @@ const TAB_GROUPS: TabGroup[] = [
       { id: 'rookie-ramp', label: 'Rookie Snap Tracker' },
       { id: 'buzz-tracker', label: 'Buzz Tracker' },
       { id: 'sleeper-waivers', label: 'Sleeper Waiver Wire' },
+      { id: 'sfb-cheatsheet', label: 'SFB16 Cheatsheet' },
       { id: 'data-query', label: 'Data Query (SQL)' },
       { id: 'model-docs', label: 'Model Docs' },
     ],
@@ -347,6 +349,7 @@ function App() {
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
         {tab === 'buzz-tracker' && <BuzzTracker />}
+        {tab === 'sfb-cheatsheet' && <SFBCheatsheet />}
         {tab === 'consensus-adp' && <ConsensusAdpView />}
         {tab === 'ktc' && <DynastyView onDataLoaded={onDataLoaded} />}
           </>

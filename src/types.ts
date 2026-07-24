@@ -86,9 +86,19 @@ export interface SeasonTotals {
   rushing_2pt_conversions: number;
   receiving_2pt_conversions: number;
   special_teams_tds: number;
+  // Present when aggregated from nflverse weekly rows (aggregateToSeasonTotals);
+  // undefined from other producers, in which case SFB scoring estimates them.
+  rushing_first_downs?: number;
+  receiving_first_downs?: number;
+  // Milestone-game counts for bonus scoring (SFB16): games with 300+/400+
+  // passing yards and 100+/200+ rush+rec yards.
+  games_300_pass?: number;
+  games_400_pass?: number;
+  games_100_scrim?: number;
+  games_200_scrim?: number;
 }
 
-export type ScoringFormat = 'standard' | 'half_ppr' | 'ppr' | 'custom';
+export type ScoringFormat = 'standard' | 'half_ppr' | 'ppr' | 'sfb' | 'custom';
 
 export interface ScoringSettings {
   passing_yard: number;
@@ -102,6 +112,16 @@ export interface ScoringSettings {
   fumble_lost: number;
   two_pt_conversion: number;
   special_teams_td: number;
+  /** Points per rushing/receiving first down (SFB16: 0.5). */
+  first_down: number;
+  /** Extra points per TE reception on top of `reception` (SFB16: +1). */
+  te_reception_bonus: number;
+  /** Extra points per TE receiving first down on top of `first_down` (SFB16: +1). */
+  te_first_down_bonus: number;
+  /** Points per big play / milestone: 40+ yd pass or rush plays, 20+ yd
+   *  receptions, and 300/400-yd passing + 100/200-yd scrimmage games
+   *  (SFB16: 10). Big-play counts are estimated from the season line. */
+  big_play_bonus: number;
 }
 
 export type SortDirection = 'asc' | 'desc';
@@ -222,7 +242,8 @@ export type Tab =
   | 'my-rankings'
   | 'my-prospects'
   | 'taxi-squad'
-  | 'data-query';
+  | 'data-query'
+  | 'sfb-cheatsheet';
 
 // --- Fantasy Rankings (FantasyPros ECR / ADP) ---
 export interface FantasyRanking {
