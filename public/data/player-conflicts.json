@@ -3,6 +3,15 @@
   "version":1,
   "conflicts":[
     {
+      "gsis_id":"00-0040677",
+      "display_name":"Abdul Carter",
+      "position":"LB",
+      "birth_dates":[
+        "2003-10-03",
+        "2004-01-02"
+      ]
+    },
+    {
       "gsis_id":"00-0038624",
       "display_name":"Ameer Speed",
       "position":"DB",
@@ -48,6 +57,24 @@
       ]
     },
     {
+      "gsis_id":"00-0039679",
+      "display_name":"Ben Nikkel",
+      "position":"WR",
+      "birth_dates":[
+        "1999-09-24",
+        "2001-05-12"
+      ]
+    },
+    {
+      "gsis_id":"00-0040156",
+      "display_name":"Billy Bowman Jr.",
+      "position":"DB",
+      "birth_dates":[
+        "2003-01-13",
+        "2003-01-29"
+      ]
+    },
+    {
       "gsis_id":"00-0036379",
       "display_name":"Bradlee Anae",
       "position":"DL",
@@ -66,12 +93,30 @@
       ]
     },
     {
+      "gsis_id":"00-0039332",
+      "display_name":"C.J. Ravenell",
+      "position":"DL",
+      "birth_dates":[
+        "2000-05-07",
+        "2000-07-07"
+      ]
+    },
+    {
       "gsis_id":"00-0035630",
       "display_name":"Chris Lindstrom",
       "position":"OL",
       "birth_dates":[
         "1997-02-08",
         "1997-02-28"
+      ]
+    },
+    {
+      "gsis_id":"00-0037260",
+      "display_name":"DJ Davidson",
+      "position":"DL",
+      "birth_dates":[
+        "1997-09-19",
+        "1999-09-19"
       ]
     },
     {
@@ -102,6 +147,15 @@
       ]
     },
     {
+      "gsis_id":"00-0040550",
+      "display_name":"Dontae Manning",
+      "position":"DB",
+      "birth_dates":[
+        "2001-09-17",
+        "2001-09-27"
+      ]
+    },
+    {
       "gsis_id":"00-0035282",
       "display_name":"Easton Stick",
       "position":"QB",
@@ -111,12 +165,39 @@
       ]
     },
     {
+      "gsis_id":"00-0037096",
+      "display_name":"Elijah Hicks",
+      "position":"DB",
+      "birth_dates":[
+        "1997-09-16",
+        "1999-10-16"
+      ]
+    },
+    {
+      "gsis_id":"00-0040574",
+      "display_name":"Elijah Ponder",
+      "position":"LB",
+      "birth_dates":[
+        "2002-08-24",
+        "2002-08-29"
+      ]
+    },
+    {
       "gsis_id":"00-0038604",
       "display_name":"Eric Scott Jr.",
       "position":"DB",
       "birth_dates":[
         "1998-08-07",
         "1999-08-07"
+      ]
+    },
+    {
+      "gsis_id":"00-0040249",
+      "display_name":"Fadil Diggs",
+      "position":"LB",
+      "birth_dates":[
+        "2001-10-05",
+        "2001-10-15"
       ]
     },
     {
@@ -135,6 +216,15 @@
       "birth_dates":[
         "2001-04-11",
         "2002-04-11"
+      ]
+    },
+    {
+      "gsis_id":"00-0037661",
+      "display_name":"Ja'Marcus Ingram",
+      "position":"DB",
+      "birth_dates":[
+        "1997-08-04",
+        "1997-09-02"
       ]
     },
     {
@@ -174,6 +264,24 @@
       ]
     },
     {
+      "gsis_id":"00-0040643",
+      "display_name":"Jonas Sanker",
+      "position":"DB",
+      "birth_dates":[
+        "2001-11-23",
+        "2002-11-23"
+      ]
+    },
+    {
+      "gsis_id":"00-0039755",
+      "display_name":"KT Leveston",
+      "position":"OL",
+      "birth_dates":[
+        "1999-08-28",
+        "1999-10-28"
+      ]
+    },
+    {
       "gsis_id":"00-0038696",
       "display_name":"Keidron Smith",
       "position":"DB",
@@ -207,6 +315,24 @@
       "birth_dates":[
         "1996-09-12",
         "1996-11-12"
+      ]
+    },
+    {
+      "gsis_id":"00-0039887",
+      "display_name":"Layden Robinson",
+      "position":"OL",
+      "birth_dates":[
+        "2001-03-03",
+        "2001-05-03"
+      ]
+    },
+    {
+      "gsis_id":"00-0038426",
+      "display_name":"Lorenz Metz",
+      "position":"OL",
+      "birth_dates":[
+        "1997-03-07",
+        "1999-03-07"
       ]
     },
     {
@@ -255,6 +381,15 @@
       ]
     },
     {
+      "gsis_id":"00-0040187",
+      "display_name":"Mitchell Evans",
+      "position":"TE",
+      "birth_dates":[
+        "2003-03-18",
+        "2003-05-18"
+      ]
+    },
+    {
       "gsis_id":"00-0033445",
       "display_name":"Nicholas Morrow",
       "position":"LB",
@@ -282,6 +417,15 @@
       ]
     },
     {
+      "gsis_id":"00-0038100",
+      "display_name":"Percy Butler",
+      "position":"DB",
+      "birth_dates":[
+        "2000-05-05",
+        "2000-05-29"
+      ]
+    },
+    {
       "gsis_id":"00-0036961",
       "display_name":"Richie Grant",
       "position":"DB",
@@ -297,6 +441,15 @@
       "birth_dates":[
         "2002-04-03",
         "2002-06-03"
+      ]
+    },
+    {
+      "gsis_id":"00-0040153",
+      "display_name":"Sai'vion Jones",
+      "position":"DL",
+      "birth_dates":[
+        "2003-06-03",
+        "2003-07-03"
       ]
     },
     {
