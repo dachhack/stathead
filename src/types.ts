@@ -205,6 +205,7 @@ export interface DynastyPlayerHistory {
 export type Tab =
   | 'home'
   | 'projections'
+  | 'weekly-projections'
   | 'scenario-builder'
   | 'schedule'
   | 'stats'

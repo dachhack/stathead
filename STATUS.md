@@ -24,9 +24,14 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-07-24 — Merged the SFB16 branch (scoring + cheatsheet tab, built
-2026-07-10/11) into the default branch; ran live SFB16 draft support
-(Sleeper-synced draft board artifact, pick recommendations).
+2026-07-24 — First weekly-projections layer: new
+`scripts/build-weekly-projections.py` splits the season pool across the
+2026 schedule (opponent def-vs-pos multipliers from 2025 points allowed,
+regressed 60% + home/away, normalized back to the season line) into
+committed `weekly-projections-2026.json`, refreshed daily by
+`refresh-data.yml`; new "Weekly Projections" tab (week/pos/scoring
+filters, matchup badges, playoff-weeks outlook). Season projections
+already auto-refresh daily.
 
 ## Current blockers
 
@@ -41,3 +46,6 @@ in the offseason. Automated daily data snapshots commit regardless.
    high-YPR receivers (candidate: coefficient 0.022 → ~0.018).
 3. Post-draft SFB16 recap: score all 12 rosters with the SFB model once
    the Sleeper draft completes (draft 1366445711050162176).
+4. Weekly projections v2: in-season re-projection (blend actuals as weeks
+   complete), Vegas totals/spreads as game-environment multipliers, and
+   injury/depth-chart awareness.

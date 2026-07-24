@@ -41,6 +41,7 @@ public/data/clay-team-projections-*.json
 !public/data/ktc-forecasts-*.json
 !public/data/redraft-projections.json
 !public/data/projection-base-*.json
+!public/data/weekly-projections-*.json
 !public/data/model-eval-*.json
 !public/data/team-metrics-*.json
 !public/data/coach-tendencies.json
