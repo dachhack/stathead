@@ -23,6 +23,11 @@ const SECTIONS: Section[] = [
           'Full player projections with scenario builder — adjust team volume, pass rates, movements, and free-agent signings.',
       },
       {
+        label: 'Weekly Projections',
+        tab: 'weekly-projections',
+        blurb: 'Season projections split week by week: opponent defense-vs-position matchup multipliers, home/away, byes, and a playoff-weeks (15–17) outlook — in PPR, Half, or Standard.',
+      },
+      {
         label: 'Scenario Builder',
         tab: 'scenario-builder',
         blurb: 'Full-page team workspace: per-player target/carry adjustments, team levers, PPR deltas, and Excel export.',

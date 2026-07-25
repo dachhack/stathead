@@ -116,6 +116,13 @@ jobs:
       - name: Build model-eval artifact
         run: node scripts/build-model-eval.mjs
 
+      # Split the freshly-rebuilt season pool into per-week projections
+      # (opponent def-vs-pos multipliers + home/away, normalized back to the
+      # season line). Reads projection-base + schedule + prior-year weekly
+      # stats — all committed, no extra deps. Never fatal.
+      - name: Build weekly projections
+        run: python3 scripts/build-weekly-projections.py || echo "weekly projections build failed (non-fatal)"
+
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
       # their synthetic COL keys to canonical NFL gsis-based keys as soon
@@ -166,6 +173,7 @@ jobs:
           git add public/data/training-rows-cache-*.json \
                   public/data/feature-matrix.json \
                   public/data/projection-base-2026.json \
+                  public/data/weekly-projections-2026.json \
                   public/data/model-eval-2026.json \
                   public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \
