@@ -38402,6 +38402,9 @@ async function fetchCoachTendencies() {
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
+async function fetchWeeklyProjections(season) {
+  return await tryPreFetched(`weekly-projections-${season}.json`);
+}
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
 }
@@ -39557,6 +39560,22 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_weekly_projections",
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Points assume the player suits up. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        week: { type: "number", description: "NFL week (1-18) to rank. Omit together with player_name for a player's full-season strip; omitting both defaults to week 1." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
+        player_name: { type: "string", description: "Filter to one player. Without week, returns their all-18-weeks outlook." },
+        team: { type: "string", description: "Filter to one NFL team abbreviation (e.g. DET)." },
+        scoring: { type: "string", description: "Scoring format for the points columns. Default ppr.", enum: ["ppr", "half", "std"] },
+        limit: { type: "number", description: "Max players (default 50)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_college_stats",
     description: 'Get college football statistics for individual players OR a whole class/cohort. Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit player_name and pass season (optionally position/school) and sort_by to rank. Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
@@ -40306,7 +40325,8 @@ async function executeToolInner(name, input) {
           "- Next Gen Stats: 2016\u2013present \xB7 QBR: 2006\u2013present \xB7 FTN charting: 2022\u2013present",
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
           "- StatHead blended dynasty/redraft values, Sleeper trending, expert rankings: **current season only**",
-          "- StatHead in-house season projections (`get_projections`): **2026**"
+          "- StatHead in-house season projections (`get_projections`): **2026**",
+          "- StatHead weekly (per-game, matchup-adjusted) projections (`get_weekly_projections`): **2026**, weeks 1–18"
         ].join("\n"),
         "## Enumerations",
         [
@@ -42090,6 +42110,7 @@ ${renderTable(input, rows)}`;
       lines.push([
         "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. Because raw VOR doesn't discriminate within the draftable pool (every drafted player clears the absolute threshold), get_player_features reports a CALIBRATED Hit/Bust % relative to DRAFT COST: the historical rate at which players drafted near that ADP beat/missed their slot, tilted by the model's value-vs-ADP lean, evaluated at the live consensus ADP. Per-player drivers + Hit/Bust %: get_player_features.",
         "- **Season projection pipeline (get_projections)**: team volume from a Ridge+LightGBM team ensemble is split to players by ML target/rush-share models, with games (health) and age-curve adjustments; veterans blend prior-year actual + 2yr avg + age curve, rookies use the rookie career model. By-team workbook: export_excel kind=by_team.",
+        "- **Weekly projections (get_weekly_projections)**: the season line split per week — opponent def-vs-position multipliers (prior-season PPR allowed/gm vs league avg, shrunk 60% toward mean, clamped \xB118%) \xD7 home/away (\xB12%), normalized per team so the 17 games sum back to the season projection.",
         "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale.",
         "- **Prospect grades (get_prospect_outcomes)**: draft grade/tier + calibrated, draft-slot-relative boom/bust."
       ].join("\n"));
@@ -42319,6 +42340,87 @@ ${renderTable(input, rows)}`;
       return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}${ovNote}
 
 ${renderTable(input, out, cols)}`;
+    }
+    case "get_weekly_projections": {
+      const doc = await fetchWeeklyProjections(2026);
+      if (!doc || !doc.players?.length) {
+        return "No StatHead weekly projections available.";
+      }
+      const position = input.position?.toUpperCase();
+      const teamFilter = input.team?.toUpperCase();
+      const playerName = input.player_name;
+      const scoring = (input.scoring || "ppr").toLowerCase();
+      const limit = clamp(input.limit || 50, 1, 300);
+      const nWeeks = doc.weeks || 18;
+      // Convert a weekly PPR number to the requested format. Weekly receptions
+      // scale with the same matchup multiplier as points, so season recPG is
+      // enough: rec_w = recPG * pts / ppg.
+      const score = (p, ppr) => {
+        if (scoring === "ppr" || !(p.ppg > 0)) return ppr;
+        const recW = (p.recPG || 0) * (ppr / p.ppg);
+        return scoring === "half" ? ppr - 0.5 * recW : ppr - recW;
+      };
+      const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : "PPR";
+      // import_excel season-PPG overrides scale the weekly strip proportionally.
+      let ovNote = "";
+      const ovDoc = await loadOverrides();
+      const ovFactor = (p) => {
+        const o = ovDoc.projections?.byName?.[normalizeNameForMatch(p.name)];
+        return o && Number.isFinite(Number(o.ppg)) && p.ppg > 0 ? Number(o.ppg) / p.ppg : 1;
+      };
+      const oppFor = (team, w) => (doc.teamWeeks?.[team] || []).find((g) => g.w === w) || null;
+      const multFor = (game, pos) => game ? doc.defVsPos?.[game.opp]?.[pos] ?? 1 : null;
+      const fmtOpp = (game) => game ? `${game.home ? "vs" : "@"} ${game.opp}` : "BYE";
+      const fmtMult = (m) => m == null ? "" : `${m >= 1 ? "+" : ""}${Math.round((m - 1) * 100)}%`;
+      let pool = doc.players.filter((p) => (!position || p.pos === position) && (!teamFilter || p.team === teamFilter) && (!playerName || nameMatch(p.name, playerName)));
+      if (!pool.length) return `No projected player matching those filters. Coverage: ${doc.players.length} 2026 skill players (QB/RB/WR/TE) with a team and a season projection.`;
+      if (playerName && input.week == null) {
+        const p = pool[0];
+        const f = ovFactor(p);
+        if (f !== 1) ovNote = ` Season PPG overridden from your uploaded sheet (import_excel) — weekly points scaled \xD7${f.toFixed(2)}; run clear_overrides to revert.`;
+        const rows = [];
+        for (let w = 1; w <= nWeeks; w++) {
+          const raw = p.wk[w - 1];
+          const game = oppFor(p.team, w);
+          rows.push({
+            week: w,
+            opp: fmtOpp(game),
+            matchup: fmtMult(multFor(game, p.pos)),
+            pts: raw == null ? null : Math.round(score(p, raw * f) * 10) / 10
+          });
+        }
+        const cols2 = ["week", "opp", "matchup", "pts"];
+        return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${ovNote} ${doc.note || ""}
+
+${renderTable(input, rows.map((r) => pickColumns(r, cols2)), cols2)}`;
+      }
+      const week = clamp(input.week || 1, 1, nWeeks);
+      const byeTeams = [...new Set(pool.filter((p) => p.wk[week - 1] == null).map((p) => p.team))].sort();
+      let ovCount = 0;
+      let rows = pool.map((p) => {
+        const raw = p.wk[week - 1];
+        if (raw == null) return null;
+        const f = ovFactor(p);
+        if (f !== 1) ovCount++;
+        const game = oppFor(p.team, week);
+        return {
+          name: p.name,
+          position: p.pos,
+          team: p.team,
+          opp: fmtOpp(game),
+          matchup: fmtMult(multFor(game, p.pos)),
+          pts: Math.round(score(p, raw * f) * 10) / 10,
+          seasonPPG: Math.round(score(p, p.ppg * f) * 10) / 10
+        };
+      }).filter(Boolean);
+      rows.sort((a, b) => b.pts - a.pts);
+      rows = rows.slice(0, limit);
+      if (ovCount) ovNote = ` ${ovCount} player(s) scaled by your uploaded season-PPG overrides (import_excel); run clear_overrides to revert.`;
+      const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
+      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "seasonPPG"];
+      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line; assumes the player plays.${byeNote}${ovNote}
+
+${renderTable(input, rows.map((r) => pickColumns(r, cols2)), cols2)}`;
     }
     case "get_college_stats": {
       const playerName = input.player_name;
@@ -42785,7 +42887,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.61";
+var SERVER_VERSION = "1.0.62";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

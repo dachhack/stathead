@@ -35,13 +35,14 @@ from .projections import (
     load_share_projections,
     load_taxi_predictions,
     load_volume_projections,
+    load_weekly_projections,
 )
 from .polars import load_polars, to_polars
 from .prospects import load_prospect_grades
 from .sql import list_tables, query, register
 from .stats import load_player_stats
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 __all__ = [
     "__version__",
@@ -67,6 +68,7 @@ __all__ = [
     "load_share_projections",
     "load_taxi_predictions",
     "load_volume_projections",
+    "load_weekly_projections",
     "get_player",
     "resolve_player",
     "query",
