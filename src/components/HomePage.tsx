@@ -159,7 +159,7 @@ const LOADERS: { fn: string; desc: string }[] = [
   { fn: 'load_ppg_projections()', desc: 'Model-predicted PPG, established players (~250)' },
   { fn: 'load_adp_value_model()', desc: 'VOR vs ADP, hit prob, conf. interval (~153 × 10)' },
   { fn: 'load_volume_projections()', desc: 'Team pass/rush/target volumes w/ bands (~153)' },
-  { fn: 'load_weekly_projections()', desc: 'Per-week matchup-adjusted projections (~445 × 17)' },
+  { fn: 'load_weekly_projections()', desc: 'Per-week matchup-adjusted projections incl. K + DST (~509 × 17)' },
   { fn: 'load_share_projections()', desc: 'Predicted target + rush share (~153)' },
   { fn: 'load_taxi_predictions()', desc: 'Taxi-squad roster/drop probabilities (~96)' },
   { fn: 'load_player_stats(season=None)', desc: 'Per-week NFL box scores 2010-present (~400k)' },

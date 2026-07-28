@@ -40,7 +40,9 @@ projection rows, silent 300/200-row caps lifted to 1000 with explicit
 truncation notes, sleeper-projections `fields` bug fixed, in-season
 def-vs-pos blend wired in the builder. Deferred items (in-season base
 re-fit, Vegas multipliers, uncertainty bands) logged in
-docs/MCP_FEEDBACK_BACKLOG.md Round 22. 1.0.63 not yet published.
+docs/MCP_FEEDBACK_BACKLOG.md Round 22. Added K + team-DST weekly
+projections (32 each: depth-chart PK1s, team context + same matchup
+framework; defVsPos gains K/DST entries). 1.0.63 not yet published.
 
 ## Current blockers
 

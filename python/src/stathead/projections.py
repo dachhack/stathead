@@ -48,7 +48,9 @@ def load_redraft_projections() -> pd.DataFrame:
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
-    omitted).
+    omitted). Covers QB/RB/WR/TE plus kickers (position ``K``, the current
+    depth-chart PK1 per team) and team defenses (position ``DST``, name
+    ``"<TEAM> DST"``, ``sleeper_id`` = team code).
 
     Weekly points = season PPG x opponent defense-vs-position multiplier
     (prior-season PPR allowed per game vs league average, heavily regressed)

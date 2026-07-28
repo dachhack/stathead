@@ -39599,13 +39599,13 @@ var NFL_TOOLS = [
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gsis_id/sleeper_id (select via fields). Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K) and team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) projected from team context on the same matchup framework. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gsis_id/sleeper_id (select via fields). Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
         week: { type: "number", description: "NFL week (1-18) to rank. Omit together with player_name for a player's full-season strip; omitting both defaults to week 1." },
-        position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
-        player_name: { type: "string", description: "Filter to one player. Without week, returns their all-18-weeks outlook." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE, K, DST)." },
+        player_name: { type: "string", description: "Filter to one player. Without week, returns their all-18-weeks outlook. DSTs match by team name (e.g. \"SEA DST\")." },
         team: { type: "string", description: "Filter to one NFL team abbreviation (e.g. DET)." },
         scoring: { type: "string", description: "Scoring format for the points columns. Default ppr.", enum: ["ppr", "half", "std"] },
         limit: { type: "number", description: "Max players (default 50)." }
@@ -40364,7 +40364,7 @@ async function executeToolInner(name, input) {
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
           "- StatHead blended dynasty/redraft values, Sleeper trending, expert rankings: **current season only**",
           "- StatHead in-house season projections (`get_projections`): **2026**",
-          "- StatHead weekly (per-game, matchup-adjusted, injury-aware in-season) projections (`get_weekly_projections`): **2026**, weeks 1–18; responses carry as_of + gsis/sleeper ids"
+          "- StatHead weekly (per-game, matchup-adjusted, injury-aware in-season) projections (`get_weekly_projections`): **2026**, weeks 1–18, QB/RB/WR/TE + K + team DST; responses carry as_of + gsis/sleeper ids"
         ].join("\n"),
         "## Enumerations",
         [
