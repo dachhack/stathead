@@ -143,6 +143,11 @@ def test_weekly_projections():
     sums = df.groupby("name").agg(total=("proj_ppr", "sum"), ppg=("ppg", "first"))
     assert ((sums["total"] - sums["ppg"] * 17).abs() < 1.0).all()
     assert isinstance(df.attrs.get("def_vs_pos"), dict)
+    # K + DST: one per team, 32 each.
+    assert (df[df["position"] == "K"]["team"].nunique()) == 32
+    dst = df[df["position"] == "DST"]
+    assert dst["team"].nunique() == 32
+    assert (dst["sleeper_id"] == dst["team"]).all()
 
 
 def test_ppg_and_adp_value_model():

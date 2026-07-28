@@ -48,7 +48,9 @@ def load_redraft_projections() -> pd.DataFrame:
 def load_weekly_projections() -> pd.DataFrame:
     """Per-week 2026 projections — the season projection split across the
     schedule, one row per player per scheduled game (17 rows/player; byes
-    omitted).
+    omitted). Covers QB/RB/WR/TE plus kickers (position ``K``, the current
+    depth-chart PK1 per team) and team defenses (position ``DST``, name
+    ``"<TEAM> DST"``, ``sleeper_id`` = team code).
 
     Weekly points = season PPG x opponent defense-vs-position multiplier
     (prior-season PPR allowed per game vs league average, heavily regressed)
@@ -57,9 +59,11 @@ def load_weekly_projections() -> pd.DataFrame:
     games (health) discount. Half/Std conversion: weekly receptions scale
     with the same multiplier, so ``rec_w = recPG * proj_ppr / ppg``.
 
-    Columns: ``player_key``, ``name``, ``position``, ``team``, ``week``,
-    ``opp``, ``home``, ``matchup_mult``, ``proj_ppr``, ``ppg``, ``recPG``,
-    ``gp``, ``season``.
+    Columns: ``player_key``, ``name``, ``position``, ``team``, ``gsis_id``,
+    ``sleeper_id``, ``week``, ``opp``, ``home``, ``matchup_mult``,
+    ``proj_ppr``, ``ppg``, ``recPG``, ``gp``, ``season``. The gsis/sleeper
+    ids are stamped at build time from the player crosswalk (None for
+    pre-NFL rookies).
 
     Metadata on ``df.attrs``: ``meta`` (generatedAt + method note) and
     ``def_vs_pos`` (per-team defense-vs-position multiplier table).
@@ -82,6 +86,8 @@ def load_weekly_projections() -> pd.DataFrame:
                 "name": p["name"],
                 "position": p["pos"],
                 "team": p["team"],
+                "gsis_id": p.get("gsis"),
+                "sleeper_id": p.get("sleeper"),
                 "week": week,
                 "opp": game["opp"],
                 "home": game["home"],

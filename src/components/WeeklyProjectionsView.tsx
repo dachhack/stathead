@@ -26,7 +26,7 @@ interface WeeklyDoc {
 }
 
 type Scoring = 'ppr' | 'half' | 'std';
-const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE'] as const;
+const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DST'] as const;
 const PLAYOFF_WEEKS = [15, 16, 17];
 
 // Matchup multiplier color: >1 = softer matchup (green), <1 = tougher (red).
@@ -112,7 +112,8 @@ export function WeeklyProjectionsView() {
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0', maxWidth: 720 }}>
           Season projection split across the schedule: opponent defense-vs-position strength
           (last season&apos;s points allowed, heavily regressed) plus a home/away nudge, normalized so the
-          17 weeks sum back to the season line. Points assume the player suits up.
+          17 weeks sum back to the season line. Points assume the player suits up. Kickers (current
+          depth-chart PK1) and team DST are projected from team context with the same matchup framework.
         </p>
       </div>
 
