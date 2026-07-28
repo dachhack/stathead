@@ -95,9 +95,22 @@ the URLs via env vars. Copy [`.env.example`](.env.example) to `.env.local` and s
 | `VITE_KTC_PROXY` | KeepTradeCut dynasty values (`workers/ktc-proxy`) |
 | `VITE_FC_PROXY` | FantasyCalc values (`workers/fc-proxy`) |
 | `VITE_ESPN_NEWS_PROXY` | ESPN player news/overview (`workers/espn-news-proxy`) |
+| `VITE_VISIT_TRACKER` | Visitor analytics beacon (`workers/visit-tracker`) |
 
 Each falls back to the project's worker when unset. Deploy a worker with
 `cd workers/<name> && npx wrangler deploy` (or use the deploy workflow).
+
+### Visitor analytics
+
+The app sends a first-party, cookie-less pageview beacon per tab view to
+[`workers/visit-tracker`](workers/visit-tracker), which writes to Cloudflare
+Workers Analytics Engine. No third parties, no identifiers stored in the
+browser, no raw IPs kept — visitors are counted with a daily-rotating
+anonymous hash, and Do Not Track / Global Privacy Control are honored.
+Aggregates (daily views/visitors, top pages, referrers, countries) are served
+by the worker's `/stats` endpoint and a small dashboard at its root URL. See
+the worker's header comment for the data layout and the one-time
+`CLOUDFLARE_ANALYTICS_API_TOKEN` setup.
 
 ## Environments
 

@@ -24,7 +24,16 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-07-24 — First weekly-projections layer: new
+2026-07-28 — Visitor tracking: first-party, cookie-less pageview analytics
+(new `workers/visit-tracker` Cloudflare Worker on Workers Analytics
+Engine + a `sendBeacon` hook in the app; daily-rotating anonymous
+visitor hash, DNT/GPC honored). `/stats` JSON + mini dashboard at
+visit-tracker.dachhack.workers.dev; deploy wired into
+`deploy-workers.yml`. One-time setup: add repo secret
+`CLOUDFLARE_ANALYTICS_API_TOKEN` (Account Analytics: Read) and dispatch
+deploy-workers after merge.
+
+Previously (2026-07-24) — First weekly-projections layer: new
 `scripts/build-weekly-projections.py` splits the season pool across the
 2026 schedule (opponent def-vs-pos multipliers from 2025 points allowed,
 regressed 60% + home/away, normalized back to the season line) into

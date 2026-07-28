@@ -1,6 +1,48 @@
 # StatHead — session handoff
 
-Last updated 2026-06-12 (mock draft session). **Resume section directly below;** older notes follow.
+Last updated 2026-07-28 (visitor tracking session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-07-28, visitor tracking — `claude/visitor-tracking-ltdowx`)
+
+First-party, privacy-friendly web analytics for stathead.app — self-hosted
+on the existing Cloudflare stack, no third-party trackers.
+
+- **New worker `workers/visit-tracker`** writing to a Workers **Analytics
+  Engine** dataset (`stathead_visits`, auto-created on deploy, free tier).
+  `POST /hit` beacon: same origin-allowlist as the other workers, bot-UA
+  filter, no cookies / no stored IPs — visitors are
+  `SHA-256(UTC day | IP | UA)` truncated, so the id rotates daily. Blob
+  layout documented in the worker header (page, site host, external
+  referrer, country, visitor hash).
+- **`GET /stats?days=1..90`** aggregates via the Analytics Engine SQL API
+  (daily views + unique visitors, top pages/referrers/countries; 5-min
+  edge cache; `count(DISTINCT …)` guarded so visitors degrade to null if
+  the dialect rejects it). **`GET /`** serves a tiny self-contained HTML
+  dashboard over /stats → https://visit-tracker.dachhack.workers.dev
+- **App beacon** `src/lib/visitTracker.ts` + one effect in `App.tsx`: one
+  hit per tab view (player cards log as `player-detail`), `sendBeacon` as
+  text/plain (no preflight), skips localhost, honors DNT + GPC, dedupes
+  StrictMode double-fires, never throws. Self-hosters override the URL
+  via `VITE_VISIT_TRACKER` (.env.example + README updated).
+- **`deploy-workers.yml`**: visit-tracker added to the matrix; its deploy
+  step also pushes the `ANALYTICS_API_TOKEN` worker secret from repo
+  secret `CLOUDFLARE_ANALYTICS_API_TOKEN` (falls back to
+  `CLOUDFLARE_API_TOKEN`).
+- **Requires the user (one-time):** `/stats` needs a Cloudflare API token
+  with **Account Analytics: Read** — create one, add it as the
+  `CLOUDFLARE_ANALYTICS_API_TOKEN` repo secret, and run deploy-workers
+  (dispatch → visit-tracker) after this merges to the base branch. Beacon
+  ingestion works without it; only /stats & the dashboard need it. The
+  worker auto-discovers the account id (optional `CF_ACCOUNT_ID` secret
+  overrides).
+- Verified with a Node harness (25 checks: CORS matrix, blob layout, hash
+  stability/rotation-by-ip, internal-referrer collapse, bot/origin/junk
+  drops, stats assembly + clamps + caching, DISTINCT-failure degradation,
+  dashboard). `npm run build` + eslint clean. Possible follow-ups: an
+  in-app stats tab reading /stats, per-player detail pages
+  (`player/<key>`) once there's a key→name map at read time.
 
 ---
 
