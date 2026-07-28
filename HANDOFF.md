@@ -37,12 +37,23 @@ on the existing Cloudflare stack, no third-party trackers.
   ingestion works without it; only /stats & the dashboard need it. The
   worker auto-discovers the account id (optional `CF_ACCOUNT_ID` secret
   overrides).
+- **Daily email**: `scripts/daily-report.py` gained a "Site visitors"
+  section (first card in the email/job summary): yesterday / 7d / 30d
+  pageviews + unique visitors, a 30-day unicode sparkline, top pages,
+  referrers, countries, and a link to the worker dashboard. Degrades to
+  an "unavailable — …" note (including the 501 configure-token hint)
+  when the worker isn't deployed/configured, so the report never breaks.
+  Override the worker URL with `VISIT_TRACKER_URL` if self-hosting.
+  Decision: **no in-app stats tab** — the email digest + worker
+  dashboard are the reporting surfaces.
 - Verified with a Node harness (25 checks: CORS matrix, blob layout, hash
   stability/rotation-by-ip, internal-referrer collapse, bot/origin/junk
   drops, stats assembly + clamps + caching, DISTINCT-failure degradation,
-  dashboard). `npm run build` + eslint clean. Possible follow-ups: an
-  in-app stats tab reading /stats, per-player detail pages
-  (`player/<key>`) once there's a key→name map at read time.
+  dashboard) and a Python harness for the report section (12 checks:
+  happy path, null visitors, 501 hint, network failure, empty dataset),
+  plus a full daily-report.py run. `npm run build` + eslint clean.
+  Possible follow-up: per-player detail pages (`player/<key>`) once
+  there's a key→name map at read time.
 
 ---
 

@@ -28,7 +28,9 @@ in the offseason. Automated daily data snapshots commit regardless.
 (new `workers/visit-tracker` Cloudflare Worker on Workers Analytics
 Engine + a `sendBeacon` hook in the app; daily-rotating anonymous
 visitor hash, DNT/GPC honored). `/stats` JSON + mini dashboard at
-visit-tracker.dachhack.workers.dev; deploy wired into
+visit-tracker.dachhack.workers.dev; visit counts + top
+pages/referrers/countries now lead the daily report email (no in-app
+stats tab by design); deploy wired into
 `deploy-workers.yml`. One-time setup: add repo secret
 `CLOUDFLARE_ANALYTICS_API_TOKEN` (Account Analytics: Read) and dispatch
 deploy-workers after merge.

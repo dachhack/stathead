@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Daily StatHead health + data digest.
 
-Covers scheduled-pipeline activity over the last day, data-surface freshness
-(with staleness flags), the current model/version snapshot, roster changes vs
-~24h ago, and KTC dynasty movers. Emits both Markdown (for the Actions job
-summary) and styled HTML (for the email body).
+Covers site visitors (via the visit-tracker worker), scheduled-pipeline
+activity over the last day, data-surface freshness (with staleness flags),
+the current model/version snapshot, roster changes vs ~24h ago, and KTC
+dynasty movers. Emits both Markdown (for the Actions job summary) and styled
+HTML (for the email body).
 
     python3 scripts/daily-report.py                       # print Markdown
     python3 scripts/daily-report.py report.md report.html # also write files
@@ -17,6 +18,7 @@ import gzip
 import html as html_lib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -255,6 +257,92 @@ def _html_table(headers, rows):
         f'<table style="width:100%;border-collapse:collapse;">'
         f"<thead><tr>{th}</tr></thead><tbody>{''.join(trs)}</tbody></table>"
     )
+
+
+VISIT_TRACKER = os.environ.get("VISIT_TRACKER_URL", "https://visit-tracker.dachhack.workers.dev")
+_SPARK = "▁▂▃▄▅▆▇█"
+
+
+def _fetch_visit_stats(days):
+    """GET {VISIT_TRACKER}/stats?days=N → parsed JSON. Error bodies (e.g. the
+    501 'analytics token not configured' hint) come back as {'error': …} and
+    are surfaced in the report instead of raising."""
+    import urllib.error
+    import urllib.request
+    url = f"{VISIT_TRACKER}/stats?days={days}"
+    try:
+        with urllib.request.urlopen(url, timeout=25) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        try:
+            return json.loads(body)
+        except Exception:
+            raise RuntimeError(f"HTTP {e.code}: {body[:90]}") from None
+
+
+def _sparkline(vals):
+    hi = max(max(vals), 1) if vals else 1
+    return "".join(_SPARK[min(7, round(v / hi * 7))] for v in vals)
+
+
+def _n(v):
+    """Format a count; visitor counts can be null (see the worker's DISTINCT
+    fallback), and SQL-API numbers may arrive as strings."""
+    return "—" if v is None else f"{int(float(v)):,}"
+
+
+def _top_line(rows, key, limit):
+    return ", ".join(f"{r.get(key)} ({_n(r.get('views'))})" for r in rows[:limit]) or "—"
+
+
+def section_visitors():
+    """Site traffic from workers/visit-tracker (Workers Analytics Engine)."""
+    title = "Site visitors"
+    try:
+        s7 = _fetch_visit_stats(7)
+        s30 = _fetch_visit_stats(30)
+        err = s7.get("error") or s30.get("error")
+        if err:
+            raise RuntimeError(str(err)[:160])
+    except Exception as e:
+        note = f"unavailable — {e}"
+        return (
+            f"## {title}\n\n_({note})_\n",
+            _card(title, f'<div style="font-size:13px;color:{C_MUTED};">{esc(note)}</div>'),
+        )
+
+    ydate = (NOW - timedelta(days=1)).strftime("%Y-%m-%d")
+    y = next((d for d in s30.get("daily", []) if d.get("date") == ydate), None)
+    windows = [
+        ("Yesterday", y.get("views") if y else 0, y.get("visitors") if y else None),
+        ("Last 7 days", s7["totals"].get("views"), s7["totals"].get("visitors")),
+        ("Last 30 days", s30["totals"].get("views"), s30["totals"].get("visitors")),
+    ]
+    spark = _sparkline([int(float(d.get("views") or 0)) for d in s30.get("daily", [])])
+    pages = _top_line(s7.get("pages", []), "page", 5)
+    refs = _top_line(s7.get("referrers", []), "referrer", 3)
+    countries = _top_line(s7.get("countries", []), "country", 3)
+
+    md = [f"## {title}", "", "| Window | Pageviews | Visitors |", "|---|---|---|"]
+    md += [f"| {w} | {_n(v)} | {_n(u)} |" for w, v, u in windows]
+    md += ["", f"30-day trend: `{spark}`", "",
+           f"- **Top pages (7d):** {pages}",
+           f"- **Referrers (7d):** {refs}",
+           f"- **Countries (7d):** {countries}",
+           f"- [Dashboard →]({VISIT_TRACKER})", ""]
+
+    rows = [[w, _n(v), (_n(u), C_MUTED)] for w, v, u in windows]
+    inner = (
+        _html_table(["Window", "Pageviews", "Visitors"], rows)
+        + f'<div style="font-size:14px;color:{C_BLUE};margin:8px 0 2px;letter-spacing:1px;" title="Daily pageviews, last 30 days">{esc(spark)}'
+        + f' <span style="font-size:11px;color:{C_MUTED};letter-spacing:0;">30-day trend</span></div>'
+        + f'<div style="font-size:12px;color:{C_MUTED};margin-top:6px;line-height:1.6;">'
+        + f'<b>Top pages (7d):</b> {esc(pages)}<br>'
+        + f'<b>Referrers (7d):</b> {esc(refs)} · <b>Countries (7d):</b> {esc(countries)}<br>'
+        + f'<a href="{VISIT_TRACKER}" style="color:{C_BLUE};text-decoration:none;">Full dashboard →</a></div>'
+    )
+    return "\n".join(md), _card(title, inner)
 
 
 def section_pipeline():
@@ -515,6 +603,7 @@ def section_ktc_movers():
 # ── assemble ──────────────────────────────────────────────────────────
 def main():
     load_player_links()
+    vi_md, vi_html = section_visitors()
     pl_md, pl_html = section_pipeline()
     fr_md, fr_html, stale = section_freshness()
     ro_md, ro_html = section_roster()
@@ -531,7 +620,7 @@ def main():
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
         f"_{headline} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        pl_md, fr_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -550,7 +639,7 @@ def main():
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{pl_html}{fr_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )
