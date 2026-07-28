@@ -50,42 +50,98 @@ MULT_MIN, MULT_MAX = 0.82, 1.18
 HOME_MULT, AWAY_MULT = 1.02, 0.98
 
 
+# Once current-season weeks accumulate, blend the current season's def-vs-pos
+# signal over the prior season's: weight = n_weeks / (n_weeks + BLEND_K).
+BLEND_K = 6
+
+
 def load_json(name):
     with open(os.path.join(DATA, name)) as f:
         return json.load(f)
 
 
-def build_def_vs_pos():
-    """2025 REG-season PPR points allowed per game by each defense to each
-    position, shrunk toward league average → multiplier per (team, pos)."""
+def iter_weekly_rows(season):
+    """Yield weekly stat rows for a season, preferring the freshly-downloaded
+    .csv (CI) over the committed .csv.gz snapshot. Yields nothing when
+    neither exists (e.g. the current season before Week 1)."""
+    plain = os.path.join(DATA, f'player_stats_{season}.csv')
+    gz = os.path.join(DATA, f'player_stats_{season}.csv.gz')
+    if os.path.exists(plain):
+        with open(plain, newline='') as f:
+            yield from csv.DictReader(f)
+    elif os.path.exists(gz):
+        with gzip.open(gz, 'rt') as f:
+            yield from csv.DictReader(f)
+
+
+def def_ratios(season):
+    """(team, pos) -> PPR-allowed-per-game ratio vs league average for a
+    season's REG weeks, plus the number of defense-weeks observed."""
     pts = defaultdict(float)            # (def_team, pos) -> total PPR allowed
     games = defaultdict(set)            # def_team -> {game weeks}
-    path = os.path.join(DATA, f'player_stats_{PRIOR}.csv.gz')
-    with gzip.open(path, 'rt') as f:
-        for row in csv.DictReader(f):
-            if row.get('season_type') != 'REG':
-                continue
-            pos = row.get('position')
-            opp = row.get('opponent_team')
-            if pos not in POSITIONS or not opp:
-                continue
-            pts[(opp, pos)] += float(row.get('fantasy_points_ppr') or 0)
-            games[opp].add(row.get('week'))
-
-    per_game = {}
-    for (team, pos), total in pts.items():
-        n = len(games[team]) or 1
-        per_game[(team, pos)] = total / n
-
-    mults = {}
+    for row in iter_weekly_rows(season):
+        if row.get('season_type') != 'REG':
+            continue
+        pos = row.get('position')
+        opp = row.get('opponent_team')
+        if pos not in POSITIONS or not opp:
+            continue
+        pts[(opp, pos)] += float(row.get('fantasy_points_ppr') or 0)
+        games[opp].add(row.get('week'))
+    if not games:
+        return {}, 0
+    per_game = {k: total / (len(games[k[0]]) or 1) for k, total in pts.items()}
+    ratios = {}
     for pos in POSITIONS:
         vals = [per_game[(t, pos)] for t in games if (t, pos) in per_game]
         avg = sum(vals) / len(vals)
         for t in games:
-            ratio = per_game.get((t, pos), avg) / avg
+            ratios[(t, pos)] = per_game.get((t, pos), avg) / avg
+    n_weeks = max(len(w) for w in games.values())
+    return ratios, n_weeks
+
+
+def build_def_vs_pos():
+    """Defense-vs-position multipliers: prior-season PPR allowed per game vs
+    league average, blended with current-season numbers as weeks accumulate,
+    shrunk toward 1.0 (defensive signal is weak) and clamped."""
+    prior_ratios, _ = def_ratios(PRIOR)
+    cur_ratios, cur_weeks = def_ratios(SEASON)
+    w_cur = cur_weeks / (cur_weeks + BLEND_K) if cur_weeks else 0.0
+
+    mults = {}
+    teams = {t for t, _ in prior_ratios} | {t for t, _ in cur_ratios}
+    for t in teams:
+        for pos in POSITIONS:
+            prior = prior_ratios.get((t, pos), 1.0)
+            cur = cur_ratios.get((t, pos), prior)
+            ratio = (1 - w_cur) * prior + w_cur * cur
             m = 1 + DEF_SHRINK * (ratio - 1)
             mults.setdefault(t, {})[pos] = round(max(MULT_MIN, min(MULT_MAX, m)), 3)
-    return mults
+    return mults, w_cur, cur_weeks
+
+
+def build_id_map():
+    """(normalized name, pos) -> {gsis, sleeper} from the player crosswalk,
+    including alternate names, so projection rows carry stable ids."""
+    def norm(s):
+        s = s.lower().replace('.', '').replace("'", '')
+        for suf in (' jr', ' sr', ' iii', ' ii', ' iv', ' v'):
+            if s.endswith(suf):
+                s = s[: -len(suf)]
+        return ' '.join(s.split())
+
+    ids = {}
+    for r in load_json('player-crosswalk.json').get('players', []):
+        pos = r.get('position')
+        if pos not in POSITIONS:
+            continue
+        rec = {'gsis': r.get('gsis_id') or None, 'sleeper': r.get('sleeper_id') or None}
+        names = {r.get('display_name') or ''} | set(r.get('all_names') or [])
+        for n in names:
+            if n:
+                ids.setdefault((norm(n), pos), rec)
+    return ids, norm
 
 
 def build_team_weeks(schedule):
@@ -103,8 +159,9 @@ def build_team_weeks(schedule):
 def main():
     pool = load_json(f'projection-base-{SEASON}.json')
     schedule = load_json(f'schedule-{SEASON}.json')
-    def_vs_pos = build_def_vs_pos()
+    def_vs_pos, w_cur, cur_weeks = build_def_vs_pos()
     team_weeks = build_team_weeks(schedule)
+    id_map, norm = build_id_map()
 
     # Per (team, pos): raw multiplier per scheduled week, normalized to mean 1
     # so weekly projections always sum back to the season line.
@@ -131,10 +188,13 @@ def main():
                 round(ppg * mults[w], 2) if w in mults else None
                 for w in range(1, WEEKS + 1)
             ]
+            ids = id_map.get((norm(p['name']), pos), {})
             players.append({
                 'name': p['name'],
                 'pos': pos,
                 'team': p['team'],
+                'gsis': ids.get('gsis'),
+                'sleeper': ids.get('sleeper'),
                 'gp': g,
                 'ppg': round(ppg, 2),
                 'recPG': round(rec_pg, 2),
@@ -142,18 +202,26 @@ def main():
             })
 
     players.sort(key=lambda r: -r['ppg'])
+    blend_note = (
+        f'def-vs-pos blends {SEASON} weeks 1-{cur_weeks} at {w_cur:.0%} over {PRIOR}'
+        if cur_weeks else f'def-vs-pos from {PRIOR} (no {SEASON} weeks yet; '
+        f'blends in-season at n/(n+{BLEND_K}))'
+    )
     out = {
         'season': SEASON,
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'baseGeneratedAt': pool.get('generatedAt'),
         'note': (
             f'Weekly per-game PPR projections: season ppg x opponent def-vs-pos '
-            f'multiplier ({PRIOR} PPR allowed/gm vs league avg, deviation shrunk to '
-            f'{DEF_SHRINK:.0%} of observed, clamped [{MULT_MIN},{MULT_MAX}]) x '
+            f'multiplier (PPR allowed/gm vs league avg — {blend_note} — deviation '
+            f'shrunk to {DEF_SHRINK:.0%} of observed, clamped [{MULT_MIN},{MULT_MAX}]) x '
             f'home/away ({HOME_MULT}/{AWAY_MULT}), '
             f'normalized to mean 1.0 per team so weeks sum to the season line. '
             f'null = bye. Points assume the player plays; gp carries the season '
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '
-            f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg).'
+            f'rec scales with the same multiplier (rec_w = recPG * pts_w / ppg). '
+            f'gsis/sleeper ids stamped from the player crosswalk (null when the '
+            f'player has no NFL gsis yet).'
         ),
         'weeks': WEEKS,
         'defVsPos': def_vs_pos,

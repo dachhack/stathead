@@ -32,9 +32,15 @@ committed `weekly-projections-2026.json`, refreshed daily by
 `refresh-data.yml`; new "Weekly Projections" tab (week/pos/scoring
 filters, matchup badges, playoff-weeks outlook). Season projections
 already auto-refresh daily. Piped weekly projections into the MCP
-(`get_weekly_projections`, server 1.0.62 — needs a publish-mcp
-dispatch) and the Python package (`load_weekly_projections()`, 0.3.2 —
-needs a python-publish dispatch).
+(`get_weekly_projections`) and the Python package
+(`load_weekly_projections()`); shipped 1.0.62 to npm + 0.3.2 to PyPI +
+promoted prod. Then app-team feedback round (MCP 1.0.63): injury-aware
+weekly availability, as_of staleness metadata, gsis/sleeper ids on
+projection rows, silent 300/200-row caps lifted to 1000 with explicit
+truncation notes, sleeper-projections `fields` bug fixed, in-season
+def-vs-pos blend wired in the builder. Deferred items (in-season base
+re-fit, Vegas multipliers, uncertainty bands) logged in
+docs/MCP_FEEDBACK_BACKLOG.md Round 22. 1.0.63 not yet published.
 
 ## Current blockers
 

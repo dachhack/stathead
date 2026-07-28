@@ -38405,6 +38405,44 @@ async function fetchProjectionPresets() {
 async function fetchWeeklyProjections(season) {
   return await tryPreFetched(`weekly-projections-${season}.json`);
 }
+// (name|pos) -> {gsis, sleeper} from the slim hosted id-map, so projection
+// rows can carry stable ids without shipping the full crosswalk.
+var _projIdMap = null;
+async function projectionIdMap() {
+  if (_projIdMap) return _projIdMap;
+  const doc = await tryPreFetched("player-id-map.json").catch(() => null);
+  const m = /* @__PURE__ */ new Map();
+  for (const p of doc?.players || []) {
+    if (p.name) {
+      const k = `${normalizeNameForMatch(p.name)}|${p.pos}`;
+      if (!m.has(k)) m.set(k, { gsis: p.gsis || null, sleeper: p.sleeper || null });
+    }
+  }
+  _projIdMap = m;
+  return m;
+}
+// Latest-week injury designations for a season (nflverse weekly reports).
+// Returns null in the offseason / when the feed is unavailable.
+async function latestInjuryReport(season) {
+  try {
+    const rows = await fetchInjuries(season);
+    if (!rows?.length) return null;
+    let latest = 0;
+    for (const r of rows) { const w = Number(r.week); if (w > latest) latest = w; }
+    if (!latest) return null;
+    const byGsis = /* @__PURE__ */ new Map();
+    const byName = /* @__PURE__ */ new Map();
+    for (const r of rows) {
+      if (Number(r.week) !== latest || !r.report_status) continue;
+      const rec = { status: r.report_status, week: latest };
+      if (r.gsis_id) byGsis.set(r.gsis_id, rec);
+      if (r.full_name) byName.set(`${normalizeNameForMatch(r.full_name)}|${r.position}`, rec);
+    }
+    return byGsis.size || byName.size ? { week: latest, byGsis, byName } : null;
+  } catch {
+    return null;
+  }
+}
 async function fetchCollegeQBR() {
   return fetchCsv(`${DRAFT_DATA}/college_qbr.csv`);
 }
@@ -39561,7 +39599,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Points assume the player suits up. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gsis_id/sleeper_id (select via fields). Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40326,7 +40364,7 @@ async function executeToolInner(name, input) {
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
           "- StatHead blended dynasty/redraft values, Sleeper trending, expert rankings: **current season only**",
           "- StatHead in-house season projections (`get_projections`): **2026**",
-          "- StatHead weekly (per-game, matchup-adjusted) projections (`get_weekly_projections`): **2026**, weeks 1–18"
+          "- StatHead weekly (per-game, matchup-adjusted, injury-aware in-season) projections (`get_weekly_projections`): **2026**, weeks 1–18; responses carry as_of + gsis/sleeper ids"
         ].join("\n"),
         "## Enumerations",
         [
@@ -41173,10 +41211,12 @@ ${renderTable(input, rows, cols)}`;
       const season = input.season;
       const week = input.week;
       const position = input.position;
-      const limit = clamp(input.limit || 50, 1, 200);
+      const limit = clamp(input.limit || 50, 1, 1e3);
       let data = await fetchSleeperProjections(season, week);
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
+      const totalSp = data.length;
       data = data.slice(0, limit);
+      const capNote = totalSp > data.length ? ` Showing ${data.length} of ${totalSp} — raise limit (max 1000) for more.` : "";
       const cols = [
         "full_name",
         "position",
@@ -41193,10 +41233,9 @@ ${renderTable(input, rows, cols)}`;
         "rec_yd",
         "rec_td"
       ];
-      const rows = data.map((d) => pickColumns(d, cols));
-      return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players):
+      return `Sleeper projections for ${season}${week ? ` week ${week}` : ""} (${data.length} players).${capNote} Columns follow Sleeper's keys — points are pts_ppr / pts_half_ppr / pts_std (not fantasy_points_ppr); any raw Sleeper stat key can be selected via fields:
 
-${renderTable(input, rows, cols)}`;
+${renderTable(input, data, input.fields ? null : cols)}`;
     }
     case "get_sleeper_user_leagues": {
       const season = input.season || 2026;
@@ -42259,13 +42298,14 @@ ${renderTable(input, rows)}`;
       const position = input.position?.toUpperCase();
       const playerName = input.player_name;
       const preset = input.preset?.toLowerCase();
-      const limit = clamp(input.limit || 50, 1, 300);
+      const limit = clamp(input.limit || 50, 1, 1e3);
       const sortBy = input.sort_by || "ppg";
       let pool;
       let season;
       let scoring = "PPR";
       let baseNote = "";
       let presetNote = "";
+      let generatedAt = null;
       const FILE_PRESETS = {
         "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
         "consensus-ml": "per-stat blend toward market consensus via internal weights",
@@ -42281,6 +42321,7 @@ ${renderTable(input, rows)}`;
         }
         pool = arr;
         season = pdoc.season;
+        generatedAt = pdoc.generatedAt || null;
         baseNote = pdoc.note || "";
         presetNote = ` Preset "${preset}" applied (derived StatHead output): ${FILE_PRESETS[preset]}.`;
       } else {
@@ -42290,6 +42331,7 @@ ${renderTable(input, rows)}`;
         }
         season = doc.season;
         scoring = (doc.scoring || "ppr").toUpperCase();
+        generatedAt = doc.generatedAt || null;
         baseNote = doc.note || "";
         pool = doc.players;
         if (preset === "vegas-weighted" || preset === "vegas") {
@@ -42334,12 +42376,18 @@ ${renderTable(input, rows)}`;
         if (!bok) return -1;
         return bn - an;
       });
+      const totalRows = rows.length;
       rows = rows.slice(0, limit);
+      const capNote = totalRows > rows.length ? ` Showing top ${rows.length} of ${totalRows} — raise limit (max 1000) for the full pool.` : "";
+      const idMap = await projectionIdMap();
       const cols = ["name", "position", "ppg", "recPG"];
-      const out = rows.map((r) => pickColumns(r, cols));
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${presetNote} ${baseNote}${ovNote}
+      const out = rows.map((r) => {
+        const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
+        return { ...pickColumns(r, cols), gsis_id: ids?.gsis ?? null, sleeper_id: ids?.sleeper ?? null };
+      });
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${ovNote} gsis_id/sleeper_id available via fields.
 
-${renderTable(input, out, cols)}`;
+${renderTable(input, out, input.fields ? null : cols)}`;
     }
     case "get_weekly_projections": {
       const doc = await fetchWeeklyProjections(2026);
@@ -42350,8 +42398,15 @@ ${renderTable(input, out, cols)}`;
       const teamFilter = input.team?.toUpperCase();
       const playerName = input.player_name;
       const scoring = (input.scoring || "ppr").toLowerCase();
-      const limit = clamp(input.limit || 50, 1, 300);
+      const limit = clamp(input.limit || 50, 1, 1e3);
       const nWeeks = doc.weeks || 18;
+      const inj = await latestInjuryReport(doc.season);
+      const injuryFor = (p) => {
+        if (!inj) return null;
+        return (p.gsis && inj.byGsis.get(p.gsis)) || inj.byName.get(`${normalizeNameForMatch(p.name)}|${p.pos}`) || null;
+      };
+      // as_of: weekly file build; season_base: the underlying season-pool build.
+      const asOf = ` as_of ${doc.generatedAt || "unknown"}${doc.baseGeneratedAt ? `; season base ${doc.baseGeneratedAt}` : ""}.`;
       // Convert a weekly PPR number to the requested format. Weekly receptions
       // scale with the same matchup multiplier as points, so season recPG is
       // enough: rec_w = recPG * pts / ppg.
@@ -42378,6 +42433,9 @@ ${renderTable(input, out, cols)}`;
         const p = pool[0];
         const f = ovFactor(p);
         if (f !== 1) ovNote = ` Season PPG overridden from your uploaded sheet (import_excel) — weekly points scaled \xD7${f.toFixed(2)}; run clear_overrides to revert.`;
+        const pInj = injuryFor(p);
+        const injNote = pInj ? ` ⚠ Current injury designation: ${pInj.status} (week ${pInj.week} report) — weekly numbers below are NOT discounted in strip mode.` : "";
+        const idBits = [p.gsis ? `gsis ${p.gsis}` : null, p.sleeper ? `sleeper ${p.sleeper}` : null].filter(Boolean).join(" \xB7 ");
         const rows = [];
         for (let w = 1; w <= nWeeks; w++) {
           const raw = p.wk[w - 1];
@@ -42390,37 +42448,63 @@ ${renderTable(input, out, cols)}`;
           });
         }
         const cols2 = ["week", "opp", "matchup", "pts"];
-        return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${ovNote} ${doc.note || ""}
+        return `StatHead weekly projections — ${p.name} (${p.team} ${p.pos}${idBits ? ` \xB7 ${idBits}` : ""}), ${doc.season} ${scoreLabel}: season ${(Math.round(score(p, p.ppg * f) * 10) / 10).toFixed(1)} PPG over a projected ${p.gp} games. Weekly points assume he plays; matchup = opponent def-vs-${p.pos} multiplier.${injNote}${ovNote}${asOf} ${doc.note || ""}
 
-${renderTable(input, rows.map((r) => pickColumns(r, cols2)), cols2)}`;
+${renderTable(input, rows, cols2)}`;
       }
       const week = clamp(input.week || 1, 1, nWeeks);
-      const byeTeams = [...new Set(pool.filter((p) => p.wk[week - 1] == null).map((p) => p.team))].sort();
+      // Apply current injury designations only when projecting the report's
+      // week or later (a week-6 report says nothing about a week-3 rewind).
+      const applyInj = inj && week >= inj.week;
       let ovCount = 0;
+      let injCount = 0;
+      const byeTeams = [...new Set(pool.filter((p) => p.wk[week - 1] == null).map((p) => p.team))].sort();
       let rows = pool.map((p) => {
         const raw = p.wk[week - 1];
         if (raw == null) return null;
         const f = ovFactor(p);
         if (f !== 1) ovCount++;
         const game = oppFor(p.team, week);
+        let pts = score(p, raw * f);
+        let availability = "";
+        const pInj = applyInj ? injuryFor(p) : null;
+        if (pInj) {
+          injCount++;
+          const s = pInj.status.toLowerCase();
+          if (s === "out" || s === "ir" || s === "pup" || s === "injured reserve") {
+            pts = 0;
+            availability = `Out (wk ${pInj.week})`;
+          } else if (s === "doubtful") {
+            pts = pts * 0.25;
+            availability = `Doubtful \xD70.25 (wk ${pInj.week})`;
+          } else {
+            availability = `${pInj.status} (wk ${pInj.week})`;
+          }
+        }
         return {
           name: p.name,
           position: p.pos,
           team: p.team,
           opp: fmtOpp(game),
           matchup: fmtMult(multFor(game, p.pos)),
-          pts: Math.round(score(p, raw * f) * 10) / 10,
-          seasonPPG: Math.round(score(p, p.ppg * f) * 10) / 10
+          pts: Math.round(pts * 10) / 10,
+          availability,
+          seasonPPG: Math.round(score(p, p.ppg * f) * 10) / 10,
+          gsis_id: p.gsis || null,
+          sleeper_id: p.sleeper || null
         };
       }).filter(Boolean);
       rows.sort((a, b) => b.pts - a.pts);
+      const total = rows.length;
       rows = rows.slice(0, limit);
+      const capNote = total > rows.length ? ` Showing top ${rows.length} of ${total} — raise limit (max 1000) for the full pool.` : "";
       if (ovCount) ovNote = ` ${ovCount} player(s) scaled by your uploaded season-PPG overrides (import_excel); run clear_overrides to revert.`;
+      const injHeader = inj ? applyInj ? ` Injury designations (week ${inj.week} report) applied: Out/IR → 0, Doubtful \xD70.25, Questionable flagged (${injCount} affected).` : ` Week ${inj.week} injury report available but not applied to a week-${week} rewind.` : " No in-season injury report available yet (availability blank).";
       const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
-      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "seasonPPG"];
-      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line; assumes the player plays.${byeNote}${ovNote}
+      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "availability", "seasonPPG"];
+      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line.${injHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
 
-${renderTable(input, rows.map((r) => pickColumns(r, cols2)), cols2)}`;
+${renderTable(input, rows, input.fields ? null : cols2)}`;
     }
     case "get_college_stats": {
       const playerName = input.player_name;
@@ -42887,7 +42971,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.62";
+var SERVER_VERSION = "1.0.63";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

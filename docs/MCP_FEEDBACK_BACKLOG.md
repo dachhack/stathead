@@ -10,6 +10,69 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 
 ---
 
+## ✅ Session update (2026-07-28, branch `claude/projections-rankings-updates-qcx49r`)
+
+App-team feedback round on `get_weekly_projections` / projections surface
+(7 items). Shipped now vs. deferred:
+
+**Round 22 — weekly-projections feedback fixes (MCP 1.0.63):**
+- 🟢 **Staleness metadata**: every `get_weekly_projections` /
+  `get_projections` response now carries `as_of` (weekly build timestamp +
+  season-base build timestamp; the weekly file also commits
+  `baseGeneratedAt`). Consumers can detect staleness programmatically.
+- 🔴 **Injury-aware weekly numbers**: `get_weekly_projections` week mode now
+  joins the latest nflverse weekly designations (same feed as
+  `get_injuries`): Out/IR → 0, Doubtful ×0.25, Questionable flagged, all via
+  a new `availability` column + header note. Applied only when the requested
+  week ≥ the report week (no retroactive rewrites); strip mode flags the
+  designation without discounting. Offseason → graceful "no report yet".
+- 🟢 **Silent caps removed**: `get_weekly_projections` / `get_projections` /
+  `get_sleeper_projections` limits raised 300/300/200 → 1000, and every
+  truncation now says "showing top N of M — raise limit".
+- 🟡 **Stable IDs**: weekly builder stamps `gsis` + `sleeper` per player from
+  the crosswalk (441+443/445 coverage; null for pre-NFL rookies).
+  `get_weekly_projections` and `get_projections` rows carry
+  `gsis_id`/`sleeper_id` (select via `fields`); the Python loader exposes
+  them as columns. Known name-drift pairs (Omar Cooper Jr., Chris Rodriguez
+  Jr.) resolve via crosswalk `all_names`.
+- 🟠 **`get_sleeper_projections` `fields` bug**: fixed — the case
+  pre-projected rows onto a fixed column list, so `fields` couldn't reach
+  raw Sleeper keys (and `fantasy_points_ppr` isn't a Sleeper key at all;
+  points are `pts_ppr`/`pts_half_ppr`/`pts_std`, now documented in the
+  response header). Full rows now pass through, so any raw Sleeper stat key
+  is selectable. Same fix applied to both projection tools (`fields` outside
+  the default columns previously fell back silently).
+- 🟡 **Current-season defense blend**: the weekly builder now blends
+  current-season def-vs-pos ratios over the prior season at weight
+  n/(n+6) as REG weeks accumulate (auto-activates in-season; the data-file
+  note reports the active blend).
+
+**Deferred (open, in priority order):**
+- 🟡 **In-season season-base re-fit.** The weekly layer inherits the season
+  pool; the pool rebuilds daily but its veteran blend is a preseason recipe
+  (prior-year actuals + age curve). A benched/traded player keeps his summer
+  number all season. Plan: an in-season variant that re-fits games/roles
+  from accumulating weekly actuals (biweekly would do). Until then, `as_of`
+  makes the staleness visible.
+- 🟡 **Vegas game-environment multipliers.** Replace the flat ±2% home/away
+  nudge with implied team totals from game lines (the season model already
+  consumes Vegas win%; `fetchOddsGameLines` exists). Only available for the
+  upcoming week in-season — needs a "Vegas overlay for week N, schedule
+  baseline beyond" design.
+- 🟡 **Uncertainty bands.** Expose p10/p90 or a confidence field per
+  projection row. The ADP model already ships `ciLower`/`ciUpper`; share
+  models are noisy at depth (TE R² ≈ 0.19) — surface that instead of hiding
+  it. Pairs with lifting depth coverage beyond the ~445-player pool
+  (roster-dealing/DFS wants ~500–600 with low-confidence flags).
+- 🟢 **`tools/list_changed` notification.** New tools don't appear in
+  long-lived MCP sessions until reconnect. The stdio server's toolset is
+  static per process (fine), but the remote Worker serves a stateless
+  toolset per request — the gap is client-side caching of `tools/list`.
+  Investigate emitting the notification from the SDK server on version
+  change; document "reconnect after server upgrades" meanwhile.
+
+---
+
 ## ✅ Session update (2026-06-16, branch `claude/gallant-noether-lyddkb`)
 
 Shipped + corrected diagnoses. **Two original root-cause guesses were wrong**
