@@ -45,6 +45,63 @@ def load_redraft_projections() -> pd.DataFrame:
     return _stamp_keys(df)
 
 
+def load_weekly_projections() -> pd.DataFrame:
+    """Per-week 2026 projections — the season projection split across the
+    schedule, one row per player per scheduled game (17 rows/player; byes
+    omitted).
+
+    Weekly points = season PPG x opponent defense-vs-position multiplier
+    (prior-season PPR allowed per game vs league average, heavily regressed)
+    x home/away nudge, normalized per team so the 17 games sum back to the
+    season line. Points assume the player plays; ``gp`` carries the season
+    games (health) discount. Half/Std conversion: weekly receptions scale
+    with the same multiplier, so ``rec_w = recPG * proj_ppr / ppg``.
+
+    Columns: ``player_key``, ``name``, ``position``, ``team``, ``week``,
+    ``opp``, ``home``, ``matchup_mult``, ``proj_ppr``, ``ppg``, ``recPG``,
+    ``gp``, ``season``.
+
+    Metadata on ``df.attrs``: ``meta`` (generatedAt + method note) and
+    ``def_vs_pos`` (per-team defense-vs-position multiplier table).
+    """
+    data = fetch_json("public/data/weekly-projections-2026.json")
+    team_weeks = {
+        team: {g["w"]: g for g in games}
+        for team, games in (data.get("teamWeeks") or {}).items()
+    }
+    def_vs_pos = data.get("defVsPos") or {}
+    rows = []
+    for p in data.get("players") or []:
+        sched = team_weeks.get(p["team"], {})
+        for i, pts in enumerate(p["wk"]):
+            week = i + 1
+            game = sched.get(week)
+            if pts is None or game is None:
+                continue
+            rows.append({
+                "name": p["name"],
+                "position": p["pos"],
+                "team": p["team"],
+                "week": week,
+                "opp": game["opp"],
+                "home": game["home"],
+                "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
+                "proj_ppr": pts,
+                "ppg": p["ppg"],
+                "recPG": p["recPG"],
+                "gp": p["gp"],
+            })
+    df = pd.DataFrame(rows)
+    df["season"] = data.get("season")
+    df = _stamp_keys(df)
+    df.attrs["meta"] = {
+        "generatedAt": data.get("generatedAt"),
+        "note": data.get("note"),
+    }
+    df.attrs["def_vs_pos"] = def_vs_pos
+    return df
+
+
 def load_ppg_projections() -> pd.DataFrame:
     """Model-predicted points-per-game for established players.
 

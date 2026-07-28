@@ -31,7 +31,10 @@ regressed 60% + home/away, normalized back to the season line) into
 committed `weekly-projections-2026.json`, refreshed daily by
 `refresh-data.yml`; new "Weekly Projections" tab (week/pos/scoring
 filters, matchup badges, playoff-weeks outlook). Season projections
-already auto-refresh daily.
+already auto-refresh daily. Piped weekly projections into the MCP
+(`get_weekly_projections`, server 1.0.62 — needs a publish-mcp
+dispatch) and the Python package (`load_weekly_projections()`, 0.3.2 —
+needs a python-publish dispatch).
 
 ## Current blockers
 

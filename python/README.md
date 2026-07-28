@@ -126,6 +126,7 @@ available here as a pandas DataFrame.
 | Function | Returns | Shape |
 |---|---|---|
 | `load_redraft_projections()` | Seasonal redraft PPG (PPR) + receptions/game | ~250 × 7 |
+| `load_weekly_projections()` | Per-week matchup-adjusted projections, one row per player-game (opp, home, matchup mult, PPR pts; `df.attrs['def_vs_pos']`) | ~445 × 17 rows/player |
 | `load_ppg_projections()` | Model-predicted PPG for established players | ~250 × 4 |
 | `load_adp_value_model()` | VOR vs ADP, hit probability, confidence interval | ~153 × 10 |
 | `load_volume_projections()` | Team pass/rush/target volumes with low/high bands | ~153 × ~14 |

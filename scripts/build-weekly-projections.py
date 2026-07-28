@@ -147,8 +147,9 @@ def main():
         'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'note': (
             f'Weekly per-game PPR projections: season ppg x opponent def-vs-pos '
-            f'multiplier ({PRIOR} PPR allowed/gm vs league avg, shrunk {DEF_SHRINK:.0%}, '
-            f'clamped [{MULT_MIN},{MULT_MAX}]) x home/away ({HOME_MULT}/{AWAY_MULT}), '
+            f'multiplier ({PRIOR} PPR allowed/gm vs league avg, deviation shrunk to '
+            f'{DEF_SHRINK:.0%} of observed, clamped [{MULT_MIN},{MULT_MAX}]) x '
+            f'home/away ({HOME_MULT}/{AWAY_MULT}), '
             f'normalized to mean 1.0 per team so weeks sum to the season line. '
             f'null = bye. Points assume the player plays; gp carries the season '
             f'games discount. Half/Std: pts - 0.5*rec or pts - rec, where weekly '

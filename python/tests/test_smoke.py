@@ -131,6 +131,20 @@ def test_redraft_projections():
     assert {"player_key", "name", "position", "ppg", "recPG"}.issubset(df.columns)
 
 
+def test_weekly_projections():
+    df = stathead.load_weekly_projections()
+    assert not df.empty
+    assert {"player_key", "name", "position", "team", "week", "opp", "home",
+            "matchup_mult", "proj_ppr", "ppg", "gp"}.issubset(df.columns)
+    # 17 scheduled games per player (byes omitted), weeks within 1-18.
+    assert (df.groupby("name")["week"].count() == 17).all()
+    assert df["week"].between(1, 18).all()
+    # Normalization: weekly points sum back to ppg * 17 for every player.
+    sums = df.groupby("name").agg(total=("proj_ppr", "sum"), ppg=("ppg", "first"))
+    assert ((sums["total"] - sums["ppg"] * 17).abs() < 1.0).all()
+    assert isinstance(df.attrs.get("def_vs_pos"), dict)
+
+
 def test_ppg_and_adp_value_model():
     ppg = stathead.load_ppg_projections()
     adp = stathead.load_adp_value_model()
