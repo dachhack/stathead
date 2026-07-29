@@ -2,8 +2,8 @@ name: Deploy Cloudflare Workers
 
 # Deploys the Cloudflare Worker proxies (no local terminal required).
 #
-# Auto-deploys all three workers when any of them change on the base
-# branch (a push touching workers/** redeploys all — wrangler deploy is
+# Auto-deploys all workers when any of them change on the base branch
+# (a push touching workers/** redeploys all — wrangler deploy is
 # idempotent). Use the "Run workflow" button to deploy one worker, or all,
 # on demand.
 #
@@ -12,6 +12,12 @@ name: Deploy Cloudflare Workers
 # the token needs both "Edit Cloudflare Workers" and "Cloudflare Pages —
 # Edit". If your Cloudflare login has more than one account, also add
 # CLOUDFLARE_ACCOUNT_ID.
+#
+# visit-tracker only: its /stats endpoint queries the Analytics Engine
+# SQL API, which needs a token with "Account Analytics: Read". Add it as
+# the CLOUDFLARE_ANALYTICS_API_TOKEN repo secret (falls back to
+# CLOUDFLARE_API_TOKEN, which works only if that token carries the
+# Analytics permission). Beacon ingestion works without it.
 
 on:
   push:
@@ -35,6 +41,7 @@ on:
           - fc-proxy
           - ktc-proxy
           - stathead-mcp
+          - visit-tracker
 
 jobs:
   deploy:
@@ -42,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp]
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp, visit-tracker]
     steps:
       - name: Decide whether to deploy this worker
         id: gate
@@ -56,9 +63,22 @@ jobs:
           fi
       - if: steps.gate.outputs.skip == 'false'
         uses: actions/checkout@v5
-      - if: steps.gate.outputs.skip == 'false'
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: workers/${{ matrix.worker }}
+      # visit-tracker also gets its /stats API token pushed as a worker
+      # secret on every deploy (see the header note on the token's
+      # required "Account Analytics: Read" permission).
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'visit-tracker'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/${{ matrix.worker }}
+          secrets: |
+            ANALYTICS_API_TOKEN
+        env:
+          ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}

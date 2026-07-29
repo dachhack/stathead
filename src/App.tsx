@@ -51,6 +51,7 @@ import { HomePage } from './components/HomePage';
 import { ChatDrawer } from './components/ChatDrawer';
 import { buildDataContext } from './context';
 import { createEmptyScenario, loadScenarioDraft, saveScenarioDraft } from './lib/scenarioEngine';
+import { trackPageview } from './lib/visitTracker';
 import type { Tab, ScenarioConfig } from './types';
 
 const SEASONS = Array.from({ length: 10 }, (_, i) => 2026 - i);
@@ -150,6 +151,13 @@ function App() {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
+
+  // Anonymous first-party pageview beacon (src/lib/visitTracker.ts →
+  // workers/visit-tracker). One hit per tab/player-card view; the initial
+  // mount counts as the landing view.
+  useEffect(() => {
+    trackPageview(playerDetailKey ? 'player-detail' : tab);
+  }, [tab, playerDetailKey]);
 
   // Cross-tab navigation events (e.g. DocsLink deep into a section) —
   // lets nested components switch tabs without prop-drilling onNavigate.

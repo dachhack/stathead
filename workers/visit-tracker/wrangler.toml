@@ -1,0 +1,10 @@
+name = "visit-tracker"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Workers Analytics Engine dataset — created automatically on first deploy.
+# Raw pageview events land here (90-day retention, free tier); the /stats
+# endpoint aggregates them via the Analytics Engine SQL API.
+[[analytics_engine_datasets]]
+binding = "VISITS"
+dataset = "stathead_visits"
