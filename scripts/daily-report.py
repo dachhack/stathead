@@ -270,8 +270,16 @@ def _fetch_visit_stats(days):
     import urllib.error
     import urllib.request
     url = f"{VISIT_TRACKER}/stats?days={days}"
+    # workers.dev sits behind Cloudflare's browser integrity check, which
+    # 403s (error 1010) the default Python-urllib user agent — send a
+    # browser-style UA, same as the fc-proxy worker's upstream fetch.
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    })
     try:
-        with urllib.request.urlopen(url, timeout=25) as r:
+        with urllib.request.urlopen(req, timeout=25) as r:
             return json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")
