@@ -191,7 +191,14 @@ export default {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    // GET /stats → usage summary; GET anything else → discovery/health.
+    // This server is unauthenticated. Anything outside the MCP endpoint and
+    // /stats must 404 — in particular /.well-known/oauth-* and /register.
+    // Answering those with 200 makes connector clients (claude.ai) believe the
+    // server is OAuth-protected and attempt dynamic client registration, which
+    // then fails with "Couldn't register with stathead's sign-in service".
+    const isMcpPath = url.pathname === '/' || url.pathname === '/mcp';
+
+    // GET /stats → usage summary; GET on the MCP endpoint → discovery/health.
     if (request.method === 'GET') {
       if (url.pathname === '/stats') {
         const stats = await handleStats(env);
@@ -199,6 +206,9 @@ export default {
           status: 200,
           headers: { ...cors, 'Content-Type': 'application/json' },
         });
+      }
+      if (!isMcpPath) {
+        return new Response('Not Found', { status: 404, headers: cors });
       }
       return new Response(
         JSON.stringify({
@@ -215,6 +225,10 @@ export default {
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405, headers: cors });
+    }
+
+    if (!isMcpPath) {
+      return new Response('Not Found', { status: 404, headers: cors });
     }
 
     let body: unknown;
