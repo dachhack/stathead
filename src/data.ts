@@ -276,6 +276,32 @@ export async function fetchPlayerOverview(espnId: string, limit = 8): Promise<Pl
   }
 }
 
+/**
+ * True when a "successful" response is actually the SPA shell. Cloudflare
+ * Pages (prod host) has no real 404s for SPA projects: any missing asset path
+ * — e.g. a raw JSON/CSV whose oversized original was gzip-dropped by
+ * postbuild-pages — is answered with index.html and HTTP 200. Treating that
+ * as a hit silently breaks the `.gz` fallbacks below (HTML parsed as
+ * JSON/CSV), so an ok-but-HTML response must count as a miss.
+ */
+function isSpaHtmlFallback(resp: Response): boolean {
+  return (resp.headers.get('content-type') || '').toLowerCase().includes('text/html');
+}
+
+/**
+ * Read a fetched `.gz` sibling as text. Sniffs the gzip magic bytes first:
+ * some hosts/CDNs transparently decode Content-Encoding and hand over the
+ * already-inflated bytes, and decompressing those again would throw.
+ */
+async function gunzipResponseText(resp: Response): Promise<string> {
+  const buf = new Uint8Array(await resp.arrayBuffer());
+  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(stream).text();
+  }
+  return new TextDecoder().decode(buf);
+}
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
   // In Node, try local file first
@@ -289,14 +315,13 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   try {
     const base = dataBase();
     const resp = await fetchWithTimeout(`${base}data/${filename}`, { timeout: LARGE_CSV_TIMEOUT });
-    if (resp.ok) return await resp.json();
+    if (resp.ok && !isSpaHtmlFallback(resp)) return await resp.json();
     // Oversized files are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is absent,
     // fall back to the .gz sibling and inflate it.
     const gz = await fetchWithTimeout(`${base}data/${filename}.gz`);
-    if (gz.ok && gz.body) {
-      const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
-      return JSON.parse(text) as T;
+    if (gz.ok && gz.body && !isSpaHtmlFallback(gz)) {
+      return JSON.parse(await gunzipResponseText(gz)) as T;
     }
     return null;
   } catch {
@@ -307,18 +332,23 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
 /**
  * Fetch a static asset, transparently falling back to a gzipped `.gz` sibling.
  * postbuild-pages gzips oversized JSON (e.g. feature-matrix.json, ~24 MiB) and
- * drops the raw to stay under the 25 MiB host cap, so in production the raw path
- * 404s and we inflate the `.gz`. In dev the raw file is served and used directly.
- * Returns a Response so callers keep their existing `.ok` / `.json()` handling.
+ * drops the raw to stay under the 25 MiB host cap, so in production the raw
+ * path misses (a real 404 on GitHub Pages, the SPA shell with HTTP 200 on
+ * Cloudflare Pages) and we inflate the `.gz`. In dev the raw file is served
+ * and used directly. Returns a Response so callers keep their existing
+ * `.ok` / `.json()` handling.
  */
 export async function fetchMaybeGz(url: string): Promise<Response> {
   const r = await fetch(url);
-  if (r.ok) return r;
+  if (r.ok && !isSpaHtmlFallback(r)) return r;
   const gz = await fetch(`${url}.gz`);
-  if (gz.ok && gz.body) {
-    const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+  if (gz.ok && gz.body && !isSpaHtmlFallback(gz)) {
+    const text = await gunzipResponseText(gz);
     return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
+  // Both paths missed. If the raw "hit" was the SPA shell, surface a real 404
+  // so callers' `.ok` checks fail instead of parsing HTML as JSON.
+  if (r.ok && isSpaHtmlFallback(r)) return new Response(null, { status: 404, statusText: 'Not Found' });
   return r; // propagate the original non-OK response; callers handle !ok
 }
 
@@ -535,17 +565,17 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
 
   const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
   let text: string;
-  if (response.ok) {
+  if (response.ok && !isSpaHtmlFallback(response)) {
     text = await response.text();
   } else {
     // Large CSVs are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is
     // absent, fall back to the .csv.gz sibling and inflate it here.
     const gz = await fetchWithTimeout(`${url}.gz`, { timeout: LARGE_CSV_TIMEOUT });
-    if (!gz.ok || !gz.body) {
+    if (!gz.ok || !gz.body || isSpaHtmlFallback(gz)) {
       throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }
-    text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+    text = await gunzipResponseText(gz);
   }
   const result = Papa.parse<T>(text, {
     header: true,

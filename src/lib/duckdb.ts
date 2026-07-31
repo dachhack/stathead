@@ -26,6 +26,7 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { normalizeName } from './featureTypes';
+import { fetchMaybeGz } from '../data';
 
 let dbPromise: Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBConnection }> | null = null;
 
@@ -164,10 +165,12 @@ async function fetchCsvGz(filename: string): Promise<Uint8Array | null> {
 }
 
 /** Fetch + parse a committed JSON file; returns null on failure so missing
- *  data (e.g. sandbox-unreachable FFC years) doesn't crash init. */
+ *  data (e.g. sandbox-unreachable FFC years) doesn't crash init. Routed
+ *  through fetchMaybeGz because oversized files (feature-matrix.json) ship
+ *  only as a `.gz` sibling in production. */
 async function fetchJson<T>(filename: string): Promise<T | null> {
   try {
-    const resp = await fetch(`${BASE}data/${filename}`);
+    const resp = await fetchMaybeGz(`${BASE}data/${filename}`);
     if (!resp.ok) return null;
     return (await resp.json()) as T;
   } catch {

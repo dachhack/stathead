@@ -14,15 +14,23 @@
  *          fetchCsv inflates the `.csv.gz` sibling;
  *        - the listed oversized JSON → tryPreFetched inflates the `.gz`
  *          sibling.
- *      Both fetch the raw path first and fall back to the `.gz` on 404.
- *   3. Fail the build if anything still served exceeds the cap — a loud,
+ *      Both fetch the raw path first and fall back to the `.gz` on a miss.
+ *   3. Emit a 404.html (copy of the app shell). Without one, Cloudflare
+ *      Pages treats the project as an SPA and answers EVERY missing path —
+ *      including the gzip-dropped raw data files — with index.html + HTTP
+ *      200, so the loaders' `.ok` checks "succeed" on HTML and the `.gz`
+ *      fallbacks never engage (this is what blanked the prospect model
+ *      scores in prod). With a 404.html, missing paths get a real 404
+ *      status while humans hitting a bad URL still see the app render.
+ *      GitHub Pages (QA) treats 404.html the same way.
+ *   4. Fail the build if anything still served exceeds the cap — a loud,
  *      early signal instead of a cryptic wrangler upload error.
  *
  * NOTE: only gzip files whose loader is gz-aware. feature-matrix.json is now
  * fetched via fetchMaybeGz() (src/data.ts), which falls back to the `.gz`
  * sibling, so it is gzipped here too (it had crept up to the cap raw).
  */
-import { existsSync, rmSync, readFileSync, writeFileSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, rmSync, readFileSync, writeFileSync, statSync, readdirSync, copyFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
 const DIST = 'dist';
@@ -58,7 +66,11 @@ const gzipBigCsvs = (dir) => {
 };
 gzipBigCsvs(DATA);
 
-// 3. Guard: nothing served may exceed the host cap.
+// 3. Real 404s on Cloudflare Pages (see header comment #3).
+copyFileSync(`${DIST}/index.html`, `${DIST}/404.html`);
+console.log('postbuild: wrote 404.html (disables SPA 200-fallback for missing assets)');
+
+// 4. Guard: nothing served may exceed the host cap.
 const offenders = [];
 const walk = (dir) => {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
