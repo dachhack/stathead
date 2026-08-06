@@ -233,3 +233,9 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # Pages ingestion has stalled well past the action's 10-minute
+          # default (2026-08-06: runs aborted after polling
+          # "deployment_in_progress" for the full window). 20 minutes rides
+          # out a slow ingest instead of failing the whole refresh.
+          timeout: 1200000
