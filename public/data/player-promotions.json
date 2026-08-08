@@ -1,6 +1,24 @@
 {
   "_about":"Rookie key-promotion log. When a player who was previously minted as a synthetic COL record (no NFL gsis_id) gets placed on an nflverse roster, build-player-crosswalk.py rebinds them to an NFL-spine canonical record and back-references the old COL player_key via the `alias_keys` field on the new record. Entries under `unresolved` are fail-closed: either the COL vanished with no spine match (reason=col_gone_no_spine_match) or multiple spine candidates collide on (name, position) \u2014 hand-resolve these by adding a matching entry to player-aliases.json overrides and rerunning.",
   "version":1,
-  "promotions":[],
-  "unresolved":[]
+  "promotions":[
+    {
+      "old_player_key":"sh_996e79682b",
+      "new_player_key":"sh_903c63254b",
+      "name":"Seydou Traore",
+      "position":"TE",
+      "gsis_id":"00-0041579",
+      "college":"Mississippi State; Arkansas State",
+      "earliest_season":2026
+    }
+  ],
+  "unresolved":[
+    {
+      "old_player_key":"sh_0b6f0bd70b",
+      "name":"Nathan Carter",
+      "position":"RB",
+      "reason":"col_gone_no_spine_match",
+      "candidates":[]
+    }
+  ]
 }
