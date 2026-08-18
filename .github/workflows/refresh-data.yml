@@ -123,6 +123,23 @@ jobs:
       - name: Build weekly projections
         run: python3 scripts/build-weekly-projections.py || echo "weekly projections build failed (non-fatal)"
 
+      # Split the same season pool into per-week STAT LINES (not just points)
+      # and the spread needed to price each one as a prop: defense-vs-position-
+      # vs-stat multipliers, bye weeks, injury-report availability, and
+      # strength of matchup overall / by fantasy position / by stat. Reads
+      # projection-base + schedule + prior-year weekly stats + play-by-play +
+      # injuries — all committed, no extra deps. Never fatal.
+      - name: Build player props
+        run: python3 scripts/build-player-props.py || echo "player props build failed (non-fatal)"
+
+      # Rest-of-game quarter splits from play-by-play: each quarter's share of
+      # a full game per position/stat, game-script multipliers by score
+      # differential, in-game blend weights and partial-window spread. Only
+      # changes when a new season's play-by-play lands, but it is cheap
+      # (~40k plays) and keeps the artifact in step with the props file.
+      - name: Build quarter splits
+        run: python3 scripts/build-quarter-splits.py || echo "quarter splits build failed (non-fatal)"
+
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
       # their synthetic COL keys to canonical NFL gsis-based keys as soon
@@ -174,6 +191,8 @@ jobs:
                   public/data/feature-matrix.json \
                   public/data/projection-base-2026.json \
                   public/data/weekly-projections-2026.json \
+                  public/data/player-props-2026.json \
+                  public/data/quarter-splits-2025.json \
                   public/data/model-eval-2026.json \
                   public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \

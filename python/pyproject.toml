@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "stathead"
-version = "0.3.3"
+version = "0.4.0"
 description = "Python client for the StatHead fantasy football model — rookie career predictions, historical ADP, and flattened feature matrices."
 readme = "README.md"
 license = { text = "MIT" }

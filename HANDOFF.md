@@ -1,6 +1,64 @@
 # StatHead — session handoff
 
-Last updated 2026-07-28 (visitor tracking session). **Resume section directly below;** older notes follow.
+Last updated 2026-08-18 (player props session). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-08-18, player props + rest-of-game — `claude/player-props-projections-wzx40o`)
+
+Weekly **stat-line** projections priced as props, plus rest-of-game numbers at
+any quarter break. Everything is built from committed data (2025 play-by-play,
+weekly stats, injuries, schedule) with no new dependencies.
+
+- **`scripts/build-player-props.py` → `public/data/player-props-2026.json`** (~456 KB).
+  Splits the season pool into a per-week stat line (att / comp / yds / TD /
+  tgt / rec / PPR) rather than a points total. Each stat gets its own opponent
+  multiplier: defense-vs-position-**vs-stat** allowed per game vs league
+  average, shrunk to 40 % / 35 % / 25 % of the observed deviation for volume /
+  yardage / scoring stats, clamped ±18 %, blended with the current season at
+  `n/(n+6)` as weeks land, × home/away, then normalized per (team, pos, stat)
+  so the weeks sum back to the season line. Also emits **strength of matchup
+  three ways** — overall (EPA/play + points allowed → 0-100 grade + rank, 100 =
+  toughest), by fantasy position (PPR allowed/gm vs league average), and by
+  stat — plus bye weeks, and availability blending projected games with
+  prior-season injury-report durability (a current-season report supersedes it
+  per week via `injury.pPlay`).
+- **`scripts/build-quarter-splits.py` → `public/data/quarter-splits-2025.json`** (~18 KB).
+  From 2024-25 play-by-play: each quarter's share of a full game per position
+  and stat (plays run 22.4 / 27.0 / 22.8 / 27.8 % — the Q2/Q4 two-minute
+  bulge), **game-script multipliers** by score differential (trailing 15+ →
+  pass attempts ×1.42, rushes ×0.82, pace ×1.18; leading 15+ → ×0.67 / ×1.32),
+  **blend weights** from a through-the-origin least-squares fit of rest-of-game
+  production on the pre-game rate vs the in-game pace (RB carries at half:
+  0.59 pre-game / 0.41 in-game; a Q1 TD carries ~nothing), and **dispersion
+  measured on those same partial windows**.
+- **`src/lib/playerProps.ts`** — the shared math. Counting stats are negative
+  binomial (`var = mu + mu²/k`), yardage is gamma (`shape = 1/cv²`), and
+  low-volume yardage is zero-inflated by `P(no carry/catch)` from the paired
+  counting stat, so a WR's rush-yards prop reads 19 % over 0.5 (his chance of
+  a carry) instead of a coin flip. The quoted line is the half point nearest
+  50 % — chosen by scanning the grid, because on a discrete stat the median
+  sits on a jump.
+- **MCP `get_player_props` + `get_rest_of_game_props`** (bundle 1.0.64, hand-
+  edited in `mcp/dist/server.mjs` per the frozen-src convention; 52 tools).
+  Metadata + `get_model_docs` updated.
+- **App tab "Player Props"** (`src/components/PlayerPropsView.tsx`) — weekly
+  board, click-through prop board, rest-of-game panel with quarter + score.
+- **Python `stathead.props`** (package 0.4.0): `load_player_props`,
+  `price_props`, `rest_of_game`, `load_quarter_splits`, `quarter_share_frame`.
+- Both builders wired into `refresh-data.yml` (non-fatal) with their outputs
+  in the auto-commit list.
+
+Validated three ways: special functions against closed forms (`gammaP(1,1)` =
+1−e⁻¹, `betaI(2,3,.5)` = 0.6875, NB→Poisson limit, gamma cv=1 survival =
+e⁻¹); weekly stat lines sum back to the season pool exactly; and the
+TypeScript, MCP-bundle and Python implementations produce identical numbers
+for the same player-week. **Keep the three ports in sync** when the math
+changes.
+
+Deferred: no Vegas totals/spreads as a game-environment input; the props file
+covers QB/RB/WR/TE only (K and DST stay in `weekly-projections-2026.json`);
+in-game blend weights are fit league-wide rather than per-player.
 
 ---
 
@@ -689,6 +747,7 @@ Findings so far (2023-2024, n=284, non-rookie): aggregate optimal ≈ **0.80 Cla
 | Data Query tab | `src/components/DataQuery.tsx` + `src/lib/duckdb.ts` | DuckDB-WASM, 8 tables. "SQL" and "Ask" modes. |
 | Model Docs | `src/components/ModelDocumentation.tsx` | Feature labels live in `src/lib/featureTypes.ts` FEATURES. |
 | Player cards | `src/components/PlayerCard.tsx` | `ZERO_MEANS_MISSING` set at top; PDF/RSP features are NOT in it (have has-indicators instead). |
+| Player Props tab | `src/components/PlayerPropsView.tsx` | Reads `player-props-2026.json` + `quarter-splits-2025.json`; all math in `src/lib/playerProps.ts` (mirrored in `mcp/dist/server.mjs` and `python/src/stathead/props.py` — keep the three in sync). |
 
 ## DuckDB tables in the SQL tab (for Ask mode too)
 

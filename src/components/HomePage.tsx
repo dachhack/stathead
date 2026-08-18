@@ -28,6 +28,11 @@ const SECTIONS: Section[] = [
         blurb: 'Season projections split week by week: opponent defense-vs-position matchup multipliers, home/away, byes, and a playoff-weeks (15–17) outlook — in PPR, Half, or Standard.',
       },
       {
+        label: 'Player Props',
+        tab: 'player-props',
+        blurb: 'The whole projected stat line per player-week — yards, attempts, targets, receptions, TDs — priced as props with a line, over/under and outcome range, plus rest-of-game numbers at any quarter break.',
+      },
+      {
         label: 'Scenario Builder',
         tab: 'scenario-builder',
         blurb: 'Full-page team workspace: per-player target/carry adjustments, team levers, PPR deltas, and Excel export.',
@@ -197,6 +202,8 @@ const MCP_TOOLS: { fn: string; desc: string }[] = [
   { fn: 'get_prospect_outcomes', desc: 'Calibrated rookie boom/bust probabilities + grades' },
   { fn: 'get_projections', desc: 'Season PPG projections + scenario presets (Vegas, Consensus…)' },
   { fn: 'get_weekly_projections', desc: 'Per-week matchup-adjusted points, weeks 1–18' },
+  { fn: 'get_player_props', desc: 'Per-week stat lines priced as props — line, over/under, range' },
+  { fn: 'get_rest_of_game_props', desc: "What's left after Q1 / half / Q3, adjusted for score" },
   { fn: 'get_dynasty_values', desc: 'In-house blended dynasty trade values (1QB + SF)' },
   { fn: 'get_rookie_snap_share', desc: 'Weekly rookie snap-share ramp tracker' },
   { fn: 'get_play_by_play', desc: 'Filterable play-by-play (player, red zone, down…)' },

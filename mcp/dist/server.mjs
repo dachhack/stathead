@@ -38405,6 +38405,232 @@ async function fetchProjectionPresets() {
 async function fetchWeeklyProjections(season) {
   return await tryPreFetched(`weekly-projections-${season}.json`);
 }
+// ── Player props: loaders + prop math ──
+// Mirrors src/lib/playerProps.ts (the app's copy). Keep the two in sync:
+// counting stats are negative binomial (var = mu + mu^2/k), yardage stats are
+// gamma with shape = 1/cv^2, and a quoted line is always a half point.
+async function fetchPlayerProps(season) {
+  return await tryPreFetched(`player-props-${season}.json`);
+}
+async function fetchQuarterSplits(season) {
+  return await tryPreFetched(`quarter-splits-${season}.json`);
+}
+var PROPS_LANCZOS = [
+  676.5203681218851, -1259.1392167224028, 771.32342877765313,
+  -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+  9.9843695780195716e-6, 1.5056327351493116e-7
+];
+function propsLogGamma(x) {
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - propsLogGamma(1 - x);
+  const z = x - 1;
+  let a = 0.99999999999980993;
+  for (let i = 0; i < PROPS_LANCZOS.length; i++) a += PROPS_LANCZOS[i] / (z + i + 1);
+  const t = z + PROPS_LANCZOS.length - 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function propsGammaP(a, x) {
+  if (x <= 0 || a <= 0) return 0;
+  if (x < a + 1) {
+    let ap = a, sum = 1 / a, del = sum;
+    for (let i = 0; i < 300; i++) {
+      ap += 1;
+      del *= x / ap;
+      sum += del;
+      if (Math.abs(del) < Math.abs(sum) * 1e-12) break;
+    }
+    return sum * Math.exp(-x + a * Math.log(x) - propsLogGamma(a));
+  }
+  const tiny = 1e-300;
+  let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+  for (let i = 1; i <= 300; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b;
+    if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c;
+    if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < 1e-12) break;
+  }
+  return 1 - Math.exp(-x + a * Math.log(x) - propsLogGamma(a)) * h;
+}
+function propsBetaI(a, b, x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const front = Math.exp(propsLogGamma(a + b) - propsLogGamma(a) - propsLogGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  const cf = (aa, bb, xx) => {
+    const tiny = 1e-300;
+    const qab = aa + bb, qap = aa + 1, qam = aa - 1;
+    let c = 1, d = 1 - qab * xx / qap;
+    if (Math.abs(d) < tiny) d = tiny;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m;
+      let aaa = m * (bb - m) * xx / ((qam + m2) * (aa + m2));
+      d = 1 + aaa * d;
+      if (Math.abs(d) < tiny) d = tiny;
+      c = 1 + aaa / c;
+      if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      h *= d * c;
+      aaa = -(aa + m) * (qab + m) * xx / ((aa + m2) * (qap + m2));
+      d = 1 + aaa * d;
+      if (Math.abs(d) < tiny) d = tiny;
+      c = 1 + aaa / c;
+      if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < 1e-12) break;
+    }
+    return h;
+  };
+  if (x < (a + 1) / (a + b + 2)) return front * cf(a, b, x) / a;
+  return 1 - front * cf(b, a, 1 - x) / b;
+}
+var PROPS_DEFAULT_DISP = { k: 3, cv: 1.2 };
+// zeroProb handles zero-inflated yardage: a receiver's *rushing* yards are 0
+// in most games because he never gets a carry, and a plain gamma puts no mass
+// exactly at zero. Mass is re-spread over the games he does touch the ball.
+function propsGammaSurv(mu, cv, line) {
+  const c = Math.max(cv, 0.05);
+  const shape = 1 / (c * c);
+  return Math.min(1, Math.max(0, 1 - propsGammaP(shape, line / (mu / shape))));
+}
+function propsOverProb(kind, mu, disp, line, zeroProb) {
+  const d = disp || PROPS_DEFAULT_DISP;
+  if (mu <= 0) return 0;
+  if (kind === "count") {
+    const k = Math.max(d.k, 0.05);
+    const n = Math.floor(line);
+    if (n < 0) return 1;
+    return Math.min(1, Math.max(0, 1 - propsBetaI(k, n + 1, k / (k + mu))));
+  }
+  const p0 = Math.min(Math.max(zeroProb || 0, 0), 0.99);
+  if (line <= 0) return 1 - p0;
+  if (p0 <= 0) return propsGammaSurv(mu, d.cv, line);
+  return (1 - p0) * propsGammaSurv(mu / (1 - p0), d.cv, line);
+}
+function propsQuantile(kind, mu, disp, p, zeroProb) {
+  if (mu <= 0) return 0;
+  let lo = 0, hi = Math.max(mu * 12, 5);
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (1 - propsOverProb(kind, mu, disp, mid, zeroProb) < p) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+var PROPS_YARDS_VOLUME = { passYds: "passAtt", rushYds: "rushAtt", recYds: "rec" };
+// P(the volume behind a yardage stat is zero), from the NB on its paired
+// counting stat: P(X = 0) = (k / (k + mu))^k.
+function propsZeroProb(stat, line, disp) {
+  const volStat = PROPS_YARDS_VOLUME[stat];
+  if (!volStat) return 0;
+  const volMu = line?.[volStat];
+  if (volMu == null) return 0;
+  if (volMu <= 0) return 1;
+  const k = Math.max(disp?.[volStat]?.k ?? PROPS_DEFAULT_DISP.k, 0.05);
+  return Math.pow(k / (k + volMu), k);
+}
+function propsSnapLine(value, step) {
+  const grid = Math.max(step || 1, 0.5);
+  return Math.max(Math.round((value - 0.5) / grid) * grid + 0.5, 0.5);
+}
+// Quote the half-point line closest to a coin flip. On a discrete stat the
+// median can sit right on a jump, so scanning beats snapping the median.
+function propsPrice(stat, mu, disp, countStats, explicitLine, zeroProb) {
+  const kind = countStats.includes(stat) ? "count" : "yards";
+  let line = explicitLine;
+  if (line == null) {
+    const anchor = propsSnapLine(propsQuantile(kind, mu, disp, 0.5, zeroProb), 1);
+    const step = kind === "yards" && mu >= 60 ? Math.max(1, Math.round(mu / 40)) : 1;
+    let best = anchor, bestGap = Infinity;
+    for (let i = -3; i <= 3; i++) {
+      const cand = anchor + i * step;
+      if (cand < 0.5) continue;
+      const gap = Math.abs(propsOverProb(kind, mu, disp, cand, zeroProb) - 0.5);
+      if (gap < bestGap - 1e-9) { bestGap = gap; best = cand; }
+    }
+    line = best;
+  }
+  const over = propsOverProb(kind, mu, disp, line, zeroProb);
+  return {
+    stat, mean: mu, line, over, under: 1 - over,
+    p10: propsQuantile(kind, mu, disp, 0.1, zeroProb),
+    p90: propsQuantile(kind, mu, disp, 0.9, zeroProb)
+  };
+}
+function propsAnytimeTd(expectedTds) {
+  return 1 - Math.exp(-Math.max(expectedTds, 0));
+}
+function propsWeekLine(doc, player, week) {
+  const keys = doc.statKeys?.[player.pos];
+  const row = player.wk?.[week - 1];
+  if (!keys || !row) return null;
+  const out = {};
+  keys.forEach((k, i) => { out[k] = row[i]; });
+  return out;
+}
+function propsScriptBucket(diff) {
+  if (diff >= 15) return "lead15";
+  if (diff >= 9) return "lead9";
+  if (diff >= 4) return "lead4";
+  if (diff >= -3) return "close";
+  if (diff >= -8) return "trail4";
+  if (diff >= -14) return "trail9";
+  return "trail15";
+}
+// "rec=3,recYds=42" -> { rec: 3, recYds: 42 }. Tolerates spaces, colons and
+// snake_case keys so a caller can type it the obvious way.
+function propsParseSoFar(text, keys) {
+  if (!text) return null;
+  const canon = {};
+  for (const k of keys) canon[k.toLowerCase()] = k;
+  const out = {};
+  for (const part of String(text).split(/[,;]/)) {
+    const m = part.split(/[=:]/);
+    if (m.length < 2) continue;
+    const raw = m[0].trim().toLowerCase().replace(/[_\s]/g, "");
+    const key = canon[raw] || canon[raw.replace(/yards$/, "yds")] || null;
+    const val = Number(m[1].trim());
+    if (key && Number.isFinite(val)) out[key] = val;
+  }
+  return Object.keys(out).length ? out : null;
+}
+function propsRestOfGame(props, splits, player, week, quarter, scoreDiff, soFar) {
+  const full = propsWeekLine(props, player, week);
+  if (!full) return null;
+  const pos = player.pos;
+  const bucket = scoreDiff == null ? null : propsScriptBucket(scoreDiff);
+  const scriptRow = (bucket && splits.script?.[bucket]) || {};
+  const blendRow = splits.blend?.[String(quarter)]?.[pos] || {};
+  const dispRow = splits.dispersion?.[String(quarter)]?.[pos] || {};
+  const remRow = splits.remaining?.[pos] || {};
+  const cumRow = splits.cumulative?.[pos] || {};
+  const remaining = {}, mean = {}, used = {};
+  for (const stat of Object.keys(full)) {
+    const rem = remRow[stat]?.[quarter];
+    if (rem == null) continue;
+    remaining[stat] = rem;
+    const w = blendRow[stat] || { wSeason: 1, wInGame: 0 };
+    const cum = quarter > 0 ? cumRow[stat]?.[quarter - 1] ?? 0 : 0;
+    const observed = soFar ? soFar[stat] : null;
+    const paceImplied = cum > 0.02 && observed != null ? observed / cum : full[stat];
+    const family = splits.scriptFamily?.[stat];
+    const scriptMult = (family && scriptRow[family]) || 1;
+    mean[stat] = (w.wSeason * full[stat] + w.wInGame * paceImplied) * rem * scriptMult;
+    used[stat] = { w, scriptMult, rem };
+  }
+  const stats = Object.keys(mean);
+  const dispSet = Object.keys(dispRow).length ? dispRow : props.dispersion?.[pos] || {};
+  const propList = stats.map((s) => propsPrice(s, mean[s], dispRow[s] || props.dispersion?.[pos]?.[s], splits.countStats || [], void 0, propsZeroProb(s, mean, dispSet)));
+  const tds = (mean.rushTD || 0) + (mean.recTD || 0);
+  return { quarter, bucket, remaining, mean, used, full, props: propList, anytimeTd: tds > 0 ? propsAnytimeTd(tds) : null };
+}
 // (name|pos) -> {gsis, sleeper} from the slim hosted id-map, so projection
 // rows can carry stable ids without shipping the full crosswalk.
 var _projIdMap = null;
@@ -39614,6 +39840,41 @@ var NFL_TOOLS = [
     }
   },
   {
+    name: "get_player_props",
+    description: `StatHead's weekly PLAYER PROPS and full STAT-LINE projections for 2026 — not just fantasy points, but the projected passing/rushing/receiving line for every player-week, priced as a prop: the half-point line nearest a coin flip, the over/under probability, and a p10–p90 outcome range. Lines come from the season projection split across the schedule by opponent defense-vs-position-vs-STAT strength (a defense can be soft on RB carries and stingy on RB targets — each stat gets its own multiplier), normalized so the weeks sum back to the season line. Spread is empirical: counting stats (attempts, targets, receptions, TDs) are negative binomial, yardage is gamma fit to the observed coefficient of variation. Three modes: (1) player_name + week → that player's whole prop board; (2) player_name alone → his week-by-week strip for one stat (default receiving/rushing/passing yards by position), bye included; (3) week + position → the field ranked by any stat, with opponent, matchup grade and over%. Pass line to price a specific number (e.g. stat=recYds, line=62.5) instead of the model's own. Matchup strength is reported three ways — overall defense (EPA/play + points allowed, graded 0-100 where 100 = toughest), by fantasy position, and by stat. Use for prop shopping, start/sit at the stat level, and DFS leverage.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        player_name: { type: "string", description: "Filter to one player. With week, returns his full prop board; without week, his week-by-week strip for `stat`." },
+        week: { type: "number", description: "NFL week 1-18. With position/team (no player_name), ranks the field for that week." },
+        position: { type: "string", description: "Filter by position (QB, RB, WR, TE).", enum: ["QB", "RB", "WR", "TE"] },
+        team: { type: "string", description: "Filter to one NFL team abbreviation (e.g. DET)." },
+        stat: { type: "string", description: "Stat to rank/strip by. QB: passAtt, passComp, passYds, passTD, int, rushAtt, rushYds, rushTD. RB/WR/TE: rushAtt, rushYds, rushTD, tgt, rec, recYds, recTD. Any position: pprPts. Default pprPts (ranking) or the position's headline yardage stat (strip)." },
+        line: { type: "number", description: "Price this exact line instead of the model's own (needs stat; most useful with player_name + week)." },
+        limit: { type: "number", description: "Max players in ranking mode (default 40, max 500)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_rest_of_game_props",
+    description: `REST-OF-GAME props and projections at any quarter break — what a player is still expected to produce after Q1, at halftime, or after Q3, priced as a prop. Built from play-by-play: each quarter's share of a full game's production (measured per position and per stat — Q2 and Q4 carry more than Q1 and Q3 because of two-minute drills), a game-script adjustment from the score (trailing offenses throw ~42% more and run ~18% less; leading offenses do the reverse), and least-squares weights saying how much a player's in-game pace so far should override his pre-game projection (targets at halftime carry real signal; a Q1 touchdown carries almost none). Spread is measured on the same partial-game windows, so a Q3 prop is priced off Q3 variance rather than a scaled full-game number. Pass player_name + quarter (0 = pre-kickoff, 1-3 = after that quarter), optionally score_diff (his team minus opponent, right now) and so_far ("rec=4,recYds=51,tgt=6") for what he already has. Omit player_name for the league-wide reference tables: quarter shares, game-script multipliers and the blend weights. Use for live betting, second-half props and in-game lineup decisions.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        player_name: { type: "string", description: "Player to project. Omit for the league-wide quarter-split reference tables." },
+        quarter: { type: "number", description: "Quarter just completed: 0 = pre-kickoff, 1, 2 (halftime) or 3. Default 2.", enum: [0, 1, 2, 3] },
+        week: { type: "number", description: "Which week's matchup to base the full-game line on (1-18). Default 1." },
+        score_diff: { type: "number", description: "His team's score minus the opponent's, right now. Omit for no game-script adjustment (correct pre-kickoff)." },
+        so_far: { type: "string", description: 'What he already has this game, e.g. "rec=4,recYds=51,tgt=6" or "passYds=180,passTD=1". Omit to project purely off the pre-game line.' },
+        position: { type: "string", description: "Disambiguate a name that matches several players.", enum: ["QB", "RB", "WR", "TE"] },
+        stat: { type: "string", description: "Restrict the output to one stat (e.g. recYds)." },
+        line: { type: "number", description: "Price this exact rest-of-game line instead of the model's own (needs stat)." }
+      },
+      required: []
+    }
+  },
+  {
     name: "get_college_stats",
     description: 'Get college football statistics for individual players OR a whole class/cohort. Counting stats (passing, rushing, receiving, tackles, sacks, INTs, etc.) by season. Source: CollegeFootballData (CFBD); coverage 2005\u2013present. For one player, pass player_name. For a cohort (e.g. "all 2023 RBs"), omit player_name and pass season (optionally position/school) and sort_by to rank. Use for evaluating college production, dominator rating, market share analysis.',
     input_schema: {
@@ -40364,7 +40625,9 @@ async function executeToolInner(name, input) {
           "- FFC ADP: **~2018\u2013present** (older may be unavailable); ESPN ADP: recent seasons",
           "- StatHead blended dynasty/redraft values, Sleeper trending, expert rankings: **current season only**",
           "- StatHead in-house season projections (`get_projections`): **2026**",
-          "- StatHead weekly (per-game, matchup-adjusted, injury-aware in-season) projections (`get_weekly_projections`): **2026**, weeks 1–18, QB/RB/WR/TE + K + team DST; responses carry as_of + gsis/sleeper ids"
+          "- StatHead weekly (per-game, matchup-adjusted, injury-aware in-season) projections (`get_weekly_projections`): **2026**, weeks 1–18, QB/RB/WR/TE + K + team DST; responses carry as_of + gsis/sleeper ids",
+          "- StatHead weekly player props / stat lines (`get_player_props`): **2026**, weeks 1–18, QB/RB/WR/TE; projected passing/rushing/receiving line per player-week with a half-point line, over/under and p10–p90 range, plus strength of matchup overall / by fantasy position / by stat",
+          "- StatHead rest-of-game props by quarter (`get_rest_of_game_props`): quarter shares, game-script multipliers and in-game blend weights from **2024–2025** play-by-play, applied to the 2026 weekly lines"
         ].join("\n"),
         "## Enumerations",
         [
@@ -42150,6 +42413,8 @@ ${renderTable(input, rows)}`;
         "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. Because raw VOR doesn't discriminate within the draftable pool (every drafted player clears the absolute threshold), get_player_features reports a CALIBRATED Hit/Bust % relative to DRAFT COST: the historical rate at which players drafted near that ADP beat/missed their slot, tilted by the model's value-vs-ADP lean, evaluated at the live consensus ADP. Per-player drivers + Hit/Bust %: get_player_features.",
         "- **Season projection pipeline (get_projections)**: team volume from a Ridge+LightGBM team ensemble is split to players by ML target/rush-share models, with games (health) and age-curve adjustments; veterans blend prior-year actual + 2yr avg + age curve, rookies use the rookie career model. By-team workbook: export_excel kind=by_team.",
         "- **Weekly projections (get_weekly_projections)**: the season line split per week — opponent def-vs-position multipliers (prior-season PPR allowed/gm vs league avg, shrunk 60% toward mean, clamped \xB118%) \xD7 home/away (\xB12%), normalized per team so the 17 games sum back to the season projection.",
+        "- **Player props (get_player_props)**: the same season line split per week, but per STAT rather than per point — each stat gets its own opponent multiplier (defense-vs-position-vs-stat, prior-season allowed per game vs league average, shrunk 40%/35%/25% for volume/yardage/scoring stats, clamped ±18%), normalized so the weeks sum back to the season line. A line is priced from the observed week-to-week spread: counting stats are negative binomial (var = mu + mu²/k), yardage is gamma with shape = 1/cv², and low-volume yardage is zero-inflated by P(no carry/catch). The quoted line is the half point nearest a coin flip.",
+        "- **Rest-of-game props (get_rest_of_game_props)**: measured from play-by-play — each quarter's share of a full game's production per position and stat, game-script multipliers by score differential (trailing offenses pass ~42% more, leading offenses run ~32% more), and least-squares weights on the pre-game projection vs the player's in-game pace. Spread is measured on the same partial-game windows.",
         "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale.",
         "- **Prospect grades (get_prospect_outcomes)**: draft grade/tier + calibrated, draft-slot-relative boom/bust."
       ].join("\n"));
@@ -42505,6 +42770,207 @@ ${renderTable(input, rows, cols2)}`;
       return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line.${injHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
 
 ${renderTable(input, rows, input.fields ? null : cols2)}`;
+    }
+    case "get_player_props": {
+      const doc = await fetchPlayerProps(2026);
+      if (!doc || !doc.players?.length) {
+        return "No StatHead player props available.";
+      }
+      const position = input.position?.toUpperCase();
+      const teamFilter = input.team?.toUpperCase();
+      const playerName = input.player_name;
+      const limit = clamp(input.limit || 40, 1, 500);
+      const nWeeks = doc.weeks || 18;
+      const countStats = doc.countStats || [];
+      const asOf = ` as_of ${doc.generatedAt || "unknown"}${doc.baseGeneratedAt ? `; season base ${doc.baseGeneratedAt}` : ""}.`;
+      const pct = (v) => v == null ? "" : `${(v * 100).toFixed(1)}%`;
+      const r2 = (v) => v == null ? null : Math.round(v * 100) / 100;
+      const r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
+      const oppFor = (team, w) => (doc.teamWeeks?.[team] || []).find((g) => g.w === w) || null;
+      const fmtOpp = (game) => game ? `${game.home ? "vs" : "@"} ${game.opp}` : "BYE";
+      const defOf = (team) => doc.defense?.[team] || null;
+      const headline = (pos) => pos === "QB" ? "passYds" : pos === "RB" ? "rushYds" : "recYds";
+      let pool = doc.players.filter((p) => (!position || p.pos === position) && (!teamFilter || p.team === teamFilter) && (!playerName || nameMatch(p.name, playerName)));
+      if (!pool.length) return `No player matching those filters. Coverage: ${doc.players.length} 2026 QB/RB/WR/TE with a season projection (K and DST are in get_weekly_projections instead).`;
+
+      // ── one player, one week: the full prop board ──
+      if (playerName && input.week != null) {
+        const p = pool[0];
+        const week = clamp(input.week, 1, nWeeks);
+        const line = propsWeekLine(doc, p, week);
+        const game = oppFor(p.team, week);
+        if (!line) return `${p.name} (${p.team} ${p.pos}) is on bye in week ${week}.`;
+        const disp = doc.dispersion?.[p.pos] || {};
+        const wanted = input.stat ? [input.stat] : Object.keys(line);
+        const rows = wanted.filter((s) => s in line).map((s) => {
+          const pr = propsPrice(s, line[s], disp[s], countStats, wanted.length === 1 && input.line != null ? input.line : void 0, propsZeroProb(s, line, disp));
+          return {
+            stat: s,
+            projected: r2(pr.mean),
+            line: pr.line,
+            over: pct(pr.over),
+            under: pct(pr.under),
+            p10: r1(pr.p10),
+            p90: r1(pr.p90),
+            def_vs_stat: defOf(game?.opp)?.stat?.[p.pos]?.[s] ?? null
+          };
+        });
+        const tds = (line.rushTD || 0) + (line.recTD || 0);
+        const d = defOf(game?.opp);
+        const dpos = d?.pos?.[p.pos];
+        const matchup = d ? ` Matchup ${fmtOpp(game)}: defense overall grade ${d.overall?.grade ?? "?"}/100 (rank ${d.overall?.rank ?? "?"}, ${d.overall?.pointsGm ?? "?"} pts + ${d.overall?.ydsGm ?? "?"} yds allowed/gm, ${d.overall?.epaPlay ?? "?"} EPA/play); vs ${p.pos} grade ${dpos?.grade ?? "?"}/100 (rank ${dpos?.rank ?? "?"}, ${dpos?.pprGm ?? "?"} PPR allowed/gm = ${dpos?.ratio ?? "?"}x league average). 100 = toughest.` : "";
+        const injNote = p.injury ? ` ⚠ ${p.injury.status ? `${p.injury.status}${p.injury.detail ? ` (${p.injury.detail})` : ""} — play probability ${pct(p.injury.pPlay)}` : `missed ${p.injury.priorMissed} week(s) on the ${doc.priorSeason} injury report`}.` : "";
+        return `StatHead player props — ${p.name} (${p.team} ${p.pos}), ${doc.season} week ${week} ${fmtOpp(game)}. Lines are conditional on him playing; availability ${pct(p.avail)} (projected ${p.gp} games).${injNote}${matchup} Anytime TD ${tds > 0 ? pct(propsAnytimeTd(tds)) : "n/a"} (expected ${r2(tds)} TDs). def_vs_stat = opponent multiplier already applied to that stat (1.0 = league average).${asOf}
+
+${renderTable(input, rows, input.fields ? null : ["stat", "projected", "line", "over", "under", "p10", "p90", "def_vs_stat"])}`;
+      }
+
+      // ── one player, every week: the season strip for one stat ──
+      if (playerName) {
+        const p = pool[0];
+        const stat = input.stat || headline(p.pos);
+        const keys = doc.statKeys?.[p.pos] || [];
+        if (!keys.includes(stat)) return `${p.name} is a ${p.pos}; available stats: ${keys.join(", ")}.`;
+        const disp = doc.dispersion?.[p.pos] || {};
+        const rows = [];
+        for (let w = 1; w <= nWeeks; w++) {
+          const line = propsWeekLine(doc, p, w);
+          const game = oppFor(p.team, w);
+          if (!line) { rows.push({ week: w, opp: "BYE", projected: null, line: null, over: "", def_grade: null }); continue; }
+          const pr = propsPrice(stat, line[stat], disp[stat], countStats, input.line != null ? input.line : void 0, propsZeroProb(stat, line, disp));
+          rows.push({
+            week: w,
+            opp: fmtOpp(game),
+            projected: r2(pr.mean),
+            line: pr.line,
+            over: pct(pr.over),
+            def_grade: defOf(game?.opp)?.pos?.[p.pos]?.grade ?? null
+          });
+        }
+        const bye = doc.byeWeeks?.[p.team];
+        return `StatHead player props — ${p.name} (${p.team} ${p.pos}), ${doc.season} ${stat} by week. Bye week ${bye ?? "n/a"}. def_grade = opponent's defense-vs-${p.pos} grade, 0-100 where 100 = toughest. Lines assume he plays; availability ${pct(p.avail)}.${asOf}
+
+${renderTable(input, rows, input.fields ? null : ["week", "opp", "projected", "line", "over", "def_grade"])}`;
+      }
+
+      // ── the field, one week, ranked by a stat ──
+      const week = clamp(input.week || 1, 1, nWeeks);
+      const stat = input.stat || "pprPts";
+      let rows = pool.map((p) => {
+        const line = propsWeekLine(doc, p, week);
+        if (!line || !(stat in line)) return null;
+        const disp = doc.dispersion?.[p.pos] || {};
+        const pr = propsPrice(stat, line[stat], disp[stat], countStats, input.line != null ? input.line : void 0, propsZeroProb(stat, line, disp));
+        const game = oppFor(p.team, week);
+        return {
+          name: p.name,
+          position: p.pos,
+          team: p.team,
+          opp: fmtOpp(game),
+          projected: r2(pr.mean),
+          line: pr.line,
+          over: pct(pr.over),
+          p10: r1(pr.p10),
+          p90: r1(pr.p90),
+          def_grade: defOf(game?.opp)?.pos?.[p.pos]?.grade ?? null,
+          availability: pct(p.avail),
+          gsis_id: p.gsis || null,
+          sleeper_id: p.sleeper || null
+        };
+      }).filter(Boolean);
+      if (!rows.length) return `No player has a "${stat}" projection for week ${week} under those filters. Valid stats per position: ${Object.entries(doc.statKeys || {}).map(([k, v]) => `${k}: ${v.join("/")}`).join("; ")}.`;
+      rows.sort((a, b) => b.projected - a.projected);
+      const total = rows.length;
+      rows = rows.slice(0, limit);
+      const byeTeams = [...new Set(pool.filter((p) => p.wk[week - 1] == null).map((p) => p.team))].sort();
+      const capNote = total > rows.length ? ` Showing top ${rows.length} of ${total} — raise limit (max 500).` : "";
+      const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
+      return `StatHead player props — ${doc.season} week ${week}, ranked by ${stat} (${rows.length} players). line = the half-point number nearest a coin flip; over = P(clears it), from a negative binomial (counting stats) or gamma (yardage) fit to ${doc.priorSeason} week-to-week spread. p10-p90 is the outcome range. def_grade = opponent's defense-vs-position grade, 0-100 where 100 = toughest. Lines assume the player suits up (availability column).${byeNote}${capNote}${asOf}
+
+${renderTable(input, rows, input.fields ? null : ["name", "position", "team", "opp", "projected", "line", "over", "p10", "p90", "def_grade", "availability"])}`;
+    }
+    case "get_rest_of_game_props": {
+      const doc = await fetchPlayerProps(2026);
+      const splits = await fetchQuarterSplits(2025);
+      if (!splits) return "No StatHead quarter splits available.";
+      const pct = (v) => v == null ? "" : `${(v * 100).toFixed(1)}%`;
+      const r2 = (v) => v == null ? null : Math.round(v * 100) / 100;
+      const r1 = (v) => v == null ? null : Math.round(v * 10) / 10;
+      const quarter = clamp(input.quarter == null ? 2 : input.quarter, 0, 3);
+
+      // ── no player: the league-wide reference tables ──
+      if (!input.player_name) {
+        const pos = (input.position || "WR").toUpperCase();
+        const shareRows = Object.entries(splits.share?.[pos] || {}).map(([stat, sh]) => ({
+          stat,
+          q1: pct(sh[0]), q2: pct(sh[1]), q3: pct(sh[2]), q4: pct(sh[3]),
+          rest_after_q1: pct(splits.remaining?.[pos]?.[stat]?.[1]),
+          rest_after_half: pct(splits.remaining?.[pos]?.[stat]?.[2]),
+          rest_after_q3: pct(splits.remaining?.[pos]?.[stat]?.[3])
+        }));
+        const scriptRows = (splits.scriptBuckets || []).filter((b) => splits.script?.[b]).map((b) => ({
+          score_state: b,
+          plays_pace: splits.script[b].plays,
+          pass_att: splits.script[b].passAtt,
+          rush_att: splits.script[b].rushAtt,
+          pass_yds: splits.script[b].passYds,
+          rush_yds: splits.script[b].rushYds,
+          pass_share: splits.script[b].passShare,
+          n_plays: splits.script[b].n
+        }));
+        const blendRows = Object.entries(splits.blend?.[String(quarter)]?.[pos] || {}).map(([stat, w]) => ({
+          stat, weight_pregame: w.wSeason, weight_in_game: w.wInGame, n: w.n
+        }));
+        return `StatHead rest-of-game reference — ${pos}, from ${(splits.seasons || [splits.season]).join(" + ")} play-by-play (OT folded into Q4). Quarter shares of a full game, then the game-script multipliers (score state from the offense's point of view; 1.0 = league average play mix and pace), then how much a ${pos}'s pace through Q${quarter} should override his pre-game projection. as_of ${splits.generatedAt}.
+
+QUARTER SHARES
+${renderTable(input, shareRows, ["stat", "q1", "q2", "q3", "q4", "rest_after_q1", "rest_after_half", "rest_after_q3"])}
+
+GAME SCRIPT (multipliers on the remainder)
+${renderTable(input, scriptRows, ["score_state", "plays_pace", "pass_att", "rush_att", "pass_yds", "rush_yds", "pass_share", "n_plays"])}
+
+BLEND WEIGHTS AFTER Q${quarter}
+${renderTable(input, blendRows, ["stat", "weight_pregame", "weight_in_game", "n"])}`;
+      }
+
+      if (!doc || !doc.players?.length) return "No StatHead player props available to project from.";
+      const position = input.position?.toUpperCase();
+      const pool = doc.players.filter((p) => (!position || p.pos === position) && nameMatch(p.name, input.player_name));
+      if (!pool.length) return `No player matching "${input.player_name}".`;
+      const p = pool[0];
+      const week = clamp(input.week || 1, 1, doc.weeks || 18);
+      const keys = doc.statKeys?.[p.pos] || [];
+      const soFar = propsParseSoFar(input.so_far, keys);
+      const scoreDiff = input.score_diff == null ? null : input.score_diff;
+      const rog = propsRestOfGame(doc, splits, p, week, quarter, scoreDiff, soFar);
+      if (!rog) return `${p.name} (${p.team} ${p.pos}) is on bye in week ${week}; pick another week.`;
+      const wanted = input.stat ? [input.stat] : Object.keys(rog.mean);
+      const rows = wanted.filter((s) => s in rog.mean).map((s) => {
+        const dispRow = splits.dispersion?.[String(quarter)]?.[p.pos]?.[s] || doc.dispersion?.[p.pos]?.[s];
+        const pr = propsPrice(s, rog.mean[s], dispRow, splits.countStats || [], wanted.length === 1 && input.line != null ? input.line : void 0, propsZeroProb(s, rog.mean, splits.dispersion?.[String(quarter)]?.[p.pos] || doc.dispersion?.[p.pos]));
+        const u = rog.used[s] || {};
+        return {
+          stat: s,
+          full_game: r2(rog.full[s]),
+          so_far: soFar?.[s] ?? null,
+          rest_of_game: r2(pr.mean),
+          line: pr.line,
+          over: pct(pr.over),
+          p10: r1(pr.p10),
+          p90: r1(pr.p90),
+          remaining_share: pct(u.rem),
+          script_mult: u.scriptMult ?? 1,
+          weight_in_game: u.w?.wInGame ?? 0
+        };
+      });
+      if (!rows.length) return `"${input.stat}" is not projected for a ${p.pos}. Available: ${keys.join(", ")}.`;
+      const game = (doc.teamWeeks?.[p.team] || []).find((g) => g.w === week);
+      const when = quarter === 0 ? "pre-kickoff" : quarter === 2 ? "at halftime" : `after Q${quarter}`;
+      const scriptNote = rog.bucket ? `Score ${input.score_diff > 0 ? "+" : ""}${input.score_diff} → "${rog.bucket}" script, multipliers applied to the remainder.` : "No score supplied, so no game-script adjustment (the league-average play mix the full-game line already assumes).";
+      const soFarNote = soFar ? `In-game production so far: ${Object.entries(soFar).map(([k, v]) => `${k} ${v}`).join(", ")} — blended against the pre-game line at the fitted weight_in_game.` : "No in-game production supplied, so the remainder is scaled straight off the pre-game line.";
+      return `StatHead rest-of-game props — ${p.name} (${p.team} ${p.pos}), ${doc.season} week ${week} ${game ? game.home ? `vs ${game.opp}` : `@ ${game.opp}` : ""}, ${when}. ${scriptNote} ${soFarNote} Lines are priced off ${(splits.seasons || [splits.season]).join("+")} rest-of-game variance for that window, not a scaled full-game number. Anytime TD from here: ${rog.anytimeTd == null ? "n/a" : pct(rog.anytimeTd)}. as_of ${doc.generatedAt} (props) / ${splits.generatedAt} (splits).
+
+${renderTable(input, rows, input.fields ? null : ["stat", "full_game", "so_far", "rest_of_game", "line", "over", "p10", "p90", "remaining_share", "script_mult", "weight_in_game"])}`;
     }
     case "get_college_stats": {
       const playerName = input.player_name;
@@ -42971,7 +43437,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.63";
+var SERVER_VERSION = "1.0.64";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

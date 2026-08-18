@@ -24,7 +24,21 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-07-28 — Visitor tracking: first-party, cookie-less pageview analytics
+2026-08-18 — Player props + rest-of-game projections: two new builders
+(`scripts/build-player-props.py` → `player-props-2026.json`,
+`scripts/build-quarter-splits.py` → `quarter-splits-2025.json`) turn the
+season pool into per-week **stat lines** (attempts / yards / TDs / targets /
+receptions) priced as props — half-point line, over/under and p10–p90 range —
+with strength of matchup emitted overall, by fantasy position and by stat,
+plus bye weeks and injury-report availability. Play-by-play supplies
+quarter-by-quarter shares, game-script multipliers by score differential and
+in-game blend weights, so any full-game line converts to a rest-of-game one
+after Q1 / half / Q3. Shared math in `src/lib/playerProps.ts`, mirrored into
+the MCP bundle (1.0.64, tools `get_player_props` + `get_rest_of_game_props`)
+and the Python package (0.4.0, `stathead.props`); new "Player Props" app tab;
+both builders wired into `refresh-data.yml`.
+
+Previously (2026-07-28) — Visitor tracking: first-party, cookie-less pageview analytics
 (new `workers/visit-tracker` Cloudflare Worker on Workers Analytics
 Engine + a `sendBeacon` hook in the app; daily-rotating anonymous
 visitor hash, DNT/GPC honored). `/stats` JSON + mini dashboard at
@@ -71,3 +85,5 @@ framework; defVsPos gains K/DST entries). 1.0.63 not yet published.
 4. Weekly projections v2: in-season re-projection (blend actuals as weeks
    complete), Vegas totals/spreads as game-environment multipliers, and
    injury/depth-chart awareness.
+5. Player props v2: Vegas totals/spreads as a game-environment input, K/DST
+   props, and per-player (rather than league-wide) in-game blend weights.

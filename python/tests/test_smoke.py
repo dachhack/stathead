@@ -150,6 +150,70 @@ def test_weekly_projections():
     assert (dst["sleeper_id"] == dst["team"]).all()
 
 
+def test_player_props_weekly_stat_lines():
+    df = stathead.load_player_props()
+    assert not df.empty
+    assert {"player_key", "name", "position", "team", "week", "opp", "home",
+            "availability", "recYds", "rec", "pprPts"}.issubset(df.columns)
+    # 17 scheduled games per player (byes omitted), weeks within 1-18.
+    assert (df.groupby("name")["week"].count() == 17).all()
+    assert df["week"].between(1, 18).all()
+    assert df["availability"].between(0, 1).all()
+    # Normalization: weekly stat lines sum back to the season line.
+    sums = df.groupby("name")["pprPts"].sum()
+    assert (sums > 0).all()
+    # Strength of matchup: a 0-100 grade where 100 = toughest, and every team
+    # graded on both scales.
+    defense = df.attrs["defense"]
+    assert len(defense) == 32
+    grades = [d["overall"]["grade"] for d in defense.values()]
+    assert min(grades) == 0 and max(grades) == 100
+    # The toughest defense overall must also be the one ranked first.
+    toughest = max(defense.items(), key=lambda kv: kv[1]["overall"]["grade"])
+    assert toughest[1]["overall"]["rank"] == 1
+
+
+def test_props_pricing_and_rest_of_game():
+    board = stathead.price_props("Ja'Marr Chase", 1, position="WR")
+    assert not board.empty
+    assert {"stat", "mean", "line", "over", "under", "p10", "p90"}.issubset(board.columns)
+    # Every quoted line is a half point, so a prop can never push, and the
+    # model's own line always sits near a coin flip on high-volume stats.
+    assert ((board["line"] * 2) % 2 == 1).all()
+    assert board["over"].between(0, 1).all()
+    assert (board["p10"] <= board["p90"]).all()
+    rec = board.set_index("stat").loc["rec"]
+    assert 0.35 < rec["over"] < 0.65
+
+    # Rest of game shrinks toward zero as the game runs out, and trailing
+    # offenses throw more than leading ones.
+    prev = None
+    for q in (0, 1, 2, 3):
+        rog = stathead.rest_of_game("Ja'Marr Chase", 1, q, position="WR")
+        cur = rog.set_index("stat").loc["recYds", "mean"]
+        if prev is not None:
+            assert cur < prev
+        prev = cur
+    trailing = stathead.rest_of_game("Ja'Marr Chase", 1, 2, score_diff=-17,
+                                     position="WR").set_index("stat")
+    leading = stathead.rest_of_game("Ja'Marr Chase", 1, 2, score_diff=17,
+                                    position="WR").set_index("stat")
+    assert trailing.loc["recYds", "mean"] > leading.loc["recYds", "mean"]
+
+
+def test_quarter_splits_shares_sum_to_one():
+    splits = stathead.load_quarter_splits()
+    for pos, stats in splits["share"].items():
+        for stat, share in stats.items():
+            assert abs(sum(share) - 1) < 0.01, f"{pos}/{stat} shares sum to {sum(share)}"
+            # remaining[0] is the whole game; remaining is strictly decreasing.
+            rem = splits["remaining"][pos][stat]
+            assert rem[0] == 1.0
+            assert all(rem[i] > rem[i + 1] for i in range(len(rem) - 1))
+    frame = stathead.quarter_share_frame(splits)
+    assert {"position", "stat", "q1", "q4", "rest_after_q3"}.issubset(frame.columns)
+
+
 def test_ppg_and_adp_value_model():
     ppg = stathead.load_ppg_projections()
     adp = stathead.load_adp_value_model()

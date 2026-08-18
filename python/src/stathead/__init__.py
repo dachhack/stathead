@@ -38,11 +38,20 @@ from .projections import (
     load_weekly_projections,
 )
 from .polars import load_polars, to_polars
+from .props import (
+    anytime_td_prob,
+    load_player_props,
+    load_quarter_splits,
+    price_prop,
+    price_props,
+    quarter_share_frame,
+    rest_of_game,
+)
 from .prospects import load_prospect_grades
 from .sql import list_tables, query, register
 from .stats import load_player_stats
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 __all__ = [
     "__version__",
@@ -60,6 +69,8 @@ __all__ = [
     "load_feature_matrix",
     "load_manual_overrides",
     "load_player_crosswalk",
+    "load_player_props",
+    "load_quarter_splits",
     "load_player_profile",
     "load_player_stats",
     "load_ppg_projections",
@@ -69,6 +80,11 @@ __all__ = [
     "load_taxi_predictions",
     "load_volume_projections",
     "load_weekly_projections",
+    "anytime_td_prob",
+    "price_prop",
+    "price_props",
+    "quarter_share_frame",
+    "rest_of_game",
     "get_player",
     "resolve_player",
     "query",

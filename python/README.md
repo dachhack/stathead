@@ -127,6 +127,10 @@ available here as a pandas DataFrame.
 |---|---|---|
 | `load_redraft_projections()` | Seasonal redraft PPG (PPR) + receptions/game | ~250 × 7 |
 | `load_weekly_projections()` | Per-week matchup-adjusted projections incl. kickers + team DST, one row per player-game (opp, home, matchup mult, PPR pts, gsis/sleeper ids; `df.attrs['def_vs_pos']`) | ~509 × 17 rows/player |
+| `load_player_props()` | Per-week projected **stat lines** (att/comp/yds/TD/tgt/rec), one row per player-game, with opponent, availability and defense grades (`df.attrs['dispersion']`, `['defense']`, `['bye_weeks']`) | ~445 × 17 rows/player |
+| `price_props(player, week)` | Every prop for one player-week: mean, half-point line, over/under, p10–p90 (`df.attrs['anytime_td']`) | ~8 × 7 |
+| `rest_of_game(player, week, quarter, score_diff=…, so_far=…)` | What's still to come after Q1 / halftime / Q3, adjusted for game script and in-game pace | ~7 × 12 |
+| `load_quarter_splits()` / `quarter_share_frame()` | Quarter shares, game-script multipliers, blend weights and partial-window spread from play-by-play | dict / ~28 × 10 |
 | `load_ppg_projections()` | Model-predicted PPG for established players | ~250 × 4 |
 | `load_adp_value_model()` | VOR vs ADP, hit probability, confidence interval | ~153 × 10 |
 | `load_volume_projections()` | Team pass/rush/target volumes with low/high bands | ~153 × ~14 |

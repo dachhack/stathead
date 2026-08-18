@@ -22,6 +22,7 @@ import { FantasyADPView } from './components/FantasyADPView';
 import { StatProjections } from './components/StatProjections';
 import { ScheduleView } from './components/ScheduleView';
 import { WeeklyProjectionsView } from './components/WeeklyProjectionsView';
+import { PlayerPropsView } from './components/PlayerPropsView';
 import { SleeperLeagueView } from './components/SleeperLeagueView';
 import { SleeperUserSnooper } from './components/SleeperUserSnooper';
 import { SleeperWaiverWire } from './components/SleeperWaiverWire';
@@ -81,6 +82,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'projections', label: 'Projections' },
       { id: 'weekly-projections', label: 'Weekly Projections' },
+      { id: 'player-props', label: 'Player Props' },
       { id: 'scenario-builder', label: 'Scenario Builder' },
       { id: 'schedule', label: 'Schedule & SOS' },
       { id: 'consensus-adp', label: 'Consensus ADP' },
@@ -294,6 +296,7 @@ function App() {
         {tab === 'scenario-builder' && <StatProjections season={season} scenario={scenario} onScenarioChange={setScenario} embedBuilder />}
         {tab === 'schedule' && <ScheduleView />}
         {tab === 'weekly-projections' && <WeeklyProjectionsView />}
+        {tab === 'player-props' && <PlayerPropsView />}
         {tab === 'my-rankings' && <MyRankings scenario={scenario} />}
         {tab === 'stats' && season >= 2026
           ? <ExternalRankings2026 scenario={scenario} />

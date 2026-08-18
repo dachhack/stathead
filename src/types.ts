@@ -206,6 +206,7 @@ export type Tab =
   | 'home'
   | 'projections'
   | 'weekly-projections'
+  | 'player-props'
   | 'scenario-builder'
   | 'schedule'
   | 'stats'
