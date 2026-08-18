@@ -24,7 +24,20 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-08-18 — Player props + rest-of-game projections: two new builders
+2026-08-18 — In-season walk-forward model + backtest: new
+`scripts/build-inseason-projections.py` re-projects each week from the weeks
+already played (usage share x team volume x opponent, times per-touch
+efficiency), with constants fit on 2023+2024 by
+`scripts/fit-inseason-params.py` so the 2025 scoring is out of sample.
+`scripts/eval-weekly-backtest.py` scores it against actuals, three naive
+baselines and Sleeper's published weekly projections: MAE 4.64 / R² 0.398 /
+Spearman 0.685 on PPR points, beating the prior-season line (5.28 / 0.284 /
+0.588) on 59.6% of player-weeks and beating Sleeper at QB. Sleeper's raw
+snapshot stays local-only per their terms; only derived metrics ship. Also
+fixed a silent nflverse schema break (`recent_team`/`interceptions` renamed
+for 2025+) that had been emptying every prior-season lookup.
+
+Earlier 2026-08-18 — Player props + rest-of-game projections: two new builders
 (`scripts/build-player-props.py` → `player-props-2026.json`,
 `scripts/build-quarter-splits.py` → `quarter-splits-2025.json`) turn the
 season pool into per-week **stat lines** (attempts / yards / TDs / targets /
@@ -87,3 +100,7 @@ framework; defVsPos gains K/DST entries). 1.0.63 not yet published.
    injury/depth-chart awareness.
 5. Player props v2: Vegas totals/spreads as a game-environment input, K/DST
    props, and per-player (rather than league-wide) in-game blend weights.
+6. In-season model v2: close the ~4pp skill-usage prop calibration gap (a
+   heavier left tail for mid-game exits / benchings is the leading
+   hypothesis), add snap-count and depth-chart signal, and wire the
+   in-season line into the Player Props tab once 2026 weeks exist.

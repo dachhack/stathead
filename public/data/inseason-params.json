@@ -1,0 +1,279 @@
+{
+ "fitSeasons": [
+  2023,
+  2024
+ ],
+ "generatedAt": "2026-08-18T10:40:19+00:00",
+ "note": "Constants for the in-season weekly model, fit by coordinate descent on the seasons listed in fitSeasons against the mean normalized MAE (MAE / mean actual) across the (position, stat) cells in FIT_STATS. `calibration` holds one logit shift per stat applied to prop over-probabilities: the projected mean can be unbiased while the quoted line still sits on the wrong side of the median, because real usage is more right-skewed than the negative binomial the pricer assumes. Evaluate on a season not in fitSeasons.",
+ "objective": 0.55675,
+ "params": {
+  "k_tgt_share": 1.0,
+  "k_rush_share": 0.5,
+  "k_pass_share": 0.1,
+  "k_catch_rate": 35.0,
+  "k_ypt": 20.0,
+  "k_ypc": 10.0,
+  "k_rec_td_rate": 40.0,
+  "k_rush_td_rate": 25.0,
+  "k_comp_pct": 6.0,
+  "k_ypa": 60.0,
+  "k_pass_td_rate": 100.0,
+  "k_int_rate": 120.0,
+  "k_team": 8.0,
+  "half_life": 5.0,
+  "opp_shrink_vol": 0.35,
+  "opp_shrink_eff": 0.4,
+  "opp_blend_k": 2.0,
+  "opp_clamp": 0.15,
+  "home_mult": 1.02
+ },
+ "dispersion": {
+  "QB": {
+   "passAtt": {
+    "k": 8.474,
+    "cv": 0.3875,
+    "n": 1326
+   },
+   "passComp": {
+    "k": 9.117,
+    "cv": 0.3983,
+    "n": 1326
+   },
+   "passYds": {
+    "k": 6.147,
+    "cv": 0.4088,
+    "n": 1263
+   },
+   "passTD": {
+    "k": 50.0,
+    "cv": 0.805,
+    "n": 1326
+   },
+   "int": {
+    "k": 3.857,
+    "cv": 1.2788,
+    "n": 1324
+   },
+   "rushAtt": {
+    "k": 6.12,
+    "cv": 0.6027,
+    "n": 1323
+   },
+   "rushTD": {
+    "k": 50.0,
+    "cv": 1.6213,
+    "n": 1292
+   },
+   "rushYds": {
+    "k": 1.625,
+    "cv": 0.8072,
+    "n": 1162
+   },
+   "pprPts": {
+    "k": 5.362,
+    "cv": 0.4971,
+    "n": 1231
+   }
+  },
+  "WR": {
+   "tgt": {
+    "k": 13.58,
+    "cv": 0.4879,
+    "n": 4343
+   },
+   "rec": {
+    "k": 13.321,
+    "cv": 0.5704,
+    "n": 4343
+   },
+   "recTD": {
+    "k": 50.0,
+    "cv": 1.6729,
+    "n": 4243
+   },
+   "recYds": {
+    "k": 2.308,
+    "cv": 0.6723,
+    "n": 3840
+   },
+   "pprPts": {
+    "k": 2.908,
+    "cv": 0.6564,
+    "n": 3936
+   },
+   "rushAtt": {
+    "k": 4.264,
+    "cv": 1.1491,
+    "n": 3096
+   },
+   "rushTD": {
+    "k": 50.0,
+    "cv": 2.9988,
+    "n": 2667
+   },
+   "rushYds": {
+    "k": 0.3,
+    "cv": 2.1649,
+    "n": 619
+   }
+  },
+  "TE": {
+   "tgt": {
+    "k": 12.628,
+    "cv": 0.552,
+    "n": 2163
+   },
+   "rec": {
+    "k": 10.706,
+    "cv": 0.6378,
+    "n": 2163
+   },
+   "recYds": {
+    "k": 1.97,
+    "cv": 0.7323,
+    "n": 1911
+   },
+   "recTD": {
+    "k": 50.0,
+    "cv": 1.9593,
+    "n": 2083
+   },
+   "pprPts": {
+    "k": 2.628,
+    "cv": 0.7093,
+    "n": 1912
+   },
+   "rushAtt": {
+    "k": 2.153,
+    "cv": 0.8892,
+    "n": 555
+   },
+   "rushTD": {
+    "k": 0.63,
+    "cv": 2.3015,
+    "n": 448
+   },
+   "rushYds": {
+    "k": 0.368,
+    "cv": 1.6632,
+    "n": 57
+   }
+  },
+  "RB": {
+   "rushAtt": {
+    "k": 6.752,
+    "cv": 0.4823,
+    "n": 2684
+   },
+   "rushYds": {
+    "k": 2.556,
+    "cv": 0.6403,
+    "n": 2565
+   },
+   "rushTD": {
+    "k": 50.0,
+    "cv": 1.4046,
+    "n": 2599
+   },
+   "tgt": {
+    "k": 6.855,
+    "cv": 0.6814,
+    "n": 2670
+   },
+   "rec": {
+    "k": 6.804,
+    "cv": 0.7436,
+    "n": 2670
+   },
+   "recYds": {
+    "k": 1.074,
+    "cv": 0.9898,
+    "n": 1895
+   },
+   "pprPts": {
+    "k": 3.411,
+    "cv": 0.6136,
+    "n": 2614
+   },
+   "recTD": {
+    "k": 50.0,
+    "cv": 2.4752,
+    "n": 2315
+   }
+  }
+ },
+ "calibration": {
+  "passAtt": {
+   "shift": 0.1358,
+   "n": 1326,
+   "rawMeanPredicted": 0.4986,
+   "actualRate": 0.5324
+  },
+  "passComp": {
+   "shift": 0.1685,
+   "n": 1326,
+   "rawMeanPredicted": 0.4982,
+   "actualRate": 0.54
+  },
+  "passYds": {
+   "shift": 0.1263,
+   "n": 1326,
+   "rawMeanPredicted": 0.4987,
+   "actualRate": 0.5302
+  },
+  "passTD": {
+   "shift": 0.0875,
+   "n": 1326,
+   "rawMeanPredicted": 0.4435,
+   "actualRate": 0.463
+  },
+  "int": {
+   "shift": 0.1125,
+   "n": 1324,
+   "rawMeanPredicted": 0.4064,
+   "actualRate": 0.4313
+  },
+  "rushAtt": {
+   "shift": 0.0183,
+   "n": 7658,
+   "rawMeanPredicted": 0.3391,
+   "actualRate": 0.3424
+  },
+  "rushYds": {
+   "shift": 0.0448,
+   "n": 7658,
+   "rawMeanPredicted": 0.3089,
+   "actualRate": 0.3164
+  },
+  "rushTD": {
+   "shift": -0.0296,
+   "n": 7006,
+   "rawMeanPredicted": 0.116,
+   "actualRate": 0.1136
+  },
+  "tgt": {
+   "shift": -0.0711,
+   "n": 9176,
+   "rawMeanPredicted": 0.4935,
+   "actualRate": 0.476
+  },
+  "rec": {
+   "shift": -0.0047,
+   "n": 9176,
+   "rawMeanPredicted": 0.4922,
+   "actualRate": 0.4911
+  },
+  "recYds": {
+   "shift": 0.0063,
+   "n": 9176,
+   "rawMeanPredicted": 0.492,
+   "actualRate": 0.4936
+  },
+  "recTD": {
+   "shift": 0.024,
+   "n": 8641,
+   "rawMeanPredicted": 0.1524,
+   "actualRate": 0.1552
+  }
+ }
+}

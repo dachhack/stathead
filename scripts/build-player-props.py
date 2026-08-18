@@ -154,15 +154,36 @@ def load_json(name):
         return json.load(f)
 
 
+# nflverse renamed several weekly-stats columns for 2025+; seasons through
+# 2024 still ship the old names. Normalize on read — without this every
+# prior-season lookup silently comes back empty and the model quietly falls
+# through to its replacement-level defaults.
+LEGACY_COLS = {
+    'recent_team': 'team',
+    'interceptions': 'passing_interceptions',
+    'sacks': 'sacks_suffered',
+    'sack_yards': 'sack_yards_lost',
+}
+
+
+def _normalize_row(row):
+    for old, new in LEGACY_COLS.items():
+        if old in row and not row.get(new):
+            row[new] = row[old]
+    return row
+
+
 def iter_csv_rows(base):
     plain = os.path.join(DATA, f'{base}.csv')
     gz = os.path.join(DATA, f'{base}.csv.gz')
     if os.path.exists(plain):
         with open(plain, newline='') as f:
-            yield from csv.DictReader(f)
+            for row in csv.DictReader(f):
+                yield _normalize_row(row)
     elif os.path.exists(gz):
         with gzip.open(gz, 'rt') as f:
-            yield from csv.DictReader(f)
+            for row in csv.DictReader(f):
+                yield _normalize_row(row)
 
 
 def load_pbp(season):

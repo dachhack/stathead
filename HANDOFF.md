@@ -1,6 +1,66 @@
 # StatHead — session handoff
 
-Last updated 2026-08-18 (player props session). **Resume section directly below;** older notes follow.
+Last updated 2026-08-18 (player props + in-season backtest). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-08-18b, in-season model + walk-forward backtest — `claude/player-props-projections-wzx40o`)
+
+The props work above answers "what do we expect in week 10, asked in August".
+This adds the in-season question — **what do we expect in week 10 knowing only
+weeks 1-9** — and, more importantly, measures whether the answer is any good.
+
+- **`scripts/build-inseason-projections.py` → `inseason-projections-<season>.json`.**
+  Walk-forward: week *w* is built from weeks 1..w-1 of that season plus the
+  prior season, never from week *w*. Nothing is projected directly; usage
+  (share of team plays) and efficiency (per touch) are projected separately
+  and multiplied, each an empirical-Bayes blend of an exponentially-weighted
+  in-season rate with a prior. Opponent adjustments are split into
+  volume-allowed and efficiency-allowed so they can't double-count. Runs a
+  full season in ~1s.
+- **`scripts/fit-inseason-params.py` → `inseason-params.json`.** Coordinate
+  descent on **2023 + 2024** against mean normalized MAE, so the 2025
+  evaluation is out of sample. Headline finding: **usage is learnable
+  in-season, efficiency essentially isn't** — the fit pushes `k_tgt_share`
+  to 1.0 and `k_rush_share` to 0.5 (trust a player's own share after one or
+  two games) while pushing `k_ypa` to 60, `k_pass_td_rate` to 100 and
+  `k_int_rate` to 120 (shrink efficiency almost entirely to the prior).
+  Also fits one logit shift per stat for prop calibration.
+- **`scripts/eval-weekly-backtest.py` → `weekly-backtest-<season>.json`.**
+  Scores every model on the intersection of player-weeks all of them cover.
+  2025 results on PPR points (4,096 player-weeks): in-season **MAE 4.64,
+  R² 0.398, Spearman 0.685, bias +0.15**, vs prior-season 5.28/0.284/0.588,
+  trailing-3 5.02/0.266/0.631, last-game 5.91/-0.054/0.550. It beats the
+  prior-season line on **59.6%** of player-weeks. Per position it **beats
+  Sleeper at QB** (MAE 6.58 vs 6.96; Sleeper runs +3.46 points hot there)
+  and trails at RB/WR/TE. A 50/50 blend with Sleeper beats both (4.49).
+- **`scripts/fetch-sleeper-weekly-projections.py`** pulls the external
+  benchmark. ⚠️ **The raw snapshot is gitignored and must stay that way** —
+  Sleeper's terms cover bulk redistribution (DATA_SOURCES.md, Public API
+  tier). Only our derived accuracy metrics are committed, and the eval
+  degrades gracefully when the file is absent.
+
+Two honest caveats recorded in the artifacts rather than smoothed over:
+
+1. **Sleeper provenance.** Their rows' `last_modified` lands ~5 days after each
+   week's first kickoff, so hindsight can't be ruled out from timestamps
+   alone. Two things argue against it mattering: their R² is ~0.42, not near
+   1.0, and their edge is concentrated in weeks 1-4 and gone by week 10 —
+   the signature of better offseason information, not of knowing the result.
+2. **Skill-usage props ran ~4pp hot in 2025** (targets: 46.7% stated vs 43.2%
+   realized), while QB props were well calibrated (passYds 52.9% vs 52.2%).
+   The 2023-24 shift only partly transfers, which suggests the gap is at
+   least partly season-specific. Left as a measured limitation, not tuned
+   away on the test season.
+
+**A schema bug this surfaced, worth remembering:** nflverse renamed weekly
+columns for 2025+ (`recent_team` → `team`, `interceptions` →
+`passing_interceptions`). Seasons ≤2024 still ship the old names, so every
+prior-season lookup silently returned **empty** and the model fell through to
+replacement-level defaults — a −2.07 point bias and TE rushing yards
+over-projected 11×. All three builders now normalize on read (`LEGACY_COLS` /
+`_normalize_row`). **Any new script reading `player_stats_<year>` needs that
+normalizer.** Fixing it moved R² from 0.276 to 0.386 before any tuning.
 
 ---
 

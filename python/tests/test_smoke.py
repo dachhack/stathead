@@ -201,6 +201,40 @@ def test_props_pricing_and_rest_of_game():
     assert trailing.loc["recYds", "mean"] > leading.loc["recYds", "mean"]
 
 
+def test_inseason_projections_are_walk_forward():
+    df = stathead.load_inseason_projections(2025)
+    assert not df.empty
+    assert {"player_key", "name", "position", "team", "opp", "week",
+            "nGames", "pprPts"}.issubset(df.columns)
+    assert df["week"].between(1, 18).all()
+    # Week 1 has no in-season history by construction; later weeks accumulate
+    # it, which is the whole point of a walk-forward build.
+    assert (df[df["week"] == 1]["nGames"] == 0).all()
+    assert df[df["week"] >= 10]["nGames"].mean() > 4
+    # The constants must have been fit on seasons other than the one scored.
+    meta = df.attrs["params_meta"]
+    if meta and meta.get("fitSeasons"):
+        assert 2025 not in meta["fitSeasons"]
+
+
+def test_weekly_backtest_beats_the_naive_baselines():
+    doc = stathead.load_weekly_backtest(2025)
+    allpos = doc["headToHeadPPR"]["ALL"]
+    ins = allpos["inseason"]
+    # The point of using in-season data is to beat the preseason-style
+    # prior-season line and the standard rolling heuristics.
+    for baseline in ("priorSeason", "trail3", "last1"):
+        assert ins["mae"] < allpos[baseline]["mae"], baseline
+        assert ins["spearman"] > allpos[baseline]["spearman"], baseline
+    # Weekly outcomes are mostly irreducible variance; a plausible R2 is well
+    # short of 1. Guard against a leak sneaking in and making it look easy.
+    assert 0.15 < ins["r2"] < 0.75
+    assert abs(ins["bias"]) < 1.0
+    frame = stathead.backtest_frame(doc)
+    assert {"position", "model", "mae", "spearman"}.issubset(frame.columns)
+    assert set(frame["position"]) >= {"ALL", "QB", "RB", "WR", "TE"}
+
+
 def test_quarter_splits_shares_sum_to_one():
     splits = stathead.load_quarter_splits()
     for pos, stats in splits["share"].items():

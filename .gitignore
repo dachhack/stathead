@@ -44,6 +44,15 @@ public/data/clay-team-projections-*.json
 !public/data/weekly-projections-*.json
 !public/data/player-props-*.json
 !public/data/quarter-splits-*.json
+!public/data/inseason-projections-*.json
+!public/data/inseason-params.json
+!public/data/weekly-backtest-*.json
+# Sleeper's bulk weekly-projection snapshot is the external benchmark in
+# the weekly backtest. Their terms cover redistributing bulk dumps
+# (DATA_SOURCES.md, Public API tier), so it stays LOCAL-ONLY — only our
+# derived accuracy metrics ship. Regenerate under your own access:
+#   python3 scripts/fetch-sleeper-weekly-projections.py --season 2025
+public/data/sleeper-weekly-proj-*.json
 !public/data/model-eval-*.json
 !public/data/team-metrics-*.json
 !public/data/coach-tendencies.json

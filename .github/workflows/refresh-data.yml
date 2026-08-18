@@ -140,6 +140,14 @@ jobs:
       - name: Build quarter splits
         run: python3 scripts/build-quarter-splits.py || echo "quarter splits build failed (non-fatal)"
 
+      # Walk-forward in-season projections: re-project each week from the
+      # weeks already played. A no-op in the offseason (no completed weeks
+      # yet) and cheap in-season (~1s for a whole season). The fitted
+      # constants in inseason-params.json are picked up automatically; they
+      # are refit manually and rarely (fit-inseason-params.py). Never fatal.
+      - name: Build in-season projections
+        run: python3 scripts/build-inseason-projections.py --season 2026 --quiet || echo "in-season projections build failed (non-fatal)"
+
       # Rebuild the player crosswalk against the freshly-downloaded rosters
       # + feature-matrix. This is what promotes post-draft rookies from
       # their synthetic COL keys to canonical NFL gsis-based keys as soon
@@ -193,6 +201,7 @@ jobs:
                   public/data/weekly-projections-2026.json \
                   public/data/player-props-2026.json \
                   public/data/quarter-splits-2025.json \
+                  public/data/inseason-projections-2026.json \
                   public/data/model-eval-2026.json \
                   public/data/redraft-projections-presets.json \
                   public/data/feature-store/ \

@@ -131,6 +131,8 @@ available here as a pandas DataFrame.
 | `price_props(player, week)` | Every prop for one player-week: mean, half-point line, over/under, p10–p90 (`df.attrs['anytime_td']`) | ~8 × 7 |
 | `rest_of_game(player, week, quarter, score_diff=…, so_far=…)` | What's still to come after Q1 / halftime / Q3, adjusted for game script and in-game pace | ~7 × 12 |
 | `load_quarter_splits()` / `quarter_share_frame()` | Quarter shares, game-script multipliers, blend weights and partial-window spread from play-by-play | dict / ~28 × 10 |
+| `load_inseason_projections(season)` | Walk-forward game-by-game projections — week *w* from weeks 1..w-1 only | ~6,000 × ~14 |
+| `load_weekly_backtest(season)` / `backtest_frame()` | How that model scored vs actuals, naive baselines and an external projection | dict / ~30 × 10 |
 | `load_ppg_projections()` | Model-predicted PPG for established players | ~250 × 4 |
 | `load_adp_value_model()` | VOR vs ADP, hit probability, confidence interval | ~153 × 10 |
 | `load_volume_projections()` | Team pass/rush/target volumes with low/high bands | ~153 × ~14 |

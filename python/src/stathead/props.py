@@ -36,6 +36,8 @@ from .crosswalk import _norm, key_by_name_pos
 
 _PROPS_PATH = "public/data/player-props-2026.json"
 _SPLITS_PATH = "public/data/quarter-splits-2025.json"
+_INSEASON_PATH = "public/data/inseason-projections-{season}.json"
+_BACKTEST_PATH = "public/data/weekly-backtest-{season}.json"
 
 #: Yardage stat -> the counting stat that has to happen for it to be non-zero.
 YARDS_VOLUME_STAT = {"passYds": "passAtt", "rushYds": "rushAtt", "recYds": "rec"}
@@ -348,6 +350,86 @@ def quarter_share_frame(splits: Optional[Mapping[str, Any]] = None) -> pd.DataFr
             row.update({f"rest_after_q{i}": v for i, v in enumerate(rem)})
             rows.append(row)
     return pd.DataFrame(rows)
+
+
+def load_inseason_projections(season: int = 2025,
+                             week: Optional[int] = None) -> pd.DataFrame:
+    """Walk-forward in-season projections: what the model expected for week
+    *w* knowing only weeks 1..w-1 of that season plus the prior season.
+
+    This is the game-by-game counterpart to :func:`load_player_props`, which
+    splits a preseason line across the schedule. Here every week is
+    re-projected from what had actually happened by then, so it is what you
+    would have had in hand on the Friday before kickoff.
+
+    Columns: ``player_key``, ``name``, ``position``, ``team``, ``opp``,
+    ``week``, ``home``, ``nGames`` (games of in-season history the projection
+    had), plus one column per stat. Rows are conditional on the player
+    appearing that week.
+
+    Metadata on ``df.attrs``: ``meta`` (generatedAt + method note),
+    ``params`` (the fitted stabilization constants) and ``params_meta``
+    (which seasons those were fit on).
+    """
+    data = fetch_json(_INSEASON_PATH.format(season=season))
+    stat_keys = data.get("statKeys") or {}
+    rows = []
+    for r in data.get("players") or []:
+        if week is not None and r["week"] != week:
+            continue
+        row = {
+            "name": r["name"], "position": r["pos"], "team": r["team"],
+            "opp": r.get("opp"), "week": r["week"], "home": r.get("home"),
+            "nGames": r.get("nGames"),
+        }
+        row.update(dict(zip(stat_keys.get(r["pos"]) or [], r["proj"])))
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df["season"] = data.get("season")
+        keymap = key_by_name_pos()
+        df.insert(0, "player_key", [
+            keymap.get((_norm(str(n)), str(p)))
+            for n, p in zip(df["name"], df["position"])
+        ])
+    df.attrs["meta"] = {"generatedAt": data.get("generatedAt"),
+                        "note": data.get("note")}
+    df.attrs["params"] = data.get("params") or {}
+    df.attrs["params_meta"] = data.get("paramsMeta")
+    df.attrs["stat_keys"] = stat_keys
+    return df
+
+
+def load_weekly_backtest(season: int = 2025) -> Dict[str, Any]:
+    """How the in-season model scored against actuals and against external
+    projections, for a season it was not fit on.
+
+    Returned as the parsed document — it is a set of small metric tables, not
+    one rectangle. Keys of interest: ``headToHeadPPR`` (MAE / RMSE / R2 /
+    Spearman per model, by position), ``winRatePPR`` (share of player-weeks
+    where the in-season model landed closer), ``byWeekBucket``,
+    ``byPositionAndStat``, ``calibration`` (do N% props hit N%?) and
+    ``sleeperProvenance``. See :func:`backtest_frame` for a tidy view.
+    """
+    return fetch_json(_BACKTEST_PATH.format(season=season))
+
+
+def backtest_frame(backtest: Optional[Mapping[str, Any]] = None,
+                   season: int = 2025) -> pd.DataFrame:
+    """Tidy view of the headline backtest: one row per (position, model) with
+    ``n``, ``mae``, ``rmse``, ``r2``, ``spearman`` and ``bias`` on PPR
+    points."""
+    doc = backtest if backtest is not None else load_weekly_backtest(season)
+    rows = []
+    for pos, models in (doc.get("headToHeadPPR") or {}).items():
+        for model, m in (models or {}).items():
+            if not m:
+                continue
+            rows.append({"position": pos, "model": model, **m})
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values(["position", "mae"]).reset_index(drop=True)
+    return df
 
 
 def script_bucket(score_diff: float) -> str:
