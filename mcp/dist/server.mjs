@@ -42598,11 +42598,6 @@ ${renderTable(input, rows)}`;
           });
           presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
         }
-        const retDoc = await fetchReturnProjections(FFC_CURRENT_SEASON).catch(() => null);
-        if (retDoc?.players?.length) {
-          pool = mergeReturnComponents(pool, retDoc);
-          retNote = ` Return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td, plus per-game rates and the pr_role/kr_role depth-chart flags) merged for ${retDoc.players.length} returners, as_of ${retDoc.generatedAt || "unknown"}; season totals are scaled to each row's own projected games. Kickoff volume comes from 2025 alone — the dynamic-kickoff rules moved returns per team-game from 1.08 (2023) to 3.82 (2025), so older averages are wrong by a factor of two.`;
-        }
         if (IDP_POSITIONS.has(position) || position === "IDP" || playerName) {
           const idpDoc = await fetchIdpProjections(FFC_CURRENT_SEASON).catch(() => null);
           const idp = idpRowsFrom(idpDoc);
@@ -42612,6 +42607,14 @@ ${renderTable(input, rows)}`;
             // rather than inheriting the offense pool's.
             idpNote = ` IDP rows (DL/LB/DB) included, as_of ${idpDoc.generatedAt || "unknown"}: components are tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety via \`fields\`, and ppg/projPts roll them up at tackle 1, sack 2, INT 3, fumble recovery 2, def TD 6, safety 2 — re-price from the components. Weekly threshold bonuses: use weeks_2plus_sack / weeks_3plus_pd, or integrate your own over sack_pg/pd_pg with the published per-game sds. Do NOT score a season mean against a weekly threshold.`;
           }
+        }
+        // AFTER the IDP rows join the pool: 19 of the 159 projected returners
+        // are defensive backs, and merging before the concat left every one of
+        // them without return components.
+        const retDoc = await fetchReturnProjections(FFC_CURRENT_SEASON).catch(() => null);
+        if (retDoc?.players?.length) {
+          pool = mergeReturnComponents(pool, retDoc);
+          retNote = ` Return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td, plus per-game rates and the pr_role/kr_role depth-chart flags) merged for ${retDoc.players.length} returners, as_of ${retDoc.generatedAt || "unknown"}; season totals are scaled to each row's own projected games. Kickoff volume comes from 2025 alone — the dynamic-kickoff rules moved returns per team-game from 1.08 (2023) to 3.82 (2025), so older averages are wrong by a factor of two.`;
         }
       }
       let ovNote = "";
@@ -43318,7 +43321,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.73";
+var SERVER_VERSION = "1.0.74";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
