@@ -26,14 +26,27 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { SCENARIO_PRESETS, type PresetMeta, type PlayerMeta, type ConsensusStats, type PresetContext } from '../src/lib/scenarioPresets';
 import { applyScenarioToProjections, normalizeProjName, type QBProjection, type RBProjection, type WRProjection, type TEProjection } from '../src/lib/projectionsTabEngine';
+import { PREDICT_SEASON } from '../src/lib/projectionPoolConsts';
 import type { SDIOProjection } from '../src/types';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const DATA = path.join(ROOT, 'public/data');
-const REDRAFT = path.join(DATA, 'redraft-projections.json');
 const OUT = path.join(DATA, 'redraft-projections-presets.json');
 
-interface PresetPlayer { name: string; position: string; ppg: number; recPG: number }
+// games/projPts ride along so a preset board carries the same denominator the
+// unpresetted one does: ppg is points-per-game-played, so a backup projected
+// for one game outranks real starters without them (see get_projections).
+interface PresetPlayer { name: string; position: string; ppg: number; recPG: number; games: number; projPts: number }
+interface PresetDoc {
+  season: number;
+  generatedAt: string;
+  note: string;
+  presets: Record<string, PresetPlayer[]>;
+  /** Per-preset build time. A preset carried over from a previous run keeps its
+   *  original stamp, so a preserved preset can't masquerade as a fresh one
+   *  behind the file-level generatedAt. */
+  presetMeta?: Record<string, { generatedAt: string }>;
+}
 
 const CONSENSUS_WEIGHT: Record<string, number> = { QB: 0.75, RB: 0.75, WR: 0.55, TE: 0.85 };
 const CONSENSUS_WEIGHT_DEFAULT = 0.7;
@@ -42,9 +55,13 @@ function loadJson<T>(p: string): T { return JSON.parse(fs.readFileSync(p, 'utf8'
 function round1(v: number): number { return Math.round(v * 10) / 10; }
 function round2(v: number): number { return Math.round(v * 100) / 100; }
 
-// ── Consensus (PPR-level blend on the redraft model) ─────────────────
+// ── Consensus (PPR-level blend on the live season pool) ──────────────
+// Blends the SAME pool every other preset is built from. This used to blend
+// redraft-projections.json — a hand-built spine last regenerated in April — so
+// `consensus` carried 416 players while its four siblings carried 448, and its
+// StatHead half never moved no matter how often the pool was rebuilt.
 function buildConsensus(
-  redraft: { players: PresetPlayer[] },
+  base: { players: PresetPlayer[] },
   consensusDoc: { players: { name: string; ff_pt: number; games?: number }[] },
 ): { out: PresetPlayer[]; blended: number } {
   const consensusPpgByName = new Map<string, number>();
@@ -54,15 +71,18 @@ function buildConsensus(
     if (Number.isFinite(ff)) consensusPpgByName.set(normalizeProjName(p.name), ff / g);
   }
   let blended = 0;
-  const out = redraft.players.map((p) => {
+  const out = base.players.map((p) => {
     const ours = Number(p.ppg);
     const consensusPpg = consensusPpgByName.get(normalizeProjName(p.name));
     if (!Number.isFinite(ours) || consensusPpg === undefined || consensusPpg <= 0) {
-      return { name: p.name, position: p.position, ppg: p.ppg, recPG: p.recPG };
+      return { ...p };
     }
     const w = CONSENSUS_WEIGHT[p.position] ?? CONSENSUS_WEIGHT_DEFAULT;
     blended++;
-    return { name: p.name, position: p.position, ppg: round1(w * consensusPpg + (1 - w) * ours), recPG: p.recPG };
+    const ppg = round1(w * consensusPpg + (1 - w) * ours);
+    // Restate the season total from the blended rate so ppg x games stays
+    // internally consistent for anyone ranking on projPts.
+    return { ...p, ppg, projPts: round1(ppg * (p.games > 0 ? p.games : 17)) };
   });
   return { out, blended };
 }
@@ -96,7 +116,12 @@ function toPpg<T extends { name: string; games: number; pprPts: number }>(arr: T
   return arr.map((p) => {
     const g = p.games > 0 ? p.games : 17;
     const rec = hasRec ? ((p as unknown as { rec?: number }).rec ?? 0) : 0;
-    return { name: p.name, position, ppg: round1(p.pprPts / g), recPG: hasRec ? round2(rec / g) : 0 };
+    return {
+      name: p.name, position,
+      ppg: round1(p.pprPts / g),
+      recPG: hasRec ? round2(rec / g) : 0,
+      games: p.games, projPts: round1(p.pprPts),
+    };
   });
 }
 
@@ -152,42 +177,79 @@ function buildPoolPresets(pool: BasePool, consensusDoc: { players: Record<string
 }
 
 function main() {
-  const redraft = loadJson<{ season: number; players: PresetPlayer[] }>(REDRAFT);
-  const consensusPath = path.join(DATA, `clay-projections-${redraft.season}.json`);
+  const now = new Date().toISOString();
+  const basePath = path.join(DATA, `projection-base-${PREDICT_SEASON}.json`);
+  const consensusPath = path.join(DATA, `clay-projections-${PREDICT_SEASON}.json`);
   const consensusDoc = fs.existsSync(consensusPath) ? loadJson<{ players: Record<string, number | string>[] }>(consensusPath) : null;
 
-  const presets: Record<string, PresetPlayer[]> = {};
+  // Merge onto whatever is already committed rather than replacing it. This
+  // file is written by more than one path (the Clay workflow, refresh-data
+  // when the secret is set, a developer running build:presets), and each
+  // rebuilds only the presets whose inputs it has. A plain write meant a run
+  // without the Clay extract silently dropped consensus AND consensus-ml,
+  // turning five presets into three and committing the loss.
+  const prior: PresetDoc | null = fs.existsSync(OUT) ? loadJson<PresetDoc>(OUT) : null;
+  const presets: Record<string, PresetPlayer[]> = { ...(prior?.presets ?? {}) };
+  const presetMeta: Record<string, { generatedAt: string }> = { ...(prior?.presetMeta ?? {}) };
+  // A preset carried over from a file written before presetMeta existed has no
+  // stamp of its own. Backfill it with that file's generatedAt — the one thing
+  // we actually know about when it was built — so a preserved preset never
+  // falls back to the fresh file-level stamp and reads as newer than it is.
+  for (const key of Object.keys(presets)) {
+    if (!presetMeta[key] && prior?.generatedAt) presetMeta[key] = { generatedAt: prior.generatedAt };
+  }
+  const rebuilt = new Set<string>();
+  const stamp = (key: string, rows: PresetPlayer[]) => {
+    presets[key] = rows;
+    presetMeta[key] = { generatedAt: now };
+    rebuilt.add(key);
+  };
 
-  // consensus — redraft PPR blend (no pool needed)
+  if (!fs.existsSync(basePath)) {
+    // Everything here derives from the pool, so without it nothing can be
+    // rebuilt — and the committed presets are left exactly as they are.
+    console.log(`  skipped: no ${path.basename(basePath)} (run build:pool first). Committed presets left untouched.`);
+    return;
+  }
+  const pool = loadJson<BasePool>(basePath);
+
+  // consensus — the live pool blended toward the consensus input
   if (consensusDoc) {
-    const { out, blended } = buildConsensus(redraft, consensusDoc as { players: { name: string; ff_pt: number; games?: number }[] });
-    presets.consensus = out;
-    console.log(`  consensus: ${out.length} players (${blended} blended)`);
+    const basePlayers = [
+      ...toPpg(pool.qbs, 'QB', false),
+      ...toPpg(pool.rbs, 'RB', true),
+      ...toPpg(pool.wrs, 'WR', true),
+      ...toPpg(pool.tes, 'TE', true),
+    ];
+    const { out, blended } = buildConsensus({ players: basePlayers }, consensusDoc as { players: { name: string; ff_pt: number; games?: number }[] });
+    stamp('consensus', out);
+    console.log(`  consensus: ${out.length} players (${blended} blended over the live pool)`);
   } else {
-    console.log('  consensus: skipped (no consensus input found)');
+    console.log('  consensus: no consensus input — keeping the committed one'
+      + (presets.consensus ? ` (${presets.consensus.length} players from ${presetMeta.consensus?.generatedAt ?? 'an earlier run'})` : ' (none committed)'));
   }
 
-  // pool-dependent presets — real engine over the exported base pool
-  const basePath = path.join(DATA, `projection-base-${redraft.season}.json`);
-  if (fs.existsSync(basePath)) {
-    const pool = loadJson<BasePool>(basePath);
-    const poolPresets = buildPoolPresets(pool, consensusDoc as { players: Record<string, number | string>[] } | null);
-    for (const [k, v] of Object.entries(poolPresets)) {
-      presets[k] = v;
-      console.log(`  ${k}: ${v.length} players (engine over exported pool)`);
+  // pool-dependent presets — real engine over the base pool
+  const poolPresets = buildPoolPresets(pool, consensusDoc as { players: Record<string, number | string>[] } | null);
+  for (const [k, v] of Object.entries(poolPresets)) {
+    stamp(k, v);
+    console.log(`  ${k}: ${v.length} players (engine over the live pool)`);
+  }
+  for (const k of Object.keys(presets)) {
+    if (!rebuilt.has(k)) {
+      console.log(`  ${k}: kept from ${presetMeta[k]?.generatedAt ?? 'an earlier run'} (inputs absent this run)`);
     }
-  } else {
-    console.log(`  pool presets: skipped (no ${path.basename(basePath)} — use the Projections tab "Export base pool" button)`);
   }
 
-  const result = {
-    season: redraft.season,
-    generatedAt: new Date().toISOString(),
-    note: 'Preset-adjusted projections. Derived StatHead outputs only — consensus/consensus-ml blend our projection toward market consensus via internal weights (not a raw feed); rookie/vet/injury presets are the scenario engine run over our season-projection pool.',
+  const result: PresetDoc = {
+    season: pool.season ?? PREDICT_SEASON,
+    generatedAt: now,
+    note: 'Preset-adjusted projections. Derived StatHead outputs only — consensus/consensus-ml blend our projection toward market consensus via internal weights (not a raw feed); rookie/vet/injury presets are the scenario engine run over our season-projection pool. presetMeta carries each preset\'s own build time: a preset whose inputs were absent this run keeps its earlier stamp.',
     presets,
+    presetMeta,
   };
   fs.writeFileSync(OUT, JSON.stringify(result) + '\n');
-  console.log(`Wrote ${OUT} with presets: ${Object.keys(presets).join(', ')}`);
+  console.log(`Wrote ${OUT} — rebuilt: ${[...rebuilt].join(', ') || 'none'}; total presets: ${Object.keys(presets).join(', ')}`);
 }
 
 main();
