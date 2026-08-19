@@ -381,6 +381,48 @@ Everything here derives from the pool now, so a missing `projection-base-*.json`
 means nothing is rebuilt and the committed presets are left untouched, rather
 than half-written.
 
+### Projected stat line on get_projections (1.0.67)
+
+Downstream asked for scoring-agnostic projections: their app is now
+league-aware, and a single PPG scalar can't be re-priced under a league's own
+catalog. They had worked around it by baking Sleeper's stat lines for shape and
+keeping our PPG as level — "our model wearing Sleeper's production mix".
+
+Their assumption that the components already exist upstream of the roll-up was
+correct: `projection-base-2026.json` carries all eight fields they asked for
+(plus `passAtt`, `passComp`, `tgt`, `rushAtt`), zeroed by position exactly as
+you'd expect. The MCP was loading them and throwing them away — pure plumbing.
+
+Checked the thing that decides whether shipping them is safe: **do the
+components reconcile to `pprPts`?** Re-deriving standard PPR from them gives a
+mean residual of **+0.07 pts/season**, 99% within ±2, max ±2.5 — rounding, not
+structure. And end-to-end through the tool, re-scoring the served fields
+reproduces served `projPts` to a mean 0.374 pts/season. So the stat line is
+genuinely self-describing and their two-catalog ratio becomes exact rather than
+approximate.
+
+Every `get_projections` row now carries `pass_att`, `pass_cmp`, `pass_yd`,
+`pass_td`, `pass_int`, `rush_att`, `rush_yd`, `rush_td`, `tgt`, `rec`,
+`rec_yd`, `rec_td` — selectable via `fields`, kept out of the default table so
+it doesn't bloat, zeroed rather than omitted so a catalog can multiply straight
+through. Named to match their (Sleeper's) convention for drop-in use. Tool
+description and a `get_metadata` caveat state that ppg is priced under standard
+PPR and point at the components.
+
+**Not done, and both are modelling rather than plumbing:**
+
+- Their #2 — fumbles, first downs, two-point conversions, yardage milestones.
+  None exist anywhere in the pool; the model doesn't produce them.
+- Their #3 — kicker and DST components. `get_projections` has no K/DST at all;
+  `get_weekly_projections` carries 32 of each but as a **points scalar only**
+  (team context: league average plus a shrunk team deviation), so there are no
+  `fgm`/`xpm`/`pts_allow` components to expose. They're right that this is the
+  worst gap — exactly the two positions whose scoring varies most between
+  leagues. Producing even coarse components is new modelling work.
+- Preset boards carry rescaled ppg with no stat line. `applyScenarioToProjections`
+  does transform the underlying stat lines, so carrying them through presets is
+  feasible; it would grow the presets file by roughly 12 fields x 448 rows.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
