@@ -99,6 +99,71 @@ a trimmed end-to-end run of `download-data.sh` against live nflverse
 404-HTML files, 2026 assets logged as unavailable); and the two live
 harnesses described above.
 
+### Follow-up in the same session: stale MCP projections
+
+A downstream MCP consumer reported "projections not refreshed since
+2026-04-12". Accurate, and worse than a stale label.
+
+`get_projections` (no preset) served `redraft-projections.json` —
+`generatedAt: "2026-04-12"`, a **hand-built static spine**, not a pipeline
+output. It's actually an *input*: `scripts/build-projection-pool.ts` reads it
+to gap-fill players the ML doesn't score, which is exactly why regenerating it
+from the pool is not an option (it would close a feedback loop). Meanwhile the
+real pool, `projection-base-2026.json`, is rebuilt by `build:pool` on every
+refresh run (04:19 today) and is what `get_weekly_projections` and the site's
+Projections tab already read. The two disagreed materially:
+
+| player | get_projections (April) | live pool |
+| --- | --- | --- |
+| Jahmyr Gibbs | 21.1 | 25.9 |
+| Ja'Marr Chase | 20.7 | 18.1 |
+| Brock Bowers | 15.0 | 13.9 |
+
+Three more surfaces read the same stale file: `export_excel kind=projections`
+(shipping an April board into a workbook), `import_excel`'s "changed vs
+StatHead" diff (diffing against April), and `get_sleeper_waiver_wire`'s
+projected-PPG column.
+
+Fixed in `mcp/dist/server.mjs` (which `src/mcp-server.ts` documents as the
+hand-maintained source of truth since 1.0.16 — `src/tools.ts` is deliberately
+frozen at the 1.0.15 toolset, so its 30 tools vs the bundle's 47 is expected,
+not drift). Added `projectionBaseToRows()` + a single `statheadProjectionPool()`
+accessor: season base first, static spine as fallback, returned in the shape the
+old file had so all four call sites swap cleanly. `ppg = pprPts/games`,
+`recPG = rec/games`, skipping rows with no team or no projected games/points —
+copied from `scripts/build-weekly-projections.py` so the season and weekly tools
+now agree *by construction*.
+
+Verified against live data by importing the bundle with the Worker runtime
+spoofed (`navigator.userAgent = 'Cloudflare-Workers'`, else the stdio server
+starts and hangs): `get_projections` now reports `as_of 2026-08-19T04:19:40Z`
+over 127 RBs — same pool size and same Gibbs 25.9 as `get_weekly_projections`;
+`export_excel` writes the live board; the `consensus` preset path is untouched;
+and serving a data base *without* `projection-base-2026.json` over a local HTTP
+server still falls back to the April file exactly as before.
+
+**MCP bumped 1.0.63 → 1.0.64** (bundle `SERVER_VERSION` + `mcp/package.json`).
+1.0.63 *is* published on npm — STATUS.md's "not yet published" note was wrong —
+so this needs a `publish-mcp.yml` dispatch or npx clients keep the old
+behaviour. `mcp/server.json` is still pinned at 1.0.46; it looked
+deliberately-lagging so I left it.
+
+### Also found: the refresh cache never updates
+
+The 04:14 run's log ends with `Cache hit occurred on the primary key
+static-data-v4, not saving cache.` actions/cache only writes a new entry when
+the **primary** key misses, so a constant key freezes the cache at whatever was
+first saved — every file added to `download-data.sh` after that point is
+re-downloaded on every run (every 2 hours) and never cached. Bumped to
+`static-data-v5`; the `static-data-` restore-keys prefix still restores v4, so
+only the genuinely-new files download once before the v5 cache is written.
+
+The same run also showed `Build projection base + presets` completing in **2
+seconds** — enough for `build:pool` alone, confirming `CLAY_PROJECTIONS_B64` is
+unset and `build:presets` is being skipped. That's why the `consensus` preset
+still reports `as_of 2026-06-16`. Setting the secret is the only fix; nothing in
+the repo can regenerate it.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
@@ -116,6 +181,12 @@ harnesses described above.
   and is committed by every 2-hourly refresh; the three files added here
   add ~1.8 MB more per changed run. Unchanged content produces no commit,
   but in-season this is a real growth rate.
+- The `consensus` preset (`redraft-projections-presets.json`) is still
+  stale at 2026-06-16 — blocked on the `CLAY_PROJECTIONS_B64` secret, see
+  above. Left alone deliberately.
+- `redraft-projections.json` is left exactly as-is on purpose: it is a
+  builder input, and regenerating it from the pool would feed the pool
+  its own output.
 - Untouched: the `STATUS.md` "Next 3 tasks" (projection-pool depth-share
   artifacts, SFB16 big-play recalibration, post-draft SFB16 recap).
 

@@ -38393,6 +38393,50 @@ async function fetchStatheadProjections() {
 async function fetchProjectionBase(season) {
   return await tryPreFetched(`projection-base-${season}.json`);
 }
+// Flatten the season base pool into the {name, position, ppg, recPG} rows
+// get_projections serves. Same derivation as
+// scripts/build-weekly-projections.py (ppg = pprPts/games, recPG = rec/games,
+// skip rows with no team or no projected games/points), so get_projections and
+// get_weekly_projections agree by construction rather than by coincidence.
+function projectionBaseToRows(doc) {
+  const rows = [];
+  for (const [group, position] of [["qbs", "QB"], ["rbs", "RB"], ["wrs", "WR"], ["tes", "TE"]]) {
+    for (const p of doc?.[group] || []) {
+      const games = Number(p.games) || 0;
+      const pprPts = Number(p.pprPts) || 0;
+      if (!p.team || games <= 0 || pprPts <= 0) continue;
+      rows.push({
+        name: p.name,
+        position,
+        ppg: Math.round(pprPts / games * 100) / 100,
+        recPG: Math.round((Number(p.rec) || 0) / games * 100) / 100
+      });
+    }
+  }
+  return rows;
+}
+
+// THE canonical answer to "what does StatHead project for 2026", in the shape
+// the static redraft-projections.json used to provide. Prefers the season base
+// pool, which the refresh workflow rebuilds on every run; falls back to the
+// static spine only where the pool isn't published. Every surface that quotes a
+// StatHead projection reads this, so get_projections, export_excel,
+// import_excel's diff and the waiver board cannot drift apart from each other
+// (or from get_weekly_projections, which derives from the same pool).
+async function statheadProjectionPool() {
+  const base = await fetchProjectionBase(FFC_CURRENT_SEASON).catch(() => null);
+  const players = projectionBaseToRows(base);
+  if (players.length) {
+    return {
+      season: base.season || FFC_CURRENT_SEASON,
+      scoring: "ppr",
+      generatedAt: base.generatedAt || null,
+      note: "ppg = projected PPR points / projected games from StatHead's season projection pool, rebuilt on every data refresh. recPG = rec/game for TEP scoring.",
+      players
+    };
+  }
+  return await fetchStatheadProjections();
+}
 async function fetchModelEval(season) {
   return await tryPreFetched(`model-eval-${season}.json`);
 }
@@ -41385,7 +41429,7 @@ ${renderTable(input, out, cols)}`;
         sleeperGet(`/league/${id}/rosters`),
         fetchSleeperPlayers(),
         fetchSleeperTrending("add", 24, 200).catch(() => []),
-        fetchStatheadProjections().catch(() => null)
+        statheadProjectionPool().catch(() => null)
       ]);
       if (!rosters) return `No Sleeper league found for id "${id}".`;
       const rostered = /* @__PURE__ */ new Set();
@@ -42325,7 +42369,7 @@ ${renderTable(input, rows)}`;
         baseNote = pdoc.note || "";
         presetNote = ` Preset "${preset}" applied (derived StatHead output): ${FILE_PRESETS[preset]}.`;
       } else {
-        const doc = await fetchStatheadProjections();
+        const doc = await statheadProjectionPool();
         if (!doc || !doc.players?.length) {
           return "No StatHead projections available.";
         }
@@ -42755,7 +42799,7 @@ First-party StatHead projections (no third-party data). Per-player **Pts** and e
       }
       let board, metaKind, tag, editLabel;
       if (kind === "projections") {
-        const doc = await fetchStatheadProjections();
+        const doc = await statheadProjectionPool();
         if (!doc || !doc.players?.length) return "No StatHead projections available to export.";
         const season = doc.season;
         const scoring = (doc.scoring || "ppr").toUpperCase();
@@ -42921,7 +42965,7 @@ Edit the **${editLabel}** column in Excel/Google Sheets, then run:
       // so the analyst can confirm the right edits applied without re-querying.
       let diffBlock = "";
       if (kind === "projections" && ov.projections?.byName) {
-        const baseDoc = await fetchStatheadProjections().catch(() => null);
+        const baseDoc = await statheadProjectionPool().catch(() => null);
         const baseByName = /* @__PURE__ */ new Map();
         if (baseDoc?.players) for (const p of baseDoc.players) baseByName.set(normalizeNameForMatch(p.name), Number(p.ppg));
         const changes = [];
@@ -42971,7 +43015,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.63";
+var SERVER_VERSION = "1.0.64";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

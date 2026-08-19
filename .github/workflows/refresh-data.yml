@@ -27,11 +27,19 @@ jobs:
           node-version: 20
           cache: npm
 
+      # Bump the key whenever download-data.sh starts fetching files it didn't
+      # before. actions/cache only writes a new cache when the PRIMARY key
+      # misses ("Cache hit occurred on the primary key ..., not saving cache"),
+      # so with a constant key the cache freezes at whatever was first saved and
+      # every newly-added file is re-downloaded on every run, forever. The
+      # restore-keys prefix still restores the previous cache, so a bump
+      # re-downloads only what's actually new.
+      # v5: per-season NGS split + 2025 advanced stats / FTN / PBP / participation.
       - name: Cache static data
         uses: actions/cache@v5
         with:
           path: public/data
-          key: static-data-v4
+          key: static-data-v5
           restore-keys: static-data-
 
       - run: npm ci
