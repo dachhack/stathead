@@ -98,12 +98,24 @@ done
   && [ -s "$OUT/games.csv.tmp" ] \
   && mv "$OUT/games.csv.tmp" "$OUT/games.csv" \
   || echo "  WARNING: Failed to download games.csv (keeping cached version)") &
-[ -f "$OUT/combine.csv" ] || curl -sL "$NFLVERSE/combine/combine.csv" -o "$OUT/combine.csv" &
-[ -f "$OUT/draft_picks.csv" ] || curl -sL "$NFLVERSE/draft_picks/draft_picks.csv" -o "$OUT/draft_picks.csv" &
-[ -f "$OUT/historical_contracts.csv" ] || curl -sL "$NFLVERSE/contracts/historical_contracts.csv" -o "$OUT/historical_contracts.csv" &
-[ -f "$OUT/trades.csv" ] || curl -sL "$NFLVERSE/trades/trades.csv" -o "$OUT/trades.csv" &
-[ -f "$OUT/qbr_season_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_season_level.csv" -o "$OUT/qbr_season_level.csv" &
-[ -f "$OUT/qbr_week_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_week_level.csv" -o "$OUT/qbr_week_level.csv" &
+# These are cross-season files, but they are not STATIC: each one gains rows
+# every year (a draft class, a combine, a season of trades and QBR). Skipping
+# them on a cache hit froze them at whatever the cache first held — which is
+# how the 2026 draft class went missing from a cached draft_picks.csv and took
+# every rookie out of the IDP projections with it. Force-refreshed, atomically,
+# and never fatal: a failed fetch keeps the cached copy.
+refresh_growing() {  # <url-subpath> <filename>
+  (curl -sfL "$NFLVERSE/$1" -o "$OUT/$2.tmp" \
+    && [ -s "$OUT/$2.tmp" ] \
+    && mv "$OUT/$2.tmp" "$OUT/$2" \
+    || echo "  WARNING: Failed to download $2 (keeping cached version)") &
+}
+refresh_growing "combine/combine.csv" "combine.csv"
+refresh_growing "draft_picks/draft_picks.csv" "draft_picks.csv"
+refresh_growing "contracts/historical_contracts.csv" "historical_contracts.csv"
+refresh_growing "trades/trades.csv" "trades.csv"
+refresh_growing "espn_data/qbr_season_level.csv" "qbr_season_level.csv"
+refresh_growing "espn_data/qbr_week_level.csv" "qbr_week_level.csv"
 
 # ── Advanced stats (PFR) ──
 for s in $DERIVED_SEASONS; do
