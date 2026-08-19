@@ -377,6 +377,17 @@ def section_freshness():
         ("Feature store", "feature-store", 1),
         ("Score store", "score-store", 2),
         ("Player crosswalk", "player-crosswalk.json", 2),
+        # The projection surfaces the MCP and the site serve. Every one of
+        # these embeds its own generatedAt, so a successful refresh always
+        # produces a diff and a commit — no commit in a day means the builder
+        # stopped, which is exactly how the season pool sat at an April build
+        # until a downstream consumer noticed in August.
+        (f"Projection base {SEASON}", f"projection-base-{SEASON}.json", 1),
+        ("Projection presets", "redraft-projections-presets.json", 1),
+        (f"Weekly projections {SEASON}", f"weekly-projections-{SEASON}.json", 1),
+        (f"Kicker projections {SEASON}", f"kicker-projections-{SEASON}.json", 1),
+        (f"DST projections {SEASON}", f"dst-projections-{SEASON}.json", 1),
+        (f"Schedule strength {SEASON}", f"schedule-strength-{SEASON}.json", 1),
         (f"Roster {SEASON}", f"roster_{SEASON}.csv.gz", 14),
         (f"Depth charts {SEASON}", f"depth_charts_{SEASON}.csv.gz", 14),
         ("CFBD college stats", "cfbd-college-stats.json", 45),
@@ -391,6 +402,24 @@ def section_freshness():
         subj = (subj or "—")[:46]
         md.append(f"| {label} | {icon} {age} | {subj} |")
         rows.append([label, (f"{icon} {age}", color), (subj, C_MUTED)])
+
+    # The consensus preset is the one surface no schedule can refresh: it comes
+    # from Mike Clay's draft guide, which only a manual "Refresh Clay" dispatch
+    # can pull. The file itself commits every couple of hours with its siblings,
+    # so its git age says nothing — read the preset's own stamp instead.
+    presets = load_json("redraft-projections-presets.json") or {}
+    meta = (presets.get("presetMeta") or {}).get("consensus") or {}
+    try:
+        dt = datetime.fromisoformat(meta["generatedAt"].replace("Z", "+00:00"))
+    except Exception:
+        dt = None
+    age, color, icon = flag(dt, 21)
+    hint = "run the Refresh Clay workflow" if icon != "✅" else "—"
+    if icon != "✅":
+        stale.append("Consensus preset (Clay)")
+    md.append(f"| Consensus preset (manual Clay) | {icon} {age} | {hint} |")
+    rows.append(["Consensus preset (manual Clay)", (f"{icon} {age}", color), (hint, C_MUTED)])
+
     return "\n".join(md), _card("Data freshness", _html_table(["Surface", "Age", "Last commit"], rows)), stale
 
 

@@ -71,5 +71,22 @@ for (const g of games) {
 games.sort((a, b) => a.week - b.week || a.home.localeCompare(b.home));
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify({ season: SEASON, source: 'nflverse', updated: new Date().toISOString(), games }, null, 0));
-console.log(`Wrote ${OUT}: ${games.length} regular-season games for ${SEASON}`);
+// Keep the previous `updated` stamp when nothing about the games changed, so
+// re-running this on a schedule produces an identical file rather than a commit
+// whose only content is a new timestamp. Flex scheduling moves dates and
+// networks in-season, and those are real changes worth a diff.
+let updated = new Date().toISOString();
+let unchanged = false;
+if (fs.existsSync(OUT)) {
+  try {
+    const prev = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+    if (JSON.stringify(prev.games) === JSON.stringify(games)) {
+      updated = prev.updated || updated;
+      unchanged = true;
+    }
+  } catch {
+    // Unreadable previous file — just write a fresh one.
+  }
+}
+fs.writeFileSync(OUT, JSON.stringify({ season: SEASON, source: 'nflverse', updated, games }, null, 0));
+console.log(`Wrote ${OUT}: ${games.length} regular-season games for ${SEASON}${unchanged ? ' (unchanged since ' + updated + ')' : ''}`);

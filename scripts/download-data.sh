@@ -82,9 +82,16 @@ for s in $DYNAMIC_SEASON; do
 done
 
 # ── Cross-season static files (skip if cached) ──
-[ -f "$OUT/games.csv" ] || curl -sL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv" &
-# games.csv has 2026 schedule — force refresh
-curl -sL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv" &
+# games.csv carries the current-season schedule AND the scores that
+# season_started() below reads, so it is force-refreshed every run — never
+# skipped on a cache hit. Written via .tmp + mv: a truncated or failed fetch
+# must not replace a good schedule, and every downstream build reads this file.
+# (There used to be a second, skip-if-cached curl for the same path racing this
+# one in the background — two writers, one file.)
+(curl -sfL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv.tmp" \
+  && [ -s "$OUT/games.csv.tmp" ] \
+  && mv "$OUT/games.csv.tmp" "$OUT/games.csv" \
+  || echo "  WARNING: Failed to download games.csv (keeping cached version)") &
 [ -f "$OUT/combine.csv" ] || curl -sL "$NFLVERSE/combine/combine.csv" -o "$OUT/combine.csv" &
 [ -f "$OUT/draft_picks.csv" ] || curl -sL "$NFLVERSE/draft_picks/draft_picks.csv" -o "$OUT/draft_picks.csv" &
 [ -f "$OUT/historical_contracts.csv" ] || curl -sL "$NFLVERSE/contracts/historical_contracts.csv" -o "$OUT/historical_contracts.csv" &
