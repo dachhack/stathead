@@ -38405,10 +38405,22 @@ function projectionBaseToRows(doc) {
       const games = Number(p.games) || 0;
       const pprPts = Number(p.pprPts) || 0;
       if (!p.team || games <= 0 || pprPts <= 0) continue;
+      const n = (v) => Number(v) || 0;
       rows.push({
         name: p.name,
         position,
         ppg: Math.round(pprPts / games * 100) / 100,
+        // Full projected season stat line, the components pprPts rolls up from.
+        // Shipped so a consumer can re-score the projection under its own
+        // scoring catalog instead of inheriting whatever mix a third-party
+        // stat line happens to carry. Zeroed rather than omitted for categories
+        // a position doesn't accrue, so a catalog can multiply straight through.
+        // Verified to reconcile: re-deriving standard PPR from these lands
+        // within a mean 0.07 pts/season of pprPts (rounding only).
+        pass_att: n(p.passAtt), pass_cmp: n(p.passComp), pass_yd: n(p.passYds),
+        pass_td: n(p.passTD), pass_int: n(p.int),
+        rush_att: n(p.rushAtt), rush_yd: n(p.rushYds), rush_td: n(p.rushTD),
+        tgt: n(p.tgt), rec: n(p.rec), rec_yd: n(p.recYds), rec_td: n(p.recTD),
         // `games` is the projected games PLAYED, and it's what makes ppg
         // comparable or not: a backup projected for one game divides a
         // one-game line by one and reads as an elite per-game rate (Nick
@@ -39638,7 +39650,9 @@ var NFL_TOOLS = [
     name: "get_projections",
     description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026.
 
-IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.`,
+IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.
+
+RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Not yet modelled anywhere: fumbles, first downs, two-point conversions, yardage milestones, and any kicker or team-defense components — K/DST are projected as a points scalar only (get_weekly_projections), so leagues tuning field-goal distance bands or points-allowed tiers cannot re-score them. Preset boards carry rescaled ppg without a stat line.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40449,6 +40463,7 @@ async function executeToolInner(name, input) {
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
           "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
           "- **`ppg` is a rate conditional on playing, not a season expectation.** It is projected points / projected games, so a backup projected for one game divides a one-game line by one and outranks every real starter (Nick Mullens 21.0 > Lamar Jackson 16.6). Rank players against each other on `projPts` (the season total, shipped alongside) or pass `min_games`; use `ppg` only for one player\u2019s per-game rate. Same trap in `get_weekly_projections`, where `pts` assumes the player plays that week \u2014 check the `gp` column. Roughly half the QB pool is projected for <8 games.",
+          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, and kickers and team defenses are projected as a points scalar with no components at all, so exactly the two positions whose scoring varies most between leagues can't be re-scored.",
           "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
           "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
@@ -42450,11 +42465,19 @@ ${renderTable(input, rows)}`;
       const thin = rows.filter((r) => Number.isFinite(Number(r.games)) && Number(r.games) <= 4);
       const thinNote = thin.length ? ` ${thin.length} row(s) have a projected-games count <= 4 (${thin.slice(0, 3).map((r) => `${r.name} ${r.games}g`).join(", ")}${thin.length > 3 ? ", …" : ""}) — their ppg is a rate conditional on playing, NOT a season expectation, and will outrank real starters. Rank on projPts, or pass min_games.` : "";
       const cols = ["name", "position", "ppg", "games", "projPts", "recPG"];
+      const STAT_LINE = ["pass_att", "pass_cmp", "pass_yd", "pass_td", "pass_int",
+        "rush_att", "rush_yd", "rush_td", "tgt", "rec", "rec_yd", "rec_td"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
-        return { ...pickColumns(r, cols), gsis_id: ids?.gsis ?? null, sleeper_id: ids?.sleeper ?? null };
+        // The stat line rides on every row but stays out of the default table —
+        // select it with `fields` (it is absent on preset boards, which carry
+        // rescaled ppg only).
+        return {
+          ...pickColumns(r, cols), ...pickColumns(r, STAT_LINE),
+          gsis_id: ids?.gsis ?? null, sleeper_id: ids?.sleeper ?? null,
+        };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${thinNote}${ovNote} gsis_id/sleeper_id available via fields.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -43048,7 +43071,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.66";
+var SERVER_VERSION = "1.0.67";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

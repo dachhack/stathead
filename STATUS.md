@@ -89,7 +89,7 @@ framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (t
 
 ## Next 3 tasks
 
-0. Publish MCP **1.0.66** (1.0.65 is live; 1.0.66 adds per-preset as_of) — until then every
+0. Publish MCP **1.0.67** (1.0.66 is live; 1.0.67 adds the projected stat line) — until then every
    npx/connector client still lacks the projected-games fields. And dispatch
    **Refresh Clay** (new `refresh-clay.yml`) to unfreeze the `consensus`
    preset, stuck at 2026-06-16; leave `CLAY_PROJECTIONS_B64` unset so that
