@@ -40436,7 +40436,9 @@ async function executeToolInner(name, input) {
           "- ECR and ADP reflect **market consensus**, not true probability. Compare to historical hit rates for ground truth.",
           "- Position PPG baselines differ: TE PPG \u2265 9 \u2248 WR PPG \u2265 11 \u2248 QB PPG \u2265 16. Don't compare PPG across positions without adjusting.",
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
-          "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication."
+          "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
+          "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
+          "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog
@@ -43015,7 +43017,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.64";
+var SERVER_VERSION = "1.0.65";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

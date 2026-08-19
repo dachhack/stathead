@@ -186,6 +186,36 @@ Worth knowing: `GITHUB_RAW_DATA_BASE` in the bundle is pinned to the dev branch,
 so a published server reads dev-branch data no matter which branch it was
 published from.
 
+### get_metadata: projection-freshness caveats (1.0.65)
+
+Downstream feedback framed the projections as "an April view" and pointed at a
+hand-baked `proj2026.ts` on their side (neither that file nor their "auto-slot"
+exists in this repo). Their read was fair before 1.0.64, but the diagnosis
+conflated the stale *artifact* with the model. Checking what actually moves,
+diffing the score-store shards across 2026-08-16 → 08-18:
+
+| shard | changed predictions/day | driver |
+| --- | --- | --- |
+| `adp.json` (VOR / hit-bust) | 256–313 | FFC ADP, moves daily |
+| `shares.json` (target/rush share) | 107–125 | depth-chart churn |
+| `ppg.json` (ADP-free PPG) | **0** | — |
+
+The PPG core really is static — but correctly so, not frozen: all 58 of its
+features are prior-season production, combine, draft slot or age
+(`priorPPG`, `priorPPG2yr`, `priorTargetShare`, `priorRecEPA`, `forty`, `age`
+…), none of which change between two August days. It starts moving when
+in-season stats land. So "unchanged overnight" is the expected preseason
+signature of that model, and reads as a stalled feed only if you don't know it's
+ADP-free by design.
+
+Added two bullets to `get_metadata`'s "Analytic caveats" section saying exactly
+that: read `as_of` rather than caching a board (the pool rebuilds ~2-hourly and
+ADP/depth move daily), and don't infer a stalled pipeline from an unchanged PPG,
+because the three models feeding the pool move on different clocks. Bumped to
+**1.0.65 — needs publishing**; verified the rendered section, the new publish
+guard against this tree, and the workflow's own smoke test (boots as 1.0.65,
+50 tools).
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
