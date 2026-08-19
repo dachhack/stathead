@@ -477,6 +477,58 @@ It needs a team defence projection that does not exist (the team model is
 offence-only), and its signal is weaker still (points allowed yoy r = +0.30,
 takeaways +0.17).
 
+### DST projections as components (1.0.69)
+
+Closes the other half. New `scripts/build-dst-projections.py` ->
+`public/data/dst-projections-2026.json`, wired into `refresh-data.yml`,
+consumed by the weekly builder for its DST rows, and on the MCP season board
+with `pts_allow`/`pts_allow_pg`/`sack`/`def_int`/`fum_rec`/`def_td`/`st_td`/
+`safety`.
+
+**Two findings worth keeping.**
+
+*The points-allowed bracket applies per game, not to a season mean.* Scoring a
+team projected to allow 21.5/gm as if it hit the 21-27 tier every week is
+simply wrong. Integrating the bracket over the within-team per-game
+distribution (residual sd 9.4, measured) cuts MAE against actual bracket
+points from ~0.52 to ~0.19 pts/gm across 2023-25 — a 60%+ error reduction on
+the single largest DST component, and easy to get wrong silently.
+
+*I tuned the wrong target first.* An earlier build blended 2yr-weighted points
+allowed with `def_epa_per_play` 50/50, chosen on a bake-off against next-season
+**raw points allowed** (|r| 0.34 vs 0.33). Against next-season **bracket
+points** — the thing that actually scores — carry PA is r = -0.23 and def_epa
+only -0.08, so the blend diluted the good predictor and correlation with
+actuals fell from 0.26 to 0.21. def_epa is dropped.
+
+**It does not beat a flat league mean, and the docs say so.** Backtest over
+2023-25 on team DST pts/gm (PA bracket + sacks + 2x INT):
+
+| model | RMSE | r |
+| --- | --- | --- |
+| flat league mean | **1.375** | 0.00 |
+| shipped (keep 0.35) | 1.384 | 0.25 |
+| unshrunk carry | 1.52 | 0.25 |
+| raw prior season | 1.58 | 0.27 |
+
+Shrinking recovers most of the gap from a naive carry, but no configuration in
+the grid (KEEP_PA 0.15-0.60) gets under a constant. The model has modest
+ordering value and no error reduction. Both the tool description and
+`get_metadata` state this outright so a consumer can't mistake "components
+exist" for "the ranking is good".
+
+Per-component reliability drove the shrink factors rather than one blanket
+number: points allowed yoy r=0.30, sacks 0.21, interceptions 0.11. Fumble
+recoveries, def/ST TDs and safeties are projected at the league rate for every
+team — no team signal survives ten seasons, and they move the total ~1 pt/gm
+combined.
+
+**What would actually improve this:** 2026 Vegas lines. `feature-store/vegas.json`
+stops at 2025 and no odds file is committed, so the model is entirely
+backward-looking. Opponent implied totals summed over a known schedule is a
+far better points-allowed predictor than carrying last year's — that is the
+single highest-value follow-up, and it would help the offence projections too.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

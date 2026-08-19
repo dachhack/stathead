@@ -390,8 +390,19 @@ def main():
         })
 
     # DST rows: one per team. Sleeper's DST ids are the team codes themselves.
+    # Prefer the component build (scripts/build-dst-projections.py) so the
+    # weekly feed, the season board and the components quote one number; falls
+    # back to the team-context scalar when the artifact is absent.
+    dproj = {}
+    try:
+        with open(os.path.join(DATA, f'dst-projections-{SEASON}.json')) as fh:
+            dproj = {r['team']: r for r in json.load(fh).get('defenses', []) if r.get('team')}
+    except Exception:
+        dproj = {}
     for team in sorted(team_weeks):
         ppg = dst_avg + DST_SHRINK * (dst_pg.get(team, dst_avg) - dst_avg)
+        if team in dproj:
+            ppg = dproj[team]['ppg']
         mults = week_mults(team, 'DST')
         players.append({
             'name': f'{team} DST',
