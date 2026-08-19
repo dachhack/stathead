@@ -1,6 +1,123 @@
 # StatHead — session handoff
 
-Last updated 2026-07-28 (visitor tracking session). **Resume section directly below;** older notes follow.
+Last updated 2026-08-19 (season-prep data audit). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-08-19, season prep — `claude/adp-season-prep-h0vwwy`)
+
+Asked to refresh ADP and prep for the season. ADP itself turned out to be
+fine — every fetch workflow (KTC 06:00, FantasyCalc 06:30, Sleeper 06:45,
+FFC 07:00, buzz every 8h, Refresh Data every 2h) has been green for days
+and had already run. So the work became an audit of what the automation
+would get *wrong* at kickoff. Four things, all now fixed.
+
+**1. Next Gen Stats were wrong in both directions.** nflverse only shards
+`nextgen_stats/ngs_<season>_<type>.csv.gz` for seasons that are closed
+out — those exist through **2024** and 404 for 2025/2026. The file that
+stays current is the un-suffixed `ngs_<type>.csv.gz`, which holds **every
+season from 2016 on** (14,731 receiving rows today). `download-data.sh`
+was piping that whole thing into `ngs_2025_<type>.csv`, so:
+
+- `fetchNextGenStats(2025)` returned all 14,731 rows, 2016–2025;
+- `fetchNextGenStats(2026)` 404'd on the year-suffixed URL, fell through
+  to the same all-seasons file, and returned those 14,731 rows too;
+- callers key NGS by player name (`buildFeatureMatrix`,
+  `indexNGSByPlayer`), so a player who last played in 2021 silently
+  carried 2021 separation/cushion into the 2026 projection;
+- at Week 1 the release starts including 2026, which would have
+  overwritten `ngs_2025_*` with 2026 rows.
+
+`download-data.sh` now downloads each type once and splits it on the
+`season` column into real per-season files (verified: 10 seasons × 3
+types, row counts matching the source exactly). One download replaces
+ten, and 2026 gets its file for free as soon as Week 1 is charted — no
+yearly bump. `fetchNextGenStats` filters every path to the season asked
+for as a belt-and-braces guard, since the non-prod fallback can still
+resolve to the multi-season file. A harness against live nflverse
+confirmed the before/after: baseline returned 2016–2025 for a 2025
+request and all 14,731 rows for 2026; after, each season returns only its
+own rows and 2026 correctly returns 0 until it's charted.
+`pull-all-data-sources.sh` had the same bug plus a wrong path (it fetched
+`ngs_<stat>.csv`, which doesn't exist — nflverse only publishes `.csv.gz`),
+so it never got NGS at all; same split applied.
+
+**2. 2025 was missing from every heavier source.** The season lists for
+PFR advanced stats, FTN charting, play-by-play and participation all
+stopped at **2024**, though 2025 is published upstream for all four. So
+the deployed Play-by-Play view, `get_play_by_play(2025)`,
+`get_advanced_stats(2025)` and `get_ftn_charting(2025)` were all fetching
+`/data/..._2025.csv` files that the build never downloaded. Those lists
+are now `DERIVED_SEASONS` / `FTN_SEASONS` variables (bump once a year)
+plus a current-season fetch on top that tolerates a pre-Week-1 404, so
+2026 populates itself in September. The static fetches also moved from
+`curl -sL -o` to a `fetch_optional` helper (`-sfL` + temp file), because
+the old form wrote GitHub's 404 HTML into the `.csv` and the `[ -f ]`
+guard then skipped it forever. 2025 PBP is 93 MB vs 2024's 95 MB, so it
+sits comfortably inside the Pages per-asset cap that 2024 already clears.
+
+**3. In-season snapshots were never committed.** `refresh-data.yml`
+re-gzipped only `roster_2026` and `depth_charts_2026`. From Week 1 the
+MCP server (which reads committed files from GitHub raw), the Python
+package and local dev would have seen **no 2026 player stats, snap counts
+or injuries at all** — only the deployed site would have had them, since
+it builds from the fresh CSVs. Those three are now gzipped and committed
+alongside, skipped with a log line until they exist upstream (they 404
+today, as expected pre-season).
+
+While there: the cache-commit step's `git add a b c ...` **stages nothing
+at all** if any single pathspec matches no file (verified: `fatal:
+pathspec ... did not match any files`, exit 128, empty index). The `||
+true` swallowed it, so one missing artifact would have silently killed
+every cache commit — and adding the three in-season paths above would
+have triggered exactly that until September. Now staged one path at a
+time behind an `[ -e ]` test.
+
+**4. ESPN was a dead ADP source.** `download-api-data.sh` snapshotted
+ESPN with `view=players_wl`, which returns all 11,612 players but omits
+`ownership` and `draftRanksByRankType` — so `parseEspnResponse` gave
+every row `adp: 0`, and `adpSources.loadEspn`, which filters `adp > 0`,
+contributed **zero entries** to the consensus board. It was also still
+pinned to `season 2025`. The ADP fields only come back under
+`view=kona_player_info`, which is ~39 MB (the endpoint ignores the
+filter's `limit`) — too big to ship and over the 25 MiB Pages cap. New
+`scripts/fetch-espn-adp.mjs` fetches that view, keeps only players with a
+real ADP and only the fields the parser reads, and writes ~730 KB. Live
+check: 2,616 players with ADP → 1,027 parsed → **937 skill players now
+reach the blend**, board topped by Gibbs 1.52 / Bijan 2.59 / Chase 4.25,
+which matches the market. `CURRENT_SEASON` is now one variable at the top
+of that script driving both ESPN and FFC.
+
+### Verified
+
+`tsc -b` and `tsc -p tsconfig.app.json --noEmit` clean; `eslint` on the
+touched files clean (the repo has ~400 pre-existing lint errors elsewhere,
+unchanged); `pytest python/tests` 29 passed / 2 skipped (needs
+`pip install duckdb` for 3 of them); `bash -n` on all four shell scripts;
+a trimmed end-to-end run of `download-data.sh` against live nflverse
+(NGS split correct, 2025 advstats + FTN landed, no stray `.tmp` or
+404-HTML files, 2026 assets logged as unavailable); and the two live
+harnesses described above.
+
+### Notes / not done
+
+- **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
+  FantasyCalc and the `*.workers.dev` proxies are all blocked by the
+  egress proxy (403 on CONNECT), and this session had no permission to
+  dispatch workflows (`403 Resource not accessible by integration`), so
+  the only ADP refresh runnable here was Sleeper's. Everything else has
+  to come from the scheduled workflows or a manual dispatch from the
+  GitHub app.
+- `espn_adp_<season>.json` is still build-time only (in `dist/`, not
+  committed) — matching how it has always worked, even though
+  `.gitignore` un-ignores it. Committing it would give the MCP an ESPN
+  board too, at ~730 KB of churn per refresh; left as a judgement call.
+- **Repo growth is worth a look.** `depth_charts_2026.csv.gz` is 8.5 MB
+  and is committed by every 2-hourly refresh; the three files added here
+  add ~1.8 MB more per changed run. Unchanged content produces no commit,
+  but in-season this is a real growth rate.
+- Untouched: the `STATUS.md` "Next 3 tasks" (projection-pool depth-share
+  artifacts, SFB16 big-play recalibration, post-draft SFB16 recap).
 
 ---
 

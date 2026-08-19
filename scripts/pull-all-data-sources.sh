@@ -64,9 +64,31 @@ for s in 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2
 done
 wait
 
-echo "Pulling NGS (cross-season)..."
+# nflverse only publishes NGS gzipped, and the per-season shards stop at the
+# last closed-out season (2024 as of 2026-08). The un-suffixed
+# ngs_<type>.csv.gz is the one that stays current — one file per stat type
+# covering every season from 2016 on. Pull each, then split on the `season`
+# column into the per-season files the loaders read — same layout
+# scripts/download-data.sh produces in CI.
+echo "Pulling NGS (cross-season, split per season)..."
 for stat in receiving rushing passing; do
-  fetch "$NFLVERSE/nextgen_stats/ngs_${stat}.csv" "$OUT/ngs_${stat}.csv" &
+  (
+    gz="$OUT/.ngs_${stat}.csv.gz"
+    fetch "$NFLVERSE/nextgen_stats/ngs_${stat}.csv.gz" "$gz"
+    if [ -s "$gz" ] && gunzip -c "$gz" > "$gz.csv"; then
+      awk -F, -v out="$OUT" -v stat="$stat" '
+        NR == 1 { header = $0; next }
+        $1 ~ /^[0-9][0-9][0-9][0-9]$/ {
+          f = out "/ngs_" $1 "_" stat ".csv"
+          if (!($1 in seen)) { seen[$1] = 1; print header > f }
+          print > f
+        }
+      ' "$gz.csv"
+    else
+      echo "  MISS: ngs_${stat}.csv.gz"
+    fi
+    rm -f "$gz" "$gz.csv"
+  ) &
 done
 wait
 

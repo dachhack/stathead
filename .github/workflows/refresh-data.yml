@@ -143,20 +143,28 @@ jobs:
       - name: Rebuild player id-map
         run: node scripts/build-id-map.mjs || echo "id-map build failed (non-fatal)"
 
-      # Re-gzip the freshly-downloaded current-season roster + depth chart so
-      # the committed .csv.gz fallback snapshots stay current. download-data.sh
+      # Re-gzip the freshly-downloaded current-season nflverse files so the
+      # committed .csv.gz fallback snapshots stay current. download-data.sh
       # force-refreshes these every run (the live build uses the .csv), but the
-      # tracked .gz are the fallback when nflverse 404s and what local dev /
-      # the Python loaders read. Without this they drift (post-draft signings,
-      # UDFAs, depth-chart churn). Bump SEASON each year alongside
-      # download-data.sh's DYNAMIC_SEASON. Never fails the build.
-      - name: Refresh dynamic roster snapshots
+      # tracked .gz are the fallback when nflverse 404s and what local dev, the
+      # Python loaders and the published MCP server read — none of which ever
+      # run download-data.sh. Without this they drift (post-draft signings,
+      # UDFAs, depth-chart churn) and, once the season kicks off, the weekly
+      # stats / snaps / injury reports would never reach them at all.
+      # injuries, snap counts and player stats don't exist upstream until
+      # Week 1 is played, so they're skipped silently until they appear.
+      # Bump SEASON each year alongside download-data.sh's DYNAMIC_SEASON.
+      # Never fails the build.
+      - name: Refresh dynamic nflverse snapshots
         run: |
           SEASON=2026
-          for base in roster_${SEASON} depth_charts_${SEASON}; do
+          for base in roster_${SEASON} depth_charts_${SEASON} injuries_${SEASON} \
+                      snap_counts_${SEASON} player_stats_${SEASON}; do
             if [ -s "public/data/${base}.csv" ]; then
               gzip -9 -c "public/data/${base}.csv" > "public/data/${base}.csv.gz" \
                 && echo "  refreshed ${base}.csv.gz ($(zcat public/data/${base}.csv.gz | wc -l) rows)"
+            else
+              echo "  skipped ${base}.csv.gz (not published upstream yet)"
             fi
           done || true
           # Distill offensive depth-chart #1s for the Taxi Squad Advisor.
@@ -170,30 +178,39 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/training-rows-cache-*.json \
-                  public/data/feature-matrix.json \
-                  public/data/projection-base-2026.json \
-                  public/data/weekly-projections-2026.json \
-                  public/data/model-eval-2026.json \
-                  public/data/redraft-projections-presets.json \
-                  public/data/feature-store/ \
-                  public/data/score-store/ \
-                  public/data/roster_2026.csv.gz \
-                  public/data/depth_charts_2026.csv.gz \
-                  public/data/depth-starters-2026.json \
-                  public/data/player-crosswalk.json \
-                  public/data/player-id-map.json \
-                  public/data/player-aliases.json \
-                  public/data/player-promotions.json \
-                  public/data/player-conflicts.json \
-                  public/data/espn-nfl-ids.json \
-                  public/data/expert-ownership.json \
-                  public/data/expert-adds.json \
-                  public/data/expert-trades.json \
-                  public/data/expert-graph.json \
-                  public/data/expert-league-graph.json \
-                  public/data/expert-candidates.json \
-                  public/data/expert-names.enc.json 2>/dev/null || true
+          # Staged one path at a time on purpose: `git add a b c` aborts and
+          # stages NOTHING if any single pathspec matches no file, so one
+          # absent artifact (an in-season file before Week 1, a non-fatal
+          # builder that bailed) would silently drop the whole cache commit.
+          for p in public/data/training-rows-cache-*.json \
+                   public/data/feature-matrix.json \
+                   public/data/projection-base-2026.json \
+                   public/data/weekly-projections-2026.json \
+                   public/data/model-eval-2026.json \
+                   public/data/redraft-projections-presets.json \
+                   public/data/feature-store/ \
+                   public/data/score-store/ \
+                   public/data/roster_2026.csv.gz \
+                   public/data/depth_charts_2026.csv.gz \
+                   public/data/injuries_2026.csv.gz \
+                   public/data/snap_counts_2026.csv.gz \
+                   public/data/player_stats_2026.csv.gz \
+                   public/data/depth-starters-2026.json \
+                   public/data/player-crosswalk.json \
+                   public/data/player-id-map.json \
+                   public/data/player-aliases.json \
+                   public/data/player-promotions.json \
+                   public/data/player-conflicts.json \
+                   public/data/espn-nfl-ids.json \
+                   public/data/expert-ownership.json \
+                   public/data/expert-adds.json \
+                   public/data/expert-trades.json \
+                   public/data/expert-graph.json \
+                   public/data/expert-league-graph.json \
+                   public/data/expert-candidates.json \
+                   public/data/expert-names.enc.json; do
+            [ -e "$p" ] && git add "$p"
+          done || true
           if git diff --cached --quiet; then
             echo "No cache changes to commit"
           else

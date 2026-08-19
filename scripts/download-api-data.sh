@@ -8,6 +8,10 @@ set -e
 OUT="public/data"
 mkdir -p "$OUT"
 
+# Current draft/play season. Bump once a year, alongside download-data.sh's
+# DYNAMIC_SEASON.
+CURRENT_SEASON="2026"
+
 # Browser-ish UA for hosts that reject bare curl (e.g. FFC ADP).
 UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
@@ -27,15 +31,12 @@ for variant in "true&numQbs=1:fantasycalc_dynasty_1qb" "true&numQbs=2:fantasycal
 done
 
 # ── ESPN ADP (refresh for current draft season) ──
-for season in 2025; do
-  outfile="$OUT/espn_adp_${season}.json"
-  echo "  Fetching ESPN ADP ($season)..."
-  filter='{"players":{"limit":500,"sortDraftRanks":{"sortPriority":100,"sortAsc":true,"value":"PPR"}}}'
-  curl -sL "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=players_wl" \
-    -H "x-fantasy-filter: $filter" \
-    -o "$outfile" || echo "[]" > "$outfile"
-  echo "  Saved $outfile"
-done
+# Without a snapshot for the live season, fetchEspnADP() falls through to a
+# per-visitor call against ESPN's API — so this has to track CURRENT_SEASON,
+# not the year it was written in. See the script header for why the raw
+# response can't just be curled to disk.
+echo "  Fetching ESPN ADP ($CURRENT_SEASON)..."
+node scripts/fetch-espn-adp.mjs "$CURRENT_SEASON" "$OUT"
 
 # ── ESPN NFL athlete ids (name -> espn_id from team rosters) ──
 # Feeds build-player-crosswalk.py's espn_id backfill so player-detail pages get
@@ -86,7 +87,7 @@ for season in 2025 2024 2023 2022 2021 2020 2019 2018; do
   fi
 done
 # Dynamic current seasons: always refresh
-for season in 2026; do
+for season in $CURRENT_SEASON; do
   fetch_ffc "$season"
 done
 

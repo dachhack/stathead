@@ -24,7 +24,20 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-07-28 — Visitor tracking: first-party, cookie-less pageview analytics
+2026-08-19 — Season-prep data audit. Refreshed the Sleeper ADP snapshot
+(the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and
+had already run this morning), then closed the season-rollover gaps the
+daily automation would have hit at kickoff: NGS split per season from
+nflverse's all-seasons file (it was dumping a decade of rows into
+`ngs_2025_*`, and Week 1 would have overwritten 2025 with 2026); 2025
+added to advanced stats / FTN / play-by-play / participation, which all
+stopped at 2024; `refresh-data.yml` now commits the in-season
+injuries / snaps / player-stats snapshots the MCP, Python package and
+local dev read; and ESPN restored as a live ADP source — its snapshot
+used a view that omits ADP entirely, so all 937 skill players were being
+dropped from the consensus blend. Details in HANDOFF.md.
+
+Previously (2026-07-28) — Visitor tracking: first-party, cookie-less pageview analytics
 (new `workers/visit-tracker` Cloudflare Worker on Workers Analytics
 Engine + a `sendBeacon` hook in the app; daily-rotating anonymous
 visitor hash, DNT/GPC honored). `/stats` JSON + mini dashboard at

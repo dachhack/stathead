@@ -14,6 +14,28 @@ mkdir -p "$OUT"
 STATIC_SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2010"
 # Current/upcoming season: data changes regularly, always re-download
 DYNAMIC_SEASON="2026"
+# Seasons for the heavier derived sources. nflverse publishes these weeks-to-
+# months after a season ends and never for a season that hasn't kicked off, so
+# they get their own lists — bump both once a year, alongside STATIC_SEASONS.
+# DYNAMIC_SEASON is fetched on top of each and tolerates a 404 until Week 1.
+DERIVED_SEASONS="2025 2024 2023 2022 2021 2020 2019 2018 2017"
+FTN_SEASONS="2025 2024 2023 2022"
+
+# Fetch a file that may legitimately not exist yet (a current-season asset
+# before Week 1) or may have been dropped upstream. Downloads to a temp file
+# so a 404 can never overwrite a good cached copy with an error page — the
+# reason these use `curl -sfL` + mv rather than a bare `-o`.
+fetch_optional() {
+  # fetch_optional <release-subpath>
+  local sub="$1" name
+  name="${sub##*/}"
+  if curl -sfL "$NFLVERSE/$sub" -o "$OUT/$name.tmp" && [ -s "$OUT/$name.tmp" ]; then
+    mv "$OUT/$name.tmp" "$OUT/$name"
+  else
+    rm -f "$OUT/$name.tmp"
+    echo "  (unavailable upstream: $name)"
+  fi
+}
 
 echo "Downloading nflverse data (cached static + fresh dynamic)..."
 
@@ -70,40 +92,71 @@ curl -sL "$NFLVERSE/schedules/games.csv" -o "$OUT/games.csv" &
 [ -f "$OUT/qbr_season_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_season_level.csv" -o "$OUT/qbr_season_level.csv" &
 [ -f "$OUT/qbr_week_level.csv" ] || curl -sL "$NFLVERSE/espn_data/qbr_week_level.csv" -o "$OUT/qbr_week_level.csv" &
 
-# ── Advanced stats (static, skip if cached) ──
-for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
+# ── Advanced stats (PFR) ──
+for s in $DERIVED_SEASONS; do
   for type in pass rush rec def; do
-    [ -f "$OUT/advstats_week_${type}_${s}.csv" ] || curl -sL "$NFLVERSE/pfr_advstats/advstats_week_${type}_${s}.csv" -o "$OUT/advstats_week_${type}_${s}.csv" &
+    [ -s "$OUT/advstats_week_${type}_${s}.csv" ] || fetch_optional "pfr_advstats/advstats_week_${type}_${s}.csv" &
   done
+done
+# Current season: re-fetch every run (404s until Week 1 is charted).
+for type in pass rush rec def; do
+  fetch_optional "pfr_advstats/advstats_week_${type}_${DYNAMIC_SEASON}.csv" &
 done
 
-# ── Next Gen Stats (static except current season, skip if cached) ──
-for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
-  for type in passing rushing receiving; do
-    if [ ! -f "$OUT/ngs_${s}_${type}.csv" ]; then
-      curl -sfL "$NFLVERSE/nextgen_stats/ngs_${s}_${type}.csv.gz" | gunzip > "$OUT/ngs_${s}_${type}.csv" &
-    fi
-  done
-done
-# Current season NGS: always refresh
+# ── Next Gen Stats ──
+# nflverse shards NGS per season only for seasons that have been closed out —
+# as of 2026-08 ngs_<season>_<type>.csv.gz exists through 2024 and 404s for
+# 2025 and 2026. What is always current is the un-suffixed
+# nextgen_stats/ngs_<type>.csv.gz, one file per stat type holding every season
+# from 2016 on. So download that once per type and split it on the `season`
+# column into the per-season files the app reads (fetchNextGenStats ->
+# data/ngs_<season>_<type>.csv). One download replaces ten, and the current
+# season gets its file as soon as Week 1 is charted — no yearly bump here.
 for type in passing rushing receiving; do
-  curl -sfL "$NFLVERSE/nextgen_stats/ngs_${type}.csv.gz" | gunzip > "$OUT/ngs_2025_${type}.csv" &
+  (
+    gz="$OUT/.ngs_${type}.csv.gz.tmp"
+    tmp="$OUT/.ngs_${type}.csv.tmp"
+    # Download, THEN inflate — piping curl straight into gunzip would let a
+    # truncated transfer produce a short-but-valid-looking CSV and overwrite
+    # every good per-season file with partial data.
+    if curl -sfL "$NFLVERSE/nextgen_stats/ngs_${type}.csv.gz" -o "$gz" \
+       && [ -s "$gz" ] && gunzip -c "$gz" > "$tmp" && [ -s "$tmp" ]; then
+      # awk keeps each per-season file open, so `>` appends after the first
+      # write; the header is emitted once per season file.
+      seasons=$(awk -F, -v out="$OUT" -v type="$type" '
+        NR == 1 { header = $0; next }
+        $1 ~ /^[0-9][0-9][0-9][0-9]$/ {
+          f = out "/ngs_" $1 "_" type ".csv"
+          if (!($1 in seen)) { seen[$1] = 1; print header > f }
+          print > f
+        }
+        END { n = ""; for (s in seen) n = n " " s; print n }
+      ' "$tmp")
+      echo "  ngs_${type}: split into seasons $(echo $seasons | tr ' ' '\n' | sort | tr '\n' ' ')"
+    else
+      echo "  WARNING: Failed to download ngs_${type}.csv.gz (keeping cached per-season files)"
+    fi
+    rm -f "$gz" "$tmp"
+  ) &
 done
 
-# ── FTN Charting (static, skip if cached) ──
-for s in 2024 2023 2022; do
-  [ -f "$OUT/ftn_charting_${s}.csv" ] || curl -sL "$NFLVERSE/ftn_charting/ftn_charting_${s}.csv" -o "$OUT/ftn_charting_${s}.csv" &
+# ── FTN Charting ──
+for s in $FTN_SEASONS; do
+  [ -s "$OUT/ftn_charting_${s}.csv" ] || fetch_optional "ftn_charting/ftn_charting_${s}.csv" &
 done
+fetch_optional "ftn_charting/ftn_charting_${DYNAMIC_SEASON}.csv" &
 
-# ── Play-by-play (static, skip if cached — largest files) ──
-for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
-  [ -f "$OUT/play_by_play_${s}.csv" ] || curl -sL "$NFLVERSE/pbp/play_by_play_${s}.csv" -o "$OUT/play_by_play_${s}.csv" &
+# ── Play-by-play (largest files) ──
+for s in $DERIVED_SEASONS; do
+  [ -s "$OUT/play_by_play_${s}.csv" ] || fetch_optional "pbp/play_by_play_${s}.csv" &
 done
+fetch_optional "pbp/play_by_play_${DYNAMIC_SEASON}.csv" &
 
-# ── PBP participation (static, skip if cached) ──
-for s in 2024 2023 2022 2021 2020 2019 2018 2017; do
-  [ -f "$OUT/pbp_participation_${s}.csv" ] || curl -sL "$NFLVERSE/pbp_participation/pbp_participation_${s}.csv" -o "$OUT/pbp_participation_${s}.csv" &
+# ── PBP participation ──
+for s in $DERIVED_SEASONS; do
+  [ -s "$OUT/pbp_participation_${s}.csv" ] || fetch_optional "pbp_participation/pbp_participation_${s}.csv" &
 done
+fetch_optional "pbp_participation/pbp_participation_${DYNAMIC_SEASON}.csv" &
 
 # ── DynastyProcess fantasy rankings ──
 [ -f "$OUT/db_fpecr_latest.csv" ] || curl -sL "https://github.com/dynastyprocess/data/raw/master/files/db_fpecr_latest.csv" -o "$OUT/db_fpecr_latest.csv" &
