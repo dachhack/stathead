@@ -38500,6 +38500,54 @@ async function dstRows(season) {
     def_td: d.def_td, st_td: d.st_td, safety: d.safety,
   }));
 }
+// Individual defensive players (scripts/build-idp-projections.py). Kept OUT of
+// the default board and appended only when a defensive position is asked for or
+// a player is looked up by name: a thousand defenders would swamp every
+// offense-shaped surface that reads the pool (export_excel, the waiver board).
+function idpRowsFrom(doc) {
+  return (doc?.players || []).map((p) => ({
+    name: p.name, position: p.pos, team: p.team, nfl_pos: p.nfl_pos,
+    gsis: p.gsis, sleeper: p.sleeper,
+    ppg: p.ppg, games: p.games, projPts: p.projPts, recPG: 0,
+    tackles: p.tackles, solo: p.solo, assist: p.assist, tfl: p.tfl,
+    sack: p.sack, qb_hit: p.qb_hit, pd: p.pd, def_int: p.def_int,
+    ff: p.ff, fum_rec: p.fum_rec, def_td: p.def_td, safety: p.safety,
+    sack_pg: p.sack_pg, pd_pg: p.pd_pg,
+    sack_game_sd: p.sack_game_sd, pd_game_sd: p.pd_game_sd,
+    tackles_game_sd: p.tackles_game_sd,
+    weeks_2plus_sack: p.weeks_2plus_sack, weeks_3plus_pd: p.weeks_3plus_pd,
+    draft_pick: p.draft_pick ?? null,
+  }));
+}
+var IDP_POSITIONS = /* @__PURE__ */ new Set(["DL", "LB", "DB"]);
+
+// Punt/kick return components (scripts/build-return-projections.py), merged
+// onto whatever row already projects the player. The artifact publishes PER-GAME
+// rates as its primary output, so the season totals are computed here against
+// the row's OWN projected games — otherwise a returner's return yards would be
+// scaled by a different games number than the rest of his line.
+function mergeReturnComponents(pool, doc) {
+  const rows = doc?.players || [];
+  if (!rows.length) return pool;
+  const byName = /* @__PURE__ */ new Map();
+  for (const r of rows) byName.set(normalizeNameForMatch(r.name), r);
+  return pool.map((p) => {
+    const r = byName.get(normalizeNameForMatch(p.name));
+    if (!r) return p;
+    const games = Number(p.games);
+    const g = Number.isFinite(games) && games > 0 ? games : r.games;
+    const at = (rate) => Math.round((rate || 0) * g * 10) / 10;
+    return {
+      ...p,
+      pr_role: r.pr_role, kr_role: r.kr_role,
+      pr_pg: r.pr_pg, kr_pg: r.kr_pg, ret_yd_pg: r.ret_yd_pg,
+      pr: at(r.pr_pg), kr: at(r.kr_pg),
+      pr_yd: at(r.pr_yd_pg), kr_yd: at(r.kr_yd_pg), ret_yd: at(r.ret_yd_pg),
+      ret_td: Math.round((r.ret_td_pg || 0) * g * 100) / 100,
+    };
+  });
+}
+
 async function fetchModelEval(season) {
   return await tryPreFetched(`model-eval-${season}.json`);
 }
@@ -38520,6 +38568,12 @@ async function fetchDstProjections(season) {
 }
 async function fetchScheduleStrength(season) {
   return await tryPreFetched(`schedule-strength-${season}.json`);
+}
+async function fetchIdpProjections(season) {
+  return await tryPreFetched(`idp-projections-${season}.json`);
+}
+async function fetchReturnProjections(season) {
+  return await tryPreFetched(`return-projections-${season}.json`);
 }
 // (name|pos) -> {gsis, sleeper} from the slim hosted id-map, so projection
 // rows can carry stable ids without shipping the full crosswalk.
@@ -39700,11 +39754,11 @@ var NFL_TOOLS = [
   },
   {
     name: "get_projections",
-    description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026, QB/RB/WR/TE plus kickers (position K) and team defenses (position DST), both projected separately with components.
+    description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026, QB/RB/WR/TE plus kickers (position K), team defenses (position DST) and individual defensive players (positions DL, LB, DB — or IDP for all three), each projected separately with components. Punt/kick return components ride on every row that has a return role, whatever the position.
 
 IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.
 
-RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Kickers and team defenses DO carry components: K has fga/fgm split 0-29, 30-39, 40-49, 50+ plus xpa/xpm; DST has pts_allow (season and per game), sack, def_int, fum_rec, def_td, st_td and safety, plus pa_points_pg (the points-allowed bracket integrated over the per-game distribution) and pa_game_sd (the spread it was integrated over, ~9.4). So leagues pricing field goals by distance or re-tiering points allowed can re-score both. Re-tiering points allowed: integrate your tiers over a per-game normal around pts_allow_pg with pa_game_sd, do NOT score the season mean against them — the bracket is convex, so point-scoring the mean overstates the good defenses in a consistent direction. Note DST's projection does NOT beat a flat league mean on RMSE (1.384 vs 1.375 over 2023-25) and carries only modest ordering value (r~0.25) — use its components to re-score, not its ordering to rank. Not modelled anywhere: fumbles, first downs, two-point conversions and yardage milestones for skill players. Preset boards carry rescaled ppg without a stat line.`,
+RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Kickers and team defenses DO carry components: K has fga/fgm split 0-29, 30-39, 40-49, 50+ plus xpa/xpm; DST has pts_allow (season and per game), sack, def_int, fum_rec, def_td, st_td and safety, plus pa_points_pg (the points-allowed bracket integrated over the per-game distribution) and pa_game_sd (the spread it was integrated over, ~9.4). So leagues pricing field goals by distance or re-tiering points allowed can re-score both. Re-tiering points allowed: integrate your tiers over a per-game normal around pts_allow_pg with pa_game_sd, do NOT score the season mean against them — the bracket is convex, so point-scoring the mean overstates the good defenses in a consistent direction. Note DST's projection does NOT beat a flat league mean on RMSE (1.384 vs 1.375 over 2023-25) and carries only modest ordering value (r~0.25) — use its components to re-score, not its ordering to rank. IDP is the opposite case and the strongest projection here: DL/LB/DB rows carry tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety, and the model beats a flat positional mean by 24% on RMSE (1.367 vs 1.801 over 2023-25, r=0.72) because defensive per-game rates persist far better than offensive ones (QB hits r=0.82, sacks 0.74, solo tackles 0.73). Weekly IDP bonuses: weeks_2plus_sack and weeks_3plus_pd are the expected game counts, with sack_game_sd/pd_game_sd/tackles_game_sd for integrating other thresholds — never score a season mean against a weekly threshold. Return components: pr, pr_yd, kr, kr_yd, ret_yd, ret_td (plus pr_pg/kr_pg/ret_yd_pg and the pr_role/kr_role depth-chart flags), season totals scaled to each row's own projected games. Not modelled anywhere: fumbles, first downs, two-point conversions and yardage milestones for skill players. Preset boards carry rescaled ppg without a stat line.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40532,7 +40586,7 @@ async function executeToolInner(name, input) {
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
           "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
           "- **`ppg` is a rate conditional on playing, not a season expectation.** It is projected points / projected games, so a backup projected for one game divides a one-game line by one and outranks every real starter (Nick Mullens 21.0 > Lamar Jackson 16.6). Rank players against each other on `projPts` (the season total, shipped alongside) or pass `min_games`; use `ppg` only for one player\u2019s per-game rate. Same trap in `get_weekly_projections`, where `pts` assumes the player plays that week \u2014 check the `gp` column. Roughly half the QB pool is projected for <8 games.",
-          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers now carry field-goal components by distance band and team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety, so both CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE.",
+          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers carry field-goal components by distance band; team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety plus pa_points_pg and pa_game_sd for re-tiering; DL/LB/DB rows carry the full IDP component line with weeks_2plus_sack/weeks_3plus_pd for weekly bonuses; and return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td) ride on any row with a return role — so all of them CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE. IDP's does, by 24%. Not projected anywhere yet: punters, fullbacks and head coaches.",
           "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
           "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
@@ -42455,6 +42509,8 @@ ${renderTable(input, rows)}`;
       let scoring = "PPR";
       let baseNote = "";
       let presetNote = "";
+      let idpNote = "";
+      let retNote = "";
       let generatedAt = null;
       const FILE_PRESETS = {
         "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
@@ -42507,6 +42563,21 @@ ${renderTable(input, rows)}`;
           });
           presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
         }
+        const retDoc = await fetchReturnProjections(FFC_CURRENT_SEASON).catch(() => null);
+        if (retDoc?.players?.length) {
+          pool = mergeReturnComponents(pool, retDoc);
+          retNote = ` Return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td, plus per-game rates and the pr_role/kr_role depth-chart flags) merged for ${retDoc.players.length} returners, as_of ${retDoc.generatedAt || "unknown"}; season totals are scaled to each row's own projected games. Kickoff volume comes from 2025 alone — the dynamic-kickoff rules moved returns per team-game from 1.08 (2023) to 3.82 (2025), so older averages are wrong by a factor of two.`;
+        }
+        if (IDP_POSITIONS.has(position) || position === "IDP" || playerName) {
+          const idpDoc = await fetchIdpProjections(FFC_CURRENT_SEASON).catch(() => null);
+          const idp = idpRowsFrom(idpDoc);
+          if (idp.length) {
+            pool = pool.concat(idp);
+            // IDP is built on its own cadence, so it carries its own stamp
+            // rather than inheriting the offense pool's.
+            idpNote = ` IDP rows (DL/LB/DB) included, as_of ${idpDoc.generatedAt || "unknown"}: components are tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety via \`fields\`, and ppg/projPts roll them up at tackle 1, sack 2, INT 3, fumble recovery 2, def TD 6, safety 2 — re-price from the components. Weekly threshold bonuses: use weeks_2plus_sack / weeks_3plus_pd, or integrate your own over sack_pg/pd_pg with the published per-game sds. Do NOT score a season mean against a weekly threshold.`;
+          }
+        }
       }
       let ovNote = "";
       const ovDoc = await loadOverrides();
@@ -42520,7 +42591,11 @@ ${renderTable(input, rows)}`;
         if (ovCount) ovNote = ` ${ovCount} value(s) overridden from your uploaded sheet (import_excel); run clear_overrides to revert.`;
       }
       const minGames = Number(input.min_games) || 0;
-      let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName)).filter((p) => !minGames || (Number(p.games) || 0) >= minGames);
+      let rows = pool.filter((p) => {
+        if (!position) return true;
+        const pos = (p.position || "").toUpperCase();
+        return position === "IDP" ? IDP_POSITIONS.has(pos) : pos === position;
+      }).filter((p) => !playerName || nameMatch(p.name, playerName)).filter((p) => !minGames || (Number(p.games) || 0) >= minGames);
       rows.sort((a, b) => {
         const an = Number(a[sortBy]);
         const bn = Number(b[sortBy]);
@@ -42551,7 +42626,16 @@ ${renderTable(input, rows)}`;
         "fga_40-49", "fgm_40-49", "fga_50+", "fgm_50+",
         // Team-defense components — leagues re-tier points allowed constantly.
         "pts_allow", "pts_allow_pg", "pa_points_pg", "pa_game_sd", "sack", "def_int", "fum_rec", "def_td",
-        "st_td", "safety"];
+        "st_td", "safety",
+        // IDP components — the most re-priced catalog in fantasy. sack/def_int/
+        // fum_rec/def_td/safety are shared with the team-defense rows above.
+        "team", "nfl_pos", "tackles", "solo", "assist", "tfl", "qb_hit", "pd", "ff",
+        "sack_pg", "pd_pg", "sack_game_sd", "pd_game_sd", "tackles_game_sd",
+        "weeks_2plus_sack", "weeks_3plus_pd", "draft_pick",
+        // Return components — priced separately in most catalogs and not
+        // recoverable from a rushing/receiving line.
+        "pr", "pr_yd", "kr", "kr_yd", "ret_yd", "ret_td",
+        "pr_pg", "kr_pg", "ret_yd_pg", "pr_role", "kr_role"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
         // The stat line rides on every row but stays out of the default table —
@@ -42559,10 +42643,10 @@ ${renderTable(input, rows)}`;
         // rescaled ppg only).
         return {
           ...pickColumns(r, cols), ...pickColumns(r, STAT_LINE),
-          gsis_id: ids?.gsis ?? null, sleeper_id: ids?.sleeper ?? null,
+          gsis_id: r.gsis ?? ids?.gsis ?? null, sleeper_id: r.sleeper ?? ids?.sleeper ?? null,
         };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -43199,7 +43283,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.71";
+var SERVER_VERSION = "1.0.72";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
