@@ -39147,17 +39147,20 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_weekly_stats",
-    description: "Get week-by-week stats for specific player(s) in a season. Includes 2-point conversions (passing/rushing/receiving_2pt_conversions); with `fields` you can project any raw nflverse weekly column. Use this for game logs, weekly trends, consistency analysis, boom/bust analysis.",
+    description: "Get week-by-week stats — game logs — for one player or for a whole position in a season. Pass player_name for one player's log, or omit it and pass position (and optionally week_start/week_end or team) for every player at that position, which is how you get a weekly board. Covers offence, defence (IDP) and specialists: with `fields` you can project any raw nflverse weekly column, including def_tackles_solo, def_tackle_assists, def_sacks, def_qb_hits, def_pass_defended, def_interceptions, def_tackles_for_loss, def_tds, punting (pt_att, pt_yards, pt_net_yards, pt_inside_20) and returns (punt_returns, punt_return_yards, kickoff_returns, kickoff_return_yards). Positions accept QB/RB/WR/TE/FB/K/P, the nflverse defensive codes (DE, DT, LB, CB, SAF) and the IDP buckets DL/LB/DB. A whole position-week is a few hundred rows, so narrow with week_start/week_end or team, and raise limit deliberately. Use for game logs, weekly trends, consistency and boom/bust analysis, and week-by-week IDP scoring.",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year" },
-        player_name: { type: "string", description: "Player name to search for (case-insensitive partial match)" },
-        position: { type: "string", description: "Filter by position", enum: ["QB", "RB", "WR", "TE"] },
+        player_name: { type: "string", description: "Player name (case-insensitive partial match). Omit to return every player matching the other filters." },
+        position: { type: "string", description: "Filter by position. Offence: QB, RB, WR, TE, FB. Specialists: K, P. Defence: DE, DT, LB, CB, SAF, or the IDP buckets DL (= DE+DT+NT), LB, DB (= CB+SAF+FS+SS). Required when player_name is omitted." },
+        team: { type: "string", description: "Filter to one team abbreviation (e.g. DAL)." },
         week_start: { type: "number", description: "Start week (inclusive)" },
-        week_end: { type: "number", description: "End week (inclusive)" }
+        week_end: { type: "number", description: "End week (inclusive)" },
+        sort_by: { type: "string", description: "Column to sort by, descending — any weekly column (e.g. def_sacks). Default: week, then fantasy_points_ppr." },
+        limit: { type: "number", description: "Max rows (default 100, max 1000). Only applies to multi-player queries." }
       },
-      required: ["season", "player_name"]
+      required: ["season"]
     }
   },
   {
@@ -40654,13 +40657,41 @@ ${renderTable(input, totals, displayBase)}`;
       const position = input.position;
       const weekStart = input.week_start || 1;
       const weekEnd = input.week_end || 18;
+      const team = input.team?.toUpperCase();
+      const sortBy = input.sort_by;
+      const limit = clamp(input.limit || 100, 1, 1e3);
+      if (!playerName && !position && !team) {
+        return "Pass player_name for one player's game log, or position (and optionally team / week_start / week_end) for a whole position's weekly board. An unfiltered season is tens of thousands of rows.";
+      }
       const raw = await fetchPlayerStats(season);
+      // Same DL/LB/DB buckets get_player_season_stats accepts: leagues roster
+      // those, nflverse labels DE/DT/LB/CB/SAF.
+      const IDP_BUCKETS = { DL: ["DE", "DT", "NT", "DL"], LB: ["LB", "OLB", "ILB", "MLB"], DB: ["CB", "SAF", "FS", "SS", "DB"] };
+      const accept = position ? IDP_BUCKETS[position.toUpperCase()] : null;
       let filtered = raw.filter(
-        (s) => s.season_type === "REG" && nameMatch(s.player_display_name, playerName) && s.week >= weekStart && s.week <= weekEnd
+        (s) => s.season_type === "REG" && (!playerName || nameMatch(s.player_display_name, playerName)) && s.week >= weekStart && s.week <= weekEnd
       );
-      if (position) filtered = filtered.filter((s) => s.position === position);
-      filtered.sort((a, b) => a.week - b.week);
-      if (filtered.length === 0) return `No weekly stats found for "${playerName}" in ${season}.`;
+      if (position) {
+        filtered = accept
+          ? filtered.filter((s) => accept.includes(s.position))
+          : filtered.filter((s) => s.position === position.toUpperCase());
+      }
+      if (team) filtered = filtered.filter((s) => (s.recent_team || s.team || "").toUpperCase() === team);
+      if (sortBy) {
+        filtered.sort((a, b) => (Number(b[sortBy]) || 0) - (Number(a[sortBy]) || 0));
+      } else if (playerName) {
+        filtered.sort((a, b) => a.week - b.week);
+      } else {
+        // A position board reads week by week, best game first within a week.
+        filtered.sort((a, b) => a.week - b.week || (Number(b.fantasy_points_ppr) || 0) - (Number(a.fantasy_points_ppr) || 0));
+      }
+      if (filtered.length === 0) {
+        return playerName
+          ? `No weekly stats found for "${playerName}" in ${season}.`
+          : `No weekly stats found for those filters in ${season}.`;
+      }
+      const totalRows = filtered.length;
+      if (!playerName) filtered = filtered.slice(0, limit);
       const cols = [
         "player_id",
         "player_display_name",
@@ -40688,7 +40719,11 @@ ${renderTable(input, totals, displayBase)}`;
       // Lean default; with `fields` the caller can project any raw nflverse weekly
       // column. Pass full rows so they're reachable.
       const displayBase = input.fields ? null : cols;
-      return `Weekly stats for "${playerName}" in ${season} (weeks ${weekStart}-${weekEnd}):
+      const who = playerName ? `"${playerName}"` : `${position || ""}${team ? ` ${team}` : ""}`.trim() || "all players";
+      const capNote = !playerName && totalRows > filtered.length
+        ? ` Showing ${filtered.length} of ${totalRows} rows — narrow by week or team, or raise limit (max 1000).`
+        : "";
+      return `Weekly stats for ${who} in ${season} (weeks ${weekStart}-${weekEnd}, ${filtered.length} rows).${capNote}
 
 ${renderTable(input, filtered, displayBase)}`;
     }
@@ -43283,7 +43318,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.72";
+var SERVER_VERSION = "1.0.73";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
