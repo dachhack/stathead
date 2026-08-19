@@ -208,6 +208,7 @@ jobs:
                    public/data/weekly-projections-2026.json \
                    public/data/kicker-projections-2026.json \
                    public/data/dst-projections-2026.json \
+                   public/data/schedule-strength-2026.json \
                    public/data/model-eval-2026.json \
                    public/data/redraft-projections-presets.json \
                    public/data/feature-store/ \
