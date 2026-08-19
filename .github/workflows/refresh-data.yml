@@ -46,11 +46,15 @@ jobs:
       # v6: player_stats history re-pulled from nflverse's unified stats_player
       #     table, which carries the defensive and punting columns the legacy
       #     offense-only release never had.
+      # v7: v6 became a HIT once a run saved it, so the corrected files and the
+      #     .cache-schema marker could never be written back — every run would
+      #     re-delete and re-download the history forever. The bump lets one run
+      #     save the fixed content, after which the invalidation step no-ops.
       - name: Cache static data
         uses: actions/cache@v5
         with:
           path: public/data
-          key: static-data-v6
+          key: static-data-v7
           restore-keys: static-data-
 
       # The cache restores OVER the checked-out tree, so any TRACKED file in
