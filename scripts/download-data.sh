@@ -42,13 +42,19 @@ echo "Downloading nflverse data (cached static + fresh dynamic)..."
 # ── Static season files (skip if cached and non-empty) ──
 for s in $STATIC_SEASONS; do
   # Player stats (check file exists AND is non-empty)
+  # stats_player_week for EVERY season, not just 2025+. The legacy player_stats
+  # release is offense-only and 404s from 2025 on; the unified table carries the
+  # same offensive columns back to 2016 PLUS the defensive ones (def_tackles_solo,
+  # def_sacks, def_qb_hits, def_pass_defended, def_interceptions, def_tds) and the
+  # punting ones (pt_att, pt_yards, pt_net_yards, pt_inside_20), which IDP and
+  # punter work needs and which the old release simply does not have.
+  # Verified against 2024: no old column disappears, and every shared counting
+  # stat reconciles bar nflverse's own revisions. Two renames change meaning,
+  # both handled in src/data.ts: sack_yards_lost is NEGATIVE where sack_yards was
+  # positive, and passing_cpoe is not the old composite `dakota`.
   if [ ! -s "$OUT/player_stats_${s}.csv" ]; then
     rm -f "$OUT/player_stats_${s}.csv"  # remove empty/corrupt file
-    if [ "$s" -ge 2025 ]; then
-      curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
-    else
-      curl -sfL "$NFLVERSE/player_stats/player_stats_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
-    fi
+    curl -sfL "$NFLVERSE/stats_player/stats_player_week_${s}.csv" -o "$OUT/player_stats_${s}.csv" &
   fi
   [ -s "$OUT/snap_counts_${s}.csv" ] || curl -sfL "$NFLVERSE/snap_counts/snap_counts_${s}.csv" -o "$OUT/snap_counts_${s}.csv" &
   [ -s "$OUT/injuries_${s}.csv" ] || curl -sfL "$NFLVERSE/injuries/injuries_${s}.csv" -o "$OUT/injuries_${s}.csv" &
