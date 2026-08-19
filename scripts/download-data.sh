@@ -172,18 +172,48 @@ wait
 rm -f "$OUT"/*.tmp
 
 # ── Validate critical dynamic files ──
+# roster_<season> is published year-round, so a missing one is always an error.
+# player_stats_<season> is not: nflverse only publishes it once the season's
+# first games are played, so from March to September it legitimately 404s.
+# Reporting that as ERROR every run for six months is a false alarm, and a
+# standing false ERROR is how a real one gets ignored in week 1.
+#
+# Whether the season has started is read from the schedule downloaded above —
+# any completed regular-season game for DYNAMIC_SEASON — rather than a kickoff
+# date somebody has to remember to bump each year. If that can't be determined
+# (no games.csv), fall back to treating the file as required, so an
+# indeterminate check can never mask a genuine outage.
+season_started() {
+  # 0 = started, 1 = not started yet, 2 = can't tell
+  [ -s "$OUT/games.csv" ] || return 2
+  awk -F, -v season="$1" '
+    NR == 1 { for (i = 1; i <= NF; i++) col[$i] = i; next }
+    col["season"] && $(col["season"]) == season && $(col["game_type"]) == "REG" \
+      && $(col["home_score"]) != "" { started = 1; exit }
+    END { exit(started ? 0 : 1) }
+  ' "$OUT/games.csv"
+}
+
 echo ""
 echo "=== Dynamic file validation ==="
 MISSING=0
 for s in $DYNAMIC_SEASON; do
+  if season_started "$s"; then started=0; else started=$?; fi
+  case "$started" in
+    0) echo "  ${s} regular season is underway — current-season stats expected." ;;
+    1) echo "  ${s} regular season hasn't kicked off — in-season files are not published yet." ;;
+    *) echo "  NOTE: can't tell whether ${s} has started (no games.csv) — treating all files as required." ;;
+  esac
   for f in "roster_${s}.csv" "player_stats_${s}.csv"; do
-    if [ ! -s "$OUT/$f" ]; then
-      echo "  ERROR: $f is missing or empty!"
-      MISSING=$((MISSING + 1))
-    else
+    if [ -s "$OUT/$f" ]; then
       LINES=$(wc -l < "$OUT/$f")
       SIZE=$(du -h "$OUT/$f" | cut -f1)
       echo "  OK: $f ($LINES lines, $SIZE)"
+    elif [ "$f" = "player_stats_${s}.csv" ] && [ "$started" = "1" ]; then
+      echo "  pending: $f — expected, nflverse publishes it after week 1"
+    else
+      echo "  ERROR: $f is missing or empty!"
+      MISSING=$((MISSING + 1))
     fi
   done
 done
