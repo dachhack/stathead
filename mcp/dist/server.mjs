@@ -38510,6 +38510,9 @@ async function fetchKickerProjections(season) {
 async function fetchDstProjections(season) {
   return await tryPreFetched(`dst-projections-${season}.json`);
 }
+async function fetchScheduleStrength(season) {
+  return await tryPreFetched(`schedule-strength-${season}.json`);
+}
 // (name|pos) -> {gsis, sleeper} from the slim hosted id-map, so projection
 // rows can carry stable ids without shipping the full crosswalk.
 var _projIdMap = null;
@@ -39703,6 +39706,23 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
         sort_by: { type: "string", description: "Sort column, descending. Default: ppg. Use projPts to rank players against each other — ppg is conditional on playing (see the tool description)." },
         min_games: { type: "number", description: "Only return players projected for at least this many games. Use it to drop the small-denominator backups whose ppg outranks real starters (e.g. min_games: 8)." },
         limit: { type: "number", description: "Max players (default 50)." }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_schedule_strength",
+    description: `Strength of schedule per team, per position, for every game of 2026 — how easy or hard each team's slate is for QB/RB/WR/TE/K/DST. A factor above 1 means an easier schedule (that position's opponents concede more than league average); below 1 means harder. Season factors are the mean over a team's games; per-game factors name the opponent and venue.
+
+CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        team: { type: "string", description: "Filter to one team abbreviation (e.g. KC)." },
+        position: { type: "string", description: "Filter to one position.", enum: ["QB", "RB", "WR", "TE", "K", "DST"] },
+        week: { type: "number", description: "Return per-game rows for this week instead of season factors." },
+        sort_by: { type: "string", description: "Sort column, descending. Default: the requested position, else team." },
+        limit: { type: "number", description: "Max rows (default 40)." }
       },
       required: []
     }
@@ -42530,6 +42550,49 @@ ${renderTable(input, rows)}`;
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
+    case "get_schedule_strength": {
+      const doc = await fetchScheduleStrength(FFC_CURRENT_SEASON);
+      if (!doc?.teams) return "No schedule-strength data available.";
+      const team = input.team?.toUpperCase();
+      const position = input.position?.toUpperCase();
+      const week = input.week;
+      const limit = clamp(input.limit || 40, 1, 500);
+      const POS = ["QB", "RB", "WR", "TE", "K", "DST"];
+      // Emitted as 3dp strings: the whole range is ~0.95-1.03, and the shared
+      // cell formatter rounds numbers to 2dp, which would collapse the top of
+      // the table into a single value.
+      const f3 = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(3) : null);
+      let rows = [];
+      if (week) {
+        for (const [t, v] of Object.entries(doc.teams)) {
+          if (team && t !== team) continue;
+          const g = (v.games || []).find((x) => x.week === week);
+          if (!g) continue;
+          const base = { team: t, week: g.week, opp: g.opp, home: g.home ? "H" : "A" };
+          for (const p of POS) if (!position || p === position) base[p] = f3(g.factors?.[p]);
+          rows.push(base);
+        }
+      } else {
+        for (const [t, v] of Object.entries(doc.teams)) {
+          if (team && t !== team) continue;
+          const base = { team: t };
+          for (const p of POS) if (!position || p === position) base[p] = f3(v.season?.[p]);
+          rows.push(base);
+        }
+      }
+      const sortBy = input.sort_by || position || (week ? "team" : "DST");
+      rows.sort((a, b) => {
+        const an = Number(a[sortBy]), bn = Number(b[sortBy]);  // f3 strings parse fine
+        if (Number.isFinite(an) && Number.isFinite(bn)) return bn - an;
+        return String(a.team).localeCompare(String(b.team));
+      });
+      rows = rows.slice(0, limit);
+      const cols = week ? ["team", "week", "opp", "home", ...POS.filter((p) => !position || p === position)]
+                        : ["team", ...POS.filter((p) => !position || p === position)];
+      return `Schedule strength — ${doc.season}${week ? ` week ${week}` : " (season averages)"} (${rows.length} rows, sorted by ${sortBy}). >1 = easier for that position. as_of ${doc.generatedAt}. ALREADY APPLIED to K and DST projections — do not re-apply those; NOT applied to QB/RB/WR/TE, apply those yourself if wanted.
+
+${renderTable(input, rows, input.fields ? null : cols)}`;
+    }
     case "get_weekly_projections": {
       const doc = await fetchWeeklyProjections(2026);
       if (!doc || !doc.players?.length) {
@@ -43120,7 +43183,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.69";
+var SERVER_VERSION = "1.0.70";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
