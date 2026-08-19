@@ -423,6 +423,60 @@ PPR and point at the components.
   does transform the underlying stat lines, so carrying them through presets is
   feasible; it would grow the presets file by roughly 12 fields x 448 rows.
 
+### Kicker projections as components (1.0.68)
+
+Closes the kicker half of the downstream ask: K now has a real projection with
+field-goal components by distance band, so a league pricing FGs by range can
+re-score it. New `scripts/build-kicker-projections.py` ->
+`public/data/kicker-projections-2026.json`, wired into `refresh-data.yml`,
+consumed by `build-weekly-projections.py` for its K rows, and appended to the
+MCP season board so K sits alongside QB/RB/WR/TE.
+
+**Everything below was measured over pbp-slim 2016-2025 (10,731 attempts), and
+the model is shaped around the measurements rather than around intuition:**
+
+- Band make rates are stable except 50+, which drifted 58.6% (2016) -> ~69%.
+  Rates are recency-weighted (3-season half-life); a flat 10-year average would
+  understate long attempts by ~3pp (66.4% vs 68.0%).
+- **Team FG attempt volume is close to unforecastable**: yoy r = +0.08 (range
+  -0.30..+0.33), and within-season it barely tracks offence (r = +0.16 vs points,
+  +0.18 vs red-zone trips) — good offences get more chances but convert more of
+  them to TDs, and the effects cancel. So team FGA is shrunk to 15% of its
+  deviation from league mean.
+- Kicker accuracy skill is real but small: split-half r = +0.18 on
+  makes-over-expected per attempt (n=55 with 60+ attempts, sd 0.049). Personal
+  adjustments are kept at 18% of face value.
+- Extra points ARE projectable (yoy r = +0.41) because they track offensive
+  touchdowns, which we already project. That is where nearly all real per-team
+  differentiation in kicker scoring lives.
+
+**Backtested, not asserted.** Predicting team kicker pts/gm over 2023-25:
+
+| model | RMSE | r |
+| --- | --- | --- |
+| flat league mean | 1.33 | 0.00 |
+| carry prior 2 seasons, shrunk 0.5 | 1.30 | 0.22 |
+| components alone | 1.31 | 0.29 |
+| **50/50 blend (shipped)** | **1.29** | **0.29** |
+
+A first pass looked worse than the incumbent on 2025 alone (1.41 vs 1.25), which
+turned out to be a one-season artefact — over three seasons the incumbent's r
+falls from 0.44 to 0.22. The shipped build blends the component level 50/50 with
+the team's own carry and then scales every count by one factor, so components
+keep their shape and still reconcile to the published ppg (max 0.50 pts/season,
+rounding).
+
+**Read the table honestly: a flat league mean scores 1.33 and the best model
+1.29.** All of this buys ~3% on RMSE. Projected spread is sd 0.37 against an
+actual sd of 1.51 — correctly compressed, because the incumbent's wider sd 1.04
+does not buy accuracy. Kicker ranking is close to unforecastable; **the
+components, not the ordering, are the deliverable.**
+
+DST is untouched and remains a points scalar — see the earlier scoping note.
+It needs a team defence projection that does not exist (the team model is
+offence-only), and its signal is weaker still (points allowed yoy r = +0.30,
+takeaways +0.17).
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

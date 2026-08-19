@@ -352,14 +352,29 @@ def main():
                 'wk': wk,
             })
 
-    # K rows: team context (league avg + shrunk team deviation), blended 50/50
-    # with the named kicker's own prior-season PPG when he has >= 8 games.
+    # K rows: prefer the component build (scripts/build-kicker-projections.py),
+    # which projects FG attempts/makes by distance band plus extra points and
+    # rolls them up under this same scoring. Using it here keeps one kicker
+    # number across the weekly feed, the season board and the components, rather
+    # than two that disagree. Falls back to the old team-context scalar (league
+    # average + shrunk team deviation, blended with the kicker's own prior) when
+    # the artifact is absent.
+    kproj = {}
+    try:
+        with open(os.path.join(DATA, f'kicker-projections-{SEASON}.json')) as fh:
+            kdoc = json.load(fh)
+        kproj = {r['team']: r for r in kdoc.get('kickers', []) if r.get('team')}
+    except Exception:
+        kproj = {}
     for team in sorted(team_weeks):
         team_ppg = k_avg + K_SHRINK * (k_team_pg.get(team, k_avg) - k_avg)
         k = kickers.get(team) or {}
         name = k.get('name') or f'{team} K'
         own = k_player_prior.get(name)
         ppg = (0.5 * (own[0] / own[1]) + 0.5 * team_ppg) if own and own[1] >= 8 else team_ppg
+        if team in kproj:
+            ppg = kproj[team]['ppg']
+            name = kproj[team].get('name') or name
         mults = week_mults(team, 'K')
         ids = id_map.get((norm(name), 'K'), {})
         players.append({
