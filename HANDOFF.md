@@ -269,6 +269,57 @@ runtime, so "drop the bake, it's daily now" was bad advice — they re-bake on a
 schedule instead. Worth weighing before retiring the static spine: a published,
 stable, season-shaped artifact has a consumer.
 
+### player_stats validation: season-aware (no more standing false ERROR)
+
+`download-data.sh`'s validation block treated `player_stats_<season>.csv` as
+critical year-round, but nflverse only publishes it once the season's first
+games are played — so every run from March to September printed
+`ERROR: player_stats_2026.csv is missing or empty!`. A standing false ERROR is
+how a real one gets ignored in week 1.
+
+`roster_<season>` stays a hard error (published year-round). `player_stats` is
+now judged against whether the season has actually started, read from the
+freshly-downloaded `games.csv` — any completed regular-season game for
+DYNAMIC_SEASON — rather than a kickoff date somebody has to bump each year. If
+that can't be determined (no games.csv) it falls back to requiring the file, so
+an indeterminate check can never mask a genuine outage. Verified all four
+states against a harness: pre-season → `pending` and no error; in-season with
+the file missing → ERROR still fires; no games.csv → ERROR; all present → OK.
+A missing roster still errors in every state.
+
+### How to refresh Clay (the Consensus preset)
+
+Nothing in the repo can regenerate it — the source is a manual drop. The chain:
+
+1. Download the current **Mike Clay Fantasy Football Projection Guide** PDF
+   (ESPN+ product; never committed — it's ESPN's).
+2. `pip install pymupdf`
+3. `python3 scripts/extract_clay_projections.py <path-to-pdf> 2026`
+   → writes the gitignored `public/data/clay-projections-2026.json`.
+4. `gzip -9 -c public/data/clay-projections-2026.json | base64 | tr -d '\n'`
+   → paste as the `CLAY_PROJECTIONS_B64` repo secret (Settings → Secrets →
+   Actions). That exact encoding is what refresh-data.yml decodes.
+5. Dispatch **Refresh Data**. The step materializes the extract after
+   `npm run build`, runs `build:presets`, deletes the raw extract, and commits
+   a `redraft-projections-presets.json` with a fresh `generatedAt`.
+
+**Caveat worth knowing before doing it:** refreshing Clay only fixes half of
+the `consensus` preset. `precompute-projection-presets.ts` builds it as
+`redraft-projections.json` (the April spine) blended toward Clay — the counts
+confirm it: `consensus` carries 416 players / 109 RB, exactly the spine, while
+`consensus-ml`, `rookie-optimistic`, `vet-optimistic` and `injury-skeptic` all
+carry 448 / 128, the live pool. So a Clay refresh leaves the StatHead half of
+that one preset anchored to April. Re-pointing `buildConsensus` at the pool is
+the real fix, and it's the same spine-retirement decision noted above.
+
+Three further Clay artifacts exist — `clay-unit-grades-*`, `clay-matchups-*`,
+`clay-team-projections-*` (from `extract_clay_unit_grades.py` and
+`extract_clay_team_pages.py`), read by the Schedule tab via `nflSchedule.ts`.
+They are gitignored and have **no secret/delivery path**, so those surfaces are
+absent in the deploy. That looks deliberate — they'd be republishing ESPN's
+numbers directly, where the presets are a derived blend — but it's worth
+confirming rather than assuming.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
