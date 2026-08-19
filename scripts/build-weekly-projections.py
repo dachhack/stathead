@@ -416,6 +416,64 @@ def main():
             'wk': [round(ppg * mults[w], 2) if w in mults else None for w in range(1, WEEKS + 1)],
         })
 
+    # ── Schedule strength artifact ────────────────────────────────────────
+    # Published separately because week_mults normalizes its multipliers to
+    # mean 1: they redistribute points between weeks and can never move a
+    # season total. That is deliberate for skill players (the projection pool
+    # owns their season line), so the SEASON-level schedule effect is not
+    # applied to QB/RB/WR/TE anywhere — it is emitted here instead, for
+    # consumers that want to apply it themselves.
+    #
+    # K and DST are different: their season lines come from
+    # build-kicker-projections.py / build-dst-projections.py, which DO apply
+    # this at season level, so their factors below are already reflected in
+    # the projections and must not be applied a second time.
+    #
+    # factor > 1 means an easier schedule for that position (opponents concede
+    # more). Derived from the same def_vs_pos the weekly multipliers use, so
+    # published and applied numbers can never drift.
+    strength = {}
+    for team, sched in team_weeks.items():
+        per_pos = {}
+        for pos in list(POSITIONS) + ['K', 'DST']:
+            vals = [def_vs_pos.get(g['opp'], {}).get(pos, 1.0) for g in sched]
+            if vals:
+                per_pos[pos] = round(sum(vals) / len(vals), 4)
+        strength[team] = {
+            'season': per_pos,
+            'games': [
+                {'week': g['w'], 'opp': g['opp'], 'home': g['home'],
+                 'factors': {pos: def_vs_pos.get(g['opp'], {}).get(pos, 1.0)
+                             for pos in list(POSITIONS) + ['K', 'DST']}}
+                for g in sched
+            ],
+        }
+    ss_doc = {
+        'season': SEASON,
+        'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'note': (
+            'Strength of schedule per team, per position, for every game. '
+            'factor > 1 = easier (opponents concede more of that position). '
+            'Season factors are the mean over that team\'s games. IMPORTANT: '
+            'these are ALREADY APPLIED to K and DST projections (their season '
+            'lines are built here), but NOT to QB/RB/WR/TE — the weekly '
+            'multipliers for skill players are normalized to mean 1, so the '
+            'season-level effect is deliberately left out of the projection '
+            'pool. Apply the skill-position factors yourself if you want them; '
+            'do not re-apply the K/DST ones. Across 2026 the spread is ~8% for '
+            'DST, ~6% QB, ~5.5% WR, ~4.4% TE, ~3.3% K, ~3.1% RB between the '
+            'easiest and hardest schedule.'
+        ),
+        'appliedInProjections': ['K', 'DST'],
+        'notAppliedInProjections': list(POSITIONS),
+        'teams': strength,
+    }
+    ss_path = os.path.join(DATA, f'schedule-strength-{SEASON}.json')
+    with open(ss_path, 'w') as fh:
+        json.dump(ss_doc, fh, separators=(',', ':'))
+        fh.write('\n')
+    print(f'Wrote {ss_path}: {len(strength)} teams x {len(POSITIONS) + 2} positions')
+
     players.sort(key=lambda r: -r['ppg'])
     blend_note = (
         f'def-vs-pos blends {SEASON} weeks 1-{cur_weeks} at {w_cur:.0%} over {PRIOR}'

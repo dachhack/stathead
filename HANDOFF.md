@@ -581,6 +581,48 @@ output shape:**
 
 Net effect: DST spread widens from sd 0.32 to 0.51, K from 0.37 to 0.38.
 
+### Schedule strength published as data (1.0.70)
+
+Asked to extend the season-level schedule adjustment to skill positions. I
+stopped short of that and published the factors instead — the reasons are worth
+recording, because the skill case is genuinely different from K/DST:
+
+1. It would change the live site. `StatProjections.tsx` calls
+   `buildProjectionPool` in the browser and the script calls the same pure
+   function, so the adjustment has to live in the shared builder — repricing
+   every skill player on stathead.app.
+2. It cannot be backtested. K/DST were validated over three seasons;
+   `projection-base` only exists for 2026, so there is no historical pool to
+   test a skill adjustment against.
+3. The double-count question is unresolved. The NFL SOS features
+   (`sosDefPPG`, `sosAvgSpread`) ARE forward-looking — `contextBuilder` walks
+   the projection season's schedule and averages each opponent's prior-season
+   Vegas numbers — but none appear in the top-12 feature importance for any
+   position (the only "SOS" there is *college* SOS for QB). So direct pricing
+   is small. ADP is a pool input though, and market ADP prices schedule to an
+   unknown degree. A correlation test (QB +0.08, RB +0.12, WR +0.18, TE -0.42)
+   is confounded by team talent — the TE figure reflects who owns Bowers, not
+   schedule — and does not settle it.
+4. The builder returns interdependent maps (`projTeamTotals`, `projPPGMap`,
+   `projAdpMap`) that a naive final scaling pass would desync.
+
+So `build-weekly-projections.py` now also emits
+`public/data/schedule-strength-2026.json` — per team, per position, for every
+game, with season means — served by a new MCP tool `get_schedule_strength`
+(51 tools now). Emitting it from the weekly builder means it is derived from
+the same `def_vs_pos` the weekly multipliers use, so published and applied
+numbers cannot drift.
+
+The artifact and the tool both state loudly which positions it is already
+applied to: **K and DST yes** (their season lines are built with it), **QB/RB/
+WR/TE no** (their weekly multipliers normalize to mean 1, so the season effect
+is deliberately absent from the pool). Re-applying the K/DST factors would
+double count.
+
+Factors are emitted as 3dp strings because the shared cell formatter rounds
+numbers to 2dp, which collapsed the top of the table — the entire range is
+0.95-1.03.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
