@@ -124,6 +124,13 @@ jobs:
       - name: Build model-eval artifact
         run: node scripts/build-model-eval.mjs
 
+      # Project kickers as components (FG attempts/makes by distance band + XPs)
+      # from pbp-slim history. Runs BEFORE the weekly build, which reads this
+      # artifact for its K rows so the weekly feed, the season board and the
+      # components all quote one kicker number. Never fatal.
+      - name: Build kicker projections
+        run: python3 scripts/build-kicker-projections.py 2026 || echo "kicker projections build failed (non-fatal)"
+
       # Split the freshly-rebuilt season pool into per-week projections
       # (opponent def-vs-pos multipliers + home/away, normalized back to the
       # season line). Reads projection-base + schedule + prior-year weekly
@@ -194,6 +201,7 @@ jobs:
                    public/data/feature-matrix.json \
                    public/data/projection-base-2026.json \
                    public/data/weekly-projections-2026.json \
+                   public/data/kicker-projections-2026.json \
                    public/data/model-eval-2026.json \
                    public/data/redraft-projections-presets.json \
                    public/data/feature-store/ \
