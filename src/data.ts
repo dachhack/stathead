@@ -1381,22 +1381,44 @@ export async function fetchFantasyCalcValues(
 }
 
 // --- Next Gen Stats ---
-// NGS files are .csv.gz on GitHub. Current season uses ngs_{type}.csv.gz (no year).
+// nflverse only shards NGS per season once a season is closed out (through
+// 2024 as of 2026-08); the current and previous season live solely in the
+// un-suffixed ngs_<type>.csv.gz, which holds every season from 2016 on. The
+// build splits that file per season into data/ngs_<season>_<type>.csv
+// (scripts/download-data.sh), but the remote fallback below still resolves
+// recent seasons to the whole multi-season file — so every path is filtered to
+// the season that was asked for. Without it a request for the season that
+// matters most returns a decade of rows, and any caller that keys by player
+// name silently picks up whichever season happens to land last.
+function ngsForSeason(rows: NextGenStats[], season: number): NextGenStats[] {
+  // Season-sharded files hold nothing else, so this is a no-op there. Rows with
+  // no season column at all are kept rather than dropped — an unparsed header
+  // should degrade to the old behaviour, not to an empty table.
+  return rows.filter((r) => r.season == null || Number(r.season) === season);
+}
+
 export async function fetchNextGenStats(
   season: number,
   type: 'passing' | 'rushing' | 'receiving' = 'passing'
 ): Promise<NextGenStats[]> {
   if (IS_PROD) {
-    return fetchCsv<NextGenStats>(nflUrl(`nextgen_stats/ngs_${season}_${type}.csv`));
+    return ngsForSeason(
+      await fetchCsv<NextGenStats>(nflUrl(`nextgen_stats/ngs_${season}_${type}.csv`)),
+      season,
+    );
   }
-  // Try year-specific first, then current-season (no year) filename
+  // Try year-specific first, then the all-seasons (no year) filename
   const urls = [
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${season}_${type}.csv.gz`,
     `${NFLVERSE_REMOTE}/nextgen_stats/ngs_${type}.csv.gz`,
   ];
   for (const url of urls) {
     const cached = csvCache.get(url);
-    if (cached) return cached as NextGenStats[];
+    if (cached) {
+      const hit = ngsForSeason(cached as NextGenStats[], season);
+      if (hit.length) return hit;
+      continue;
+    }
     const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
     if (!response.ok) continue;
     const buf = await response.arrayBuffer();
@@ -1410,8 +1432,14 @@ export async function fetchNextGenStats(
       dynamicTyping: true,
       skipEmptyLines: true,
     });
+    // Cache the parsed file, not the filtered view — the same download serves
+    // every season, so a later request for a different year is a cache hit.
     csvCache.set(url, result.data as unknown[]);
-    return result.data;
+    const rows = ngsForSeason(result.data, season);
+    // The all-seasons file legitimately has no rows for a season that hasn't
+    // been charted yet; fall through rather than returning an empty array as
+    // if it were the answer.
+    if (rows.length) return rows;
   }
   return [];
 }

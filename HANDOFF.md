@@ -1,6 +1,216 @@
 # StatHead — session handoff
 
-Last updated 2026-07-28 (visitor tracking session). **Resume section directly below;** older notes follow.
+Last updated 2026-08-19 (season-prep data audit). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-08-19, season prep — `claude/adp-season-prep-h0vwwy`)
+
+Asked to refresh ADP and prep for the season. ADP itself turned out to be
+fine — every fetch workflow (KTC 06:00, FantasyCalc 06:30, Sleeper 06:45,
+FFC 07:00, buzz every 8h, Refresh Data every 2h) has been green for days
+and had already run. So the work became an audit of what the automation
+would get *wrong* at kickoff. Four things, all now fixed.
+
+**1. Next Gen Stats were wrong in both directions.** nflverse only shards
+`nextgen_stats/ngs_<season>_<type>.csv.gz` for seasons that are closed
+out — those exist through **2024** and 404 for 2025/2026. The file that
+stays current is the un-suffixed `ngs_<type>.csv.gz`, which holds **every
+season from 2016 on** (14,731 receiving rows today). `download-data.sh`
+was piping that whole thing into `ngs_2025_<type>.csv`, so:
+
+- `fetchNextGenStats(2025)` returned all 14,731 rows, 2016–2025;
+- `fetchNextGenStats(2026)` 404'd on the year-suffixed URL, fell through
+  to the same all-seasons file, and returned those 14,731 rows too;
+- callers key NGS by player name (`buildFeatureMatrix`,
+  `indexNGSByPlayer`), so a player who last played in 2021 silently
+  carried 2021 separation/cushion into the 2026 projection;
+- at Week 1 the release starts including 2026, which would have
+  overwritten `ngs_2025_*` with 2026 rows.
+
+`download-data.sh` now downloads each type once and splits it on the
+`season` column into real per-season files (verified: 10 seasons × 3
+types, row counts matching the source exactly). One download replaces
+ten, and 2026 gets its file for free as soon as Week 1 is charted — no
+yearly bump. `fetchNextGenStats` filters every path to the season asked
+for as a belt-and-braces guard, since the non-prod fallback can still
+resolve to the multi-season file. A harness against live nflverse
+confirmed the before/after: baseline returned 2016–2025 for a 2025
+request and all 14,731 rows for 2026; after, each season returns only its
+own rows and 2026 correctly returns 0 until it's charted.
+`pull-all-data-sources.sh` had the same bug plus a wrong path (it fetched
+`ngs_<stat>.csv`, which doesn't exist — nflverse only publishes `.csv.gz`),
+so it never got NGS at all; same split applied.
+
+**2. 2025 was missing from every heavier source.** The season lists for
+PFR advanced stats, FTN charting, play-by-play and participation all
+stopped at **2024**, though 2025 is published upstream for all four. So
+the deployed Play-by-Play view, `get_play_by_play(2025)`,
+`get_advanced_stats(2025)` and `get_ftn_charting(2025)` were all fetching
+`/data/..._2025.csv` files that the build never downloaded. Those lists
+are now `DERIVED_SEASONS` / `FTN_SEASONS` variables (bump once a year)
+plus a current-season fetch on top that tolerates a pre-Week-1 404, so
+2026 populates itself in September. The static fetches also moved from
+`curl -sL -o` to a `fetch_optional` helper (`-sfL` + temp file), because
+the old form wrote GitHub's 404 HTML into the `.csv` and the `[ -f ]`
+guard then skipped it forever. 2025 PBP is 93 MB vs 2024's 95 MB, so it
+sits comfortably inside the Pages per-asset cap that 2024 already clears.
+
+**3. In-season snapshots were never committed.** `refresh-data.yml`
+re-gzipped only `roster_2026` and `depth_charts_2026`. From Week 1 the
+MCP server (which reads committed files from GitHub raw), the Python
+package and local dev would have seen **no 2026 player stats, snap counts
+or injuries at all** — only the deployed site would have had them, since
+it builds from the fresh CSVs. Those three are now gzipped and committed
+alongside, skipped with a log line until they exist upstream (they 404
+today, as expected pre-season).
+
+While there: the cache-commit step's `git add a b c ...` **stages nothing
+at all** if any single pathspec matches no file (verified: `fatal:
+pathspec ... did not match any files`, exit 128, empty index). The `||
+true` swallowed it, so one missing artifact would have silently killed
+every cache commit — and adding the three in-season paths above would
+have triggered exactly that until September. Now staged one path at a
+time behind an `[ -e ]` test.
+
+**4. ESPN was a dead ADP source.** `download-api-data.sh` snapshotted
+ESPN with `view=players_wl`, which returns all 11,612 players but omits
+`ownership` and `draftRanksByRankType` — so `parseEspnResponse` gave
+every row `adp: 0`, and `adpSources.loadEspn`, which filters `adp > 0`,
+contributed **zero entries** to the consensus board. It was also still
+pinned to `season 2025`. The ADP fields only come back under
+`view=kona_player_info`, which is ~39 MB (the endpoint ignores the
+filter's `limit`) — too big to ship and over the 25 MiB Pages cap. New
+`scripts/fetch-espn-adp.mjs` fetches that view, keeps only players with a
+real ADP and only the fields the parser reads, and writes ~730 KB. Live
+check: 2,616 players with ADP → 1,027 parsed → **937 skill players now
+reach the blend**, board topped by Gibbs 1.52 / Bijan 2.59 / Chase 4.25,
+which matches the market. `CURRENT_SEASON` is now one variable at the top
+of that script driving both ESPN and FFC.
+
+### Verified
+
+`tsc -b` and `tsc -p tsconfig.app.json --noEmit` clean; `eslint` on the
+touched files clean (the repo has ~400 pre-existing lint errors elsewhere,
+unchanged); `pytest python/tests` 29 passed / 2 skipped (needs
+`pip install duckdb` for 3 of them); `bash -n` on all four shell scripts;
+a trimmed end-to-end run of `download-data.sh` against live nflverse
+(NGS split correct, 2025 advstats + FTN landed, no stray `.tmp` or
+404-HTML files, 2026 assets logged as unavailable); and the two live
+harnesses described above.
+
+### Follow-up in the same session: stale MCP projections
+
+A downstream MCP consumer reported "projections not refreshed since
+2026-04-12". Accurate, and worse than a stale label.
+
+`get_projections` (no preset) served `redraft-projections.json` —
+`generatedAt: "2026-04-12"`, a **hand-built static spine**, not a pipeline
+output. It's actually an *input*: `scripts/build-projection-pool.ts` reads it
+to gap-fill players the ML doesn't score, which is exactly why regenerating it
+from the pool is not an option (it would close a feedback loop). Meanwhile the
+real pool, `projection-base-2026.json`, is rebuilt by `build:pool` on every
+refresh run (04:19 today) and is what `get_weekly_projections` and the site's
+Projections tab already read. The two disagreed materially:
+
+| player | get_projections (April) | live pool |
+| --- | --- | --- |
+| Jahmyr Gibbs | 21.1 | 25.9 |
+| Ja'Marr Chase | 20.7 | 18.1 |
+| Brock Bowers | 15.0 | 13.9 |
+
+Three more surfaces read the same stale file: `export_excel kind=projections`
+(shipping an April board into a workbook), `import_excel`'s "changed vs
+StatHead" diff (diffing against April), and `get_sleeper_waiver_wire`'s
+projected-PPG column.
+
+Fixed in `mcp/dist/server.mjs` (which `src/mcp-server.ts` documents as the
+hand-maintained source of truth since 1.0.16 — `src/tools.ts` is deliberately
+frozen at the 1.0.15 toolset, so its 30 tools vs the bundle's 47 is expected,
+not drift). Added `projectionBaseToRows()` + a single `statheadProjectionPool()`
+accessor: season base first, static spine as fallback, returned in the shape the
+old file had so all four call sites swap cleanly. `ppg = pprPts/games`,
+`recPG = rec/games`, skipping rows with no team or no projected games/points —
+copied from `scripts/build-weekly-projections.py` so the season and weekly tools
+now agree *by construction*.
+
+Verified against live data by importing the bundle with the Worker runtime
+spoofed (`navigator.userAgent = 'Cloudflare-Workers'`, else the stdio server
+starts and hangs): `get_projections` now reports `as_of 2026-08-19T04:19:40Z`
+over 127 RBs — same pool size and same Gibbs 25.9 as `get_weekly_projections`;
+`export_excel` writes the live board; the `consensus` preset path is untouched;
+and serving a data base *without* `projection-base-2026.json` over a local HTTP
+server still falls back to the April file exactly as before.
+
+**MCP bumped 1.0.63 → 1.0.64** (bundle `SERVER_VERSION` + `mcp/package.json`).
+1.0.63 *is* published on npm — STATUS.md's "not yet published" note was wrong —
+so this needs a `publish-mcp.yml` dispatch or npx clients keep the old
+behaviour. `mcp/server.json` is still pinned at 1.0.46; it looked
+deliberately-lagging so I left it.
+
+### Also found: the refresh cache never updates
+
+The 04:14 run's log ends with `Cache hit occurred on the primary key
+static-data-v4, not saving cache.` actions/cache only writes a new entry when
+the **primary** key misses, so a constant key freezes the cache at whatever was
+first saved — every file added to `download-data.sh` after that point is
+re-downloaded on every run (every 2 hours) and never cached. Bumped to
+`static-data-v5`; the `static-data-` restore-keys prefix still restores v4, so
+only the genuinely-new files download once before the v5 cache is written.
+
+The same run also showed `Build projection base + presets` completing in **2
+seconds** — enough for `build:pool` alone, confirming `CLAY_PROJECTIONS_B64` is
+unset and `build:presets` is being skipped. That's why the `consensus` preset
+still reports `as_of 2026-06-16`. Setting the secret is the only fix; nothing in
+the repo can regenerate it.
+
+### Publish guard
+
+The 1.0.64 publish first failed with `E403 ... cannot publish over the
+previously published versions: 1.0.63` — because the workflow was dispatched
+from `claude/nfl-fantasy-workbench-6D1yd`, which doesn't carry the bump, so npm
+was correctly told to publish 1.0.63 again. The run got all the way through
+install + bundle + smoke test before finding out.
+
+Both publish workflows (`publish-mcp.yml`, `npm-publish-token.yml`) now run a
+`Verify the version is releasable` step right after checkout that fails with a
+plain-English error when either (a) the version in `mcp/package.json` is already
+on npm — naming the ref it was dispatched from, since that's the usual cause —
+or (b) `mcp/package.json` and the bundle's hand-maintained `SERVER_VERSION`
+disagree, which would ship a server reporting a version npm never served. An
+empty `npm view` (registry hiccup) falls through to npm's own check rather than
+blocking a legitimate release. Verified both ways: the guard's logic fails on
+the dev branch's 1.0.63 tree and passes on 1.0.64.
+
+Worth knowing: `GITHUB_RAW_DATA_BASE` in the bundle is pinned to the dev branch,
+so a published server reads dev-branch data no matter which branch it was
+published from.
+
+### Notes / not done
+
+- **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,
+  FantasyCalc and the `*.workers.dev` proxies are all blocked by the
+  egress proxy (403 on CONNECT), and this session had no permission to
+  dispatch workflows (`403 Resource not accessible by integration`), so
+  the only ADP refresh runnable here was Sleeper's. Everything else has
+  to come from the scheduled workflows or a manual dispatch from the
+  GitHub app.
+- `espn_adp_<season>.json` is still build-time only (in `dist/`, not
+  committed) — matching how it has always worked, even though
+  `.gitignore` un-ignores it. Committing it would give the MCP an ESPN
+  board too, at ~730 KB of churn per refresh; left as a judgement call.
+- **Repo growth is worth a look.** `depth_charts_2026.csv.gz` is 8.5 MB
+  and is committed by every 2-hourly refresh; the three files added here
+  add ~1.8 MB more per changed run. Unchanged content produces no commit,
+  but in-season this is a real growth rate.
+- The `consensus` preset (`redraft-projections-presets.json`) is still
+  stale at 2026-06-16 — blocked on the `CLAY_PROJECTIONS_B64` secret, see
+  above. Left alone deliberately.
+- `redraft-projections.json` is left exactly as-is on purpose: it is a
+  builder input, and regenerating it from the pool would feed the pool
+  its own output.
+- Untouched: the `STATUS.md` "Next 3 tasks" (projection-pool depth-share
+  artifacts, SFB16 big-play recalibration, post-draft SFB16 recap).
 
 ---
 

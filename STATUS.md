@@ -24,7 +24,32 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-07-28 — Visitor tracking: first-party, cookie-less pageview analytics
+2026-08-19 — Season-prep data audit. Refreshed the Sleeper ADP snapshot
+(the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and
+had already run this morning), then closed the season-rollover gaps the
+daily automation would have hit at kickoff: NGS split per season from
+nflverse's all-seasons file (it was dumping a decade of rows into
+`ngs_2025_*`, and Week 1 would have overwritten 2025 with 2026); 2025
+added to advanced stats / FTN / play-by-play / participation, which all
+stopped at 2024; `refresh-data.yml` now commits the in-season
+injuries / snaps / player-stats snapshots the MCP, Python package and
+local dev read; and ESPN restored as a live ADP source — its snapshot
+used a view that omits ADP entirely, so all 937 skill players were being
+dropped from the consensus blend. Details in HANDOFF.md.
+
+Then, from a downstream MCP report of "projections not refreshed since
+2026-04-12": `get_projections` was serving `redraft-projections.json`, a
+static April spine that is an *input* to the daily pool builder, not its
+output — so it disagreed with `get_weekly_projections` and the site by
+several PPG (Gibbs 21.1 vs 25.9). All four projection surfaces
+(`get_projections`, `export_excel`, `import_excel`'s diff, the waiver
+board) now read one accessor over the daily-rebuilt season pool. MCP
+bumped to **1.0.64 — needs publishing**. Also bumped the refresh
+workflow's `static-data-v4` cache key: with a constant key actions/cache
+never re-saves, so newly-added downloads would have been re-fetched every
+run forever.
+
+Previously (2026-07-28) — Visitor tracking: first-party, cookie-less pageview analytics
 (new `workers/visit-tracker` Cloudflare Worker on Workers Analytics
 Engine + a `sendBeacon` hook in the app; daily-rotating anonymous
 visitor hash, DNT/GPC honored). `/stats` JSON + mini dashboard at
@@ -53,7 +78,7 @@ def-vs-pos blend wired in the builder. Deferred items (in-season base
 re-fit, Vegas multipliers, uncertainty bands) logged in
 docs/MCP_FEEDBACK_BACKLOG.md Round 22. Added K + team-DST weekly
 projections (32 each: depth-chart PK1s, team context + same matchup
-framework; defVsPos gains K/DST entries). 1.0.63 not yet published.
+framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (this session) is not.
 
 ## Current blockers
 
@@ -61,6 +86,10 @@ framework; defVsPos gains K/DST entries). 1.0.63 not yet published.
 
 ## Next 3 tasks
 
+0. Publish MCP **1.0.64** (dispatch `publish-mcp.yml`) — until then every
+   npx/connector client still serves the April projections. And set the
+   `CLAY_PROJECTIONS_B64` repo secret: without it `build:presets` is
+   skipped every run, so the `consensus` preset is frozen at 2026-06-16.
 1. Fix projection-pool depth-share artifacts: deep TEs inflated (Greg
    Dulcich, Colby Parkinson) and Brock Bowers' TE TD line cold vs market.
 2. Recalibrate the SFB16 big-play estimators against published SFB
