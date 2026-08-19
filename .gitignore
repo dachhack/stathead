@@ -119,6 +119,12 @@ public/data/sfb16-cheatsheet.json
 # Never committed — absent in the public deploy so Clay's numbers ship nowhere.
 /public/data/clay/
 
+# Workbooks written by the MCP's export_excel tool. With no `path` argument it
+# writes stathead-<kind>-<tag>-<date>.xlsx into process.cwd(), which is the repo
+# root whenever the server runs from a checkout (`npm run mcp`) — so ordinary
+# use litters untracked exports here. They're generated output, never sources.
+/stathead-*.xlsx
+
 # Downloaded headshot images
 headshots.zip
 headshots_part*.zip

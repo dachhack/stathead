@@ -38409,6 +38409,14 @@ function projectionBaseToRows(doc) {
         name: p.name,
         position,
         ppg: Math.round(pprPts / games * 100) / 100,
+        // `games` is the projected games PLAYED, and it's what makes ppg
+        // comparable or not: a backup projected for one game divides a
+        // one-game line by one and reads as an elite per-game rate (Nick
+        // Mullens 21/1 = 21.0 ppg, above every real starter). projPts is the
+        // season total those two came from — the quantity to rank on when
+        // comparing players rather than reading one player's rate.
+        games,
+        projPts: pprPts,
         recPG: Math.round((Number(p.rec) || 0) / games * 100) / 100
       });
     }
@@ -39628,14 +39636,17 @@ var NFL_TOOLS = [
   },
   {
     name: "get_projections",
-    description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026.`,
+    description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026.
+
+IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.`,
     input_schema: {
       type: "object",
       properties: {
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
         preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
-        sort_by: { type: "string", description: "Sort column, descending. Default: ppg." },
+        sort_by: { type: "string", description: "Sort column, descending. Default: ppg. Use projPts to rank players against each other — ppg is conditional on playing (see the tool description)." },
+        min_games: { type: "number", description: "Only return players projected for at least this many games. Use it to drop the small-denominator backups whose ppg outranks real starters (e.g. min_games: 8)." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
       required: []
@@ -39643,7 +39654,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K) and team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) projected from team context on the same matchup framework. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gsis_id/sleeper_id (select via fields). Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K) and team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) projected from team context on the same matchup framework. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40436,7 +40447,10 @@ async function executeToolInner(name, input) {
           "- ECR and ADP reflect **market consensus**, not true probability. Compare to historical hit rates for ground truth.",
           "- Position PPG baselines differ: TE PPG \u2265 9 \u2248 WR PPG \u2265 11 \u2248 QB PPG \u2265 16. Don't compare PPG across positions without adjusting.",
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
-          "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication."
+          "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
+          "- **`ppg` is a rate conditional on playing, not a season expectation.** It is projected points / projected games, so a backup projected for one game divides a one-game line by one and outranks every real starter (Nick Mullens 21.0 > Lamar Jackson 16.6). Rank players against each other on `projPts` (the season total, shipped alongside) or pass `min_games`; use `ppg` only for one player\u2019s per-game rate. Same trap in `get_weekly_projections`, where `pts` assumes the player plays that week \u2014 check the `gp` column. Roughly half the QB pool is projected for <8 games.",
+          "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
+          "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
         `## Tools (${NFL_TOOLS.length - 1})`,
         catalog
@@ -42409,7 +42423,8 @@ ${renderTable(input, rows)}`;
         });
         if (ovCount) ovNote = ` ${ovCount} value(s) overridden from your uploaded sheet (import_excel); run clear_overrides to revert.`;
       }
-      let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName));
+      const minGames = Number(input.min_games) || 0;
+      let rows = pool.filter((p) => !position || (p.position || "").toUpperCase() === position).filter((p) => !playerName || nameMatch(p.name, playerName)).filter((p) => !minGames || (Number(p.games) || 0) >= minGames);
       rows.sort((a, b) => {
         const an = Number(a[sortBy]);
         const bn = Number(b[sortBy]);
@@ -42424,12 +42439,18 @@ ${renderTable(input, rows)}`;
       rows = rows.slice(0, limit);
       const capNote = totalRows > rows.length ? ` Showing top ${rows.length} of ${totalRows} — raise limit (max 1000) for the full pool.` : "";
       const idMap = await projectionIdMap();
-      const cols = ["name", "position", "ppg", "recPG"];
+      // ppg alone is not rankable across players — see the `games` comment in
+      // projectionBaseToRows. Ship the denominator and the season total in the
+      // default columns so a consumer sorting a roster can see, and fix, the
+      // small-denominator rows without having to know to ask for them.
+      const thin = rows.filter((r) => Number.isFinite(Number(r.games)) && Number(r.games) <= 4);
+      const thinNote = thin.length ? ` ${thin.length} row(s) have a projected-games count <= 4 (${thin.slice(0, 3).map((r) => `${r.name} ${r.games}g`).join(", ")}${thin.length > 3 ? ", …" : ""}) — their ppg is a rate conditional on playing, NOT a season expectation, and will outrank real starters. Rank on projPts, or pass min_games.` : "";
+      const cols = ["name", "position", "ppg", "games", "projPts", "recPG"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
         return { ...pickColumns(r, cols), gsis_id: ids?.gsis ?? null, sleeper_id: ids?.sleeper ?? null };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${ovNote} gsis_id/sleeper_id available via fields.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${thinNote}${ovNote} gsis_id/sleeper_id available via fields.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -42534,6 +42555,12 @@ ${renderTable(input, rows, cols2)}`;
           pts: Math.round(pts * 10) / 10,
           availability,
           seasonPPG: Math.round(score(p, p.ppg * f) * 10) / 10,
+          // Same denominator caveat as get_projections: pts is "points in a
+          // week he plays", so a backup projected for one game ranks beside
+          // starters here. The strip mode already said this in prose; the
+          // ranking table is where it actually misleads, so gp ships as a
+          // column.
+          gp: p.gp,
           gsis_id: p.gsis || null,
           sleeper_id: p.sleeper || null
         };
@@ -42545,8 +42572,10 @@ ${renderTable(input, rows, cols2)}`;
       if (ovCount) ovNote = ` ${ovCount} player(s) scaled by your uploaded season-PPG overrides (import_excel); run clear_overrides to revert.`;
       const injHeader = inj ? applyInj ? ` Injury designations (week ${inj.week} report) applied: Out/IR → 0, Doubtful \xD70.25, Questionable flagged (${injCount} affected).` : ` Week ${inj.week} injury report available but not applied to a week-${week} rewind.` : " No in-season injury report available yet (availability blank).";
       const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
-      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "availability", "seasonPPG"];
-      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line.${injHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
+      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "availability", "seasonPPG", "gp"];
+      const thinWk = rows.filter((r) => Number.isFinite(Number(r.gp)) && Number(r.gp) <= 4);
+      const thinWkNote = thinWk.length ? ` ${thinWk.length} row(s) have gp <= 4 (${thinWk.slice(0, 3).map((r) => `${r.name} ${r.gp}g`).join(", ")}${thinWk.length > 3 ? ", \u2026" : ""}) — pts for those is a rate conditional on playing, not an expectation of starting.` : "";
+      return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line. gp = projected games played.${thinWkNote}${injHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
 
 ${renderTable(input, rows, input.fields ? null : cols2)}`;
     }
@@ -43015,7 +43044,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.64";
+var SERVER_VERSION = "1.0.65";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
