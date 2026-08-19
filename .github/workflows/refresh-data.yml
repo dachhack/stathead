@@ -131,6 +131,11 @@ jobs:
       - name: Build kicker projections
         run: python3 scripts/build-kicker-projections.py 2026 || echo "kicker projections build failed (non-fatal)"
 
+      # Team-defense components (points allowed + takeaways). Same placement
+      # reason as the kickers: the weekly build reads this for its DST rows.
+      - name: Build DST projections
+        run: python3 scripts/build-dst-projections.py 2026 || echo "DST projections build failed (non-fatal)"
+
       # Split the freshly-rebuilt season pool into per-week projections
       # (opponent def-vs-pos multipliers + home/away, normalized back to the
       # season line). Reads projection-base + schedule + prior-year weekly
@@ -202,6 +207,7 @@ jobs:
                    public/data/projection-base-2026.json \
                    public/data/weekly-projections-2026.json \
                    public/data/kicker-projections-2026.json \
+                   public/data/dst-projections-2026.json \
                    public/data/model-eval-2026.json \
                    public/data/redraft-projections-presets.json \
                    public/data/feature-store/ \
