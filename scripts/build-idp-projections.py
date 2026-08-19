@@ -436,6 +436,22 @@ def main() -> None:
         print(f'  backtest {bt["seasons"]}: RMSE {bt["rmse"]} vs flat {bt["flatPositionalMeanRmse"]}, '
               f'r={bt["r"]} (n={bt["n"]}) — {verdict}')
 
+    # HARD GUARD. This build is committed by the refresh workflow, so a
+    # degraded run must fail rather than quietly replace a good artifact (the
+    # workflow keeps the previous file when this exits non-zero). The v6 cache
+    # run produced exactly that: stale history left 747 defenders instead of
+    # 963, zero rookies and an empty backtest, and it committed cleanly.
+    problems = []
+    if len(rows) < 800:
+        problems.append(f'only {len(rows)} defenders projected (expected 800+)')
+    if draft_pick and not any(r['rookie'] for r in rows):
+        problems.append(f'{len(draft_pick)} {SEASON} draft picks known but no rookie was projected')
+    if not bt:
+        problems.append('backtest produced no rows — history is probably missing or offense-only')
+    if problems:
+        raise SystemExit('::error::IDP build looks degraded, refusing to write: '
+                         + '; '.join(problems))
+
     doc = {
         'season': SEASON,
         'generatedAt': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),

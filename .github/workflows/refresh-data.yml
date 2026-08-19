@@ -35,10 +35,17 @@ jobs:
       # restore-keys prefix still restores the previous cache, so a bump
       # re-downloads only what's actually new.
       # v5: per-season NGS split + 2025 advanced stats / FTN / PBP / participation.
+      # NOTE the bump alone is NOT enough when a file's CONTENT changes. The
+      # restore-keys prefix still restores the previous cache, and
+      # download-data.sh skips any file that already exists — so a re-pointed
+      # URL is never fetched. The v6 run proved it: download-data.sh finished
+      # in ONE SECOND and every history season stayed on the old offense-only
+      # export, which silently produced an IDP build with no rookies and no
+      # backtest. Content changes need the invalidation step below, which
+      # deletes the affected files so the download can happen.
       # v6: player_stats history re-pulled from nflverse's unified stats_player
       #     table, which carries the defensive and punting columns the legacy
-      #     offense-only release never had. Without the bump the cached
-      #     offense-only files would be kept forever.
+      #     offense-only release never had.
       - name: Cache static data
         uses: actions/cache@v5
         with:
@@ -54,6 +61,25 @@ jobs:
       # silently reverted to a June build (416) by the 20:00 refresh.
       # Committed files are authoritative; the cache exists for the UNTRACKED
       # nflverse downloads, which this leaves alone.
+      # Delete cached files whose CONTENT this repo now expects to be different,
+      # so download-data.sh actually re-fetches them. Keyed by a marker inside
+      # the cache: bump DATA_SCHEMA when a file's upstream source or shape
+      # changes, and list the files that must be re-pulled.
+      - name: Invalidate stale cached files
+        run: |
+          DATA_SCHEMA=6
+          have=$(cat public/data/.cache-schema 2>/dev/null || echo 0)
+          if [ "$have" = "$DATA_SCHEMA" ]; then
+            echo "Cached data already at schema v$DATA_SCHEMA."
+          else
+            echo "Cached data is schema v$have, want v$DATA_SCHEMA — dropping re-pointed files."
+            # v6: player_stats moved from the legacy offense-only export to
+            # nflverse's unified stats_player table (adds defence + punting).
+            rm -fv public/data/player_stats_*.csv
+            mkdir -p public/data
+            echo "$DATA_SCHEMA" > public/data/.cache-schema
+          fi
+
       - name: Restore tracked files over the cache
         run: |
           # Listed BEFORE the checkout — afterwards there is nothing left to
