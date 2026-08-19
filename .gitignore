@@ -45,6 +45,9 @@ public/data/clay-team-projections-*.json
 !public/data/kicker-projections-*.json
 !public/data/dst-projections-*.json
 !public/data/schedule-strength-*.json
+# Weekly archive of what we projected, for next offseason's backtests
+# (refresh-data.yml, Tuesdays). Small, gzipped, append-only.
+!public/data/projection-history/
 !public/data/model-eval-*.json
 !public/data/team-metrics-*.json
 !public/data/coach-tendencies.json
