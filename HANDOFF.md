@@ -216,6 +216,59 @@ because the three models feeding the pool move on different clocks. Bumped to
 guard against this tree, and the workflow's own smoke test (boots as 1.0.65,
 50 tools).
 
+### Small-denominator ppg: backups outranking starters (1.0.65)
+
+The downstream team came back with a real bug, and it's one this session widened:
+`ppg` is `pprPts / games`, and the pool projects backups for **one game**, so a
+one-game line divided by one reads as an elite per-game rate. Confirmed straight
+from `projection-base-2026.json`:
+
+| player | team | games | pprPts | ppg |
+| --- | --- | --- | --- | --- |
+| Nick Mullens | JAX | **1** | 21 | 21.00 |
+| Joe Milton III | DAL | **1** | 19 | 19.00 |
+| Trey Lance | LAC | **1** | 19 | 19.00 |
+| Trevor Lawrence | JAX | 16 | 310 | 19.38 |
+| Lamar Jackson | BAL | 14 | 232 | 16.57 |
+
+It inverts within a team, which is what makes it an artifact rather than a
+claim. It predates this session in `get_weekly_projections` (the weekly builder
+has always divided the same way), but pointing `get_projections` at the pool
+in 1.0.64 propagated it to the season board too — the old April spine had
+Milton at 2.6, a season-shaped number. Their scan understated it: the default
+QB board is also topped by **Justin Fields (KC, 2 games, 22.0)**, plus Tyrod
+Taylor and Spencer Rattler at 2 games each. Roughly **half the 64-QB pool is
+projected for <8 games**.
+
+Fixed by shipping the denominator rather than by changing the numbers — the
+ranking signal was always in the pool, just not in the payload:
+
+- `get_projections` rows now carry **`games`** and **`projPts`** (the season
+  total) in the default columns, and a **`min_games`** filter param.
+- `get_weekly_projections` week mode now carries **`gp`**. Strip mode already
+  said "over a projected N games" in prose; the ranking table is where it
+  actually misleads, and that's what they hit (Lance 19.90 vs Herbert 18.60).
+- Both responses **dynamically flag** returned rows with games/gp <= 4, naming
+  the first three, so the trap is visible without reading docs.
+- Tool descriptions and a `get_metadata` caveat state that ppg is conditional on
+  playing and that cross-player ranking should use `projPts` or `min_games`.
+
+Deliberately NOT changed: the default `sort_by` is still `ppg`, and nothing is
+filtered by default. Whether the season board should rank on totals is a product
+call about what the board means, and it belongs to the model owner — but the
+default QB board is wrong as it stands, and that decision is worth making before
+the season.
+
+**Separate, unresolved:** Justin Fields projected for 2 games on KC looks like a
+depth-chart/starter-detection miss in the pool itself, not a presentation issue.
+That's the QB analogue of the "deep TEs inflated" item already in STATUS's next
+tasks.
+
+**Also learned:** a *baking* consumer exists. Their engine can't reach the MCP at
+runtime, so "drop the bake, it's daily now" was bad advice — they re-bake on a
+schedule instead. Worth weighing before retiring the static spine: a published,
+stable, season-shaped artifact has a consumer.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

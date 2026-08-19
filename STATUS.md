@@ -45,7 +45,9 @@ several PPG (Gibbs 21.1 vs 25.9). All four projection surfaces
 (`get_projections`, `export_excel`, `import_excel`'s diff, the waiver
 board) now read one accessor over the daily-rebuilt season pool. MCP
 1.0.64 published to npm; **1.0.65 (get_metadata projection-freshness
-caveats) is not yet published**. Also bumped the refresh
+caveats; `games`/`projPts`/`min_games` on get_projections and `gp` on the
+weekly ranking table, after a downstream report that one-game backups
+outrank starters on ppg) is not yet published**. Also bumped the refresh
 workflow's `static-data-v4` cache key: with a constant key actions/cache
 never re-saves, so newly-added downloads would have been re-fetched every
 run forever.
