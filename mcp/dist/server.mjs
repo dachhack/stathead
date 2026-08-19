@@ -39779,12 +39779,12 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
     name: "get_schedule_strength",
     description: `Strength of schedule per team, per position, for every game of 2026 — how easy or hard each team's slate is for QB/RB/WR/TE/K/DST. A factor above 1 means an easier schedule (that position's opponents concede more than league average); below 1 means harder. Season factors are the mean over a team's games; per-game factors name the opponent and venue.
 
-CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift.`,
+CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K and DST projections (their season lines are built alongside these numbers), so re-applying them there double-counts. They are deliberately NOT applied to QB/RB/WR/TE — the weekly matchup multipliers for skill players are normalized to mean 1, so they redistribute points between weeks without moving a season total, which the projection pool owns. If you want the season-level schedule effect for skill players, apply it yourself from here. DL/LB/DB follow the skill-position rule — published, normalized out of the weekly IDP strip, never applied to the season line — and are deliberately close to 1 because offense-concedes-to-IDP barely repeats year over year (r = +0.25 DL, +0.24 LB, +0.08 DB). Spread across 2026: ~8% DST, ~6% QB, ~5.5% WR, ~4.5% TE, ~3.3% K, ~3.1% RB, ~2.5% DL, ~1.3% LB, ~0.4% DB between the easiest and hardest schedule. Derived from the same defense-vs-position table the weekly projections use, so published and applied numbers cannot drift.`,
     input_schema: {
       type: "object",
       properties: {
         team: { type: "string", description: "Filter to one team abbreviation (e.g. KC)." },
-        position: { type: "string", description: "Filter to one position.", enum: ["QB", "RB", "WR", "TE", "K", "DST"] },
+        position: { type: "string", description: "Filter to one position.", enum: ["QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"] },
         week: { type: "number", description: "Return per-game rows for this week instead of season factors." },
         sort_by: { type: "string", description: "Sort column, descending. Default: the requested position, else team." },
         limit: { type: "number", description: "Max rows (default 40)." }
@@ -39794,12 +39794,12 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K) and team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) projected from team context on the same matchup framework. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
         week: { type: "number", description: "NFL week (1-18) to rank. Omit together with player_name for a player's full-season strip; omitting both defaults to week 1." },
-        position: { type: "string", description: "Filter by position (QB, RB, WR, TE, K, DST)." },
+        position: { type: "string", description: "Filter by position: QB, RB, WR, TE, K, DST, or the IDP buckets DL, LB, DB." },
         player_name: { type: "string", description: "Filter to one player. Without week, returns their all-18-weeks outlook. DSTs match by team name (e.g. \"SEA DST\")." },
         team: { type: "string", description: "Filter to one NFL team abbreviation (e.g. DET)." },
         scoring: { type: "string", description: "Scoring format for the points columns. Default ppr.", enum: ["ppr", "half", "std"] },
@@ -42695,7 +42695,7 @@ ${renderTable(input, out, input.fields ? null : cols)}`;
       const position = input.position?.toUpperCase();
       const week = input.week;
       const limit = clamp(input.limit || 40, 1, 500);
-      const POS = ["QB", "RB", "WR", "TE", "K", "DST"];
+      const POS = ["QB", "RB", "WR", "TE", "K", "DST", "DL", "LB", "DB"];
       // Emitted as 3dp strings: the whole range is ~0.95-1.03, and the shared
       // cell formatter rounds numbers to 2dp, which would collapse the top of
       // the table into a single value.
@@ -42770,7 +42770,7 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
       const fmtOpp = (game) => game ? `${game.home ? "vs" : "@"} ${game.opp}` : "BYE";
       const fmtMult = (m) => m == null ? "" : `${m >= 1 ? "+" : ""}${Math.round((m - 1) * 100)}%`;
       let pool = doc.players.filter((p) => (!position || p.pos === position) && (!teamFilter || p.team === teamFilter) && (!playerName || nameMatch(p.name, playerName)));
-      if (!pool.length) return `No projected player matching those filters. Coverage: ${doc.players.length} 2026 skill players (QB/RB/WR/TE) with a team and a season projection.`;
+      if (!pool.length) return `No projected player matching those filters. Coverage: ${doc.players.length} 2026 players with a team and a season projection — QB/RB/WR/TE, K, DST and the top DL/LB/DB. IDP names must match the weekly feed, which carries the top 96 of each defensive bucket by default-catalog points; the full 963-defender board is on get_projections.`;
       if (playerName && input.week == null) {
         const p = pool[0];
         const f = ovFactor(p);
@@ -43321,7 +43321,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.74";
+var SERVER_VERSION = "1.0.75";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

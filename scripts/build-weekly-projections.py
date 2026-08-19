@@ -60,6 +60,34 @@ BLEND_K = 6
 K_SHRINK = 0.50
 DST_SHRINK = 0.40
 
+# IDP matchup. How much an OFFENSE concedes to each defensive bucket varies a
+# lot within a season — 43% between the easiest and hardest offense for DL, 38%
+# for LB, 29% for DB — but barely repeats across seasons: yoy r = +0.25 (DL),
+# +0.24 (LB), +0.08 (DB) over 2016-2025. Each keep below is the RMSE-minimising
+# value on that measurement, so the DB multiplier is nearly flat by design.
+# Once current-season weeks accumulate they blend in on the same BLEND_K curve
+# as everything else, and that is where this actually earns its place.
+IDP_BUCKETS = ('DL', 'LB', 'DB')
+IDP_KEEP = {'DL': 0.24, 'LB': 0.24, 'DB': 0.08}
+IDP_POS_BUCKET = {
+    'DE': 'DL', 'DT': 'DL', 'NT': 'DL', 'DL': 'DL',
+    'LB': 'LB', 'OLB': 'LB', 'ILB': 'LB', 'MLB': 'LB',
+    'CB': 'DB', 'SAF': 'DB', 'FS': 'DB', 'SS': 'DB', 'DB': 'DB', 'S': 'DB',
+}
+# The default IDP catalog build-idp-projections.py rolls up under, so the
+# weekly feed and the season board quote one number.
+IDP_POINTS = {'tackle': 1.0, 'sack': 2.0, 'int': 3.0, 'fum_rec': 2.0,
+              'def_td': 6.0, 'safety': 2.0}
+# Weekly strips for the top N defenders in EACH bucket. A flat points cut looks
+# simpler but mixes the buckets badly: under tackle-1 scoring a DB or LB clears
+# any threshold a pass-rushing DL cannot, so 40 points kept 181 DBs and 45 DL.
+# The cut is by the DEFAULT catalog (tackle 1, sack 2, ...), which undervalues
+# pass rushers: Micah Parsons ranks LB #69 on tackle-weighted points and would
+# have been dropped from the weekly feed entirely, though any sack-heavy league
+# starts him. 96 apiece keeps that kind of player while staying small; the
+# season board (get_projections) carries all 963 for re-scoring.
+IDP_TOP_PER_BUCKET = 96
+
 # Standard DST points-allowed brackets: (max points allowed, fantasy pts).
 PA_BRACKETS = ((0, 10), (6, 7), (13, 4), (20, 1), (27, 0), (34, -1), (999, -4))
 
@@ -119,6 +147,43 @@ def def_ratios(season):
             ratios[(t, pos)] = per_game.get((t, pos), avg) / avg
     n_weeks = max(len(w) for w in games.values())
     return ratios, n_weeks
+
+
+def idp_concede_ratios(season):
+    """(offense, bucket) -> IDP points that offense concedes per game, as a
+    ratio to the league average, plus the number of weeks observed. The
+    defender's `opponent_team` IS the offense being scored against."""
+    pts = defaultdict(float)
+    games = defaultdict(set)
+    for row in iter_weekly_rows(season):
+        if row.get('season_type') != 'REG':
+            continue
+        bucket = IDP_POS_BUCKET.get(row.get('position') or '')
+        opp = row.get('opponent_team')
+        if not bucket or not opp:
+            continue
+        f = lambda k: float(row.get(k) or 0)
+        pts[(opp, bucket)] += (
+            IDP_POINTS['tackle'] * (f('def_tackles_solo') + f('def_tackle_assists'))
+            + IDP_POINTS['sack'] * f('def_sacks')
+            + IDP_POINTS['int'] * f('def_interceptions')
+            + IDP_POINTS['fum_rec'] * f('fumble_recovery_opp')
+            + IDP_POINTS['def_td'] * f('def_tds')
+            + IDP_POINTS['safety'] * f('def_safeties')
+        )
+        games[opp].add(row.get('week'))
+    if not games:
+        return {}, 0
+    per_game = {k: total / (len(games[k[0]]) or 1) for k, total in pts.items()}
+    ratios = {}
+    for bucket in IDP_BUCKETS:
+        vals = [per_game[(t, bucket)] for t in games if (t, bucket) in per_game]
+        if not vals:
+            continue
+        avg = sum(vals) / len(vals)
+        for t in games:
+            ratios[(t, bucket)] = per_game.get((t, bucket), avg) / avg if avg else 1.0
+    return ratios, max(len(w) for w in games.values())
 
 
 def build_def_vs_pos():
@@ -305,6 +370,18 @@ def main():
         m = 1 + DEF_SHRINK * (ratio - 1)
         def_vs_pos.setdefault(team, {})['DST'] = round(max(MULT_MIN, min(MULT_MAX, m)), 3)
 
+    # IDP: how much each OFFENSE concedes to DL / LB / DB, blended prior +
+    # current season and shrunk by the bucket's own measured persistence.
+    idp_prior, _ = idp_concede_ratios(PRIOR)
+    idp_cur, _ = idp_concede_ratios(SEASON)
+    for team in {t for t, _ in idp_prior} | {t for t, _ in idp_cur}:
+        for bucket in IDP_BUCKETS:
+            prior = idp_prior.get((team, bucket), 1.0)
+            cur = idp_cur.get((team, bucket), prior)
+            ratio = (1 - w_cur) * prior + w_cur * cur
+            m = 1 + IDP_KEEP[bucket] * (ratio - 1)
+            def_vs_pos.setdefault(team, {})[bucket] = round(max(MULT_MIN, min(MULT_MAX, m)), 3)
+
     # Season-level K / DST projections: league avg + shrunk team deviation.
     k_team_pg_prior, _, k_avg = per_game_and_ratio(k_prior)
     k_team_pg_cur, _, _ = per_game_and_ratio(k_cur)
@@ -416,6 +493,40 @@ def main():
             'wk': [round(ppg * mults[w], 2) if w in mults else None for w in range(1, WEEKS + 1)],
         })
 
+    # IDP rows: the season components build (scripts/build-idp-projections.py)
+    # split across the schedule, so the weekly feed and the season board quote
+    # one number. Only the top IDP_TOP_PER_BUCKET of each bucket — a weekly
+    # strip for a projected 12-point season is noise, and there are hundreds.
+    iproj = []
+    try:
+        with open(os.path.join(DATA, f'idp-projections-{SEASON}.json')) as fh:
+            iproj = json.load(fh).get('players', [])
+    except Exception:
+        iproj = []
+    by_bucket = defaultdict(list)
+    for r in iproj:
+        if r.get('team') and r.get('pos') in IDP_BUCKETS and (r.get('ppg') or 0) > 0:
+            by_bucket[r['pos']].append(r)
+    keep = []
+    for bucket, rows in by_bucket.items():
+        rows.sort(key=lambda r: -(r.get('projPts') or 0))
+        keep.extend(rows[:IDP_TOP_PER_BUCKET])
+    for r in keep:
+        team, bucket = r['team'], r['pos']
+        ppg = r['ppg']
+        mults = week_mults(team, bucket)
+        players.append({
+            'name': r['name'],
+            'pos': bucket,
+            'team': team,
+            'gsis': r.get('gsis'),
+            'sleeper': r.get('sleeper'),
+            'gp': r.get('games') or 0,
+            'ppg': round(ppg, 2),
+            'recPG': 0.0,
+            'wk': [round(ppg * mults[w], 2) if w in mults else None for w in range(1, WEEKS + 1)],
+        })
+
     # ── Schedule strength artifact ────────────────────────────────────────
     # Published separately because week_mults normalizes its multipliers to
     # mean 1: they redistribute points between weeks and can never move a
@@ -432,10 +543,11 @@ def main():
     # factor > 1 means an easier schedule for that position (opponents concede
     # more). Derived from the same def_vs_pos the weekly multipliers use, so
     # published and applied numbers can never drift.
+    SS_POSITIONS = list(POSITIONS) + ['K', 'DST'] + list(IDP_BUCKETS)
     strength = {}
     for team, sched in team_weeks.items():
         per_pos = {}
-        for pos in list(POSITIONS) + ['K', 'DST']:
+        for pos in SS_POSITIONS:
             vals = [def_vs_pos.get(g['opp'], {}).get(pos, 1.0) for g in sched]
             if vals:
                 per_pos[pos] = round(sum(vals) / len(vals), 4)
@@ -444,7 +556,7 @@ def main():
             'games': [
                 {'week': g['w'], 'opp': g['opp'], 'home': g['home'],
                  'factors': {pos: def_vs_pos.get(g['opp'], {}).get(pos, 1.0)
-                             for pos in list(POSITIONS) + ['K', 'DST']}}
+                             for pos in SS_POSITIONS}}
                 for g in sched
             ],
         }
@@ -460,19 +572,22 @@ def main():
             'multipliers for skill players are normalized to mean 1, so the '
             'season-level effect is deliberately left out of the projection '
             'pool. Apply the skill-position factors yourself if you want them; '
-            'do not re-apply the K/DST ones. Across 2026 the spread is ~8% for '
-            'DST, ~6% QB, ~5.5% WR, ~4.4% TE, ~3.3% K, ~3.1% RB between the '
-            'easiest and hardest schedule.'
+            'do not re-apply the K/DST ones. DL/LB/DB factors follow the same '
+            'rule as the skill positions: published here, normalized out of the '
+            'weekly IDP strip, never applied to the season line. They are '
+            'deliberately close to 1 — how much an offense concedes to a '
+            'defensive bucket barely repeats year over year (r = +0.25 DL, '
+            '+0.24 LB, +0.08 DB), so the multiplier is shrunk to that.'
         ),
         'appliedInProjections': ['K', 'DST'],
-        'notAppliedInProjections': list(POSITIONS),
+        'notAppliedInProjections': list(POSITIONS) + list(IDP_BUCKETS),
         'teams': strength,
     }
     ss_path = os.path.join(DATA, f'schedule-strength-{SEASON}.json')
     with open(ss_path, 'w') as fh:
         json.dump(ss_doc, fh, separators=(',', ':'))
         fh.write('\n')
-    print(f'Wrote {ss_path}: {len(strength)} teams x {len(POSITIONS) + 2} positions')
+    print(f'Wrote {ss_path}: {len(strength)} teams x {len(SS_POSITIONS)} positions')
 
     players.sort(key=lambda r: -r['ppg'])
     blend_note = (
@@ -501,7 +616,15 @@ def main():
             f'sack 1 / INT 2 / fum rec 2 / TD 6 / safety 2 + standard '
             f'points-allowed brackets; defVsPos[T].K = K pts defense T allows, '
             f'defVsPos[T].DST = DST pts offense T concedes. Sleeper DST id = '
-            f'team code.'
+            f'team code. IDP (DL/LB/DB, top {IDP_TOP_PER_BUCKET} per bucket by '
+            f'default-catalog points): the season component build split across '
+            f'the schedule, scored tackle 1 / sack 2 / INT 3 / fum rec 2 / '
+            f'TD 6 / safety 2 — re-price from the components on the season '
+            f'board. The IDP matchup swing is small by construction: how much '
+            f'an offense concedes to a bucket barely repeats year over year '
+            f'(r = +0.25 DL, +0.24 LB, +0.08 DB), so the deviation is kept at '
+            f'{IDP_KEEP["DL"]:.0%}/{IDP_KEEP["LB"]:.0%}/{IDP_KEEP["DB"]:.0%} of '
+            f'observed and sharpens as in-season weeks blend in.'
         ),
         'weeks': WEEKS,
         'defVsPos': def_vs_pos,
