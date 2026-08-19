@@ -64,6 +64,7 @@ MIN_KICKER_ATT = 25                              # below this, no personal adjus
 # unforecastable; the components, not the ordering, are the deliverable.
 CARRY_WEIGHT = 0.50                              # weight on the prior-seasons carry
 CARRY_SHRINK = 0.50                              # shrink of that carry toward league
+DEF_SHRINK = 0.50                                # matches build-weekly-projections' def-vs-pos shrink
 WEEKS = 17                                       # games per team
 
 BANDS = ('0-29', '30-39', '40-49', '50+')
@@ -152,6 +153,52 @@ def team_k_points_pg(season: int):
     return {t: pts[t] / len(games[t]) for t in games if games[t]}
 
 
+def opponent_kicker_strength(season: int):
+    """defense -> kicker fantasy points it ALLOWS per game, as a ratio to the
+    league, shrunk toward 1. Same quantity build-weekly-projections derives for
+    its def-vs-pos K multiplier, computed here from pbp-slim so this builder
+    stays self-contained (the weekly builder runs after it)."""
+    pts = defaultdict(float)
+    games = defaultdict(set)
+    for r in load_pbp(season):
+        d = r.get('defteam')
+        if not d:
+            continue
+        if r.get('field_goal_result') and r.get('kick_distance'):
+            games[d].add(r.get('game_id'))
+            if r['field_goal_result'] == 'made':
+                pts[d] += BAND_PTS[band_of(float(r['kick_distance']))]
+        if r.get('extra_point_result'):
+            games[d].add(r.get('game_id'))
+            if r['extra_point_result'] == 'good':
+                pts[d] += XP_PTS
+    per_game = {t: pts[t] / len(games[t]) for t in games if games[t]}
+    if not per_game:
+        return {}
+    league = sum(per_game.values()) / len(per_game)
+    return {t: 1 + DEF_SHRINK * (v / league - 1) for t, v in per_game.items()} if league else {}
+
+
+def schedule_factor(season: int, strength: dict):
+    """team -> mean opponent strength over its actual schedule.
+
+    build-weekly-projections applies matchup multipliers per week but NORMALIZES
+    them to mean 1, so they redistribute points between weeks and can never move
+    a season total. That is right for skill players, whose season line the
+    projection pool owns — but K and DST season lines are produced here, so the
+    schedule effect has to be applied at this level or it is lost entirely.
+    Measured across 2026 it is worth ~3.3% of kicker points between the easiest
+    and hardest schedule (~8% for defenses)."""
+    games = load_json(DATA / f'schedule-{season}.json', {'games': []}).get('games', [])
+    faced = defaultdict(list)
+    for g in games:
+        h, a = g.get('home'), g.get('away')
+        if h and a:
+            faced[h].append(strength.get(a, 1.0))
+            faced[a].append(strength.get(h, 1.0))
+    return {t: sum(v) / len(v) for t, v in faced.items() if v}
+
+
 def main() -> None:
     # ── Learn from history ────────────────────────────────────────────────
     band_att = defaultdict(float)      # band -> weighted attempts
@@ -234,6 +281,10 @@ def main() -> None:
 
     # Carry term: the team's own last two completed seasons, shrunk toward the
     # league. Blended with the component level below — see CARRY_WEIGHT.
+    # Opponent strength over the actual 2026 schedule (see schedule_factor).
+    opp_strength = opponent_kicker_strength(SEASON - 1)
+    sched = schedule_factor(SEASON, opp_strength)
+
     carry1 = team_k_points_pg(SEASON - 1)
     carry2 = team_k_points_pg(SEASON - 2)
     league_carry = (sum(carry1.values()) / len(carry1)) if carry1 else 0.0
@@ -274,13 +325,18 @@ def main() -> None:
             target_pg = (1 - CARRY_WEIGHT) * raw_pg + CARRY_WEIGHT * carry_pg
         else:
             target_pg = raw_pg
+        # Schedule: a kicker facing defenses that concede more kicker points
+        # gets more of them. Applied to the season level, which the weekly
+        # normalization would otherwise erase.
+        target_pg *= sched.get(team, 1.0)
         cal = (target_pg / raw_pg) if raw_pg > 0 else 1.0
         fga *= cal
         xpa *= cal
 
         row = {'name': name, 'team': team, 'gsis': gsis,
                'sleeper': (id_map.get(name) or {}).get('sleeper'),
-               'games': WEEKS, 'fg_att_sample': att, 'calibration': round(cal, 3)}
+               'games': WEEKS, 'fg_att_sample': att, 'calibration': round(cal, 3),
+               'scheduleStrength': round(sched.get(team, 1.0), 3)}
         fgm_total = 0.0
         for b in BANDS:
             a = fga * league_mix[b]
@@ -325,6 +381,7 @@ def main() -> None:
             'leagueBandMix': {b: round(league_mix[b], 4) for b in BANDS},
             'leagueFgaPerGame': round(league_fga_pg, 3),
             'leagueXpaPerGame': round(league_xpa_pg, 3),
+            'scheduleAdjusted': bool(sched), 'defShrink': DEF_SHRINK,
         },
         'kickers': out_rows,
     }

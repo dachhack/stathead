@@ -529,6 +529,58 @@ backward-looking. Opponent implied totals summed over a known schedule is a
 far better points-allowed predictor than carrying last year's — that is the
 single highest-value follow-up, and it would help the offence projections too.
 
+### Season-level schedule strength for K and DST
+
+Prompted by "do we have strength of matchup for every team and game?" — we did,
+and it was being thrown away where it mattered.
+
+`build-weekly-projections.build_def_vs_pos` already computes a matchup
+multiplier for every team and position INCLUDING K and DST, and applies it per
+week. But `week_mults` normalizes those to mean 1, so they only redistribute
+points between weeks and can never move a season total. That is deliberate and
+right for skill players — the projection pool owns their season line — but K
+and DST season lines are produced by our own builders, so the effect was simply
+lost for them.
+
+Measured across the 2026 schedule, season-average opponent strength spans:
+
+| position | easiest -> hardest | season gap |
+| --- | --- | --- |
+| **DST** | CLE 1.028 -> PHI 0.948 | **8.0%** |
+| QB | PHI 1.034 -> LV 0.974 | 6.0% |
+| WR | PHI 1.031 -> LV 0.976 | 5.5% |
+| TE | CLE 1.024 -> NYJ 0.980 | 4.4% |
+| **K** | TB 1.017 -> IND 0.984 | 3.3% |
+| RB | CLE 1.014 -> LV 0.983 | 3.1% |
+
+DST's 8% is larger than the entire modelling gain of the DST projection. Both
+builders now compute opponent strength themselves — kicker points allowed per
+defense, and DST points conceded per offence (bracket on points scored + sacks
+taken + interceptions thrown) — from data they already load, so no shared-lib
+refactor or circular dependency with the weekly builder. Skill positions are
+untouched: their season line belongs to the pool, and changing it is a separate
+product decision.
+
+**Two bugs caught while wiring it, both by checking rather than by testing
+output shape:**
+
+1. *Sign inversion.* The DST builder previously used a proxy (opponents'
+   projected offensive TDs, where higher = harder). The direct measure runs the
+   other way (higher = opponents concede more = easier), and the old `+=` line
+   silently kept the proxy's direction. It showed up as
+   `corr(scheduleStrength, ppg) = -0.17` when it must be positive; it is now
+   +0.77. The two measures agree well (r = -0.80, same teams at both extremes),
+   so this would have been easy to miss — the numbers looked plausible either
+   way.
+2. *Components stopped reconciling.* Scaling the rolled-up `ppg` by the
+   schedule factor while leaving the components alone left them 7.1 pts/season
+   adrift — breaking exactly the property the components exist for. The factor
+   is now applied to the components themselves (takeaways multiply, points
+   allowed divides — opposite directions, both correct), and they reconcile to
+   0.23 pts/season.
+
+Net effect: DST spread widens from sd 0.32 to 0.51, K from 0.37 to 0.38.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

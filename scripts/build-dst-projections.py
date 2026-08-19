@@ -77,6 +77,7 @@ PA_GAME_SD = 9.4                 # within-team per-game spread of points allowed
 KEEP_PA = 0.35                   # tuned on bracket points; RMSE is flat 0.15-0.60
 KEEP_SACK = 0.21                 # yoy r = 0.21
 KEEP_INT = 0.11                  # yoy r = 0.11 — barely distinguishable from noise
+DEF_SHRINK = 0.50                # matches build-weekly-projections' def-vs-pos shrink
 # Everything below is rare enough that a team-level signal can't be established
 # from ten seasons; they are projected at the league rate for every team.
 LEAGUE_ONLY = ('fum_rec', 'def_td', 'st_td', 'safety')
@@ -170,27 +171,85 @@ def zscore(values: dict):
     return {k: ((v - m) / s if isinstance(v, (int, float)) else 0.0) for k, v in values.items()}
 
 
-def schedule_strength(season: int):
-    """team -> mean projected offensive strength of its opponents, as a ratio to
-    the league. Uses the committed offence projections, which is the one
-    genuinely forward-looking input available: who a defense actually plays in
-    2026 is known, and carrying prior-season points allowed cannot see it."""
+def points_scored_by_game():
+    """(season, team) -> [points scored, per game]. The mirror of
+    points_allowed_by_game, read from the same file."""
+    out = defaultdict(list)
+    path = DATA / 'games.csv'
+    opener = (lambda: path.open(newline='')) if path.exists() else \
+             (lambda: gzip.open(DATA / 'games.csv.gz', mode='rt', newline=''))
+    with opener() as fh:
+        for r in csv.DictReader(fh):
+            if r.get('game_type') != 'REG':
+                continue
+            try:
+                y = int(r['season']); hs = float(r['home_score']); a = float(r['away_score'])
+            except (ValueError, TypeError, KeyError):
+                continue
+            out[(y, r['home_team'])].append(hs)
+            out[(y, r['away_team'])].append(a)
+    return out
+
+
+def offense_concede_ratio(season: int):
+    """offense -> DST fantasy points it CONCEDES per game, as a ratio to the
+    league, shrunk toward 1.
+
+    An offence concedes DST points three ways: by scoring little (the opposing
+    bracket pays out), by taking sacks, and by throwing interceptions. All three
+    are directly countable — pbp-slim keys sacks and interceptions by `posteam`,
+    which is the offence that suffered them.
+
+    This replaces an earlier proxy (opponents' projected offensive touchdowns).
+    The two agree well — r = -0.80 with the correct sign, same teams at both
+    extremes — but this is the direct measure, matches what
+    build-weekly-projections uses for its def-vs-pos DST multiplier, and has a
+    wider spread (sd 0.025 vs 0.015)."""
+    sacks = defaultdict(int); ints = defaultdict(int); games = defaultdict(set)
+    for r in load_pbp(season):
+        off = r.get('posteam')
+        if not off:
+            continue
+        games[off].add(r.get('game_id'))
+        if r.get('sack'):
+            sacks[off] += 1
+        if r.get('interception'):
+            ints[off] += 1
+    scored = points_scored_by_game()
+    per_game = {}
+    for t, gs in games.items():
+        n = len(gs)
+        pts = scored.get((season, t))
+        if not n or not pts:
+            continue
+        bracket = statistics.mean(expected_pa_points(p) for p in pts)
+        per_game[t] = bracket + sacks[t] / n + 2 * (ints[t] / n)
+    if not per_game:
+        return {}
+    league = statistics.mean(per_game.values())
+    if not league:
+        return {}
+    return {t: 1 + DEF_SHRINK * (v / league - 1) for t, v in per_game.items()}
+
+
+def schedule_strength(season: int, concede: dict):
+    """team -> mean DST-points-conceded strength of its 2026 opponents.
+
+    build-weekly-projections applies matchup multipliers per week but NORMALIZES
+    them to mean 1, so they only redistribute points between weeks and can never
+    move a season total. That is right for skill players, whose season line the
+    projection pool owns — but the DST season line is produced here, so the
+    schedule effect has to be applied at this level or it is lost. Across 2026
+    it is worth ~8% of DST points between the easiest and hardest schedule, the
+    widest of any position."""
     sched = load_json(DATA / f'schedule-{season}.json', {'games': []}).get('games', [])
-    proj = load_json(GEN / 'team-projections.json', {'teams': {}}).get('teams', {})
-    if not sched or not proj:
-        return {}
-    # Offence proxy: projected passing + rushing touchdowns, which is what
-    # actually puts points on a defense.
-    off = {t: float(v.get('passTD') or 0) + float(v.get('rushTD') or 0) for t, v in proj.items()}
-    if not off:
-        return {}
-    league = statistics.mean(off.values())
     faced = defaultdict(list)
     for g in sched:
         h, a = g.get('home'), g.get('away')
-        if h in off and a in off:
-            faced[h].append(off[a]); faced[a].append(off[h])
-    return {t: (statistics.mean(v) / league if league else 1.0) for t, v in faced.items() if v}
+        if h and a:
+            faced[h].append(concede.get(a, 1.0))
+            faced[a].append(concede.get(h, 1.0))
+    return {t: statistics.mean(v) for t, v in faced.items() if v}
 
 
 def main() -> None:
@@ -214,7 +273,7 @@ def main() -> None:
              for t in teams}
     league_pa = statistics.mean(carry.values())
 
-    sched = schedule_strength(SEASON)
+    sched = schedule_strength(SEASON, offense_concede_ratio(prior))
 
     # ── Counting stats ────────────────────────────────────────────────────
     d_prior, d_prior2 = defense_counts(prior), defense_counts(prior2)
@@ -233,14 +292,28 @@ def main() -> None:
     rows = []
     for t in teams:
         pa_pg = league_pa + KEEP_PA * (carry[t] - league_pa)
-        # Schedule: a defense facing better offences allows more. Applied to the
-        # deviation from league so it can't rescale the whole league.
         ratio = sched.get(t, 1.0)
-        pa_pg += league_pa * (ratio - 1.0) * KEEP_PA
 
         sack = league_sack + KEEP_SACK * (sack_carry[t] - league_sack)
         dint = league_int + KEEP_INT * (int_carry[t] - league_int)
-        comp = {'sack': sack, 'def_int': dint, **league_rate}
+
+        # Schedule is applied to the COMPONENTS, not to the rolled-up total, so
+        # the published components still reconcile to projPts — scaling only the
+        # total left them 7.1 pts/season adrift, which would break exactly the
+        # re-scoring the components exist for.
+        #
+        # Directions differ and both matter: a HIGHER ratio means opponents
+        # concede more, so this defense takes MORE takeaways (multiply) and
+        # allows FEWER points (divide). An earlier revision inherited the
+        # opposite sign from a proxy measuring opponent offence strength; it
+        # surfaced as corr(scheduleStrength, ppg) = -0.17 when it must be
+        # positive. `ratio` is already shrunk by DEF_SHRINK, so it is applied
+        # at face value, matching how the weekly multipliers are used.
+        pa_pg = pa_pg / ratio if ratio else pa_pg
+        sack *= ratio
+        dint *= ratio
+        comp = {'sack': sack, 'def_int': dint,
+                **{k: v * ratio for k, v in league_rate.items()}}
 
         pa_pts = expected_pa_points(pa_pg)
         ppg = pa_pts + sum(PTS[k] * v for k, v in comp.items())
@@ -251,10 +324,10 @@ def main() -> None:
             'pa_points_pg': round(pa_pts, 2),
             'sack': round(sack * WEEKS, 1),
             'def_int': round(dint * WEEKS, 1),
-            'fum_rec': round(league_rate['fum_rec'] * WEEKS, 1),
-            'def_td': round(league_rate['def_td'] * WEEKS, 2),
-            'st_td': round(league_rate['st_td'] * WEEKS, 2),
-            'safety': round(league_rate['safety'] * WEEKS, 2),
+            'fum_rec': round(comp['fum_rec'] * WEEKS, 1),
+            'def_td': round(comp['def_td'] * WEEKS, 2),
+            'st_td': round(comp['st_td'] * WEEKS, 2),
+            'safety': round(comp['safety'] * WEEKS, 2),
             'scheduleStrength': round(ratio, 3),
             'projPts': round(ppg * WEEKS, 1),
             'ppg': round(ppg, 2),
