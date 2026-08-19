@@ -339,6 +339,48 @@ absent in the deploy. That looks deliberate — they'd be republishing ESPN's
 numbers directly, where the presets are a derived blend — but it's worth
 confirming rather than assuming.
 
+### Presets: merge instead of replace, and blend the live pool (1.0.66)
+
+Two fixes to `scripts/precompute-projection-presets.ts`, the pair left over
+from the Clay work.
+
+**1. It replaced the whole presets object.** A run without the Clay extract
+omitted both `consensus` and `consensus-ml`, so `npm run build:presets` on a
+normal checkout turned the committed file from 5 presets into 3 and committed
+the loss — verified by running it and watching it happen. It now merges onto
+whatever is committed: each run rebuilds only the presets whose inputs it has
+and carries the rest forward, logging which were rebuilt and which were kept
+and from when.
+
+Carrying a preset forward creates its own trap — the file-level `generatedAt`
+moves while the preset didn't — which is the exact failure this whole session
+started with. So the file now also carries `presetMeta.<preset>.generatedAt`,
+each preset's own build time, backfilled from the prior file's `generatedAt`
+for presets written before the field existed. The MCP's preset path reports
+that stamp in preference to the file's (**1.0.66**): with a file rebuilt at
+16:30 carrying a consensus preserved from June, `get_projections
+--preset consensus` reports June.
+
+**2. `consensus` was blended off the April spine.** `buildConsensus` read
+`redraft-projections.json`, so that one preset carried 416 players / 109 RB
+while its four siblings carried 448 / 128 from the live pool, and its StatHead
+half never moved however often the pool was rebuilt. It now blends the same
+pool everything else uses — verified with a synthetic extract: consensus comes
+out 448 / 128, and Gibbs blends from the pool's 25.94 rather than April's 21.1.
+`redraft-projections.json` is no longer read by this script at all, which
+removes one of the last April-spine dependencies (it remains a gap-fill input
+to `build-projection-pool.ts`).
+
+Preset rows also gained `games` and `projPts`, so a preset board carries the
+same denominator the unpresetted one does — otherwise `--preset consensus`
+reproduced the one-game-backup trap with no field to detect it. For blended
+rows `projPts` is restated from the blended rate so `ppg x games` stays
+consistent.
+
+Everything here derives from the pool now, so a missing `projection-base-*.json`
+means nothing is rebuilt and the committed presets are left untouched, rather
+than half-written.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

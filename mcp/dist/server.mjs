@@ -42379,7 +42379,11 @@ ${renderTable(input, rows)}`;
         }
         pool = arr;
         season = pdoc.season;
-        generatedAt = pdoc.generatedAt || null;
+        // Prefer the preset's OWN build time. build:presets merges rather than
+        // replaces, so a preset whose inputs were absent that run is carried
+        // over with its earlier stamp while the file-level generatedAt moves —
+        // reporting the file's stamp would age a stale preset forward.
+        generatedAt = pdoc.presetMeta?.[preset]?.generatedAt || pdoc.generatedAt || null;
         baseNote = pdoc.note || "";
         presetNote = ` Preset "${preset}" applied (derived StatHead output): ${FILE_PRESETS[preset]}.`;
       } else {
@@ -43044,7 +43048,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.65";
+var SERVER_VERSION = "1.0.66";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
