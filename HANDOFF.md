@@ -164,6 +164,28 @@ unset and `build:presets` is being skipped. That's why the `consensus` preset
 still reports `as_of 2026-06-16`. Setting the secret is the only fix; nothing in
 the repo can regenerate it.
 
+### Publish guard
+
+The 1.0.64 publish first failed with `E403 ... cannot publish over the
+previously published versions: 1.0.63` — because the workflow was dispatched
+from `claude/nfl-fantasy-workbench-6D1yd`, which doesn't carry the bump, so npm
+was correctly told to publish 1.0.63 again. The run got all the way through
+install + bundle + smoke test before finding out.
+
+Both publish workflows (`publish-mcp.yml`, `npm-publish-token.yml`) now run a
+`Verify the version is releasable` step right after checkout that fails with a
+plain-English error when either (a) the version in `mcp/package.json` is already
+on npm — naming the ref it was dispatched from, since that's the usual cause —
+or (b) `mcp/package.json` and the bundle's hand-maintained `SERVER_VERSION`
+disagree, which would ship a server reporting a version npm never served. An
+empty `npm view` (registry hiccup) falls through to npm's own check rather than
+blocking a legitimate release. Verified both ways: the guard's logic fails on
+the dev branch's 1.0.63 tree and passes on 1.0.64.
+
+Worth knowing: `GITHUB_RAW_DATA_BASE` in the bundle is pinned to the dev branch,
+so a published server reads dev-branch data no matter which branch it was
+published from.
+
 ### Notes / not done
 
 - **This sandbox can only reach Sleeper + GitHub.** FFC, KTC,

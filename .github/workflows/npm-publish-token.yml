@@ -50,6 +50,35 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
+      # Fail fast, before install + bundle + smoke test, on the two ways a
+      # release goes wrong in this repo.
+      #
+      # 1. Version already on npm. The publish then dies on an opaque
+      #    `E403 ... cannot publish over the previously published versions`
+      #    AFTER a full build — and in practice that means "dispatched from a
+      #    branch that doesn't carry the version bump", not a bad package.
+      # 2. package.json and the bundle disagree. mcp/dist/server.mjs is
+      #    hand-maintained (see src/mcp-server.ts), so its SERVER_VERSION is
+      #    bumped by hand and can drift from package.json — which would ship a
+      #    server that reports a version npm never served.
+      - name: Verify the version is releasable
+        run: |
+          PKG_VER=$(node -p "require('./mcp/package.json').version")
+          BUNDLE_VER=$(node -e 'const m=require("fs").readFileSync("mcp/dist/server.mjs","utf8").match(/SERVER_VERSION = "([^"]+)"/); console.log(m?m[1]:"")')
+          echo "mcp/package.json: $PKG_VER | bundle SERVER_VERSION: $BUNDLE_VER | ref: ${GITHUB_REF_NAME}"
+          if [ "$PKG_VER" != "$BUNDLE_VER" ]; then
+            echo "::error::Version mismatch — mcp/package.json is $PKG_VER but mcp/dist/server.mjs reports $BUNDLE_VER. Bump both."
+            exit 1
+          fi
+          # Empty output also covers a registry hiccup; that just falls through
+          # to npm's own check rather than blocking a legitimate release.
+          PUBLISHED=$(npm view "stathead-mcp@$PKG_VER" version 2>/dev/null || true)
+          if [ -n "$PUBLISHED" ]; then
+            echo "::error::stathead-mcp@$PKG_VER is already published. Bump the version in mcp/package.json, or dispatch from a branch that has the bump (this run is on '${GITHUB_REF_NAME}')."
+            exit 1
+          fi
+          echo "OK: $PKG_VER is not yet on npm."
+
       - name: Install deps
         run: npm ci
 
