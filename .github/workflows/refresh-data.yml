@@ -165,6 +165,20 @@ jobs:
       - name: Build DST projections
         run: python3 scripts/build-dst-projections.py 2026 || echo "DST projections build failed (non-fatal)"
 
+      # Individual defensive players, projected as components (tackles, sacks,
+      # QB hits, passes defended, interceptions...). IDP is the most forecastable
+      # group we carry — per-game components correlate 0.65-0.82 year over year —
+      # so unlike K/DST this one earns its ranking as well as its components.
+      - name: Build IDP projections
+        run: python3 scripts/build-idp-projections.py 2026 || echo "IDP projections build failed (non-fatal)"
+
+      # Punt/kick return components. Anchored on the current depth chart's
+      # PR1/KR1 because return jobs turn over (only 47% repeat), and on the most
+      # recent season alone for kickoff volume because the dynamic-kickoff rules
+      # tripled it between 2023 and 2025.
+      - name: Build return projections
+        run: python3 scripts/build-return-projections.py 2026 || echo "return projections build failed (non-fatal)"
+
       # Split the freshly-rebuilt season pool into per-week projections
       # (opponent def-vs-pos multipliers + home/away, normalized back to the
       # season line). Reads projection-base + schedule + prior-year weekly
@@ -267,6 +281,8 @@ jobs:
                    public/data/weekly-projections-2026.json \
                    public/data/kicker-projections-2026.json \
                    public/data/dst-projections-2026.json \
+                   public/data/idp-projections-2026.json \
+                   public/data/return-projections-2026.json \
                    public/data/schedule-strength-2026.json \
                    public/data/projection-history/ \
                    public/data/schedule-2026.json \
