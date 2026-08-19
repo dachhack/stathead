@@ -37421,6 +37421,12 @@ function normalizePlayerRow(row) {
       row[oldCol] = row[newCol];
     }
   }
+  // nflverse reports sack_yards_lost NEGATIVE (Caleb Williams 2024 = -466)
+  // where the legacy sack_yards was positive. Aliasing it straight through
+  // inverted every sort on that field for new-table seasons.
+  if (typeof row.sack_yards === "number" && row.sack_yards < 0) {
+    row.sack_yards = -row.sack_yards;
+  }
   return row;
 }
 async function fetchPlayerStats(season) {
@@ -37434,16 +37440,18 @@ async function fetchPlayerStats(season) {
     const data = result2.data.map(normalizePlayerRow);
     return data.filter((row) => row.season_type === "REG");
   }
-  const urls = IS_NODE ? [
-    `${NFLVERSE_REMOTE}/player_stats/player_stats_${season}.csv`,
-    `${NFLVERSE_REMOTE}/stats_player/stats_player_week_${season}.csv`
-  ] : IS_PROD ? [
-    nflUrl(`player_stats/player_stats_${season}.csv`),
-    nflUrl(`stats_player/stats_player_week_${season}.csv`)
-  ] : [
-    `${NFLVERSE_REMOTE}/player_stats/player_stats_${season}.csv`,
-    `${NFLVERSE_REMOTE}/stats_player/stats_player_week_${season}.csv`
+  // stats_player_week FIRST for every season. The legacy player_stats release
+  // is offense-only (no def_* or pt_* columns) and 404s from 2025 on; the
+  // unified table carries defence and punting back to 2016. Preferring the old
+  // one meant an IDP or punter query against a completed season silently got a
+  // row with those columns absent. The legacy path stays as a fallback.
+  const statsPaths = [
+    `stats_player/stats_player_week_${season}.csv`,
+    `player_stats/player_stats_${season}.csv`
   ];
+  const urls = IS_PROD && !IS_NODE
+    ? statsPaths.map((p) => nflUrl(p))
+    : statsPaths.map((p) => `${NFLVERSE_REMOTE}/${p}`);
   let text = "";
   for (const url2 of urls) {
     const response = await fetchWithTimeout(url2, { timeout: LARGE_CSV_TIMEOUT });
@@ -37463,71 +37471,64 @@ async function fetchPlayerStats(season) {
   }
   return result.data.filter((row) => row.season_type === "REG");
 }
+// Identity/meta columns: copied from the first week, never summed.
+var AGG_IDENTITY = new Set([
+  "player_id", "player_name", "player_display_name", "position", "position_group",
+  "headshot_url", "recent_team", "team", "season"
+]);
+// Rates, shares and per-game maxima. Summing these produces nonsense (a 14-game
+// fg_pct of 13.7), so they are dropped rather than aggregated wrongly. *_long
+// columns are carried as the season maximum instead.
+var AGG_RATE_COLS = new Set([
+  "pacr", "racr", "wopr", "target_share", "air_yards_share", "fg_pct", "pat_pct",
+  "passing_cpoe", "dakota", "week", "season_type", "game_id", "opponent_team"
+]);
+var AGG_MAX_SUFFIX = "_long";
+
+// Sums every numeric weekly column rather than a hand-listed set of offensive
+// ones. The nflverse stats_player_week table also carries the defensive
+// (def_tackles_solo, def_sacks, def_qb_hits, def_pass_defended, def_interceptions,
+// def_tds…) and punting (pt_att, pt_yards, pt_net_yards…) columns; the previous
+// hand-list dropped every one of them at aggregation, so `fields: ["def_sacks"]`
+// came back empty even though the source row had the number. IDP and punter
+// consumers need those columns, and there is no reason for this function to
+// decide which counting stats are interesting.
 function aggregateToSeasonTotals(weeklyStats) {
   const playerMap = /* @__PURE__ */ new Map();
   for (const week of weeklyStats) {
     const key = `${week.player_id}-${week.season}`;
-    const existing = playerMap.get(key);
-    if (!existing) {
-      playerMap.set(key, {
-        player_id: week.player_id,
-        player_name: week.player_name,
-        player_display_name: week.player_display_name,
-        position: week.position,
-        headshot_url: week.headshot_url,
-        recent_team: week.recent_team,
-        season: week.season,
-        games: 1,
-        completions: week.completions || 0,
-        attempts: week.attempts || 0,
-        passing_yards: week.passing_yards || 0,
-        passing_tds: week.passing_tds || 0,
-        interceptions: week.interceptions || 0,
-        carries: week.carries || 0,
-        rushing_yards: week.rushing_yards || 0,
-        rushing_tds: week.rushing_tds || 0,
-        receptions: week.receptions || 0,
-        targets: week.targets || 0,
-        receiving_yards: week.receiving_yards || 0,
-        receiving_tds: week.receiving_tds || 0,
-        fantasy_points: week.fantasy_points || 0,
-        fantasy_points_ppr: week.fantasy_points_ppr || 0,
-        fantasy_points_half_ppr: 0,
-        rushing_fumbles_lost: week.rushing_fumbles_lost || 0,
-        receiving_fumbles_lost: week.receiving_fumbles_lost || 0,
-        sack_fumbles_lost: week.sack_fumbles_lost || 0,
-        passing_2pt_conversions: week.passing_2pt_conversions || 0,
-        rushing_2pt_conversions: week.rushing_2pt_conversions || 0,
-        receiving_2pt_conversions: week.receiving_2pt_conversions || 0,
-        special_teams_tds: week.special_teams_tds || 0
-      });
-    } else {
-      existing.games += 1;
-      existing.completions += week.completions || 0;
-      existing.attempts += week.attempts || 0;
-      existing.passing_yards += week.passing_yards || 0;
-      existing.passing_tds += week.passing_tds || 0;
-      existing.interceptions += week.interceptions || 0;
-      existing.carries += week.carries || 0;
-      existing.rushing_yards += week.rushing_yards || 0;
-      existing.rushing_tds += week.rushing_tds || 0;
-      existing.receptions += week.receptions || 0;
-      existing.targets += week.targets || 0;
-      existing.receiving_yards += week.receiving_yards || 0;
-      existing.receiving_tds += week.receiving_tds || 0;
-      existing.fantasy_points += week.fantasy_points || 0;
-      existing.fantasy_points_ppr += week.fantasy_points_ppr || 0;
-      existing.rushing_fumbles_lost += week.rushing_fumbles_lost || 0;
-      existing.receiving_fumbles_lost += week.receiving_fumbles_lost || 0;
-      existing.sack_fumbles_lost += week.sack_fumbles_lost || 0;
-      existing.passing_2pt_conversions += week.passing_2pt_conversions || 0;
-      existing.rushing_2pt_conversions += week.rushing_2pt_conversions || 0;
-      existing.receiving_2pt_conversions += week.receiving_2pt_conversions || 0;
-      existing.special_teams_tds += week.special_teams_tds || 0;
-      existing.recent_team = week.recent_team;
+    let agg = playerMap.get(key);
+    if (!agg) {
+      agg = { games: 0 };
+      for (const col of AGG_IDENTITY) if (col in week) agg[col] = week[col];
+      playerMap.set(key, agg);
     }
+    agg.games += 1;
+    for (const [col, value] of Object.entries(week)) {
+      if (AGG_IDENTITY.has(col) || AGG_RATE_COLS.has(col)) continue;
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      if (col.endsWith(AGG_MAX_SUFFIX)) {
+        agg[col] = Math.max(agg[col] ?? 0, value);
+      } else {
+        agg[col] = (agg[col] ?? 0) + value;
+      }
+    }
+    // Latest team wins, matching the old behaviour for mid-season trades.
+    if (week.recent_team) agg.recent_team = week.recent_team;
   }
   for (const player of playerMap.values()) {
+    // Columns a caller can rely on existing even for a player who never
+    // recorded one (a defender with no carries still answers `carries: 0`).
+    for (const col of [
+      "completions", "attempts", "passing_yards", "passing_tds", "interceptions",
+      "carries", "rushing_yards", "rushing_tds", "receptions", "targets",
+      "receiving_yards", "receiving_tds", "fantasy_points", "fantasy_points_ppr",
+      "rushing_fumbles_lost", "receiving_fumbles_lost", "sack_fumbles_lost",
+      "passing_2pt_conversions", "rushing_2pt_conversions", "receiving_2pt_conversions",
+      "special_teams_tds"
+    ]) {
+      if (typeof player[col] !== "number") player[col] = 0;
+    }
     player.fantasy_points_half_ppr = player.fantasy_points + player.receptions * 0.5;
   }
   return Array.from(playerMap.values());
@@ -38488,6 +38489,13 @@ async function dstRows(season) {
     name: d.name, position: 'DST',
     ppg: d.ppg, games: d.games, projPts: d.projPts, recPG: 0,
     pts_allow: d.pts_allow, pts_allow_pg: d.pts_allow_pg,
+    // The bracket integral and the spread it was taken over. A consumer with
+    // its own points-allowed tiers must NOT score pts_allow_pg against them
+    // directly: the bracket is convex, so a season mean overstates the good
+    // defenses. Integrate over a per-game normal with this sd, the way
+    // pa_points_pg was built, or use pa_points_pg as-is under standard tiers.
+    pa_points_pg: d.pa_points_pg,
+    pa_game_sd: doc?.method?.paGameSd ?? null,
     sack: d.sack, def_int: d.def_int, fum_rec: d.fum_rec,
     def_td: d.def_td, st_td: d.st_td, safety: d.safety,
   }));
@@ -39062,15 +39070,15 @@ var NFL_TOOLS = [
   },
   {
     name: "get_player_season_stats",
-    description: "Get aggregated season totals for NFL players. Returns rushing, passing, receiving, fantasy stats, and 2-point conversions (passing_2pt_conversions, rushing_2pt_conversions, receiving_2pt_conversions). Supports filtering by position (QB, RB, WR, TE) and sorting by any stat column. With `fields` you can project any aggregated column (also exposes fumbles_lost splits, special_teams_tds). Use this for questions about player performance, fantasy points, rankings, comparisons.",
+    description: "Get aggregated season totals for NFL players — offence, defence (IDP), kicking and punting. Returns rushing, passing, receiving, fantasy stats and 2-point conversions, and via `fields` every other counting column nflverse carries: defensive (def_tackles_solo, def_tackle_assists, def_tackles_for_loss, def_sacks, def_qb_hits, def_pass_defended, def_interceptions, def_fumbles_forced, def_tds, def_safeties), punting (pt_att, pt_yards, pt_net_yards, pt_inside_20, pt_long, pt_touchback) and kicking (fg_made/fg_att by distance band, pat_made/pat_att). Filter by position: QB/RB/WR/TE/K/P/FB, the nflverse defensive codes (DE, DT, LB, CB, SAF), or the IDP buckets DL (DE+DT+NT), LB and DB (CB+SAF+FS+SS). Sort by any stat column. Punting columns need a season pulled from nflverse's unified table — 2025 onward locally, any season when fetched live. Use this for player performance, fantasy points, rankings, comparisons.",
     input_schema: {
       type: "object",
       properties: {
         season: { type: "number", description: "NFL season year. Coverage: 1999 to the latest completed season (nflverse)." },
         position: {
           type: "string",
-          description: "Filter by position: QB, RB, WR, TE, or ALL",
-          enum: ["ALL", "QB", "RB", "WR", "TE"]
+          description: "Filter by position. Offence: QB, RB, WR, TE, FB. Specialists: K, P. Defence: the nflverse codes DE, DT, LB, CB, SAF, or the IDP buckets DL (= DE+DT+NT), LB, DB (= CB+SAF+FS+SS). ALL for everything.",
+          enum: ["ALL", "QB", "RB", "WR", "TE", "FB", "K", "P", "DL", "LB", "DB", "DE", "DT", "CB", "SAF"]
         },
         sort_by: {
           type: "string",
@@ -39696,7 +39704,7 @@ var NFL_TOOLS = [
 
 IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.
 
-RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Kickers and team defenses DO carry components: K has fga/fgm split 0-29, 30-39, 40-49, 50+ plus xpa/xpm; DST has pts_allow (season and per game), sack, def_int, fum_rec, def_td, st_td and safety. So leagues pricing field goals by distance or re-tiering points allowed can re-score both. Note DST's projection does NOT beat a flat league mean on RMSE (1.384 vs 1.375 over 2023-25) and carries only modest ordering value (r~0.25) — use its components to re-score, not its ordering to rank. Not modelled anywhere: fumbles, first downs, two-point conversions and yardage milestones for skill players. Preset boards carry rescaled ppg without a stat line.`,
+RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Kickers and team defenses DO carry components: K has fga/fgm split 0-29, 30-39, 40-49, 50+ plus xpa/xpm; DST has pts_allow (season and per game), sack, def_int, fum_rec, def_td, st_td and safety, plus pa_points_pg (the points-allowed bracket integrated over the per-game distribution) and pa_game_sd (the spread it was integrated over, ~9.4). So leagues pricing field goals by distance or re-tiering points allowed can re-score both. Re-tiering points allowed: integrate your tiers over a per-game normal around pts_allow_pg with pa_game_sd, do NOT score the season mean against them — the bracket is convex, so point-scoring the mean overstates the good defenses in a consistent direction. Note DST's projection does NOT beat a flat league mean on RMSE (1.384 vs 1.375 over 2023-25) and carries only modest ordering value (r~0.25) — use its components to re-score, not its ordering to rank. Not modelled anywhere: fumbles, first downs, two-point conversions and yardage milestones for skill players. Preset boards carry rescaled ppg without a stat line.`,
     input_schema: {
       type: "object",
       properties: {
@@ -40541,7 +40549,15 @@ async function executeToolInner(name, input) {
       const minGames = input.min_games || 0;
       const raw = await fetchPlayerStats(season);
       let totals = aggregateToSeasonTotals(raw.filter((s) => s.season_type === "REG"));
-      if (position !== "ALL") totals = totals.filter((p) => p.position === position);
+      // IDP buckets: leagues roster DL/LB/DB, nflverse labels DE/DT/LB/CB/SAF.
+      // LB is both a bucket and a raw code, so it resolves to itself.
+      const IDP_BUCKETS = { DL: ["DE", "DT", "NT", "DL"], LB: ["LB", "OLB", "ILB", "MLB"], DB: ["CB", "SAF", "FS", "SS", "DB"] };
+      if (position !== "ALL") {
+        const accept = IDP_BUCKETS[position];
+        totals = accept
+          ? totals.filter((p) => accept.includes(p.position))
+          : totals.filter((p) => p.position === position);
+      }
       if (playerName) totals = totals.filter((p) => nameMatch(p.player_display_name, playerName));
       if (minGames) totals = totals.filter((p) => p.games >= minGames);
       const key = sortBy;
@@ -42534,7 +42550,7 @@ ${renderTable(input, rows)}`;
         "fga_0-29", "fgm_0-29", "fga_30-39", "fgm_30-39",
         "fga_40-49", "fgm_40-49", "fga_50+", "fgm_50+",
         // Team-defense components — leagues re-tier points allowed constantly.
-        "pts_allow", "pts_allow_pg", "sack", "def_int", "fum_rec", "def_td",
+        "pts_allow", "pts_allow_pg", "pa_points_pg", "pa_game_sd", "sack", "def_int", "fum_rec", "def_td",
         "st_td", "safety"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
@@ -43183,7 +43199,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.70";
+var SERVER_VERSION = "1.0.71";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

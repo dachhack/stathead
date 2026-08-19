@@ -349,6 +349,13 @@ function normalizePlayerRow(row: Record<string, unknown>): Record<string, unknow
       row[oldCol] = row[newCol];
     }
   }
+  // sack_yards_lost is signed the other way round: nflverse reports it as a
+  // negative (Caleb Williams 2024 = -466) where the old sack_yards was positive
+  // (+466). Aliasing it straight through flipped the sign of every season we
+  // serve from the new table, which silently inverts any sort on the field.
+  if (typeof row.sack_yards === 'number' && row.sack_yards < 0) {
+    row.sack_yards = -row.sack_yards;
+  }
   return row;
 }
 

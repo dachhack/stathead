@@ -35,11 +35,15 @@ jobs:
       # restore-keys prefix still restores the previous cache, so a bump
       # re-downloads only what's actually new.
       # v5: per-season NGS split + 2025 advanced stats / FTN / PBP / participation.
+      # v6: player_stats history re-pulled from nflverse's unified stats_player
+      #     table, which carries the defensive and punting columns the legacy
+      #     offense-only release never had. Without the bump the cached
+      #     offense-only files would be kept forever.
       - name: Cache static data
         uses: actions/cache@v5
         with:
           path: public/data
-          key: static-data-v5
+          key: static-data-v6
           restore-keys: static-data-
 
       # The cache restores OVER the checked-out tree, so any TRACKED file in
