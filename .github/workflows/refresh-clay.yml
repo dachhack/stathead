@@ -1,0 +1,184 @@
+name: Refresh Clay (Consensus preset)
+
+# Rebuilds the "Consensus" preset in public/data/redraft-projections-presets.json
+# from Mike Clay's ESPN draft-kit projection PDF.
+#
+# Why a CI job: ESPN's CDN (g.espncdn.com) is not reachable from the Claude Code
+# sandbox — its egress proxy answers 403 to CONNECT, the same reason
+# fetch-ffc-adp.yml and fetch-ktc-snapshot.yml exist. GitHub runners have
+# unrestricted egress, so the fetch + parse happens here.
+#
+# This replaces the CLAY_PROJECTIONS_B64 secret round-trip (download the PDF by
+# hand, run the extractor locally, gzip, base64, paste into repo secrets). Leave
+# that secret UNSET: refresh-data.yml only runs build:presets when it is set, so
+# with it unset the 2-hourly refresh never touches the presets file and this
+# workflow is the only thing that writes it. If the secret IS set, refresh-data
+# will overwrite whatever this produces with whatever the secret holds.
+#
+# What ships: only the DERIVED presets file. The PDF and the raw extract are
+# ESPN's paid product — both are deleted before the commit step, and both are
+# gitignored besides, so neither can reach the repo or the deploy.
+#
+# Manual dispatch only, on purpose: the guide is republished a handful of times
+# a season, so polling it on a schedule would hammer ESPN for nothing.
+#
+# Trigger: repo -> Actions -> "Refresh Clay (Consensus preset)" -> Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season to rebuild (default 2026)'
+        required: false
+        default: '2026'
+      pdf_url:
+        description: 'Override the guide URL. Blank derives the standard ESPN draft-kit path from the season.'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Parse and report, but do not commit'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: npm ci
+      - run: pip install pymupdf
+
+      # Fetch the guide. Verified as a real PDF by its magic bytes, not just a
+      # 200 — a CDN that has moved the file will happily serve an HTML error
+      # page, and pymupdf's failure on that is far less legible than this.
+      - name: Download the projection guide
+        env:
+          SEASON: ${{ inputs.season }}
+          PDF_URL: ${{ inputs.pdf_url }}
+        run: |
+          set -euo pipefail
+          URL="$PDF_URL"
+          if [ -z "$URL" ]; then
+            URL="https://g.espncdn.com/s/ffldraftkit/${SEASON#20}/NFLDK${SEASON}_CS_ClayProjections${SEASON}.pdf"
+          fi
+          echo "Fetching $URL"
+          curl -sfL --max-time 180 "$URL" -o clay.pdf || {
+            echo "::error::Could not download the guide from $URL — ESPN may have renamed or moved it. Re-run with pdf_url set to the current link."
+            exit 1
+          }
+          if [ "$(head -c 4 clay.pdf)" != "%PDF" ]; then
+            echo "::error::$URL did not return a PDF (got $(file -b clay.pdf 2>/dev/null || echo 'unknown content')). Re-run with pdf_url set to the current link."
+            exit 1
+          fi
+          echo "Downloaded $(du -h clay.pdf | cut -f1)"
+
+      # The extract is gitignored and deleted below; it exists only long enough
+      # to derive the presets.
+      - name: Extract projections
+        env:
+          SEASON: ${{ inputs.season }}
+        run: python3 scripts/extract_clay_projections.py clay.pdf "$SEASON"
+
+      # HARD GUARD. precompute-projection-presets.ts writes the whole presets
+      # object, and silently omits BOTH consensus and consensus-ml when the
+      # extract is missing — a Clay-less run turns 5 presets into 3 and commits
+      # the loss. So a thin or absent extract must fail here, before build.
+      - name: Verify the extract before building
+        env:
+          SEASON: ${{ inputs.season }}
+        run: |
+          set -euo pipefail
+          EXTRACT="public/data/clay-projections-${SEASON}.json"
+          if [ ! -s "$EXTRACT" ]; then
+            echo "::error::$EXTRACT missing or empty — the PDF layout probably changed. Refusing to build (a Clay-less build:presets would delete the consensus presets)."
+            exit 1
+          fi
+          python3 - "$EXTRACT" <<'PY'
+          import json, sys
+          doc = json.load(open(sys.argv[1]))
+          players = doc.get('players') or []
+          print(f"extract: {len(players)} players")
+          if len(players) < 300:
+              raise SystemExit(
+                  f"::error::only {len(players)} players parsed (expected 300+) — "
+                  "the PDF layout likely changed; refusing to build."
+              )
+          PY
+
+      - name: Rebuild presets
+        run: npm run build:presets
+
+      # And verify the thing we are about to commit actually gained what this
+      # workflow exists to produce.
+      - name: Verify the rebuilt presets
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          doc = json.load(open('public/data/redraft-projections-presets.json'))
+          presets = doc.get('presets') or {}
+          print('generatedAt:', doc.get('generatedAt'))
+          for name, rows in presets.items():
+              print(f'  {name}: {len(rows)} players')
+          missing = [p for p in ('consensus', 'consensus-ml') if not presets.get(p)]
+          if missing:
+              raise SystemExit(f"::error::rebuilt file is missing {missing} — refusing to commit a regression.")
+          PY
+
+      # ESPN's product never reaches the repo or the deploy. Both paths are
+      # gitignored too; this is the belt to that braces.
+      - name: Delete the PDF and raw extract
+        if: always()
+        run: |
+          rm -f clay.pdf
+          rm -f public/data/clay-projections-*.json public/data/clay-team-projections-*.json \
+                public/data/clay-unit-grades-*.json public/data/clay-matchups-*.json
+          echo "Removed the guide and every raw Clay extract."
+
+      - name: Commit the derived presets
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/redraft-projections-presets.json
+          if git diff --cached --quiet; then
+            echo "Presets unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Refresh Consensus preset from the ${{ inputs.season }} Clay guide"
+          for i in 1 2 3; do
+            git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            echo "Push attempt $i rejected — rebasing onto latest ${GITHUB_REF_NAME}..."
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" || true
+            sleep $((i * 2))
+          done
+          echo "::error::Failed to push the refreshed presets after 3 attempts."
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Clay refresh — season ${{ inputs.season }}"
+            if [ -s public/data/redraft-projections-presets.json ]; then
+              echo '```'
+              python3 -c "import json;d=json.load(open('public/data/redraft-projections-presets.json'));print('generatedAt:',d.get('generatedAt'));[print(f'  {k}: {len(v)} players') for k,v in (d.get('presets') or {}).items()]"
+              echo '```'
+            fi
+            echo "_The PDF and raw extract are deleted; only the derived presets are committed._"
+          } >> "$GITHUB_STEP_SUMMARY"

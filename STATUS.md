@@ -89,10 +89,11 @@ framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (t
 
 ## Next 3 tasks
 
-0. Publish MCP **1.0.64** (dispatch `publish-mcp.yml`) — until then every
-   npx/connector client still serves the April projections. And set the
-   `CLAY_PROJECTIONS_B64` repo secret: without it `build:presets` is
-   skipped every run, so the `consensus` preset is frozen at 2026-06-16.
+0. Publish MCP **1.0.65** (dispatch a publish workflow) — until then every
+   npx/connector client still lacks the projected-games fields. And dispatch
+   **Refresh Clay** (new `refresh-clay.yml`) to unfreeze the `consensus`
+   preset, stuck at 2026-06-16; leave `CLAY_PROJECTIONS_B64` unset so that
+   workflow stays its only writer.
 1. Fix projection-pool depth-share artifacts: deep TEs inflated (Greg
    Dulcich, Colby Parkinson) and Brock Bowers' TE TD line cold vs market.
 2. Recalibrate the SFB16 big-play estimators against published SFB

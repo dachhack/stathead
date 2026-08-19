@@ -289,19 +289,38 @@ A missing roster still errors in every state.
 
 ### How to refresh Clay (the Consensus preset)
 
-Nothing in the repo can regenerate it — the source is a manual drop. The chain:
+**Now a one-click job: Actions → "Refresh Clay (Consensus preset)" → Run
+workflow.** `refresh-clay.yml` fetches the guide, extracts it, rebuilds the
+presets and commits only the derived file. No PDF handling, no base64, no
+secret.
 
-1. Download the current **Mike Clay Fantasy Football Projection Guide** PDF
-   (ESPN+ product; never committed — it's ESPN's).
-2. `pip install pymupdf`
-3. `python3 scripts/extract_clay_projections.py <path-to-pdf> 2026`
-   → writes the gitignored `public/data/clay-projections-2026.json`.
-4. `gzip -9 -c public/data/clay-projections-2026.json | base64 | tr -d '\n'`
-   → paste as the `CLAY_PROJECTIONS_B64` repo secret (Settings → Secrets →
-   Actions). That exact encoding is what refresh-data.yml decodes.
-5. Dispatch **Refresh Data**. The step materializes the extract after
-   `npm run build`, runs `build:presets`, deletes the raw extract, and commits
-   a `redraft-projections-presets.json` with a fresh `generatedAt`.
+It exists because the guide lives on `g.espncdn.com`, which the sandbox's
+egress proxy 403s on CONNECT — the same reason fetch-ffc-adp.yml and
+fetch-ktc-snapshot.yml exist. Runners have unrestricted egress. Dispatch-only
+on purpose: the guide is republished a handful of times a season, so polling it
+would hammer ESPN for nothing. The URL is derived from the season
+(`.../ffldraftkit/26/NFLDK2026_CS_ClayProjections2026.pdf`), with a `pdf_url`
+input to override when ESPN renames it.
+
+**Leave `CLAY_PROJECTIONS_B64` unset.** refresh-data.yml runs `build:presets`
+only when that secret is set, so with it unset the 2-hourly refresh never
+touches the presets file and this workflow is its sole writer. Set it, and
+refresh-data will overwrite each Clay refresh with whatever the secret holds.
+
+The old manual chain still works if you ever need it: extract with
+`python3 scripts/extract_clay_projections.py <pdf> 2026` (needs `pip install
+pymupdf`), then `gzip -9 -c public/data/clay-projections-2026.json | base64 |
+tr -d '\n'` into the secret — that exact encoding is what refresh-data.yml
+decodes.
+
+**Why the workflow guards so hard.** `precompute-projection-presets.ts` writes
+the whole presets object and silently omits `consensus` AND `consensus-ml` when
+the extract is absent — verified: a Clay-less `npm run build:presets` turns the
+committed file from 5 presets into 3, and would commit the loss. So the
+workflow refuses to build unless the extract parsed 300+ players, and refuses to
+commit unless both consensus presets survived. That trap also fires for anyone
+running `build:presets` locally without the extract — worth fixing in the
+script itself (write should merge into the existing file, not replace it).
 
 **Caveat worth knowing before doing it:** refreshing Clay only fixes half of
 the `consensus` preset. `precompute-projection-presets.ts` builds it as
