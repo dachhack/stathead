@@ -38521,8 +38521,9 @@ function idpRowsFrom(doc) {
     ff: p.ff, fum_rec: p.fum_rec, def_td: p.def_td, safety: p.safety,
     sack_pg: p.sack_pg, pd_pg: p.pd_pg,
     sack_game_sd: p.sack_game_sd, pd_game_sd: p.pd_game_sd,
-    tackles_game_sd: p.tackles_game_sd,
+    tackles_game_sd: p.tackles_game_sd, tackles_pg: p.tackles_pg,
     weeks_2plus_sack: p.weeks_2plus_sack, weeks_3plus_pd: p.weeks_3plus_pd,
+    weeks_10plus_tackle: p.weeks_10plus_tackle,
     draft_pick: p.draft_pick ?? null,
   }));
 }
@@ -40040,8 +40041,27 @@ var fmtCell = (val) => {
 // silently drop the name/team; now the identifiers that exist in the row are
 // re-prepended regardless of the `fields` projection.
 var ALWAYS_KEEP_COLS = ["player_name", "player_display_name", "name", "full_name", "player", "position", "pos", "team", "recent_team", "tm"];
+// The columns a result CAN offer: the union across every row, not the keys of
+// the first one. Rows in one response are not homogeneous — return components
+// ride only on players with a return role, IDP components only on defenders —
+// so projecting from row 1 silently dropped whole columns. Asking for pr_yd on
+// a DB board returned nothing if the top DB happened not to return kicks.
+function columnUniverse(rows) {
+  const seen = /* @__PURE__ */ new Set();
+  for (const r of rows) {
+    if (!r) continue;
+    for (const k of Object.keys(r)) seen.add(k);
+  }
+  return [...seen];
+}
+function unknownFields(rows, cols, fields) {
+  if (fields == null || fields === "") return [];
+  const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
+  const available = new Set(cols ?? columnUniverse(rows));
+  return want.filter((w) => !available.has(w));
+}
 function resolveCols(rows, cols, fields) {
-  const base = cols ?? (rows[0] ? Object.keys(rows[0]) : []);
+  const base = cols ?? columnUniverse(rows);
   if (fields == null || fields === "") return base;
   const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
   if (want.length === 0) return base;
@@ -40063,6 +40083,10 @@ function resolveCols(rows, cols, fields) {
 function renderTable(input, rows, cols) {
   if (rows.length === 0) return "(no results)";
   const effective = resolveCols(rows, cols, input.fields);
+  // Name what was asked for and does not exist. Dropping it silently is how a
+  // caller ends up unsure whether the field is missing from the data or they
+  // misspelled it. Table format only — csv and jsonl stay machine-clean.
+  const missing = unknownFields(rows, cols, input.fields);
   const fmt = String(input.output_format ?? "table").toLowerCase();
   if (fmt === "jsonl") {
     return rows.map((r) => JSON.stringify(Object.fromEntries(effective.map((c) => [c, r[c] ?? null])))).join("\n");
@@ -40074,7 +40098,8 @@ function renderTable(input, rows, cols) {
     };
     return [effective.join(","), ...rows.map((r) => effective.map((c) => esc2(r[c])).join(","))].join("\n");
   }
-  return toMarkdownTable(rows, effective);
+  return toMarkdownTable(rows, effective)
+    + (missing.length ? `\n\n_Requested field(s) not present anywhere in this result set, so skipped: ${missing.join(", ")}._` : "");
 }
 function pickColumns(row, cols) {
   const out = {};
@@ -42688,7 +42713,7 @@ ${renderTable(input, rows)}`;
           }));
           if (coaches.length) {
             pool = pool.concat(coaches);
-            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions, with NO ppg or projPts (no standard coach scoring exists — price the components). MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate. new_coach flags teams that changed coach — 7 of 32 for 2026 — where the whole row is built from the previous staff's team history; prior_coach names whose numbers they actually are.`;
+            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions, with NO ppg or projPts (no standard coach scoring exists — price the components). MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate. new_coach flags teams that changed coach — ${(hcDoc.teams || []).filter((t) => t.new_coach).length} of ${(hcDoc.teams || []).length} this cycle — where the whole row is built from the previous staff's team history; prior_coach names whose numbers they actually are.`;
           }
         }
         if (position === "P" || playerName) {
@@ -42720,7 +42745,7 @@ ${renderTable(input, rows)}`;
             pool = pool.concat(idp);
             // IDP is built on its own cadence, so it carries its own stamp
             // rather than inheriting the offense pool's.
-            idpNote = ` IDP rows (DL/LB/DB) included, as_of ${idpDoc.generatedAt || "unknown"}: components are tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety via \`fields\`, and ppg/projPts roll them up at tackle 1, sack 2, INT 3, fumble recovery 2, def TD 6, safety 2 — re-price from the components. Weekly threshold bonuses: use weeks_2plus_sack / weeks_3plus_pd, or integrate your own over sack_pg/pd_pg with the published per-game sds. Do NOT score a season mean against a weekly threshold.`;
+            idpNote = ` IDP rows (DL/LB/DB) included, as_of ${idpDoc.generatedAt || "unknown"}: components are tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety via \`fields\`, and ppg/projPts roll them up at tackle 1, sack 2, INT 3, fumble recovery 2, def TD 6, safety 2 — re-price from the components. Weekly threshold bonuses: weeks_2plus_sack, weeks_3plus_pd and weeks_10plus_tackle are expected GAME COUNTS; tackles_pg/sack_pg/pd_pg and the matching per-game sds are there to integrate your own rungs. Use the right distribution: sacks and passes defended are Poisson with a calibration (0.751 and 0.962), but TACKLES are over-dispersed (variance/mean 1.21) and need a NEGATIVE BINOMIAL — Poisson understates a 2-tackle-a-game player's 10+ games by 9.4x and a 4-tackle player's by 2.1x, while being nearly exact by 8-9 a game, so no single calibration fixes it. Do NOT score a season mean against a weekly threshold.`;
           }
         }
         // AFTER the IDP rows join the pool: 19 of the 159 projected returners
@@ -42776,6 +42801,21 @@ ${renderTable(input, rows)}`;
       const totalRows = rows.length;
       rows = rows.slice(0, limit);
       const capNote = totalRows > rows.length ? ` Showing top ${rows.length} of ${totalRows} — raise limit (max 1000) for the full pool.` : "";
+      // An unrecognised sort_by used to leave the rows in their natural order
+      // while the header claimed they were sorted by it.
+      const sortable = new Set(columnUniverse(rows));
+      // Two different ways a sort silently does nothing, and the caller cannot
+      // tell them apart from the output: the column does not exist, or it
+      // exists and is constant. `safety` is the live example — a real IDP
+      // component that is 0.00 on all 963 rows, because a safety is about one
+      // per team-season spread across a defence.
+      const distinctSorted = new Set(rows.map((r) => r[sortBy]).filter((v) => v !== void 0 && v !== null));
+      const sortNote = !sortable.size ? "" :
+        !sortable.has(sortBy)
+          ? ` NOTE: "${sortBy}" is not a column in this result, so these rows are in their natural order, NOT sorted by it.`
+          : distinctSorted.size <= 1
+            ? ` NOTE: every returned row has the same "${sortBy}" (${[...distinctSorted][0] ?? "no value"}), so the ordering within them is arbitrary — the sort had nothing to work with.`
+            : "";
       const idMap = await projectionIdMap();
       // ppg alone is not rankable across players — see the `games` comment in
       // projectionBaseToRows. Ship the denominator and the season total in the
@@ -42798,7 +42838,7 @@ ${renderTable(input, rows)}`;
         // fum_rec/def_td/safety are shared with the team-defense rows above.
         "team", "nfl_pos", "tackles", "solo", "assist", "tfl", "qb_hit", "pd", "ff",
         "sack_pg", "pd_pg", "sack_game_sd", "pd_game_sd", "tackles_game_sd",
-        "weeks_2plus_sack", "weeks_3plus_pd", "draft_pick",
+        "weeks_2plus_sack", "weeks_3plus_pd", "weeks_10plus_tackle", "tackles_pg", "draft_pick",
         // Return components — priced separately in most catalogs and not
         // recoverable from a rushing/receiving line.
         "pr", "pr_yd", "kr", "kr_yd", "ret_yd", "ret_td",
@@ -42825,7 +42865,7 @@ ${renderTable(input, rows)}`;
           gsis_id: r.gsis ?? ids?.gsis ?? null, sleeper_id: r.sleeper ?? ids?.sleeper ?? null,
         };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${fbNote}${punterNote}${hcNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${sortNote}${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${fbNote}${punterNote}${hcNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -43535,7 +43575,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.86";
+var SERVER_VERSION = "1.0.87";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

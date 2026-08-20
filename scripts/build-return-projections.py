@@ -74,6 +74,18 @@ SRC = {'pr': 'punt_returns', 'pr_yd': 'punt_return_yards',
        'ret_td': 'special_teams_tds'}
 
 
+# nflverse's roster files say AZ where its schedule says ARI — the same
+# franchise under two codes in one feed. Left alone it is not cosmetic: the
+# weekly builder keys matchups on the SCHEDULE's code, so every Arizona player
+# sourced from the roster got an all-null weekly strip (34 defenders, silently
+# projecting nothing every week). Normalize on the way in.
+TEAM_ALIASES = {'AZ': 'ARI', 'LAR': 'LA', 'OAK': 'LV', 'SD': 'LAC', 'STL': 'LA'}
+
+
+def norm_team(team: str) -> str:
+    return TEAM_ALIASES.get((team or '').upper(), (team or '').upper()) or None
+
+
 def iter_csv(name: str):
     raw = DATA / f'{name}.csv'
     if raw.exists():
@@ -320,7 +332,7 @@ def main() -> None:
         games = min(17.0, max(1.0, hist['_games'] / max(1, len([y for y in HISTORY if seasons.get(y) and seasons[y]['agg'].get(gsis)])))) if hist else 14.0
         rows.append({
             'name': r.get('full_name') or r.get('football_name'),
-            'team': r.get('team'),
+            'team': norm_team(r.get('team')),
             'pos': pos_by_gsis.get(gsis) or r.get('position'),
             'gsis': gsis, 'sleeper': sleeper_by_gsis.get(gsis),
             'pr_role': bool(holds_pr), 'kr_role': bool(holds_kr),

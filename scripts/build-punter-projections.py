@@ -63,6 +63,18 @@ SRC = {'att': 'pt_att', 'yds': 'pt_yards', 'net': 'pt_net_yards',
        'in20': 'pt_inside_20', 'tb': 'pt_touchback', 'long': 'pt_long'}
 
 
+# nflverse's roster files say AZ where its schedule says ARI — the same
+# franchise under two codes in one feed. Left alone it is not cosmetic: the
+# weekly builder keys matchups on the SCHEDULE's code, so every Arizona player
+# sourced from the roster got an all-null weekly strip (34 defenders, silently
+# projecting nothing every week). Normalize on the way in.
+TEAM_ALIASES = {'AZ': 'ARI', 'LAR': 'LA', 'OAK': 'LV', 'SD': 'LAC', 'STL': 'LA'}
+
+
+def norm_team(team: str) -> str:
+    return TEAM_ALIASES.get((team or '').upper(), (team or '').upper()) or None
+
+
 def iter_csv(name: str):
     raw = DATA / f'{name}.csv'
     if raw.exists():
@@ -192,7 +204,7 @@ def main() -> None:
 
         punts = rates['volume'] * games
         rows.append({
-            'name': r.get('full_name'), 'team': r.get('team'), 'pos': 'P',
+            'name': r.get('full_name'), 'team': norm_team(r.get('team')), 'pos': 'P',
             'gsis': gsis or None, 'sleeper': sleeper.get(gsis),
             'games': round(games, 1),
             'punts': round(punts, 1),

@@ -122,6 +122,14 @@ UNDRAFTED_GAMES = 5.5
 SACK2_CALIBRATION = 0.751
 PD3_CALIBRATION = 0.962
 DISPERSION = {'sack': 0.945, 'pd': 1.061, 'tackles': 1.210}
+# Tackles need a NEGATIVE BINOMIAL, not a calibrated Poisson. Their dispersion
+# (variance/mean = 1.21) is far enough above 1 that the error is level-dependent
+# rather than a flat factor: against 10+ tackle games over 2016-2025, Poisson
+# understates a 2-tackle-a-game player by 9.4x, a 4-tackle player by 2.1x, a
+# 6-tackle player by 1.2x, and is nearly exact by 8-9. A single calibration
+# constant cannot fix that. A negative binomial with the measured dispersion
+# lands at 0.985x pooled and 0.86-1.10x in every bin with a usable sample.
+TACKLE_THRESHOLD = 10
 
 # The consumer's DEFAULT IDP catalog, used only to roll the components up into
 # a comparable ppg/projPts. Every league re-prices these; the components, not
@@ -142,6 +150,18 @@ BUCKET = {
     'LB': 'LB', 'OLB': 'LB', 'ILB': 'LB', 'MLB': 'LB',
     'CB': 'DB', 'SAF': 'DB', 'FS': 'DB', 'SS': 'DB', 'DB': 'DB', 'S': 'DB',
 }
+
+
+# nflverse's roster files say AZ where its schedule says ARI — the same
+# franchise under two codes in one feed. Left alone it is not cosmetic: the
+# weekly builder keys matchups on the SCHEDULE's code, so every Arizona player
+# sourced from the roster got an all-null weekly strip (34 defenders, silently
+# projecting nothing every week). Normalize on the way in.
+TEAM_ALIASES = {'AZ': 'ARI', 'LAR': 'LA', 'OAK': 'LV', 'SD': 'LAC', 'STL': 'LA'}
+
+
+def norm_team(team: str) -> str:
+    return TEAM_ALIASES.get((team or '').upper(), (team or '').upper()) or None
 
 
 def iter_csv(name: str):
@@ -259,6 +279,22 @@ def rookie_prior(pick: int | None):
             return a[1] + t * (b[1] - a[1]), a[2] + t * (b[2] - a[2])
     hi = ROOKIE_BY_PICK[-1]
     return hi[1], hi[2]
+
+
+def negbin_at_least(mu: float, k: int, dispersion: float) -> float:
+    """P(X >= k) for a negative binomial with variance = dispersion * mu.
+    Falls back to Poisson when the count is not over-dispersed."""
+    if mu <= 0:
+        return 0.0
+    if dispersion <= 1.0001:
+        return poisson_at_least(mu, k)
+    r = mu / (dispersion - 1.0)
+    p = r / (r + mu)
+    below = 0.0
+    for i in range(k):
+        log_c = math.lgamma(i + r) - math.lgamma(r) - math.lgamma(i + 1)
+        below += math.exp(log_c + r * math.log(p) + i * math.log(1 - p))
+    return max(0.0, 1 - below)
 
 
 def poisson_at_least(lam: float, k: int) -> float:
@@ -458,7 +494,7 @@ def main() -> None:
             games = min(17.0, n_live + max(0, 17 - weeks_elapsed) * rate)
 
         row = {
-            'name': name, 'team': r.get('team'), 'pos': bucket,
+            'name': name, 'team': norm_team(r.get('team')), 'pos': bucket,
             'nfl_pos': r.get('depth_chart_position') or r.get('position'),
             'gsis': gsis or None, 'sleeper': sleeper_by_gsis.get(gsis),
             'games': round(games, 1),
@@ -480,8 +516,11 @@ def main() -> None:
         row['sack_game_sd'] = round(math.sqrt(DISPERSION['sack'] * sack_lam), 3)
         row['pd_game_sd'] = round(math.sqrt(DISPERSION['pd'] * pd_lam), 3)
         row['tackles_game_sd'] = round(math.sqrt(DISPERSION['tackles'] * tackle_lam), 3)
+        row['tackles_pg'] = round(tackle_lam, 3)
         row['weeks_2plus_sack'] = round(games * SACK2_CALIBRATION * poisson_at_least(sack_lam, 2), 2)
         row['weeks_3plus_pd'] = round(games * PD3_CALIBRATION * poisson_at_least(pd_lam, 3), 2)
+        row['weeks_10plus_tackle'] = round(
+            games * negbin_at_least(tackle_lam, TACKLE_THRESHOLD, DISPERSION['tackles']), 2)
 
         row['projPts'] = round(score(rates, games), 1)
         row['ppg'] = round(score(rates, 1.0), 2)
@@ -548,10 +587,18 @@ def main() -> None:
                 'sack2PoissonCalibration': SACK2_CALIBRATION,
                 'pd3PoissonCalibration': PD3_CALIBRATION,
                 'dispersionVarianceOverMean': DISPERSION,
+                'tackleThreshold': TACKLE_THRESHOLD,
+                'tackleDistribution': 'negative binomial, variance = 1.21 x mean',
                 'note': ('Poisson overstates multi-sack games by a quarter because sacks are '
                          'credited in half increments; it is nearly exact for passes defended. '
-                         'Integrate any other threshold over a per-game Poisson with the published '
-                         'sd, then apply the matching calibration.'),
+                         'TACKLES ARE DIFFERENT: at variance/mean 1.21 the Poisson error is '
+                         'level-dependent, not a constant — it understates a 2-tackle-a-game '
+                         'player by 9.4x, a 4-tackle player by 2.1x, a 6-tackle player by 1.2x '
+                         'and is nearly exact by 8-9 — so weeks_10plus_tackle is integrated over '
+                         'a NEGATIVE BINOMIAL with that dispersion, which lands at 0.985x pooled '
+                         'and 0.86-1.10x per bin. For a different tackle threshold use the same '
+                         'negative binomial over tackles_pg; for sacks or passes defended use a '
+                         'Poisson with the matching calibration.'),
             },
             'defaultScoring': POINTS,
             'backtest': bt,
