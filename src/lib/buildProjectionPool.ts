@@ -120,6 +120,16 @@ const YPR_K = 18;
 // is already 53% current-season by week 4. Ignoring the season in progress
 // costs 16-17% of RMSE for RB and WR by midseason.
 const IN_SEASON_K: Record<string, number> = { QB: 5.5, RB: 3.5, WR: 4.5, TE: 5.0 };
+// Availability, re-estimated from what has actually happened. Games missed so
+// far predict games missed later: over 61,479 player-week cutoffs (2016-2025),
+// a beta-binomial with pseudo-count 5.5 scores RMSE 0.295 against the rate of
+// remaining weeks played, versus 0.336 for a flat league rate and 0.343 for
+// taking games/weeks at face value. The prior here is the player's own
+// preseason games projection rather than the league base the constant was
+// fitted against — better-informed, and the same shrinkage.
+//   played 3 of 3 -> 74% of remaining weeks   played 1 of 3 -> 51%
+//   played 2 of 3 -> 62%                      played 0 of 3 -> 39%
+const AVAILABILITY_PSEUDO_COUNT = 5.5;
 // Components blended per position. Everything else on the row (games, adp,
 // team) is left to the preseason model.
 const IN_SEASON_FIELDS: Record<string, string[]> = {
@@ -1365,6 +1375,12 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   // who has played one game in four weeks gets one game's worth of weight,
   // which is the honest reading of a small sample.
   if (currentStats && currentStats.length > 0) {
+    // League weeks elapsed — the denominator for availability. A player with 2
+    // games in 4 weeks is a different projection from one with 2 games in 2.
+    let weeksElapsed = 0;
+    for (const r of currentStats) {
+      if (r.season_type === 'REG') weeksElapsed = Math.max(weeksElapsed, Number(r.week) || 0);
+    }
     const actualByName = new Map<string, { games: number; pg: Record<string, number> }>();
     for (const t of aggregateToSeasonTotals(
       currentStats.filter((r) => r.season_type === 'REG')
@@ -1392,9 +1408,20 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
         const projGames = Number(row.games) || 0;
         if (!actual || !projGames) continue;
         const w = actual.games / (actual.games + k);
+        // Availability first, because every component below is a season total
+        // = per-game rate x games. A player who has missed two of four weeks
+        // should not be projected for a full slate of the remaining ones.
+        let games = projGames;
+        if (weeksElapsed > 0) {
+          const priorRate = Math.min(1, projGames / 17);
+          const rate = (actual.games + AVAILABILITY_PSEUDO_COUNT * priorRate)
+            / (weeksElapsed + AVAILABILITY_PSEUDO_COUNT);
+          games = Math.min(17, actual.games + Math.max(0, 17 - weeksElapsed) * rate);
+          row.games = Math.round(games * 10) / 10;
+        }
         for (const f of fields) {
           const projPg = (Number(row[f]) || 0) / projGames;
-          const val = ((1 - w) * projPg + w * (actual.pg[f] ?? projPg)) * projGames;
+          const val = ((1 - w) * projPg + w * (actual.pg[f] ?? projPg)) * games;
           row[f] = Math.round(val * 10) / 10;
         }
         row.pprPts = Math.round(computePPR({

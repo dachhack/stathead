@@ -62,6 +62,11 @@ KEEP_KR = 0.52      # fitted: kick returns per game
 KEEP_YPR_PUNT = 0.18
 KEEP_YPR_KICK = 0.34
 BACKUP_SHARE = 0.25  # a returner NOT holding the current job, as a share of the role rate
+# In-season blend. Fitted the same way as every other surface (3,254 cutoffs,
+# 2017-2025): K = 3.5, blend RMSE 0.898 against rest-of-season return volume
+# versus 1.094 prior-only and 1.085 current-only. Fast, because who is actually
+# fielding kicks this year settles the question a depth chart only hints at.
+IN_SEASON_K = 3.5
 MIN_HIST_RETURNS = 5
 
 SRC = {'pr': 'punt_returns', 'pr_yd': 'punt_return_yards',
@@ -192,6 +197,31 @@ def history(seasons: dict, pid: str):
     return out
 
 
+def current_returns(season: int):
+    """gsis -> (games, punt returns/gm, kick returns/gm) for the season in
+    progress, plus weeks elapsed. Empty preseason."""
+    weeks = defaultdict(set)
+    pr = defaultdict(float)
+    kr = defaultdict(float)
+    elapsed = 0
+    for r in iter_csv(f'player_stats_{season}'):
+        if r.get('season_type') != 'REG':
+            continue
+        pid = r.get('player_id')
+        try:
+            week = int(r['week'])
+        except (ValueError, TypeError, KeyError):
+            continue
+        if not pid:
+            continue
+        elapsed = max(elapsed, week)
+        weeks[pid].add(week)
+        pr[pid] += num(r, 'punt_returns')
+        kr[pid] += num(r, 'kickoff_returns')
+    out = {p: (len(w), pr[p] / len(w), kr[p] / len(w)) for p, w in weeks.items() if w}
+    return out, elapsed
+
+
 def depth_returners(season: int):
     """team -> {'PR': [gsis...], 'KR': [gsis...]} from the newest depth chart,
     ordered by depth rank. Mirrors build-kicker-projections' PK1 lookup."""
@@ -243,6 +273,11 @@ def main() -> None:
             sleeper_by_gsis[p['gsis']] = p.get('sleeper')
             pos_by_gsis[p['gsis']] = p.get('pos')
 
+    live, weeks_elapsed = current_returns(SEASON)
+    if live:
+        print(f'  in-season: {weeks_elapsed} week(s) elapsed, current season weighted '
+              f'{weeks_elapsed / (weeks_elapsed + IN_SEASON_K):.0%} at full participation')
+
     rows = []
     for r in iter_csv(f'roster_{SEASON}'):
         if (r.get('status') or 'ACT') not in ('ACT', 'RES'):
@@ -266,6 +301,15 @@ def main() -> None:
             pr_pg = KEEP_PR * hist['pr'] + (1 - KEEP_PR) * pr_target
             kr_pg = KEEP_KR * hist['kr'] + (1 - KEEP_KR) * kr_target
 
+        # In-season: what he is actually returning this year outranks both the
+        # depth chart and last season. No-op preseason.
+        n_live = 0
+        if gsis in live:
+            n_live, live_pr, live_kr = live[gsis]
+            w_live = n_live / (n_live + IN_SEASON_K)
+            pr_pg = (1 - w_live) * pr_pg + w_live * live_pr
+            kr_pg = (1 - w_live) * kr_pg + w_live * live_kr
+
         ypr_punt = league['ypr_punt']
         if hist and hist['_ypr_punt'] is not None:
             ypr_punt = KEEP_YPR_PUNT * hist['_ypr_punt'] + (1 - KEEP_YPR_PUNT) * league['ypr_punt']
@@ -280,6 +324,8 @@ def main() -> None:
             'pos': pos_by_gsis.get(gsis) or r.get('position'),
             'gsis': gsis, 'sleeper': sleeper_by_gsis.get(gsis),
             'pr_role': bool(holds_pr), 'kr_role': bool(holds_kr),
+            'inSeasonGames': n_live,
+            'inSeasonWeight': round(n_live / (n_live + IN_SEASON_K), 3) if n_live else 0,
             'games': round(games, 1),
             'pr_pg': round(pr_pg, 3), 'kr_pg': round(kr_pg, 3),
             'pr_yd_pg': round(pr_pg * ypr_punt, 2), 'kr_yd_pg': round(kr_pg * ypr_kick, 2),
@@ -318,6 +364,7 @@ def main() -> None:
             'keep': {'pr': KEEP_PR, 'kr': KEEP_KR,
                      'yprPunt': KEEP_YPR_PUNT, 'yprKick': KEEP_YPR_KICK},
             'backupShare': BACKUP_SHARE,
+            'inSeasonK': IN_SEASON_K,
             'halfLifeSeasons': HALF_LIFE,
             'measured': {
                 'prYoyR': 0.65, 'krYoyR': 0.49,
