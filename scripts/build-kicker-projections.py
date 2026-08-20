@@ -65,6 +65,20 @@ MIN_KICKER_ATT = 25                              # below this, no personal adjus
 CARRY_WEIGHT = 0.50                              # weight on the prior-seasons carry
 CARRY_SHRINK = 0.50                              # shrink of that carry toward league
 DEF_SHRINK = 0.50                                # matches build-weekly-projections' def-vs-pos shrink
+# In-season blend, fitted the same way as the team-defense one: once games are
+# played, the rest of the season is w * (this season to date) + (1 - w) * the
+# preseason line, w = n / (n + IN_SEASON_K). Over 2017-2025, 3,599 team-cutoffs,
+# K = 9.5 gives RMSE 1.907 against rest-of-season kicker points per game, versus
+# 2.101 for the preseason prior alone and 2.696 for the current season alone —
+# current form on its own is the worst of the three. Inert preseason (n = 0).
+IN_SEASON_K = 9.5
+# In-season blend, fitted the same way as the team-defense one: once games are
+# played, the rest of the season is w * (this season to date) + (1 - w) * the
+# preseason line, w = n / (n + IN_SEASON_K). Over 2017-2025, 3,599 team-cutoffs,
+# K = 9.5 gives RMSE 1.907 against rest-of-season kicker points per game, versus
+# 2.101 for the preseason prior alone and 2.696 for the current season alone —
+# current form on its own is the worst of the three. Inert preseason (n = 0).
+IN_SEASON_K = 9.5
 WEEKS = 17                                       # games per team
 
 BANDS = ('0-29', '30-39', '40-49', '50+')
@@ -89,6 +103,60 @@ def load_pbp(season: int):
     if not path.exists():
         return []
     return json.loads(gzip.open(path).read())
+
+
+def in_season_kicking(season: int):
+    """team -> (weeks played, FG attempts/gm, XP attempts/gm) from the CURRENT
+    season's completed games. Volume only: an in-season sample of makes is far
+    too small to say anything about a kicker's accuracy, so the modelled band
+    rates stay as they are."""
+    weeks = defaultdict(set)
+    fga = defaultdict(float)
+    xpa = defaultdict(float)
+    for row in iter_csv(f'player_stats_{season}'):
+        if row.get('season_type') != 'REG' or row.get('position') != 'K':
+            continue
+        team, week = row.get('team'), row.get('week')
+        if not team or not week:
+            continue
+        weeks[team].add(week)
+        fga[team] += _num(row, 'fg_att')
+        xpa[team] += _num(row, 'pat_att')
+    return {t: (len(w), fga[t] / len(w), xpa[t] / len(w)) for t, w in weeks.items() if w}
+
+
+def _num(row, key) -> float:
+    try:
+        return float(row.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _num(row, key) -> float:
+    try:
+        return float(row.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def in_season_kicking(season: int):
+    """team -> (weeks played, FG attempts/gm, XP attempts/gm) from the CURRENT
+    season's completed games. Volume only: an in-season sample of makes is far
+    too small to say anything about a kicker's accuracy, so the modelled band
+    rates stay as they are."""
+    weeks = defaultdict(set)
+    fga = defaultdict(float)
+    xpa = defaultdict(float)
+    for row in iter_csv(f'player_stats_{season}'):
+        if row.get('season_type') != 'REG' or row.get('position') != 'K':
+            continue
+        team, week = row.get('team'), row.get('week')
+        if not team or not week:
+            continue
+        weeks[team].add(week)
+        fga[team] += _num(row, 'fg_att')
+        xpa[team] += _num(row, 'pat_att')
+    return {t: (len(w), fga[t] / len(w), xpa[t] / len(w)) for t, w in weeks.items() if w}
 
 
 def load_json(path: Path, fallback):
@@ -274,6 +342,11 @@ def main() -> None:
     avg_td = (sum(proj_td.values()) / len(proj_td)) if proj_td else 0.0
 
     kickers = starting_kickers(SEASON)
+    live_k = in_season_kicking(SEASON)
+    if live_k:
+        n = max(v[0] for v in live_k.values())
+        print(f'  in-season: {n} week(s) played, current season weighted '
+              f'{n / (n + IN_SEASON_K):.0%} of projected volume')
     id_map = {}
     for p in load_json(DATA / 'player-id-map.json', {}).get('players', []):
         if p.get('name') and p.get('pos') == 'K':
@@ -297,12 +370,22 @@ def main() -> None:
         # FG attempts: mostly league mean (yoy r = 0.08).
         team_pg = (team_fga[team] / team_games[team]) if team_games.get(team) else league_fga_pg
         fga_pg = league_fga_pg + TEAM_FGA_KEEP * (team_pg - league_fga_pg)
+        # In-season: blend projected volume toward what this team's kicker has
+        # actually been getting, on the fitted n/(n+K) curve. Volume only —
+        # in-season make rates are a handful of attempts and tell you nothing.
+        n_live, w_live = 0, 0.0
+        if team in live_k:
+            n_live, live_fga_pg, live_xpa_pg = live_k[team]
+            w_live = n_live / (n_live + IN_SEASON_K)
+            fga_pg = (1 - w_live) * fga_pg + w_live * live_fga_pg
         fga = fga_pg * WEEKS
 
         # XP attempts: scaled by this team's projected touchdowns vs league.
         # This is the one component with real per-team signal (yoy r = 0.41).
         td_ratio = (proj_td.get(team, avg_td) / avg_td) if avg_td else 1.0
         xpa = league_xpa_pg * WEEKS * td_ratio
+        if n_live:
+            xpa = (1 - w_live) * xpa + w_live * (live_xpa_pg * WEEKS)
 
         # Personal accuracy, shrunk to KICKER_OE_KEEP of face value.
         gsis = k.get('gsis')
@@ -336,6 +419,7 @@ def main() -> None:
         row = {'name': name, 'team': team, 'gsis': gsis,
                'sleeper': (id_map.get(name) or {}).get('sleeper'),
                'games': WEEKS, 'fg_att_sample': att, 'calibration': round(cal, 3),
+               'inSeasonWeeks': n_live, 'inSeasonWeight': round(w_live, 3),
                'scheduleStrength': round(sched.get(team, 1.0), 3)}
         fgm_total = 0.0
         for b in BANDS:
@@ -366,7 +450,11 @@ def main() -> None:
             'near-unpredictable year over year (r=+0.08) so it is shrunk to the league mean; '
             'kicker accuracy skill is small (split-half r=+0.18) so personal adjustments are '
             'kept at 18% of face value; extra points carry essentially all the real per-team '
-            'signal, scaled by projected offensive touchdowns.'
+            'signal, scaled by projected offensive touchdowns. In-season, projected VOLUME '
+            'blends toward what the team is actually producing at n/(n+9.5) — 30% weight by '
+            'week 4, 46% by week 8 — a curve fitted against rest-of-season outcomes rather '
+            'than chosen. Make rates do not blend: an in-season sample of attempts says '
+            'nothing about accuracy. Every row carries inSeasonWeeks and inSeasonWeight.'
         ),
         'method': {
             'history': [HISTORY[0], HISTORY[-1]],
@@ -382,6 +470,15 @@ def main() -> None:
             'leagueFgaPerGame': round(league_fga_pg, 3),
             'leagueXpaPerGame': round(league_xpa_pg, 3),
             'scheduleAdjusted': bool(sched), 'defShrink': DEF_SHRINK,
+            'inSeasonK': IN_SEASON_K,
+            'inSeasonFit': {
+                'seasons': [2017, 2025], 'n': 3599,
+                'metric': 'rest-of-season kicker pts/gm',
+                'rmse': 1.907, 'priorSeasonOnlyRmse': 2.101, 'currentSeasonOnlyRmse': 2.696,
+                'note': ('Volume only — in-season make rates are too small a sample to move '
+                         'accuracy. Current-season form alone predicts the rest of the season '
+                         'WORSE than the preseason prior alone; the blend beats both.'),
+            },
         },
         'kickers': out_rows,
     }

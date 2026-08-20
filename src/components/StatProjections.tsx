@@ -332,9 +332,12 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
         // ── Projections mode: current/future season ──
         setLoadingStatus('Loading ADP & prior-season data...');
 
-        const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, consensusDoc, presetsDoc] = await Promise.all([
+        const [adpData, priorStats, currentStats, draftData, rosters, gamesData, oddsLines, shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData, featureMatrix, consensusDoc, presetsDoc] = await Promise.all([
           fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
           fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
+          // Current season — empty preseason, blended into every stat line once
+          // games are played so the tab and the MCP quote the same numbers.
+          fetchPlayerStats(PREDICT_SEASON).catch(() => []),
           fetchDraftPicks().catch(() => [] as DraftPick[]),
           fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
           fetchGames().catch(() => [] as Game[]),
@@ -356,7 +359,7 @@ export function StatProjections({ season = PREDICT_SEASON, scenario: scenarioPro
 
         setLoadingStatus('Building projections...');
         const pool = buildProjectionPool({
-          adpData, priorStats, draftData, rosters, gamesData, oddsLines,
+          adpData, priorStats, currentStats, draftData, rosters, gamesData, oddsLines,
           shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
           featureMatrix, consensusDoc, teamProjectionsEnsemble, season,
         });
