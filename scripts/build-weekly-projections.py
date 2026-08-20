@@ -54,6 +54,26 @@ HOME_MULT, AWAY_MULT = 1.02, 0.98
 # signal over the prior season's: weight = n_weeks / (n_weeks + BLEND_K).
 BLEND_K = 6
 
+# ── Market lines ───────────────────────────────────────────────────────────
+# A game's implied team total is the best available estimate of the scoring
+# environment: over 3,726 team-games (2019-2025) it predicts actual points at
+# RMSE 9.13, against 10.16 for prior-season points per game and 10.20 for the
+# current season to date, and the best blend of market and prior puts 100% of
+# the weight on the market. It subsumes what we knew.
+#
+# Applied ONLY as the team-environment term, and only where a line exists.
+# def-vs-pos is decomposed so the two do not double-count: the opponent's mean
+# multiplier across positions IS team strength (which the line already prices),
+# so what is kept from def-vs-pos is each position's deviation from that mean —
+# a defense that is specifically bad against tight ends. The line also prices
+# home field, so the home/away nudge is dropped for lined games.
+#
+# MARKET_WEIGHT is a judgement, not a fit, and is deliberately below 1: the
+# 9.13 above comes from CLOSING lines carrying injury and weather news, while
+# the lines available in advance — all we have for 2026, weeks 1-7 plus 9-12
+# and 16 — are lookahead prices. Raise it when in-week lines are wired up.
+MARKET_WEIGHT = 0.6
+
 # K / DST season projections: league average + a shrunk fraction of the
 # team's prior-season deviation (kicker points track offense quality, which
 # is moderately stable; DST fantasy signal is weaker).
@@ -350,6 +370,28 @@ def weeks_played(season: int) -> int:
     return latest
 
 
+def market_env(season: int):
+    """(team, week) -> implied points for that team, from odds_nfl_lines.json.
+    Empty when no lines are published, which makes every use below a no-op."""
+    try:
+        lines = load_json('odds_nfl_lines.json')
+    except (OSError, ValueError):
+        return {}
+    sched = {}
+    for g in load_json(f'schedule-{season}.json').get('games', []):
+        sched[(g['home'], g['away'])] = g['week']
+    out = {}
+    for l in lines:
+        week = sched.get((l.get('homeTeam'), l.get('awayTeam')))
+        if week is None:
+            continue
+        if l.get('homeImplied') is not None:
+            out[(l['homeTeam'], week)] = float(l['homeImplied'])
+        if l.get('awayImplied') is not None:
+            out[(l['awayTeam'], week)] = float(l['awayImplied'])
+    return out
+
+
 def build_team_weeks(schedule):
     """team -> [ {w, opp, home} … ] for weeks 1..18 (bye weeks absent)."""
     by_team = defaultdict(dict)
@@ -367,7 +409,18 @@ def main():
     schedule = load_json(f'schedule-{SEASON}.json')
     def_vs_pos, w_cur, cur_weeks = build_def_vs_pos()
     team_weeks = build_team_weeks(schedule)
+    market = market_env(SEASON)
     id_map, norm = build_id_map()
+    # Depth-chart rank, so a consumer redistributing an injured starter's work
+    # knows who is actually next in line. Two backups on identical projections
+    # are indistinguishable without it.
+    depth_rank = {}
+    try:
+        for d in load_json(f'depth-order-{SEASON}.json').get('players', []):
+            if d.get('name') and d.get('pos'):
+                depth_rank[(norm(d['name']), d['pos'])] = d.get('teamRank')
+    except (OSError, ValueError):
+        pass   # never fatal: the rows just carry no depth rank
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
@@ -409,12 +462,44 @@ def main():
 
     # Per (team, pos): raw multiplier per scheduled week, normalized to mean 1
     # so weekly projections always sum back to the season line.
+    # Team strength as def-vs-pos sees it: the opponent's mean multiplier across
+    # the skill positions. This is the part a market line already prices, so it
+    # is what gets REPLACED where a line exists — leaving the position-specific
+    # deviation (a defense that is bad against tight ends in particular) to be
+    # applied on top of either.
+    opp_team_strength = {
+        opp: (sum(m.get(pos, 1.0) for pos in POSITIONS) / len(POSITIONS))
+        for opp, m in def_vs_pos.items()
+    }
+
     def week_mults(team, pos):
         sched = team_weeks.get(team, [])
-        raw = [
-            def_vs_pos.get(g['opp'], {}).get(pos, 1.0) * (HOME_MULT if g['home'] else AWAY_MULT)
-            for g in sched
-        ]
+        if not sched:
+            return {}
+        # Environment term per game: the market's implied points for this team
+        # where a line exists, otherwise def-vs-pos team strength. Each is
+        # normalized over the games it covers, so the two scales meet.
+        lined = [g for g in sched if (team, g['w']) in market]
+        market_mean = (sum(market[(team, g['w'])] for g in lined) / len(lined)) if lined else None
+        strength = [opp_team_strength.get(g['opp'], 1.0) for g in sched]
+        strength_mean = (sum(strength) / len(strength)) if strength else 1.0
+
+        raw = []
+        for g, st in zip(sched, strength):
+            base = st / strength_mean if strength_mean else 1.0
+            if market_mean:
+                key = (team, g['w'])
+                if key in market:
+                    env = market[key] / market_mean
+                    # Blend toward the market and drop the home/away nudge: the
+                    # line already prices home field.
+                    base = (1 - MARKET_WEIGHT) * base + MARKET_WEIGHT * env
+                    pos_dev = def_vs_pos.get(g['opp'], {}).get(pos, 1.0) / (opp_team_strength.get(g['opp'], 1.0) or 1.0)
+                    raw.append(base * pos_dev)
+                    continue
+            pos_dev = def_vs_pos.get(g['opp'], {}).get(pos, 1.0) / (opp_team_strength.get(g['opp'], 1.0) or 1.0)
+            raw.append(base * pos_dev * (HOME_MULT if g['home'] else AWAY_MULT))
+
         mean = (sum(raw) / len(raw)) if raw else 1.0
         return {g['w']: r / mean for g, r in zip(sched, raw)}
 
@@ -437,6 +522,7 @@ def main():
                 'name': p['name'],
                 'pos': pos,
                 'team': p['team'],
+                'depth': depth_rank.get((norm(p['name']), pos)),
                 'gsis': ids.get('gsis'),
                 'sleeper': ids.get('sleeper'),
                 'gp': g,
@@ -662,6 +748,20 @@ def main():
         ),
         'weeks': WEEKS,
         'playedThrough': played_through,
+        'marketNote': (
+            f'Weeks with a published market line use the implied team total as the '
+            f'scoring-environment term, blended {MARKET_WEIGHT:.0%} against def-vs-pos '
+            f'team strength, with the home/away nudge dropped (the line prices home '
+            f'field) and the position-specific deviation from def-vs-pos still applied '
+            f'on top. Over 3,726 team-games (2019-2025) an implied total predicts actual '
+            f'points at RMSE 9.13 against 10.16 for prior-season points per game and '
+            f'10.20 for the current season to date — it subsumes what we knew. The weight '
+            f'is below 1 on purpose: that measurement used CLOSING lines, while what is '
+            f'published in advance is a lookahead price. Caveat: the market term is '
+            f'normalized over a team\'s LINED games and the fallback over all of them, so '
+            f'the split between lined and unlined weeks is approximate; the season total '
+            f'is unaffected, since all 17 weeks are renormalized to mean 1.'
+        ),
         'rosNote': (
             'rosPts / rosGames / rosPPG / gamesRemaining cover weeks after '
             f'{played_through} (0 = preseason, so they equal the full season). '
