@@ -46,6 +46,8 @@ public/data/clay-team-projections-*.json
 !public/data/dst-projections-*.json
 !public/data/idp-projections-*.json
 !public/data/return-projections-*.json
+!public/data/fb-projections-*.json
+!public/data/punter-projections-*.json
 # Market lines, derived from nflverse's schedule (scripts/build-odds-from-schedule.mjs)
 !public/data/odds_nfl_lines.json
 !public/data/schedule-strength-*.json

@@ -25,7 +25,9 @@ export interface PlayerStats {
   passing_epa: number;
   passing_2pt_conversions: number;
   pacr: number;
-  dakota: number;
+  /** Completion percentage over expected. Replaces `dakota`, which nflverse's
+   *  unified table no longer publishes and which was NOT the same statistic. */
+  passing_cpoe: number;
   carries: number;
   rushing_yards: number;
   rushing_tds: number;

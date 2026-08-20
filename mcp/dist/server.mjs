@@ -37407,13 +37407,20 @@ function nflUrl(releaseSubpath) {
   }
   return `${NFLVERSE_REMOTE}/${releaseSubpath}`;
 }
+// nflverse's unified stats_player table renamed these; the old names are kept
+// as aliases so every consumer keeps working.
+//
+// `dakota` is deliberately NOT in this list any more. It used to be aliased to
+// passing_cpoe, which is a different statistic — dakota was an EPA+CPOE
+// composite, cpoe is completion percentage over expected alone — so anything
+// reading `dakota` was getting a plausible number that meant something else.
+// The unified table does not publish dakota at all, so the honest answer is
+// that the field is gone; passing_cpoe is available under its own name.
 var NEW_COL_MAP = {
   team: "recent_team",
   passing_interceptions: "interceptions",
   sacks_suffered: "sacks",
-  sack_yards_lost: "sack_yards",
-  passing_cpoe: "dakota"
-  // closest equivalent
+  sack_yards_lost: "sack_yards"
 };
 function normalizePlayerRow(row) {
   for (const [newCol, oldCol] of Object.entries(NEW_COL_MAP)) {
@@ -38521,6 +38528,21 @@ function idpRowsFrom(doc) {
 }
 var IDP_POSITIONS = /* @__PURE__ */ new Set(["DL", "LB", "DB"]);
 
+// Fullbacks, projected separately (scripts/build-fb-projections.py). They are
+// position=RB with depth_chart_position=FB in the roster files, absent from the
+// depth-order model, and squeezed out by the pool's four-backs-a-team limit, so
+// they projected at zero. Appended only when asked for by position or by name.
+function fbRowsFrom(doc) {
+  return (doc?.players || []).map((p) => ({
+    name: p.name, position: "FB", team: p.team,
+    gsis: p.gsis, sleeper: p.sleeper,
+    ppg: p.ppg, games: p.games, projPts: p.projPts,
+    recPG: p.games ? Math.round((p.rec / p.games) * 100) / 100 : 0,
+    rush_att: p.rush_att, rush_yd: p.rush_yd, rush_td: p.rush_td,
+    tgt: p.tgt, rec: p.rec, rec_yd: p.rec_yd, rec_td: p.rec_td,
+  }));
+}
+
 // When the best player at a position misses a game, how much of his per-game
 // line do his position-mates actually absorb? Measured over 2016-2025 by
 // comparing what the rest of the position group produced in the weeks their
@@ -38600,6 +38622,12 @@ async function fetchIdpProjections(season) {
 }
 async function fetchReturnProjections(season) {
   return await tryPreFetched(`return-projections-${season}.json`);
+}
+async function fetchFbProjections(season) {
+  return await tryPreFetched(`fb-projections-${season}.json`);
+}
+async function fetchPunterProjections(season) {
+  return await tryPreFetched(`punter-projections-${season}.json`);
 }
 // (name|pos) -> {gsis, sleeper} from the slim hosted id-map, so projection
 // rows can carry stable ids without shipping the full crosswalk.
@@ -39794,7 +39822,7 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
         preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
-        sort_by: { type: "string", description: "Sort column, descending. Default: ppg. Use projPts to rank players against each other — ppg is conditional on playing (see the tool description)." },
+        sort_by: { type: "string", description: "Sort column, descending. Default: projPts (season total), which is the right ranking for a draft board. In-season pass rosPts to rank on what is left. ppg is conditional on playing, so sorting by it puts token backup lines above real starters." },
         min_games: { type: "number", description: "Only return players projected for at least this many games. Use it to drop the small-denominator backups whose ppg outranks real starters (e.g. min_games: 8)." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
@@ -40615,7 +40643,7 @@ async function executeToolInner(name, input) {
           "- `get_adp_with_results` `value` is a single-season residual \u2014 a relative bust/value ranking, not stable enough for predictive use without multi-year averaging.",
           "- Rookie production is sensitive to depth chart and injuries; similar-player (joint) comps are more reliable than marginal-factor multiplication.",
           "- **`ppg` is a rate conditional on playing, not a season expectation.** It is projected points / projected games, so a backup projected for one game divides a one-game line by one and outranks every real starter (Nick Mullens 21.0 > Lamar Jackson 16.6). Rank players against each other on `projPts` (the season total, shipped alongside) or pass `min_games`; use `ppg` only for one player\u2019s per-game rate. Same trap in `get_weekly_projections`, where `pts` assumes the player plays that week \u2014 check the `gp` column. Roughly half the QB pool is projected for <8 games.",
-          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers carry field-goal components by distance band; team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety plus pa_points_pg and pa_game_sd for re-tiering; DL/LB/DB rows carry the full IDP component line with weeks_2plus_sack/weeks_3plus_pd for weekly bonuses; and return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td) ride on any row with a return role — so all of them CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE. IDP's does, by 24%. Not projected anywhere yet: punters, fullbacks and head coaches.",
+          "- **`ppg` is a single number priced under standard PPR, not a scoring-agnostic one.** A league that prices receptions, passing yards or touchdowns differently cannot recover its own total from it. `get_projections` rows carry the projected season stat line behind it (pass/rush/receiving components, via `fields`) — re-score from those. Gaps to know about before relying on it: fumbles, first downs, two-point conversions and yardage milestones aren't modelled, kickers carry field-goal components by distance band; team defenses carry pts_allow/sack/def_int/fum_rec/def_td/st_td/safety plus pa_points_pg and pa_game_sd for re-tiering; DL/LB/DB rows carry the full IDP component line with weeks_2plus_sack/weeks_3plus_pd for weekly bonuses; and return components (pr/pr_yd/kr/kr_yd/ret_yd/ret_td) ride on any row with a return role — so all of them CAN be re-scored. Treat DST's ordering with suspicion though: it does not beat a flat league mean on RMSE. IDP's does, by 24%. Fullbacks (position FB) now carry a rushing/receiving line of their own — they are absent from the pool because the roster files label them RB and the four-backs-a-team limit squeezes them out. Punters (position P) carry punts, punt_yd, punt_net_yd, punt_in20 and their averages, with NO ppg or projPts by design — no standard punter scoring exists, so a points total would be priced under rules nobody uses. Not projected anywhere yet: head coaches.",
           "- **Projection freshness:** `get_projections` / `get_weekly_projections` are rebuilt from the season pool on every data refresh (roughly 2-hourly). Read the `as_of` in each response rather than caching a board \u2014 preseason ADP and depth charts move daily, so a snapshot taken once will drift from the live one.",
           "- **A fresh `as_of` with unchanged PPG is expected, not a stale feed.** The pool blends three model outputs, and they move on different clocks: the ADP/VOR and target-share models re-score daily (they consume market ADP and depth charts), but the core PPG model is deliberately ADP-free \u2014 every one of its features is prior-season production, combine, draft slot or age, none of which change between two preseason days. Its per-player predictions are stable by design until games are played, and start moving once in-season stats land. Don\u2019t infer a stalled pipeline from a projection that didn\u2019t change overnight; check `as_of` and the pool-level numbers, which do move."
         ].join("\n"),
@@ -42564,7 +42592,11 @@ ${renderTable(input, rows)}`;
       const playerName = input.player_name;
       const preset = input.preset?.toLowerCase();
       const limit = clamp(input.limit || 50, 1, 1e3);
-      const sortBy = input.sort_by || "ppg";
+      // projPts, not ppg. ppg is conditional on playing, so a backup carrying a
+      // token two-game line (Justin Fields at KC: 44 points over 2 games = 22.0)
+      // outranked every real starter on the default board. The tool has told
+      // callers to rank on projPts for a while; the default now matches.
+      const sortBy = input.sort_by || "projPts";
       let pool;
       let season;
       let scoring = "PPR";
@@ -42573,6 +42605,8 @@ ${renderTable(input, rows)}`;
       let idpNote = "";
       let retNote = "";
       let rosNote = "";
+      let fbNote = "";
+      let punterNote = "";
       let generatedAt = null;
       const FILE_PRESETS = {
         "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
@@ -42624,6 +42658,28 @@ ${renderTable(input, rows)}`;
             return { ...p, ppg: Math.round((v + (mean - v) * VEGAS_FACTOR) * 10) / 10 };
           });
           presetNote = ' Preset "Vegas Weighted" applied: each player regressed 25% toward their position mean.';
+        }
+        if (position === "P" || playerName) {
+          const pDoc = await fetchPunterProjections(FFC_CURRENT_SEASON).catch(() => null);
+          const punters = (pDoc?.players || []).map((p) => ({
+            name: p.name, position: "P", team: p.team, gsis: p.gsis, sleeper: p.sleeper,
+            games: p.games, recPG: 0,
+            punts: p.punts, punt_yd: p.punt_yd, punt_net_yd: p.punt_net_yd,
+            punt_in20: p.punt_in20, punt_avg: p.punt_avg, punt_net_avg: p.punt_net_avg,
+            punts_pg: p.punts_pg,
+          }));
+          if (punters.length) {
+            pool = pool.concat(punters);
+            punterNote = ` Punter rows included, as_of ${pDoc.generatedAt || "unknown"}: punts, punt_yd, punt_net_yd, punt_in20 and the averages behind them, with NO ppg or projPts — deliberately, because no standard punter scoring exists and a points total would be priced under rules nobody uses. Price the components yourself. Note punt VOLUME belongs to the offense more than the punter (yoy r=+0.46, and falling league-wide from 4.53 per team-game in 2016 to 3.53 in 2025), so a punter on a good offense is worth FEWER counting stats.`;
+          }
+        }
+        if (position === "FB" || playerName) {
+          const fbDoc = await fetchFbProjections(FFC_CURRENT_SEASON).catch(() => null);
+          const fbs = fbRowsFrom(fbDoc);
+          if (fbs.length) {
+            pool = pool.concat(fbs);
+            fbNote = ` Fullback rows included, as_of ${fbDoc.generatedAt || "unknown"}: a rushing/receiving line to score with your running-back rules. The position is disappearing — 6 fullbacks recorded a snap in 2025 and the whole position scored 153 PPR points — so these are small numbers by nature, not a modelling failure.`;
+          }
         }
         if (IDP_POSITIONS.has(position) || position === "IDP" || playerName) {
           const idpDoc = await fetchIdpProjections(FFC_CURRENT_SEASON).catch(() => null);
@@ -42716,7 +42772,11 @@ ${renderTable(input, rows)}`;
         "pr", "pr_yd", "kr", "kr_yd", "ret_yd", "ret_td",
         "pr_pg", "kr_pg", "ret_yd_pg", "pr_role", "kr_role",
         // Rest-of-season — the in-season ranking columns.
-        "rosPts", "rosPPG", "rosGames", "gamesRemaining"];
+        "rosPts", "rosPPG", "rosGames", "gamesRemaining",
+        // Fullback line (position FB) — same shape as the skill stat line.
+        "rush_att", "rush_yd", "rush_td", "rec_yd", "rec_td",
+        // Punter components (position P) — no points column by design.
+        "punts", "punt_yd", "punt_net_yd", "punt_in20", "punt_avg", "punt_net_avg", "punts_pg"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
         // The stat line rides on every row but stays out of the default table —
@@ -42727,7 +42787,7 @@ ${renderTable(input, rows)}`;
           gsis_id: r.gsis ?? ids?.gsis ?? null, sleeper_id: r.sleeper ?? ids?.sleeper ?? null,
         };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${fbNote}${punterNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -43422,7 +43482,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.81";
+var SERVER_VERSION = "1.0.83";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
