@@ -39759,7 +39759,7 @@ var NFL_TOOLS = [
     name: "get_projections",
     description: `StatHead's first-party season fantasy projections: in-house projected fantasy points-per-game for the upcoming season — veterans via a prior-year-actual / 2-year-average / age-curve blend, rookies via the rookie career model. This is the season-level companion to get_prospect_outcomes (rookies) and get_dynasty_values (long-horizon value), and the answer to "what does StatHead project for a veteran." Coverage: 2026, QB/RB/WR/TE plus kickers (position K), team defenses (position DST) and individual defensive players (positions DL, LB, DB — or IDP for all three), each projected separately with components. Punt/kick return components ride on every row that has a return role, whatever the position.
 
-IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. Responses flag any returned rows with games <= 4.
+IMPORTANT for ranking: ppg is projected points divided by projected games played, so it is a rate CONDITIONAL ON PLAYING, not a season expectation. A backup projected for one game divides a one-game line by one and lands beside the best starters in the league. Every row therefore carries \`games\` (the denominator) and \`projPts\` (the season total). To rank players against each other — a draft board, a lineup, a roster sort — use projPts, or pass min_games; use ppg only when reading one player\'s per-game rate. IN-SEASON rank on rosPts instead: projPts is a FULL-season total that still includes games already played, while rosPts covers only what is left, with rosPPG, rosGames and gamesRemaining alongside it. Responses flag any returned rows with games <= 4.
 
 RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Every row also carries the projected season stat line it rolls up from — pass_att, pass_cmp, pass_yd, pass_td, pass_int, rush_att, rush_yd, rush_td, tgt, rec, rec_yd, rec_td — selectable via \`fields\`, and zeroed (not omitted) for categories a position doesn't accrue. Re-derive the total from those under your own scoring catalog; re-deriving standard PPR from them reproduces projPts to within a mean 0.07 pts/season. Kickers and team defenses DO carry components: K has fga/fgm split 0-29, 30-39, 40-49, 50+ plus xpa/xpm; DST has pts_allow (season and per game), sack, def_int, fum_rec, def_td, st_td and safety, plus pa_points_pg (the points-allowed bracket integrated over the per-game distribution) and pa_game_sd (the spread it was integrated over, ~9.4). In-season both K and DST blend toward what the current season has shown, on curves fitted against rest-of-season outcomes (n/(n+9.5) for kicker volume, n/(n+10.5) for DST points allowed / sacks / INTs — about 30% weight by week 4, 45% by week 8); rows carry inSeasonWeeks and inSeasonWeight so you can see how much is current form. Do not front-run it with your own hot-hand adjustment: measured over 2017-2025, current-season form ALONE predicted the rest of the season WORSE than the preseason prior alone, for both positions. So leagues pricing field goals by distance or re-tiering points allowed can re-score both. Re-tiering points allowed: integrate your tiers over a per-game normal around pts_allow_pg with pa_game_sd, do NOT score the season mean against them — the bracket is convex, so point-scoring the mean overstates the good defenses in a consistent direction. Note DST's projection does NOT beat a flat league mean on RMSE (1.384 vs 1.375 over 2023-25) and carries only modest ordering value (r~0.25) — use its components to re-score, not its ordering to rank. IDP is the opposite case and the strongest projection here: DL/LB/DB rows carry tackles/solo/assist/tfl/sack/qb_hit/pd/def_int/ff/fum_rec/def_td/safety, and the model beats a flat positional mean by 24% on RMSE (1.367 vs 1.801 over 2023-25, r=0.72) because defensive per-game rates persist far better than offensive ones (QB hits r=0.82, sacks 0.74, solo tackles 0.73). Weekly IDP bonuses: weeks_2plus_sack and weeks_3plus_pd are the expected game counts, with sack_game_sd/pd_game_sd/tackles_game_sd for integrating other thresholds — never score a season mean against a weekly threshold. Return components: pr, pr_yd, kr, kr_yd, ret_yd, ret_td (plus pr_pg/kr_pg/ret_yd_pg and the pr_role/kr_role depth-chart flags), season totals scaled to each row's own projected games. Not modelled anywhere: fumbles, first downs, two-point conversions and yardage milestones for skill players. Preset boards carry rescaled ppg without a stat line.`,
     input_schema: {
@@ -39794,7 +39794,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -42546,6 +42546,7 @@ ${renderTable(input, rows)}`;
       let presetNote = "";
       let idpNote = "";
       let retNote = "";
+      let rosNote = "";
       let generatedAt = null;
       const FILE_PRESETS = {
         "consensus": 'StatHead\'s projection blended toward market consensus via internal per-position weights',
@@ -42611,6 +42612,20 @@ ${renderTable(input, rows)}`;
         // AFTER the IDP rows join the pool: 19 of the 159 projected returners
         // are defensive backs, and merging before the concat left every one of
         // them without return components.
+        // Rest-of-season, lifted from the weekly artifact (which owns the
+        // schedule and the byes) onto the season board, so a mid-season caller
+        // can rank on what is LEFT rather than on a full-season total that
+        // still includes games already played.
+        const wkDoc = await fetchWeeklyProjections(FFC_CURRENT_SEASON).catch(() => null);
+        if (wkDoc?.players?.length) {
+          const ros = /* @__PURE__ */ new Map();
+          for (const r of wkDoc.players) ros.set(`${normalizeNameForMatch(r.name)}|${r.pos}`, r);
+          pool = pool.map((p) => {
+            const r = ros.get(`${normalizeNameForMatch(p.name)}|${p.position}`);
+            return r ? { ...p, rosPts: r.rosPts, rosPPG: r.rosPPG, rosGames: r.rosGames, gamesRemaining: r.gamesRemaining } : p;
+          });
+          rosNote = ` Rest-of-season fields (rosPts, rosPPG, rosGames, gamesRemaining) cover weeks after ${wkDoc.playedThrough ?? 0}${wkDoc.playedThrough ? "" : " — preseason, so they equal the full-season line"}. rosPts carries the availability discount; rosPPG does not, and differs from ppg when the remaining schedule is easier or harder than the part already played. projPts stays a FULL-season total including games already played, so rank in-season on rosPts.`;
+        }
         const retDoc = await fetchReturnProjections(FFC_CURRENT_SEASON).catch(() => null);
         if (retDoc?.players?.length) {
           pool = mergeReturnComponents(pool, retDoc);
@@ -42673,7 +42688,9 @@ ${renderTable(input, rows)}`;
         // Return components — priced separately in most catalogs and not
         // recoverable from a rushing/receiving line.
         "pr", "pr_yd", "kr", "kr_yd", "ret_yd", "ret_td",
-        "pr_pg", "kr_pg", "ret_yd_pg", "pr_role", "kr_role"];
+        "pr_pg", "kr_pg", "ret_yd_pg", "pr_role", "kr_role",
+        // Rest-of-season — the in-season ranking columns.
+        "rosPts", "rosPPG", "rosGames", "gamesRemaining"];
       const out = rows.map((r) => {
         const ids = idMap.get(`${normalizeNameForMatch(r.name)}|${r.position}`);
         // The stat line rides on every row but stays out of the default table —
@@ -42684,7 +42701,7 @@ ${renderTable(input, rows)}`;
           gsis_id: r.gsis ?? ids?.gsis ?? null, sleeper_id: r.sleeper ?? ids?.sleeper ?? null,
         };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -42832,6 +42849,11 @@ ${renderTable(input, rows, cols2)}`;
           pts: Math.round(pts * 10) / 10,
           availability,
           seasonPPG: Math.round(score(p, p.ppg * f) * 10) / 10,
+          // Rest-of-season rides on the row so `fields` can pull it into a
+          // week-mode table: the same numbers get_projections serves, from the
+          // artifact that owns the schedule.
+          rosPts: p.rosPts, rosPPG: p.rosPPG, rosGames: p.rosGames,
+          gamesRemaining: p.gamesRemaining,
           // Same denominator caveat as get_projections: pts is "points in a
           // week he plays", so a backup projected for one game ranks beside
           // starters here. The strip mode already said this in prose; the
@@ -43321,7 +43343,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.77";
+var SERVER_VERSION = "1.0.78";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
