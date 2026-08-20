@@ -38534,6 +38534,18 @@ var IDP_POSITIONS = /* @__PURE__ */ new Set(["DL", "LB", "DB"]);
 // DST or IDP: those are team units or deep rotations where a single absence
 // does not hand one player the job.
 var VACATED_CAPTURE = { QB: 0.56, RB: 0.74, WR: 0.48, TE: 0.42 };
+// ...and how it splits among the heirs. In weeks the depth-chart starter was
+// out (2018-2025, weeks 1-16 only — week 17+ rest games distort everything),
+// the highest-ranked available heir took this share of the position group's
+// production, with the rest going to everyone below him:
+//
+//   QB 80%   RB 64%   TE 63%   WR 51%
+//
+// Quarterback is winner-take-all; receiver work spreads out. Samples are small
+// (16-20 team-seasons per position), so treat the ORDERING as solid and the
+// exact shares as soft. Without this, two backups on identical projections
+// split a vacated starter's work evenly, which is never how it actually goes.
+var HEIR_TOP_SHARE = { QB: 0.80, RB: 0.64, WR: 0.51, TE: 0.63 };
 
 // Punt/kick return components (scripts/build-return-projections.py), merged
 // onto whatever row already projects the player. The artifact publishes PER-GAME
@@ -39808,7 +39820,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column, AND the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split is proportional to what the heirs were already projected for, which means two backups on identical projections split it evenly — we cannot tell you which is the true handcuff when the model rates them the same. No redistribution for K, DST or IDP. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column, AND the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split follows the DEPTH CHART, not the projections: the highest-ranked available heir takes his measured share — QB 80%, RB 64%, TE 63%, WR 51% — and the rest is divided among the others in proportion to what they were already projected for. Those shares come from weeks 1-16 of 2018-2025 on 16-20 team-seasons per position, so the ordering is solid and the exact split is soft. Rows carry depth (the team depth-chart rank) so you can see who is next in line. No redistribution for K, DST or IDP. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -42871,6 +42883,7 @@ ${renderTable(input, rows, cols2)}`;
           // artifact that owns the schedule.
           rosPts: p.rosPts, rosPPG: p.rosPPG, rosGames: p.rosGames,
           gamesRemaining: p.gamesRemaining,
+          depth: p.depth ?? null,
           // Same denominator caveat as get_projections: pts is "points in a
           // week he plays", so a backup projected for one game ranks beside
           // starters here. The strip mode already said this in prose; the
@@ -42902,14 +42915,30 @@ ${renderTable(input, rows, cols2)}`;
       for (const [key, vacated] of vacatedByGroup) {
         const [team, position] = key.split("|");
         const heirs = rows.filter((r) => r.team === team && r.position === position && r._healthy && r.pts > 0);
-        const base = heirs.reduce((a, r) => a + r.pts, 0);
-        if (!heirs.length || base <= 0) continue;
+        if (!heirs.length) continue;
         const pool2 = VACATED_CAPTURE[position] * vacated;
-        for (const r of heirs) {
-          const add = pool2 * (r.pts / base);
+        // Next man up by DEPTH CHART, not by projection: the top available heir
+        // takes his measured share and the rest is split among the others in
+        // proportion to what they were already projected for. Falls back to a
+        // straight proportional split when no row carries a depth rank.
+        const ranked = heirs.filter((r) => Number.isFinite(Number(r.depth)))
+          .sort((a, b) => Number(a.depth) - Number(b.depth));
+        const give = (r, add) => {
           r.pts = Math.round((r.pts + add) * 10) / 10;
           r.promoted = `+${Math.round(add * 10) / 10}`;
           promoted++;
+        };
+        if (ranked.length >= 2) {
+          const top = ranked[0];
+          const rest = heirs.filter((r) => r !== top);
+          const restBase = rest.reduce((a, r) => a + r.pts, 0);
+          give(top, pool2 * HEIR_TOP_SHARE[position]);
+          const remainder = pool2 * (1 - HEIR_TOP_SHARE[position]);
+          for (const r of rest) give(r, restBase > 0 ? remainder * (r.pts / restBase) : remainder / rest.length);
+        } else {
+          const base = heirs.reduce((a, r) => a + r.pts, 0);
+          if (base <= 0) continue;
+          for (const r of heirs) give(r, pool2 * (r.pts / base));
         }
       }
       for (const r of rows) { delete r._vacated; delete r._healthy; }
@@ -43393,7 +43422,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.79";
+var SERVER_VERSION = "1.0.80";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

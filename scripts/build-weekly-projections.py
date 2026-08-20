@@ -368,6 +368,16 @@ def main():
     def_vs_pos, w_cur, cur_weeks = build_def_vs_pos()
     team_weeks = build_team_weeks(schedule)
     id_map, norm = build_id_map()
+    # Depth-chart rank, so a consumer redistributing an injured starter's work
+    # knows who is actually next in line. Two backups on identical projections
+    # are indistinguishable without it.
+    depth_rank = {}
+    try:
+        for d in load_json(f'depth-order-{SEASON}.json').get('players', []):
+            if d.get('name') and d.get('pos'):
+                depth_rank[(norm(d['name']), d['pos'])] = d.get('teamRank')
+    except (OSError, ValueError):
+        pass   # never fatal: the rows just carry no depth rank
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
@@ -437,6 +447,7 @@ def main():
                 'name': p['name'],
                 'pos': pos,
                 'team': p['team'],
+                'depth': depth_rank.get((norm(p['name']), pos)),
                 'gsis': ids.get('gsis'),
                 'sleeper': ids.get('sleeper'),
                 'gp': g,

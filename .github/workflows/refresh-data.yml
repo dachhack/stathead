@@ -136,6 +136,14 @@ jobs:
           fi
           echo "OK: feature-matrix.json exists ($(du -h public/data/feature-matrix.json | cut -f1))"
 
+      # Market lines out of nflverse's schedule (spread_line / total_line), which
+      # download-data.sh already force-refreshes. This is the ONLY source of
+      # market expectations in the build — the Odds API path needs a paid key
+      # that is not configured, so without this the pool runs on
+      # oddsSource: historical. Must precede build:pool, which consumes it.
+      - name: Build market lines from the schedule
+        run: node scripts/build-odds-from-schedule.mjs 2026 || echo "odds build failed (non-fatal)"
+
       # Rebuild the FIRST-PARTY projection base pool headlessly — the SAME pure
       # builder the Projections tab uses (src/lib/buildProjectionPool.ts) — then
       # run the scenario-engine presets over it so the MCP's preset projections
@@ -308,6 +316,7 @@ jobs:
           for p in public/data/training-rows-cache-*.json \
                    public/data/feature-matrix.json \
                    public/data/projection-base-2026.json \
+                   public/data/odds_nfl_lines.json \
                    public/data/weekly-projections-2026.json \
                    public/data/kicker-projections-2026.json \
                    public/data/dst-projections-2026.json \
