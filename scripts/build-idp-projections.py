@@ -92,6 +92,20 @@ KEEP = {
     # No year-over-year signal survives measurement — positional rate for all.
     'fum_rec': 0.08, 'def_td': 0.08, 'safety': 0.02,
 }
+# In-season blend, fitted per bucket the same way as everywhere else: project
+# the REST of the season from the prior year and the current year to date, at
+# every week cutoff, 2017-2025. Linebackers move fastest because tackle volume
+# follows the role, and a role change shows up within a fortnight.
+#   bucket  K    blend   prior-only   current-only        n
+#   LB     3.0   1.617     2.052        1.967        11,284
+#   DB     5.0   1.370     1.607        1.796        14,997
+#   DL     6.0   1.045     1.175        1.376        12,417
+IN_SEASON_K = {'LB': 3.0, 'DB': 5.0, 'DL': 6.0}
+# Availability re-estimated from games actually missed (see the pool builder for
+# the fit): beta-binomial with this pseudo-count, prior = the player's own
+# projected rate.
+AVAILABILITY_PSEUDO_COUNT = 5.5
+
 GAMES_KEEP = 0.58        # fitted on players WITH history — the population projected here
 GAMES_TARGET = 10.0      # ...and the shrink target that minimises RMSE with it
 # Rookie seasons, by DRAFT PICK rather than round: production and availability
@@ -254,6 +268,35 @@ def poisson_at_least(lam: float, k: int) -> float:
     return max(0.0, 1.0 - below)
 
 
+def current_season(season: int):
+    """gsis -> (games played, weeks elapsed, per-game component rates) for the
+    season in progress. Empty preseason."""
+    agg = defaultdict(lambda: defaultdict(float))
+    weeks = defaultdict(set)
+    elapsed = 0
+    for r in iter_csv(f'player_stats_{season}'):
+        if r.get('season_type') != 'REG':
+            continue
+        if not BUCKET.get(r.get('position') or ''):
+            continue
+        pid = r.get('player_id')
+        try:
+            week = int(r['week'])
+        except (ValueError, TypeError, KeyError):
+            continue
+        if not pid:
+            continue
+        elapsed = max(elapsed, week)
+        weeks[pid].add(week)
+        for comp, src in SRC.items():
+            agg[pid][comp] += num(r, src)
+    out = {}
+    for pid, wk in weeks.items():
+        n = len(wk)
+        out[pid] = (n, {c: agg[pid][c] / n for c in COMPS})
+    return out, elapsed
+
+
 def project_player(hist, bucket_mean: dict, pick: int | None,
                    hist_games: float | None) -> dict:
     """Per-game component rates + projected games for one player."""
@@ -375,6 +418,11 @@ def main() -> None:
         if p.get('gsis'):
             sleeper_by_gsis[p['gsis']] = p.get('sleeper')
 
+    live, weeks_elapsed = current_season(SEASON)
+    if live:
+        print(f'  in-season: {weeks_elapsed} week(s) elapsed, {len(live)} defenders with '
+              f'{SEASON} games (LB weighted {weeks_elapsed / (weeks_elapsed + IN_SEASON_K["LB"]):.0%})')
+
     rows = []
     skipped = 0
     for r in iter_csv(f'roster_{SEASON}'):
@@ -397,6 +445,18 @@ def main() -> None:
                               hist[1] if hist else None)
         rates, games = proj['rates'], proj['games']
 
+        # In-season: blend toward this season's own rates, and re-estimate
+        # availability from games actually missed. Both are no-ops preseason.
+        n_live = 0
+        if gsis in live:
+            n_live, live_rates = live[gsis]
+            w = n_live / (n_live + IN_SEASON_K.get(bucket, 5.0))
+            rates = {c: (1 - w) * rates[c] + w * live_rates.get(c, rates[c]) for c in COMPS}
+            prior_rate = min(1.0, games / 17)
+            rate = ((n_live + AVAILABILITY_PSEUDO_COUNT * prior_rate)
+                    / (weeks_elapsed + AVAILABILITY_PSEUDO_COUNT)) if weeks_elapsed else prior_rate
+            games = min(17.0, n_live + max(0, 17 - weeks_elapsed) * rate)
+
         row = {
             'name': name, 'team': r.get('team'), 'pos': bucket,
             'nfl_pos': r.get('depth_chart_position') or r.get('position'),
@@ -404,6 +464,8 @@ def main() -> None:
             'games': round(games, 1),
             'rookie': hist is None,
             'draft_pick': pick if hist is None else None,
+            'inSeasonGames': n_live,
+            'inSeasonWeight': round(n_live / (n_live + IN_SEASON_K.get(bucket, 5.0)), 3) if n_live else 0,
         }
         for comp in COMPS:
             key = {'int': 'def_int', 'def_td': 'def_td'}.get(comp, comp)
@@ -494,6 +556,8 @@ def main() -> None:
             'defaultScoring': POINTS,
             'backtest': bt,
             'scheduleAdjusted': False,
+            'inSeasonK': IN_SEASON_K,
+            'availabilityPseudoCount': AVAILABILITY_PSEUDO_COUNT,
             'excludedNoHistoryOrDraft': skipped,
         },
         'players': rows,

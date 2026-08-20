@@ -38521,6 +38521,20 @@ function idpRowsFrom(doc) {
 }
 var IDP_POSITIONS = /* @__PURE__ */ new Set(["DL", "LB", "DB"]);
 
+// When the best player at a position misses a game, how much of his per-game
+// line do his position-mates actually absorb? Measured over 2016-2025 by
+// comparing what the rest of the position group produced in the weeks their
+// leader sat against the weeks he played:
+//
+//   RB +0.74x   QB +0.56x   WR +0.48x   TE +0.42x   (n = 204/63/163/216 team-seasons)
+//
+// Handcuff value is real and biggest at running back, but it is 74% of the
+// vacated line, not 100% — some of it goes to the other side of the ball, to a
+// slower game script, or simply never appears. Nothing is redistributed for K,
+// DST or IDP: those are team units or deep rotations where a single absence
+// does not hand one player the job.
+var VACATED_CAPTURE = { QB: 0.56, RB: 0.74, WR: 0.48, TE: 0.42 };
+
 // Punt/kick return components (scripts/build-return-projections.py), merged
 // onto whatever row already projects the player. The artifact publishes PER-GAME
 // rates as its primary output, so the season totals are computed here against
@@ -39794,7 +39808,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
   },
   {
     name: "get_weekly_projections",
-    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
+    description: `StatHead's first-party PER-WEEK fantasy projections for 2026 — the season projection (get_projections) split across the schedule: each week = season PPG \xD7 opponent defense-vs-position matchup multiplier (prior-season PPR allowed per game vs league average, heavily regressed) \xD7 home/away nudge, normalized so the 17 games sum back to the season line. Two modes: pass week (1-18) for that week's matchup-adjusted rankings (opponent, matchup %, projected points), or pass player_name alone for one player's full week-by-week outlook including the bye. Covers QB/RB/WR/TE plus kickers (current depth-chart PK1, position K), team defenses (position DST, name "<TEAM> DST", sleeper_id = team code) and individual defensive players (positions DL, LB, DB — the top 96 of each bucket by default-catalog points, which keeps pass rushers whose value is sacks rather than tackles). IDP weekly points come from the season component build split across the schedule, so the weekly feed and the season board quote one number. Expect the IDP matchup swing to be SMALL — a few percent, and near zero for DB: how much an offense concedes to a defensive bucket varies 29-43% within a season but barely repeats across one (yoy r = +0.25 DL, +0.24 LB, +0.08 DB), so the multiplier is shrunk to what persists. It sharpens in-season as current-year weeks blend in. In-season, the latest weekly injury designations are applied in week mode (Out/IR → 0, Doubtful \xD70.25, Questionable flagged) via an availability column, AND the vacated production is handed to the healthy players at the same position on that team — a promoted column shows how much each inherited. The capture rates are measured, not assumed: over 2016-2025, when the best player at a position missed a game his position-mates absorbed RB 0.74x, QB 0.56x, WR 0.48x, TE 0.42x of his per-game line. The rest evaporates into game script, so a handcuff is worth three quarters of his starter at most. The split is proportional to what the heirs were already projected for, which means two backups on identical projections split it evenly — we cannot tell you which is the true handcuff when the model rates them the same. No redistribution for K, DST or IDP. Every response carries as_of timestamps (weekly build + season base), and rows carry gp (projected games played), rest-of-season totals (rosPts, rosPPG, rosGames, gamesRemaining — weeks after the last one played, so preseason they equal the full season) plus gsis_id/sleeper_id (select via fields). Note that pts assumes the player plays that week, so a backup with a low gp ranks beside starters — check gp before ranking a roster. Use for start/sit lean, playoff-weeks (15-17) planning, and schedule-aware draft tiebreaks.`,
     input_schema: {
       type: "object",
       properties: {
@@ -42825,6 +42839,7 @@ ${renderTable(input, rows, cols2)}`;
         if (f !== 1) ovCount++;
         const game = oppFor(p.team, week);
         let pts = score(p, raw * f);
+        const healthyPts = pts;
         let availability = "";
         const pInj = applyInj ? injuryFor(p) : null;
         if (pInj) {
@@ -42840,6 +42855,8 @@ ${renderTable(input, rows, cols2)}`;
             availability = `${pInj.status} (wk ${pInj.week})`;
           }
         }
+        // What the absence frees up, for the next-man-up pass.
+        const vacated = Math.max(0, healthyPts - pts);
         return {
           name: p.name,
           position: p.pos,
@@ -42861,9 +42878,42 @@ ${renderTable(input, rows, cols2)}`;
           // column.
           gp: p.gp,
           gsis_id: p.gsis || null,
-          sleeper_id: p.sleeper || null
+          sleeper_id: p.sleeper || null,
+          // Bookkeeping for the next-man-up pass below, stripped before render.
+          _vacated: vacated,
+          _healthy: !pInj || !/^(out|ir|pup|injured reserve|doubtful)$/i.test(pInj.status)
         };
       }).filter(Boolean);
+
+      // ── Next man up ────────────────────────────────────────────────────────
+      // A starter ruled out does not just score zero — his touches go somewhere.
+      // Give VACATED_CAPTURE of his projected line back to the healthy players
+      // at the same position on the same team, split in proportion to what they
+      // were already projected for (the depth chart's own ordering, weighted).
+      // Applied only for QB/RB/WR/TE; K, DST and IDP are team units or deep
+      // rotations where one absence does not hand anyone the job.
+      let promoted = 0;
+      const vacatedByGroup = /* @__PURE__ */ new Map();
+      for (const r of rows) {
+        if (!r._vacated || !VACATED_CAPTURE[r.position]) continue;
+        const key = `${r.team}|${r.position}`;
+        vacatedByGroup.set(key, (vacatedByGroup.get(key) || 0) + r._vacated);
+      }
+      for (const [key, vacated] of vacatedByGroup) {
+        const [team, position] = key.split("|");
+        const heirs = rows.filter((r) => r.team === team && r.position === position && r._healthy && r.pts > 0);
+        const base = heirs.reduce((a, r) => a + r.pts, 0);
+        if (!heirs.length || base <= 0) continue;
+        const pool2 = VACATED_CAPTURE[position] * vacated;
+        for (const r of heirs) {
+          const add = pool2 * (r.pts / base);
+          r.pts = Math.round((r.pts + add) * 10) / 10;
+          r.promoted = `+${Math.round(add * 10) / 10}`;
+          promoted++;
+        }
+      }
+      for (const r of rows) { delete r._vacated; delete r._healthy; }
+
       rows.sort((a, b) => b.pts - a.pts);
       const total = rows.length;
       rows = rows.slice(0, limit);
@@ -42871,7 +42921,7 @@ ${renderTable(input, rows, cols2)}`;
       if (ovCount) ovNote = ` ${ovCount} player(s) scaled by your uploaded season-PPG overrides (import_excel); run clear_overrides to revert.`;
       const injHeader = inj ? applyInj ? ` Injury designations (week ${inj.week} report) applied: Out/IR → 0, Doubtful \xD70.25, Questionable flagged (${injCount} affected).` : ` Week ${inj.week} injury report available but not applied to a week-${week} rewind.` : " No in-season injury report available yet (availability blank).";
       const byeNote = byeTeams.length ? ` On bye (excluded): ${byeTeams.join(", ")}.` : "";
-      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "availability", "seasonPPG", "gp"];
+      const cols2 = ["name", "position", "team", "opp", "matchup", "pts", "promoted", "availability", "seasonPPG", "gp"];
       const thinWk = rows.filter((r) => Number.isFinite(Number(r.gp)) && Number(r.gp) <= 4);
       const thinWkNote = thinWk.length ? ` ${thinWk.length} row(s) have gp <= 4 (${thinWk.slice(0, 3).map((r) => `${r.name} ${r.gp}g`).join(", ")}${thinWk.length > 3 ? ", \u2026" : ""}) — pts for those is a rate conditional on playing, not an expectation of starting.` : "";
       return `StatHead weekly projections — ${doc.season} week ${week}, ${scoreLabel} (${rows.length} players, sorted by pts). pts = season PPG \xD7 opponent def-vs-pos matchup \xD7 home/away, normalized to the season line. gp = projected games played.${thinWkNote}${injHeader}${byeNote}${capNote}${ovNote}${asOf} gsis_id/sleeper_id available via fields.
@@ -43343,7 +43393,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.78";
+var SERVER_VERSION = "1.0.79";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
