@@ -334,6 +334,22 @@ def starting_kickers(season):
     return {t: {'name': v[2], 'gsis': v[3]} for t, v in best.items()}
 
 
+def weeks_played(season: int) -> int:
+    """Highest REG week with a final score. 0 preseason, which makes every
+    rest-of-season figure below equal the full-season one."""
+    latest = 0
+    for row in iter_csv_rows('games'):
+        if row.get('season') != str(season) or row.get('game_type') != 'REG':
+            continue
+        if not (row.get('home_score') or '').strip():
+            continue
+        try:
+            latest = max(latest, int(row['week']))
+        except (ValueError, TypeError):
+            continue
+    return latest
+
+
 def build_team_weeks(schedule):
     """team -> [ {w, opp, home} … ] for weeks 1..18 (bye weeks absent)."""
     by_team = defaultdict(dict)
@@ -589,6 +605,24 @@ def main():
         fh.write('\n')
     print(f'Wrote {ss_path}: {len(strength)} teams x {len(SS_POSITIONS)} positions')
 
+    # ── Rest-of-season ─────────────────────────────────────────────────────
+    # Derived from the weekly strip rather than pro-rating the season line, so a
+    # player whose remaining slate is harder than the part already played gets a
+    # lower number — the whole point of asking in week 5 rather than week 1.
+    #
+    # `wk` values assume the player suits up, so the availability discount is
+    # applied here the same way the season line applies it: gp / 17. Preseason
+    # (played_through = 0) rosPts equals the full-season projection exactly.
+    played_through = weeks_played(SEASON)
+    for r in players:
+        remaining = [v for w, v in enumerate(r['wk'], start=1)
+                     if w > played_through and v is not None]
+        avail = min(1.0, (r['gp'] or 0) / 17) if r['gp'] else 1.0
+        r['gamesRemaining'] = len(remaining)
+        r['rosGames'] = round(len(remaining) * avail, 1)
+        r['rosPts'] = round(sum(remaining) * avail, 1)
+        r['rosPPG'] = round(sum(remaining) / len(remaining), 2) if remaining else 0.0
+
     players.sort(key=lambda r: -r['ppg'])
     blend_note = (
         f'def-vs-pos blends {SEASON} weeks 1-{cur_weeks} at {w_cur:.0%} over {PRIOR}'
@@ -627,6 +661,15 @@ def main():
             f'observed and sharpens as in-season weeks blend in.'
         ),
         'weeks': WEEKS,
+        'playedThrough': played_through,
+        'rosNote': (
+            'rosPts / rosGames / rosPPG / gamesRemaining cover weeks after '
+            f'{played_through} (0 = preseason, so they equal the full season). '
+            'rosPts already carries the availability discount (gp/17); rosPPG '
+            'does not — it is the per-game rate over the remaining slate, which '
+            'differs from the season ppg when the rest of the schedule is '
+            'easier or harder than the part already played.'
+        ),
         'defVsPos': def_vs_pos,
         'teamWeeks': team_weeks,
         'players': players,
