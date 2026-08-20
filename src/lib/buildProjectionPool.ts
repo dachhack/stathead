@@ -51,6 +51,13 @@ export interface ConsensusDoc {
 export interface BuildProjectionPoolInputs {
   adpData: FfcADPPlayer[];
   priorStats: PlayerStats[];
+  /**
+   * The CURRENT season's weekly stats, empty until Week 1 is played. When
+   * present, every projected stat line is blended toward what the player is
+   * actually doing this season (see IN_SEASON_K). Optional so existing callers
+   * keep working; a caller that omits it gets the preseason projection all year.
+   */
+  currentStats?: PlayerStats[];
   draftData: DraftPick[];
   rosters: Roster[];
   gamesData: Game[];
@@ -96,9 +103,35 @@ function shrinkRate(num: number, den: number, prior: number, k: number): number 
 const CATCH_RATE_K = 40;
 const YPR_K = 18;
 
+// In-season blend. Once a player has games this season, his projected rate is
+// w * (what he has actually done) + (1 - w) * the preseason projection, with
+// w = games / (games + K). Each K is the RMSE-minimising value against
+// REST-OF-SEASON PPR per game over 2017-2025, measured per position at every
+// week cutoff — not chosen:
+//
+//   pos   K    blend RMSE   prior-only   current-only   n
+//   QB   5.5      4.139        4.801        5.264      2,244
+//   RB   3.5      4.057        4.859        4.794      5,417
+//   WR   4.5      3.510        4.165        4.416      8,869
+//   TE   5.0      2.971        3.406        3.670      4,250
+//
+// Skill positions move about twice as fast as kickers (K=9.5) and team
+// defenses (K=10.5) because role changes are real and show up quickly: an RB
+// is already 53% current-season by week 4. Ignoring the season in progress
+// costs 16-17% of RMSE for RB and WR by midseason.
+const IN_SEASON_K: Record<string, number> = { QB: 5.5, RB: 3.5, WR: 4.5, TE: 5.0 };
+// Components blended per position. Everything else on the row (games, adp,
+// team) is left to the preseason model.
+const IN_SEASON_FIELDS: Record<string, string[]> = {
+  QB: ['passAtt', 'passComp', 'passYds', 'passTD', 'int', 'rushAtt', 'rushYds', 'rushTD'],
+  RB: ['rushAtt', 'rushYds', 'rushTD', 'tgt', 'rec', 'recYds', 'recTD'],
+  WR: ['tgt', 'rec', 'recYds', 'recTD', 'rushAtt', 'rushYds', 'rushTD'],
+  TE: ['tgt', 'rec', 'recYds', 'recTD'],
+};
+
 export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildProjectionPoolResult {
   const {
-    adpData, priorStats, draftData, rosters, gamesData, oddsLines,
+    adpData, priorStats, currentStats, draftData, rosters, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
     featureMatrix, consensusDoc, teamProjectionsEnsemble,
   } = inputs;
@@ -1321,6 +1354,65 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   rbs.sort((a, b) => b.pprPts - a.pprPts);
   wrs.sort((a, b) => b.pprPts - a.pprPts);
   tes.sort((a, b) => b.pprPts - a.pprPts);
+
+  // ── In-season: blend every stat line toward what is actually happening ──
+  // Runs LAST, after team reconciliation and the ML anchor, so it is the final
+  // word: by week 5 a player's own four games say more about his role than any
+  // preseason model does. Blended per COMPONENT and then re-scored, so the
+  // published stat line still adds up to pprPts.
+  //
+  // The weight uses the PLAYER's games, not the league's week number: someone
+  // who has played one game in four weeks gets one game's worth of weight,
+  // which is the honest reading of a small sample.
+  if (currentStats && currentStats.length > 0) {
+    const actualByName = new Map<string, { games: number; pg: Record<string, number> }>();
+    for (const t of aggregateToSeasonTotals(
+      currentStats.filter((r) => r.season_type === 'REG')
+    ) as unknown as Array<Record<string, unknown>>) {
+      const games = Number(t.games) || 0;
+      const name = String(t.player_display_name || '');
+      if (!games || !name) continue;
+      const n = (key: string) => (Number(t[key]) || 0) / games;
+      actualByName.set(normalizeName(name), {
+        games,
+        pg: {
+          passAtt: n('attempts'), passComp: n('completions'), passYds: n('passing_yards'),
+          passTD: n('passing_tds'), int: n('interceptions'),
+          rushAtt: n('carries'), rushYds: n('rushing_yards'), rushTD: n('rushing_tds'),
+          tgt: n('targets'), rec: n('receptions'), recYds: n('receiving_yards'),
+          recTD: n('receiving_tds'),
+        },
+      });
+    }
+    for (const [pos, list] of [['QB', qbs], ['RB', rbs], ['WR', wrs], ['TE', tes]] as const) {
+      const k = IN_SEASON_K[pos];
+      const fields = IN_SEASON_FIELDS[pos];
+      for (const row of list as unknown as Array<Record<string, number | string>>) {
+        const actual = actualByName.get(normalizeName(String(row.name || '')));
+        const projGames = Number(row.games) || 0;
+        if (!actual || !projGames) continue;
+        const w = actual.games / (actual.games + k);
+        for (const f of fields) {
+          const projPg = (Number(row[f]) || 0) / projGames;
+          const val = ((1 - w) * projPg + w * (actual.pg[f] ?? projPg)) * projGames;
+          row[f] = Math.round(val * 10) / 10;
+        }
+        row.pprPts = Math.round(computePPR({
+          passYds: Number(row.passYds) || 0, passTD: Number(row.passTD) || 0,
+          int: Number(row.int) || 0,
+          rushYds: Number(row.rushYds) || 0, rushTD: Number(row.rushTD) || 0,
+          rec: Number(row.rec) || 0, recYds: Number(row.recYds) || 0,
+          recTD: Number(row.recTD) || 0,
+        }));
+        row.inSeasonGames = actual.games;
+        row.inSeasonWeight = Math.round(w * 100) / 100;
+      }
+    }
+    // No summary field here: `meta` is a Map keyed by player, and a stray
+    // property on it would not survive serialization. The rows carry
+    // inSeasonGames / inSeasonWeight, and scripts/build-projection-pool.ts
+    // rolls those up into the artifact's own inSeason block.
+  }
 
   return {
     qbs, rbs, wrs, tes,

@@ -38456,7 +38456,7 @@ async function statheadProjectionPool() {
       season: base.season || FFC_CURRENT_SEASON,
       scoring: "ppr",
       generatedAt: base.generatedAt || null,
-      note: "ppg = projected PPR points / projected games from StatHead's season projection pool, rebuilt on every data refresh. recPG = rec/game for TEP scoring.",
+      note: "ppg = projected PPR points / projected games from StatHead's season projection pool, rebuilt on every data refresh. In-season, every stat line blends toward what the player is ACTUALLY doing at games/(games+K) — K fitted per position against rest-of-season outcomes (QB 5.5, RB 3.5, WR 4.5, TE 5.0), so an RB is already 53% current-season by week 4. Rows carry inSeasonGames and inSeasonWeight once games are played. Note these remain FULL-SEASON lines including games already played, not rest-of-season. recPG = rec/game for TEP scoring.",
       players
     };
   }
@@ -43321,7 +43321,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.76";
+var SERVER_VERSION = "1.0.77";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

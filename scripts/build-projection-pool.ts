@@ -81,6 +81,21 @@ async function main() {
 
   // Serialize the PresetMeta map as the array shape precompute-projection-presets
   // consumes.
+  // In-season summary, rolled up from the rows the blend touched (empty until
+  // Week 1 is played).
+  const allRows = [...pool.qbs, ...pool.rbs, ...pool.wrs, ...pool.tes] as unknown as Array<Record<string, number>>;
+  const blendedRows = allRows.filter((r) => Number(r.inSeasonGames) > 0);
+  const inSeason = blendedRows.length
+    ? {
+        blendedPlayers: blendedRows.length,
+        maxGamesPlayed: Math.max(...blendedRows.map((r) => Number(r.inSeasonGames) || 0)),
+        meanWeight: Math.round(
+          (blendedRows.reduce((a, r) => a + (Number(r.inSeasonWeight) || 0), 0) / blendedRows.length) * 100
+        ) / 100,
+        note: 'Each stat line is blended toward this season\'s actuals at games/(games+K), K fitted per position (QB 5.5, RB 3.5, WR 4.5, TE 5.0) against rest-of-season outcomes over 2017-2025.',
+      }
+    : null;
+
   const meta = [...pool.meta.entries()].map(([key, m]) => ({
     key, isRookie: m.isRookie, yearsExp: m.yearsExp, age: m.age, priorGames: m.priorGames,
   }));
@@ -90,6 +105,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     qbs: pool.qbs, rbs: pool.rbs, wrs: pool.wrs, tes: pool.tes,
     meta,
+    inSeason,
   };
 
   const outPath = path.join(DATA, `projection-base-${season}.json`);
