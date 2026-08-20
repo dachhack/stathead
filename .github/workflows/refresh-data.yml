@@ -236,6 +236,12 @@ jobs:
       - name: Build punter projections
         run: python3 scripts/build-punter-projections.py 2026 || echo "punter projections build failed (non-fatal)"
 
+      # Head coaches. Depends on the market lines built above — win probability
+      # comes from the posted spread, and prior-season margin is barely better
+      # than guessing zero.
+      - name: Build head-coach projections
+        run: python3 scripts/build-hc-projections.py 2026 || echo "HC projections build failed (non-fatal)"
+
       # Split the freshly-rebuilt season pool into per-week projections
       # (opponent def-vs-pos multipliers + home/away, normalized back to the
       # season line). Reads projection-base + schedule + prior-year weekly
@@ -343,6 +349,7 @@ jobs:
                    public/data/return-projections-2026.json \
                    public/data/fb-projections-2026.json \
                    public/data/punter-projections-2026.json \
+                   public/data/hc-projections-2026.json \
                    public/data/schedule-strength-2026.json \
                    public/data/projection-history/ \
                    public/data/schedule-2026.json \
