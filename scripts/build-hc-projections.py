@@ -108,6 +108,10 @@ def main() -> None:
     for l in load_json(DATA / 'odds_nfl_lines.json', []):
         lines[(l.get('homeTeam'), l.get('awayTeam'))] = l
 
+    # Manual corrections over nflverse, which lags on offseason hires. Applied
+    # after the schedule scan below so an entry always wins.
+    overrides = load_json(DATA / 'coach-overrides.json', {}).get('overrides', {})
+
     # Coaches and prior-season margins. prior_coach is kept so a first-year
     # head coach can be flagged: seven teams changed coach for 2026.
     coach, prior_coach = {}, {}
@@ -131,6 +135,17 @@ def main() -> None:
                 continue
             prior_pts[r['home_team']].append(hs); prior_margin[r['home_team']].append(hs - aw)
             prior_pts[r['away_team']].append(aw); prior_margin[r['away_team']].append(aw - hs)
+
+    overridden = set()
+    for key, name in overrides.items():
+        season_str, _, team_str = key.partition(':')
+        if season_str == str(SEASON) and team_str:
+            if coach.get(team_str) != name:
+                overridden.add(team_str)
+            coach[team_str] = name
+    if overridden:
+        print(f'  coach overrides applied: {", ".join(sorted(overridden))} '
+              f'({", ".join(overrides[f"{SEASON}:{t}"] for t in sorted(overridden))})')
 
     league_pts = (sum(sum(v) for v in prior_pts.values())
                   / max(1, sum(len(v) for v in prior_pts.values())))
@@ -213,6 +228,7 @@ def main() -> None:
             # catalog (down conversions above all) are least trustworthy here.
             'new_coach': bool(prior_coach.get(team) and prior_coach[team] != coach.get(team)),
             'prior_coach': prior_coach.get(team),
+            'coach_source': 'override' if team in overridden else 'nflverse',
             'games': n, 'linedGames': lined,
             'wins': round(wins, 1), 'losses': round(n - wins - ties, 1), 'ties': round(ties, 2),
             'points': round(points, 1), 'points_pg': round(points / n, 2),

@@ -38602,6 +38602,12 @@ async function fetchModelEval(season) {
 async function fetchCoachTendencies() {
   return await tryPreFetched("coach-tendencies.json");
 }
+// Manual head-coach corrections over nflverse, which lags on offseason hires
+// (for 2026 it has Todd Monken to CLE but not Kevin Stefanski to ATL).
+async function fetchCoachOverrides() {
+  const doc = await tryPreFetched("coach-overrides.json").catch(() => null);
+  return doc?.overrides || {};
+}
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
@@ -42674,7 +42680,7 @@ ${renderTable(input, rows)}`;
             third_down_conv: c.third_down_conv, third_down_conv_pg: c.third_down_conv_pg,
             fourth_down_conv: c.fourth_down_conv, fourth_down_conv_pg: c.fourth_down_conv_pg,
             lined_games: c.linedGames,
-            new_coach: c.new_coach, prior_coach: c.prior_coach,
+            new_coach: c.new_coach, prior_coach: c.prior_coach, coach_source: c.coach_source,
             // Ladder rungs flattened: the table renderer cannot show nested
             // objects, and these are the columns a margin ladder scores.
             ...Object.fromEntries(Object.entries(c.win_margin_bands || {}).map(([k, v]) => [`win_by_${k}`, v])),
@@ -42806,7 +42812,7 @@ ${renderTable(input, rows)}`;
         // Head coach (position HC) — wins and the margin ladder.
         "wins", "losses", "ties", "points", "points_pg", "margin_pg", "margin_game_sd",
         "third_down_conv", "third_down_conv_pg", "fourth_down_conv", "fourth_down_conv_pg",
-        "lined_games", "new_coach", "prior_coach",
+        "lined_games", "new_coach", "prior_coach", "coach_source",
         "win_by_1-6", "win_by_7-12", "win_by_13-18", "win_by_19-24", "win_by_25-30", "win_by_31-plus",
         "lose_by_1-6", "lose_by_7-12", "lose_by_13-18", "lose_by_19-24", "lose_by_25-30", "lose_by_31-plus"];
       const out = rows.map((r) => {
@@ -43200,7 +43206,8 @@ ${renderTable(input, rows, cols)}`;
         const names = Object.keys(doc.coaches);
         coachName = names.find((n) => nameMatch(n, coachQ)) || names.find((n) => cnorm(n).includes(cnorm(coachQ)));
       } else if (team && season != null) {
-        coachName = doc.byTeamSeason?.[`${season}:${team}`] || null;
+        const overrides = await fetchCoachOverrides();
+        coachName = overrides[`${season}:${team}`] || doc.byTeamSeason?.[`${season}:${team}`] || null;
         // A team+season can resolve to a coach with NO head-coaching record —
         // seven teams changed coach for 2026 and four of those hires (Minter,
         // Monken, Hafley, Kubliak) have never been a head coach. Reading
@@ -43528,7 +43535,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.85";
+var SERVER_VERSION = "1.0.86";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION
