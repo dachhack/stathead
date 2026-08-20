@@ -37407,13 +37407,20 @@ function nflUrl(releaseSubpath) {
   }
   return `${NFLVERSE_REMOTE}/${releaseSubpath}`;
 }
+// nflverse's unified stats_player table renamed these; the old names are kept
+// as aliases so every consumer keeps working.
+//
+// `dakota` is deliberately NOT in this list any more. It used to be aliased to
+// passing_cpoe, which is a different statistic — dakota was an EPA+CPOE
+// composite, cpoe is completion percentage over expected alone — so anything
+// reading `dakota` was getting a plausible number that meant something else.
+// The unified table does not publish dakota at all, so the honest answer is
+// that the field is gone; passing_cpoe is available under its own name.
 var NEW_COL_MAP = {
   team: "recent_team",
   passing_interceptions: "interceptions",
   sacks_suffered: "sacks",
-  sack_yards_lost: "sack_yards",
-  passing_cpoe: "dakota"
-  // closest equivalent
+  sack_yards_lost: "sack_yards"
 };
 function normalizePlayerRow(row) {
   for (const [newCol, oldCol] of Object.entries(NEW_COL_MAP)) {
@@ -39794,7 +39801,7 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
         preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
-        sort_by: { type: "string", description: "Sort column, descending. Default: ppg. Use projPts to rank players against each other — ppg is conditional on playing (see the tool description)." },
+        sort_by: { type: "string", description: "Sort column, descending. Default: projPts (season total), which is the right ranking for a draft board. In-season pass rosPts to rank on what is left. ppg is conditional on playing, so sorting by it puts token backup lines above real starters." },
         min_games: { type: "number", description: "Only return players projected for at least this many games. Use it to drop the small-denominator backups whose ppg outranks real starters (e.g. min_games: 8)." },
         limit: { type: "number", description: "Max players (default 50)." }
       },
@@ -42564,7 +42571,11 @@ ${renderTable(input, rows)}`;
       const playerName = input.player_name;
       const preset = input.preset?.toLowerCase();
       const limit = clamp(input.limit || 50, 1, 1e3);
-      const sortBy = input.sort_by || "ppg";
+      // projPts, not ppg. ppg is conditional on playing, so a backup carrying a
+      // token two-game line (Justin Fields at KC: 44 points over 2 games = 22.0)
+      // outranked every real starter on the default board. The tool has told
+      // callers to rank on projPts for a while; the default now matches.
+      const sortBy = input.sort_by || "projPts";
       let pool;
       let season;
       let scoring = "PPR";
@@ -43422,7 +43433,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.81";
+var SERVER_VERSION = "1.0.82";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

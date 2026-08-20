@@ -335,12 +335,16 @@ function nflUrl(releaseSubpath: string): string {
 // nflverse renamed the player_stats release to stats_player starting ~2025
 // with column renames: recent_team→team, interceptions→passing_interceptions,
 // sacks→sacks_suffered, sack_yards→sack_yards_lost, dakota removed
+// `dakota` is deliberately absent: it was aliased to passing_cpoe, which is a
+// DIFFERENT statistic (dakota was an EPA+CPOE composite; cpoe is completion
+// percentage over expected alone), so readers of `dakota` got a plausible
+// number meaning something else. The unified table does not publish dakota;
+// passing_cpoe is available under its own name.
 const NEW_COL_MAP: Record<string, string> = {
   team: 'recent_team',
   passing_interceptions: 'interceptions',
   sacks_suffered: 'sacks',
   sack_yards_lost: 'sack_yards',
-  passing_cpoe: 'dakota', // closest equivalent
 };
 
 function normalizePlayerRow(row: Record<string, unknown>): Record<string, unknown> {
