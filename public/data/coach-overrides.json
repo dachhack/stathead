@@ -1,6 +1,12 @@
 {
-  "note": "Manual head-coach corrections, applied over nflverse's schedule (games.csv home_coach/away_coach). nflverse lags on offseason hires and can be internally inconsistent — for 2026 it picked up Todd Monken to CLE but not Kevin Stefanski to ATL, still listing Raheem Morris. Entries here win. Each one is a liability: delete it once nflverse catches up, or it will silently override a correct value. Key is <season>:<team>.",
+  "note": "Manual head-coach corrections, applied over nflverse's schedule (games.csv home_coach/away_coach). nflverse lags on offseason and in-cycle changes and is internally inconsistent about them — for 2026 it picked up Todd Monken to CLE but not Stefanski to ATL, and it still carries both coaches who were fired in January. Entries here win. Each one is a liability: delete it once nflverse catches up, or it will silently override a correct value. Key is <season>:<team>.",
   "overrides": {
-    "2026:ATL": "Kevin Stefanski"
+    "2026:ATL": "Kevin Stefanski",
+    "2026:BUF": "Joe Brady",
+    "2026:ARI": "Mike LaFleur",
+    "2026:LV": "Klint Kubiak"
+  },
+  "spellingCorrections": {
+    "2026:LV": "nflverse spells him Klint Kubliak; the correct spelling is Kubiak. Same person, not a coaching change — but it is an override like any other and needs removing when upstream fixes it."
   }
 }
