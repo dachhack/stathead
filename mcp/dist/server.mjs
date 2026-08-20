@@ -38602,6 +38602,12 @@ async function fetchModelEval(season) {
 async function fetchCoachTendencies() {
   return await tryPreFetched("coach-tendencies.json");
 }
+// Manual head-coach corrections over nflverse, which lags on offseason hires
+// (for 2026 it has Todd Monken to CLE but not Kevin Stefanski to ATL).
+async function fetchCoachOverrides() {
+  const doc = await tryPreFetched("coach-overrides.json").catch(() => null);
+  return doc?.overrides || {};
+}
 async function fetchProjectionPresets() {
   return await tryPreFetched("redraft-projections-presets.json");
 }
@@ -42674,6 +42680,7 @@ ${renderTable(input, rows)}`;
             third_down_conv: c.third_down_conv, third_down_conv_pg: c.third_down_conv_pg,
             fourth_down_conv: c.fourth_down_conv, fourth_down_conv_pg: c.fourth_down_conv_pg,
             lined_games: c.linedGames,
+            new_coach: c.new_coach, prior_coach: c.prior_coach, coach_source: c.coach_source,
             // Ladder rungs flattened: the table renderer cannot show nested
             // objects, and these are the columns a margin ladder scores.
             ...Object.fromEntries(Object.entries(c.win_margin_bands || {}).map(([k, v]) => [`win_by_${k}`, v])),
@@ -42681,7 +42688,7 @@ ${renderTable(input, rows)}`;
           }));
           if (coaches.length) {
             pool = pool.concat(coaches);
-            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions, with NO ppg or projPts (no standard coach scoring exists — price the components). MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate.`;
+            hcNote = ` Head-coach rows included, as_of ${hcDoc.generatedAt || "unknown"}: wins/losses/ties from market win probability, points scored, margin distribution and third/fourth-down conversions, with NO ppg or projPts (no standard coach scoring exists — price the components). MARGIN LADDERS: win_by_* and lose_by_* are expected GAME COUNTS integrated over a per-game margin sd of ${hcDoc.teams?.[0]?.margin_game_sd ?? 12.71}, not the season mean scored against a rung — a coach projected to win by 6 lands all over the ladder. Down conversions barely belong to the coach (third-down yoy r=+0.18), so every team sits near the league rate. new_coach flags teams that changed coach — 7 of 32 for 2026 — where the whole row is built from the previous staff's team history; prior_coach names whose numbers they actually are.`;
           }
         }
         if (position === "P" || playerName) {
@@ -42805,7 +42812,7 @@ ${renderTable(input, rows)}`;
         // Head coach (position HC) — wins and the margin ladder.
         "wins", "losses", "ties", "points", "points_pg", "margin_pg", "margin_game_sd",
         "third_down_conv", "third_down_conv_pg", "fourth_down_conv", "fourth_down_conv_pg",
-        "lined_games",
+        "lined_games", "new_coach", "prior_coach", "coach_source",
         "win_by_1-6", "win_by_7-12", "win_by_13-18", "win_by_19-24", "win_by_25-30", "win_by_31-plus",
         "lose_by_1-6", "lose_by_7-12", "lose_by_13-18", "lose_by_19-24", "lose_by_25-30", "lose_by_31-plus"];
       const out = rows.map((r) => {
@@ -43199,7 +43206,22 @@ ${renderTable(input, rows, cols)}`;
         const names = Object.keys(doc.coaches);
         coachName = names.find((n) => nameMatch(n, coachQ)) || names.find((n) => cnorm(n).includes(cnorm(coachQ)));
       } else if (team && season != null) {
-        coachName = doc.byTeamSeason?.[`${season}:${team}`] || null;
+        const overrides = await fetchCoachOverrides();
+        coachName = overrides[`${season}:${team}`] || doc.byTeamSeason?.[`${season}:${team}`] || null;
+        // A team+season can resolve to a coach with NO head-coaching record —
+        // seven teams changed coach for 2026 and four of those hires (Minter,
+        // Monken, Hafley, Kubliak) have never been a head coach. Reading
+        // .career off that threw "Cannot read properties of undefined".
+        // Answer the question that was actually asked instead: who has the job,
+        // that they are new, and whose tendencies the team's history belongs to.
+        if (coachName && !doc.coaches?.[coachName]) {
+          const prior = [];
+          for (let y = Number(season) - 1; y >= Number(season) - 6; y--) {
+            const who = doc.byTeamSeason?.[`${y}:${team}`];
+            if (who && who !== coachName && !prior.includes(who)) prior.push(who);
+          }
+          return `${coachName} is ${team}'s head coach for ${season} and has no head-coaching record — first-time hire, so there are no tendencies to report. Coverage is ${doc.seasons?.[0] ?? 2016}-${doc.seasons?.[doc.seasons.length - 1] ?? 2025}.${prior.length ? ` ${team}'s recent tendencies belong to ${prior.join(", then ")}, not to him — treat anything you infer from the team's history as the PREVIOUS staff's, and expect scheme numbers (pass rate, pace, shotgun) to move.` : ""} Ask by coach name for someone with a record, e.g. get_coach_tendencies({coach: "${Object.keys(doc.coaches || {})[0] || "Andy Reid"}"}).`;
+        }
       }
       const findPlayerRows = (q) => {
         const nq = cnorm(q);
@@ -43513,7 +43535,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.84";
+var SERVER_VERSION = "1.0.86";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

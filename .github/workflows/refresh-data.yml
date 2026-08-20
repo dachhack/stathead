@@ -350,6 +350,7 @@ jobs:
                    public/data/fb-projections-2026.json \
                    public/data/punter-projections-2026.json \
                    public/data/hc-projections-2026.json \
+                   public/data/coach-overrides.json \
                    public/data/schedule-strength-2026.json \
                    public/data/projection-history/ \
                    public/data/schedule-2026.json \

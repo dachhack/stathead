@@ -108,8 +108,14 @@ def main() -> None:
     for l in load_json(DATA / 'odds_nfl_lines.json', []):
         lines[(l.get('homeTeam'), l.get('awayTeam'))] = l
 
-    # Coaches and prior-season margins.
-    coach, prior_pts, prior_margin = {}, defaultdict(list), defaultdict(list)
+    # Manual corrections over nflverse, which lags on offseason hires. Applied
+    # after the schedule scan below so an entry always wins.
+    overrides = load_json(DATA / 'coach-overrides.json', {}).get('overrides', {})
+
+    # Coaches and prior-season margins. prior_coach is kept so a first-year
+    # head coach can be flagged: seven teams changed coach for 2026.
+    coach, prior_coach = {}, {}
+    prior_pts, prior_margin = defaultdict(list), defaultdict(list)
     for r in iter_csv('games'):
         if r.get('game_type') != 'REG':
             continue
@@ -120,11 +126,26 @@ def main() -> None:
             if r.get('away_coach'):
                 coach[r['away_team']] = r['away_coach']
         if season == SEASON - 1:
+            if r.get('home_coach'):
+                prior_coach[r['home_team']] = r['home_coach']
+            if r.get('away_coach'):
+                prior_coach[r['away_team']] = r['away_coach']
             hs, aw = fnum(r.get('home_score')), fnum(r.get('away_score'))
             if hs is None:
                 continue
             prior_pts[r['home_team']].append(hs); prior_margin[r['home_team']].append(hs - aw)
             prior_pts[r['away_team']].append(aw); prior_margin[r['away_team']].append(aw - hs)
+
+    overridden = set()
+    for key, name in overrides.items():
+        season_str, _, team_str = key.partition(':')
+        if season_str == str(SEASON) and team_str:
+            if coach.get(team_str) != name:
+                overridden.add(team_str)
+            coach[team_str] = name
+    if overridden:
+        print(f'  coach overrides applied: {", ".join(sorted(overridden))} '
+              f'({", ".join(overrides[f"{SEASON}:{t}"] for t in sorted(overridden))})')
 
     league_pts = (sum(sum(v) for v in prior_pts.values())
                   / max(1, sum(len(v) for v in prior_pts.values())))
@@ -200,6 +221,14 @@ def main() -> None:
         rows.append({
             'name': coach.get(team, f'{team} HC'), 'team': team, 'pos': 'HC',
             'sleeper': f'{team.lower()}-hc',
+            # Whether this is the same coach who ran the team last year. The
+            # projection is built from the TEAM's market prices and history, so
+            # a first-year coach inherits his predecessor's numbers — flagged
+            # rather than hidden, because the scheme-driven parts of a coach
+            # catalog (down conversions above all) are least trustworthy here.
+            'new_coach': bool(prior_coach.get(team) and prior_coach[team] != coach.get(team)),
+            'prior_coach': prior_coach.get(team),
+            'coach_source': 'override' if team in overridden else 'nflverse',
             'games': n, 'linedGames': lined,
             'wins': round(wins, 1), 'losses': round(n - wins - ties, 1), 'ties': round(ties, 2),
             'points': round(points, 1), 'points_pg': round(points / n, 2),
@@ -233,7 +262,13 @@ def main() -> None:
             'margin_game_sd is published so you can re-integrate your own rungs. Down '
             'conversions barely belong to the coach — third-down yoy r=+0.18, fourth-down '
             '+0.27 — so both are kept at a fifth of face value and everyone sits near the '
-            'league rate. Ties are the league rate (0.379% of games) for every team.'
+            'league rate. Ties are the league rate (0.379% of games) for every team. '
+            'new_coach flags the teams that changed head coach for this season: everything '
+            'here is built from the TEAM\'s market prices and history, so a first-year coach '
+            'inherits his predecessor\'s profile. Wins and points survive that — the market '
+            'prices the roster, not the man — but the scheme-driven parts, down conversions '
+            'above all, should be read as the PREVIOUS staff\'s until this season produces '
+            'evidence. prior_coach names whose numbers they really are.'
         ),
         'method': {
             'winProbK': WIN_PROB_K,

@@ -1,0 +1,6 @@
+{
+  "note": "Manual head-coach corrections, applied over nflverse's schedule (games.csv home_coach/away_coach). nflverse lags on offseason hires and can be internally inconsistent — for 2026 it picked up Todd Monken to CLE but not Kevin Stefanski to ATL, still listing Raheem Morris. Entries here win. Each one is a liability: delete it once nflverse catches up, or it will silently override a correct value. Key is <season>:<team>.",
+  "overrides": {
+    "2026:ATL": "Kevin Stefanski"
+  }
+}
