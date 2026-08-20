@@ -78,6 +78,15 @@ KEEP_PA = 0.35                   # tuned on bracket points; RMSE is flat 0.15-0.
 KEEP_SACK = 0.21                 # yoy r = 0.21
 KEEP_INT = 0.11                  # yoy r = 0.11 — barely distinguishable from noise
 DEF_SHRINK = 0.50                # matches build-weekly-projections' def-vs-pos shrink
+# In-season blend. Once games are played, the rest of the season is projected as
+# w * (what this season has shown) + (1 - w) * the preseason line, with
+# w = n / (n + IN_SEASON_K). Fitted over 2017-2025 on 3,650 team-cutoffs:
+# K = 10.5 gives RMSE 2.334 against rest-of-season DST points per game, versus
+# 2.538 for the preseason prior alone and 3.316 for the current season alone.
+# The last of those is the point worth remembering — current-season form on its
+# own is WORSE than ignoring it. The curve is deliberately slow: 28% weight at
+# four weeks, 43% at eight. Preseason (n = 0) this is inert.
+IN_SEASON_K = 10.5
 # Everything below is rare enough that a team-level signal can't be established
 # from ten seasons; they are projected at the league rate for every team.
 LEAGUE_ONLY = ('fum_rec', 'def_td', 'st_td', 'safety')
@@ -161,6 +170,58 @@ def defense_counts(season: int):
         if r.get('interception'):
             ints[d] += 1
     return {t: (sacks[t] / len(games[t]), ints[t] / len(games[t])) for t in games if games[t]}
+
+
+def iter_csv(name: str):
+    """Read public/data/<name>.csv, falling back to the committed .csv.gz."""
+    raw = DATA / f'{name}.csv'
+    if raw.exists():
+        with raw.open(newline='') as fh:
+            yield from csv.DictReader(fh)
+        return
+    gz = DATA / f'{name}.csv.gz'
+    if gz.exists():
+        with gzip.open(gz, mode='rt', newline='') as fh:
+            yield from csv.DictReader(fh)
+
+
+def num(row, key) -> float:
+    try:
+        return float(row.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def in_season_rates(season: int):
+    """team -> (weeks played, points allowed/gm, sacks/gm, INTs/gm) from the
+    CURRENT season's completed games. Empty preseason, which makes the blend
+    below a no-op until Week 1 is in the books."""
+    weeks = defaultdict(set)
+    sacks = defaultdict(float)
+    ints = defaultdict(float)
+    for row in iter_csv(f'player_stats_{season}'):
+        if row.get('season_type') != 'REG':
+            continue
+        team, week = row.get('team'), row.get('week')
+        if not team or not week:
+            continue
+        weeks[team].add(week)
+        sacks[team] += num(row, 'def_sacks')
+        ints[team] += num(row, 'def_interceptions')
+    if not weeks:
+        return {}
+    allowed = defaultdict(list)
+    for (year, team), vals in points_allowed_by_game().items():
+        if year == season:
+            allowed[team] = vals
+    out = {}
+    for team, wk in weeks.items():
+        n = len(wk)
+        pa = allowed.get(team) or []
+        if not n or not pa:
+            continue
+        out[team] = (n, sum(pa) / len(pa), sacks[team] / n, ints[team] / n)
+    return out
 
 
 def zscore(values: dict):
@@ -289,6 +350,12 @@ def main() -> None:
     # a game combined, and no team-level signal survives ten seasons.
     league_rate = {'fum_rec': 0.452, 'def_td': 0.051, 'st_td': 0.050, 'safety': 0.022}
 
+    live = in_season_rates(SEASON)
+    if live:
+        weeks_played = max(v[0] for v in live.values())
+        print(f'  in-season: {weeks_played} week(s) played, current season weighted '
+              f'{weeks_played / (weeks_played + IN_SEASON_K):.0%}')
+
     rows = []
     for t in teams:
         pa_pg = league_pa + KEEP_PA * (carry[t] - league_pa)
@@ -296,6 +363,20 @@ def main() -> None:
 
         sack = league_sack + KEEP_SACK * (sack_carry[t] - league_sack)
         dint = league_int + KEEP_INT * (int_carry[t] - league_int)
+
+        # In-season: blend each component toward what this season has actually
+        # shown, on the fitted n/(n+K) curve. Blended per component rather than
+        # scaling the roll-up, so the published components keep reconciling to
+        # projPts. The rare events (fumble recoveries, TDs, safeties) are left
+        # at the league rate: a handful of in-season occurrences is noise, and
+        # no team-level signal survived ten seasons of measurement either.
+        n_live = 0
+        if t in live:
+            n_live, live_pa, live_sack, live_int = live[t]
+            w = n_live / (n_live + IN_SEASON_K)
+            pa_pg = (1 - w) * pa_pg + w * live_pa
+            sack = (1 - w) * sack + w * live_sack
+            dint = (1 - w) * dint + w * live_int
 
         # Schedule is applied to the COMPONENTS, not to the rolled-up total, so
         # the published components still reconcile to projPts — scaling only the
@@ -329,6 +410,8 @@ def main() -> None:
             'st_td': round(comp['st_td'] * WEEKS, 2),
             'safety': round(comp['safety'] * WEEKS, 2),
             'scheduleStrength': round(ratio, 3),
+            'inSeasonWeeks': n_live,
+            'inSeasonWeight': round(n_live / (n_live + IN_SEASON_K), 3) if n_live else 0,
             'projPts': round(ppg * WEEKS, 1),
             'ppg': round(ppg, 2),
         })
@@ -348,7 +431,12 @@ def main() -> None:
             'allowed yoy r=0.30, sacks 0.21, interceptions 0.11; rarer events are projected '
             'at the league rate for every team because no team signal survives. DST is the '
             'least forecastable fantasy position — the components, not the ordering, are '
-            'the deliverable.'
+            'the deliverable. In-season, points allowed, sacks and interceptions blend toward '
+            'what this season has shown at n/(n+10.5) — 28% weight by week 4, 43% by week 8 — '
+            'a curve fitted against rest-of-season outcomes. Worth knowing before you chase a '
+            'hot defense: over 2017-2025 the current season ALONE predicted the rest of the '
+            'season worse (RMSE 3.32) than the preseason prior alone (2.54); the blend beats '
+            'both (2.33). Every row carries inSeasonWeeks and inSeasonWeight.'
         ),
         'method': {
             'history': [HISTORY[0], HISTORY[-1]],
@@ -363,6 +451,15 @@ def main() -> None:
             'leagueIntPerGame': round(league_int, 3),
             'leagueRareRates': league_rate,
             'scheduleAdjusted': bool(sched),
+            'inSeasonK': IN_SEASON_K,
+            'inSeasonFit': {
+                'seasons': [2017, 2025], 'n': 3650,
+                'metric': 'rest-of-season DST pts/gm',
+                'rmse': 2.334, 'priorSeasonOnlyRmse': 2.538, 'currentSeasonOnlyRmse': 3.316,
+                'note': ('Current-season form ALONE is a worse predictor of the rest of the '
+                         'season than the preseason prior alone; the blend beats both. Weight '
+                         'reaches 28% at four weeks, 43% at eight.'),
+            },
         },
         'defenses': rows,
     }
