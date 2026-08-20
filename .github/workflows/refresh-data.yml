@@ -11,13 +11,22 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
+# NO workflow-level concurrency group. This workflow used to sit in the shared
+# `pages` group with deploy.yml, so a scheduled refresh that queued behind a
+# deploy was superseded and cancelled — and the DATA work went with it. Two of
+# five refreshes were lost that way on 2026-08-19. The group belongs on the
+# deploy job alone (below), which is the part that actually needs serializing;
+# the build job only needs to not overlap itself.
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Serialized against other refresh runs, never against deployments. A
+    # refresh is worth more than the deploy it might be waiting behind: the
+    # commit is the product, and the next deploy picks up the same content.
+    concurrency:
+      group: refresh-data
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
         with:
@@ -386,6 +395,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    # THIS is what has to be serialized with deploy.yml — GitHub Pages accepts
+    # one deployment at a time. Losing this job to a queue costs a deploy, not
+    # a data refresh.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
