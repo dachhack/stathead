@@ -276,6 +276,62 @@ export async function fetchPlayerOverview(espnId: string, limit = 8): Promise<Pl
   }
 }
 
+/**
+ * Inflate a `.gz` sibling's body — but only if the bytes really are still
+ * gzipped.
+ *
+ * Hosts disagree on how they serve a file whose name ends in `.gz`. Some
+ * hand back the raw gzip bytes as an opaque `application/gzip` body; others
+ * tag the response `Content-Encoding: gzip`, in which case the fetch layer
+ * has already inflated it by the time `response.body` is readable. Piping
+ * an already-inflated body through DecompressionStream throws ("incorrect
+ * header check"), and every call site here swallows the error into a
+ * null/empty result — which is how a whole board's worth of model scores
+ * can silently disappear on one host while working on another. Reproduced
+ * end-to-end: with a host that sets Content-Encoding on the `.gz`, the
+ * prospects board rendered '-' in every model column.
+ *
+ * So sniff the gzip magic number (0x1f 0x8b) on the first chunk and only
+ * decompress when it's there. Streaming is preserved: the peeked chunk is
+ * pushed back in front of the rest of the body rather than buffering the
+ * whole (up to ~95 MiB inflated) file.
+ */
+export async function maybeGunzipStream(
+  body: ReadableStream<Uint8Array>,
+): Promise<ReadableStream<Uint8Array>> {
+  const reader = body.getReader();
+  const first = await reader.read();
+  const head = first.value;
+  const isGzip = !!head && head.length >= 2 && head[0] === 0x1f && head[1] === 0x8b;
+  const rest = new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (head && head.length) controller.enqueue(head);
+      if (first.done) controller.close();
+    },
+    async pull(controller) {
+      const { value, done } = await reader.read();
+      if (done) controller.close();
+      else if (value) controller.enqueue(value);
+    },
+    cancel(reason) {
+      void reader.cancel(reason);
+    },
+  });
+  if (!isGzip) return rest;
+  // DecompressionStream's lib.dom writable is WritableStream<BufferSource>,
+  // which doesn't unify with our ReadableStream<Uint8Array> chunk type.
+  const gunzip = new DecompressionStream('gzip') as unknown as ReadableWritablePair<
+    Uint8Array,
+    Uint8Array
+  >;
+  return rest.pipeThrough(gunzip);
+}
+
+/** Read a `.gz` sibling as text, inflating only when the body is still gzipped. */
+export async function readMaybeGzText(body: ReadableStream<Uint8Array>): Promise<string> {
+  return await new Response(await maybeGunzipStream(body)).text();
+}
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
   // In Node, try local file first
@@ -295,8 +351,7 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
     // fall back to the .gz sibling and inflate it.
     const gz = await fetchWithTimeout(`${base}data/${filename}.gz`);
     if (gz.ok && gz.body) {
-      const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
-      return JSON.parse(text) as T;
+      return JSON.parse(await readMaybeGzText(gz.body)) as T;
     }
     return null;
   } catch {
@@ -316,7 +371,7 @@ export async function fetchMaybeGz(url: string): Promise<Response> {
   if (r.ok) return r;
   const gz = await fetch(`${url}.gz`);
   if (gz.ok && gz.body) {
-    const text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+    const text = await readMaybeGzText(gz.body);
     return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
   return r; // propagate the original non-OK response; callers handle !ok
@@ -556,7 +611,7 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
     if (!gz.ok || !gz.body) {
       throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }
-    text = await new Response(gz.body.pipeThrough(new DecompressionStream('gzip'))).text();
+    text = await readMaybeGzText(gz.body);
   }
   const result = Papa.parse<T>(text, {
     header: true,
@@ -1432,12 +1487,9 @@ export async function fetchNextGenStats(
     }
     const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
     if (!response.ok) continue;
-    const buf = await response.arrayBuffer();
-    const decompressed = new TextDecoder().decode(
-      await new Response(
-        new Response(buf).body!.pipeThrough(new DecompressionStream('gzip'))
-      ).arrayBuffer()
-    );
+    const decompressed = response.body
+      ? await readMaybeGzText(response.body)
+      : '';
     const result = Papa.parse<NextGenStats>(decompressed, {
       header: true,
       dynamicTyping: true,

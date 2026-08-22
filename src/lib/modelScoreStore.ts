@@ -32,6 +32,8 @@ export interface CareerScore {
   thresholdProbs: Record<number, number>;
   boomProb?: number;       // P(outperform by > 0.75×MAE), heteroscedastic by prediction tier
   bustProb?: number;       // P(underperform by > 0.75×MAE), heteroscedastic by prediction tier
+  boomZ?: number;          // talent-gap boom score, z vs the position's class (Python model)
+  bustZ?: number;          // talent-gap bust score, z vs the position's class (Python model)
   features?: Record<string, number>;
   featurePercentiles?: Record<string, number>; // 0-100 cross-year within position
   school?: string;

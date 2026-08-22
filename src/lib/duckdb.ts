@@ -26,6 +26,7 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { normalizeName } from './featureTypes';
+import { maybeGunzipStream } from '../data';
 
 let dbPromise: Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBConnection }> | null = null;
 
@@ -150,13 +151,13 @@ function renameVendorKeys(row: Record<string, unknown>): Record<string, unknown>
 
 /** Fetch + gunzip a .csv.gz source file, return the raw CSV bytes ready to
  *  register with DuckDB. Uses the browser-native DecompressionStream so we
- *  don't pull in a JS gzip library. */
+ *  don't pull in a JS gzip library — via maybeGunzipStream, which skips the
+ *  inflate on hosts that already decoded the body (Content-Encoding: gzip). */
 async function fetchCsvGz(filename: string): Promise<Uint8Array | null> {
   try {
     const resp = await fetch(`${BASE}data/${filename}.gz`);
     if (!resp.ok || !resp.body) return null;
-    const ds = new DecompressionStream('gzip');
-    const stream = resp.body.pipeThrough(ds);
+    const stream = await maybeGunzipStream(resp.body);
     return new Uint8Array(await new Response(stream).arrayBuffer());
   } catch {
     return null;
