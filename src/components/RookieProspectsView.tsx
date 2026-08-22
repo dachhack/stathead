@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { CombineResult, FantasyRanking, DynastyPlayer, SortDirection } from '../types';
 import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchMaybeGz } from '../data';
-import { loadCareerScores } from '../lib/modelScoreClient';
+import { loadCareerScores, loadCareerScoreIndex } from '../lib/modelScoreClient';
+import type { CareerModelScore } from '../lib/modelScoreClient';
 import type { CareerScore } from '../lib/modelScoreStore';
 import { PlayerCard } from './PlayerCard';
 import { PlayerName } from './PlayerName';
@@ -183,6 +184,9 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
   const [posThresholds, setPosThresholds] = useState<Record<string, number[]>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<ProspectRow | null>(null);
   const [scoreStore, setScoreStore] = useState<CareerScore[]>([]);
+  // True when neither model-score source loaded — say so instead of
+  // rendering a full board of '-' that reads like "no model coverage".
+  const [scoresDegraded, setScoresDegraded] = useState(false);
 
   useEffect(() => {
     loadCareerScores().then(setScoreStore).catch(() => {});
@@ -196,13 +200,31 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       fetchMaybeGz(`${import.meta.env.BASE_URL}data/feature-matrix.json`)
         .then(r => r.ok ? r.json() : null)
         .catch(() => null),
+      // Same career-model numbers, from the published score-store shard
+      // (~7 MiB) instead of the 25 MiB feature matrix. Every model column
+      // on this board used to hang off that one big file, so any hiccup
+      // loading it (host 404, a `.gz` the host already inflated, an
+      // out-of-memory parse) blanked PCTL / PPG / TIER / BOOM Z / BUST Z /
+      // T1-T4 for all 96 prospects with no visible error. The shard is
+      // written by the same build pass, so the two agree.
+      loadCareerScoreIndex(DRAFT_YEAR).catch(() => ({
+        byName: new Map<string, CareerModelScore>(),
+        posThresholds: {} as Record<string, number[]>,
+      })),
     ])
-      .then(([combine, fpRankings, dynastyPlayers, featureData]) => {
-        // Career predictions from model
-        const careerMap = new Map<string, { ppg: number; thresholdProbs: Record<number, number>; combinedScore: number; percentile: number; modelTier: number; boomProb: number; bustProb: number; boomZ?: number; bustZ?: number; features?: Record<string, number> }>();
+      .then(([combine, fpRankings, dynastyPlayers, featureData, careerIndex]) => {
+        // Career predictions: shard first, then let the feature matrix
+        // enrich/override where it loaded (it carries the raw feature
+        // vectors the ht/wt/forty fallback and the player card read).
+        const careerMap = new Map<string, CareerModelScore>(careerIndex.byName);
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
-            careerMap.set(normalizeName(p.name), {
+            // Canonicalize before normalizing so the alias axes the row
+            // builders already collapse (Nick vs Nicholas Singleton) key
+            // the same on both sides of this join.
+            const key = normalizeName(canonicalizePlayerName(p.name));
+            const prev = careerMap.get(key);
+            careerMap.set(key, {
               ppg: p.predictedCareerPPG,
               thresholdProbs: p.thresholdProbs || {},
               combinedScore: p.combinedScore || 0,
@@ -210,14 +232,16 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
               modelTier: p.modelTier || 0,
               boomProb: p.boomProb || 0,
               bustProb: p.bustProb || 0,
-              boomZ: p.boomZ,
-              bustZ: p.bustZ,
+              boomZ: p.boomZ ?? prev?.boomZ,
+              bustZ: p.bustZ ?? prev?.bustZ,
               features: p.features,
             });
           }
         }
-        // Position-specific thresholds from career models
-        const posThresholds: Record<string, number[]> = {};
+        setScoresDegraded(careerMap.size === 0);
+        // Position-specific thresholds from career models, falling back to
+        // the ladders implied by the shard's thresholdProbs keys.
+        const posThresholds: Record<string, number[]> = { ...careerIndex.posThresholds };
         if (featureData?.rookieCareerModels) {
           for (const [pos, m] of Object.entries(featureData.rookieCareerModels as Record<string, any>)) {
             if (m?.thresholds) posThresholds[pos] = m.thresholds;
@@ -658,6 +682,20 @@ export function RookieProspectsView({ onDataLoaded }: { onDataLoaded?: (data: un
       <div style={{ padding: '0 16px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
         {filtered.length} prospects &middot; Prospect grades, draft projections, combine measurables, and expert consensus rankings
       </div>
+
+      {scoresDegraded && (
+        <div
+          style={{
+            margin: '0 16px 8px', padding: '8px 12px', fontSize: 12,
+            color: '#fbbf24', background: 'rgba(251, 191, 36, 0.08)',
+            border: '1px solid rgba(251, 191, 36, 0.35)', borderRadius: 6,
+          }}
+        >
+          Model scores didn&rsquo;t load &mdash; the PCTL, Model PPG, Tier, Boom/Bust and
+          tier-probability columns are blank for every prospect. Grades, draft slots and
+          rankings below are unaffected. Reload to retry.
+        </div>
+      )}
 
       <div className="table-container">
         <table>

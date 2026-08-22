@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PlayerName } from './PlayerName';
 import { fetchCombine, fetchFantasyRankings, fetchDynastyRankingsForDisplay, fetchRosters, fetchMaybeGz } from '../data';
 import { canonicalizePlayerName } from '../lib/combineNameAliases';
+import { loadCareerScoreIndex } from '../lib/modelScoreClient';
+import type { CareerModelScore } from '../lib/modelScoreClient';
 import { applyScenario, isScenarioEmpty, loadAllScenarios } from '../lib/scenarioEngine';
 import type {
   CombineResult,
@@ -185,8 +187,15 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
       fetchMaybeGz(`${BASE}data/feature-matrix.json`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${BASE}data/redraft-projections.json`).then(r => r.ok ? r.json() : { players: [] }).catch(() => ({ players: [] })),
       fetchRosters(DRAFT_YEAR).catch(() => [] as Roster[]),
+      // Career-model scores from the published score-store shard, so the
+      // model columns survive a failed load of the 25 MiB feature matrix
+      // (see RookieProspectsView for the same fallback).
+      loadCareerScoreIndex(DRAFT_YEAR).catch(() => ({
+        byName: new Map<string, CareerModelScore>(),
+        posThresholds: {} as Record<string, number[]>,
+      })),
     ])
-      .then(([combineData, fpData, dynastyData, featureData, redraftData, rosterData]) => {
+      .then(([combineData, fpData, dynastyData, featureData, redraftData, rosterData, careerIndex]) => {
         setCombine(combineData);
         setFpRanks(fpData);
         setDynasty(dynastyData);
@@ -194,17 +203,31 @@ export function MyProspectRankings({ scenario }: { scenario: ScenarioConfig }) {
         setRosters(rosterData);
 
         const cm = new Map<string, CareerPrediction>();
+        for (const [key, s] of careerIndex.byName) {
+          cm.set(key, {
+            ppg: s.ppg,
+            combinedScore: s.combinedScore,
+            percentile: s.percentile,
+            modelTier: s.modelTier,
+            boomProb: s.boomProb,
+            bustProb: s.bustProb,
+            boomZ: s.boomZ,
+            bustZ: s.bustZ,
+          });
+        }
         if (featureData?.careerPredictions2026) {
           for (const p of featureData.careerPredictions2026) {
-            cm.set(normalizeName(p.name), {
+            const key = normalizeName(canonicalizePlayerName(p.name));
+            const prev = cm.get(key);
+            cm.set(key, {
               ppg: p.predictedCareerPPG || 0,
               combinedScore: p.combinedScore || 0,
               percentile: p.percentile || 0,
               modelTier: p.modelTier || 0,
               boomProb: p.boomProb || 0,
               bustProb: p.bustProb || 0,
-              boomZ: p.boomZ,
-              bustZ: p.bustZ,
+              boomZ: p.boomZ ?? prev?.boomZ,
+              bustZ: p.bustZ ?? prev?.bustZ,
             });
           }
         }

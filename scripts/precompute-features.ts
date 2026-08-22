@@ -2386,6 +2386,10 @@ async function main() {
         thresholdProbs: p.thresholdProbs || {},
         boomProb: p.boomProb || 0,
         bustProb: p.bustProb || 0,
+        // Carry the talent-gap z-scores too: the prospect boards render
+        // BOOM Z / BUST Z straight off this shard.
+        boomZ: p.boomZ,
+        bustZ: p.bustZ,
         features: p.features,
         school: p.school, projPick: p.projPick || p.adp,
       });
