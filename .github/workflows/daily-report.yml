@@ -50,9 +50,13 @@ jobs:
         run: pip install --quiet --upgrade stathead || echo "stathead install failed — report will flag it"
 
       - name: Generate report
+        id: gen
         run: |
           python3 scripts/daily-report.py report.md report.html
           cat report.md >> "$GITHUB_STEP_SUMMARY"
+          # Subject carries the health verdict (✅/⚠️/🚨) so an incomplete
+          # surface alerts from the inbox list without opening the email.
+          echo "subject=$(head -n1 report-subject.txt 2>/dev/null || echo 'StatHead Daily Report')" >> "$GITHUB_OUTPUT"
 
       - name: Check mail secrets
         id: cfg
@@ -77,7 +81,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           from: StatHead Bot <${{ secrets.MAIL_USERNAME }}>
           to: ${{ secrets.REPORT_TO_EMAIL }}
-          subject: "StatHead Daily Report — ${{ github.run_id }}"
+          subject: "${{ steps.gen.outputs.subject }} — ${{ github.run_id }}"
           # Styled HTML body, with the Markdown as the plain-text fallback for
           # clients that don't render HTML.
           html_body: file://report.html

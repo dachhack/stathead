@@ -138,6 +138,13 @@ def load_json(name):
         return None
 
 
+def load_json_src(name):
+    try:
+        return json.loads((Path("src/data") / name).read_text())
+    except Exception:
+        return None
+
+
 def count_commits_since(hours, pattern):
     since = (NOW - timedelta(hours=hours)).isoformat()
     out = sh(["git", "log", f"--since={since}", "--format=%s"]) or ""
@@ -423,6 +430,114 @@ def section_freshness():
     return "\n".join(md), _card("Data freshness", _html_table(["Surface", "Age", "Last commit"], rows)), stale
 
 
+def section_audit():
+    """Completeness audit: does each surface actually CONTAIN what the site
+    and MCP expect? Freshness (above) catches a builder that stopped running;
+    this catches the other failure mode — the file is fresh but its entries
+    are missing, truncated, or dropped a field a consumer renders. (Aug 2026:
+    the Big Board showed '-' in every model column for weeks; freshness was
+    green the whole time because feature-matrix.json kept committing.)
+
+    Floors are ~60-70% of healthy counts, so they alert on collapse rather
+    than normal drift. Bump them if a surface legitimately shrinks.
+    """
+    issues, rows, md_rows = [], [], []
+
+    def chk(surface, n, floor, detail="", ok=True):
+        good = ok and n is not None and n >= floor
+        if not good:
+            issues.append(surface)
+        icon = "\u2705" if good else "\U0001F6A8"
+        shown = "?" if n is None else str(n)
+        note = detail or (f"\u2265{floor} expected" if not good else "\u2014")
+        md_rows.append(f"| {surface} | {icon} {shown} | {note} |")
+        rows.append([surface, (f"{icon} {shown}", C_TEXT if good else C_RED),
+                     (note[:60], C_MUTED if good else C_RED)])
+
+    def n_of(obj, *keys):
+        for k in keys:
+            v = (obj or {}).get(k)
+            if isinstance(v, (list, dict)):
+                return len(v)
+        return None
+
+    # Feature matrix — the file every model view enriches from.
+    fm = load_json("feature-matrix.json") or {}
+    cp = fm.get("careerPredictions2026") or []
+    gaps = sum(1 for r in cp if not r.get("percentile") or not r.get("modelTier"))
+    chk("Career predictions (feature matrix)", len(cp), 80,
+        detail=(f"{gaps} rows missing percentile/tier" if gaps else ""), ok=gaps == 0)
+    rcm = fm.get("rookieCareerModels") or {}
+    pos_ok = all(len((rcm.get(p) or {}).get("thresholds") or []) == 4 for p in ("QB", "RB", "WR", "TE"))
+    chk("Rookie career models (4 pos \u00d7 4 thresholds)", len(rcm), 4, ok=pos_ok,
+        detail="" if pos_ok else "position missing thresholds")
+    chk("Season predictions (ensemble)", len(fm.get("predictions2026") or []), 300)
+    chk("Season PPG predictions", len(fm.get("ppgPredictions2026") or []), 400)
+
+    # Score store — the shard-per-model source the boards now read first.
+    manifest = (load_json("score-store/manifest.json") or {}).get("models", {})
+    career = load_json("score-store/career.json") or []
+    c26 = [x for x in career if x.get("draftSeason") == SEASON]
+    want = (manifest.get("career") or {}).get("count")
+    chk(f"Score store \u00b7 career {SEASON}", len(c26), 80,
+        ok=(want is None or len(c26) == want),
+        detail=(f"manifest says {want}" if want is not None and len(c26) != want else ""))
+    bz = sum(1 for x in c26 if x.get("boomZ") is not None)
+    chk("Score store \u00b7 boom/bust z coverage", bz, max(1, int(len(c26) * 0.9)) if c26 else 1,
+        detail=f"{bz}/{len(c26)} rows")
+    for shard, floor in (("adp", 300), ("ppg", 400), ("volumes", 300)):
+        n = len(load_json(f"score-store/{shard}.json") or [])
+        want = (manifest.get(shard) or {}).get("count")
+        chk(f"Score store \u00b7 {shard}", n, floor,
+            ok=(want is None or n == want),
+            detail=(f"manifest says {want}" if want is not None and n != want else ""))
+
+    # The join the Big Board renders: every graded fantasy prospect should
+    # have a career score. Missing names here = '-' rows on the site.
+    grades = load_json_src("prospect-grades-2026.json") or []
+    graded = [g for g in grades if g.get("pos") in ("QB", "RB", "WR", "TE")]
+    have = {nm_norm(x.get("name")) for x in c26}
+    missing = [g["name"] for g in graded if nm_norm(g.get("name")) not in have]
+    chk("Big Board join (graded \u2192 career score)", len(graded) - len(missing),
+        len(graded), ok=not missing,
+        detail=("all matched" if not missing else
+                "unscored: " + ", ".join(missing[:5]) + ("\u2026" if len(missing) > 5 else "")))
+
+    # Projection surfaces the site + MCP serve.
+    base = load_json(f"projection-base-{SEASON}.json") or {}
+    for k, floor in (("qbs", 40), ("rbs", 80), ("wrs", 100), ("tes", 60)):
+        chk(f"Projection base \u00b7 {k}", n_of(base, k), floor)
+    presets = (load_json("redraft-projections-presets.json") or {}).get("presets") or {}
+    worst = min((len(v) for v in presets.values()), default=0)
+    chk("Projection presets", len(presets), 4,
+        ok=("consensus" in presets and worst >= 300),
+        detail=f"smallest preset {worst} players")
+    chk("Redraft projections", n_of(load_json("redraft-projections.json"), "players"), 300)
+    chk("Weekly projections", n_of(load_json(f"weekly-projections-{SEASON}.json"), "players"), 500)
+    chk("Kicker projections", n_of(load_json(f"kicker-projections-{SEASON}.json"), "kickers"), 30)
+    chk("DST projections", n_of(load_json(f"dst-projections-{SEASON}.json"), "defenses"), 30)
+
+    # Market values + identity.
+    chk("Dynasty values (FC 1QB)", len(load_json("fantasycalc_dynasty_1qb.json") or []), 300)
+    chk("Dynasty values (FC SF)", len(load_json("fantasycalc_dynasty_sf.json") or []), 300)
+    chk("KTC rankings (SF)", len(load_json("ktc_rankings_superflex.json") or []), 300)
+    chk("Player crosswalk", n_of(load_json("player-crosswalk.json"), "players"), 8000)
+
+    # Combine feed (the prospect boards' base rows).
+    try:
+        with gzip.open(DATA / "combine.csv.gz", "rt", errors="replace") as f:
+            n26 = sum(1 for r in csv.DictReader(f) if r.get("season") == str(SEASON))
+    except Exception:
+        n26 = None
+    chk(f"Combine prospects {SEASON}", n26, 150)
+
+    md = ["## Data completeness audit", "",
+          "| Surface | Entries | Note |", "|---|---|---|"] + md_rows + [""]
+    title = ("Data completeness audit" if not issues
+             else f"Data completeness audit \u2014 {len(issues)} issue(s)")
+    return "\n".join(md), _card(title, _html_table(["Surface", "Entries", "Note"], rows)), issues
+
+
 def section_roster():
     changes = roster_changes(24)
     if changes is None:
@@ -643,6 +758,7 @@ def main():
     vi_md, vi_html = section_visitors()
     pl_md, pl_html = section_pipeline()
     fr_md, fr_html, stale = section_freshness()
+    au_md, au_html, gaps = section_audit()
     ro_md, ro_html = section_roster()
     ms_md, ms_html = section_model_snapshot()
     pk_md, pk_html, pkg_ok = section_package()
@@ -650,14 +766,18 @@ def main():
 
     headline = "✅ all surfaces fresh" if not stale else f"⚠️ {len(stale)} stale surface(s): {', '.join(stale)}"
     badge_color = C_GREEN if not stale else C_AMBER
+    audit_badge = ("✅ data complete" if not gaps
+                   else f"🚨 {len(gaps)} incomplete surface(s): {', '.join(gaps[:4])}"
+                        + ("…" if len(gaps) > 4 else ""))
+    audit_color = C_GREEN if not gaps else C_RED
     pkg_badge = "✅ package healthy" if pkg_ok else "⚠️ package issue"
     pkg_badge_color = C_GREEN if pkg_ok else C_AMBER
 
     md = "\n".join([
         f"# StatHead Daily Report — {NOW:%Y-%m-%d}", "",
-        f"_{headline} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
+        f"_{headline} · {audit_badge} · {pkg_badge} · generated {NOW:%Y-%m-%d %H:%M UTC}_", "",
         f"[Open StatHead →]({SITE}) · player names link to their detail page", "",
-        vi_md, pl_md, fr_md, ro_md, ms_md, pk_md, kt_md,
+        vi_md, pl_md, fr_md, au_md, ro_md, ms_md, pk_md, kt_md,
     ])
     print(md)
 
@@ -670,19 +790,31 @@ def main():
         f'<div style="margin:0 0 14px;">'
         f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{badge_color};'
         f'border-radius:12px;padding:3px 10px;">{esc(headline)}</span>'
+        f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{audit_color};'
+        f'border-radius:12px;padding:3px 10px;margin-left:8px;">{esc(audit_badge)}</span>'
         f'<span style="display:inline-block;font-size:12px;font-weight:600;color:#fff;background:{pkg_badge_color};'
         f'border-radius:12px;padding:3px 10px;margin-left:8px;">{esc(pkg_badge)}</span>'
         f'<a href="{SITE}" style="display:inline-block;font-size:12px;font-weight:600;color:#fff;'
         f'background:{C_BLUE};border-radius:12px;padding:3px 12px;margin-left:8px;'
         f'text-decoration:none;">Open StatHead →</a>'
         f'</div>'
-        f'{vi_html}{pl_html}{fr_html}{ro_html}{ms_html}{pk_html}{kt_html}'
+        f'{vi_html}{pl_html}{fr_html}{au_html}{ro_html}{ms_html}{pk_html}{kt_html}'
         f'<div style="font-size:11px;color:{C_MUTED};margin-top:6px;">Generated by scripts/daily-report.py</div>'
         f'</div></body>'
     )
 
     if len(sys.argv) > 1:
         Path(sys.argv[1]).write_text(md)
+        # Subject line for the email step — puts the alert where you'll see
+        # it without opening the report. Kept short so mobile clients show
+        # the state, not an ellipsis.
+        if gaps:
+            subject = f"🚨 StatHead Daily — {len(gaps)} incomplete surface(s)"
+        elif stale or not pkg_ok:
+            subject = f"⚠️ StatHead Daily — {len(stale)} stale / pkg {'ok' if pkg_ok else 'issue'}"
+        else:
+            subject = "✅ StatHead Daily — all healthy"
+        Path(sys.argv[1]).with_name("report-subject.txt").write_text(subject + "\n")
     if len(sys.argv) > 2:
         Path(sys.argv[2]).write_text(html_doc)
     return 0
