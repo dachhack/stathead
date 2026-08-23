@@ -1,0 +1,79 @@
+name: Refresh Tankathon 2027 Mock
+
+# Refreshes the Tankathon 2027 mock-draft snapshot and rescores the 2027
+# class with the pre-draft rookie career model, using the fresh pick as
+# the model's projected draft capital.
+#
+# Runs on a GitHub runner because tankathon.com is egress-blocked in the
+# Claude sandbox (the same reason Clay's guide has refresh-clay.yml).
+# Dispatch it from the Actions tab, or let the weekly cron keep the board
+# current through the college season. The push uses GITHUB_TOKEN, which
+# by design does not trigger the Pages deploy — the refreshed data ships
+# with the next deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Fetch and report, but do not commit'
+        required: false
+        default: 'false'
+  schedule:
+    # Mondays 14:00 UTC — after the college football weekend.
+    - cron: '0 14 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-tankathon
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Scheduled runs fire on the default branch; the live data lives
+          # on the dev branch, so check it out explicitly (daily-report.yml
+          # does the same).
+          ref: claude/nfl-fantasy-workbench-6D1yd
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: pip install --quiet beautifulsoup4 lxml
+      - run: npm ci
+
+      - name: Fetch the Tankathon mock + patch the board
+        run: python3 scripts/fetch-tankathon-2027.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+      - name: Rescore the 2027 class with the rookie model
+        if: inputs.dry_run != 'true'
+        run: npx tsx scripts/score-career-2027.ts
+
+      - name: Commit
+        if: inputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/tankathon-2027.json public/data/career-2027.json
+          if git diff --cached --quiet; then
+            echo "Mock unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Refresh Tankathon 2027 mock + rescore class ($(date -u +%F)) [skip ci]"
+          for i in 1 2 3; do
+            git push origin "HEAD:claude/nfl-fantasy-workbench-6D1yd" && exit 0
+            git pull --rebase -X theirs origin "claude/nfl-fantasy-workbench-6D1yd" || true
+          done
+          echo "::error::Failed to push the refreshed mock after 3 attempts."
+          exit 1

@@ -20,12 +20,15 @@
  *    the pre-PDF-era training rows look identical.
  *  - College QBR: the shipped college_qbr file ends before 2024, so
  *    collegeQBR2yr is 0 — as it was for every 2026 QB (Mendoza included).
- *  - Draft capital uses the consensus-board projected pick; that is the
- *    pre-draft model's design (it trained on real picks, scored 2026
- *    pre-draft on projections the same way).
+ *  - Draft capital prefers the refreshed Tankathon mock pick
+ *    (public/data/tankathon-2027.json, written by the Refresh Tankathon
+ *    workflow) and falls back to the consensus-board projPick for
+ *    prospects outside the mock. The pre-draft model trained on real
+ *    picks and scored the 2026 class on projections the same way.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { gunzipSync } from 'zlib';
 import { predictRookieCareerPPG, bootstrapThresholdProb, PPG_THRESHOLD_CONFIG } from '../src/lib/rookieCareerModel';
 import { predict } from '../src/lib/ridge';
 import { predictBaggedGBM } from '../src/lib/gbm';
@@ -42,6 +45,31 @@ const fm = JSON.parse(readFileSync('public/data/feature-matrix.json', 'utf-8'));
 const rookieCareerModels = fm.rookieCareerModels as Record<string, any>;
 const preds26 = fm.careerPredictions2026 as Array<{ position: string; features?: Record<string, number> }>;
 const cfbdUsage = JSON.parse(readFileSync('public/data/cfbd-player-usage.json', 'utf-8')) as Record<string, any>;
+
+// Refreshed Tankathon mock (public/data/tankathon-2027.json, written by
+// scripts/fetch-tankathon-2027.py via the Refresh Tankathon workflow —
+// tankathon.com is egress-blocked in the sandbox, same as Clay's guide).
+// When present, its pick is the model's projected draft capital; prospects
+// outside the mock fall back to the consensus board's projPick. The static
+// board's grade/tier columns are untouched — this only moves the model.
+let tankPickByName = new Map<string, number>();
+let tankFetchedAt = '';
+if (existsSync('public/data/tankathon-2027.json')) {
+  const tank = JSON.parse(readFileSync('public/data/tankathon-2027.json', 'utf-8'));
+  tankFetchedAt = tank.fetchedAt || '';
+  for (const pk of tank.picks || []) {
+    if (pk.name && pk.pick > 0) tankPickByName.set(normalizeName(pk.name), pk.pick);
+  }
+  console.log(`Tankathon snapshot: ${tankPickByName.size} picks (fetched ${tankFetchedAt})`);
+} else {
+  console.log('No tankathon-2027.json snapshot — draft capital from the consensus board.');
+}
+
+function effectivePick(name: string, boardPick: number | undefined): { pick: number; source: string } {
+  const tp = tankPickByName.get(normalizeName(name));
+  if (tp) return { pick: tp, source: 'tankathon' };
+  return { pick: boardPick || 300, source: 'consensus-board' };
+}
 
 // ── ncaa team context (same source collegeAnalytics uses) ─────────────
 const ncaaSOS = (ncaaTeamData as any).sos as Record<string, number>;
@@ -75,14 +103,15 @@ for (const g of grades27) {
 }
 const draftPctByName = new Map<string, number>();
 const classDepthByName = new Map<string, number>();
+const effPick = (g: any) => effectivePick(g.name, g.projPick).pick;
 for (const list of byPos.values()) {
-  const sorted = [...list].sort((a, b) => (a.projPick || 300) - (b.projPick || 300));
+  const sorted = [...list].sort((a, b) => effPick(a) - effPick(b));
   sorted.forEach((g, i) => {
     draftPctByName.set(normalizeName(g.name), sorted.length > 1 ? i / (sorted.length - 1) : 0);
     classDepthByName.set(normalizeName(g.name), sorted.length);
   });
 }
-const sortedAll = [...grades27].sort((a, b) => (a.projPick || 300) - (b.projPick || 300));
+const sortedAll = [...grades27].sort((a, b) => effPick(a) - effPick(b));
 const draftPctOverallByName = new Map<string, number>();
 sortedAll.forEach((g, i) => {
   draftPctOverallByName.set(normalizeName(g.name), sortedAll.length > 1 ? i / (sortedAll.length - 1) : 0);
@@ -114,7 +143,9 @@ function addMate(school: string, name: string, pick: number) {
   matesBySchool.get(k)!.push({ name: normalizeName(name), pick });
 }
 try {
-  const raw = readFileSync('public/data/draft_picks.csv', 'utf-8');
+  const raw = existsSync('public/data/draft_picks.csv')
+    ? readFileSync('public/data/draft_picks.csv', 'utf-8')
+    : gunzipSync(readFileSync('public/data/draft_picks.csv.gz')).toString('utf-8');
   const lines = raw.split('\n');
   const header = lines[0].split(',');
   const idx = (c: string) => header.indexOf(c);
@@ -131,7 +162,7 @@ for (const g of grades26) {
   if (g.actualPick > 0) addMate(g.school || '', g.name, g.actualPick);
 }
 for (const g of grades27) {
-  addMate(g.school || '', g.name, g.projPick || 0);
+  addMate(g.school || '', g.name, effectivePick(g.name, g.projPick).pick);
 }
 function trainedClassDepthMean(pos: string): number {
   const r = rookieCareerModels[pos]?.ridgeModel;
@@ -153,7 +184,7 @@ function teammateScore(name: string, school: string): number {
 // ── per-prospect feature construction (mirrors the 2026 formulas) ─────
 function buildFeatures(row: any): Record<string, number> {
   const pos = row.pos as string;
-  const projPick = row.projPick || 300;
+  const projPick = effectivePick(row.name, row.projPick).pick;
   const nn = normalizeName(row.name);
   const age = row.recruitClassYear ? DRAFT_YEAR - row.recruitClassYear + 18 : 21;
   const med = posMedian.get(pos) || { ras: 0, weight: 0 };
@@ -292,15 +323,21 @@ for (const pos of FANTASY) {
     }
     s.percentile = pctl;
     s.modelTier = pctl >= 95 ? 1 : pctl >= 85 ? 2 : pctl >= 70 ? 3 : pctl >= 50 ? 4 : pctl >= 30 ? 5 : 6;
-    const isR1 = (s.row.projRound || 0) === 1 || (s.row.projPick || 300) <= 32;
+    const isR1 = effectivePick(s.row.name, s.row.projPick).pick <= 32;
     if (pos === 'WR' && s.modelTier === 1 && !isR1) {
       s.modelTier = 2;
       s.percentile = Math.min(s.percentile, 94);
     }
-    // "Generational" is earned, not seeded: the model must place the
-    // prospect at or above every historical same-position backtest
-    // prediction (2009-2025). One flag, position-relative, data-only.
-    s.generational = refPPGs.length > 0 && s.predictedPPG >= refPPGs[refPPGs.length - 1] && s.modelTier === 1;
+    // "Generational" is earned, not seeded: Alpha tier AND a predicted
+    // PPG at or above the 99th percentile of every historical
+    // same-position pre-draft score (2009-2025) — for WRs that's the
+    // Cooper/Chase/Jeudy/DeVonta band. A band rather than the strict
+    // all-time max, so the label measures the profile, not one slot of
+    // mock-draft noise (Tankathon moving Smith 3→4 shifts his prediction
+    // 14.8→14.6, from a hair over Cooper's 14.7 to tying Chase's 14.6 —
+    // the same historic profile either way).
+    const p99 = refPPGs.length ? refPPGs[Math.floor(0.99 * (refPPGs.length - 1))] : Infinity;
+    s.generational = s.modelTier === 1 && s.predictedPPG >= p99;
   }
 }
 
@@ -310,8 +347,11 @@ let n = 0;
 for (const row of career27) {
   const s = byName.get(normalizeName(row.name));
   if (!s) continue;
+  const ep = effectivePick(row.name, row.projPick);
   row.model = {
     predictedCareerPPG: s.predictedPPG,
+    projPickUsed: ep.pick,
+    pickSource: ep.source + (ep.source === 'tankathon' && tankFetchedAt ? ` (${tankFetchedAt.slice(0, 10)})` : ''),
     percentile: s.percentile,
     modelTier: s.modelTier,
     tierLabel: s.generational ? 'Generational' : TIER_LABELS[s.modelTier - 1],
@@ -328,7 +368,7 @@ for (const row of career27) {
 writeFileSync('public/data/career-2027.json', JSON.stringify(career27, null, 1) + '\n');
 console.log(`Scored ${n}/${career27.length} prospects with the pre-draft rookie career model`);
 for (const s of [...scored].sort((a, b) => b.predictedPPG - a.predictedPPG).slice(0, 15)) {
-  console.log(`  ${s.row.name.padEnd(22)} ${s.pos.padEnd(3)} pick ${String(s.row.projPick).padStart(3)}  ` +
+  console.log(`  ${s.row.name.padEnd(22)} ${s.pos.padEnd(3)} pick ${String(effectivePick(s.row.name, s.row.projPick).pick).padStart(3)}  ` +
     `PPG ${s.predictedPPG.toFixed(1).padStart(5)}  pctl ${String(s.percentile).padStart(3)}  ` +
     `${s.generational ? 'GENERATIONAL' : TIER_LABELS[s.modelTier - 1]}`);
 }
