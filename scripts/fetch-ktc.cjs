@@ -153,10 +153,80 @@ async function fetchKTCHistory() {
   console.log(`  Saved ${outfile} (${allHistory.length} players)`);
 }
 
+
+// KTC also prices DEVY players (college prospects yet to be drafted) on the
+// same site framework — the page embeds the identical playersArray blob.
+// One file carries both formats' values (each page ships oneQBValues +
+// superflexValues). Non-fatal by design: a devy layout change must never
+// cost the daily NFL snapshot.
+async function fetchKTCDevy() {
+  const outfile = path.join(OUT, 'ktc_rankings_devy.json');
+  if (fs.existsSync(outfile)) {
+    console.log(`  [skip] ${outfile} already exists`);
+    return;
+  }
+  console.log('  Fetching KTC devy rankings...');
+  const allPlayers = [];
+  const seen = new Set();
+  for (let page = 0; page < 10; page++) {
+    const url = `https://keeptradecut.com/devy-rankings?page=${page}&filters=QB|WR|RB|TE&format=1`;
+    let html;
+    try {
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': UA, 'Referer': 'https://keeptradecut.com/' },
+      });
+      if (!resp.ok) {
+        if (page === 0) throw new Error(`KTC devy returned ${resp.status}`);
+        break;
+      }
+      html = await resp.text();
+    } catch (err) {
+      if (page === 0) throw err;
+      break;
+    }
+    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
+    if (!match) {
+      if (page === 0) throw new Error('Could not find playersArray in KTC devy page');
+      break;
+    }
+    const players = JSON.parse(match[1]);
+    let added = 0;
+    for (const p of players) {
+      const id = Number(p.playerID) || 0;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const oneQB = p.oneQBValues || {};
+      const sf = p.superflexValues || {};
+      allPlayers.push({
+        playerID: id,
+        playerName: String(p.playerName || ''),
+        position: String(p.position || ''),
+        positionRank: Number(oneQB.positionalRank ?? p.positionRank) || 0,
+        // On devy pages `team` is the college program.
+        team: String(p.team || ''),
+        age: Number(p.age) || 0,
+        value: Number(oneQB.value ?? p.value) || 0,
+        superflexValue: Number(sf.value ?? p.superflexValue) || 0,
+        slug: String(p.slug || ''),
+      });
+      added++;
+    }
+    console.log(`    Devy page ${page}: ${players.length} players (${added} new)`);
+    if (added === 0) break;
+  }
+  fs.writeFileSync(outfile, JSON.stringify(allPlayers));
+  console.log(`  Saved ${outfile} (${allPlayers.length} unique devy players)`);
+}
+
 async function main() {
   await fetchKTCRankings('1qb', '1');
   await fetchKTCRankings('superflex', '0');
   await fetchKTCHistory();
+  try {
+    await fetchKTCDevy();
+  } catch (err) {
+    console.log(`  Devy fetch failed (non-fatal): ${err.message}`);
+  }
 }
 
 main().catch(err => {

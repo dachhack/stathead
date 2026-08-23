@@ -22,7 +22,7 @@ type SortField =
   | 'projPick' | 'grade' | 'name' | 'pos' | 'school' | 'recruitStars'
   | 'careerRecYds' | 'careerRushYds' | 'careerPassYds' | 'careerRecTDs'
   | 'careerPassTDs' | 'careerRushTDs' | 'usage2025' | 'consensusRank'
-  | 'pffRank' | 'tankathonPick' | 'modelPpg' | 'modelPctl';
+  | 'pffRank' | 'tankathonPick' | 'modelPpg' | 'modelPctl' | 'devyValue';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -52,6 +52,17 @@ function starsColor(stars: number | null): string {
   if (stars >= 4) return '#a3e635';
   if (stars >= 3) return '#facc15';
   return 'var(--text-muted)';
+}
+
+function normalizeDevyName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.\-'\u2019`]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function fmt(n: number | null | undefined): string {
@@ -99,6 +110,24 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
   const [sortField, setSortField] = useState<SortField>('projPick');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [selected, setSelected] = useState<Prospect2027 | null>(null);
+  // KTC devy values (college players priced pre-draft), keyed by normalized
+  // name. Optional: ktc_rankings_devy.json ships with the daily KTC snapshot
+  // once the devy fetch has run; until then the column renders em-dashes.
+  const [devyMap, setDevyMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}data/ktc_rankings_devy.json`)
+      .then((r) => (r.ok && !(r.headers.get('content-type') || '').includes('text/html') ? r.json() : null))
+      .then((rows: Array<{ playerName: string; value: number }> | null) => {
+        if (!rows) return;
+        const m = new Map<string, number>();
+        for (const r of rows) {
+          if (r.playerName && r.value > 0) m.set(normalizeDevyName(r.playerName), r.value);
+        }
+        setDevyMap(m);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +168,7 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
     const val = (p: Prospect2027): number | string | null =>
       sortField === 'modelPpg' ? (p.model?.predictedCareerPPG ?? null)
       : sortField === 'modelPctl' ? (p.model?.percentile ?? null)
+      : sortField === 'devyValue' ? (devyMap.get(normalizeDevyName(p.name)) ?? null)
       : (p[sortField] as number | string | null);
     return [...r].sort((a, b) => {
       const va = val(a);
@@ -149,7 +179,7 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
       if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
       return String(va).localeCompare(String(vb)) * dir;
     });
-  }, [rows, search, posFilter, sortField, sortDir]);
+  }, [rows, search, posFilter, sortField, sortDir, devyMap]);
 
   const toggleSort = useCallback(
     (field: SortField) => {
@@ -243,6 +273,9 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
               <th style={thStyle}
                 title="Model tier from the percentile. 'Generational' is earned, not assigned: Alpha tier plus a predicted PPG in the top 1% of every historical same-position pre-draft score (2009-2025) - for WRs, the Cooper/Chase band.">
                 Model Tier</th>
+              <th onClick={() => toggleSort('devyValue')} style={{ ...thStyle, textAlign: 'right' }}
+                title="KeepTradeCut devy market value (1QB) — what dynasty players pay for the college prospect today. Refreshed with the daily KTC snapshot.">
+                KTC Devy{sortArrow('devyValue')}</th>
               <th onClick={() => toggleSort('recruitStars')} style={{ ...thStyle, textAlign: 'center' }}>
                 ★{sortArrow('recruitStars')}
               </th>
@@ -293,6 +326,12 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                       {p.model.tierLabel}
                     </span>
                   ) : '—'}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600,
+                  color: (devyMap.get(normalizeDevyName(p.name)) ?? 0) >= 5000 ? '#22c55e'
+                    : (devyMap.get(normalizeDevyName(p.name)) ?? 0) >= 2000 ? '#a3e635'
+                    : 'var(--text-secondary)' }}>
+                  {devyMap.get(normalizeDevyName(p.name))?.toLocaleString() ?? '—'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'center', color: starsColor(p.recruitStars) }}>
                   {p.recruitStars ? `${p.recruitStars}★` : '—'}

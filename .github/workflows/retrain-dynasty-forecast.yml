@@ -1,0 +1,89 @@
+name: Retrain Dynasty Forecast
+
+# Retrains the KTC time-series models (scripts/train_ktc_timeseries.py)
+# and regenerates the Value Forecast artifacts:
+#   public/data/model-cache-dynasty-v2.json
+#   public/data/dynasty-forecasts-1qb.json / -superflex.json
+#
+# The forecast horizons are 7-120 days, so these must be retrained on a
+# cadence or every forecast quietly expires — which is exactly what
+# happened between April and August 2026 (the daily report now watches
+# the artifacts' internal generatedAt stamp for this). Weekly matches
+# the shortest horizon with room to spare; each run trains on the full
+# KTC history through that morning's 06:00 UTC snapshot.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Train and report, but do not commit'
+        required: false
+        default: 'false'
+  schedule:
+    # Sundays 08:00 UTC — after the 06:00 KTC snapshot lands.
+    - cron: '0 8 * * 0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: retrain-dynasty-forecast
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    if: github.repository == 'dachhack/stathead'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Scheduled runs fire on the default branch ref; pin the checkout
+          # the same way fetch-ktc-snapshot.yml resolves its push target.
+          ref: ${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install --quiet numpy lightgbm scikit-learn
+
+      - name: Train
+        run: python3 scripts/train_ktc_timeseries.py
+
+      - name: Verify the artifacts actually regenerated
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          from datetime import datetime, timezone
+          fc = json.load(open('public/data/dynasty-forecasts-1qb.json'))
+          stamp = fc.get('generatedAt', '')
+          age_h = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(stamp.replace('Z', '+00:00'))).total_seconds() / 3600
+          n = len(fc.get('players', {}))
+          print(f'generatedAt {stamp} ({age_h:.1f}h old), {n} players')
+          if age_h > 6 or n < 300:
+              print(f'::error::stale or thin forecast output — refusing to commit')
+              sys.exit(1)
+          EOF
+
+      - name: Commit
+        if: inputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/model-cache-dynasty-v2.json \
+                  public/data/dynasty-forecasts-1qb.json \
+                  public/data/dynasty-forecasts-superflex.json
+          if git diff --cached --quiet; then
+            echo "Artifacts unchanged — nothing to commit."
+            exit 0
+          fi
+          TARGET="${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref_name }}"
+          git commit -m "Retrain dynasty forecast models ($(date -u +%F)) [skip ci]"
+          for i in 1 2 3; do
+            git push origin "HEAD:${TARGET}" && exit 0
+            git pull --rebase -X theirs origin "${TARGET}" || true
+          done
+          echo "::error::Failed to push retrained forecasts after 3 attempts."
+          exit 1

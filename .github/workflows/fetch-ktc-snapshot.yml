@@ -57,6 +57,7 @@ jobs:
           rm -f public/data/ktc_rankings_1qb.json
           rm -f public/data/ktc_rankings_superflex.json
           rm -f public/data/ktc_history.json
+          rm -f public/data/ktc_rankings_devy.json
 
       - name: Fetch KTC rankings + history
         run: node scripts/fetch-ktc.cjs public/data
@@ -64,7 +65,7 @@ jobs:
       - name: Show fetched file sizes
         run: |
           echo "=== fetched KTC snapshot ==="
-          ls -lh public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json 2>&1 || true
+          ls -lh public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json public/data/ktc_rankings_devy.json 2>&1 || true
           echo ""
           echo "=== rankings_1qb first 3 players ==="
           head -c 500 public/data/ktc_rankings_1qb.json || true
@@ -91,6 +92,7 @@ jobs:
           # exceptions that should make a plain `git add` work, but force-add
           # is harmless and defends against any gitignore edge case.
           git add -f public/data/ktc_rankings_1qb.json public/data/ktc_rankings_superflex.json public/data/ktc_history.json
+          git add -f public/data/ktc_rankings_devy.json 2>/dev/null || true
           # Commit the refreshed crosswalk sidecars too (allowlisted in
           # .gitignore). They only change when the new snapshot introduced a
           # player; otherwise the diff guard below leaves them out.

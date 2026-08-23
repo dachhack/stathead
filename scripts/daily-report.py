@@ -427,6 +427,29 @@ def section_freshness():
     md.append(f"| Consensus preset (manual Clay) | {icon} {age} | {hint} |")
     rows.append(["Consensus preset (manual Clay)", (f"{icon} {age}", color), (hint, C_MUTED)])
 
+    # Dynasty forecast surfaces age by their INTERNAL stamp, not git age —
+    # merges recommit these files without regenerating them (Aug 2026: the
+    # artifacts sat at an April 12 build for four months while their git
+    # age looked fresh, so every 7-120d forecast horizon had fully expired
+    # unnoticed). Warn at 10 days: the retrain workflow runs weekly.
+    for label, path_, stamp_fn in (
+        ("Dynasty forecasts (KTC time-series)", "dynasty-forecasts-1qb.json",
+         lambda d: d.get("generatedAt")),
+        ("Dynasty forecast models", "model-cache-dynasty-v2.json",
+         lambda d: (d.get("metadata") or {}).get("generatedAt")),
+    ):
+        data = load_json(path_) or {}
+        try:
+            dt = datetime.fromisoformat(str(stamp_fn(data)).replace("Z", "+00:00"))
+        except Exception:
+            dt = None
+        age, color, icon = flag(dt, 10)
+        hint = "run the Retrain Dynasty Forecast workflow" if icon != "\u2705" else "\u2014"
+        if icon != "\u2705":
+            stale.append(label)
+        md.append(f"| {label} | {icon} {age} | {hint} |")
+        rows.append([label, (f"{icon} {age}", color), (hint, C_MUTED)])
+
     return "\n".join(md), _card("Data freshness", _html_table(["Surface", "Age", "Last commit"], rows)), stale
 
 
