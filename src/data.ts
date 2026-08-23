@@ -332,6 +332,19 @@ export async function readMaybeGzText(body: ReadableStream<Uint8Array>): Promise
   return await new Response(await maybeGunzipStream(body)).text();
 }
 
+/**
+ * True when a "successful" response is actually a host's SPA-fallback page.
+ * Cloudflare Pages (and any static host without a top-level 404.html) answers
+ * EVERY unmatched path with index.html and HTTP 200 — so a data file that
+ * postbuild dropped (raw feature-matrix.json, the oversized CSVs) "loads"
+ * as HTML, the .gz sibling is never tried, and .json()/Papa.parse fail or
+ * produce garbage inside a silent catch. A real data response is never
+ * text/html, so the content type is the discriminator.
+ */
+export function isHtmlFallback(r: Response): boolean {
+  return (r.headers.get('content-type') || '').includes('text/html');
+}
+
 /** Try loading a pre-fetched JSON file from /data/. Returns null on failure. */
 async function tryPreFetched<T>(filename: string): Promise<T | null> {
   // In Node, try local file first
@@ -345,12 +358,12 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
   try {
     const base = dataBase();
     const resp = await fetchWithTimeout(`${base}data/${filename}`, { timeout: LARGE_CSV_TIMEOUT });
-    if (resp.ok) return await resp.json();
+    if (resp.ok && !isHtmlFallback(resp)) return await resp.json();
     // Oversized files are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is absent,
     // fall back to the .gz sibling and inflate it.
     const gz = await fetchWithTimeout(`${base}data/${filename}.gz`);
-    if (gz.ok && gz.body) {
+    if (gz.ok && gz.body && !isHtmlFallback(gz)) {
       return JSON.parse(await readMaybeGzText(gz.body)) as T;
     }
     return null;
@@ -368,11 +381,16 @@ async function tryPreFetched<T>(filename: string): Promise<T | null> {
  */
 export async function fetchMaybeGz(url: string): Promise<Response> {
   const r = await fetch(url);
-  if (r.ok) return r;
+  if (r.ok && !isHtmlFallback(r)) return r;
   const gz = await fetch(`${url}.gz`);
-  if (gz.ok && gz.body) {
+  if (gz.ok && gz.body && !isHtmlFallback(gz)) {
     const text = await readMaybeGzText(gz.body);
     return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  if (r.ok) {
+    // Raw AND .gz both came back as the SPA fallback page — surface a real
+    // miss so callers' `.ok` checks fail instead of parsing HTML.
+    return new Response(null, { status: 404, statusText: 'SPA fallback (data file absent)' });
   }
   return r; // propagate the original non-OK response; callers handle !ok
 }
@@ -601,14 +619,14 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
 
   const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
   let text: string;
-  if (response.ok) {
+  if (response.ok && !isHtmlFallback(response)) {
     text = await response.text();
   } else {
     // Large CSVs are shipped gzipped (Cloudflare Pages caps assets at
     // 25 MiB; see scripts/postbuild-pages.mjs). When the raw file is
     // absent, fall back to the .csv.gz sibling and inflate it here.
     const gz = await fetchWithTimeout(`${url}.gz`, { timeout: LARGE_CSV_TIMEOUT });
-    if (!gz.ok || !gz.body) {
+    if (!gz.ok || !gz.body || isHtmlFallback(gz)) {
       throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }
     text = await readMaybeGzText(gz.body);
@@ -1486,7 +1504,7 @@ export async function fetchNextGenStats(
       continue;
     }
     const response = await fetchWithTimeout(url, { timeout: LARGE_CSV_TIMEOUT });
-    if (!response.ok) continue;
+    if (!response.ok || isHtmlFallback(response)) continue;
     const decompressed = response.body
       ? await readMaybeGzText(response.body)
       : '';
