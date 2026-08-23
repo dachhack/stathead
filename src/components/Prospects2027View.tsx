@@ -5,13 +5,24 @@ import { Prospect2027Card, type Prospect2027CardData } from './Prospect2027Card'
 interface Prospect2027 extends Prospect2027CardData {
   cfbdKey: string | null;
   cfbdSchool: string | null;
+  /** Pre-draft rookie career model scores, written by scripts/score-career-2027.ts. */
+  model?: {
+    predictedCareerPPG: number;
+    percentile: number;
+    modelTier: number;
+    tierLabel: string;
+    generational?: boolean;
+    thresholdProbs: Record<number, number>;
+    boomProb: number;
+    bustProb: number;
+  };
 }
 
 type SortField =
   | 'projPick' | 'grade' | 'name' | 'pos' | 'school' | 'recruitStars'
   | 'careerRecYds' | 'careerRushYds' | 'careerPassYds' | 'careerRecTDs'
   | 'careerPassTDs' | 'careerRushTDs' | 'usage2025' | 'consensusRank'
-  | 'pffRank' | 'tankathonPick';
+  | 'pffRank' | 'tankathonPick' | 'modelPpg' | 'modelPctl';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE'];
 
@@ -21,6 +32,17 @@ function tierColor(tier: string): string {
   if (tier === 'Top Prospect') return '#a3e635';
   if (tier === '1st-2nd Round') return '#facc15';
   if (tier === '2nd-3rd Round') return '#fb923c';
+  return 'var(--text-muted)';
+}
+
+// Rookie career model tier (Alpha..Longshot, plus the earned Generational
+// flag when a prospect out-predicts every historical same-position rookie).
+function modelTierColor(label: string): string {
+  if (label === 'Generational') return '#22c55e';
+  if (label === 'Alpha') return '#4ade80';
+  if (label === 'Blue Chip') return '#a3e635';
+  if (label === 'Starter') return '#facc15';
+  if (label === 'Contributor') return '#fb923c';
   return 'var(--text-muted)';
 }
 
@@ -114,9 +136,13 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
       );
     }
     const dir = sortDir === 'asc' ? 1 : -1;
+    const val = (p: Prospect2027): number | string | null =>
+      sortField === 'modelPpg' ? (p.model?.predictedCareerPPG ?? null)
+      : sortField === 'modelPctl' ? (p.model?.percentile ?? null)
+      : (p[sortField] as number | string | null);
     return [...r].sort((a, b) => {
-      const va = a[sortField] as number | string | null;
-      const vb = b[sortField] as number | string | null;
+      const va = val(a);
+      const vb = val(b);
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
@@ -208,6 +234,15 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
               <th onClick={() => toggleSort('pos')} style={thStyle}>Pos{sortArrow('pos')}</th>
               <th onClick={() => toggleSort('school')} style={thStyle}>School{sortArrow('school')}</th>
               <th onClick={() => toggleSort('grade')} style={{ ...thStyle, textAlign: 'right' }}>Grade{sortArrow('grade')}</th>
+              <th onClick={() => toggleSort('modelPpg')} style={{ ...thStyle, textAlign: 'right' }}
+                title="Pre-draft rookie career model: predicted best-2-of-3-seasons PPR PPG. Early scores — no combine, no scouting reports yet.">
+                Model PPG{sortArrow('modelPpg')}</th>
+              <th onClick={() => toggleSort('modelPctl')} style={{ ...thStyle, textAlign: 'right' }}
+                title="Model percentile vs every drafted rookie at the position, 2009-2025 backtest.">
+                PCTL{sortArrow('modelPctl')}</th>
+              <th style={thStyle}
+                title="Model tier from the percentile. 'Generational' is earned, not assigned: the model must rate the prospect at or above every historical same-position rookie it has ever scored.">
+                Model Tier</th>
               <th onClick={() => toggleSort('recruitStars')} style={{ ...thStyle, textAlign: 'center' }}>
                 ★{sortArrow('recruitStars')}
               </th>
@@ -243,6 +278,22 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                 <td style={tdStyle}>{p.pos}</td>
                 <td style={{ ...tdStyle, color: 'var(--text-secondary)' }}>{p.school}</td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{p.grade}</td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600,
+                  color: (p.model?.predictedCareerPPG ?? 0) >= 14 ? '#22c55e'
+                    : (p.model?.predictedCareerPPG ?? 0) >= 10 ? '#a3e635'
+                    : (p.model?.predictedCareerPPG ?? 0) >= 7 ? '#facc15'
+                    : 'var(--text-muted)' }}>
+                  {p.model ? p.model.predictedCareerPPG.toFixed(1) : '—'}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right' }}>{p.model ? p.model.percentile : '—'}</td>
+                <td style={tdStyle}>
+                  {p.model ? (
+                    <span style={{ color: modelTierColor(p.model.tierLabel), fontSize: 11,
+                      fontWeight: p.model.tierLabel === 'Generational' ? 700 : 500 }}>
+                      {p.model.tierLabel}
+                    </span>
+                  ) : '—'}
+                </td>
                 <td style={{ ...tdStyle, textAlign: 'center', color: starsColor(p.recruitStars) }}>
                   {p.recruitStars ? `${p.recruitStars}★` : '—'}
                 </td>
