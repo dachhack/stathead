@@ -241,7 +241,7 @@ export function Prospects2027View({ onDataLoaded }: { onDataLoaded?: (data: unkn
                 title="Model percentile vs every drafted rookie at the position, 2009-2025 backtest.">
                 PCTL{sortArrow('modelPctl')}</th>
               <th style={thStyle}
-                title="Model tier from the percentile. 'Generational' is earned, not assigned: the model must rate the prospect at or above every historical same-position rookie it has ever scored.">
+                title="Model tier from the percentile. 'Generational' is earned, not assigned: Alpha tier plus a predicted PPG in the top 1% of every historical same-position pre-draft score (2009-2025) - for WRs, the Cooper/Chase band.">
                 Model Tier</th>
               <th onClick={() => toggleSort('recruitStars')} style={{ ...thStyle, textAlign: 'center' }}>
                 ★{sortArrow('recruitStars')}
