@@ -38655,6 +38655,20 @@ async function projectionIdMap() {
   _projIdMap = m;
   return m;
 }
+// Stamp gsis_id / sleeper_id onto rows via the slim id-map so consumers can
+// join on stable ids instead of fragile name strings (Kenny vs Kenneth
+// Gainwell silently broke a name join downstream). Tolerant of either
+// name/position key spelling; null when the map has no entry.
+async function attachPlayerIds(rows, nameKey, posKey) {
+  const m = await projectionIdMap().catch(() => null);
+  if (!m || !rows?.length) return rows;
+  for (const r of rows) {
+    const ids = m.get(`${normalizeNameForMatch(String(r[nameKey] ?? ""))}|${r[posKey]}`);
+    if (r.gsis_id === void 0) r.gsis_id = ids?.gsis ?? null;
+    if (r.sleeper_id === void 0) r.sleeper_id = ids?.sleeper ?? null;
+  }
+  return rows;
+}
 // Latest-week injury designations for a season (nflverse weekly reports).
 // Returns null in the offseason / when the feed is unavailable.
 async function latestInjuryReport(season) {
@@ -39616,7 +39630,7 @@ var NFL_TOOLS = [
   },
   {
     name: "get_dynasty_values",
-    description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age. Use for dynasty trade evaluation, roster building, value comparisons.",
+    description: "Get StatHead's blended dynasty trade values and rankings \u2014 a market-consensus valuation rescaled to a common scale (not a raw third-party feed). Includes 1QB and SuperFlex values, position ranks, age, and stable ids (gsis_id, sleeper_id) for joining without name-string matching. Board depth is the market source's top ~500; a player absent from the board is a market judgment (valued below the top 500), not missing data. No TE-premium variant exists (the underlying market composites don't publish one) \u2014 for a TEP league, re-score get_projections (scoring tep0.5/tep1.0) and map the TE uplift through the value-vs-points curve. Use for dynasty trade evaluation, roster building, value comparisons.",
     input_schema: {
       type: "object",
       properties: {
@@ -39832,6 +39846,7 @@ RE-SCORING UNDER CUSTOM SCORING: ppg is a scalar priced under standard PPR. Ever
         position: { type: "string", description: "Filter by position (QB, RB, WR, TE)." },
         player_name: { type: "string", description: "Filter to one player." },
         preset: { type: "string", description: 'Apply one of the site\'s "Quick Preset" tilts (all derived StatHead outputs). "vegas-weighted": regress 25% toward position mean. "consensus"/"consensus-ml": blend toward market consensus via internal weights. "rookie-optimistic": boost first-year skill volume over teammates. "vet-optimistic": favor veterans, fade rookies. "injury-skeptic": games haircut for aging/injured players. Omit for the unadjusted base model.', enum: ["vegas-weighted", "consensus", "consensus-ml", "rookie-optimistic", "vet-optimistic", "injury-skeptic"] },
+        scoring: { type: "string", description: "Re-score ppg/projPts server-side from the projected component line. half/std subtract 0.5/1.0 per reception; tep0.5/tep1.0 ADD a TE-premium bonus per TE reception (exact, from the rec component, not an approximation). Rows without a rec component (K, DST, IDP, P, HC) and preset boards (no stat line) are left as published. Default ppr.", enum: ["ppr", "half", "std", "tep0.5", "tep1.0"] },
         sort_by: { type: "string", description: "Sort column, descending. Default: projPts (season total), which is the right ranking for a draft board. In-season pass rosPts to rank on what is left. ppg is conditional on playing, so sorting by it puts token backup lines above real starters." },
         min_games: { type: "number", description: "Only return players projected for at least this many games. Use it to drop the small-denominator backups whose ppg outranks real starters (e.g. min_games: 8)." },
         limit: { type: "number", description: "Max players (default 50)." }
@@ -39866,7 +39881,7 @@ CRITICAL, read before using: these factors are ALREADY APPLIED to StatHead's K a
         position: { type: "string", description: "Filter by position: QB, RB, WR, TE, K, DST, or the IDP buckets DL, LB, DB." },
         player_name: { type: "string", description: "Filter to one player. Without week, returns their all-18-weeks outlook. DSTs match by team name (e.g. \"SEA DST\")." },
         team: { type: "string", description: "Filter to one NFL team abbreviation (e.g. DET)." },
-        scoring: { type: "string", description: "Scoring format for the points columns. Default ppr.", enum: ["ppr", "half", "std"] },
+        scoring: { type: "string", description: "Scoring format for the points columns. tep0.5/tep1.0 add a TE-premium bonus per TE reception (exact, from recPG). Default ppr.", enum: ["ppr", "half", "std", "tep0.5", "tep1.0"] },
         limit: { type: "number", description: "Max players (default 50)." }
       },
       required: []
@@ -40054,31 +40069,50 @@ function columnUniverse(rows) {
   }
   return [...seen];
 }
+// snake_case <-> camelCase aliasing for `fields`: integrators reported the
+// docs' own snake_case example (player_name) silently dropping the camelCase
+// column (playerName). A requested name resolves exact-first, then via the
+// alias in either direction.
+function resolveFieldAlias(want, available) {
+  if (available.has(want)) return want;
+  const camel = want.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+  if (available.has(camel)) return camel;
+  const snake = want.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  if (available.has(snake)) return snake;
+  return null;
+}
+function parseWantedFields(fields) {
+  return (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
+}
 function unknownFields(rows, cols, fields) {
   if (fields == null || fields === "") return [];
-  const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
   const available = new Set(cols ?? columnUniverse(rows));
-  return want.filter((w) => !available.has(w));
+  return parseWantedFields(fields).filter((w) => resolveFieldAlias(w, available) == null);
 }
+// Name-family columns: exactly one is prepended when a projection omits them
+// all, so rows are never anonymous. Nothing else is force-injected — the
+// caller's requested `fields` order is otherwise honored verbatim
+// (integrators reported the previous unconditional identifier prepend
+// scrambling their requested csv column order).
+var NAME_FAMILY_COLS = ["player_name", "player_display_name", "playerName", "name", "full_name", "player"];
 function resolveCols(rows, cols, fields) {
   const base = cols ?? columnUniverse(rows);
   if (fields == null || fields === "") return base;
-  const want = (Array.isArray(fields) ? fields.map(String) : String(fields).split(",")).map((s) => s.trim()).filter(Boolean);
+  const want = parseWantedFields(fields);
   if (want.length === 0) return base;
   const available = new Set(base);
-  const chosen = want.filter((w) => available.has(w));
-  if (chosen.length === 0) return base;
-  // Re-prepend any identifier columns present in the data (in canonical order)
-  // that the projection didn't already include, so names/teams are never lost.
-  const out = [];
+  const chosen = [];
   const seen = /* @__PURE__ */ new Set();
-  for (const c of ALWAYS_KEEP_COLS) {
-    if (available.has(c) && !seen.has(c)) { out.push(c); seen.add(c); }
+  for (const w of want) {
+    const r = resolveFieldAlias(w, available);
+    if (r && !seen.has(r)) { chosen.push(r); seen.add(r); }
   }
-  for (const c of chosen) {
-    if (!seen.has(c)) { out.push(c); seen.add(c); }
+  if (chosen.length === 0) return base;
+  if (!chosen.some((c) => NAME_FAMILY_COLS.includes(c))) {
+    const nameCol = NAME_FAMILY_COLS.find((c) => available.has(c));
+    if (nameCol) chosen.unshift(nameCol);
   }
-  return out;
+  return chosen;
 }
 function renderTable(input, rows, cols) {
   if (rows.length === 0) return "(no results)";
@@ -41423,7 +41457,7 @@ ${renderTable(input, rows, cols)}`;
       const source = input.source || "consensus";
       const season = input.season || FFC_CURRENT_SEASON;
       const position = input.position?.toUpperCase();
-      const limit = clamp(input.limit || 50, 1, 200);
+      const limit = clamp(input.limit || 50, 1, 500);
       if (source === "consensus") {
         const { rows, asOf } = await buildConsensusAdp(season, "ppr");
         let out = position ? rows.filter((r) => r.position === position) : rows;
@@ -41432,9 +41466,10 @@ ${renderTable(input, rows, cols)}`;
           return `No consensus ADP available for ${season}${position ? ` (${position})` : ""}. Sources (FantasyPros, Sleeper, FFC, ESPN) returned nothing — they may be unpopulated this early in the offseason.`;
         }
         out = out.slice(0, limit);
+        await attachPlayerIds(out, "name", "position");
         const cols = position
-          ? ["name", "position", "team", "adp", "adp_pos_rank", "fp", "sleeper", "ffc", "sources", "spread"]
-          : ["name", "position", "team", "adp", "fp", "sleeper", "ffc", "sources", "spread"];
+          ? ["name", "position", "team", "adp", "adp_pos_rank", "fp", "sleeper", "ffc", "sources", "spread", "gsis_id", "sleeper_id"]
+          : ["name", "position", "team", "adp", "fp", "sleeper", "ffc", "sources", "spread", "gsis_id", "sleeper_id"];
         const d = (s) => s ? String(s).slice(0, 10) : "n/a";
         const fresh = `as_of — FantasyPros ${d(asOf.fp)}, Sleeper ${d(asOf.sleeper)}, FFC ${d(asOf.ffc)}`;
         return `Consensus current ADP — ${season} PPR/1QB (${out.length} players, sorted by blended ADP). ${fresh}. 'adp' is the freshness/confidence-weighted blend; per-source columns (fp = FantasyPros expert-consensus rank, sleeper = Sleeper draft ADP, ffc = FantasyFootballCalculator) show each input; spread = max−min disagreement. A blank source means it doesn't price that player. Note: a stale FFC window is auto-down-weighted (≈30-day half-life), so the blend tracks live FantasyPros + Sleeper.
@@ -41448,6 +41483,7 @@ ${renderTable(input, out, cols)}`;
         let data = await fetchFfcADP(season, scoring, teams);
         if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
+        await attachPlayerIds(data, "name" in (data[0] || {}) ? "name" : "player_name", "position");
         const stale = raw.asOf && (Date.now() - Date.parse(raw.asOf)) > 60 * 864e5;
         const asOfNote = raw.asOf ? ` as_of ${String(raw.asOf).slice(0, 10)}${stale ? " — ⚠️ this committed FFC window is stale (>60d old); for a current number use source 'consensus'" : ""}.` : "";
         return `FFC raw ADP for ${season} (${scoring}, ${teams}-team, ${data.length} players).${asOfNote}
@@ -41457,6 +41493,7 @@ ${renderTable(input, data)}`;
         let data = await fetchEspnADP(season);
         if (position) data = data.filter((p) => String(p.position).toUpperCase() === position);
         data = data.slice(0, limit);
+        await attachPlayerIds(data, "name" in (data[0] || {}) ? "name" : "player_name", "position");
         const allZero = data.length > 0 && data.every((p) => !(p.adp > 0));
         const note = allZero ? " ⚠️ ESPN returned all-zero ADP for this season (not yet populated) — use source 'consensus' for a current number." : "";
         return `ESPN raw ADP for ${season} (${data.length} players).${note}
@@ -41929,12 +41966,13 @@ ${renderTable(input, rows, cols)}`;
       const format = input.format || "1qb";
       const position = input.position;
       const playerName = input.player_name;
-      const limit = clamp(input.limit || 50, 1, 200);
+      const limit = clamp(input.limit || 50, 1, 500);
       let data = await fetchKTCRankingsForDisplay(format);
       if (position) data = data.filter((d) => d.position === position.toUpperCase());
       if (playerName) data = data.filter((d) => nameMatch(d.playerName, playerName));
       data = data.slice(0, limit);
-      const cols = ["playerName", "position", "positionRank", "team", "age", "value", "superflexValue", "isRookie"];
+      await attachPlayerIds(data, "playerName", "position");
+      const cols = ["playerName", "position", "positionRank", "team", "age", "value", "superflexValue", "isRookie", "gsis_id", "sleeper_id"];
       const rows = data.map((d) => pickColumns(d, cols));
       return `StatHead dynasty values (${format}, ${data.length} players):
 
@@ -42477,7 +42515,7 @@ ${renderTable(input, rows)}`;
         "- **Scored-player model (VOR hit/bust)**: a per-position gradient-boosted model predicts value-over-replacement (VOR) from draft capital, college production, athletic testing, competition, coaching/Vegas context, and prior fantasy. Because raw VOR doesn't discriminate within the draftable pool (every drafted player clears the absolute threshold), get_player_features reports a CALIBRATED Hit/Bust % relative to DRAFT COST: the historical rate at which players drafted near that ADP beat/missed their slot, tilted by the model's value-vs-ADP lean, evaluated at the live consensus ADP. Per-player drivers + Hit/Bust %: get_player_features.",
         "- **Season projection pipeline (get_projections)**: team volume from a Ridge+LightGBM team ensemble is split to players by ML target/rush-share models, with games (health) and age-curve adjustments; veterans blend prior-year actual + 2yr avg + age curve, rookies use the rookie career model. By-team workbook: export_excel kind=by_team.",
         "- **Weekly projections (get_weekly_projections)**: the season line split per week — opponent def-vs-position multipliers (prior-season PPR allowed/gm vs league avg, shrunk 60% toward mean, clamped \xB118%) \xD7 home/away (\xB12%), normalized per team so the 17 games sum back to the season projection.",
-        "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale.",
+        "- **Dynasty value (get_dynasty_values)**: a market-consensus valuation rescaled to a common 1QB/SuperFlex scale. NO TE-premium variant exists — the underlying market composites don't publish one. For a TEP league: re-score projections with scoring tep0.5/tep1.0 (exact, from the rec component) and map the TE points uplift through the value-vs-points curve; that prices the scoring effect but NOT TEP market scarcity, so treat it as a floor for elite TEs.",
         "- **Prospect grades (get_prospect_outcomes)**: draft grade/tier + calibrated, draft-slot-relative boom/bust."
       ].join("\n"));
       if (doc) {
@@ -42782,6 +42820,38 @@ ${renderTable(input, rows)}`;
         });
         if (ovCount) ovNote = ` ${ovCount} value(s) overridden from your uploaded sheet (import_excel); run clear_overrides to revert.`;
       }
+      // Server-side re-scoring from the projected component line. Exact where
+      // the row carries `rec` (the skill positions); rows without it (K, DST,
+      // IDP, P, HC: nothing reception-scored) and preset boards (rescaled ppg
+      // only, no stat line) pass through unchanged, and the header says how
+      // many rows re-scored.
+      let scoringNote = "";
+      const scoringIn = String(input.scoring || "ppr").toLowerCase();
+      if (scoringIn !== "ppr") {
+        const teBonus = scoringIn === "tep0.5" ? 0.5 : scoringIn === "tep1.0" ? 1 : 0;
+        const recDelta = scoringIn === "half" ? -0.5 : scoringIn === "std" ? -1 : 0;
+        let rescored = 0;
+        pool = pool.map((p) => {
+          const rec = Number(p.rec);
+          if (!Number.isFinite(rec) || rec <= 0 || !(Number(p.projPts) > 0)) return p;
+          let delta = 0;
+          if (teBonus) {
+            if ((p.position || "").toUpperCase() !== "TE") return p;
+            delta = teBonus * rec;
+          } else {
+            delta = recDelta * rec;
+          }
+          rescored++;
+          const projPts = Math.round((Number(p.projPts) + delta) * 10) / 10;
+          const games = Number(p.games) || 0;
+          return { ...p, projPts, ppg: games > 0 ? Math.round(projPts / games * 10) / 10 : p.ppg };
+        });
+        const label = teBonus ? `TE premium +${teBonus} per TE reception` : scoringIn === "half" ? "half-PPR" : "standard";
+        scoring = scoringIn.toUpperCase();
+        scoringNote = rescored
+          ? ` Scoring "${scoringIn}" applied (${label}): ppg/projPts re-derived exactly from each row's projected rec component for ${rescored} row(s); rows without a rec line are as published.`
+          : ` Scoring "${scoringIn}" requested but NO rows carried the rec component to re-score from${preset && FILE_PRESETS[preset] ? " (preset boards ship rescaled ppg without a stat line)" : ""} — points columns are unchanged PPR.`;
+      }
       const minGames = Number(input.min_games) || 0;
       let rows = pool.filter((p) => {
         if (!position) return true;
@@ -42865,7 +42935,7 @@ ${renderTable(input, rows)}`;
           gsis_id: r.gsis ?? ids?.gsis ?? null, sleeper_id: r.sleeper ?? ids?.sleeper ?? null,
         };
       });
-      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${sortNote}${capNote}${presetNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${fbNote}${punterNote}${hcNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
+      return `StatHead projections — ${season} ${scoring} projected PPG (${rows.length} players, sorted by ${sortBy}).${sortNote}${capNote}${presetNote}${scoringNote} as_of ${generatedAt || "unknown"}. ${baseNote}${idpNote}${fbNote}${punterNote}${hcNote}${rosNote}${retNote}${thinNote}${ovNote} Projected season stat line (pass_att/pass_cmp/pass_yd/pass_td/pass_int/rush_att/rush_yd/rush_td/tgt/rec/rec_yd/rec_td; kickers carry fga/fgm per distance band plus xpa/xpm) + gsis_id/sleeper_id available via fields — re-score under your own catalog from those rather than from ppg.
 
 ${renderTable(input, out, input.fields ? null : cols)}`;
     }
@@ -42936,9 +43006,13 @@ ${renderTable(input, rows, input.fields ? null : cols)}`;
       const score = (p, ppr) => {
         if (scoring === "ppr" || !(p.ppg > 0)) return ppr;
         const recW = (p.recPG || 0) * (ppr / p.ppg);
+        if (scoring === "tep0.5" || scoring === "tep1.0") {
+          if ((p.pos || p.position || "").toUpperCase() !== "TE") return ppr;
+          return ppr + (scoring === "tep0.5" ? 0.5 : 1) * recW;
+        }
         return scoring === "half" ? ppr - 0.5 * recW : ppr - recW;
       };
-      const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : "PPR";
+      const scoreLabel = scoring === "half" ? "Half-PPR" : scoring === "std" ? "Standard" : scoring === "tep0.5" ? "TEP +0.5" : scoring === "tep1.0" ? "TEP +1.0" : "PPR";
       // import_excel season-PPG overrides scale the weekly strip proportionally.
       let ovNote = "";
       const ovDoc = await loadOverrides();
@@ -43575,7 +43649,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.87";
+var SERVER_VERSION = "1.0.88";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

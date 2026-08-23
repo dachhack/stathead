@@ -10,6 +10,42 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 
 ---
 
+## ✅ Session update (2026-08-23, branch `claude/model-scores-missing-ma2snl`)
+
+Drip Fantasy production-integration feedback on `get_dynasty_values` /
+`get_adp` (5 items). Shipped now vs. deferred:
+
+**Round 23 — dynasty-values integration round (MCP 1.0.88):**
+- 🟠 **Stable ids on dynasty + ADP rows** (their biggest ask — a
+  Kenny-vs-Kenneth Gainwell name join silently dropped his value):
+  `get_dynasty_values` and all three `get_adp` sources now stamp `gsis_id` +
+  `sleeper_id` via the slim hosted id-map, in the default columns for
+  dynasty/consensus-ADP. Same mechanism `get_projections` already used.
+- 🟢 **Board depth**: `get_dynasty_values` / `get_adp` limit caps raised
+  200 → 500 (the full KTC board — a 12×25 startup drafts ~300). The tool
+  description now says absence from the top ~500 is a market judgment, not
+  missing data (the Kelce/Diggs/Kamara confusion).
+- 🟡 **TE premium**: no market TEP composite exists, and `get_metadata` +
+  the dynasty tool description now say so explicitly, with the recipe
+  (re-score projections, map TE uplift through the value-vs-points curve —
+  scoring effect only, not TEP market scarcity). What CAN be exact now is:
+  `get_projections` and `get_weekly_projections` accept
+  `scoring: tep0.5 | tep1.0` (and season-level `half`/`std`), re-derived
+  from each row's projected `rec` component server-side. Preset boards
+  (no stat line) and rec-less positions pass through with an explicit note.
+- 🟢 **`fields` quirks**: requested names now resolve through a
+  snake_case↔camelCase alias (`player_name` finds `playerName`), and the
+  caller's requested column ORDER is honored verbatim — only a name-family
+  column is prepended, and only when the projection omitted names entirely
+  (the old behavior prepended every identifier column, scrambling csv
+  order). Unknown fields are still named in table output.
+- Deferred: erroring (vs. aliasing + note) on unknown `fields` in csv/jsonl
+  — csv has no clean side channel for a warning; revisit if aliasing
+  doesn't stop the reports. A true `tepValue` on dynasty rows stays
+  blocked on the upstream market composites.
+
+---
+
 ## ✅ Session update (2026-07-28, branch `claude/projections-rankings-updates-qcx49r`)
 
 App-team feedback round on `get_weekly_projections` / projections surface
