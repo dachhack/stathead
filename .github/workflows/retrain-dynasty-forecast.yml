@@ -1,6 +1,7 @@
 name: Retrain Dynasty Forecast
 
-# Retrains the KTC time-series models (scripts/train_ktc_timeseries.py)
+# Retrains the KTC time-series models (scripts/train_ktc_timeseries.py),
+# rebuilds the KTC-to-FantasyCalc rescale ratios (dynasty-fc-rescale.json),
 # and regenerates the Value Forecast artifacts:
 #   public/data/model-cache-dynasty-v2.json
 #   public/data/dynasty-forecasts-1qb.json / -superflex.json
@@ -47,6 +48,14 @@ jobs:
 
       - run: pip install --quiet numpy lightgbm scikit-learn
 
+      - name: Rebuild the KTC-to-FantasyCalc rescale table
+        # The per-player blend ratios every displayed dynasty value runs
+        # through. Ratios drift as the two markets move (they sat at an
+        # April build for four months while their git age looked fresh) —
+        # rebuild weekly from the morning's snapshots, same cadence as the
+        # forecasts below.
+        run: node scripts/build-rescale-snapshot.cjs public/data
+
       - name: Train
         run: python3 scripts/train_ktc_timeseries.py
 
@@ -74,7 +83,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/data/model-cache-dynasty-v2.json \
                   public/data/dynasty-forecasts-1qb.json \
-                  public/data/dynasty-forecasts-superflex.json
+                  public/data/dynasty-forecasts-superflex.json \
+                  public/data/dynasty-fc-rescale.json
           if git diff --cached --quiet; then
             echo "Artifacts unchanged — nothing to commit."
             exit 0

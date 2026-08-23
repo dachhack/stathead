@@ -437,6 +437,10 @@ def section_freshness():
          lambda d: d.get("generatedAt")),
         ("Dynasty forecast models", "model-cache-dynasty-v2.json",
          lambda d: (d.get("metadata") or {}).get("generatedAt")),
+        # The KTC-to-FC blend ratios every displayed dynasty value runs
+        # through — sat at an April build for four months undetected.
+        ("Dynasty value blend ratios (KTC-to-FC)", "dynasty-fc-rescale.json",
+         lambda d: d.get("generatedAt")),
     ):
         data = load_json(path_) or {}
         try:
