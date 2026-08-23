@@ -26,7 +26,7 @@
 import type { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import prospectGrades from '../data/prospect-grades-2026.json';
 import { normalizeName } from './featureTypes';
-import { maybeGunzipStream } from '../data';
+import { maybeGunzipStream, isHtmlFallback } from '../data';
 
 let dbPromise: Promise<{ db: AsyncDuckDB; conn: AsyncDuckDBConnection }> | null = null;
 
@@ -156,7 +156,7 @@ function renameVendorKeys(row: Record<string, unknown>): Record<string, unknown>
 async function fetchCsvGz(filename: string): Promise<Uint8Array | null> {
   try {
     const resp = await fetch(`${BASE}data/${filename}.gz`);
-    if (!resp.ok || !resp.body) return null;
+    if (!resp.ok || !resp.body || isHtmlFallback(resp)) return null;
     const stream = await maybeGunzipStream(resp.body);
     return new Uint8Array(await new Response(stream).arrayBuffer());
   } catch {
@@ -169,7 +169,7 @@ async function fetchCsvGz(filename: string): Promise<Uint8Array | null> {
 async function fetchJson<T>(filename: string): Promise<T | null> {
   try {
     const resp = await fetch(`${BASE}data/${filename}`);
-    if (!resp.ok) return null;
+    if (!resp.ok || isHtmlFallback(resp)) return null;
     return (await resp.json()) as T;
   } catch {
     return null;
