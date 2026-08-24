@@ -119,7 +119,7 @@
   "model": {
    "predictedCareerPPG": 14.6,
    "projPickUsed": 2,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 78,
    "modelTier": 3,
    "tierLabel": "Starter",
@@ -164,7 +164,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -288,7 +288,7 @@
   "model": {
    "predictedCareerPPG": 15.4,
    "projPickUsed": 1,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 87,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -333,7 +333,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -434,7 +434,7 @@
   "model": {
    "predictedCareerPPG": 14.6,
    "projPickUsed": 4,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 100,
    "modelTier": 1,
    "tierLabel": "Generational",
@@ -479,7 +479,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -580,7 +580,7 @@
   "model": {
    "predictedCareerPPG": 14.1,
    "projPickUsed": 3,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 76,
    "modelTier": 3,
    "tierLabel": "Starter",
@@ -625,7 +625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -727,7 +727,7 @@
   "model": {
    "predictedCareerPPG": 11.9,
    "projPickUsed": 11,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 94,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -772,7 +772,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -850,7 +850,7 @@
   "model": {
    "predictedCareerPPG": 12.4,
    "projPickUsed": 9,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 66,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -895,7 +895,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -996,7 +996,7 @@
   "model": {
    "predictedCareerPPG": 12.3,
    "projPickUsed": 37,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 94,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -1041,7 +1041,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1142,7 +1142,7 @@
   "model": {
    "predictedCareerPPG": 9.3,
    "projPickUsed": 17,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 95,
    "modelTier": 1,
    "tierLabel": "Alpha",
@@ -1187,7 +1187,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1288,7 +1288,7 @@
   "model": {
    "predictedCareerPPG": 8.1,
    "projPickUsed": 19,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 88,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -1333,7 +1333,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1434,7 +1434,7 @@
   "model": {
    "predictedCareerPPG": 11.4,
    "projPickUsed": 14,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 59,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -1479,7 +1479,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1580,7 +1580,7 @@
   "model": {
    "predictedCareerPPG": 12.2,
    "projPickUsed": 41,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 94,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -1625,7 +1625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1726,7 +1726,7 @@
   "model": {
    "predictedCareerPPG": 10.6,
    "projPickUsed": 27,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 86,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -1771,7 +1771,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -1872,7 +1872,7 @@
   "model": {
    "predictedCareerPPG": 8.1,
    "projPickUsed": 44,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 66,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -1917,7 +1917,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2085,7 +2085,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2136,7 +2136,7 @@
   "model": {
    "predictedCareerPPG": 11,
    "projPickUsed": 18,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 87,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -2181,7 +2181,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2281,7 +2281,7 @@
   "model": {
    "predictedCareerPPG": 10.3,
    "projPickUsed": 32,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 53,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -2326,7 +2326,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2441,7 +2441,7 @@
   "model": {
    "predictedCareerPPG": 10.5,
    "projPickUsed": 29,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 85,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -2486,7 +2486,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2677,7 +2677,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2823,7 +2823,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -2924,7 +2924,7 @@
   "model": {
    "predictedCareerPPG": 7.8,
    "projPickUsed": 53,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 63,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -2969,7 +2969,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3069,7 +3069,7 @@
   "model": {
    "predictedCareerPPG": 8.8,
    "projPickUsed": 45,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 73,
    "modelTier": 3,
    "tierLabel": "Starter",
@@ -3114,7 +3114,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3237,7 +3237,7 @@
   "model": {
    "predictedCareerPPG": 7.7,
    "projPickUsed": 40,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 63,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -3282,7 +3282,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3382,7 +3382,7 @@
   "model": {
    "predictedCareerPPG": 7.3,
    "projPickUsed": 64,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 58,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -3427,7 +3427,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3706,7 +3706,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -3874,7 +3874,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4042,7 +4042,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4138,7 +4138,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4306,7 +4306,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4473,7 +4473,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4594,7 +4594,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4762,7 +4762,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -4813,7 +4813,7 @@
   "model": {
    "predictedCareerPPG": 7.9,
    "projPickUsed": 58,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 64,
    "modelTier": 4,
    "tierLabel": "Contributor",
@@ -4858,7 +4858,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5003,7 +5003,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5147,7 +5147,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5291,7 +5291,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5390,7 +5390,7 @@
   "model": {
    "predictedCareerPPG": 12.1,
    "projPickUsed": 46,
-   "pickSource": "tankathon (2026-08-23)",
+   "pickSource": "tankathon (2026-08-24)",
    "percentile": 93,
    "modelTier": 2,
    "tierLabel": "Blue Chip",
@@ -5435,7 +5435,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5625,7 +5625,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5792,7 +5792,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -5959,7 +5959,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -6149,7 +6149,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  },
@@ -6293,7 +6293,7 @@
     "rspNComps": 0,
     "rspHasData": 0
    },
-   "scoredAt": "2026-08-23T03:31:59.376Z",
+   "scoredAt": "2026-08-24T14:18:28.944Z",
    "source": "rookieCareerModels (pre-draft) from feature-matrix.json"
   }
  }
