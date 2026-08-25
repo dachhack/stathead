@@ -470,6 +470,76 @@ distinct.
   neighbourhood. Treat cross-population claims with suspicion until the crawl is
   seeded more widely.
 
+---
+
+## To-date feature recomputation
+
+The audited manager-season features are season totals, and a season total of how
+much someone transacted is entangled with when they stopped — which is what the
+label reads. None of them can score a manager mid-season. Measured on the real
+population, the leakage-free ceiling without this step was **AUC 0.522**: three
+static league-context columns and nothing else.
+
+[`src/lib/hazardFeatures.ts`](../src/lib/hazardFeatures.ts) expands each
+manager-season into one row per week, with every feature built from weeks
+**strictly before** the week being scored.
+
+**Strictly before, not through.** The event at week w *is* "no activity from w
+onward". Folding week w's own activity into its features hands the model the
+answer. The prefix state is advanced only after a row is emitted, so the
+guarantee is structural rather than a convention someone has to remember.
+
+**The invariant is a test, not a comment.** For every row at week w,
+`scripts/test-hazard-features.ts` deletes every event from week w onward,
+rebuilds, and asserts the feature vector is byte-identical — and separately
+asserts the features are not simply constant. Moving one line so the current
+week is consumed before scoring fails the suite.
+
+**Risk set.** Rows run `F+1 .. T` where F is the first active week. A manager
+cannot stop before they have started, and week F+1 is the first week with any
+history behind it. If `horizon - L >= minTrailing` they went dark: `T = L+1`,
+the first week of the terminal silence, carrying `event = 1`. Otherwise `T =
+horizon` and every row is censored. Internal gaps are not events — a manager who
+goes quiet for six weeks and returns never stopped, and the gap becomes
+`weeksSinceLastTxn`.
+
+**Prior seasons** are strictly earlier, so a season never sees its own outcome.
+A first observed season gets `null`, not `0` — no history is not a clean history
+— paired with `priorSeasonsObserved` so the two are distinguishable.
+
+### The feasibility artifact
+
+Because the event week is `L+1`, every event row has `weeksSinceLastTxn == 0`.
+Rows mid-gap can **never** be events: 7,928 of 17,621 on the real population.
+
+A model scored over all rows gets that separation free and reports **0.873**;
+within the feasible set it is **0.767**. Not leakage — no feature sees the
+future — but not skill either. Every row carries a `feasible` flag and the
+number to quote is the feasible-set one.
+
+### What it unlocks
+
+Manager-grouped 5-fold CV, logistic, 17,621 person-periods from 1,434
+manager-seasons, weekly hazard 2.3%:
+
+| Model | AUC (all rows) | Notes |
+| --- | --- | --- |
+| week only | 0.513 | bare baseline hazard |
+| static league context | 0.522 | the ceiling before this work |
+| weeks since last transaction | 0.690 | single feature |
+| **full to-date set** | **0.873** | inflated by the artifact above |
+| **full set, feasible rows only** | **0.767** | the honest number |
+
+Calibration on the feasible set: slope 0.906, ECE 0.0075 — usable as a
+percentage, which matters more than discrimination for anything shown in the UI.
+
+### An open decision
+
+"Does the manager stop *this* week" is one target. "Will there be no activity
+from week w through the horizon" is another: it makes every week feasible, lets
+a manager be scored mid-gap, and matches the product question better. That is a
+different target rather than a bug fix, so it is left as a decision.
+
 ## Status
 
 | Step | State |
@@ -480,7 +550,8 @@ distinct.
 | Completeness + feature audit reporting | **done** |
 | Manager-level features (portfolio enumeration, provenance, as-of guard) | **done** |
 | Metric primitives (AUC, Brier, calibration, C, PSI, grouped CV, IRLS logistic) | **done** |
-| Abandonment survival model | not started — features and metrics are in place |
+| To-date (person-period) feature recomputation | **done** |
+| Abandonment survival model | not started — features, metrics and a measured baseline are in place |
 | League-exit model | not started — needs a crawl for lineage-level labels |
 | Model-eval reporting (calibration curves, skill vs baselines, slices) | not started — blocked on the model |
 | League-oriented crawler | **done** — needs seed league ids and a CI run to produce real numbers |

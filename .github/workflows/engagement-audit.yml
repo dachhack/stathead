@@ -26,6 +26,7 @@ on:
       - 'src/lib/engagement.ts'
       - 'src/lib/leagueLineage.ts'
       - 'src/lib/featureAudit.ts'
+      - 'src/lib/hazardFeatures.ts'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -38,6 +39,7 @@ on:
       - 'src/lib/engagement.ts'
       - 'src/lib/leagueLineage.ts'
       - 'src/lib/featureAudit.ts'
+      - 'src/lib/hazardFeatures.ts'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -75,6 +77,8 @@ jobs:
         run: npm run test:engagement:mlops
       - name: Crawler walk, budget and attribution (offline)
         run: npm run test:sleeper:crawler
+      - name: Hazard features are built strictly from the past
+        run: npm run test:hazard
       - name: Typecheck
         run: npx tsc -b
 

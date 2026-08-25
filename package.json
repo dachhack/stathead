@@ -12,6 +12,7 @@
     "build:features": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' tsx scripts/precompute-features.ts",
     "test:engagement": "tsx scripts/test-engagement-features.ts",
     "test:engagement:mlops": "tsx scripts/test-engagement-mlops.ts",
+    "test:hazard": "tsx scripts/test-hazard-features.ts",
     "test:sleeper:crawler": "tsx scripts/test-sleeper-crawler.ts",
     "crawl:sleeper": "tsx scripts/crawl-sleeper-population.ts",
     "report:engagement-audit": "tsx scripts/report-engagement-audit.ts",
