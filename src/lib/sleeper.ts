@@ -593,6 +593,37 @@ export async function fetchUserTradeActivity(
   return { totalTrades, leaguesAnalyzed, bySeason, trades, capped };
 }
 
+// Every weekly transaction log for one league-season, raw.
+//
+// League-oriented rather than user-oriented: one pass serves every manager in
+// the league, which is what the league-health panel needs. Weeks that fail are
+// returned empty rather than omitted, so the caller can tell "no transactions"
+// from "not fetched" by checking `weeksFetched`.
+export interface LeagueTransactions {
+  byWeek: { week: number; txns: SleeperRawTransaction[] }[];
+  weeksFetched: number;
+  weeksFailed: number;
+}
+
+export async function fetchLeagueTransactions(leagueId: string, weeks = 18): Promise<LeagueTransactions> {
+  let weeksFailed = 0;
+  const byWeek = await mapLimit(
+    Array.from({ length: weeks }, (_, i) => i + 1),
+    8,
+    async (week) => {
+      try {
+        const txns = await getJson<SleeperRawTransaction[]>(`${SLEEPER}/league/${leagueId}/transactions/${week}`);
+        return { week, txns: txns ?? [] };
+      } catch {
+        weeksFailed++;
+        return { week, txns: [] as SleeperRawTransaction[] };
+      }
+    },
+  );
+  byWeek.sort((a, b) => a.week - b.week);
+  return { byWeek, weeksFetched: weeks - weeksFailed, weeksFailed };
+}
+
 // ── Drafts (live draft assistant) ──
 
 export type SleeperDraftStatus = 'pre_draft' | 'drafting' | 'paused' | 'complete';

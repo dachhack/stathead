@@ -5,7 +5,8 @@
 // every event from week w onward and assert the features are byte-identical.
 // That is a direct check of the leakage-free property rather than a reading of
 // the code.
-import { personPeriods, hazardVector, HAZARD_FEATURE_NAMES, type ManagerInput, type HazardOptions } from '../src/lib/hazardFeatures';
+import { personPeriods, asOfRows, hazardVector, HAZARD_FEATURE_NAMES, type ManagerInput, type HazardOptions } from '../src/lib/hazardFeatures';
+import { classify } from '../src/lib/leagueHealth';
 import { managerSeasonEngagement } from '../src/lib/engagement';
 import type { LeagueSeasonRecord, TxnEvent, LeagueFormatInfo } from '../src/lib/sleeper';
 
@@ -239,6 +240,51 @@ const input = (b: ReturnType<typeof build>, managerId = 'm1'): ManagerInput =>
     && v[HAZARD_FEATURE_NAMES.indexOf('priorSeasonsObserved')] === 0);
   check('vector: faabToDate is excluded — its scale is league-dependent',
     !(HAZARD_FEATURE_NAMES as readonly string[]).includes('faabToDate'));
+}
+
+// ── 7. scoring a live season ──
+{
+  // Training truncates the risk window near the horizon so a late silence is
+  // not mislabelled. Scoring has no label to protect, so asOfRows must return
+  // the requested week however late it is.
+  const weeks = [1, 2, 3, 5, 8];
+  const b = build(weeks);
+  const at9 = asOfRows(input(b), 9, {});
+  eq('as-of: one row for the requested week', at9.length, 1);
+  eq('as-of: it is the requested week', at9[0].week, 9);
+  eq('as-of: features are built from weeks before it', at9[0].txnToDate, weeks.length);
+  eq('as-of: silence measured to the week before', at9[0].weeksSinceLastTxn, 0);
+
+  // A manager who has ALREADY been silent past the threshold has, under this
+  // failure definition, already failed — there is no hazard left to predict, so
+  // no row comes back. The caller reports "gone" from the observed silence
+  // instead of asking the model. This is behaviour to rely on, not a gap.
+  const longGone = asOfRows(input(build([1, 2, 3])), 9, {});
+  eq('as-of: no row once the manager has already gone dark', longGone.length, 0);
+
+  // The event field carries no meaning at scoring time and must not be read.
+  eq('as-of: the outcome is zeroed, not guessed', at9[0].event, 0);
+
+  // Same feature code as training: the row at a week both paths emit must match.
+  const shared = 5;
+  const fromTraining = personPeriods(input(b), { horizonWeek: 17, target: 'stops-this-week' })
+    .find((r) => r.week === shared)!;
+  const fromScoring = asOfRows(input(b), shared, {})[0];
+  eq('as-of: identical features to the training path at the same week',
+    JSON.stringify(hazardVector(fromScoring)), JSON.stringify(hazardVector(fromTraining)));
+}
+
+// ── 8. league-health status bands ──
+{
+  // Bands sit on a calibrated weekly hazard whose training base rate was 4.3%.
+  eq('bands: sustained silence is already gone, whatever the hazard says', classify(0.01, 5), 'gone');
+  eq('bands: a high hazard is at risk', classify(0.2, 0), 'at-risk');
+  eq('bands: a moderate hazard is quiet', classify(0.08, 1), 'quiet');
+  eq('bands: a low hazard is active', classify(0.01, 0), 'active');
+  eq('bands: no hazard yet reads as active, not as risk', classify(null, 0), 'active');
+  // "Gone" is a fact about the data, so it outranks the model's opinion.
+  eq('bands: observed silence outranks a low model score', classify(0.001, 6), 'gone');
+  eq('bands: the silence threshold follows minTrailing', classify(0.001, 3, 3), 'gone');
 }
 
 console.log(`\n${passed} checks passed, ${failures.length} failed\n`);

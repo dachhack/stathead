@@ -144,6 +144,10 @@ public/data/sfb16-cheatsheet.json
 headshots.zip
 headshots_part*.zip
 !public/data/depth-starters-*.json
+# Fitted abandonment-hazard weights. StatHead's own model output — no
+# per-manager data — so it ships with the app. The population it was fitted on
+# does not (see docs/sleeper-engagement-model.md).
+!public/data/abandonment-model-v*.json
 
 # Engagement reporting suite — generated audit reports are reproducible from
 # their input, and crawled Sleeper populations contain per-manager behavioural

@@ -292,6 +292,38 @@ export function personPeriods(input: ManagerInput, opts: HazardOptions = {}): Pe
   return out;
 }
 
+// Score a manager as of a given week, for a season still in progress.
+//
+// Training truncates the risk window once fewer than minTrailing weeks remain,
+// because near the horizon a silence cannot be told from an ending. Scoring has
+// no such problem — there is no label to protect — so this sets a horizon far
+// enough ahead that the guard does not bite and returns the row for `week`.
+//
+// It goes through personPeriods deliberately rather than recomputing the
+// features. The app and the trained model must derive features from identical
+// code; a second implementation is how they quietly stop agreeing.
+//
+// `event` on the returned rows is forced to 0 and carries no meaning: at
+// scoring time the outcome is what we are trying to predict.
+//
+// Returns EMPTY for a manager who has already been silent past minTrailing:
+// under this failure definition they have already failed, so there is no
+// remaining hazard to estimate. Callers should report that from the observed
+// silence rather than treating the empty result as an error — which is what
+// leagueHealth does with its 'gone' status.
+export function asOfRows(input: ManagerInput, week: number, opts: HazardOptions = {}): PersonPeriodRow[] {
+  const minTrailing = opts.minTrailing ?? DEFAULT_MIN_TRAILING;
+  const rows = personPeriods(input, {
+    ...opts,
+    minTrailing,
+    // lastScorable = horizon - minTrailing + 1, so this makes `week` the last
+    // scorable week exactly.
+    horizonWeek: week + minTrailing - 1,
+    target: 'stops-this-week',
+  });
+  return rows.filter((r) => r.week === week).map((r) => ({ ...r, event: 0 }));
+}
+
 // The feature columns, in a fixed order, excluding identity and the event.
 // faabToDate is omitted by default: its scale depends on a league budget the
 // crawl does not capture, so it means different things in different leagues.
