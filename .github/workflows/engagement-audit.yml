@@ -29,6 +29,7 @@ on:
       - 'src/lib/hazardFeatures.ts'
       - 'src/lib/abandonmentModel.ts'
       - 'src/lib/leagueHealth.ts'
+      - 'src/components/LeagueHealthPanel.tsx'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -44,6 +45,7 @@ on:
       - 'src/lib/hazardFeatures.ts'
       - 'src/lib/abandonmentModel.ts'
       - 'src/lib/leagueHealth.ts'
+      - 'src/components/LeagueHealthPanel.tsx'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -85,6 +87,8 @@ jobs:
         run: npm run test:hazard
       - name: Survival fit, survival curves and cluster-robust inference
         run: npm run test:abandonment
+      - name: Retrospective league health (offline)
+        run: npm run test:league-health
       - name: Typecheck
         run: npx tsc -b
 

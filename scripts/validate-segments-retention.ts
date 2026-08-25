@@ -12,7 +12,7 @@
 // they are decoration. This is that test, and "% retained" is the metric.
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import {
-  engagementProfile, managerSeasonEngagement, coldStartSegment, tradesFromEvents,
+  engagementProfile, managerSeasonEngagement, coldStartSegment, tradesFromEvents, wentDark,
   type EngagementProfile, type SegmentName,
 } from '../src/lib/engagement';
 import { resolveLineages, type LeagueSeasonRef } from '../src/lib/leagueLineage';
@@ -50,6 +50,7 @@ function wilson(k: number, n: number, z = 1.96): [number, number] {
 
 interface Subject {
   managerId: string;
+  wentDarkInBuild: boolean;
   profile: EngagementProfile;
   segment: SegmentName;
   confidence: number;
@@ -87,9 +88,14 @@ for (const m of pop) {
   const retainedLineage = portfolio.some((e) =>
     Number(e.season) === validateYear && buildLineages.has(index.byLeagueId.get(e.leagueId)));
 
+  // Did they go dark in the build season, in any non-best-ball league they
+  // played? Observed, not predicted — the season is over.
+  const buildRows = m.rows.filter((r) => Number(r.season) === buildYear);
+  const wentDarkInBuild = buildRows.some((r) => wentDark(r));
+
   const seg = coldStartSegment(profile);
   subjects.push({
-    managerId: m.managerId, profile, segment: seg.segment, confidence: seg.confidence,
+    managerId: m.managerId, wentDarkInBuild, profile, segment: seg.segment, confidence: seg.confidence,
     retainedPlatform, retainedLineage, buildLeagueSeasons: inBuild.length,
   });
 }
@@ -199,6 +205,12 @@ table('By engagement segment', bySegment,
 table('By portfolio size alone', byLeagueCount,
   'The comparator. A segmentation has to beat the obvious single column, or it is a more complicated way of saying the same thing.');
 table('By transaction intensity alone', byIntensity);
+
+// The conditional the offseason panel actually needs: a manager went dark last
+// season — how often did they come back to that league?
+const byWentDark = bucketise((s) => (s.wentDarkInBuild ? `went dark in ${BUILD}` : `stayed active in ${BUILD}`));
+table(`By observed behaviour in ${BUILD}`, byWentDark,
+  'Observed, not predicted — the season is over. This is the conditional a retrospective panel quotes: they went dark, so how often did they come back?');
 
 const spread = bySegment.filter((b) => b.n >= 20);
 const segPlat = chiSquare(bySegment, baseRate, (b) => b.retained);

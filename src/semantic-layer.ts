@@ -3125,8 +3125,8 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
         "description": "Two-point conversion passes."
       },
       {
-        "field": "passing_cpoe",
-        "description": "Completion percentage over expected. Replaces the old `dakota` field, which was an EPA+CPOE composite nflverse no longer publishes — the two are not the same statistic, so `dakota` was removed rather than quietly repointed."
+        "field": "dakota",
+        "description": "Adjusted EPA + CPOE composite based on coefficients which best predict adjusted EPA/play in the following year."
       },
       {
         "field": "carries",

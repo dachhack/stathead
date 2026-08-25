@@ -8,7 +8,7 @@
 // The scoring path goes through the same personPeriods code the model was
 // trained on. A second implementation of the features is how an app and its
 // model quietly stop agreeing.
-import { fetchLeagueTransactions, txnEventFor, leagueFormatInfo, type LeagueImport, type TxnEvent, type TxnContext, type LeagueSeasonRecord } from './sleeper';
+import { fetchLeagueTransactions, importLeague, txnEventFor, leagueFormatInfo, type LeagueImport, type TxnEvent, type TxnContext, type LeagueSeasonRecord, type SleeperRawTransaction } from './sleeper';
 import { managerSeasonEngagement } from './engagement';
 import { asOfRows, DEFAULT_MIN_TRAILING, type PersonPeriodRow } from './hazardFeatures';
 import { hazard, type AbandonmentModel } from './abandonmentModel';
@@ -204,6 +204,153 @@ export async function computeLeagueHealth(
     managers,
     atRisk: managers.filter((m) => m.status === 'at-risk').length,
     gone: managers.filter((m) => m.status === 'gone').length,
+    notApplicable: null,
+    weeksFailed,
+  };
+}
+
+
+// ── retrospective: what happened last season ──
+//
+// For a COMPLETED season the outcome is observed, not predicted: we can see
+// exactly who stopped transacting and when. The model adds nothing here and is
+// deliberately not used — dressing an observation up as a forecast would be
+// worse than useless.
+//
+// What we cannot do is tell a commissioner what it means for next year.
+// Measured on the crawled population, only 25 of 1,628 managers had an
+// observable dark season in 2024, and their same-league return rate was 88.0%
+// against 90.5% for everyone else — no separation, and a 70-96% interval. So
+// this reports facts and the observed return status, and makes no claim about
+// consequence. See reports/segments/segment-retention.md.
+
+export interface RetrospectiveManager {
+  rosterId: number;
+  teamName: string;
+  owner: string;
+  ownerId: string | null;
+  transactions: number;
+  firstActiveWeek: number | null;
+  lastActiveWeek: number | null;
+  weeksSilentAtEnd: number;
+  wentDark: boolean;
+  // Is this manager in the CURRENT season's league? Observed from the current
+  // roster, not inferred. Null when the prior roster had no owner to match.
+  returned: boolean | null;
+}
+
+export interface LeagueRetrospective {
+  season: string;
+  leagueId: string;
+  observedWeek: number;
+  managers: RetrospectiveManager[];
+  wentDarkCount: number;
+  // Went dark AND did not come back. The shortlist a commissioner acts on.
+  darkAndGone: number;
+  notApplicable: string | null;
+  weeksFailed: number;
+}
+
+// Fetchers are injectable so the classification logic can be tested offline.
+// The awkward cases — a league with no prior season, a season with no
+// transactions, a manager who never made a move — are hard to find on demand in
+// live data and easy to construct here.
+export interface RetrospectiveDeps {
+  importLeague?: (leagueId: string) => Promise<LeagueImport>;
+  fetchTransactions?: (leagueId: string) => Promise<{
+    byWeek: { week: number; txns: SleeperRawTransaction[] }[];
+    weeksFailed: number;
+  }>;
+}
+
+export async function computeLeagueRetrospective(
+  current: LeagueImport,
+  opts: { minTrailing?: number } & RetrospectiveDeps = {},
+): Promise<LeagueRetrospective> {
+  const minTrailing = opts.minTrailing ?? DEFAULT_MIN_TRAILING;
+  const loadLeague = opts.importLeague ?? importLeague;
+  const loadTxns = opts.fetchTransactions ?? ((id: string) => fetchLeagueTransactions(id));
+  const prevId = current.league.previous_league_id;
+
+  if (!prevId || prevId === '0') {
+    return {
+      season: '', leagueId: '', observedWeek: 0, managers: [], wentDarkCount: 0, darkAndGone: 0, weeksFailed: 0,
+      notApplicable: 'This league has no prior season linked, so there is nothing to look back on. Sleeper links seasons through previous_league_id, which only exists once a league has been rolled over.',
+    };
+  }
+
+  const prev = await loadLeague(prevId);
+  const format = leagueFormatInfo(prev.league);
+  if (format.bestBall) {
+    return {
+      season: prev.league.season, leagueId: prevId, observedWeek: 0, managers: [],
+      wentDarkCount: 0, darkAndGone: 0, weeksFailed: 0,
+      notApplicable: 'Last season was best ball: lineups are automatic and there are usually no waivers, so there is no in-season activity to look back on.',
+    };
+  }
+
+  const { byWeek, weeksFailed } = await loadTxns(prevId);
+  // The season's effective end, taken from the data rather than a calendar.
+  const observedWeek = byWeek.reduce((max, w) => (w.txns.length ? Math.max(max, w.week) : max), 0);
+  if (observedWeek === 0) {
+    return {
+      season: prev.league.season, leagueId: prevId, observedWeek: 0, managers: [],
+      wentDarkCount: 0, darkAndGone: 0, weeksFailed,
+      notApplicable: 'No transactions were recorded in that season at all, so there is nothing to read.',
+    };
+  }
+
+  const currentOwners = new Set(
+    current.teams.map((tm) => tm.ownerId).filter((id): id is string => !!id),
+  );
+
+  const managers: RetrospectiveManager[] = prev.teams.map((team) => {
+    const weeks = new Set<number>();
+    let transactions = 0;
+    for (const { week, txns } of byWeek) {
+      const ctx: TxnContext = { leagueId: prevId, leagueName: prev.league.name, season: prev.league.season, week };
+      for (const raw of txns) {
+        const ev: TxnEvent | null = txnEventFor(raw, team.rosterId, ctx);
+        if (!ev) continue;
+        transactions++;
+        weeks.add(week);
+      }
+    }
+    const active = [...weeks].sort((a, b) => a - b);
+    const firstActiveWeek = active.length ? active[0] : null;
+    const lastActiveWeek = active.length ? active[active.length - 1] : null;
+    const weeksSilentAtEnd = lastActiveWeek === null ? observedWeek : observedWeek - lastActiveWeek;
+
+    return {
+      rosterId: team.rosterId,
+      teamName: team.teamName,
+      owner: team.owner,
+      ownerId: team.ownerId,
+      transactions,
+      firstActiveWeek,
+      lastActiveWeek,
+      weeksSilentAtEnd,
+      // A season with no activity at all is not a quitter — usually a league
+      // that never really launched, matching how the label is defined.
+      wentDark: lastActiveWeek !== null && weeksSilentAtEnd >= minTrailing,
+      returned: team.ownerId ? currentOwners.has(team.ownerId) : null,
+    };
+  });
+
+  // Worst first: gone and not back, then gone, then by how quiet they were.
+  managers.sort((a, b) => {
+    const score = (m: RetrospectiveManager) =>
+      (m.wentDark ? 0 : 2) + (m.returned === false ? 0 : 1);
+    return score(a) - score(b) || b.weeksSilentAtEnd - a.weeksSilentAtEnd;
+  });
+
+  return {
+    season: prev.league.season,
+    leagueId: prevId,
+    observedWeek,
+    managers,
+    wentDarkCount: managers.filter((m) => m.wentDark).length,
+    darkAndGone: managers.filter((m) => m.wentDark && m.returned === false).length,
     notApplicable: null,
     weeksFailed,
   };

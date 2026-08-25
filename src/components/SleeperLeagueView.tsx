@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
+import { LeagueHealthPanel } from './LeagueHealthPanel';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchDynastyRankings, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
 import type { DynastyPlayer, Tab, SleeperTrendingRow } from '../types';
@@ -1681,6 +1682,8 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               </table>
             </div>
           )}
+
+          <LeagueHealthPanel data={data} />
 
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
