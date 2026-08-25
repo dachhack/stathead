@@ -545,22 +545,53 @@ export function featureVector(p: EngagementProfile): number[] {
 
 const dist2 = (a: number[], b: number[]) => a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0);
 
-// Deterministic maximin ("k-center") seeding instead of random k-means++, so a
-// given population always yields the same segments — the alternative makes
-// segment names shuffle between runs, which is unusable in a UI.
-function seedCentroids(pts: number[][], k: number): number[][] {
-  const seeds = [pts[0]];
-  while (seeds.length < k) {
-    let best = -1, bestD = -1;
-    for (let i = 0; i < pts.length; i++) {
-      const d = Math.min(...seeds.map((s) => dist2(pts[i], s)));
-      if (d > bestD) { bestD = d; best = i; }
-    }
-    if (best < 0 || bestD === 0) break;
-    seeds.push(pts[best]);
-  }
-  return seeds.map((s) => [...s]);
+// Deterministic PRNG (mulberry32). Seeding needs randomness to be any good and
+// reproducibility to be usable in a UI — segment names must not shuffle between
+// runs — so the randomness is real but the seed is fixed.
+function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let x = Math.imul(a ^ (a >>> 15), 1 | a);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
 }
+
+// k-means++ seeding: centres are drawn with probability proportional to squared
+// distance from the nearest existing centre.
+//
+// This replaced maximin ("k-center") seeding, which is deterministic but
+// outlier-seeking by construction: it always picks the furthest point, so on
+// heavy-tailed data — manager portfolios run from 1 to ~2,900 league-seasons —
+// it seeded on the extremes and produced clusters of size 1 and 4 alongside two
+// buckets holding 90% of the population. D²-weighted sampling spreads centres
+// without chasing the tail.
+function seedCentroids(pts: number[][], k: number, rand: () => number): number[][] {
+  const seeds: number[][] = [[...pts[Math.floor(rand() * pts.length)]]];
+  while (seeds.length < k) {
+    const d2 = pts.map((p) => Math.min(...seeds.map((s) => dist2(p, s))));
+    const total = d2.reduce((a, b) => a + b, 0);
+    if (total <= 0) break;   // every point already coincides with a centre
+    let target = rand() * total;
+    let pick = d2.length - 1;
+    for (let i = 0; i < d2.length; i++) {
+      target -= d2[i];
+      if (target <= 0) { pick = i; break; }
+    }
+    seeds.push([...pts[pick]]);
+  }
+  return seeds;
+}
+
+// Sum of squared distances to the assigned centre. Used to pick the best of
+// several restarts — one k-means++ run can still land badly.
+function inertia(pts: number[][], centroids: number[][], assign: number[]): number {
+  return pts.reduce((s, p, i) => s + dist2(p, centroids[assign[i]]), 0);
+}
+
+const KMEANS_SEED = 0x5715ead;   // fixed: reproducible runs, not "no randomness"
+const KMEANS_RESTARTS = 5;
 
 export function fitSegments(profiles: EngagementProfile[], k = 6, iterations = 50): SegmentModel | null {
   if (profiles.length < k) return null;
@@ -576,31 +607,47 @@ export function fitSegments(profiles: EngagementProfile[], k = 6, iterations = 5
   }
   const pts = raw.map((r) => r.map((v, j) => (v - mean[j]) / sd[j]));
 
-  let centroids = seedCentroids(pts, k);
-  const assign = new Array(pts.length).fill(0) as number[];
-  for (let it = 0; it < iterations; it++) {
-    let moved = false;
-    for (let i = 0; i < pts.length; i++) {
-      let best = 0, bestD = Infinity;
-      for (let c = 0; c < centroids.length; c++) {
-        const d = dist2(pts[i], centroids[c]);
-        if (d < bestD) { bestD = d; best = c; }
+  // Several restarts, best inertia wins. One k-means++ draw can still land
+  // badly; the restarts are cheap and the seed sequence keeps them reproducible.
+  const rand = rng(KMEANS_SEED);
+  let centroids: number[][] = [];
+  let assign = new Array(pts.length).fill(0) as number[];
+  let bestInertia = Infinity;
+
+  for (let attempt = 0; attempt < KMEANS_RESTARTS; attempt++) {
+    let cs = seedCentroids(pts, k, rand);
+    const asg = new Array(pts.length).fill(0) as number[];
+    for (let it = 0; it < iterations; it++) {
+      let moved = false;
+      for (let i = 0; i < pts.length; i++) {
+        let best = 0, bestD = Infinity;
+        for (let c = 0; c < cs.length; c++) {
+          const d = dist2(pts[i], cs[c]);
+          if (d < bestD) { bestD = d; best = c; }
+        }
+        if (asg[i] !== best) { asg[i] = best; moved = true; }
       }
-      if (assign[i] !== best) { assign[i] = best; moved = true; }
+      const sums = cs.map(() => new Array(dim).fill(0) as number[]);
+      const counts = cs.map(() => 0);
+      for (let i = 0; i < pts.length; i++) {
+        counts[asg[i]]++;
+        for (let j = 0; j < dim; j++) sums[asg[i]][j] += pts[i][j];
+      }
+      cs = cs.map((c, ci) => (counts[ci] ? sums[ci].map((s) => s / counts[ci]) : c));
+      if (!moved) break;
     }
-    const sums = centroids.map(() => new Array(dim).fill(0) as number[]);
-    const counts = centroids.map(() => 0);
-    for (let i = 0; i < pts.length; i++) {
-      counts[assign[i]]++;
-      for (let j = 0; j < dim; j++) sums[assign[i]][j] += pts[i][j];
-    }
-    centroids = centroids.map((c, ci) => (counts[ci] ? sums[ci].map((s) => s / counts[ci]) : c));
-    if (!moved) break;
+    const score = inertia(pts, cs, asg);
+    if (score < bestInertia) { bestInertia = score; centroids = cs; assign = asg; }
   }
 
   // Name each cluster by the most common cold-start label among its members,
   // so fitted clusters stay comparable to the threshold classifier instead of
   // being opaque "cluster 3" buckets.
+  // 'Unclassified' is an abstention, not a segment, so it does not get a vote
+  // unless every member of the cluster abstained. Counting it made whole
+  // clusters come back named "Unclassified" on a population where ~40% of
+  // profiles are too thin to classify — less informative than the thresholds
+  // the vote is supposed to summarise.
   const labels: SegmentName[] = centroids.map((_, ci) => {
     const tally = new Map<SegmentName, number>();
     profiles.forEach((p, i) => {
@@ -609,7 +656,10 @@ export function fitSegments(profiles: EngagementProfile[], k = 6, iterations = 5
       tally.set(s, (tally.get(s) ?? 0) + 1);
     });
     let bestLabel: SegmentName = 'Unclassified', bestN = -1;
-    for (const [s, n] of tally) if (n > bestN) { bestN = n; bestLabel = s; }
+    for (const [s, n] of tally) {
+      if (s === 'Unclassified') continue;
+      if (n > bestN) { bestN = n; bestLabel = s; }
+    }
     return bestLabel;
   });
 

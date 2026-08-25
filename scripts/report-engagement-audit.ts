@@ -191,6 +191,10 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push('Eligibility is derived from each feature\'s declared kind, not from a reviewer');
   L.push('remembering which columns are safe. `conditional` means the value shown here is');
   L.push('a season total and must be recomputed as-of the scored week before use.', '');
+  L.push('For `conditional` features the **Signal AUC below is not an estimate of');
+  L.push('predictive power**. A season total of *when* activity happened is entangled');
+  L.push('with *when it stopped*, which is what the label reads. Scored as-of week 7');
+  L.push('these will be far weaker — and that is the number that matters.', '');
   L.push('| Feature | Kind | Eligible | Coverage | Signal AUC | Direction | Stability |', '| --- | --- | --- | --- | --- | --- | --- |');
   const mark = { eligible: '✅', conditional: '⚠️', ineligible: '⛔' } as const;
   for (const f of report.features) {

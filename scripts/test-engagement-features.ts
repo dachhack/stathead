@@ -342,6 +342,16 @@ const trade = (over: Partial<TradeRecord>): TradeRecord => ({
   eq('fitSegments: every profile lands in a cluster', m1?.sizes.reduce((a, b) => a + b, 0), profiles.length);
   eq('fitSegments: refuses to fit more clusters than profiles', fitSegments(profiles.slice(0, 2), 6), null);
 
+  // 'Unclassified' is an abstention, not a segment. It must not win a cluster's
+  // naming vote just because thin profiles abstained — that produced clusters
+  // named "Unclassified" on a population where ~40% of profiles are too thin to
+  // classify, which is less informative than the thresholds being summarised.
+  const abstainers = profiles.filter((p) => coldStartSegment(p).segment === 'Unclassified').length;
+  check('fitSegments: the population does contain abstentions', abstainers > 0, abstainers);
+  const realLabels = m1!.labels.filter((l) => l !== 'Unclassified');
+  check('fitSegments: clusters are named by real segments, not abstentions',
+    realLabels.length === m1!.labels.length, m1!.labels);
+
   const assigned = assignSegment(profiles[0], m1);
   check('assignSegment: names the cluster', typeof assigned.segment === 'string');
   check('assignSegment: confidence within range', assigned.confidence >= 0 && assigned.confidence <= 1);
