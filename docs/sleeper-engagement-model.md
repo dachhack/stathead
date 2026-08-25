@@ -727,6 +727,64 @@ Measuring redraft continuity properly needs co-membership rather than the league
 chain — the same roster of people in any league, which is what the placebo-
 controlled test above is a first cut at.
 
+---
+
+## Dynasty league member survival
+
+`npm run analyze:dynasty-survival`. Dynasty only: rollover is mandatory to keep
+rosters, so `previous_league_id` and reality coincide and lineages are
+trustworthy. 137k dynasty league-seasons collapsing to 29,317 lineages.
+
+Two things this gets right, both of which move the numbers:
+
+- **A manager-season is at risk only if the league itself continues.** Otherwise
+  a league folding is counted as every member quitting, which is a different
+  event.
+- **Membership is exact, not sampled.** Every portfolio was enumerated, so a
+  manager still in the league next season appears in their own league list.
+  Unlike league renewal, there is no censoring on the member side.
+
+**Year-over-year survival: 84.8%** of 79,476 manager-seasons.
+
+| Tenure entering the season | At risk | Stayed |
+| --- | --- | --- |
+| 1 year | 38,910 | 83.6% |
+| 2 years | 21,688 | 84.1% |
+| 3 years | 11,469 | 85.8% |
+| 4+ years | 7,409 | **91.3%** |
+
+### Survival from an observed join
+
+Following genuine joins — absent one season, present the next — avoids
+left-truncation. Kaplan-Meier, so a league folding **censors** rather than
+counting as a departure.
+
+| Years after joining | At risk | Left | Censored | Still in |
+| --- | --- | --- | --- | --- |
+| 1 | 5,349 | 1,427 | 2,188 | **73.3%** |
+| 2 | 2,409 | 531 | 1,513 | 57.2% |
+| 3 | 992 | 221 | 886 | 44.4% |
+| 4 | 303 | 52 | 468 | 36.8% |
+
+**Median tenure from joining: between 2 and 3 years.**
+
+A first pass without censoring put year one at 52%, irreconcilable with the
+84.8% year-over-year rate. The whole gap was league deaths being scored as
+people leaving — the internal inconsistency is what exposed the bug.
+
+### New members are the churn
+
+Three figures that look contradictory and are not: 84.8% across all members,
+83.6% at one year of tenure, but **73.3%** in the first year after an observed
+join. The tenure bucket is left-truncated — a manager first seen in the earliest
+observed season may have been there for years — so the join cohort is the honest
+new-member rate, and the tenure table understates how differently newcomers and
+veterans behave.
+
+Caveat: 29% of joins are censored at the first step, since many lineages are
+observed for only a short span. Kaplan-Meier handles it, but the later steps
+rest on a much smaller risk set than the join count suggests.
+
 ## Status
 
 | Step | State |
