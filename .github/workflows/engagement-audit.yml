@@ -27,6 +27,7 @@ on:
       - 'src/lib/leagueLineage.ts'
       - 'src/lib/featureAudit.ts'
       - 'src/lib/hazardFeatures.ts'
+      - 'src/lib/abandonmentModel.ts'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -40,6 +41,7 @@ on:
       - 'src/lib/leagueLineage.ts'
       - 'src/lib/featureAudit.ts'
       - 'src/lib/hazardFeatures.ts'
+      - 'src/lib/abandonmentModel.ts'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
@@ -79,6 +81,8 @@ jobs:
         run: npm run test:sleeper:crawler
       - name: Hazard features are built strictly from the past
         run: npm run test:hazard
+      - name: Survival fit, survival curves and cluster-robust inference
+        run: npm run test:abandonment
       - name: Typecheck
         run: npx tsc -b
 

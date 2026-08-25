@@ -588,6 +588,81 @@ contributes a positive row for every remaining week — so the effective sample 
 smaller than the row count. Grouped CV handles that for evaluation; a model
 fitted on these rows should weight or cluster accordingly.
 
+---
+
+## The survival model
+
+`npm run train:abandonment` fits the discrete hazard
+`h(w) = P(T = w | T >= w)` as a pooled logistic over person-periods — the
+standard equivalence, so the whole model is one regression rather than a bespoke
+likelihood. Chained across weeks it gives a survival curve and a season-level
+abandonment risk. Source: [`src/lib/abandonmentModel.ts`](../src/lib/abandonmentModel.ts).
+
+**Fit on every at-risk row, report on the feasible ones.** Under this failure
+definition a manager can only die the week after transacting, so already-silent
+rows have hazard exactly zero. They are genuine members of the risk set and
+belong in the likelihood — but they are trivially separable, and scoring over
+them inflates AUC from 0.766 to 0.873 with nothing learned.
+
+### Weighting made it worse, and that is the finding
+
+Equalising weight per manager is the obvious response to one manager holding 7%
+of the rows. Measured, it degrades every metric:
+
+| Weighting | AUC | Brier | Skill | Calib. slope | ECE | Concordance |
+| --- | --- | --- | --- | --- | --- | --- |
+| **none** | **0.766** | 0.0386 | 0.050 | **0.998** | 0.0088 | **0.643** |
+| manager | 0.651 | 0.0466 | −0.146 | 0.196 | 0.0559 | 0.579 |
+
+The reason is structural. A manager who quits in week 3 has two person-period
+rows; one who plays the season has sixteen. Equalising per manager up-weights
+early quitters roughly 8×, inflating the effective event rate far above the true
+weekly hazard — the intercept chases it, calibration collapses to a slope of
+0.196, and Brier skill goes *negative*. In survival analysis each person-period
+row is a real observation of "at risk this week", and discarding the long
+survivors' rows discards what makes the baseline hazard right.
+
+**Clustering is a problem of inference and evaluation, not of the point
+estimate.** Evaluation is handled by manager-grouped CV. Inference is handled by
+cluster-robust (sandwich) standard errors, which sum score contributions within
+each manager before the outer product.
+
+That correction is verified by a known answer: duplicate every row four times
+inside the same manager and the data carries no new information, so the naive
+error halves while the robust error holds and the inflation factor doubles.
+Remove the clustering and the same duplication doubles a coefficient's z from
+−9.8 to −19.6 — significance manufactured out of nothing.
+
+Inflation below 1 is not an error, and several features show it. A manager fails
+at most once, so a positive score contribution at the failure week is offset by
+negatives in their other weeks: the repeated rows are *constrained*, not
+redundant, and for the dominant feature the clustered error is genuinely
+smaller.
+
+### Held-out performance
+
+17,621 person-periods · 1,434 manager-seasons · 747 managers · 412 events,
+5-fold CV grouped by manager:
+
+**AUC 0.766 · Brier 0.0386 · calibration slope 0.998 · ECE 0.0088 · C 0.643.**
+
+Calibration is the number that matters most: slope 0.998 and ECE under 0.01 mean
+the output can be shown as a percentage rather than only used to rank.
+
+Twelve of eighteen coefficients clear two robust standard errors.
+`weeksSinceLastTxn` dominates (z = −19.9); `weekIndex` and `weeksSinceStart` are
+indistinguishable from zero, so the baseline hazard is flat once behaviour is
+accounted for.
+
+### A bug worth recording
+
+Season-level concordance first came out at **0.401 — below chance**. The cause
+was scoring each manager-season by its chained survival across all its weeks: a
+manager who fails in week 4 has three rows and one who lasts the season has
+fifteen, so the product was dominated by how long each was observed, which is
+inversely related to failing early. Using the hazard at the subject's first
+at-risk week — a baseline risk, comparable across subjects — gives 0.643.
+
 ## Status
 
 | Step | State |
@@ -599,7 +674,7 @@ fitted on these rows should weight or cluster accordingly.
 | Manager-level features (portfolio enumeration, provenance, as-of guard) | **done** |
 | Metric primitives (AUC, Brier, calibration, C, PSI, grouped CV, IRLS logistic) | **done** |
 | To-date (person-period) feature recomputation | **done** |
-| Abandonment survival model | not started — features, metrics and a measured baseline are in place |
+| Abandonment survival model | **done** — weighted-fit study, cluster-robust inference, model card |
 | League-exit model | not started — needs a crawl for lineage-level labels |
 | Model-eval reporting (calibration curves, skill vs baselines, slices) | not started — blocked on the model |
 | League-oriented crawler | **done** — needs seed league ids and a CI run to produce real numbers |
