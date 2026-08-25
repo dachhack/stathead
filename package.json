@@ -11,6 +11,8 @@
     "build:presets": "tsx scripts/precompute-projection-presets.ts",
     "build:features": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' tsx scripts/precompute-features.ts",
     "test:engagement": "tsx scripts/test-engagement-features.ts",
+    "test:engagement:mlops": "tsx scripts/test-engagement-mlops.ts",
+    "report:engagement-audit": "tsx scripts/report-engagement-audit.ts",
     "test:reddit": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/test-reddit-features.ts || echo 'Reddit feature test skipped'",
     "eval:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/evaluate-features.ts || echo 'Feature eval skipped'",
     "ablate:features": "NODE_OPTIONS='--max-old-space-size=6144' tsx scripts/feature-ablation.ts",

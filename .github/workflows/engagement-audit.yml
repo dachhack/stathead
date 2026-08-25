@@ -1,0 +1,106 @@
+name: Engagement data audit
+
+# Data-completeness and feature audit for the Sleeper manager-engagement
+# pipeline (docs/sleeper-engagement-model.md).
+#
+# Two jobs, deliberately separated:
+#
+#   verify — hermetic. Runs the known-answer tests for the metrics and the
+#            audit itself on every change to the pipeline. No network, so it is
+#            a real gate rather than a flaky one.
+#
+#   report — needs a crawled population, which the audit cannot fabricate.
+#            Sleeper's endpoints 403 from sandboxes but work from GitHub
+#            runners, so this is where a real report can be produced. Until the
+#            league-oriented crawler exists (step 5 in the design doc), run it
+#            with `demo: true` to smoke-test the renderer, or pass the path to a
+#            population file the runner can see.
+#
+# The report exits non-zero on a BLOCKING defect — truncated transaction
+# sweeps, a failed invariant, a degenerate label — so a bad population cannot
+# quietly become a training run.
+
+on:
+  push:
+    paths:
+      - 'src/lib/engagement.ts'
+      - 'src/lib/leagueLineage.ts'
+      - 'src/lib/featureAudit.ts'
+      - 'src/lib/evalMetrics.ts'
+      - 'src/lib/sleeper.ts'
+      - 'scripts/test-engagement-*.ts'
+      - 'scripts/report-engagement-audit.ts'
+      - '.github/workflows/engagement-audit.yml'
+  pull_request:
+    paths:
+      - 'src/lib/engagement.ts'
+      - 'src/lib/leagueLineage.ts'
+      - 'src/lib/featureAudit.ts'
+      - 'src/lib/evalMetrics.ts'
+      - 'src/lib/sleeper.ts'
+      - 'scripts/test-engagement-*.ts'
+      - 'scripts/report-engagement-audit.ts'
+  workflow_dispatch:
+    inputs:
+      population:
+        description: 'Path to a crawled population JSON (leave blank to use --demo)'
+        required: false
+        default: ''
+      demo:
+        description: 'Render the report on synthetic data instead of a crawl'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify metrics and audit logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Feature construction (lineages, engagement, segments)
+        run: npm run test:engagement
+      - name: Metrics and audit known-answer tests
+        run: npm run test:engagement:mlops
+      - name: Typecheck
+        run: npx tsc -b
+
+  report:
+    name: Audit report
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Run audit
+        run: |
+          if [ -n "${{ inputs.population }}" ]; then
+            npm run report:engagement-audit -- --input="${{ inputs.population }}"
+          elif [ "${{ inputs.demo }}" = "true" ]; then
+            npm run report:engagement-audit -- --demo
+          else
+            echo "No population supplied and demo mode off — nothing to audit."
+            exit 2
+          fi
+
+      - name: Upload report
+        # Upload even on a blocking failure: the report is how you find out what
+        # blocked, so losing it on failure defeats the purpose.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engagement-audit
+          path: reports/engagement-audit/
+          if-no-files-found: error

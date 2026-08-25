@@ -207,6 +207,107 @@ determinism.
 Synthetic rather than live on purpose: these endpoints 403 from the dev sandbox,
 and the edge cases above are hard to find on demand in real data.
 
+---
+
+## Reporting suite
+
+Model reporting is worthless if the inputs are already wrong, so the suite
+starts on the input side. `npm run report:engagement-audit` produces a
+completeness and feature audit — versioned JSON plus markdown — and **exits
+non-zero on a blocking defect**, so a bad population cannot quietly become a
+training run.
+
+`src/lib/featureAudit.ts` holds the audit; `src/lib/evalMetrics.ts` holds the
+metric primitives (AUC with tie handling, Brier, log loss, quantile reliability
+bins with ECE, calibration slope, Harrell's C, PSI, deterministic grouped
+k-fold, IRLS logistic).
+
+### The four failure modes it exists to catch
+
+**1. Silent truncation.** The transaction sweep is capped at 700 league-weeks.
+When the cap bites, the *oldest* seasons come back with no transactions —
+indistinguishable from a manager who did nothing. Every engagement feature then
+reads "inactive" for those rows, which is precisely the pattern the abandonment
+label looks for. Nothing in the data announces this; only the `capped` flag
+does. Widespread truncation blocks; isolated truncation warns.
+
+**2. Target leakage.** `trailingSilentWeeks`, `lastActiveWeek` and
+`activeWeekCount` are what the label is *computed from*. Handing any of them to
+a model produces near-perfect scores that mean nothing — the audit measures
+their signal (AUC ≈ 1.0) and reports it as the tell, not the prize.
+
+**3. Prediction-time leakage.** `wins`, `losses`, `regSeasonRank`, `pointsFor`
+and `champion` are known only at season end, so they cannot score a manager at
+week 7. This is the mistake that would make the abandonment model look
+excellent and be useless in the app.
+
+**4. Broken masking.** Best-ball rows must carry null lineup features. If the
+mask breaks, "everyone in best-ball abandoned" gets learned as signal.
+
+### Feature eligibility is derived, not remembered
+
+Every feature declares a `kind`, and eligibility follows from it — so a new
+feature cannot be quietly used in the wrong place because a reviewer forgot
+which columns are safe.
+
+| Kind | Eligibility | Meaning |
+| --- | --- | --- |
+| `static` | ✅ eligible | fixed for the season; known at prediction time |
+| `time-varying` | ⚠️ conditional | safe **only** recomputed as-of the scored week; the season total is not |
+| `season-final` | ⛔ ineligible | not knowable until the season ends |
+| `label-derived` | ⛔ ineligible | the label is computed from it |
+
+Each feature also declares its hypothesised risk direction. The audit compares
+that to the measured association and flags disagreement — a flipped sign is a
+bug signal, not a finding.
+
+### What else it reports
+
+- **Completeness**: rows by season and format, distinct lineages, zero-activity
+  rows split into *unlaunched league* (expected) vs *live league* (suspicious),
+  rows with no roster id, transactions with no timestamp, empty-slot coverage,
+  retention censoring share, lineage season gaps, required-field violations.
+- **Per feature**: coverage, distribution, degeneracy (constant or one value
+  covering >98% of rows), single-feature signal AUC, direction check, and
+  season-over-season stability.
+- **Collinearity**: pairs at |r| ≥ 0.9 among model-usable features.
+- **Invariants**: eight structural checks; any violation blocks.
+
+Two calibration choices worth knowing, because both were bugs first:
+
+- **PSI bins are Laplace-smoothed.** Many of these features are low-cardinality
+  integers, so a legitimately empty bin against an epsilon floor produced a PSI
+  of ~25 — catastrophic-looking drift that was really one sparse bucket.
+- **Stability is leave-one-season-out**, not season-vs-pooled. A pooled
+  reference contains the season under test, which shrinks the apparent drift of
+  the largest seasons and hides real shifts. Seasons below 30 usable rows report
+  `n/a` rather than a guess.
+
+### Privacy
+
+The report contains aggregates only — counts, distributions, correlations — and
+a test asserts no manager or league id appears anywhere in it, so it is safe to
+upload as a CI artifact. The **input** is not: crawled populations are
+gitignored, along with generated reports.
+
+### Running it
+
+```bash
+npm run test:engagement:mlops                  # known-answer tests (hermetic)
+npm run report:engagement-audit -- --demo      # render on synthetic data
+npm run report:engagement-audit -- --input=<population.json>
+```
+
+`--demo` fabricates a deliberately imperfect population (best-ball leagues, a
+capped sweep, absent starters, an unlaunched league) so the report exercises
+every check instead of printing a clean sheet that proves nothing. Its numbers
+describe fabricated data and the report says so at the top.
+
+CI is `.github/workflows/engagement-audit.yml`: the hermetic tests gate every
+change to the pipeline; the report job is `workflow_dispatch` because a real
+report needs a crawled population, and Sleeper's endpoints only work from
+runners.
+
 ## Status
 
 | Step | State |
@@ -214,8 +315,12 @@ and the edge cases above are hard to find on demand in real data.
 | Full transaction sweep | **done** |
 | League lineage resolver | **done** |
 | Engagement features, profile, segments | **done** (cold-start thresholds; centroids await a crawl) |
-| Abandonment survival model | not started — features are in place |
+| Completeness + feature audit reporting | **done** |
+| Metric primitives (AUC, Brier, calibration, C, PSI, grouped CV, IRLS logistic) | **done** |
+| Abandonment survival model | not started — features and metrics are in place |
 | League-exit model | not started — needs a crawl for lineage-level labels |
+| Model-eval reporting (calibration curves, skill vs baselines, slices) | not started — blocked on the model |
+| League-oriented crawler | not started — blocks every real number in the audit |
 | Surfaces (Snooper panel, league-health map, MCP tool) | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking

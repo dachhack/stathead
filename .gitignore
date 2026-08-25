@@ -144,3 +144,10 @@ public/data/sfb16-cheatsheet.json
 headshots.zip
 headshots_part*.zip
 !public/data/depth-starters-*.json
+
+# Engagement reporting suite — generated audit reports are reproducible from
+# their input, and crawled Sleeper populations contain per-manager behavioural
+# data on named real people (see docs/sleeper-engagement-model.md). Neither is
+# committed: reports go up as CI artifacts, populations stay local.
+reports/
+sleeper-population*.json
