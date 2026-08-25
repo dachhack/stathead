@@ -12,9 +12,57 @@
 
 /** Alpha-only, space-insensitive key (strips spaces too). Used for exact
  *  roster-name joins against Dynasty / Sleeper, where spacing/punctuation varies
- *  but the letter sequence is stable. */
+ *  but the letter sequence is stable.
+ *
+ *  The generational suffix is stripped while word boundaries still exist. The
+ *  previous implementation ran /^(jr|sr|ii|iii|iv)$/ AFTER spaces were removed
+ *  and anchored it to the whole string, so it could never fire: "Kenneth
+ *  Walker III" keyed as "kennethwalkeriii" and missed the roster's "Kenneth
+ *  Walker" entirely. Every consumer read that miss as "no dynasty value",
+ *  which the waiver tool then treated as a zero-value player and offered up
+ *  as its top drop candidate. */
 export function normalizeForMatch(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '').replace(/^(jr|sr|ii|iii|iv)$/, '');
+  return (name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
+    .replace(/[^a-z]/g, '');
+}
+
+/** Last name + first initial ("Chigoziem Okonkwo" and "Chig Okonkwo" both →
+ *  "okonkwoc"). A deliberately loose key for the nickname axis that no
+ *  suffix rule can reach — sources disagree on Chig/Chigoziem, Kenny/Kenneth,
+ *  Mike/Michael. Returns '' when a name has no two parts to key on.
+ *
+ *  Loose enough to collide (Bijan vs Brian Robinson, Jonathan vs J'Mari
+ *  Taylor — 26 such keys on a 500-player dynasty board), so it is only safe
+ *  via buildFallbackIndex, which drops every ambiguous key rather than
+ *  guessing between two real players. */
+export function fallbackNameKey(name: string): string {
+  const parts = (name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
+    .replace(/[^a-z ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length < 2) return '';
+  return `${parts[parts.length - 1]}${parts[0][0]}`;
+}
+
+/** Index items under fallbackNameKey, keeping ONLY keys that resolve to a
+ *  single item. An ambiguous key maps to null so callers fall through to "no
+ *  match" instead of silently binding the wrong player's value. */
+export function buildFallbackIndex<T>(items: Iterable<T>, nameOf: (item: T) => string): Map<string, T | null> {
+  const index = new Map<string, T | null>();
+  for (const item of items) {
+    const key = fallbackNameKey(nameOf(item));
+    if (!key) continue;
+    index.set(key, index.has(key) ? null : item);
+  }
+  return index;
 }
 
 /** Lowercase, keep only a-z and spaces (drops digits, punctuation, accents
