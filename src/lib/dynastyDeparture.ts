@@ -78,6 +78,16 @@ export const GRADE_LABEL: Record<Grade, string> = {
   5: 'Flight risk',
 };
 
+// Green (staying) through red (leaving). Shared so the standings column and the
+// retention view can never drift apart on what a grade looks like.
+export const GRADE_COLOR: Record<Grade, string> = {
+  1: '#15803d',
+  2: '#4d7c0f',
+  3: '#a16207',
+  4: '#c2410c',
+  5: '#b91c1c',
+};
+
 // ── league-side inputs ──
 
 interface RawLeague extends SleeperLeagueInfo { sport?: string }

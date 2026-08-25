@@ -8,16 +8,19 @@
 // Framing: this is for deciding who to talk to before the draft. It is not a
 // list of people to squeeze in trades.
 import { useState } from 'react';
-import { fetchDepartureModel, scoreDynastyLeague, GRADE_LABEL, type LeagueDepartureReport, type Grade } from '../lib/dynastyDeparture';
+import { fetchDepartureModel, scoreDynastyLeague, GRADE_LABEL, GRADE_COLOR, type LeagueDepartureReport } from '../lib/dynastyDeparture';
 import { importLeague, type LeagueImport } from '../lib/sleeper';
 import { parseDraftIdInput } from '../lib/sleeper';
 
-const GRADE_COLOR: Record<Grade, string> = {
-  1: '#15803d', 2: '#4d7c0f', 3: '#a16207', 4: '#c2410c', 5: '#b91c1c',
-};
+// The standings table writes the league id here when you click a risk cell, so
+// arriving from a league view lands on the right league already typed in.
+const LS_LEAGUE = 'sleeper_retention_league';
 
 export function DynastyRetentionView() {
-  const [input, setInput] = useState('');
+  // Lazy initializer, not an effect: no state-set on mount, no extra render.
+  const [input, setInput] = useState(() => {
+    try { return localStorage.getItem(LS_LEAGUE) ?? ''; } catch { return ''; }
+  });
   const [report, setReport] = useState<LeagueDepartureReport | null>(null);
   const [league, setLeague] = useState<LeagueImport | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -3,6 +3,7 @@ import { bust } from '../lib/buildHash';
 import { importLeague, fetchSleeperUser, fetchUserLeagues, fetchLeagueRosteredIds, fetchTradedPicks, isDynastyLeague, leagueFormatInfo, type LeagueImport, type LeagueTeam, type RosterPlayer, type SleeperLeagueSummary, type SleeperTradedPick } from '../lib/sleeper';
 import { LeagueFormatBadges } from './LeagueFormatBadges';
 import { LeagueHealthPanel } from './LeagueHealthPanel';
+import { fetchDepartureModel, scoreDynastyLeague, GRADE_LABEL, GRADE_COLOR, type MemberRisk } from '../lib/dynastyDeparture';
 import { fetchMatchups, fetchTeamProjections, matchupFor, type MatchupsByKey, type TeamProjByTeam } from '../lib/nflSchedule';
 import { fetchDynastyRankings, fetchDynastyRankingsForDisplay, fetchFantasyCalcRankings, fetchSleeperTrending, fetchSleeperPlayers } from '../data';
 import type { DynastyPlayer, Tab, SleeperTrendingRow } from '../types';
@@ -16,6 +17,9 @@ import type { PresetMeta } from '../lib/scenarioPresets';
 
 const LS_KEY = 'sleeper_league_id';
 const LS_USER_KEY = 'sleeper_username';
+// Read by the Dynasty Retention view, so clicking a risk cell lands there with
+// this league already filled in.
+const LS_RETENTION_KEY = 'sleeper_retention_league';
 
 function PlayerLine({ p, proj, value, trend }: { p: RosterPlayer; proj?: number; value?: number; trend?: number | null }) {
   return (
@@ -299,7 +303,7 @@ interface PowerRow {
   pickVal: number; // total dynasty value of owned rookie picks
 }
 
-type SortKey = 'team' | 'owner' | 'window' | 'value' | 'projPts' | 'avgPts' | 'avgAge' | 'qb' | 'rb' | 'wr' | 'te';
+type SortKey = 'team' | 'owner' | 'window' | 'value' | 'projPts' | 'avgPts' | 'avgAge' | 'qb' | 'rb' | 'wr' | 'te' | 'risk';
 // Win-now → rebuild ordering, so sorting the Window column groups contenders.
 const WINDOW_ORDER: WindowLabel[] = ['Win-Now', 'Contender', 'Balanced', 'Retooling', 'Rebuild'];
 
@@ -431,6 +435,7 @@ function computeStarterAverages(
 }
 
 interface LeaguePowerProps {
+  leagueId: string;
   teams: LeagueTeam[];
   dynasty: DynastyPlayer[];
   isSuperflex: boolean;
@@ -443,7 +448,7 @@ interface LeaguePowerProps {
   onNavigate?: (tab: Tab) => void;
 }
 
-function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
+function LeaguePowerRankings({ leagueId, teams, dynasty, isSuperflex, projBySleeperIdMap, rosterPositions, pickValueByRosterId, isDynasty, selected, onSelect, onNavigate }: LeaguePowerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('optimal');
   // Dynasty only: fold owned rookie-pick value into the Value column + sort.
   const [includePicks, setIncludePicks] = useState(false);
@@ -457,6 +462,39 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
   };
   const sortArrow = (k: SortKey) => (sortKey === k ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
   const thSort: CSSProperties = { cursor: 'pointer', userSelect: 'none' };
+
+  // Leave risk is opt-in. Scoring a twelve-team league costs ~80 Sleeper
+  // requests, which is too much to spend on every league view for a column most
+  // visits will not read — so it loads on click, not on render.
+  //
+  // Approximate mode only. The verified feature costs several hundred more
+  // requests and a minute; the Dynasty Retention view owns that toggle, and this
+  // cell links there.
+  const [risk, setRisk] = useState<Map<string, MemberRisk> | null>(null);
+  const [riskState, setRiskState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [riskNote, setRiskNote] = useState('');
+
+  const loadRisk = async () => {
+    setRiskState('loading');
+    setRiskNote('Loading the model…');
+    try {
+      const model = await fetchDepartureModel(import.meta.env.BASE_URL);
+      const report = await scoreDynastyLeague(leagueId, model, { onProgress: setRiskNote });
+      if (report.notApplicable) { setRiskState('error'); setRiskNote(report.notApplicable); return; }
+      setRisk(new Map(report.members.map((m) => [m.ownerId, m])));
+      setRiskState('done');
+      setRiskNote(`${report.members.length} scored in ${report.requests} requests · past exits approximated`);
+    } catch (e: unknown) {
+      setRiskState('error');
+      setRiskNote(e instanceof Error ? e.message : 'Could not score this league.');
+    }
+  };
+
+  const openRetention = () => {
+    if (!onNavigate) return;
+    try { localStorage.setItem(LS_RETENTION_KEY, leagueId); } catch { /* private mode */ }
+    onNavigate('dynasty-retention');
+  };
 
   const rows: PowerRow[] = useMemo(() => {
     const dynastyByName = new Map<string, DynastyPlayer>();
@@ -495,6 +533,8 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
         case 'rb': return r.posStrength.rb;
         case 'wr': return r.posStrength.wr;
         case 'te': return r.posStrength.te;
+        // Unscored members sort below everyone with a grade, either direction.
+        case 'risk': return (r.team.ownerId ? risk?.get(r.team.ownerId)?.risk : undefined) ?? -1;
       }
     };
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -504,7 +544,7 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
       if (typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv)) * dir;
       return (av - bv) * dir;
     });
-  }, [rows, sortKey, sortDir, includePicks]);
+  }, [rows, sortKey, sortDir, includePicks, risk]);
 
   if (!rows.length) return null;
 
@@ -515,6 +555,41 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
     if (r.posStrength.wr > maxPos.wr) maxPos.wr = r.posStrength.wr;
     if (r.posStrength.te > maxPos.te) maxPos.te = r.posStrength.te;
   }
+
+  // Grade badge + probability. The grade comes from fixed cutpoints in the
+  // training population, NOT from ranking these twelve managers against each
+  // other — a stable league should be able to show no flight risk at all.
+  const riskCell = (r: PowerRow) => {
+    const m = r.team.ownerId ? risk?.get(r.team.ownerId) : undefined;
+    if (!m) return <td style={{ color: 'var(--text-muted)' }}>—</td>;
+    const tenure = m.isNewMember
+      ? 'first season in this league'
+      : `${m.tenureYears}${m.tenureCensored ? '+' : ''} season${m.tenureYears === 1 && !m.tenureCensored ? '' : 's'} in this league`;
+    const exits = m.priorLeaveObserved > 0
+      ? `left ${(m.priorLeaveRate * 100).toFixed(0)}% of ${m.priorLeaveObserved} past dynasty spots`
+      : 'no past dynasty spots resolved';
+    const title = [
+      `${m.gradeLabel} — ${(m.risk * 100).toFixed(1)}% chance of leaving before next season`,
+      tenure,
+      `${m.portfolioSize} leagues, ${m.dynastyLineages} dynasty`,
+      exits,
+      onNavigate ? 'Click for the full breakdown.' : '',
+    ].filter(Boolean).join('\n');
+    return (
+      <td
+        title={title}
+        onClick={(e) => { e.stopPropagation(); openRetention(); }}
+        style={{ cursor: onNavigate ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
+      >
+        <span style={{
+          display: 'inline-block', width: 16, height: 16, lineHeight: '16px', textAlign: 'center',
+          borderRadius: 4, background: GRADE_COLOR[m.grade], color: '#fff', fontWeight: 700, fontSize: 10,
+          marginRight: 5,
+        }}>{m.grade}</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{(m.risk * 100).toFixed(0)}%</span>
+      </td>
+    );
+  };
 
   // Dynasty bars carry Dynasty value (thousands); redraft bars carry projected points.
   const posBar = (val: number, max: number, color: string) => (
@@ -554,8 +629,35 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
             Include pick value
           </label>
         )}
+        {isDynasty && riskState === 'idle' && (
+          <button
+            className="format-tab"
+            onClick={() => void loadRisk()}
+            style={{ padding: '3px 10px', fontSize: 11 }}
+            title="Grade every current member 1-5 on how likely they are to leave before next season. Takes a few seconds and ~80 Sleeper requests, so it is not loaded by default."
+          >
+            + Leave risk
+          </button>
+        )}
+        {isDynasty && riskState === 'loading' && (
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{riskNote || 'Scoring…'}</span>
+        )}
+        {isDynasty && riskState === 'error' && (
+          <span style={{ fontSize: 11, color: '#b91c1c' }}>{riskNote}</span>
+        )}
         <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--text-muted)' }}>Click a column to sort.</span>
       </div>
+      {isDynasty && riskState === 'done' && (
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
+          Leave risk: {([1, 2, 3, 4, 5] as const).map((g, i) => (
+            <span key={g}>
+              {i > 0 && ' · '}
+              <span style={{ color: GRADE_COLOR[g], fontWeight: 700 }}>{g}</span> {GRADE_LABEL[g]}
+            </span>
+          ))}. Fixed thresholds from the training population, so a grade means the same
+          thing in every league. {riskNote}
+        </p>
+      )}
       <div className="table-container" style={{ maxHeight: 'none' }}>
         <table className="sched-table" style={{ fontSize: 12 }}>
           <thead>
@@ -563,6 +665,11 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
               <th>#</th>
               <th style={thSort} onClick={() => toggleSort('team', 'asc')}>Team{sortArrow('team')}</th>
               <th style={thSort} onClick={() => toggleSort('owner', 'asc')}>Owner{sortArrow('owner')}</th>
+              {isDynasty && risk && (
+                <th style={thSort} onClick={() => toggleSort('risk')} title="Chance this manager leaves the league before next season (1 = anchor, 5 = flight risk)">
+                  Leave Risk{sortArrow('risk')}
+                </th>
+              )}
               {isDynasty && <>
                 <th style={thSort} onClick={() => toggleSort('window', 'asc')}>Window{sortArrow('window')}</th>
                 <th style={thSort} onClick={() => toggleSort('value')}>Value{sortArrow('value')}</th>
@@ -601,6 +708,7 @@ function LeaguePowerRankings({ teams, dynasty, isSuperflex, projBySleeperIdMap, 
                     {r.team.owner}
                   </button>
                 </td>
+                {isDynasty && risk && riskCell(r)}
                 {isDynasty && r.score && (
                   <>
                     <td style={{ color: windowColor(r.score.label), fontWeight: 600 }}>{r.score.label}</td>
@@ -1627,6 +1735,7 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
               )}
             </div>
             <LeaguePowerRankings
+              leagueId={data.league.league_id}
               teams={data.teams}
               dynasty={powerDynasty}
               isSuperflex={isSuperflex}

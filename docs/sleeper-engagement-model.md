@@ -914,7 +914,32 @@ a grade 5 in a perfectly stable league and a grade 1 in a collapsing one. Fixed
 cutpoints mean a grade means the same thing everywhere, and a healthy league can
 legitimately come back all 1s and 2s.
 
-Redraft and best-ball leagues are declined with a reason rather than scored.
+Redraft is declined with a reason rather than scored. **Best-ball dynasty is
+in scope** — it was wrongly excluded at first, and measuring it settled the
+question: across 19,929 league-seasons, best-ball dynasty renews at 74.2% against
+73.7% for the rest. Same behaviour, so same model; `isBestBallLeague` is a
+feature rather than a gate.
+
+## In the standings table
+
+The League View standings table carries a **Leave Risk** column for dynasty
+leagues, behind a **+ Leave risk** button. It is not loaded on render: ~80
+requests is too much to spend on every visit to a league for a column most
+visits will not read. One click fills it, and the column then sorts like any
+other.
+
+The cell is a grade badge plus the probability; the tooltip carries tenure,
+portfolio size and past-exit rate. It links through to the Dynasty Retention
+view — which owns the full explanation and the verify toggle — with the league
+id already filled in.
+
+Approximate mode only in the table. Verified scoring costs a few hundred more
+requests and up to a minute, which belongs behind a deliberate click in the
+dedicated view, not in a standings column.
+
+The badge colours live next to the labels in `dynastyDeparture.ts` rather than
+in either component, so the table and the view cannot drift on what a grade
+looks like, and the test suite checks the two maps cover the same grades.
 
 ## Status
 
@@ -933,6 +958,7 @@ Redraft and best-ball leagues are declined with a reason rather than scored.
 | League-oriented crawler | **done** — needs seed league ids and a CI run to produce real numbers |
 | Retrospective league-health panel | **done** |
 | Dynasty Retention view (1-5 grades from a league id) | **done** |
+| Leave-risk column in the standings table | **done** — opt-in, approximate mode |
 | MCP tool | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking

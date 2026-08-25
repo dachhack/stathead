@@ -4,7 +4,7 @@
 // Sleeper calls are injected, so the cases that matter can be built: a redraft
 // league (out of scope), a lineage that stops partway, a brand-new member, and a
 // member whose other leagues have vanished.
-import { scoreDynastyLeague, gradeFor, GRADE_LABEL, clearSurvivalCache, type DepartureModel } from '../src/lib/dynastyDeparture';
+import { scoreDynastyLeague, gradeFor, GRADE_LABEL, GRADE_COLOR, clearSurvivalCache, type DepartureModel } from '../src/lib/dynastyDeparture';
 
 let passed = 0;
 const failures: string[] = [];
@@ -85,6 +85,14 @@ function world(leagues: FakeLeague[], portfolios: Record<string, Record<number, 
   eq('grades: above the last cut is 5', gradeFor(0.50, cuts), 5);
   eq('grades: capped at 5', gradeFor(1, cuts), 5);
   eq('grades: every grade has a label', Object.keys(GRADE_LABEL).length, 5);
+  // The standings column paints the badge from GRADE_COLOR and the retention
+  // view reads the same map. A gap here renders a transparent badge, not a
+  // crash, so it has to be checked rather than noticed.
+  eq('grades: every grade has a colour', Object.keys(GRADE_COLOR).length, 5);
+  eq('grades: labels and colours cover the same grades',
+    Object.keys(GRADE_LABEL).sort(), Object.keys(GRADE_COLOR).sort());
+  check('grades: every colour is a hex value',
+    Object.values(GRADE_COLOR).every((c) => /^#[0-9a-f]{6}$/i.test(c)), GRADE_COLOR);
   // Fixed cutpoints, so a healthy league can have no high grades at all —
   // grading within a league would force one.
   check('grades: a uniformly safe set can be all 1s',
