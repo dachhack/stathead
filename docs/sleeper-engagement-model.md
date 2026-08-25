@@ -785,6 +785,55 @@ Caveat: 29% of joins are censored at the first step, since many lineages are
 observed for only a short span. Kaplan-Meier handles it, but the later steps
 rest on a much smaller risk set than the join count suggests.
 
+---
+
+## Per-member departure probability
+
+`npm run model:dynasty-departure`. Unit: a (manager, dynasty lineage, season)
+that is **at risk** — the lineage continues into the next season, so a league
+folding is never scored as its members choosing to leave. 79,476 rows, base
+departure rate **15.2%**.
+
+Features come from the **enumerated portfolios**, complete for all 1,723
+managers, rather than the crawled transaction slice which covers ~7% of each. A
+behaviour-based feature set would be ~93% missing; a portfolio-based one is
+exact.
+
+### Validation by quintile
+
+Temporal holdout — trained through 2024, tested on 2025 → 2026. AUC **0.675**,
+calibration slope 1.100, ECE 0.023.
+
+| Quintile | n | Mean predicted | Actual left | Lift |
+| --- | --- | --- | --- | --- |
+| Q1 (lowest risk) | 3,860 | 6.0% | **5.1%** | 0.39× |
+| Q2 | 3,860 | 8.5% | 7.8% | 0.59× |
+| Q3 | 3,860 | 10.6% | 10.4% | 0.79× |
+| Q4 | 3,860 | 12.9% | 18.8% | 1.42× |
+| Q5 (highest risk) | 3,860 | 20.5% | **23.9%** | 1.81× |
+
+Grouped 5-fold CV by manager, all seasons: AUC 0.644, slope 0.840, ECE 0.012,
+and quintiles 7.1% → 12.5% → 14.3% → 15.0% → **27.2%** (2.06×).
+
+**Both ladders are monotone.** AUC in the mid-0.60s is modest, but the top
+quintile leaves 4–5× as often as the bottom, and calibration is good enough to
+quote the number rather than only rank on it.
+
+### Reading the coefficients
+
+`priorLeaveRate` dominates (0.459) — a manager who has left dynasty leagues
+before leaves again, guarded to strictly earlier seasons. `logPortfolioSize` is
+positive (spread thin across more leagues) and `seasonsActive` negative
+(long-standing platform users stay).
+
+**The tenure block is not interpretable.** `isNewMember` is definitionally
+`tenureYears == 1`, so the fit splits weight arbitrarily and `isNewMember` even
+comes out slightly negative — contradicting the survival analysis, where new
+members clearly leave more (73.3% first-year survival against 91.3% for
+four-year veterans). The univariate survival result is the reliable statement
+about newcomers. Predictions are unaffected; the quintile tables are what
+validate the model.
+
 ## Status
 
 | Step | State |
