@@ -5,7 +5,7 @@
 // every event from week w onward and assert the features are byte-identical.
 // That is a direct check of the leakage-free property rather than a reading of
 // the code.
-import { personPeriods, hazardVector, HAZARD_FEATURE_NAMES, type ManagerInput } from '../src/lib/hazardFeatures';
+import { personPeriods, hazardVector, HAZARD_FEATURE_NAMES, type ManagerInput, type HazardOptions } from '../src/lib/hazardFeatures';
 import { managerSeasonEngagement } from '../src/lib/engagement';
 import type { LeagueSeasonRecord, TxnEvent, LeagueFormatInfo } from '../src/lib/sleeper';
 
@@ -43,27 +43,28 @@ function build(weeks: number[], o: { season?: string; leagueId?: string; format?
 const input = (b: ReturnType<typeof build>, managerId = 'm1'): ManagerInput =>
   ({ managerId, rows: b.rows, events: b.events });
 
-// ── 1. risk set and censoring ──
+// ── 1. risk set and censoring, under the EVENT framing ──
 {
+  const EV: HazardOptions = { horizonWeek: 17, target: 'stops-this-week' };
   // Active weeks 1-3 then silence to the horizon: went dark, event at week 4.
-  const dark = personPeriods(input(build([1, 2, 3])), { horizonWeek: 17 });
+  const dark = personPeriods(input(build([1, 2, 3])), EV);
   eq('risk set: runs from the week after the first activity to the event', dark.map((r) => r.week), [2, 3, 4]);
   eq('risk set: exactly one event, on the first silent week', dark.map((r) => r.event), [0, 0, 1]);
 
   // Active to week 16: still going at the horizon, so every row is censored.
-  const alive = personPeriods(input(build([1, 5, 9, 16])), { horizonWeek: 17 });
+  const alive = personPeriods(input(build([1, 5, 9, 16])), EV);
   eq('censoring: rows run to the horizon', alive[alive.length - 1].week, 17);
   eq('censoring: no event is recorded', alive.filter((r) => r.event === 1).length, 0);
   eq('censoring: risk starts after the first activity', alive[0].week, 2);
 
   // An internal gap is not an event — they came back.
-  const gapped = personPeriods(input(build([1, 2, 10, 11, 16])), { horizonWeek: 17 });
+  const gapped = personPeriods(input(build([1, 2, 10, 11, 16])), EV);
   eq('gaps: a mid-season silence is not an event', gapped.filter((r) => r.event === 1).length, 0);
   const atNine = gapped.find((r) => r.week === 9)!;
   eq('gaps: the silence becomes a feature instead', atNine.weeksSinceLastTxn, 6);
 
   // Single active week then gone.
-  const oneWeek = personPeriods(input(build([2])), { horizonWeek: 17 });
+  const oneWeek = personPeriods(input(build([2])), EV);
   eq('risk set: a single active week yields one row', oneWeek.map((r) => r.week), [3]);
   eq('risk set: which is the event', oneWeek[0].event, 1);
 }
@@ -175,7 +176,8 @@ const input = (b: ReturnType<typeof build>, managerId = 'm1'): ManagerInput =>
   // The event week is L+1, so an event can only land on a row where the manager
   // transacted last week. Mid-gap rows are infeasible by construction, and a
   // model scored over them gets separation it did not earn.
-  const gapped = personPeriods(input(build([1, 2, 10, 11, 16])), { horizonWeek: 17 });
+  const EV: HazardOptions = { horizonWeek: 17, target: 'stops-this-week' };
+  const gapped = personPeriods(input(build([1, 2, 10, 11, 16])), EV);
   const feasible = gapped.filter((r) => r.feasible);
   const infeasible = gapped.filter((r) => !r.feasible);
   check('feasibility: mid-gap rows are marked infeasible', infeasible.length > 0, gapped.length);
@@ -186,11 +188,44 @@ const input = (b: ReturnType<typeof build>, managerId = 'm1'): ManagerInput =>
     infeasible.every((r) => r.weeksSinceLastTxn > 0), true);
 
   // The property that matters: no infeasible row is ever an event.
-  const dark = personPeriods(input(build([1, 2, 4, 5, 9])), { horizonWeek: 17 });
+  const dark = personPeriods(input(build([1, 2, 4, 5, 9])), EV);
   eq('feasibility: no infeasible row carries an event',
     dark.filter((r) => !r.feasible && r.event === 1).length, 0);
   eq('feasibility: the event row is feasible',
     dark.filter((r) => r.event === 1).every((r) => r.feasible), true);
+}
+
+// ── 5c. the default target: is the manager already done? ──
+{
+  // "Is there any activity from week w to the end of the season" is a state,
+  // askable at any week — including mid-gap, where the event framing has
+  // nothing to say. It is the product question and it has no infeasible rows.
+  const gapped = personPeriods(input(build([1, 2, 10, 11, 16])), { horizonWeek: 17 });
+  check('default: every row is answerable', gapped.every((r) => r.feasible), gapped.length);
+  eq('default: a manager who returns is never positive',
+    gapped.filter((r) => r.event === 1).length, 0);
+  const midGap = gapped.find((r) => r.week === 6)!;
+  eq('default: mid-gap is scored, and correctly negative — they come back', midGap.event, 0);
+  // Last activity was week 2; weeks 3, 4 and 5 are behind us and silent.
+  eq('default: while still recording the silence', midGap.weeksSinceLastTxn, 3);
+
+  // Someone who stops for good is positive from the week after their last move.
+  const quit = personPeriods(input(build([1, 2, 3])), { horizonWeek: 17 });
+  eq('default: negative while activity remains ahead', quit.filter((r) => r.week <= 3).every((r) => r.event === 0), true);
+  eq('default: positive once nothing remains', quit.filter((r) => r.week > 3).every((r) => r.event === 1), true);
+
+  // The runway guard: scoring stops once fewer than minTrailing weeks remain,
+  // because near the horizon "gone" is indistinguishable from a quiet fortnight
+  // — and those weeks are dominated by managers simply out of contention.
+  eq('default: scoring stops with less than minTrailing weeks left',
+    Math.max(...quit.map((r) => r.week)), 13);
+  const shortRunway = personPeriods(input(build([1, 2, 3])), { horizonWeek: 17, minTrailing: 2 });
+  eq('default: the guard follows minTrailing', Math.max(...shortRunway.map((r) => r.week)), 16);
+
+  // A manager active to the end is never positive.
+  const steady = personPeriods(input(build([1, 5, 9, 14, 16])), { horizonWeek: 17 });
+  eq('default: an engaged manager is negative throughout',
+    steady.filter((r) => r.event === 1).length, 0);
 }
 
 // ── 6. the vector ──

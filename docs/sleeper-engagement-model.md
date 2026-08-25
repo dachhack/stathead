@@ -533,12 +533,60 @@ manager-seasons, weekly hazard 2.3%:
 Calibration on the feasible set: slope 0.906, ECE 0.0075 — usable as a
 percentage, which matters more than discrimination for anything shown in the UI.
 
-### An open decision
+### Choosing the target — and checking it is worth predicting
 
-"Does the manager stop *this* week" is one target. "Will there be no activity
-from week w through the horizon" is another: it makes every week feasible, lets
-a manager be scored mid-gap, and matches the product question better. That is a
-different target rather than a bug fix, so it is left as a decision.
+Two framings, both implemented (`HazardOptions.target`):
+
+- **`silent-through-horizon`** (default) — "is there any activity from week w to
+  the end of the season?" A *state*, askable at any week including mid-quiet-spell.
+  Every row is feasible.
+- **`stops-this-week`** — "does the terminal silence begin at week w?" An
+  *event*, carrying the feasibility artifact above.
+
+**A runway guard applies to both.** Scoring stops once fewer than `minTrailing`
+weeks remain. With less runway than that, "gone" cannot be distinguished from an
+ordinary quiet fortnight — and the tail of a season is dominated by managers who
+are simply out of contention rather than disengaged.
+
+That guard turns out to answer the obvious objection structurally. **Zero events
+occur after week 13**: an event at L+1 needs `horizon - L >= 5`, so L ≤ 12. A
+manager who checks out in week 14 having missed the playoffs is *censored*, never
+labelled. The concern cannot enter the label.
+
+**But is the label just "bad teams quit"?** Measured, not assumed:
+
+| Final standing | Seasons | Went dark |
+| --- | --- | --- |
+| top third | 387 | 14.5% |
+| middle third | 467 | 21.2% |
+| bottom third | 580 | 44.3% |
+
+A real 3× gradient. It does not explain the model, though:
+
+| | AUC |
+| --- | --- |
+| final standing alone | 0.654 |
+| to-date behaviour alone | **0.827** |
+| both | 0.849 (+0.022) |
+
+Behaviour beats standing by a wide margin, and standing adds almost nothing on
+top. Within finish strata the model still discriminates — 0.612 / 0.707 / 0.804
+top to bottom third — so it is not a proxy for the standings. It *is* weakest
+for top-third teams, where going dark is rarest (6.6%) and most surprising.
+
+**A consequence worth banking:** in-season standings would need per-week matchups
+(18 more requests per league-season) and the final-standing figure bounds what
+they could buy at roughly +0.02. Not worth the crawl.
+
+### Measured on the default target
+
+15,417 person-periods, all feasible, 2,269 positives (14.7%), manager-grouped
+5-fold CV, logistic: **AUC 0.827**.
+
+Positives are correlated within a manager-season — a manager who stops
+contributes a positive row for every remaining week — so the effective sample is
+smaller than the row count. Grouped CV handles that for evaluation; a model
+fitted on these rows should weight or cluster accordingly.
 
 ## Status
 

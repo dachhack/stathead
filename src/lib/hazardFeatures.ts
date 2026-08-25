@@ -103,11 +103,27 @@ export interface PersonPeriodRow {
   priorSeasonsObserved: number;
 }
 
+// What the row's outcome asks.
+//
+//   'silent-through-horizon' (default) — "is there any activity from week w to
+//     the end of the season?" A state, askable at any week, including in the
+//     middle of a quiet spell. Every row is feasible, which removes the
+//     artifact below, and it matches the product question: is this manager
+//     checked out right now.
+//
+//   'stops-this-week' — "does the terminal silence begin at week w?" An event.
+//     Because that week is L+1 by definition, every positive sits at
+//     weeksSinceLastTxn == 0 and mid-gap rows can never be positive — 45% of
+//     rows on the real population. A model scored over all of them gets that
+//     separation free (0.873 against 0.767 within the feasible set).
+export type HazardTarget = 'silent-through-horizon' | 'stops-this-week';
+
 export interface HazardOptions {
   // Last week each season could plausibly have had activity.
   horizonWeek?: number | ((season: string) => number);
   // Trailing silent weeks that count as having gone dark. Matches wentDark.
   minTrailing?: number;
+  target?: HazardTarget;
 }
 
 export interface ManagerInput {
@@ -139,6 +155,7 @@ function darkSeason(activeWeeks: number[], horizon: number, minTrailing: number)
 
 export function personPeriods(input: ManagerInput, opts: HazardOptions = {}): PersonPeriodRow[] {
   const minTrailing = opts.minTrailing ?? DEFAULT_MIN_TRAILING;
+  const target: HazardTarget = opts.target ?? 'silent-through-horizon';
 
   const eventsByLeague = new Map<string, TxnEvent[]>();
   for (const e of input.events) {
@@ -183,7 +200,15 @@ export function personPeriods(input: ManagerInput, opts: HazardOptions = {}): Pe
     const first = weeks[0];
     const last = weeks[weeks.length - 1];
     const dark = darkSeason(weeks, horizon, minTrailing);
-    const terminal = dark ? last + 1 : horizon;
+
+    // Both targets stop scoring once fewer than minTrailing weeks remain: with
+    // less runway than that, "no activity from here" cannot be distinguished
+    // from an ordinary quiet fortnight, and the last weeks of a season are
+    // dominated by managers who are simply out of contention.
+    const lastScorable = horizon - minTrailing + 1;
+    const terminal = target === 'stops-this-week'
+      ? (dark ? last + 1 : horizon)
+      : lastScorable;
     if (terminal <= first) continue;   // no week at which they were ever at risk
 
     const prior = priorHistory(row.season);
@@ -226,8 +251,13 @@ export function personPeriods(input: ManagerInput, opts: HazardOptions = {}): Pe
         lineageId: row.lineageId,
         season: row.season,
         week,
-        event: dark && week === terminal ? 1 : 0,
-        feasible: (week - 1) === lastActive,
+        event: target === 'stops-this-week'
+          ? (dark && week === terminal ? 1 : 0)
+          // Is the manager already done? True when nothing remains from here on.
+          : (weeks.some((w) => w >= week) ? 0 : 1),
+        // Under 'silent-through-horizon' every row is answerable, which is the
+        // point of that framing.
+        feasible: target === 'stops-this-week' ? (week - 1) === lastActive : true,
 
         weekIndex: week,
         weeksSinceStart: elapsed,
