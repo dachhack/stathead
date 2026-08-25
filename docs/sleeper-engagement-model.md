@@ -663,6 +663,70 @@ fifteen, so the product was dominated by how long each was observed, which is
 inversely related to failing early. Using the hazard at the subject's first
 at-risk week — a baseline risk, comparable across subjects — gives 0.643.
 
+---
+
+## Do leagues renew year over year?
+
+`npm run analyze:renewal`. Sleeper links seasons backwards — a 2025 league names
+the 2024 league in `previous_league_id`, and there is no forward pointer — so a
+league-season counts as renewed when some other league-season in the corpus
+names it as predecessor. Across 1,723 enumerated portfolios that is a
+112,653-league-season pointer graph.
+
+**Recorded renewal, by format** (2021–2025, lower bounds):
+
+| Format | League-seasons | Renewed |
+| --- | --- | --- |
+| Dynasty | 57,809 | **73.7%** |
+| Keeper | 2,765 | 69.3% |
+| Redraft | 20,818 | 33.7% |
+| Best ball | 31,261 | 20.2% |
+
+Two corrections have to be applied before any of that is read as league survival.
+
+**1. Censoring, and a Simpson's paradox on top of it.** A league is seen only
+through observed managers, so one that renewed but lost all of them reads as
+un-renewed. Aggregate renewal appears to *fall* as more of a league is observed
+(56.1% → 27.4%), which inverts within format: dynasty rises 68.5% → 83.3%,
+exactly as censoring predicts. The aggregate falls only because best ball — which
+barely renews — goes from 13% of the 1-observer band to 66% of the 4-7 band.
+Read the within-format rows; the pooled column is a composition artifact.
+
+**2. `previous_league_id` measures Sleeper's rollover feature, not league
+survival.** A dynasty league must roll over to keep its rosters. A redraft group
+can just create a fresh league each August, which leaves the pointer null and is
+indistinguishable from folding.
+
+Tested directly: among league-seasons with no recorded successor where two or
+more managers were observed, how often do two of them appear together in some
+other league the next season? Random managers are drawn as a placebo, because
+these managers play a median ~96 league-seasons and coincide constantly by
+chance — only the lift is evidence.
+
+| Format | No successor (2+ observed) | Reformed | Placebo | Lift |
+| --- | --- | --- | --- | --- |
+| Dynasty | 3,772 | 56.1% | 9.2% | **+46.9 pts** |
+| Best ball | 19,638 | 86.0% | 19.5% | **+66.5 pts** |
+| Redraft | 5,081 | 60.8% | 9.3% | **+51.5 pts** |
+| Keeper | 113 | 44.2% | 6.2% | +38.1 pts |
+
+### The answer
+
+- **Dynasty: yes, measurable.** 73.7% recorded, ~83% among well-observed leagues,
+  and still a lower bound. Dynasty has to roll over, so the pointer and the
+  reality coincide.
+- **Redraft: no, not from this field.** The recorded 33.7% is not a survival
+  rate. In 60.8% of broken-chain cases the group demonstrably plays together
+  again next season, against 9.3% by chance — the leagues are being recreated,
+  not abandoned.
+- **Best ball: the question does not apply.** These are single-season
+  tournaments by design; 20.2% recorded renewal is the format working as
+  intended, not churn.
+
+Measuring redraft continuity properly needs co-membership rather than the league
+chain — the same roster of people in any league, which is what the placebo-
+controlled test above is a first cut at.
+
 ## Status
 
 | Step | State |

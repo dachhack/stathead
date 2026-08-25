@@ -14,6 +14,7 @@
     "test:engagement:mlops": "tsx scripts/test-engagement-mlops.ts",
     "test:abandonment": "tsx scripts/test-abandonment-model.ts",
     "test:league-health": "tsx scripts/test-league-health.ts",
+    "analyze:renewal": "tsx scripts/analyze-league-renewal.ts",
     "validate:segments": "tsx scripts/validate-segments-retention.ts",
     "train:abandonment": "tsx scripts/train-abandonment-model.ts",
     "test:hazard": "tsx scripts/test-hazard-features.ts",
