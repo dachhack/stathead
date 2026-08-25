@@ -3046,11 +3046,13 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
     "columns": [
       {
         "field": "player_id",
-        "description": "ID of the player. Use this to join to other sources."
+        "description": "Player's gsis_id. Use this to join to other sources, e.g. load_players().",
+        "type": "character"
       },
       {
         "field": "player_name",
-        "description": "Name of the player"
+        "description": "Abbreviated name of player as provided by playstats api",
+        "type": "character"
       },
       {
         "field": "recent_team",
@@ -3058,31 +3060,38 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
       },
       {
         "field": "season",
-        "description": "Official NFL season"
+        "description": "Official NFL season",
+        "type": "numeric"
       },
       {
         "field": "week",
-        "description": "Game week number"
+        "description": "Game week number",
+        "type": "numeric"
       },
       {
         "field": "season_type",
-        "description": "`REG` for regular season"
+        "description": "`REG` for regular season, `POST` for postseason",
+        "type": "character"
       },
       {
         "field": "completions",
-        "description": "The number of completed passes."
+        "description": "The number of completed passes.",
+        "type": "numeric"
       },
       {
         "field": "attempts",
-        "description": "The number of pass attempts as defined by the NFL."
+        "description": "The number of pass attempts as defined by the NFL.",
+        "type": "numeric"
       },
       {
         "field": "passing_yards",
-        "description": "Yards gained on pass plays."
+        "description": "Yards gained on pass plays.",
+        "type": "numeric"
       },
       {
         "field": "passing_tds",
-        "description": "The number of passing touchdowns."
+        "description": "The number of passing touchdowns.",
+        "type": "numeric"
       },
       {
         "field": "interceptions",
@@ -3098,143 +3107,528 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
       },
       {
         "field": "sack_fumbles",
-        "description": "The number of sacks with a fumble."
+        "description": "The number of sacks suffered with a fumble.",
+        "type": "numeric"
       },
       {
         "field": "sack_fumbles_lost",
-        "description": "The number of sacks with a lost fumble."
+        "description": "The number of sacks suffered with a lost fumble.",
+        "type": "numeric"
       },
       {
         "field": "passing_air_yards",
-        "description": "Passing air yards (includes incomplete passes)."
+        "description": "Passing air yards (includes incomplete passes).",
+        "type": "numeric"
       },
       {
         "field": "passing_yards_after_catch",
-        "description": "Yards after the catch gained on plays in which player was the passer (this is an unofficial stat and may differ slightly between different sources)."
+        "description": "Yards after the catch gained on plays in which player was the passer (this is an unofficial stat and may differ slightly between different sources).",
+        "type": "numeric"
       },
       {
         "field": "passing_first_downs",
-        "description": "First downs on pass attempts."
+        "description": "First downs on pass attempts.",
+        "type": "numeric"
       },
       {
         "field": "passing_epa",
-        "description": "Total expected points added on pass attempts and sacks. NOTE: this uses the variable `qb_epa`"
+        "description": "Total expected points added on pass attempts and sacks. NOTE: this uses the variable `qb_epa`, which gives QB credit for EPA for up to the point where a receiver lost a fumble after a completed catch and makes EPA work more like passing yards on plays with fumbles.",
+        "type": "numeric"
       },
       {
         "field": "passing_2pt_conversions",
-        "description": "Two-point conversion passes."
-      },
-      {
-        "field": "passing_cpoe",
-        "description": "Completion percentage over expected. Replaces the old `dakota` field, which was an EPA+CPOE composite nflverse no longer publishes — the two are not the same statistic, so `dakota` was removed rather than quietly repointed."
+        "description": "Two-point conversion passes.",
+        "type": "numeric"
       },
       {
         "field": "carries",
-        "description": "The number of official rush attempts (incl. scrambles and kneel downs). Rushes after a lateral reception don't count as carry."
+        "description": "The number of official rush attempts (incl. scrambles and kneel downs). Rushes after a lateral reception don't count as carry.",
+        "type": "numeric"
       },
       {
         "field": "rushing_yards",
-        "description": "Yards gained when rushing with the ball (incl. scrambles and kneel downs). Also includes yards gained after obtaining a lateral on a play that started with a rushing attempt."
+        "description": "Yards gained when rushing with the ball (incl. scrambles and kneel downs). Also includes yards gained after obtaining a lateral on a play that started with a rushing attempt.",
+        "type": "numeric"
       },
       {
         "field": "rushing_tds",
-        "description": "The number of rushing touchdowns (incl. scrambles). Also includes touchdowns after obtaining a lateral on a play that started with a rushing attempt."
+        "description": "The number of rushing touchdowns (incl. scrambles). Also includes touchdowns after obtaining a lateral on a play that started with a rushing attempt.",
+        "type": "numeric"
       },
       {
         "field": "rushing_fumbles",
-        "description": "The number of rushes with a fumble."
+        "description": "The number of rushes with a fumble.",
+        "type": "numeric"
       },
       {
         "field": "rushing_fumbles_lost",
-        "description": "The number of rushes with a lost fumble."
+        "description": "The number of rushes with a lost fumble.",
+        "type": "numeric"
       },
       {
         "field": "rushing_first_downs",
-        "description": "First downs on rush attempts (incl. scrambles)."
+        "description": "First downs on rush attempts (incl. scrambles).",
+        "type": "numeric"
       },
       {
         "field": "rushing_epa",
-        "description": "Expected points added on rush attempts (incl. scrambles and kneel downs)."
+        "description": "Expected points added on rush attempts (incl. scrambles and kneel downs).",
+        "type": "numeric"
       },
       {
         "field": "rushing_2pt_conversions",
-        "description": "Two-point conversion rushes"
+        "description": "Two-point conversion rushes",
+        "type": "numeric"
       },
       {
         "field": "receptions",
-        "description": "The number of pass receptions. Lateral receptions officially don't count as reception."
+        "description": "The number of pass receptions. Lateral receptions officially don't count as reception.",
+        "type": "numeric"
       },
       {
         "field": "targets",
-        "description": "The number of pass plays where the player was the targeted receiver."
+        "description": "The number of pass plays where the player was the targeted receiver.",
+        "type": "numeric"
       },
       {
         "field": "receiving_yards",
-        "description": "Yards gained after a pass reception. Includes yards gained after receiving a lateral on a play that started as a pass play."
+        "description": "Yards gained after a pass reception. Includes yards gained after receiving a lateral on a play that started as a pass play.",
+        "type": "numeric"
       },
       {
         "field": "receiving_tds",
-        "description": "The number of touchdowns following a pass reception. Also includes touchdowns after receiving a lateral on a play that started as a pass play."
+        "description": "The number of touchdowns following a pass reception. Also includes touchdowns after receiving a lateral on a play that started as a pass play.",
+        "type": "numeric"
       },
       {
         "field": "receiving_air_yards",
-        "description": "Receiving air yards (incl. incomplete passes)."
+        "description": "Receiving air yards (incl. incomplete passes).",
+        "type": "numeric"
       },
       {
         "field": "receiving_yards_after_catch",
-        "description": "Yards after the catch gained on plays in which player was receiver (this is an unofficial stat and may differ slightly between different sources)."
+        "description": "Yards after the catch gained on plays in which player was receiver (this is an unofficial stat and may differ slightly between different sources).",
+        "type": "numeric"
       },
       {
         "field": "receiving_fumbles",
-        "description": "The number of fumbles after a pass reception."
+        "description": "The number of fumbles after a pass reception.",
+        "type": "numeric"
       },
       {
         "field": "receiving_fumbles_lost",
-        "description": "The number of fumbles lost after a pass reception."
+        "description": "The number of fumbles lost after a pass reception.",
+        "type": "numeric"
       },
       {
         "field": "receiving_2pt_conversions",
-        "description": "Two-point conversion receptions"
+        "description": "Two-point conversion receptions",
+        "type": "numeric"
       },
       {
         "field": "fantasy_points",
-        "description": "Standard fantasy points."
+        "description": "Standard fantasy points.",
+        "type": "numeric"
       },
       {
         "field": "fantasy_points_ppr",
-        "description": "PPR fantasy points."
+        "description": "PPR fantasy points.",
+        "type": "numeric"
       },
       {
         "field": "air_yards_share",
-        "description": "Player's share of the team's air yards in this game"
+        "description": "Player's share of the team's air yards in this game",
+        "type": "numeric"
       },
       {
         "field": "pacr",
-        "description": "Passing (yards) Air (yards) Conversion Ratio - the number of passing yards per air yards thrown per game"
+        "description": "Passing (yards) Air (yards) Conversion Ratio - the number of passing yards per air yards thrown per game",
+        "type": "numeric"
       },
       {
         "field": "racr",
-        "description": "Receiving (yards) Air (yards) Conversion Ratio - the number of receiving yards per air yards targeted per game"
+        "description": "Receiving (yards) Air (yards) Conversion Ratio - the number of receiving yards per air yards targeted per game",
+        "type": "numeric"
       },
       {
         "field": "receiving_epa",
-        "description": "Total EPA on plays where this receiver was targeted"
+        "description": "Total EPA on plays where this receiver was targeted",
+        "type": "numeric"
       },
       {
         "field": "receiving_first_downs",
-        "description": "Total number of first downs gained on receptions"
+        "description": "Total number of first downs gained on receptions",
+        "type": "numeric"
       },
       {
         "field": "special_teams_tds",
-        "description": "Total number of kick/punt return touchdowns"
+        "description": "Total number of kick/punt return touchdowns",
+        "type": "numeric"
       },
       {
         "field": "wopr",
-        "description": "Weighted OPportunity Rating - 1.5 x target_share + 0.7 x air_yards_share - a weighted average that contextualizes total fantasy usage."
+        "description": "Weighted OPportunity Rating - 1.5 x target_share + 0.7 x air_yards_share - a weighted average that contextualizes total fantasy usage.",
+        "type": "numeric"
       },
       {
         "field": "target_share",
-        "description": "Player's share of team receiving targets in this game"
+        "description": "Player's share of team receiving targets in this game",
+        "type": "numeric"
+      },
+      {
+        "field": "player_display_name",
+        "description": "Name of player as provided by `load_players()`",
+        "type": "character"
+      },
+      {
+        "field": "position",
+        "description": "Position of player as listed by NFL",
+        "type": "character"
+      },
+      {
+        "field": "position_group",
+        "description": "Position group of player as listed by NFL",
+        "type": "character"
+      },
+      {
+        "field": "headshot_url",
+        "description": "Player's nfl.com headshot URL",
+        "type": "character"
+      },
+      {
+        "field": "team",
+        "description": "Abbreviation of player's team",
+        "type": "character"
+      },
+      {
+        "field": "opponent_team",
+        "description": "Abbreviation of opponent's team",
+        "type": "character"
+      },
+      {
+        "field": "passing_interceptions",
+        "description": "Number of passing interceptions",
+        "type": "numeric"
+      },
+      {
+        "field": "sacks_suffered",
+        "description": "Number of sacks taken as a QB",
+        "type": "numeric"
+      },
+      {
+        "field": "sack_yards_lost",
+        "description": "Yards lost from sacks suffered by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_cpoe",
+        "description": "Completion percentage over expected. Replaces the old `dakota` field, which was an EPA+CPOE composite nflverse no longer publishes — the two are not the same statistic, so `dakota` was removed rather than quietly repointed.",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_solo",
+        "description": "Total number of solo tackles for this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_with_assist",
+        "description": "Number of tackles this player had with an assisted tackle",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackle_assists",
+        "description": "Number of assisted tackles for this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_for_loss",
+        "description": "Number of tackles for loss (TFL) for this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_for_loss_yards",
+        "description": "Yards lost from TFLs involving this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_fumbles_forced",
+        "description": "Number of times a fumble was forced from this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_sacks",
+        "description": "Number of sacks form this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_sack_yards",
+        "description": "Yards lost from sacks forced by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_qb_hits",
+        "description": "Number of QB hits from this player (should not include plays where the QB was sacked)",
+        "type": "numeric"
+      },
+      {
+        "field": "def_interceptions",
+        "description": "Number of interceptions forced by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_interception_yards",
+        "description": "yards gained/lost by interception returns from this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_pass_defended",
+        "description": "Number of passes defended/broken up by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tds",
+        "description": "Number of defensive touchdowns scored by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_fumbles",
+        "description": "Number of fumbles by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "def_safeties",
+        "description": "Number of safeties forced by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "misc_yards",
+        "description": "Miscellaneous yards attributed to this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_own",
+        "description": "Number of the player's own team fumbles recovered",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_yards_own",
+        "description": "Yards gained/lost on own fumble recoveries",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_opp",
+        "description": "Number of the opponent's fumbles recovered",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_yards_opp",
+        "description": "Yardage on opponent fumble recoveries",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_tds",
+        "description": "Fumbles recovered and advanced for a touchdown",
+        "type": "numeric"
+      },
+      {
+        "field": "penalties",
+        "description": "Number of penalties attributed to this player",
+        "type": "numeric"
+      },
+      {
+        "field": "penalty_yards",
+        "description": "Penalty yardage on penalties attributed to this player",
+        "type": "numeric"
+      },
+      {
+        "field": "punt_returns",
+        "description": "Count of punt returns by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "punt_return_yards",
+        "description": "Yards gained on punts returned by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "kickoff_returns",
+        "description": "Count of kick returns by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "kickoff_return_yards",
+        "description": "Yards gained on kick returns by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made",
+        "description": "Count of field goals made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_att",
+        "description": "Count of field goals attempted by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed",
+        "description": "Count of field goals missed by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_blocked",
+        "description": "Count of field goals attempted by this player that were blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_long",
+        "description": "Longest successful field goal made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_pct",
+        "description": "Percentage of field goals successfully made",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_0_19",
+        "description": "Count of field goals within 0-19 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_20_29",
+        "description": "Count of field goals within 20-29 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_30_39",
+        "description": "Count of field goals within 30-39 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_40_49",
+        "description": "Count of field goals within 40-49 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_50_59",
+        "description": "Count of field goals within 50-59 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_60_",
+        "description": "Count of field goals over 60 yards made by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_0_19",
+        "description": "Count of field goals missed between 0-19 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_20_29",
+        "description": "Count of field goals missed between 20-29 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_30_39",
+        "description": "Count of field goals missed between 30-39 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_40_49",
+        "description": "Count of field goals missed between 40-49 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_50_59",
+        "description": "Count of field goals missed between 50-59 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_60_",
+        "description": "Count of field goals missed over 60 yards by this player",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_list",
+        "description": "Comma-separated string listing lengths of field goals made",
+        "type": "character"
+      },
+      {
+        "field": "fg_missed_list",
+        "description": "Comma-separated string listing lengths of field goals missed",
+        "type": "character"
+      },
+      {
+        "field": "fg_blocked_list",
+        "description": "Comma-separated string listing lengths of field goals blocked",
+        "type": "character"
+      },
+      {
+        "field": "fg_made_distance",
+        "description": "Total distance on field goals made",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_distance",
+        "description": "Total distance on field goals missed",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_blocked_distance",
+        "description": "Total distance on field goals blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_made",
+        "description": "Count of extra point kicks made",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_att",
+        "description": "Count of extra point kicks attempted",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_missed",
+        "description": "Count of extra point kicks missed",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_blocked",
+        "description": "Count of extra point kicks blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_pct",
+        "description": "Percentage of extra point kicks successfully completed",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_made",
+        "description": "Count of game winning field goals made",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_att",
+        "description": "Count of game winning field goals attempted",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_missed",
+        "description": "Count of game winning field goals missed",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_blocked",
+        "description": "Count of game winning field goals blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_distance",
+        "description": "Total distance on game winning field goals completed",
+        "type": "numeric"
       }
     ]
   },
@@ -3800,6 +4194,521 @@ export const SEMANTIC_LAYER: Record<string, DatasetDef> = {
         "field": "pfr_name",
         "description": "Full name of traded player",
         "type": "character"
+      }
+    ]
+  },
+  "dictionary_team_stats": {
+    "name": "Team Stats (Weekly)",
+    "columns": [
+      {
+        "field": "season",
+        "description": "Official NFL season",
+        "type": "numeric"
+      },
+      {
+        "field": "week",
+        "description": "Game week number",
+        "type": "numeric"
+      },
+      {
+        "field": "team",
+        "description": "Abbreviation of team",
+        "type": "character"
+      },
+      {
+        "field": "season_type",
+        "description": "`REG` for regular season, `POST` for postseason",
+        "type": "character"
+      },
+      {
+        "field": "opponent_team",
+        "description": "Abbreviation of opponent team",
+        "type": "character"
+      },
+      {
+        "field": "completions",
+        "description": "The number of completed passes.",
+        "type": "numeric"
+      },
+      {
+        "field": "attempts",
+        "description": "The number of pass attempts as defined by the NFL.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_yards",
+        "description": "Yards gained on pass plays.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_tds",
+        "description": "The number of passing touchdowns.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_interceptions",
+        "description": "Number of passing interceptions",
+        "type": "numeric"
+      },
+      {
+        "field": "sacks_suffered",
+        "description": "Number of sacks taken as a QB",
+        "type": "numeric"
+      },
+      {
+        "field": "sack_yards_lost",
+        "description": "Yards lost from sacks suffered by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "sack_fumbles",
+        "description": "The number of sacks suffered with a fumble.",
+        "type": "numeric"
+      },
+      {
+        "field": "sack_fumbles_lost",
+        "description": "The number of sacks suffered with a lost fumble.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_air_yards",
+        "description": "Passing air yards (includes incomplete passes).",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_yards_after_catch",
+        "description": "Yards after the catch gained on plays in which player was the passer (this is an unofficial stat and may differ slightly between different sources).",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_first_downs",
+        "description": "First downs on pass attempts.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_epa",
+        "description": "Total expected points added on pass attempts and sacks. NOTE: this uses the variable `qb_epa`, which gives QB credit for EPA for up to the point where a receiver lost a fumble after a completed catch and makes EPA work more like passing yards on plays with fumbles.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_cpoe",
+        "description": "Completion percentage over expected for this team.",
+        "type": "numeric"
+      },
+      {
+        "field": "passing_2pt_conversions",
+        "description": "Two-point conversion passes.",
+        "type": "numeric"
+      },
+      {
+        "field": "carries",
+        "description": "The number of official rush attempts (incl. scrambles and kneel downs). Rushes after a lateral reception don't count as carry.",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_yards",
+        "description": "Yards gained when rushing with the ball (incl. scrambles and kneel downs). Also includes yards gained after obtaining a lateral on a play that started with a rushing attempt.",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_tds",
+        "description": "The number of rushing touchdowns (incl. scrambles). Also includes touchdowns after obtaining a lateral on a play that started with a rushing attempt.",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_fumbles",
+        "description": "The number of rushes with a fumble.",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_fumbles_lost",
+        "description": "The number of rushes with a lost fumble.",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_first_downs",
+        "description": "First downs on rush attempts (incl. scrambles).",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_epa",
+        "description": "Expected points added on rush attempts (incl. scrambles and kneel downs).",
+        "type": "numeric"
+      },
+      {
+        "field": "rushing_2pt_conversions",
+        "description": "Two-point conversion rushes",
+        "type": "numeric"
+      },
+      {
+        "field": "receptions",
+        "description": "The number of pass receptions. Lateral receptions officially don't count as reception.",
+        "type": "numeric"
+      },
+      {
+        "field": "targets",
+        "description": "The number of pass plays where the player was the targeted receiver.",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_yards",
+        "description": "Yards gained after a pass reception. Includes yards gained after receiving a lateral on a play that started as a pass play.",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_tds",
+        "description": "The number of touchdowns following a pass reception. Also includes touchdowns after receiving a lateral on a play that started as a pass play.",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_fumbles",
+        "description": "The number of fumbles after a pass reception.",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_fumbles_lost",
+        "description": "The number of fumbles lost after a pass reception.",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_air_yards",
+        "description": "Receiving air yards (incl. incomplete passes).",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_yards_after_catch",
+        "description": "Yards after the catch gained on plays in which player was receiver (this is an unofficial stat and may differ slightly between different sources).",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_first_downs",
+        "description": "Total number of first downs gained on receptions",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_epa",
+        "description": "Total EPA on plays where this receiver was targeted",
+        "type": "numeric"
+      },
+      {
+        "field": "receiving_2pt_conversions",
+        "description": "Two-point conversion receptions",
+        "type": "numeric"
+      },
+      {
+        "field": "special_teams_tds",
+        "description": "Total number of kick/punt return touchdowns",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_solo",
+        "description": "Total number of solo tackles for this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_with_assist",
+        "description": "Number of tackles this team had with an assisted tackle",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackle_assists",
+        "description": "Number of assisted tackles for this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_for_loss",
+        "description": "Number of tackles for loss (TFL) for this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tackles_for_loss_yards",
+        "description": "Yards lost from TFLs involving this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_fumbles_forced",
+        "description": "Number of times a fumble was forced by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_sacks",
+        "description": "Number of sacks by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_sack_yards",
+        "description": "Yards lost from sacks forced by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_qb_hits",
+        "description": "Number of QB hits by this team (should not include plays where the QB was sacked)",
+        "type": "numeric"
+      },
+      {
+        "field": "def_interceptions",
+        "description": "Number of interceptions forced by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_interception_yards",
+        "description": "yards gained/lost on interception returns by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_pass_defended",
+        "description": "Number of passes defended/broken up by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_tds",
+        "description": "Number of defensive touchdowns scored by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_fumbles",
+        "description": "Number of fumbles forced by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "def_safeties",
+        "description": "Number of safeties forced by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "misc_yards",
+        "description": "Miscellaneous yards attributed to this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_own",
+        "description": "Number of the player's own team fumbles recovered",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_yards_own",
+        "description": "Yards gained/lost on own fumble recoveries",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_opp",
+        "description": "Number of the opponent's fumbles recovered",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_yards_opp",
+        "description": "Yardage on opponent fumble recoveries",
+        "type": "numeric"
+      },
+      {
+        "field": "fumble_recovery_tds",
+        "description": "Fumbles recovered and advanced for a touchdown",
+        "type": "numeric"
+      },
+      {
+        "field": "penalties",
+        "description": "Number of penalties attributed to this team",
+        "type": "numeric"
+      },
+      {
+        "field": "penalty_yards",
+        "description": "Penalty yardage on penalties attributed to this team",
+        "type": "numeric"
+      },
+      {
+        "field": "timeouts",
+        "description": "Number of timeouts used by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "punt_returns",
+        "description": "Count of punt returns by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "punt_return_yards",
+        "description": "Yards gained on punts returned by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "kickoff_returns",
+        "description": "Count of kick returns by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "kickoff_return_yards",
+        "description": "Yards gained on kick returns by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made",
+        "description": "Count of field goals made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_att",
+        "description": "Count of field goals attempted by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed",
+        "description": "Count of field goals missed by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_blocked",
+        "description": "Count of field goals attempted by this team that were blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_long",
+        "description": "Longest successful field goal made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_pct",
+        "description": "Percentage of field goals successfully made",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_0_19",
+        "description": "Count of field goals within 0-19 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_20_29",
+        "description": "Count of field goals within 20-29 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_30_39",
+        "description": "Count of field goals within 30-39 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_40_49",
+        "description": "Count of field goals within 40-49 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_50_59",
+        "description": "Count of field goals within 50-59 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_60_",
+        "description": "Count of field goals over 60 yards made by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_0_19",
+        "description": "Count of field goals missed between 0-19 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_20_29",
+        "description": "Count of field goals missed between 20-29 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_30_39",
+        "description": "Count of field goals missed between 30-39 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_40_49",
+        "description": "Count of field goals missed between 40-49 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_50_59",
+        "description": "Count of field goals missed between 50-59 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_60_",
+        "description": "Count of field goals missed over 60 yards by this team",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_made_list",
+        "description": "Comma-separated string listing lengths of field goals made",
+        "type": "character"
+      },
+      {
+        "field": "fg_missed_list",
+        "description": "Comma-separated string listing lengths of field goals missed",
+        "type": "character"
+      },
+      {
+        "field": "fg_blocked_list",
+        "description": "Comma-separated string listing lengths of field goals blocked",
+        "type": "character"
+      },
+      {
+        "field": "fg_made_distance",
+        "description": "Total distance on field goals made",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_missed_distance",
+        "description": "Total distance on field goals missed",
+        "type": "numeric"
+      },
+      {
+        "field": "fg_blocked_distance",
+        "description": "Total distance on field goals blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_made",
+        "description": "Count of extra point kicks made",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_att",
+        "description": "Count of extra point kicks attempted",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_missed",
+        "description": "Count of extra point kicks missed",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_blocked",
+        "description": "Count of extra point kicks blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "pat_pct",
+        "description": "Percentage of extra point kicks successfully completed",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_made",
+        "description": "Count of game winning field goals made",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_att",
+        "description": "Count of game winning field goals attempted",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_missed",
+        "description": "Count of game winning field goals missed",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_blocked",
+        "description": "Count of game winning field goals blocked",
+        "type": "numeric"
+      },
+      {
+        "field": "gwfg_distance",
+        "description": "Total distance on game winning field goals completed",
+        "type": "numeric"
       }
     ]
   }
