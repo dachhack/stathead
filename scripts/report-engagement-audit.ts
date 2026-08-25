@@ -219,6 +219,37 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
     L.push('');
   }
 
+  const ml = report.managerLevel;
+  L.push('## Manager-level features', '');
+  L.push('A separate surface from the rows above, with its own label — did this manager');
+  L.push('go dark in ANY scorable season — and its own failure mode. These describe a');
+  L.push('person across their whole portfolio, so the risk is not leakage from one');
+  L.push('season\'s outcome but being computed on a small sample of the portfolio they');
+  L.push('claim to summarise.', '');
+  L.push(`Label: **${ml.positives}/${ml.labelled}** managers (${pct(ml.baseRate)}), of ${ml.managers} in the population.`, '');
+  L.push(`Portfolio enumerated for **${ml.portfolioEnumerated}/${ml.managers}** managers` +
+    (ml.meanPortfolioSampled !== null ? `; of those portfolios, **${pct(ml.meanPortfolioSampled)}** was actually swept.` : '.'), '');
+  L.push('`portfolio` means the axis is computed from the manager\'s enumerated league');
+  L.push('list and is exact. `crawled` means it comes from the swept slice only —');
+  L.push('intensity and sociality can never be anything else, because they need');
+  L.push('transactions. `mixed` means the population contains both, which should not be');
+  L.push('pooled.', '');
+  L.push('| Feature | Axis | Eligible | Source | Coverage | Signal AUC | Direction |', '| --- | --- | --- | --- | --- | --- | --- |');
+  for (const f of ml.features) {
+    const dir = f.directionOk === null ? f.direction : f.directionOk ? `${f.direction} ✓` : `${f.direction} ✗`;
+    L.push(`| \`${f.name}\` | ${f.axis} | ${mark[f.eligibility]} ${f.eligibility} | ${f.source} | ${pct(f.summary.coverage, 0)} | ${num(f.signalAuc, 3)} | ${dir} |`);
+  }
+  L.push('');
+
+  const mlIneligible = ml.features.filter((f) => f.eligibility === 'ineligible');
+  if (mlIneligible.length) {
+    L.push('Excluded: ' + mlIneligible.map((f) => `\`${f.name}\` (${f.eligibilityReason.replace(/\.$/, '')})`).join('; ') + '.', '');
+  }
+  if (ml.warnings.length) {
+    for (const w of ml.warnings) L.push(`- ${w}`);
+    L.push('');
+  }
+
   L.push('## Collinearity', '');
   if (report.collinearPairs.length) {
     L.push('Pairs at |r| ≥ 0.9 among model-usable features — the same column twice.', '');
@@ -313,6 +344,8 @@ function main() {
   console.log(`  features: ${report.features.filter((f) => f.eligibility === 'eligible').length} eligible, ` +
     `${report.features.filter((f) => f.eligibility === 'conditional').length} conditional, ` +
     `${report.features.filter((f) => f.eligibility === 'ineligible').length} ineligible`);
+  console.log(`  manager-level: ${report.managerLevel.positives}/${report.managerLevel.labelled} labelled positive, ` +
+    `${report.managerLevel.portfolioEnumerated}/${report.managerLevel.managers} portfolios enumerated`);
   console.log(`  invariants: ${report.invariants.filter((i) => i.passed).length}/${report.invariants.length} passing`);
   console.log(`  warnings: ${c.warnings.length}   blocking: ${report.blocking.length}`);
   console.log(`\n  → ${jsonPath}\n  → ${mdPath}\n`);

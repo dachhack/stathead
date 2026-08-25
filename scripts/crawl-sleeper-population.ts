@@ -9,7 +9,8 @@
 //                                                   [--rpm=600] [--concurrency=8]
 //                                                   [--out=sleeper-population.json]
 //                                                   [--cache=.cache/sleeper-crawl]
-//                                                   [--no-brackets] [--reveal-ids]
+//                                                   [--no-brackets] [--no-portfolios]
+//                                                   [--reveal-ids]
 //                                                   [--plan]
 //
 // WHY LEAGUE-ORIENTED. One league-season costs ~21 requests (league + rosters +
@@ -49,7 +50,7 @@ import {
   leagueFormatInfo, txnEventFor,
   type SleeperRawTransaction, type TxnEvent, type LeagueSeasonRecord, type TxnContext,
 } from '../src/lib/sleeper';
-import { managerSeasonEngagement } from '../src/lib/engagement';
+import { managerSeasonEngagement, type PortfolioEntry } from '../src/lib/engagement';
 import { retentionEvents, type LeagueSeasonRef } from '../src/lib/leagueLineage';
 import type { ManagerObservation } from '../src/lib/featureAudit';
 
@@ -90,6 +91,12 @@ export interface CrawlOptions {
   expandPerLeague: number;      // managers sampled per league for horizontal expansion
   weeks: number;
   brackets: boolean;
+  // Enumerate every discovered manager's full league list after the main crawl.
+  // A league-oriented crawl sees ~2% of a typical manager's portfolio, which
+  // makes every portfolio-level feature (league count, format mix, tenure,
+  // retention) a 2% sample. Enumeration fixes those exactly for ~1 request per
+  // (manager, season) — it lists leagues, it does not sweep them.
+  enumeratePortfolios: boolean;
   pseudonymize: boolean;
   salt: string;
   // Portfolios the caller already enumerated (userId → league-season count).
@@ -106,6 +113,7 @@ export interface CrawlStats {
   leagueSeasonsSkipped: number;   // outside the season window, or not NFL
   managersDiscovered: number;
   portfoliosResolved: number;
+  portfoliosEnumerated: number;
   frontierRemaining: number;
   budgetExhausted: boolean;
   errors: number;
@@ -163,7 +171,8 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
 
   const stats: CrawlStats = {
     requests: 0, leagueSeasonsCrawled: 0, leagueSeasonsDropped: 0, leagueSeasonsSkipped: 0,
-    managersDiscovered: 0, portfoliosResolved: 0, frontierRemaining: 0, budgetExhausted: false, errors: 0,
+    managersDiscovered: 0, portfoliosResolved: 0, portfoliosEnumerated: 0,
+    frontierRemaining: 0, budgetExhausted: false, errors: 0,
   };
 
   const crawled: CrawledLeagueSeason[] = [];
@@ -189,6 +198,35 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
     return (await deps.getJson(path)) as T | null;
   };
   const canSpend = (n: number) => stats.requests + n <= opts.maxRequests;
+
+  // Full league list per manager, keyed by raw user id. Populated by horizontal
+  // expansion and by the enumeration pass — the same requests serve both, so a
+  // manager already expanded through is never enumerated twice.
+  const portfolioEntries = new Map<string, PortfolioEntry[]>();
+
+  const enumeratePortfolio = async (ownerId: string): Promise<PortfolioEntry[]> => {
+    const existing = portfolioEntries.get(ownerId);
+    if (existing) return existing;
+    const entries: PortfolioEntry[] = [];
+    for (const season of opts.seasons) {
+      const leagues = await get<RawLeague[]>(`/user/${ownerId}/leagues/nfl/${season}`);
+      for (const lg of leagues ?? []) {
+        if (lg.sport && lg.sport !== 'nfl') continue;
+        entries.push({
+          leagueId: lg.league_id,
+          previousLeagueId: lg.previous_league_id && lg.previous_league_id !== '0'
+            ? lg.previous_league_id : null,
+          season: lg.season ?? season,
+          format: leagueFormatInfo({
+            settings: lg.settings, roster_positions: lg.roster_positions,
+          } as Parameters<typeof leagueFormatInfo>[0]),
+          totalRosters: lg.total_rosters ?? 0,
+        });
+      }
+    }
+    portfolioEntries.set(ownerId, entries);
+    return entries;
+  };
 
   while (pending()) {
     if (crawled.length >= opts.maxLeagueSeasons) break;
@@ -225,16 +263,9 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
 
     for (const ownerId of owners) {
       if (!canSpend(opts.seasons.length)) { stats.budgetExhausted = true; break; }
-      let known = 0;
-      for (const season of opts.seasons) {
-        const leagues = await get<RawLeague[]>(`/user/${ownerId}/leagues/nfl/${season}`);
-        for (const lg of leagues ?? []) {
-          if (lg.sport && lg.sport !== 'nfl') continue;
-          known++;
-          if (!visited.has(lg.league_id)) frontier.push(lg.league_id);
-        }
-      }
-      portfolio.set(ownerId, known);
+      const entries = await enumeratePortfolio(ownerId);
+      for (const e of entries) if (!visited.has(e.leagueId)) frontier.push(e.leagueId);
+      portfolio.set(ownerId, entries.length);
       stats.portfoliosResolved++;
     }
 
@@ -243,7 +274,26 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
   }
   stats.frontierRemaining = pending();
 
-  const { population, horizonBySeason } = assemble(crawled, portfolio, opts);
+  // Enumeration pass: every manager we found inside a crawled league, whose
+  // league list we have not already fetched. Runs AFTER the main crawl so it
+  // can never starve it of budget, and adds no leagues to the frontier — this
+  // is about measuring portfolios, not growing the sample.
+  if (opts.enumeratePortfolios) {
+    const owners = [...new Set(crawled.flatMap((ls) =>
+      ls.rosters.map((r) => r.owner_id).filter((id): id is string => !!id)))].sort();
+    for (const ownerId of owners) {
+      if (portfolioEntries.has(ownerId)) continue;
+      if (!canSpend(opts.seasons.length)) { stats.budgetExhausted = true; break; }
+      try {
+        const entries = await enumeratePortfolio(ownerId);
+        portfolio.set(ownerId, entries.length);
+        stats.portfoliosEnumerated++;
+      } catch { stats.errors++; }
+      deps.onProgress?.(stats);
+    }
+  }
+
+  const { population, horizonBySeason } = assemble(crawled, portfolio, portfolioEntries, opts);
   stats.managersDiscovered = population.length;
   return { population, stats, horizonBySeason };
 }
@@ -345,6 +395,7 @@ export function deriveHorizons(crawled: { season: string; transactions: { week: 
 function assemble(
   crawled: CrawledLeagueSeason[],
   portfolio: Map<string, number>,
+  portfolioEntries: Map<string, PortfolioEntry[]>,
   opts: CrawlOptions,
 ): { population: ManagerObservation[]; horizonBySeason: Record<string, number> } {
   const horizonBySeason = deriveHorizons(crawled);
@@ -435,6 +486,9 @@ function assemble(
       // reported below.
       sweep: { capped: false, weeksScanned: bucket.weeksScanned },
       retention: retentionEvents(refs, populationRefs),
+      // The enumerated league list, when we have it. Portfolio-level features
+      // computed from this are exact; ones needing transactions stay sampled.
+      portfolio: portfolioEntries.get(ownerId),
       coverage: {
         portfolioKnown: knownLeagueSeasons !== undefined,
         knownLeagueSeasons: knownLeagueSeasons ?? rows.length,
@@ -571,6 +625,7 @@ function parseArgs() {
     out: args.get('out') ?? 'sleeper-population.json',
     cacheDir: args.get('cache') === 'false' ? null : (args.get('cache') ?? '.cache/sleeper-crawl'),
     brackets: args.get('no-brackets') !== 'true',
+    enumeratePortfolios: args.get('no-portfolios') !== 'true',
     pseudonymize: args.get('reveal-ids') !== 'true',
     salt: args.get('salt') ?? process.env.SLEEPER_CRAWL_SALT ?? 'stathead-engagement-v1',
     plan: args.get('plan') === 'true',
@@ -587,6 +642,7 @@ async function main() {
     expandPerLeague: a.expandPerLeague,
     weeks: WEEKS,
     brackets: a.brackets,
+    enumeratePortfolios: a.enumeratePortfolios,
     pseudonymize: a.pseudonymize,
     salt: a.salt,
   };
@@ -598,6 +654,7 @@ async function main() {
   console.log(`  caps             ${opts.maxLeagueSeasons} league-seasons, ${opts.maxRequests} requests`);
   console.log(`  worst case       ~${(opts.maxLeagueSeasons * (perLeague + opts.expandPerLeague * opts.seasons.length)).toLocaleString()} requests`);
   console.log(`  pace             ${a.rpm}/min, ${a.concurrency} concurrent`);
+  console.log(`  portfolios       ${opts.enumeratePortfolios ? `enumerated (~${opts.seasons.length} requests/manager, after the crawl)` : 'not enumerated'}`);
   console.log(`  ids              ${opts.pseudonymize ? 'salted hash' : 'RAW — do not share this file'}`);
   console.log(`  cache            ${a.cacheDir ?? 'disabled'}\n`);
 
@@ -661,7 +718,7 @@ async function main() {
   }, null, 2)}\n`);
 
   console.log(`\n  league-seasons   ${s.leagueSeasonsCrawled} crawled, ${s.leagueSeasonsDropped} dropped, ${s.leagueSeasonsSkipped} skipped`);
-  console.log(`  managers         ${s.managersDiscovered} (${s.portfoliosResolved} portfolios resolved)`);
+  console.log(`  managers         ${s.managersDiscovered} (${s.portfoliosResolved} portfolios resolved, ${s.portfoliosEnumerated} by the enumeration pass)`);
   console.log(`  requests         ${s.requests}${s.budgetExhausted ? ' — BUDGET EXHAUSTED' : ''}`);
   console.log(`  frontier left    ${s.frontierRemaining}`);
   console.log(`  horizons         ${JSON.stringify(result.horizonBySeason)}`);

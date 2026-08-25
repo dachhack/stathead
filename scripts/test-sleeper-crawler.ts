@@ -117,6 +117,7 @@ const OPTS = (over: Partial<CrawlOptions> = {}): CrawlOptions => ({
   expandPerLeague: 0,
   weeks: 18,
   brackets: true,
+  enumeratePortfolios: false,
   pseudonymize: true,
   salt: 'test-salt',
   ...over,
@@ -392,6 +393,62 @@ const run = (world: FakeWorld, opts: CrawlOptions): Promise<CrawlResult> =>
   check('priority: horizontal finds are still crawled when there is room',
     all.has('OTHER') && all.has('L2023'), [...all]);
   eq('priority: chain depth achieved', new Set(full.population.flatMap((m) => m.rows.filter((r) => r.lineageId === 'L2023').map((r) => r.season))).size, 3);
+}
+
+// ── 14c. the portfolio enumeration pass ──
+{
+  const world: FakeWorld = {
+    leagues: CHAIN,
+    portfolios: {
+      // u2 really plays four league-seasons; the crawl only ever sweeps its own.
+      u2: { 2023: ['X1', 'X2'], 2024: ['X3'], 2025: ['X4'] },
+      u3: { 2025: ['Y1'] },
+    },
+  };
+  const { getJson, calls } = makeGetJson(world);
+  const result = await crawl(OPTS({ enumeratePortfolios: true, expandPerLeague: 0, pseudonymize: false }), { getJson });
+
+  const u2 = result.population.find((m) => m.managerId === 'u2')!;
+  eq('enumerate: the full league list is attached', u2.portfolio?.length, 4);
+  eq('enumerate: it carries the season', new Set(u2.portfolio!.map((e) => e.season)).size, 3);
+  check('enumerate: and the prior-season link', u2.portfolio!.every((e) => 'previousLeagueId' in e));
+  eq('enumerate: coverage now knows the true portfolio size', u2.coverage?.knownLeagueSeasons, 4);
+  check('enumerate: coverage is flagged known', u2.coverage?.portfolioKnown === true);
+  eq('enumerate: crawled count is unchanged', u2.coverage?.crawledLeagueSeasons, u2.rows.length);
+
+  // Enumeration measures portfolios; it must not grow the sample, or the pass
+  // would keep discovering work after the crawl was supposed to stop.
+  check('enumerate: discovered leagues are not crawled',
+    !result.population.some((m) => m.rows.some((r) => ['X1', 'X2', 'X3', 'X4', 'Y1'].includes(r.leagueId))),
+    result.stats);
+  check('enumerate: no league document is fetched for them',
+    !calls.some((c) => /^\/league\/(X\d|Y1)$/.test(c)), calls.filter((c) => /X\d|Y1/.test(c)));
+  // Three managers appear across the crawled chain (u1, u2, u3), so three
+  // portfolios are enumerated — one per manager, not one per league found.
+  eq('enumerate: one enumeration per discovered manager', result.stats.portfoliosEnumerated, 3);
+
+  // Off by default in these tests, and then nothing is attached.
+  const { getJson: g2 } = makeGetJson(world);
+  const without = await crawl(OPTS({ enumeratePortfolios: false, expandPerLeague: 0, pseudonymize: false }), { getJson: g2 });
+  check('enumerate: absent when the pass is off',
+    without.population.every((m) => m.portfolio === undefined));
+  eq('enumerate: and no portfolios are counted', without.stats.portfoliosEnumerated, 0);
+}
+
+// ── 14d. enumeration runs after the crawl and cannot starve it ──
+{
+  const world: FakeWorld = { leagues: CHAIN, portfolios: { u1: { 2025: ['OTHER'] } } };
+  const perLeague = leagueSeasonCost({ weeks: 18, brackets: true });
+  // Exactly enough for the three chain league-seasons and nothing more.
+  const { getJson } = makeGetJson(world);
+  const result = await crawl(OPTS({
+    enumeratePortfolios: true, expandPerLeague: 0, maxRequests: perLeague * 3,
+  }), { getJson });
+
+  eq('enumerate: the crawl still gets its full budget', result.stats.leagueSeasonsCrawled, 3);
+  eq('enumerate: enumeration is skipped when nothing is left', result.stats.portfoliosEnumerated, 0);
+  check('enumerate: and the shortfall is reported', result.stats.budgetExhausted);
+  check('enumerate: never overspends', result.stats.requests <= perLeague * 3, result.stats.requests);
 }
 
 // ── 15. the crawler's output is consumable by the audit ──

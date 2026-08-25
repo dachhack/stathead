@@ -74,6 +74,53 @@ so both land in the same component.
 > representative for the same league. Persist the mapping; don't recompute it
 > ad hoc and expect stability across runs.
 
+### Two feature levels, two different crawls
+
+The pipeline builds features at **two levels**, and they have different data
+requirements — a single crawl cannot serve both.
+
+| Level | Unit | What it needs | Status |
+| --- | --- | --- | --- |
+| **Manager-season** | one team, one season | every transaction week of that league-season | league-oriented crawl, complete |
+| **Manager** | a person across their portfolio | their whole league list, and ideally transactions for all of it | portfolio enumeration, partial by design |
+
+A league-oriented crawl finds managers *inside* the leagues it visits, so it
+sees a median of ~2% of any given manager's portfolio. Manager-season features
+are unaffected — each crawled league-season is complete. Manager-level features
+are not: league count, format mix, tenure and retention are all portfolio
+quantities, and a 2% sample of them looks exactly like the real thing.
+
+**The cheap half.** Three of the five behavioural axes need only the league
+*list*, not the transactions: `/user/<id>/leagues/nfl/<season>` returns full
+league objects, so format and `previous_league_id` come free with the
+enumeration.
+
+| Axis | Needs | Cost |
+| --- | --- | --- |
+| volume (league count, seasons active) | enumeration | ~1 request per manager-season |
+| mode (dynasty / redraft / best-ball share) | enumeration | — |
+| persistence (tenure, retention) | enumeration | — |
+| intensity (transactions per league-week) | transaction sweeps | ~21 requests per league-season |
+| sociality (trade rate, partner HHI) | transaction sweeps | — |
+
+So the crawler runs an **enumeration pass** after the main crawl: for every
+manager it discovered, it lists their leagues. That makes volume, mode and
+persistence exact for roughly the cost of one more crawl, while intensity and
+sociality stay sampled — permanently, because sweeping a median 141-league-season
+portfolio would cost ~3,000 requests per manager.
+
+Every profile therefore carries **provenance** per axis (`portfolio` = exact,
+`crawled` = sampled) and the swept share of the portfolio. The audit reports
+which, and warns when a population mixes the two — pooling exact and 2%-sampled
+league counts is worse than having neither.
+
+**One leakage rule specific to this level.** `historicalAbandonmentRate` is
+derived from the abandonment label. Across prior seasons it is legitimate and
+probably the strongest predictor available; computed including the season being
+scored it is straight target leakage. `engagementProfile` takes an `asOfSeason`
+that excludes that season and everything after it, and the audit marks the
+feature `label-derived` so it can never be used unguarded.
+
 ### The crawler (implemented)
 
 `npm run crawl:sleeper -- --seed=<leagueId>` walks the league graph and writes a
@@ -431,6 +478,7 @@ distinct.
 | League lineage resolver | **done** |
 | Engagement features, profile, segments | **done** (cold-start thresholds; centroids await a crawl) |
 | Completeness + feature audit reporting | **done** |
+| Manager-level features (portfolio enumeration, provenance, as-of guard) | **done** |
 | Metric primitives (AUC, Brier, calibration, C, PSI, grouped CV, IRLS logistic) | **done** |
 | Abandonment survival model | not started — features and metrics are in place |
 | League-exit model | not started — needs a crawl for lineage-level labels |

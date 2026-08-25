@@ -66,6 +66,32 @@ export interface ManagerSeasonEngagement {
   lineupSignalsValid: boolean;
 }
 
+// One league-season in a manager's portfolio, as returned by
+// /user/<id>/leagues/nfl/<season>. That endpoint hands back full league
+// objects, so format and the prior-season link come free with the enumeration —
+// no per-league fetch needed.
+//
+// This is the cheap half of the user-level feature problem: volume, mode and
+// persistence need only the league LIST, while intensity and sociality need
+// transaction sweeps. Enumerating costs ~1 request per (manager, season);
+// sweeping a manager's whole portfolio costs thousands.
+export interface PortfolioEntry {
+  leagueId: string;
+  previousLeagueId: string | null;
+  season: string;
+  format: LeagueFormatInfo;
+  totalRosters: number;
+}
+
+export interface ProfileOptions extends EngagementOptions {
+  // The manager's enumerated league list. When present, volume / mode /
+  // persistence are computed from it exactly instead of from the crawled slice.
+  portfolio?: PortfolioEntry[];
+  // Exclude this season and later from every label-derived user-level feature,
+  // so a profile used to score season S cannot see season S's outcome.
+  asOfSeason?: string;
+}
+
 export interface EngagementOptions {
   // Last week that could plausibly have activity, per season. Defaults to 17.
   // Pass the current week for the live season so trailing silence isn't
@@ -222,12 +248,33 @@ export interface EngagementProfile {
   faabPerWaiver: number;
   commishShare: number;
 
-  // Reliability
+  // Reliability. Derived from the abandonment LABEL, so at the user level this
+  // is label-derived: legitimate as a prior-seasons feature, straight target
+  // leakage if it includes the season being scored. `asOfSeason` enforces that.
   historicalAbandonmentRate: number | null;
+  asOfSeason: string | null;   // seasons >= this were excluded; null = no guard
+
+  // Which axes came from an enumerated portfolio (exact) and which from the
+  // crawled slice (a sample, often a very small one). Without this the two are
+  // indistinguishable in the output, and a 2% sample of a manager's league
+  // count reads exactly like the real thing.
+  provenance: {
+    volume: AxisSource;
+    mode: AxisSource;
+    persistence: AxisSource;
+    intensity: AxisSource;    // always 'crawled': needs transactions
+    sociality: AxisSource;    // always 'crawled': needs transactions
+  };
+  // True portfolio size when enumerated, else null.
+  portfolioLeagueSeasons: number | null;
+  // Share of the portfolio the crawl actually swept, when both are known.
+  portfolioSampled: number | null;
 
   // How much this profile should be trusted vs. shrunk to a population prior.
   evidenceWeight: number;   // 0..1
 }
+
+export type AxisSource = 'portfolio' | 'crawled';
 
 // A manager-season counts as "went dark" if they stopped transacting well
 // before the season ended. Deliberately conservative: best-ball is excluded
@@ -253,24 +300,46 @@ export function engagementProfile(
   rows: ManagerSeasonEngagement[],
   events: TxnEvent[],
   trades: TradeRecord[],
-  opts: EngagementOptions = {},
+  opts: ProfileOptions = {},
 ): EngagementProfile {
-  const leagueSeasons = rows.length;
-  const seasons = new Set(rows.map((r) => r.season));
+  // The portfolio, when enumerated, is the authority on volume / mode /
+  // persistence. The crawled rows are a sample of it — often ~2% — so using
+  // them for a "league count" produces a number that looks real and is not.
+  const portfolio = opts.portfolio;
+  const asOf = opts.asOfSeason ? Number(opts.asOfSeason) : null;
+  const beforeAsOf = <T extends { season: string }>(xs: T[]) =>
+    (asOf === null ? xs : xs.filter((x) => Number(x.season) < asOf));
+
+  const crawledLeagueSeasons = rows.length;
+  const leagueSeasons = portfolio ? portfolio.length : crawledLeagueSeasons;
+  const seasons = new Set((portfolio ?? rows).map((r) => r.season));
   const latestSeason = [...seasons].sort((a, b) => Number(b) - Number(a))[0] ?? '';
-  const leaguesCurrentSeason = rows.filter((r) => r.season === latestSeason).length;
+  const leaguesCurrentSeason = portfolio
+    ? portfolio.filter((e) => e.season === latestSeason).length
+    : rows.filter((r) => r.season === latestSeason).length;
 
   // Intensity is normalized per league-week so a 6-league manager isn't
   // automatically "more engaged" than a focused single-league one.
+  //
+  // The denominator stays on CRAWLED league-seasons even when the portfolio is
+  // known: we only hold transactions for leagues we swept, so dividing swept
+  // events by an enumerated portfolio would understate intensity by whatever
+  // fraction of the portfolio went unswept — a 50x error at typical coverage.
   const leagueWeeks = rows.reduce((sum, r) => sum + Math.max(1, horizonFor(opts, r.season)), 0);
   const txnPerLeagueWeek = share(events.length, leagueWeeks);
 
-  const refs: LeagueSeasonRef[] = history.map((r) => ({
-    leagueId: r.leagueId,
-    previousLeagueId: r.previousLeagueId,
-    season: r.season,
-    name: r.leagueName,
-  }));
+  // Persistence needs the whole chain to be visible. An enumerated portfolio
+  // carries previous_league_id for every league the manager was in, so tenure
+  // and retention become exact; the crawled slice usually sees one season of a
+  // multi-season league and reports tenure 1.
+  const refs: LeagueSeasonRef[] = portfolio
+    ? portfolio.map((e) => ({ leagueId: e.leagueId, previousLeagueId: e.previousLeagueId, season: e.season }))
+    : history.map((r) => ({
+      leagueId: r.leagueId,
+      previousLeagueId: r.previousLeagueId,
+      season: r.season,
+      name: r.leagueName,
+    }));
   const index = resolveLineages(refs);
   const maxTenureSeasons = Math.max(0, ...[...index.lineages.values()].map((l) => l.tenureSeasons));
 
@@ -279,7 +348,9 @@ export function engagementProfile(
     ? share(retention.filter((e) => e.returnedNextSeason).length, retention.length)
     : null;
 
-  const fmt = (pick: (f: LeagueFormatInfo) => boolean) => share(rows.filter((r) => pick(r.format)).length, leagueSeasons);
+  const fmt = portfolio
+    ? (pick: (f: LeagueFormatInfo) => boolean) => share(portfolio.filter((e) => pick(e.format)).length, portfolio.length)
+    : (pick: (f: LeagueFormatInfo) => boolean) => share(rows.filter((r) => pick(r.format)).length, crawledLeagueSeasons);
 
   let pre = 0, early = 0, mid = 0, late = 0;
   for (const e of events) {
@@ -309,8 +380,13 @@ export function engagementProfile(
   const faab = rows.reduce((s, r) => s + r.faabSpent, 0);
   const commish = rows.reduce((s, r) => s + r.commishCount, 0);
 
-  // Only completed, non-best-ball seasons can be scored for going dark.
-  const scorable = rows.filter((r) => !r.format.bestBall && r.season !== latestSeason);
+  // Only completed, non-best-ball seasons can be scored for going dark, and
+  // when an as-of season is set, only seasons strictly before it. Without that
+  // guard a profile used to score season S sees S's own outcome — the feature
+  // is derived from the label, so this is target leakage, not a subtlety.
+  const newestCrawled = [...new Set(rows.map((r) => r.season))].sort((a, b) => Number(b) - Number(a))[0] ?? '';
+  const scorable = beforeAsOf(rows).filter((r) =>
+    !r.format.bestBall && (asOf !== null || r.season !== newestCrawled));
   const historicalAbandonmentRate = scorable.length
     ? share(scorable.filter((r) => wentDark(r)).length, scorable.length)
     : null;
@@ -318,7 +394,10 @@ export function engagementProfile(
   // Shrinkage weight: both breadth (how many league-seasons we've seen) and
   // depth (how many transactions) have to be present before a personal
   // estimate beats the population prior.
-  const evidenceWeight = 0.5 * clamp01(leagueSeasons / 4) + 0.5 * clamp01(total / 40);
+  // Breadth counts CRAWLED league-seasons, not the enumerated portfolio:
+  // knowing a manager plays 300 leagues is not evidence about their behaviour
+  // in the four we actually swept.
+  const evidenceWeight = 0.5 * clamp01(crawledLeagueSeasons / 4) + 0.5 * clamp01(total / 40);
 
   return {
     userId,
@@ -343,8 +422,43 @@ export function engagementProfile(
     faabPerWaiver: share(faab, waivers),
     commishShare: share(commish, total),
     historicalAbandonmentRate,
+    asOfSeason: opts.asOfSeason ?? null,
+    provenance: {
+      volume: portfolio ? 'portfolio' : 'crawled',
+      mode: portfolio ? 'portfolio' : 'crawled',
+      persistence: portfolio ? 'portfolio' : 'crawled',
+      intensity: 'crawled',
+      sociality: 'crawled',
+    },
+    portfolioLeagueSeasons: portfolio ? portfolio.length : null,
+    portfolioSampled: portfolio && portfolio.length
+      ? crawledLeagueSeasons / portfolio.length
+      : null,
     evidenceWeight,
   };
+}
+
+// Reconstruct trade records from the flattened transaction events.
+//
+// A crawled population stores events, not TradeRecords — the pick and FAAB
+// detail a TradeRecord carries is only needed by the trade UI, while the
+// profile's sociality axis needs just the count and the counterparties, both of
+// which events already hold. rosterId is not recoverable and is not used
+// (partner concentration keys on league + partner), so it is left at 0.
+export function tradesFromEvents(events: TxnEvent[]): TradeRecord[] {
+  return events
+    .filter((e) => e.kind === 'trade' && e.status === 'complete')
+    .map((e) => ({
+      leagueId: e.leagueId,
+      leagueName: '',
+      season: e.season,
+      week: e.week,
+      created: e.created,
+      rosterId: 0,
+      partners: e.partners,
+      received: { players: e.adds, picks: [], faab: 0 },
+      gave: { players: e.drops, picks: [], faab: 0 },
+    }));
 }
 
 // ── Segments ──

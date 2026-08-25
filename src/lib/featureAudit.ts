@@ -23,7 +23,10 @@
 //
 // See docs/sleeper-engagement-model.md.
 import { summarize, auc, pearson, psi, type NumericSummary } from './evalMetrics';
-import { wentDark, type ManagerSeasonEngagement } from './engagement';
+import {
+  wentDark, engagementProfile, tradesFromEvents,
+  type ManagerSeasonEngagement, type PortfolioEntry, type EngagementProfile, type AxisSource,
+} from './engagement';
 import type { LeagueSeasonRecord, TxnEvent } from './sleeper';
 import type { RetentionEvent } from './leagueLineage';
 
@@ -169,6 +172,10 @@ export interface ManagerObservation {
   sweep?: { capped: boolean; weeksScanned: number };
   retention?: RetentionEvent[];
   coverage?: ManagerCoverage;
+  // The manager's enumerated league list. Present when the crawl ran its
+  // enumeration pass; portfolio-level features are exact where it is, and a 2%
+  // sample of the true portfolio where it is not.
+  portfolio?: PortfolioEntry[];
 }
 
 // ── reports ──
@@ -249,10 +256,92 @@ export interface CollinearPair {
 export interface AuditReport {
   completeness: CompletenessReport;
   features: FeatureAuditRow[];
+  managerLevel: ManagerAuditReport;
   invariants: InvariantResult[];
   collinearPairs: CollinearPair[];
   label: { name: string; scorableRows: number; positives: number; baseRate: number };
   blocking: string[];    // problems that should stop a training run
+}
+
+// ── user-level (per-manager) features ──
+//
+// A separate surface from the manager-season rows above, with its own label and
+// its own way of going wrong. The row-level features describe one team in one
+// season; these describe a person across their whole portfolio, and they fail
+// differently: not through leakage from a season's outcome, but through being
+// computed on a 2% sample of the portfolio they claim to summarise.
+
+export type ProfileAxis = 'volume' | 'mode' | 'persistence' | 'intensity' | 'sociality' | 'reliability' | 'evidence';
+
+export interface ManagerFeatureSpec {
+  name: string;
+  kind: FeatureKind;
+  axis: ProfileAxis;
+  get: (p: EngagementProfile) => number | null;
+  expect?: RiskDirection;
+  note?: string;
+}
+
+export const MANAGER_FEATURES: ManagerFeatureSpec[] = [
+  // Volume / mode / persistence are exact wherever the portfolio was
+  // enumerated, and a sample of it where it was not. The provenance column in
+  // the report says which, per population.
+  { name: 'leagueSeasons', kind: 'static', axis: 'volume', get: (p) => p.leagueSeasons, expect: 'none' },
+  { name: 'leaguesCurrentSeason', kind: 'static', axis: 'volume', get: (p) => p.leaguesCurrentSeason, expect: 'none' },
+  { name: 'seasonsActive', kind: 'static', axis: 'volume', get: (p) => p.seasonsActive, expect: 'lower-risk' },
+  { name: 'dynastyShare', kind: 'static', axis: 'mode', get: (p) => p.dynastyShare, expect: 'lower-risk' },
+  { name: 'bestBallShare', kind: 'static', axis: 'mode', get: (p) => p.bestBallShare, expect: 'none' },
+  { name: 'maxTenureSeasons', kind: 'static', axis: 'persistence', get: (p) => p.maxTenureSeasons, expect: 'lower-risk' },
+  { name: 'retentionRate', kind: 'static', axis: 'persistence', get: (p) => p.retentionRate, expect: 'lower-risk' },
+
+  // Intensity and sociality need transactions, so they are always computed on
+  // the swept slice — never exact, however complete the enumeration is.
+  { name: 'txnPerLeagueWeek', kind: 'time-varying', axis: 'intensity', get: (p) => p.txnPerLeagueWeek, expect: 'lower-risk' },
+  { name: 'waiverShare', kind: 'time-varying', axis: 'intensity', get: (p) => p.waiverShare, expect: 'lower-risk' },
+  { name: 'faabPerWaiver', kind: 'time-varying', axis: 'intensity', get: (p) => p.faabPerWaiver, expect: 'lower-risk' },
+  { name: 'preseasonShare', kind: 'time-varying', axis: 'intensity', get: (p) => p.preseasonShare, expect: 'higher-risk',
+    note: 'activity concentrated at the draft is the Draft-Day Enthusiast signature' },
+  { name: 'lateSeasonShare', kind: 'time-varying', axis: 'intensity', get: (p) => p.lateSeasonShare, expect: 'lower-risk' },
+  { name: 'tradesPerLeagueSeason', kind: 'time-varying', axis: 'sociality', get: (p) => p.tradesPerLeagueSeason, expect: 'lower-risk' },
+  { name: 'partnerConcentration', kind: 'time-varying', axis: 'sociality', get: (p) => p.partnerConcentration, expect: 'none' },
+  { name: 'commishShare', kind: 'time-varying', axis: 'intensity', get: (p) => p.commishShare, expect: 'lower-risk' },
+
+  // Derived from the abandonment label. Legitimate as a prior-seasons feature
+  // under an as-of guard; straight target leakage without one, and circular
+  // against the everWentDark label used to screen signal here.
+  { name: 'historicalAbandonmentRate', kind: 'label-derived', axis: 'reliability', get: (p) => p.historicalAbandonmentRate,
+    note: 'requires asOfSeason; otherwise it sees the outcome it is meant to predict' },
+
+  { name: 'evidenceWeight', kind: 'static', axis: 'evidence', get: (p) => p.evidenceWeight, expect: 'none',
+    note: 'a shrinkage weight, not a behavioural feature' },
+];
+
+export interface ManagerFeatureAuditRow {
+  name: string;
+  kind: FeatureKind;
+  axis: ProfileAxis;
+  eligibility: Eligibility;
+  eligibilityReason: string;
+  note?: string;
+  source: AxisSource | 'mixed';   // where this axis came from across the population
+  summary: NumericSummary;
+  degenerate: boolean;
+  degenerateReason: string | null;
+  signalAuc: number;              // vs everWentDark
+  direction: RiskDirection;
+  expected: RiskDirection | null;
+  directionOk: boolean | null;
+}
+
+export interface ManagerAuditReport {
+  managers: number;
+  labelled: number;               // managers with at least one scorable season
+  positives: number;              // managers who went dark at least once
+  baseRate: number;
+  portfolioEnumerated: number;    // managers whose full league list is known
+  meanPortfolioSampled: number | null;   // swept share of the enumerated portfolio
+  features: ManagerFeatureAuditRow[];
+  warnings: string[];
 }
 
 // Association is only meaningful where the label is defined, so best-ball and
@@ -273,6 +362,124 @@ function directionOf(a: number, minEffect: number): RiskDirection {
   if (a > 0.5 + minEffect) return 'higher-risk';
   if (a < 0.5 - minEffect) return 'lower-risk';
   return 'none';
+}
+
+// Audit the per-manager profile surface.
+//
+// Profiles are built here rather than taken as input, so the audit measures
+// exactly what a consumer would get from the same population — including the
+// provenance of each axis, which is the thing most likely to be misread.
+export function auditManagerFeatures(
+  population: ManagerObservation[],
+  specs: ManagerFeatureSpec[] = MANAGER_FEATURES,
+  auditOpts: AuditOptions = {},
+): ManagerAuditReport {
+  const minEffect = auditOpts.minEffectSize ?? DEFAULT_MIN_EFFECT;
+  const horizonWeek = (season: string) => auditOpts.horizonBySeason?.[season] ?? 17;
+  const warnings: string[] = [];
+
+  const built = population.map((m) => {
+    const events = m.events ?? [];
+    return {
+      profile: engagementProfile(m.managerId, m.history ?? [], m.rows, events,
+        tradesFromEvents(events), { horizonWeek, portfolio: m.portfolio }),
+      // A manager is labelled only if at least one of their seasons is scorable.
+      scorable: scorable(m.rows),
+    };
+  });
+
+  const labelled = built.filter((b) => b.scorable.length > 0);
+  // User-level label: did this manager go dark in ANY scorable season. Coarser
+  // than the row-level label on purpose — it is what the documented plan needs
+  // to validate segments against behaviour.
+  const labels = labelled.map((b) => bool(b.scorable.some((r) => wentDark(r))));
+  const positives = labels.reduce((s, v) => s + v, 0);
+
+  const enumerated = built.filter((b) => b.profile.provenance.volume === 'portfolio');
+  const sampledShares = enumerated
+    .map((b) => b.profile.portfolioSampled)
+    .filter((v): v is number => v !== null);
+  const meanPortfolioSampled = sampledShares.length
+    ? sampledShares.reduce((a, b) => a + b, 0) / sampledShares.length
+    : null;
+
+  if (!enumerated.length && population.length) {
+    warnings.push('No manager has an enumerated portfolio, so every volume, mode and persistence figure below is computed from the crawled slice — typically a small fraction of the real portfolio. Run the crawl with portfolio enumeration before trusting them.');
+  } else if (enumerated.length < population.length) {
+    warnings.push(`Portfolio enumerated for ${enumerated.length}/${population.length} managers; the rest have volume, mode and persistence sampled from the crawled slice. Do not pool the two groups.`);
+  }
+  if (meanPortfolioSampled !== null && meanPortfolioSampled < 0.25) {
+    warnings.push(`Only ${(meanPortfolioSampled * 100).toFixed(1)}% of the enumerated portfolios were actually swept, so intensity and sociality describe a small, non-random slice of each manager's play.`);
+  }
+
+  const features: ManagerFeatureAuditRow[] = specs.map((spec) => {
+    const values = built.map((b) => spec.get(b.profile));
+    const summary = summarize(values);
+    const present = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+
+    const paired = labelled
+      .map((b, i) => ({ v: spec.get(b.profile), y: labels[i] }))
+      .filter((d): d is { v: number; y: number } => typeof d.v === 'number' && Number.isFinite(d.v));
+    const signalAuc = paired.length >= 2 ? auc(paired.map((d) => d.v), paired.map((d) => d.y)) : NaN;
+
+    const dominant = dominantShare(present);
+    let degenerateReason: string | null = null;
+    if (!present.length) degenerateReason = 'No usable values.';
+    else if (summary.sd === 0) degenerateReason = 'Constant across every manager.';
+    else if (dominant > 0.98) degenerateReason = `One value covers ${(dominant * 100).toFixed(1)}% of managers.`;
+
+    const direction = directionOf(signalAuc, minEffect);
+    const expected = spec.expect ?? null;
+    const directionOk = expected === null || expected === 'none' || direction === 'none'
+      ? null
+      : direction === expected;
+
+    // Axis provenance across the population: 'mixed' when some managers were
+    // enumerated and others were not, which is the case worth flagging.
+    const axisIsPortfolio = spec.axis === 'volume' || spec.axis === 'mode' || spec.axis === 'persistence';
+    const source: AxisSource | 'mixed' = !axisIsPortfolio
+      ? 'crawled'
+      : enumerated.length === population.length ? 'portfolio'
+        : enumerated.length === 0 ? 'crawled' : 'mixed';
+
+    const el = ELIGIBILITY[spec.kind];
+    return {
+      name: spec.name,
+      kind: spec.kind,
+      axis: spec.axis,
+      eligibility: el.eligibility,
+      eligibilityReason: el.reason,
+      note: spec.note,
+      source,
+      summary,
+      degenerate: degenerateReason !== null,
+      degenerateReason,
+      signalAuc,
+      direction,
+      expected,
+      directionOk,
+    };
+  });
+
+  for (const f of features) {
+    if (f.directionOk === false) {
+      warnings.push(`Manager feature "${f.name}" is associated with abandonment in the opposite direction to the documented hypothesis (AUC ${f.signalAuc.toFixed(3)}, expected ${f.expected}). Treat as a bug until explained.`);
+    }
+    if (f.degenerate && f.eligibility !== 'ineligible') {
+      warnings.push(`Manager feature "${f.name}" is degenerate: ${f.degenerateReason}`);
+    }
+  }
+
+  return {
+    managers: population.length,
+    labelled: labelled.length,
+    positives,
+    baseRate: labelled.length ? positives / labelled.length : NaN,
+    portfolioEnumerated: enumerated.length,
+    meanPortfolioSampled,
+    features,
+    warnings,
+  };
 }
 
 export function auditEngagement(
@@ -629,6 +836,7 @@ export function auditEngagement(
   return {
     completeness: { ...completeness, warnings },
     features,
+    managerLevel: auditManagerFeatures(population, MANAGER_FEATURES, auditOpts),
     invariants,
     collinearPairs,
     label: {

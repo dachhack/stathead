@@ -10,9 +10,13 @@ import {
   reliabilityBins, calibrationCurve, concordance, groupKFold,
   fitLogistic, logisticPredict, summarize,
 } from '../src/lib/evalMetrics';
-import { auditEngagement, ENGAGEMENT_FEATURES, type ManagerObservation, type FeatureSpec } from '../src/lib/featureAudit';
+import {
+  auditEngagement, auditManagerFeatures, ENGAGEMENT_FEATURES, MANAGER_FEATURES,
+  type ManagerObservation, type FeatureSpec,
+} from '../src/lib/featureAudit';
 import { managerSeasonEngagement } from '../src/lib/engagement';
 import type { ManagerSeasonEngagement } from '../src/lib/engagement';
+import type { PortfolioEntry } from '../src/lib/engagement';
 import type { LeagueSeasonRecord, TxnEvent, LeagueFormatInfo } from '../src/lib/sleeper';
 
 let passed = 0;
@@ -461,6 +465,68 @@ const healthy: ManagerObservation[] = [
   check('drift: features are named individually when nothing else explains them',
     plain.completeness.warnings.some((w) => w.startsWith('Feature "totalRosters" shifts significantly')),
     plain.completeness.warnings.filter((w) => w.includes('shift')));
+}
+
+// ── manager-level audit: label, eligibility, provenance ──
+{
+  const entry = (over: Partial<PortfolioEntry>): PortfolioEntry => ({
+    leagueId: 'p1', previousLeagueId: null, season: '2025', format: fmt(), totalRosters: 12, ...over,
+  });
+  // Each manager really plays 50 league-seasons; the crawl swept two.
+  const bigPortfolio = Array.from({ length: 50 }, (_, i) => entry({ leagueId: `pf${i}` }));
+
+  const ml = auditManagerFeatures(healthy);
+  eq('manager audit: one row per declared spec', ml.features.length, MANAGER_FEATURES.length);
+  eq('manager audit: every manager counted', ml.managers, healthy.length);
+  // Four of twelve managers quit, in every season they played.
+  eq('manager audit: label counts managers who went dark at least once', ml.positives, 4);
+  eq('manager audit: labelled population', ml.labelled, healthy.length);
+
+  const by = new Map(ml.features.map((f) => [f.name, f]));
+  eq('manager audit: the label-derived reliability feature is ineligible',
+    by.get('historicalAbandonmentRate')?.eligibility, 'ineligible');
+  check('manager audit: and names target leakage',
+    (by.get('historicalAbandonmentRate')?.eligibilityReason ?? '').includes('target leakage'));
+  eq('manager audit: portfolio axes are eligible', by.get('leagueSeasons')?.eligibility, 'eligible');
+  eq('manager audit: transaction axes are only conditional',
+    by.get('txnPerLeagueWeek')?.eligibility, 'conditional');
+
+  // With no enumeration, every portfolio axis is a sample and must say so.
+  eq('provenance: unenumerated volume is crawled', by.get('leagueSeasons')?.source, 'crawled');
+  eq('provenance: none enumerated', ml.portfolioEnumerated, 0);
+  check('provenance: and that is warned about',
+    ml.warnings.some((w) => w.includes('No manager has an enumerated portfolio')), ml.warnings);
+
+  // Fully enumerated: portfolio axes become exact, transaction axes cannot.
+  const allEnumerated = healthy.map((m) => ({ ...m, portfolio: bigPortfolio }));
+  const full = auditManagerFeatures(allEnumerated);
+  const fullBy = new Map(full.features.map((f) => [f.name, f]));
+  eq('provenance: volume becomes exact', fullBy.get('leagueSeasons')?.source, 'portfolio');
+  eq('provenance: mode becomes exact', fullBy.get('bestBallShare')?.source, 'portfolio');
+  eq('provenance: persistence becomes exact', fullBy.get('maxTenureSeasons')?.source, 'portfolio');
+  // The point of the distinction: enumeration cannot fix these.
+  eq('provenance: intensity stays crawled however complete the enumeration',
+    fullBy.get('txnPerLeagueWeek')?.source, 'crawled');
+  eq('provenance: so does sociality', fullBy.get('tradesPerLeagueSeason')?.source, 'crawled');
+  eq('provenance: enumerated count', full.portfolioEnumerated, healthy.length);
+  check('provenance: the swept share is reported',
+    Math.abs((full.meanPortfolioSampled ?? 0) - 2 / 50) < 1e-9, full.meanPortfolioSampled);
+  check('provenance: a thin sweep of the portfolio is warned about',
+    full.warnings.some((w) => w.includes('actually swept')), full.warnings);
+
+  // Half enumerated is the dangerous case: the two groups must not be pooled.
+  const mixed = healthy.map((m, i) => (i % 2 ? { ...m, portfolio: bigPortfolio } : m));
+  const mixedReport = auditManagerFeatures(mixed);
+  eq('provenance: a split population is marked mixed', new Map(mixedReport.features.map((f) => [f.name, f])).get('leagueSeasons')?.source, 'mixed');
+  check('provenance: and warns against pooling',
+    mixedReport.warnings.some((w) => w.includes('Do not pool')), mixedReport.warnings);
+}
+
+// ── manager-level audit is folded into the main report ──
+{
+  const report = auditEngagement(healthy);
+  eq('manager audit: reachable from the main report', report.managerLevel.managers, healthy.length);
+  check('manager audit: carries its own features', report.managerLevel.features.length > 0);
 }
 
 // ── audit: the report leaks no identifiers ──

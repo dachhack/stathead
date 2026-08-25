@@ -9,7 +9,7 @@ import { resolveLineages, retentionEvents, type LeagueSeasonRef } from '../src/l
 import {
   managerSeasonEngagement, engagementProfile, wentDark,
   coldStartSegment, fitSegments, assignSegment,
-  type ManagerSeasonEngagement, type EngagementProfile,
+  type ManagerSeasonEngagement, type EngagementProfile, type PortfolioEntry,
 } from '../src/lib/engagement';
 import type { LeagueSeasonRecord, TxnEvent, TradeRecord, LeagueFormatInfo } from '../src/lib/sleeper';
 
@@ -227,6 +227,96 @@ const trade = (over: Partial<TradeRecord>): TradeRecord => ({
   eq('segments: sustained heavy volume reads as Grinder', seg.segment, 'Grinder');
   check('segments: confidence scales with evidence', seg.confidence > 0.5, seg.confidence);
   check('segments: thick evidence outweighs thin', grinder.evidenceWeight > thin.evidenceWeight);
+}
+
+// ── 10b. an enumerated portfolio makes the portfolio-level axes exact ──
+{
+  const entry = (over: Partial<PortfolioEntry>): PortfolioEntry => ({
+    leagueId: 'P1', previousLeagueId: null, season: '2025',
+    format: FMT(), totalRosters: 12, ...over,
+  });
+
+  // The manager really plays 100 league-seasons; the crawl swept two of them.
+  // Every portfolio-level number computed from the sweep is a 2% sample.
+  const history = [
+    rec({ leagueId: 'C1', season: '2024', previousLeagueId: null }),
+    rec({ leagueId: 'C2', season: '2025', previousLeagueId: 'C1' }),
+  ];
+  const events = Array.from({ length: 20 }, (_, i) =>
+    ev({ leagueId: i % 2 ? 'C1' : 'C2', season: i % 2 ? '2024' : '2025', week: (i % 16) + 1 }));
+  const rows = managerSeasonEngagement(history, events, { horizonWeek: 17 });
+
+  const portfolio: PortfolioEntry[] = [
+    // A five-season chain: tenure the crawled slice cannot see.
+    ...['2021', '2022', '2023', '2024', '2025'].map((season, i) => entry({
+      leagueId: `D${season}`, previousLeagueId: i ? `D${2020 + i}` : null,
+      season, format: FMT({ type: 'Dynasty' }),
+    })),
+    // Plus 95 single-season best-ball entries in the newest season.
+    ...Array.from({ length: 95 }, (_, i) => entry({
+      leagueId: `BB${i}`, season: '2025', format: FMT({ bestBall: true }),
+    })),
+  ];
+
+  const sampled = engagementProfile('u1', history, rows, events, [], { horizonWeek: 17 });
+  const exact = engagementProfile('u1', history, rows, events, [], { horizonWeek: 17, portfolio });
+
+  eq('portfolio: volume comes from the enumeration', exact.leagueSeasons, 100);
+  eq('portfolio: the crawled slice would have said 2', sampled.leagueSeasons, 2);
+  eq('portfolio: current-season count is exact', exact.leaguesCurrentSeason, 96);
+  eq('portfolio: seasons active is exact', exact.seasonsActive, 5);
+  eq('portfolio: format mix is exact', Number(exact.bestBallShare.toFixed(2)), 0.95);
+  eq('portfolio: the crawled slice saw no best ball at all', sampled.bestBallShare, 0);
+  eq('portfolio: tenure follows the full chain', exact.maxTenureSeasons, 5);
+  eq('portfolio: the crawled slice saw tenure 2', sampled.maxTenureSeasons, 2);
+
+  // The critical guard: transactions exist only for swept leagues, so the
+  // intensity denominator must stay on the sweep. Dividing 20 events by an
+  // enumerated 100 league-seasons would understate intensity ~50x.
+  eq('portfolio: intensity denominator stays on the crawled sweep',
+    Number(exact.txnPerLeagueWeek.toFixed(4)), Number((20 / 34).toFixed(4)));
+  eq('portfolio: intensity is unchanged by enumeration',
+    exact.txnPerLeagueWeek, sampled.txnPerLeagueWeek);
+
+  eq('portfolio: provenance marks the exact axes', exact.provenance,
+    { volume: 'portfolio', mode: 'portfolio', persistence: 'portfolio', intensity: 'crawled', sociality: 'crawled' });
+  eq('portfolio: provenance marks a sampled profile', sampled.provenance.volume, 'crawled');
+  eq('portfolio: true size recorded', exact.portfolioLeagueSeasons, 100);
+  eq('portfolio: sampled fraction recorded', Number(exact.portfolioSampled!.toFixed(2)), 0.02);
+  eq('portfolio: no fraction without an enumeration', sampled.portfolioSampled, null);
+
+  // Evidence is about what we swept, not what they own: knowing a manager
+  // plays 100 leagues says nothing about their behaviour in the two we saw.
+  eq('portfolio: evidence weight ignores the un-swept portfolio',
+    exact.evidenceWeight, sampled.evidenceWeight);
+}
+
+// ── 10c. the as-of guard on the label-derived user feature ──
+{
+  // historicalAbandonmentRate is computed FROM the abandonment label, so a
+  // profile used to score season S must not see S's own outcome.
+  const history = ['2023', '2024', '2025'].map((season, i) =>
+    rec({ leagueId: `H${season}`, season, previousLeagueId: i ? `H${2022 + i}` : null }));
+  // Went dark in 2024 only; active all season in 2023 and 2025.
+  const events = history.flatMap((h) => {
+    const last = h.season === '2024' ? 3 : 16;
+    return Array.from({ length: last }, (_, w) => ev({ leagueId: h.leagueId, season: h.season, week: w + 1 }));
+  });
+  const rows = managerSeasonEngagement(history, events, { horizonWeek: 17 });
+  const profile = (asOfSeason?: string) =>
+    engagementProfile('u1', history, rows, events, [], { horizonWeek: 17, asOfSeason });
+
+  // Scoring 2025: 2023 and 2024 are visible, and 2024 went dark → 1 of 2.
+  eq('as-of: prior seasons are visible', profile('2025').historicalAbandonmentRate, 0.5);
+  // Scoring 2024: only 2023 is visible, which was clean → 0.
+  eq('as-of: the scored season is not visible', profile('2024').historicalAbandonmentRate, 0);
+  // Scoring 2023: nothing prior, so the feature is absent rather than 0.
+  eq('as-of: no prior seasons gives null, not zero', profile('2023').historicalAbandonmentRate, null);
+  eq('as-of: the guard is recorded on the profile', profile('2024').asOfSeason, '2024');
+  eq('as-of: no guard by default', profile().asOfSeason, null);
+  // Ungated, the newest crawled season is still excluded as a weaker fallback.
+  eq('as-of: ungated falls back to excluding the newest season',
+    profile().historicalAbandonmentRate, 0.5);
 }
 
 // ── 11. fitted segments are deterministic ──
