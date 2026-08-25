@@ -92,6 +92,11 @@ export interface CrawlOptions {
   brackets: boolean;
   pseudonymize: boolean;
   salt: string;
+  // Portfolios the caller already enumerated (userId → league-season count).
+  // Seeding from a username enumerates that user's whole portfolio, so without
+  // this the seed user would be reported as "portfolio unknown" — understating
+  // coverage for the one manager we know most about.
+  knownPortfolios?: Record<string, number>;
 }
 
 export interface CrawlStats {
@@ -165,7 +170,8 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
   const visited = new Set<string>();
   const frontier: string[] = [...new Set(opts.seedLeagueIds)];
   // Managers whose full league list we enumerated, and the size of that list.
-  const portfolio = new Map<string, number>();
+  const portfolio = new Map<string, number>(Object.entries(opts.knownPortfolios ?? {}));
+  stats.portfoliosResolved = portfolio.size;
 
   const get = async <T>(path: string): Promise<T | null> => {
     stats.requests++;
@@ -593,14 +599,20 @@ async function main() {
 
   // Seeding from a username is a convenience: resolve them, then take their
   // leagues as seed leagues. The crawl itself is league-oriented from there.
+  let seedRequests = 0;
   if (a.seedUser) {
     const user = await getJson(`/user/${a.seedUser}`) as { user_id?: string } | null;
+    seedRequests++;
     if (!user?.user_id) throw new Error(`No Sleeper user found for "${a.seedUser}".`);
+    let seeded = 0;
     for (const season of opts.seasons) {
       const leagues = await getJson(`/user/${user.user_id}/leagues/nfl/${season}`) as { league_id: string }[] | null;
-      for (const lg of leagues ?? []) opts.seedLeagueIds.push(lg.league_id);
+      seedRequests++;
+      for (const lg of leagues ?? []) { opts.seedLeagueIds.push(lg.league_id); seeded++; }
     }
-    console.log(`  seeded ${opts.seedLeagueIds.length} leagues from --seedUser\n`);
+    // We just enumerated this user's entire portfolio, so say so.
+    opts.knownPortfolios = { ...opts.knownPortfolios, [user.user_id]: seeded };
+    console.log(`  seeded ${seeded} league-seasons from --seedUser (${seedRequests} requests)\n`);
   }
 
   if (!opts.seedLeagueIds.length) {
@@ -624,8 +636,17 @@ async function main() {
   mkdirSync(dirname(a.out) === '.' ? '.' : dirname(a.out), { recursive: true });
   writeFileSync(a.out, `${JSON.stringify(result.population, null, 2)}\n`);
   writeFileSync(`${a.out.replace(/\.json$/, '')}-manifest.json`, `${JSON.stringify({
-    crawledAt: new Date().toISOString(), options: { ...opts, salt: opts.pseudonymize ? '<redacted>' : undefined },
-    stats: s, horizonBySeason: result.horizonBySeason,
+    crawledAt: new Date().toISOString(),
+    options: {
+      ...opts,
+      salt: opts.pseudonymize ? '<redacted>' : undefined,
+      // Raw user ids, so redact the keys but keep the counts.
+      knownPortfolios: Object.keys(opts.knownPortfolios ?? {}).length,
+    },
+    // Seeding happens before the crawl, so its requests are counted separately
+    // rather than being invisible.
+    stats: { ...s, seedRequests, totalRequests: s.requests + seedRequests },
+    horizonBySeason: result.horizonBySeason,
   }, null, 2)}\n`);
 
   console.log(`\n  league-seasons   ${s.leagueSeasonsCrawled} crawled, ${s.leagueSeasonsDropped} dropped, ${s.leagueSeasonsSkipped} skipped`);
