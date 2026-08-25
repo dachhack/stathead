@@ -366,6 +366,63 @@ change to the pipeline; the report job is `workflow_dispatch` because a real
 report needs a crawled population, and Sleeper's endpoints only work from
 runners.
 
+---
+
+## First real crawl — what it changed
+
+A crawl seeded from one live Sleeper portfolio (320 league-seasons, 1,723
+managers, 8,578 requests, nothing dropped or skipped) produced a label at 27.6%
+positive over 1,491 scorable rows. Four problems surfaced that synthetic data
+could not have shown, all now fixed and covered by tests.
+
+**The leakage guard earned its place immediately.** `losses` (AUC 0.696) and
+`regSeasonRank` were the strongest signals in the whole feature set, and both
+are season-final — unusable to score a manager at week 7. `trailingSilentWeeks`
+scored exactly 1.000, being what the label is computed from. Built naively, this
+model would look good and be worthless.
+
+**Vertical expansion had to outrank horizontal.** The first run queued 45,629
+leagues while crawling 200, and only 12 of 195 lineages spanned more than one
+season — a single FIFO queue starves the vertical hops that produce every
+retention label. Splitting the frontier took multi-season lineages from 12/195
+to 61/306 and nearly doubled scorable rows.
+
+**Zero-activity rows needed classifying, not counting.** 994 rows were flagged
+as "live league, no activity"; 955 were best ball, which has no waivers and no
+lineup to set. Stripping the expected explanations (unlaunched, best ball, season
+in progress) leaves 29 rows — a believable count of genuinely dead teams.
+
+**A hypothesis was wrong, and a warning was noise.** `longestSilentRun` measured
+0.424 against a "higher-risk" expectation. It counts gaps *between* the first
+and last active week, so a manager who quits in week 3 has almost no room for
+internal gaps while one active all season has sixteen weeks of opportunity: as a
+season summary it is span-confounded, and the real hazard term is
+weeks-since-last-transaction as of the scored week. The hypothesis is corrected
+in the spec with that reasoning. Separately, a direction now requires a minimum
+effect size — the same feature had been flagged at 0.479 on a smaller sample,
+which is a two-point deviation and pure noise.
+
+**Composition shift was masquerading as feature drift.** 13 of 15 usable
+features were flagged as drifting. The cause was the sample: best-ball share
+swung from 27% to 82% across seasons and the current season had a one-week
+horizon. Stability now measures on scorable rows only, skips in-progress
+seasons, and when a composition shift is already detected the per-feature
+warnings collapse into one attributed line. Warning count went 18 → 5, all
+distinct.
+
+### Known limits of this population
+
+- **Best ball dominates.** 57% of rows are best ball and excluded from the
+  abandonment label, so the trainable population is far smaller than the row
+  count suggests.
+- **Portfolio coverage is 18% known, 7% crawled.** Profile-level features
+  (league count, retention rate, historical abandonment rate) are biased for the
+  rest and should be restricted to managers with a known portfolio.
+- **One seed portfolio.** Every manager reached is a league-mate or a
+  league-mate's league-mate, so this is not a sample of Sleeper — it is a
+  neighbourhood. Treat cross-population claims with suspicion until the crawl is
+  seeded more widely.
+
 ## Status
 
 | Step | State |

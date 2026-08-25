@@ -78,8 +78,15 @@ export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
   { name: 'addCount', kind: 'time-varying', get: (r) => r.addCount, expect: 'lower-risk' },
   { name: 'dropCount', kind: 'time-varying', get: (r) => r.dropCount, expect: 'lower-risk' },
   { name: 'faabSpent', kind: 'time-varying', get: (r) => r.faabSpent, expect: 'lower-risk' },
-  { name: 'longestSilentRun', kind: 'time-varying', get: (r) => r.longestSilentRun, expect: 'higher-risk',
-    note: 'internal gaps only, so this is a behavioural pattern rather than the label' },
+  // Hypothesis corrected against real data (AUC 0.424, n=1491): as a SEASON
+  // SUMMARY this is confounded by engagement span. It counts gaps BETWEEN the
+  // first and last active week, so a manager who quits in week 3 has almost no
+  // room for internal gaps while one active all season has sixteen weeks of
+  // opportunity. Longer silent runs therefore mark longer-engaged managers.
+  // The actual hazard term is weeks-since-last-transaction as of the scored
+  // week, which is a to-date quantity — the 'time-varying' kind, not this.
+  { name: 'longestSilentRun', kind: 'time-varying', get: (r) => r.longestSilentRun, expect: 'lower-risk',
+    note: 'season summary is span-confounded; use the to-date gap as the hazard term' },
   { name: 'emptyStarterSlots', kind: 'time-varying', get: (r) => r.emptyStarterSlots, expect: 'higher-risk',
     note: 'null by design for best ball and when starters were not supplied' },
 
@@ -312,7 +319,8 @@ export function auditEngagement(
   // apparent drift on every activity feature, so it is called out once here
   // instead of once per feature.
   const bbShares = seasonComposition.filter((s) => s.rows >= 30).map((s) => s.bestBallShare);
-  if (bbShares.length > 1 && Math.max(...bbShares) - Math.min(...bbShares) > 0.3) {
+  const compositionShift = bbShares.length > 1 && Math.max(...bbShares) - Math.min(...bbShares) > 0.3;
+  if (compositionShift) {
     warnings.push(`Best-ball share swings from ${(Math.min(...bbShares) * 100).toFixed(0)}% to ${(Math.max(...bbShares) * 100).toFixed(0)}% across seasons. The crawl sampled structurally different leagues per season, which will surface as apparent drift on activity features. Fix the sample, not the features.`);
   }
 
@@ -532,6 +540,7 @@ export function auditEngagement(
     };
   });
 
+  const drifting: string[] = [];
   for (const f of features) {
     if (f.directionOk === false) {
       warnings.push(`Feature "${f.name}" is associated with abandonment in the opposite direction to the documented hypothesis (AUC ${f.signalAuc.toFixed(3)}, expected ${f.expected}). Treat as a bug until explained.`);
@@ -541,8 +550,21 @@ export function auditEngagement(
     }
     // Drift on a column the model cannot use is not actionable, so it is
     // recorded in the table but does not raise a warning.
-    if (f.stability === 'significant' && f.eligibility !== 'ineligible') {
-      warnings.push(`Feature "${f.name}" shifts significantly between seasons (PSI ${f.maxSeasonPsi.toFixed(2)}).`);
+    if (f.stability === 'significant' && f.eligibility !== 'ineligible') drifting.push(f.name);
+  }
+
+  // When the sample composition already shifts by season, per-feature drift is
+  // that one cause restated once per column. Thirteen warnings saying the same
+  // thing is how a report stops being read, so it collapses to one line that
+  // names the likely cause and points at the table for detail.
+  if (drifting.length) {
+    if (compositionShift) {
+      warnings.push(`${drifting.length} model-usable feature(s) shift significantly between seasons (${drifting.join(', ')}). The season-composition shift above is the likely cause — check it before treating these as feature problems.`);
+    } else {
+      for (const name of drifting) {
+        const f = features.find((x) => x.name === name)!;
+        warnings.push(`Feature "${name}" shifts significantly between seasons (PSI ${f.maxSeasonPsi.toFixed(2)}).`);
+      }
     }
   }
 

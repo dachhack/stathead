@@ -407,6 +407,62 @@ const healthy: ManagerObservation[] = [
     report.completeness.warnings.some((w) => w.includes('backwards') && w.includes('opposite direction')));
 }
 
+// ── audit: drift warnings collapse when composition already explains them ──
+{
+  // Stability needs >= 30 scorable (non-best-ball, active) rows per season, so
+  // these populations are sized to clear that in BOTH seasons while the format
+  // mix still swings hard. Transaction volume varies per manager, or every
+  // feature would be constant and excluded before drift is even measured.
+  const build = (n: number, bestBall: (i: number, season: string) => boolean): ManagerObservation[] => {
+    const out: ManagerObservation[] = [];
+    for (let i = 0; i < n; i++) {
+      const history = ['2024', '2025'].map((season, s) => hist({
+        season, leagueId: `d${i}-${season}`, previousLeagueId: s ? `d${i}-2024` : null,
+        format: fmt({ bestBall: bestBall(i, season) }),
+        // A genuine per-season difference in a static feature.
+        totalRosters: season === '2025' ? 18 : 8,
+      }));
+      const events = history.flatMap((h) => {
+        const weeks = h.season === '2024' ? 3 + (i % 12) : 1 + (i % 4);
+        return Array.from({ length: weeks }, (_, w) =>
+          txn({ leagueId: h.leagueId, season: h.season, week: w + 1 }));
+      });
+      out.push({
+        managerId: `d${i}`, history, events,
+        rows: managerSeasonEngagement(history, events, { horizonWeek: 17 }),
+      });
+    }
+    return out;
+  };
+
+  // 25% best ball in 2024, 67% in 2025 — a 42-point swing.
+  const shifting = build(150, (i, season) => (season === '2025' ? i % 3 !== 0 : i % 4 === 0));
+  const report = auditEngagement(shifting);
+  check('drift: composition shift is reported',
+    report.completeness.warnings.some((w) => w.includes('Best-ball share swings')),
+    report.completeness.warnings.slice(0, 3));
+
+  const driftWarnings = report.completeness.warnings.filter((w) => w.includes('shift significantly'));
+  eq('drift: per-feature warnings collapse to a single attributed line', driftWarnings.length, 1);
+  check('drift: the line names the likely cause',
+    driftWarnings[0].includes('composition shift above is the likely cause'), driftWarnings[0]);
+  check('drift: and still lists which features moved',
+    driftWarnings[0].includes('totalRosters'), driftWarnings[0]);
+  // The per-feature detail is not lost, only moved out of the warning list.
+  check('drift: the feature table still carries each PSI',
+    report.features.some((f) => f.stability === 'significant' && Number.isFinite(f.maxSeasonPsi)));
+
+  // Same per-season difference, stable format mix: the aggregation is
+  // attribution, not suppression, so features are named individually.
+  const steady = build(150, () => false);
+  const plain = auditEngagement(steady);
+  check('drift: no composition shift when the format mix is stable',
+    !plain.completeness.warnings.some((w) => w.includes('Best-ball share swings')));
+  check('drift: features are named individually when nothing else explains them',
+    plain.completeness.warnings.some((w) => w.startsWith('Feature "totalRosters" shifts significantly')),
+    plain.completeness.warnings.filter((w) => w.includes('shift')));
+}
+
 // ── audit: the report leaks no identifiers ──
 {
   const report = auditEngagement(healthy);
