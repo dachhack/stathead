@@ -4,7 +4,7 @@
 // Sleeper calls are injected, so the cases that matter can be built: a redraft
 // league (out of scope), a lineage that stops partway, a brand-new member, and a
 // member whose other leagues have vanished.
-import { scoreDynastyLeague, gradeFor, GRADE_LABEL, type DepartureModel } from '../src/lib/dynastyDeparture';
+import { scoreDynastyLeague, gradeFor, GRADE_LABEL, clearSurvivalCache, type DepartureModel } from '../src/lib/dynastyDeparture';
 
 let passed = 0;
 const failures: string[] = [];
@@ -180,6 +180,98 @@ function world(leagues: FakeLeague[], portfolios: Record<string, Record<number, 
   eq('output: sorted riskiest first', r.members[0].ownerId, 'churner');
   check('output: risks are probabilities', r.members.every((m) => m.risk >= 0 && m.risk <= 1));
   check('output: request count reported', r.requests > 0, r.requests);
+}
+
+// ── verification: a folded league is not a departure ──
+{
+  // The churner left X25. Whether that counts depends on whether X25 carried
+  // on — and only X25's OTHER members can say.
+  const leagues: FakeLeague[] = [
+    { id: 'V26', season: 2026, prev: 'V25', owners: ['churner'] },
+    { id: 'V25', season: 2025, prev: null, owners: ['churner'] },
+    { id: 'X25', season: 2025, prev: null, owners: ['churner', 'other'] },
+  ];
+  const portfolios = {
+    churner: { 2026: ['V26'], 2025: ['V25', 'X25'] },
+    other: { 2025: ['X25'] },   // nobody carried X25 into 2026: it folded
+  };
+
+  clearSurvivalCache();
+  const { deps } = world(leagues, portfolios);
+  const approx = await scoreDynastyLeague('V26', model(), { deps, seasons: 3 });
+  clearSurvivalCache();
+  const { deps: d2, calls } = world(leagues, portfolios);
+  const verified = await scoreDynastyLeague('V26', model(), { deps: d2, seasons: 3, verify: true });
+
+  eq('verify: approximate counts the vanished league as an exit',
+    approx.members[0].priorLeaveObserved, 2);
+  check('verify: and so shows a non-zero rate', approx.members[0].priorLeaveRate > 0);
+
+  // Verified: X25 had no successor, so it was never at risk and drops out.
+  eq('verify: a folded league is not counted at risk', verified.members[0].priorLeaveObserved, 1);
+  eq('verify: leaving the exit rate at zero', verified.members[0].priorLeaveRate, 0);
+  check('verify: which lowers the risk', verified.members[0].risk < approx.members[0].risk,
+    [verified.members[0].risk, approx.members[0].risk]);
+
+  check('verify: reported as applied', verified.verification.applied, verified.verification);
+  check('verify: with the check counted', verified.verification.checked >= 1);
+  check('verify: it fetched the league rosters to find out',
+    calls.some((c) => c === '/league/X25/rosters'), calls.filter((c) => c.includes('X25')));
+  check('verify: approximate mode reports itself honestly',
+    !approx.verification.applied && approx.verification.note.includes('approximate'));
+}
+
+// ── verification: a surviving league IS a departure ──
+{
+  const leagues: FakeLeague[] = [
+    { id: 'W26', season: 2026, prev: 'W25', owners: ['churner'] },
+    { id: 'W25', season: 2025, prev: null, owners: ['churner'] },
+    { id: 'Y25', season: 2025, prev: null, owners: ['churner', 'stayer'] },
+    { id: 'Y26', season: 2026, prev: 'Y25', owners: ['stayer'] },   // Y carried on
+  ];
+  const portfolios = {
+    churner: { 2026: ['W26'], 2025: ['W25', 'Y25'] },
+    stayer: { 2026: ['Y26'], 2025: ['Y25'] },
+  };
+  clearSurvivalCache();
+  const { deps } = world(leagues, portfolios);
+  const r = await scoreDynastyLeague('W26', model(), { deps, seasons: 3, verify: true });
+  eq('verify: a surviving league keeps the row at risk', r.members[0].priorLeaveObserved, 2);
+  check('verify: and the exit counts', r.members[0].priorLeaveRate > 0, r.members[0].priorLeaveRate);
+}
+
+// ── verification: budget and cache ──
+{
+  const leagues: FakeLeague[] = [
+    { id: 'B26', season: 2026, prev: 'B25', owners: ['m'] },
+    { id: 'B25', season: 2025, prev: null, owners: ['m'] },
+    { id: 'Z25', season: 2025, prev: null, owners: ['m'] },
+  ];
+  const portfolios = { m: { 2026: ['B26'], 2025: ['B25', 'Z25'] } };
+
+  clearSurvivalCache();
+  const { deps } = world(leagues, portfolios);
+  const capped = await scoreDynastyLeague('B26', model(), { deps, seasons: 3, verify: true, verifyBudget: 1 });
+  check('budget: exhaustion is reported', capped.verification.budgetExhausted);
+  check('budget: and the whole league falls back rather than mixing definitions',
+    !capped.verification.applied && capped.verification.note.includes('fell back'));
+  // Falling back must give exactly the approximate answer, not a hybrid.
+  clearSurvivalCache();
+  const { deps: d2 } = world(leagues, portfolios);
+  const plain = await scoreDynastyLeague('B26', model(), { deps: d2, seasons: 3 });
+  eq('budget: the fallback equals the approximate result',
+    capped.members[0].priorLeaveRate, plain.members[0].priorLeaveRate);
+
+  // Second run reuses the cache, so it fetches nothing.
+  clearSurvivalCache();
+  const { deps: d3 } = world(leagues, portfolios);
+  const first = await scoreDynastyLeague('B26', model(), { deps: d3, seasons: 3, verify: true });
+  const { deps: d4, calls: calls2 } = world(leagues, portfolios);
+  const second = await scoreDynastyLeague('B26', model(), { deps: d4, seasons: 3, verify: true });
+  check('cache: the first run fetches', first.verification.fetched > 0, first.verification);
+  eq('cache: the second fetches nothing', second.verification.fetched, 0);
+  check('cache: and asks no rosters again', !calls2.some((c) => c === '/league/Z25/rosters'));
+  eq('cache: same answer either way', second.members[0].priorLeaveRate, first.members[0].priorLeaveRate);
 }
 
 // ── a missing league ──

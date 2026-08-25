@@ -866,6 +866,45 @@ Measured cost of that, cross-validated and grouped by manager:
 Dropping the feature breaks the ranking at the top — Q5 falls *below* Q4 — which
 is the end that matters, so the approximation is the better trade.
 
+### Verifying past exits — the toggle
+
+Measured before building it. Verifying one departure costs ~3.5 requests
+(`/league/<L>/rosters` plus a couple of co-member portfolio lookups), and
+departures per manager run p50 **8**, mean **21.5**, p90 **53** — so a 12-team
+league needs roughly **340 extra requests at the median member, ~880 at the
+mean**, up to a few thousand for heavy players. Thirty to sixty seconds.
+
+The obvious shortcut fails: co-members' portfolios are already in hand, but they
+resolve only **7.8%** of departures. Dynasty league-mates rarely overlap in each
+other's *other* dynasty leagues.
+
+And the approximation is wrong often — the two definitions disagree on **57.9%**
+of departures, those being leagues that folded rather than managers leaving.
+(That figure is an upper bound: the pooled-portfolio ground truth is itself a
+lower bound on league survival.)
+
+So the view carries a **"Verify past exits"** toggle, default off:
+
+| | Requests | AUC | Q1 → Q5 actual |
+| --- | --- | --- | --- |
+| off (approximate) | ~85 | 0.604 | 9.6% → 23.5% |
+| on (verified) | ~400–1,000 | **0.644** | 7.1% → **27.2%** |
+
+Each mode loads its **own fitted model** — `dynasty-departure-v1.json` and
+`dynasty-departure-full-v1.json`, with their own grade cutpoints — because each
+is calibrated to the inputs it actually receives. Scoring verified features with
+approximate weights would be a quiet mismatch.
+
+Two details that keep it honest:
+
+- **Verified history is cached** for the page's lifetime, and safe to cache
+  forever: whether a 2023 league rolled into 2024 is settled. Scoring several
+  leagues pays per lineage once.
+- **Budget exhaustion falls the whole league back** to the approximate feature
+  rather than verifying some members and not others. Mixing two definitions of
+  the same column across rows would be worse than using the weaker one
+  consistently, and the report says which was used.
+
 ### Grades use fixed cutpoints
 
 10.2% / 12.8% / 15.3% / 19.2%, taken from the cross-validated population and

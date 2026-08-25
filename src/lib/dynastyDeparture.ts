@@ -27,7 +27,13 @@
 import { leagueFormatInfo, type SleeperLeagueInfo } from './sleeper';
 
 const SLEEPER = 'https://api.sleeper.app/v1';
+// Two fitted models. The approximate one is trained on the blurred feature and
+// the verified one on the properly-resolved feature, so each is calibrated to
+// the inputs it will actually receive — and each carries its own grade
+// cutpoints. Scoring verified features with approximate weights would be a
+// quiet mismatch.
 const MODEL_URL = 'data/dynasty-departure-v1.json';
+const MODEL_URL_VERIFIED = 'data/dynasty-departure-full-v1.json';
 
 export interface DepartureModel {
   featureNames: string[];
@@ -42,8 +48,8 @@ export interface DepartureModel {
   heldOut?: { auc: number; calibrationSlope: number; ece: number };
 }
 
-export async function fetchDepartureModel(baseUrl: string): Promise<DepartureModel> {
-  const res = await fetch(`${baseUrl}${MODEL_URL}`);
+export async function fetchDepartureModel(baseUrl: string, verified = false): Promise<DepartureModel> {
+  const res = await fetch(`${baseUrl}${verified ? MODEL_URL_VERIFIED : MODEL_URL}`);
   if (!res.ok) throw new Error(`Departure model unavailable (${res.status}).`);
   const m = (await res.json()) as DepartureModel;
   if (!m.featureNames?.length || m.coefficients?.length !== m.featureNames.length) {
@@ -89,6 +95,15 @@ const liveDeps: DepartureDeps = {
   },
 };
 
+// Whether a given league-season was succeeded by a next-season league.
+//
+// Cached for the life of the page, and safe to cache forever: whether a 2023
+// league rolled into 2024 is settled history. Someone scoring several leagues
+// pays for each lineage once.
+const survivalCache = new Map<string, boolean>();
+
+export function clearSurvivalCache(): void { survivalCache.clear(); }
+
 export interface MemberRisk {
   ownerId: string;
   risk: number;
@@ -111,31 +126,61 @@ export interface LeagueDepartureReport {
   members: MemberRisk[];
   requests: number;
   notApplicable: string | null;
+  // Which feature the past-exit rate came from, and why.
+  verification: {
+    requested: boolean;
+    applied: boolean;
+    checked: number;        // distinct (league, season) pairs resolved
+    freeFromCoMembers: number;
+    fetched: number;
+    budgetExhausted: boolean;
+    note: string;
+  };
+}
+
+export interface ScoreOptions {
+  seasons?: number;
+  deps?: DepartureDeps;
+  // Resolve past exits properly instead of approximating. Costs roughly 3.5
+  // extra requests per distinct departure — a few hundred for a typical league.
+  verify?: boolean;
+  // Cap on verification requests. Hitting it falls the WHOLE league back to the
+  // approximate feature rather than mixing two definitions across members.
+  verifyBudget?: number;
+  onProgress?: (message: string) => void;
 }
 
 // Walk previous_league_id back, then score every current member.
 export async function scoreDynastyLeague(
   leagueId: string,
   model: DepartureModel,
-  opts: { seasons?: number; deps?: DepartureDeps } = {},
+  opts: ScoreOptions = {},
 ): Promise<LeagueDepartureReport> {
   const deps = opts.deps ?? liveDeps;
   const lookback = opts.seasons ?? 6;
+  const verifyBudget = opts.verifyBudget ?? 4000;
+  const progress = opts.onProgress ?? (() => {});
   let requests = 0;
   const get = async <T>(path: string): Promise<T | null> => {
     requests++;
     try { return (await deps.getJson(path)) as T; } catch { return null; }
   };
 
+  progress('Loading the league…');
   const league = await get<RawLeague>(`/league/${leagueId}`);
   if (!league?.league_id) {
-    return { leagueId, season: '', seasonsWalked: [], members: [], requests, notApplicable: 'League not found.' };
+    return {
+      leagueId, season: '', seasonsWalked: [], members: [], requests,
+      notApplicable: 'League not found.',
+    verification: { requested: !!opts.verify, applied: false, checked: 0, freeFromCoMembers: 0, fetched: 0, budgetExhausted: false, note: 'Not scored.' },
+    };
   }
   const format = leagueFormatInfo(league);
   if (format.type !== 'Dynasty' || format.bestBall) {
     return {
       leagueId, season: league.season, seasonsWalked: [], members: [], requests,
       notApplicable: `This is a ${format.bestBall ? 'best ball' : format.type.toLowerCase()} league. The model is dynasty-only: redraft groups often recreate leagues from scratch, so previous_league_id says nothing about whether the same people came back.`,
+    verification: { requested: !!opts.verify, applied: false, checked: 0, freeFromCoMembers: 0, fetched: 0, budgetExhausted: false, note: 'Not scored.' },
     };
   }
 
@@ -153,6 +198,7 @@ export async function scoreDynastyLeague(
   const chainTruncated = !!cursor && cursor !== '0';
   const earliestWalked = Math.min(...chain.map((c) => c.season));
 
+  progress(`Reading ${chain.length} season${chain.length === 1 ? '' : 's'} of membership…`);
   // Membership per season in the chain.
   const membersBySeason = new Map<number, Set<string>>();
   for (const link of chain) {
@@ -166,6 +212,7 @@ export async function scoreDynastyLeague(
   const current = [...(membersBySeason.get(thisSeason) ?? [])];
   const seasonsToFetch = Array.from({ length: lookback }, (_, i) => thisSeason - i);
 
+  progress(`Fetching ${current.length} members' league lists…`);
   // Each member's portfolio across the window.
   interface Portfolio { leagueId: string; previousLeagueId: string | null; season: number; dynasty: boolean; bestBall: boolean }
   const portfolios = new Map<string, Portfolio[]>();
@@ -187,6 +234,73 @@ export async function scoreDynastyLeague(
     }
     portfolios.set(ownerId, entries);
   }));
+
+  // ── verification pass ──
+  //
+  // A departure is only a departure if the league carried on without them. To
+  // establish that for league L in season y we need ANY season-y+1 league whose
+  // previous_league_id is L — which only the league's own members can show us.
+  //
+  // Free first: 12 members' portfolios are already in hand, and any of them who
+  // were also in L will reveal the successor. That covers ~8% in practice —
+  // dynasty league-mates rarely overlap in each other's OTHER dynasty leagues —
+  // so the rest need fetching.
+  const verifyStats = { checked: 0, free: 0, fetched: 0, exhausted: false };
+  const survived = new Map<string, boolean>();   // leagueId (season y) -> carried on
+
+  if (opts.verify) {
+    // Every distinct (league, season) any member appears to have left. Deduped
+    // across members: several of them may have left the same league.
+    const candidates = new Map<string, number>();   // leagueId -> season
+    for (const [ownerId, entries] of portfolios) {
+      void ownerId;
+      const dyn = entries.filter((e) => e.dynasty);
+      const seasons = new Set(dyn.map((e) => e.season));
+      const latestSeen = Math.max(...seasons, thisSeason);
+      // Successor within this member's own portfolio means they stayed.
+      const successorOf = new Set(dyn.map((e) => e.previousLeagueId).filter(Boolean) as string[]);
+      for (const e of dyn) {
+        if (e.season >= latestSeen) continue;
+        if (successorOf.has(e.leagueId)) continue;   // they carried it forward
+        candidates.set(e.leagueId, e.season);
+      }
+    }
+
+    // Free pass: does any member's portfolio already name a successor?
+    const allEntries = [...portfolios.values()].flat();
+    const knownSuccessors = new Set(allEntries.map((e) => e.previousLeagueId).filter(Boolean) as string[]);
+    const toFetch: [string, number][] = [];
+    for (const [lid, season] of candidates) {
+      if (survivalCache.has(lid)) { survived.set(lid, survivalCache.get(lid)!); verifyStats.checked++; continue; }
+      if (knownSuccessors.has(lid)) {
+        survived.set(lid, true); survivalCache.set(lid, true);
+        verifyStats.checked++; verifyStats.free++;
+      } else {
+        toFetch.push([lid, season]);
+      }
+    }
+
+    const estimate = toFetch.length * 3;
+    if (estimate > verifyBudget) {
+      verifyStats.exhausted = true;
+    } else {
+      let done = 0;
+      for (const [lid, season] of toFetch) {
+        progress(`Verifying past exits… ${++done} of ${toFetch.length}`);
+        const rosters = await get<RawRoster[]>(`/league/${lid}/rosters`);
+        const owners = (rosters ?? []).map((r) => r.owner_id).filter((o): o is string => !!o).slice(0, 2);
+        let found = false;
+        for (const o of owners) {
+          const next = await get<RawLeague[]>(`/user/${o}/leagues/nfl/${season + 1}`);
+          if ((next ?? []).some((lg) => lg.previous_league_id === lid)) { found = true; break; }
+        }
+        survived.set(lid, found);
+        survivalCache.set(lid, found);
+        verifyStats.checked++; verifyStats.fetched++;
+      }
+    }
+  }
+  const verifyApplied = !!opts.verify && !verifyStats.exhausted;
 
   const members: MemberRisk[] = current.map((ownerId) => {
     const entries = portfolios.get(ownerId) ?? [];
@@ -212,9 +326,27 @@ export async function scoreDynastyLeague(
     const ownKeys = new Set(own.map((o) => `${o.lineage}|${o.season}`));
     const dynastyLineages = new Set(own.filter((o) => o.season === thisSeason).map((o) => o.lineage)).size || 1;
 
-    // The approximation: a disappearance is a departure, unverified.
-    const prior = own.filter((o) => o.season < thisSeason);
-    const priorLeft = prior.filter((o) => !ownKeys.has(`${o.lineage}|${o.season + 1}`)).length;
+    // Past exits. Verified: only count a season as at-risk when the league is
+    // known to have carried on, which is the definition the offline model was
+    // fitted to. Unverified: every disappearance counts, which over-counts by
+    // roughly the share of leagues that simply folded.
+    const priorAll = own.filter((o) => o.season < thisSeason);
+    let prior = priorAll;
+    let priorLeft: number;
+    if (verifyApplied) {
+      const dynById = new Map(entries.filter((e) => e.dynasty).map((e) => [e.leagueId, e]));
+      const leagueFor = (lineage: string, season: number) =>
+        [...dynById.values()].find((e) => e.season === season && rootOf(e.leagueId) === lineage);
+      prior = priorAll.filter((o) => {
+        const stayed = ownKeys.has(`${o.lineage}|${o.season + 1}`);
+        if (stayed) return true;                      // at risk and they stayed
+        const lg = leagueFor(o.lineage, o.season);
+        return lg ? survived.get(lg.leagueId) === true : false;   // at risk only if it lived on
+      });
+      priorLeft = prior.filter((o) => !ownKeys.has(`${o.lineage}|${o.season + 1}`)).length;
+    } else {
+      priorLeft = priorAll.filter((o) => !ownKeys.has(`${o.lineage}|${o.season + 1}`)).length;
+    }
     const priorLeaveRate = prior.length ? priorLeft / prior.length : 0;
 
     // Tenure in THIS league, from the chain's membership.
@@ -262,5 +394,18 @@ export async function scoreDynastyLeague(
     leagueId, season: league.season,
     seasonsWalked: chain.map((c) => String(c.season)).sort(),
     members, requests, notApplicable: null,
+    verification: {
+      requested: !!opts.verify,
+      applied: verifyApplied,
+      checked: verifyStats.checked,
+      freeFromCoMembers: verifyStats.free,
+      fetched: verifyStats.fetched,
+      budgetExhausted: verifyStats.exhausted,
+      note: !opts.verify
+        ? 'Past exits are approximate: any disappearance from a league counts, including leagues that folded.'
+        : verifyStats.exhausted
+          ? 'Verification would have exceeded the request budget, so the whole league fell back to the approximate feature rather than mixing two definitions across members.'
+          : `Past exits verified against ${verifyStats.checked} league${verifyStats.checked === 1 ? '' : 's'} (${verifyStats.free} free from co-members, ${verifyStats.fetched} fetched).`,
+    },
   };
 }

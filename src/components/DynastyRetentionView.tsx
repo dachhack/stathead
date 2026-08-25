@@ -23,6 +23,7 @@ export function DynastyRetentionView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
+  const [verify, setVerify] = useState(false);
 
   const run = async () => {
     const leagueId = parseDraftIdInput(input);
@@ -30,10 +31,9 @@ export function DynastyRetentionView() {
     setLoading(true); setError(null); setReport(null); setLeague(null);
     setProgress('Loading the model…');
     try {
-      const model = await fetchDepartureModel(import.meta.env.BASE_URL);
-      setProgress('Walking the league back through previous seasons…');
+      const model = await fetchDepartureModel(import.meta.env.BASE_URL, verify);
       const [scored, imported] = await Promise.all([
-        scoreDynastyLeague(leagueId, model),
+        scoreDynastyLeague(leagueId, model, { verify, onProgress: setProgress }),
         importLeague(leagueId).catch(() => null),
       ]);
       setReport(scored);
@@ -81,6 +81,19 @@ export function DynastyRetentionView() {
         {progress && <span style={{ fontSize: 12, opacity: 0.7 }}>{progress}</span>}
       </div>
 
+      <label style={{ display: 'flex', gap: 6, alignItems: 'flex-start', fontSize: 12, marginBottom: 14, maxWidth: 680, cursor: 'pointer' }}>
+        <input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>
+          <strong>Verify past exits</strong> — slower but more accurate.
+          <span style={{ opacity: 0.7 }}>
+            {' '}Off, a manager leaving a league and the league folding look identical, and they
+            differ on ~58% of cases. Verifying costs a few hundred extra requests and takes up to a
+            minute; it lifts AUC from 0.604 to 0.644 and the riskiest fifth from 23.5% to 27.2%.
+            Results are cached, so a second league is quicker.
+          </span>
+        </span>
+      </label>
+
       {error && <div style={{ fontSize: 13, color: '#b91c1c', marginBottom: 10 }}>{error}</div>}
 
       {report?.notApplicable && (
@@ -95,6 +108,14 @@ export function DynastyRetentionView() {
             {(counts[4] || counts[5]) ? (
               <> · <strong>{(counts[4] ?? 0) + (counts[5] ?? 0)}</strong> graded 4 or 5</>
             ) : <> · nobody above grade 3</>}
+          </div>
+
+          <div style={{
+            fontSize: 11, marginBottom: 10, padding: '6px 9px', borderRadius: 4, maxWidth: 680,
+            background: report.verification.applied ? 'rgba(21,128,61,0.10)' : 'rgba(161,98,7,0.10)',
+          }}>
+            <strong>{report.verification.applied ? 'Past exits verified' : 'Past exits approximate'}</strong>
+            {' — '}{report.verification.note}
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -142,16 +163,12 @@ export function DynastyRetentionView() {
 
           <div style={{ fontSize: 11, opacity: 0.65, marginTop: 12, maxWidth: 680, lineHeight: 1.55 }}>
             <p style={{ margin: '0 0 6px' }}>
-              <strong>How good is this?</strong> Cross-validated by manager: AUC 0.604, and the
-              riskiest fifth of members left at 23.5% against 9.6% for the safest fifth — a real
-              2.4× spread, but a modest ranking. Treat a grade as a prompt to check in, not a verdict.
-            </p>
-            <p style={{ margin: '0 0 6px' }}>
-              "Past exits" is approximate. Working out whether someone's other leagues carried on
-              after they left needs those leagues' members, which we don't fetch, so any
-              disappearance counts as an exit — including leagues that simply folded. The offline
-              model with that resolved scores AUC 0.644; dropping the feature entirely scores 0.562
-              and stops ranking correctly at the top, so the approximation is the better trade.
+              <strong>How good is this?</strong> Cross-validated by manager,{' '}
+              {report.verification.applied
+                ? 'with past exits verified: AUC 0.644, and the riskiest fifth of members left at 27.2% against 7.1% for the safest fifth.'
+                : 'with past exits approximated: AUC 0.604, and the riskiest fifth of members left at 23.5% against 9.6% for the safest fifth.'}
+              {' '}A real spread, but a modest ranking either way. Treat a grade as a prompt to check
+              in, not a verdict.
             </p>
             <p style={{ margin: 0 }}>
               A "+" on years here means they were already in the league when our window starts, so
