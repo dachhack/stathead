@@ -98,9 +98,20 @@ function world(leagues: FakeLeague[], portfolios: Record<string, Record<number, 
   check('scope: redraft is declined with a reason', (r.notApplicable ?? '').includes('redraft'), r.notApplicable);
   eq('scope: and nobody is scored', r.members.length, 0);
 
-  const { deps: d2 } = world([{ id: 'B', season: 2026, prev: null, owners: ['u1'], type: 2, bestBall: true }], {});
+  // Best-ball DYNASTY is in scope: rosters persist, so "will they come back" is
+  // well defined and recorded renewal matches regular dynasty. Best ball is only
+  // excluded from the in-season engagement work, where there is no lineup or
+  // waiver activity to read — a different question.
+  const { deps: d2 } = world([{ id: 'B', season: 2026, prev: null, owners: ['u1'], type: 2, bestBall: true }],
+    { u1: { 2026: ['B'] } });
   const bb = await scoreDynastyLeague('B', model(), { deps: d2 });
-  check('scope: best ball is declined too', (bb.notApplicable ?? '').includes('best ball'), bb.notApplicable);
+  eq('scope: best-ball dynasty is scored, not declined', bb.notApplicable, null);
+  eq('scope: and its member gets a grade', bb.members.length, 1);
+
+  // Best-ball REDRAFT is still out: the league chain says nothing there.
+  const { deps: d3 } = world([{ id: 'BR', season: 2026, prev: null, owners: ['u1'], type: 0, bestBall: true }], {});
+  const br = await scoreDynastyLeague('BR', model(), { deps: d3 });
+  check('scope: best-ball redraft is still declined', (br.notApplicable ?? '').includes('redraft'), br.notApplicable);
 }
 
 // ── the lineage walk and tenure ──

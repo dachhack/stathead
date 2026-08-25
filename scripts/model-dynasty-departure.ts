@@ -47,15 +47,15 @@ const pop: ManagerObservation[] = JSON.parse(readFileSync(INPUT, 'utf8'));
 
 // ── index the portfolios ──
 
-interface DynEntry { leagueId: string; previousLeagueId: string | null; season: number; totalRosters: number }
+interface DynEntry { leagueId: string; previousLeagueId: string | null; season: number; totalRosters: number; bestBall: boolean }
 const dynLeagues = new Map<string, DynEntry>();
 for (const m of pop) {
   for (const e of m.portfolio ?? []) {
-    if (e.format.bestBall || e.format.type !== 'Dynasty') continue;
+    if (e.format.type !== 'Dynasty') continue;
     if (!dynLeagues.has(e.leagueId)) {
       dynLeagues.set(e.leagueId, {
         leagueId: e.leagueId, previousLeagueId: e.previousLeagueId,
-        season: Number(e.season), totalRosters: e.totalRosters,
+        season: Number(e.season), totalRosters: e.totalRosters, bestBall: e.format.bestBall,
       });
     }
   }
@@ -66,12 +66,19 @@ const index = resolveLineages([...dynLeagues.values()].map((e): LeagueSeasonRef 
 
 const lineageSeasons = new Map<string, Set<number>>();
 const lineageSize = new Map<string, number>();
+// Best-ball DYNASTY is included: rosters persist year over year, so "will they
+// come back" is well defined, and recorded renewal is 74.2% against 73.7% for
+// regular dynasty — the same behaviour. Excluding it was carried over from the
+// engagement work, where best ball is genuinely unreadable because there is no
+// in-season management. Different question, different answer.
+const lineageBestBall = new Map<string, boolean>();
 for (const e of dynLeagues.values()) {
   const lin = index.byLeagueId.get(e.leagueId);
   if (!lin) continue;
   if (!lineageSeasons.has(lin)) lineageSeasons.set(lin, new Set());
   lineageSeasons.get(lin)!.add(e.season);
   if (e.totalRosters) lineageSize.set(lin, Math.max(lineageSize.get(lin) ?? 0, e.totalRosters));
+  if (e.bestBall) lineageBestBall.set(lin, true);
 }
 
 // Per manager: which dynasty lineages in which season, and portfolio shape.
@@ -89,7 +96,7 @@ for (const m of pop) {
     if (e.format.bestBall) bestBallCount.set(pk, (bestBallCount.get(pk) ?? 0) + 1);
     if (!seasonsOf.has(m.managerId)) seasonsOf.set(m.managerId, new Set());
     seasonsOf.get(m.managerId)!.add(season);
-    if (e.format.bestBall || e.format.type !== 'Dynasty') continue;
+    if (e.format.type !== 'Dynasty') continue;
     const lin = index.byLeagueId.get(e.leagueId);
     if (!lin) continue;
     inLineage.add(`${m.managerId}|${lin}|${season}`);
@@ -109,6 +116,7 @@ const ALL_FEATURES = [
   'isNewMember', 'tenureYears', 'tenureCensored', 'leagueSize',
   'portfolioSize', 'logPortfolioSize', 'dynastyLineages', 'dynastyShare',
   'bestBallShare', 'seasonsActive', 'priorLeaveRate', 'priorLeaveObserved',
+  'isBestBallLeague',
 ] as const;
 // Everything in the live set is reachable from a league id: the lineage walk
 // gives tenure and league size, and one portfolio lookup per member per season
@@ -152,7 +160,7 @@ for (const [lin, seasons] of lineageSeasons) {
 const ownLineageSeasons = new Map<string, { lineage: string; season: number }[]>();
 for (const m of pop) {
   for (const e of m.portfolio ?? []) {
-    if (e.format.bestBall || e.format.type !== 'Dynasty') continue;
+    if (e.format.type !== 'Dynasty') continue;
     const lin = index.byLeagueId.get(e.leagueId);
     if (!lin) continue;
     if (!ownLineageSeasons.has(m.managerId)) ownLineageSeasons.set(m.managerId, []);
@@ -202,6 +210,7 @@ for (const t of transitions) {
       dynastyLineages: dynCount,
       dynastyShare: dynCount / pSize,
       bestBallShare: bb / pSize,
+      isBestBallLeague: lineageBestBall.get(t.lineage) ? 1 : 0,
       seasonsActive: [...(seasonsOf.get(t.manager) ?? [])].filter((s) => s <= t.season).length,
       priorLeaveRate: priorCount ? priorLeft / priorCount : 0,
       priorLeaveObserved: priorCount,
