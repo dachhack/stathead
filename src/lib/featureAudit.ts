@@ -54,6 +54,7 @@ export interface FeatureSpec {
 const MIN_SEASON_SAMPLE = 30;
 
 const bool = (b: boolean): number => (b ? 1 : 0);
+const share = (n: number, d: number) => (d > 0 ? n / d : 0);
 
 // The engagement feature surface, declared once so eligibility is derived
 // rather than remembered.
@@ -94,6 +95,25 @@ export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
   { name: 'trailingSilentWeeks', kind: 'label-derived', get: (r) => r.trailingSilentWeeks },
   { name: 'activeWeekCount', kind: 'label-derived', get: (r) => r.activeWeeks.length },
 ];
+
+export interface AuditOptions {
+  // Last week each season could plausibly have had activity, as the crawler
+  // derives it. A season still in progress is structurally unlike a completed
+  // one — a pre-season snapshot has near-zero transactions — so including it in
+  // stability reports drift on every activity feature at once.
+  horizonBySeason?: Record<string, number>;
+  // Below this horizon a season counts as in-progress and is excluded from
+  // stability (but still reported, and still audited for completeness).
+  minHorizonWeeks?: number;
+  // Minimum |AUC - 0.5| before a single-feature association is called a
+  // direction at all. Below it the measurement is noise, and flagging a
+  // "contradicted hypothesis" on a 2-point deviation trains people to ignore
+  // the warning that matters.
+  minEffectSize?: number;
+}
+
+const DEFAULT_MIN_HORIZON = 8;
+const DEFAULT_MIN_EFFECT = 0.05;
 
 export type Eligibility = 'eligible' | 'conditional' | 'ineligible';
 
@@ -159,7 +179,9 @@ export interface CompletenessReport {
   cappedSweepShare: number;
   zeroTxnRows: number;
   zeroTxnUnlaunched: number;      // league never drafted: expected, not a defect
-  zeroTxnLaunched: number;        // a live league with no activity: idle or truncated
+  zeroTxnBestBall: number;        // best ball has no waivers or lineups: expected
+  zeroTxnInProgress: number;      // season has barely started: expected
+  zeroTxnUnexplained: number;     // a live, managed league with no activity at all
   missingRosterIdRows: number;
   missingTimestampShare: number;  // events with created === 0
   startersCoverage: number;       // share of non-best-ball rows with an empty-slot value
@@ -168,6 +190,19 @@ export interface CompletenessReport {
   bestBallShare: number;
   retentionCensoredShare: number | null;
   lineageSeasonGaps: number;
+
+  // Population shape per season. A crawl that samples different kinds of league
+  // in different seasons will show "drift" on every activity feature at once;
+  // that is a property of the sample, not of the features, and it belongs here
+  // rather than in the feature table.
+  seasonComposition: {
+    season: string;
+    rows: number;
+    leagueSeasons: number;
+    bestBallShare: number;
+    horizonWeeks: number | null;
+    inProgress: boolean;
+  }[];
 
   requiredFieldViolations: { field: string; rows: number }[];
   warnings: string[];
@@ -226,17 +261,25 @@ function dominantShare(values: number[]): number {
   return Math.max(...counts.values()) / values.length;
 }
 
-function directionOf(a: number): RiskDirection {
+function directionOf(a: number, minEffect: number): RiskDirection {
   if (!Number.isFinite(a)) return 'none';
-  if (a > 0.52) return 'higher-risk';
-  if (a < 0.48) return 'lower-risk';
+  if (a > 0.5 + minEffect) return 'higher-risk';
+  if (a < 0.5 - minEffect) return 'lower-risk';
   return 'none';
 }
 
 export function auditEngagement(
   population: ManagerObservation[],
   specs: FeatureSpec[] = ENGAGEMENT_FEATURES,
+  auditOpts: AuditOptions = {},
 ): AuditReport {
+  const minHorizon = auditOpts.minHorizonWeeks ?? DEFAULT_MIN_HORIZON;
+  const minEffect = auditOpts.minEffectSize ?? DEFAULT_MIN_EFFECT;
+  const horizonOf = (season: string) => auditOpts.horizonBySeason?.[season] ?? null;
+  const inProgress = (season: string) => {
+    const h = horizonOf(season);
+    return h !== null && h < minHorizon;
+  };
   const allRows = population.flatMap((m) => m.rows);
   const warnings: string[] = [];
   const blocking: string[] = [];
@@ -251,6 +294,26 @@ export function auditEngagement(
   for (const r of allRows) {
     const key = r.format.bestBall ? 'Best Ball' : r.format.type;
     rowsByFormat[key] = (rowsByFormat[key] ?? 0) + 1;
+  }
+
+  const seasonComposition = seasons.map((season) => {
+    const rs = allRows.filter((r) => r.season === season);
+    return {
+      season,
+      rows: rs.length,
+      leagueSeasons: new Set(rs.map((r) => r.leagueId)).size,
+      bestBallShare: share(rs.filter((r) => r.format.bestBall).length, rs.length),
+      horizonWeeks: horizonOf(season),
+      inProgress: inProgress(season),
+    };
+  });
+
+  // Composition shift is a sampling property, not feature drift — but it drives
+  // apparent drift on every activity feature, so it is called out once here
+  // instead of once per feature.
+  const bbShares = seasonComposition.filter((s) => s.rows >= 30).map((s) => s.bestBallShare);
+  if (bbShares.length > 1 && Math.max(...bbShares) - Math.min(...bbShares) > 0.3) {
+    warnings.push(`Best-ball share swings from ${(Math.min(...bbShares) * 100).toFixed(0)}% to ${(Math.max(...bbShares) * 100).toFixed(0)}% across seasons. The crawl sampled structurally different leagues per season, which will surface as apparent drift on activity features. Fix the sample, not the features.`);
   }
 
   const cappedManagers = population.filter((m) => m.sweep?.capped).length;
@@ -269,9 +332,20 @@ export function auditEngagement(
     return s === 'pre_draft' || s === 'drafting';
   };
 
+  // A zero-transaction row is only suspicious once the expected explanations
+  // are stripped out. Best ball has no waivers and no lineups to set, and a
+  // season that has barely started has had no chance yet — lumping either in
+  // with "live league, no activity" produced a four-figure false alarm on the
+  // first real crawl.
   const zeroTxn = allRows.filter((r) => r.txnCount === 0);
   const zeroTxnUnlaunched = zeroTxn.filter((r) => unlaunched(r.leagueId)).length;
-  const zeroTxnLaunched = zeroTxn.length - zeroTxnUnlaunched;
+  const zeroTxnBestBall = zeroTxn.filter((r) => !unlaunched(r.leagueId) && r.format.bestBall).length;
+  const zeroTxnInProgress = zeroTxn.filter((r) =>
+    !unlaunched(r.leagueId) && !r.format.bestBall && inProgress(r.season)).length;
+  const zeroTxnUnexplained = zeroTxn.length - zeroTxnUnlaunched - zeroTxnBestBall - zeroTxnInProgress;
+  if (zeroTxnUnexplained > 0) {
+    warnings.push(`${zeroTxnUnexplained} row(s) are in a live, managed league in a completed season with no transactions at all — either genuinely dead teams or missing data.`);
+  }
 
   const missingRosterIdRows = history.filter((h) => h.rosterId == null).length;
 
@@ -351,7 +425,9 @@ export function auditEngagement(
     cappedSweepShare: population.length ? cappedManagers / population.length : 0,
     zeroTxnRows: zeroTxn.length,
     zeroTxnUnlaunched,
-    zeroTxnLaunched,
+    zeroTxnBestBall,
+    zeroTxnInProgress,
+    zeroTxnUnexplained,
     missingRosterIdRows,
     missingTimestampShare,
     startersCoverage,
@@ -360,6 +436,7 @@ export function auditEngagement(
     bestBallShare,
     retentionCensoredShare,
     lineageSeasonGaps,
+    seasonComposition,
     requiredFieldViolations,
     warnings,
   };
@@ -400,17 +477,23 @@ export function auditEngagement(
     // MIN_SEASON_SAMPLE keeps this honest: a PSI computed on a handful of rows
     // is noise, and reporting it as "significant drift" trains people to ignore
     // the whole column.
+    // Stability is measured on the SCORABLE rows — the population a model
+    // would actually train on — and skips seasons still in progress. Measured
+    // over all rows instead, a crawl whose format mix shifts by season reports
+    // significant drift on nearly every feature at once, which is composition
+    // shift wearing a feature-drift costume.
     let maxSeasonPsi = NaN;
-    if (seasons.length > 1 && present.length >= 2 * MIN_SEASON_SAMPLE) {
-      const valueFor = (predicate: (season: string) => boolean) => allRows
+    const stableSeasons = seasons.filter((s) => !inProgress(s));
+    if (stableSeasons.length > 1) {
+      const valueFor = (predicate: (season: string) => boolean) => labelRows
         .filter((r) => predicate(r.season))
         .map((r) => spec.get(r))
         .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
 
       const perSeason: number[] = [];
-      for (const s of seasons) {
+      for (const s of stableSeasons) {
         const inSeason = valueFor((x) => x === s);
-        const others = valueFor((x) => x !== s);
+        const others = valueFor((x) => x !== s && !inProgress(x));
         if (inSeason.length < MIN_SEASON_SAMPLE || others.length < MIN_SEASON_SAMPLE) continue;
         const value = psi(others, inSeason);
         if (Number.isFinite(value)) perSeason.push(value);
@@ -421,7 +504,7 @@ export function auditEngagement(
       ? 'n/a'
       : maxSeasonPsi > 0.25 ? 'significant' : maxSeasonPsi > 0.1 ? 'moderate' : 'stable';
 
-    const direction = directionOf(signalAuc);
+    const direction = directionOf(signalAuc, minEffect);
     const expected = spec.expect ?? null;
     // Only a genuine contradiction counts. "Expected an effect, measured none"
     // is weak evidence, not a bug, so it does not fail the check.

@@ -168,7 +168,18 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
 
   const crawled: CrawledLeagueSeason[] = [];
   const visited = new Set<string>();
+
+  // Two frontiers, and vertical wins. Horizontal discovery outruns the
+  // league-season cap by orders of magnitude (a first real crawl queued 45k
+  // leagues while crawling 200), so a single FIFO queue starves the vertical
+  // hops behind it — and vertical hops are the ones that produce lineages,
+  // tenure and every retention label. Prioritising them means the sample gets
+  // DEPTH per league rather than an ever-wider layer of single-season rows.
+  const verticalFrontier: string[] = [];
   const frontier: string[] = [...new Set(opts.seedLeagueIds)];
+  const nextLeague = (): string | undefined =>
+    verticalFrontier.length ? verticalFrontier.shift() : frontier.shift();
+  const pending = () => verticalFrontier.length + frontier.length;
   // Managers whose full league list we enumerated, and the size of that list.
   const portfolio = new Map<string, number>(Object.entries(opts.knownPortfolios ?? {}));
   stats.portfoliosResolved = portfolio.size;
@@ -179,13 +190,13 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
   };
   const canSpend = (n: number) => stats.requests + n <= opts.maxRequests;
 
-  while (frontier.length) {
+  while (pending()) {
     if (crawled.length >= opts.maxLeagueSeasons) break;
     // Reserve the whole league-season up front. Starting one we cannot finish
     // would emit fake inactivity, so we stop instead.
     if (!canSpend(perLeagueSeason)) { stats.budgetExhausted = true; break; }
 
-    const leagueId = frontier.shift()!;
+    const leagueId = nextLeague()!;
     if (visited.has(leagueId)) continue;
     visited.add(leagueId);
 
@@ -197,9 +208,9 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
     // silently cost every retention label behind it.
     if (outcome.kind !== 'skipped' && outcome.previousLeagueId && !visited.has(outcome.previousLeagueId)) {
       const prevSeason = String(Number(outcome.season) - 1);
-      if (seasonSet.has(prevSeason)) frontier.push(outcome.previousLeagueId);
+      if (seasonSet.has(prevSeason)) verticalFrontier.push(outcome.previousLeagueId);
     }
-    if (outcome.kind !== 'ok') { stats.frontierRemaining = frontier.length; continue; }
+    if (outcome.kind !== 'ok') { stats.frontierRemaining = pending(); continue; }
 
     const ls = outcome.ls;
     crawled.push(ls);
@@ -227,10 +238,10 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
       stats.portfoliosResolved++;
     }
 
-    stats.frontierRemaining = frontier.length;
+    stats.frontierRemaining = pending();
     deps.onProgress?.(stats);
   }
-  stats.frontierRemaining = frontier.length;
+  stats.frontierRemaining = pending();
 
   const { population, horizonBySeason } = assemble(crawled, portfolio, opts);
   stats.managersDiscovered = population.length;

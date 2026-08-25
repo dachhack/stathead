@@ -21,7 +21,7 @@
 // correlations. No manager ids, league ids, or per-row values are written, so
 // the output is safe to upload as a CI artifact. The INPUT is not: keep crawled
 // populations out of the repo.
-import { writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
 import { auditEngagement, ENGAGEMENT_FEATURES, type AuditReport, type ManagerObservation } from '../src/lib/featureAudit';
 import { managerSeasonEngagement } from '../src/lib/engagement';
 import { retentionEvents, type LeagueSeasonRef } from '../src/lib/leagueLineage';
@@ -120,12 +120,17 @@ const pct = (x: number | null | undefined, digits = 1) =>
 const num = (x: number | null | undefined, digits = 2) =>
   x == null || !Number.isFinite(x) ? 'n/a' : x.toFixed(digits);
 
-function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source: string; synthetic: boolean }): string {
+function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source: string; synthetic: boolean; horizons: boolean }): string {
   const c = report.completeness;
   const L: string[] = [];
 
   L.push('# Engagement pipeline — data completeness & feature audit', '');
   L.push(`Generated ${meta.generatedAt} · source: \`${meta.source}\` · report v${REPORT_VERSION}`, '');
+  if (!meta.synthetic && !meta.horizons) {
+    L.push('> ⚠️ No crawl manifest found next to the input, so per-season horizons are');
+    L.push('> unknown and an in-progress season cannot be distinguished from a completed');
+    L.push('> one. Expect inflated drift figures.', '');
+  }
 
   if (meta.synthetic) {
     L.push('> ⚠️ **Synthetic population.** These numbers describe fabricated data and say');
@@ -147,7 +152,8 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push(`| Distinct lineages | ${c.lineages} | leagues after collapsing per-season ids |`);
   L.push(`| Seasons | ${c.seasons.join(', ') || 'none'} | |`);
   L.push(`| Sweep truncated | ${c.managersWithCappedSweep} (${pct(c.cappedSweepShare)}) | oldest seasons missing transactions — reads as inactive |`);
-  L.push(`| Zero-transaction rows | ${c.zeroTxnRows} | ${c.zeroTxnUnlaunched} unlaunched (expected), ${c.zeroTxnLaunched} live |`);
+  L.push(`| Zero-transaction rows | ${c.zeroTxnRows} | ${c.zeroTxnUnlaunched} unlaunched, ${c.zeroTxnBestBall} best ball, ${c.zeroTxnInProgress} season not started — all expected |`);
+  L.push(`| ↳ unexplained | ${c.zeroTxnUnexplained} | live, managed, completed season, no activity at all |`);
   L.push(`| Rows with no roster id | ${c.missingRosterIdRows} | manager absent from the league's rosters |`);
   L.push(`| Transactions with no timestamp | ${pct(c.missingTimestampShare)} | breaks weekday / attention-shape features |`);
   L.push(`| Empty-slot coverage | ${pct(c.startersCoverage, 0)} | share of non-best-ball rows with starters supplied |`);
@@ -156,6 +162,16 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push(`| Best-ball share | ${pct(c.bestBallShare)} | excluded from the abandonment label |`);
   L.push(`| Retention rows censored | ${pct(c.retentionCensoredShare)} | newest season is unlabelable by construction |`);
   L.push(`| Lineage season gaps | ${c.lineageSeasonGaps} | manager sat a year out; not a new league |`);
+  L.push('');
+
+  L.push('### Population shape by season', '');
+  L.push('A crawl that samples structurally different leagues per season shows');
+  L.push('apparent drift on every activity feature at once. That is the sample, not');
+  L.push('the features — so it is reported here rather than in the feature table.', '');
+  L.push('| Season | Rows | League-seasons | Best ball | Horizon | |', '| --- | --- | --- | --- | --- | --- |');
+  for (const s of c.seasonComposition) {
+    L.push(`| ${s.season} | ${s.rows} | ${s.leagueSeasons} | ${pct(s.bestBallShare, 0)} | ${s.horizonWeeks ?? 'n/a'} | ${s.inProgress ? 'in progress — excluded from stability' : ''} |`);
+  }
   L.push('');
 
   if (c.requiredFieldViolations.length) {
@@ -249,14 +265,28 @@ function loadInput(path: string): ManagerObservation[] {
   return parsed as ManagerObservation[];
 }
 
+// The crawler writes <out>-manifest.json alongside its population, carrying the
+// derived per-season horizon. Without it the audit cannot tell an in-progress
+// season from a completed one, and reports drift on everything.
+function loadHorizons(inputPath: string): Record<string, number> | undefined {
+  const manifest = `${inputPath.replace(/\.json$/, '')}-manifest.json`;
+  if (!existsSync(manifest)) return undefined;
+  try {
+    const parsed = JSON.parse(readFileSync(manifest, 'utf8'));
+    return parsed?.horizonBySeason ?? undefined;
+  } catch { return undefined; }
+}
+
 function main() {
   let population: ManagerObservation[];
   let source: string;
   let synthetic = false;
+  let horizonBySeason: Record<string, number> | undefined;
 
   if (INPUT) {
     population = loadInput(INPUT);
     source = INPUT;
+    horizonBySeason = loadHorizons(INPUT);
   } else if (DEMO) {
     population = demoPopulation();
     source = 'synthetic (--demo)';
@@ -267,9 +297,9 @@ function main() {
     return;
   }
 
-  const report = auditEngagement(population);
+  const report = auditEngagement(population, undefined, { horizonBySeason });
   const generatedAt = new Date().toISOString();
-  const meta = { generatedAt, source, synthetic };
+  const meta = { generatedAt, source, synthetic, horizons: !!horizonBySeason };
 
   mkdirSync(OUT_DIR, { recursive: true });
   const jsonPath = `${OUT_DIR}/engagement-audit.json`;

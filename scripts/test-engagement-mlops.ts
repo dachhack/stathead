@@ -311,7 +311,72 @@ const healthy: ManagerObservation[] = [
   const report = auditEngagement([...healthy, unlaunched]);
   eq('audit: zero-transaction rows counted', report.completeness.zeroTxnRows, 2);
   eq('audit: unlaunched leagues are separated out', report.completeness.zeroTxnUnlaunched, 2);
-  eq('audit: no live league is silently idle', report.completeness.zeroTxnLaunched, 0);
+  eq('audit: nothing left unexplained', report.completeness.zeroTxnUnexplained, 0);
+}
+
+// ── audit: zero-transaction rows are only suspicious once the expected
+//    explanations are stripped out ──
+{
+  // Best ball has no waivers and no lineup to set, so zero transactions there
+  // is normal. Counting it as "live league, no activity" produced a
+  // four-figure false alarm on the first real crawl.
+  const bb = buildManager('bb', { bestBall: true });
+  bb.rows = bb.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
+  const withBB = auditEngagement([...healthy, bb]);
+  eq('zero-txn: best ball is an expected explanation', withBB.completeness.zeroTxnBestBall, 2);
+  eq('zero-txn: and is not counted as unexplained', withBB.completeness.zeroTxnUnexplained, 0);
+
+  // A season that has barely started has had no chance to show activity.
+  const fresh = buildManager('fresh');
+  fresh.rows = fresh.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
+  const inProgress = auditEngagement([...healthy, fresh], undefined, {
+    horizonBySeason: { 2024: 17, 2025: 1 },
+  });
+  eq('zero-txn: an in-progress season is an expected explanation',
+    inProgress.completeness.zeroTxnInProgress, 1);
+  check('zero-txn: the completed season is still unexplained',
+    inProgress.completeness.zeroTxnUnexplained === 1, inProgress.completeness);
+  check('zero-txn: unexplained rows raise a warning',
+    inProgress.completeness.warnings.some((w) => w.includes('no transactions at all')));
+}
+
+// ── audit: a weak association is not a contradicted hypothesis ──
+{
+  // A feature with a 2-point deviation from 0.5 is noise. Flagging it as
+  // "treat as a bug" trains people to ignore the warning that matters, so a
+  // direction is only declared past a minimum effect size.
+  const specs: FeatureSpec[] = [
+    { name: 'noisy', kind: 'static', get: (r) => (r.totalRosters % 2), expect: 'higher-risk' },
+  ];
+  const strict = auditEngagement(healthy, specs, { minEffectSize: 0.5 });
+  eq('effect size: a large floor reports no direction', strict.features[0].direction, 'none');
+  eq('effect size: and therefore no contradiction', strict.features[0].directionOk, null);
+  check('effect size: no spurious warning',
+    !strict.completeness.warnings.some((w) => w.includes('opposite direction')));
+
+  const loose = auditEngagement(healthy, specs, { minEffectSize: 0 });
+  check('effect size: a zero floor will call any deviation a direction',
+    loose.features[0].direction !== 'none' || loose.features[0].signalAuc === 0.5,
+    loose.features[0]);
+}
+
+// ── audit: in-progress seasons are excluded from stability ──
+{
+  // A pre-season snapshot has near-zero transactions, so measured against
+  // completed seasons it reports drift on every activity feature at once.
+  const many = [
+    ...Array.from({ length: 10 }, (_, i) => buildManager(`s${i}`)),
+    ...Array.from({ length: 6 }, (_, i) => buildManager(`q${i}`, { quits: true })),
+  ];
+  const scoped = auditEngagement(many, undefined, { horizonBySeason: { 2024: 17, 2025: 1 } });
+  const txn = scoped.features.find((f) => f.name === 'txnCount')!;
+  // With only one completed season left there is nothing to compare against,
+  // so stability is honestly n/a rather than a number.
+  eq('stability: an in-progress season is excluded', txn.stability, 'n/a');
+  const composition = scoped.completeness.seasonComposition.find((s) => s.season === '2025')!;
+  check('stability: the season is still reported as in progress', composition.inProgress);
+  eq('stability: with its horizon shown', composition.horizonWeeks, 1);
+  check('composition: rows still counted for the in-progress season', composition.rows > 0);
 }
 
 // ── audit: required fields, degeneracy, collinearity, direction ──

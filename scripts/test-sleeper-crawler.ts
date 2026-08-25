@@ -363,6 +363,37 @@ const run = (world: FakeWorld, opts: CrawlOptions): Promise<CrawlResult> =>
   check('pacer: actually uses the concurrency it is given', peak2 > 1, peak2);
 }
 
+// ── 14b. vertical expansion outranks horizontal ──
+//
+// Horizontal discovery outruns the league-season cap by orders of magnitude, so
+// on a single FIFO queue the vertical hops starve behind it — and vertical hops
+// are the only source of lineages, tenure and retention labels. Depth per
+// league beats an ever-wider layer of single-season rows.
+{
+  // A three-season chain, plus a horizontally-reachable league that would be
+  // queued first under FIFO (it is discovered while crawling the seed).
+  const world: FakeWorld = {
+    leagues: CHAIN,
+    portfolios: { u1: { 2023: [], 2024: [], 2025: ['OTHER'] } },
+  };
+  const { getJson } = makeGetJson(world);
+  // Room for the seed plus one more: the crawler must choose.
+  const result = await crawl(OPTS({ expandPerLeague: 1, maxLeagueSeasons: 2, pseudonymize: false }), { getJson });
+
+  const crawledLeagues = new Set(result.population.flatMap((m) => m.rows.map((r) => r.leagueId)));
+  check('priority: the prior season is taken before a newly-discovered league',
+    crawledLeagues.has('L2024') && !crawledLeagues.has('OTHER'), [...crawledLeagues]);
+
+  // With room for the whole chain, the horizontal find is still reached — the
+  // priority only reorders, it does not discard.
+  const { getJson: g2 } = makeGetJson(world);
+  const full = await crawl(OPTS({ expandPerLeague: 1, maxLeagueSeasons: 10, pseudonymize: false }), { getJson: g2 });
+  const all = new Set(full.population.flatMap((m) => m.rows.map((r) => r.leagueId)));
+  check('priority: horizontal finds are still crawled when there is room',
+    all.has('OTHER') && all.has('L2023'), [...all]);
+  eq('priority: chain depth achieved', new Set(full.population.flatMap((m) => m.rows.filter((r) => r.lineageId === 'L2023').map((r) => r.season))).size, 3);
+}
+
 // ── 15. the crawler's output is consumable by the audit ──
 //
 // The contract between the two halves is the only thing that makes the pipeline
