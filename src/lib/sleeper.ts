@@ -9,6 +9,7 @@ const SLEEPER = 'https://api.sleeper.app/v1';
 
 export interface SleeperLeagueInfo {
   league_id: string;
+  previous_league_id?: string | null; // prior season's league_id — see leagueLineage.ts
   name: string;
   season: string;
   status: string;
@@ -125,6 +126,7 @@ export interface SleeperUser {
 
 export interface SleeperLeagueSummary {
   league_id: string;
+  previous_league_id?: string | null; // prior season's league_id — see leagueLineage.ts
   name: string;
   season: string;
   status: string;
@@ -309,6 +311,7 @@ interface BracketMatch { r: number; m: number; w?: number | null; l?: number | n
 export interface LeagueSeasonRecord {
   season: string;
   leagueId: string;
+  previousLeagueId: string | null; // links this league-season to the prior one
   leagueName: string;
   status: string;
   format: LeagueFormatInfo;
@@ -360,6 +363,7 @@ export async function fetchUserHistory(userId: string, seasons: string[]): Promi
       return {
         season,
         leagueId: league.league_id,
+        previousLeagueId: league.previous_league_id ?? null,
         leagueName: league.name,
         status: league.status,
         format: leagueFormatInfo(league),
@@ -388,6 +392,7 @@ interface RawTransaction {
   drops?: Record<string, number> | null;
   draft_picks?: { season: string; round: number; roster_id: number; previous_owner_id: number; owner_id: number }[];
   waiver_budget?: { sender: number; receiver: number; amount: number }[];
+  settings?: { waiver_bid?: number; seq?: number } | null;
   created?: number;
 }
 
@@ -417,13 +422,49 @@ export interface TradeActivity {
   capped: boolean; // true if we hit the request cap and didn't scan everything
 }
 
-// List + count completed trades the user was party to, sweeping weekly
-// transaction logs. There's no per-user endpoint, so this is bounded: newest
-// seasons first, capped at MAX_TASKS week-requests total.
-export async function fetchUserTradeActivity(
+// Sleeper's transaction `type`, narrowed. "commissioner" covers admin moves
+// (force-adds, roster edits) — a real engagement signal for league operators.
+export type TxnKind = 'trade' | 'waiver' | 'free_agent' | 'commissioner' | 'other';
+
+const TXN_KINDS = new Set<TxnKind>(['trade', 'waiver', 'free_agent', 'commissioner']);
+const asTxnKind = (raw: string): TxnKind => (TXN_KINDS.has(raw as TxnKind) ? (raw as TxnKind) : 'other');
+
+// One transaction the manager was party to, flattened to their side of it.
+//
+// Failed transactions are KEPT: a losing waiver claim moved no players but is
+// direct evidence the manager was paying attention that week, which is exactly
+// what the engagement/abandonment features need.
+export interface TxnEvent {
+  leagueId: string;
+  season: string;
+  week: number;
+  created: number;      // epoch ms (0 when Sleeper omits it)
+  kind: TxnKind;
+  status: string;       // 'complete' | 'failed' | ...
+  adds: string[];       // player ids the manager took in
+  drops: string[];      // player ids the manager sent out
+  faabBid: number;      // FAAB spent on a waiver claim (settings.waiver_bid)
+  partners: number[];   // other roster ids on the transaction
+}
+
+export interface TransactionActivity {
+  events: TxnEvent[];           // every transaction, newest first
+  trades: TradeRecord[];        // the trade subset, fully parsed
+  bySeason: Record<string, number>;   // trade counts per season
+  leaguesAnalyzed: number;
+  weeksScanned: number;
+  capped: boolean;              // hit the request cap without scanning everything
+}
+
+// Sweep every weekly transaction log for the leagues the manager fielded.
+//
+// There's no per-user transaction endpoint, so this is inherently a fan-out
+// over (league-season × week) and is bounded: newest seasons first, capped at
+// MAX_TASKS week-requests total.
+export async function fetchUserTransactionActivity(
   records: LeagueSeasonRecord[],
   onProgress?: (done: number, total: number) => void,
-): Promise<TradeActivity> {
+): Promise<TransactionActivity> {
   const WEEKS = 18;
   const MAX_TASKS = 700;
   const usable = records
@@ -439,6 +480,7 @@ export async function fetchUserTradeActivity(
 
   const bySeason: Record<string, number> = {};
   const analyzed = new Set<string>();
+  const events: TxnEvent[] = [];
   const trades: TradeRecord[] = [];
   let done = 0;
   await mapLimit(tasks, 12, async ({ rec, week }) => {
@@ -447,17 +489,33 @@ export async function fetchUserTradeActivity(
       const txns = await getJson<RawTransaction[]>(`${SLEEPER}/league/${rec.leagueId}/transactions/${week}`);
       analyzed.add(rec.leagueId);
       for (const t of txns ?? []) {
-        if (t.type !== 'trade' || t.status !== 'complete' || me == null || !(t.roster_ids ?? []).includes(me)) continue;
+        if (me == null || !(t.roster_ids ?? []).includes(me)) continue;
+        const kind = asTxnKind(t.type);
+        const created = t.created ?? 0;
+
+        const adds = Object.entries(t.adds ?? {}).filter(([, rid]) => rid === me).map(([pid]) => pid);
+        const drops = Object.entries(t.drops ?? {}).filter(([, rid]) => rid === me).map(([pid]) => pid);
+
+        events.push({
+          leagueId: rec.leagueId,
+          season: rec.season,
+          week,
+          created,
+          kind,
+          status: t.status,
+          adds,
+          drops,
+          // waiver_bid is the FAAB spent winning a claim. Not to be confused
+          // with waiver_budget[], which is FAAB moved inside a trade.
+          faabBid: kind === 'waiver' ? (t.settings?.waiver_bid ?? 0) : 0,
+          partners: (t.roster_ids ?? []).filter((r) => r !== me),
+        });
+
+        if (kind !== 'trade' || t.status !== 'complete') continue;
         bySeason[rec.season] = (bySeason[rec.season] ?? 0) + 1;
 
-        const received: TradeSide = { players: [], picks: [], faab: 0 };
-        const gave: TradeSide = { players: [], picks: [], faab: 0 };
-        for (const [pid, rid] of Object.entries(t.adds ?? {})) {
-          if (rid === me) received.players.push(pid);
-        }
-        for (const [pid, rid] of Object.entries(t.drops ?? {})) {
-          if (rid === me) gave.players.push(pid);
-        }
+        const received: TradeSide = { players: adds, picks: [], faab: 0 };
+        const gave: TradeSide = { players: drops, picks: [], faab: 0 };
         for (const pk of t.draft_picks ?? []) {
           if (pk.owner_id === me) received.picks.push({ season: pk.season, round: pk.round });
           else if (pk.previous_owner_id === me) gave.picks.push({ season: pk.season, round: pk.round });
@@ -471,7 +529,7 @@ export async function fetchUserTradeActivity(
           leagueName: rec.leagueName,
           season: rec.season,
           week,
-          created: t.created ?? 0,
+          created,
           rosterId: me,
           partners: (t.roster_ids ?? []).filter((r) => r !== me),
           received,
@@ -482,9 +540,23 @@ export async function fetchUserTradeActivity(
     onProgress?.(++done, tasks.length);
   });
 
-  trades.sort((a, b) => (b.created - a.created) || b.season.localeCompare(a.season) || b.week - a.week);
+  const newestFirst = <T extends { created: number; season: string; week: number }>(a: T, b: T) =>
+    (b.created - a.created) || b.season.localeCompare(a.season) || b.week - a.week;
+  events.sort(newestFirst);
+  trades.sort(newestFirst);
+
+  return { events, trades, bySeason, leaguesAnalyzed: analyzed.size, weeksScanned: tasks.length, capped };
+}
+
+// List + count completed trades the user was party to. Thin wrapper over the
+// full sweep above, which makes the same requests.
+export async function fetchUserTradeActivity(
+  records: LeagueSeasonRecord[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<TradeActivity> {
+  const { trades, bySeason, leaguesAnalyzed, capped } = await fetchUserTransactionActivity(records, onProgress);
   const totalTrades = Object.values(bySeason).reduce((a, b) => a + b, 0);
-  return { totalTrades, leaguesAnalyzed: analyzed.size, bySeason, trades, capped };
+  return { totalTrades, leaguesAnalyzed, bySeason, trades, capped };
 }
 
 // ── Drafts (live draft assistant) ──
