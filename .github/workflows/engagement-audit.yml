@@ -29,7 +29,9 @@ on:
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
+      - 'scripts/test-sleeper-crawler.ts'
       - 'scripts/report-engagement-audit.ts'
+      - 'scripts/crawl-sleeper-population.ts'
       - '.github/workflows/engagement-audit.yml'
   pull_request:
     paths:
@@ -39,7 +41,9 @@ on:
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
       - 'scripts/test-engagement-*.ts'
+      - 'scripts/test-sleeper-crawler.ts'
       - 'scripts/report-engagement-audit.ts'
+      - 'scripts/crawl-sleeper-population.ts'
   workflow_dispatch:
     inputs:
       population:
@@ -69,6 +73,8 @@ jobs:
         run: npm run test:engagement
       - name: Metrics and audit known-answer tests
         run: npm run test:engagement:mlops
+      - name: Crawler walk, budget and attribution (offline)
+        run: npm run test:sleeper:crawler
       - name: Typecheck
         run: npx tsc -b
 

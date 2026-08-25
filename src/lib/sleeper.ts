@@ -384,7 +384,11 @@ export async function fetchUserHistory(userId: string, seasons: string[]): Promi
   return records.filter((r): r is LeagueSeasonRecord => r !== null);
 }
 
-interface RawTransaction {
+// The raw shape Sleeper returns from /league/<id>/transactions/<week>.
+// Exported so an offline crawler can hand the same payloads to the parsers
+// below instead of re-implementing them — the app and any trained model must
+// derive features from identical code, or they silently disagree.
+export interface SleeperRawTransaction {
   type: string;
   status: string;
   roster_ids?: number[];
@@ -456,6 +460,72 @@ export interface TransactionActivity {
   capped: boolean;              // hit the request cap without scanning everything
 }
 
+export interface TxnContext {
+  leagueId: string;
+  leagueName?: string;
+  season: string;
+  week: number;
+}
+
+// Flatten one raw transaction to the given roster's side of it.
+// Returns null when that roster was not party to the transaction.
+export function txnEventFor(
+  t: SleeperRawTransaction,
+  rosterId: number,
+  ctx: TxnContext,
+): TxnEvent | null {
+  if (!(t.roster_ids ?? []).includes(rosterId)) return null;
+  const kind = asTxnKind(t.type);
+  return {
+    leagueId: ctx.leagueId,
+    season: ctx.season,
+    week: ctx.week,
+    created: t.created ?? 0,
+    kind,
+    status: t.status,
+    adds: Object.entries(t.adds ?? {}).filter(([, rid]) => rid === rosterId).map(([pid]) => pid),
+    drops: Object.entries(t.drops ?? {}).filter(([, rid]) => rid === rosterId).map(([pid]) => pid),
+    // waiver_bid is the FAAB spent winning a claim. Not to be confused with
+    // waiver_budget[], which is FAAB moved inside a trade.
+    faabBid: kind === 'waiver' ? (t.settings?.waiver_bid ?? 0) : 0,
+    partners: (t.roster_ids ?? []).filter((r) => r !== rosterId),
+  };
+}
+
+// Parse one raw transaction into a trade from the given roster's perspective.
+// Returns null unless it is a completed trade that roster was party to.
+export function tradeRecordFor(
+  t: SleeperRawTransaction,
+  rosterId: number,
+  ctx: TxnContext,
+): TradeRecord | null {
+  if (t.type !== 'trade' || t.status !== 'complete') return null;
+  const ev = txnEventFor(t, rosterId, ctx);
+  if (!ev) return null;
+
+  const received: TradeSide = { players: ev.adds, picks: [], faab: 0 };
+  const gave: TradeSide = { players: ev.drops, picks: [], faab: 0 };
+  for (const pk of t.draft_picks ?? []) {
+    if (pk.owner_id === rosterId) received.picks.push({ season: pk.season, round: pk.round });
+    else if (pk.previous_owner_id === rosterId) gave.picks.push({ season: pk.season, round: pk.round });
+  }
+  for (const wb of t.waiver_budget ?? []) {
+    if (wb.receiver === rosterId) received.faab += wb.amount;
+    else if (wb.sender === rosterId) gave.faab += wb.amount;
+  }
+  return {
+    leagueId: ctx.leagueId,
+    leagueName: ctx.leagueName ?? '',
+    season: ctx.season,
+    week: ctx.week,
+    created: ev.created,
+    rosterId,
+    partners: ev.partners,
+    received,
+    gave,
+  };
+}
+
 // Sweep every weekly transaction log for the leagues the manager fielded.
 //
 // There's no per-user transaction endpoint, so this is inherently a fan-out
@@ -486,55 +556,19 @@ export async function fetchUserTransactionActivity(
   await mapLimit(tasks, 12, async ({ rec, week }) => {
     const me = rec.rosterId;
     try {
-      const txns = await getJson<RawTransaction[]>(`${SLEEPER}/league/${rec.leagueId}/transactions/${week}`);
+      const txns = await getJson<SleeperRawTransaction[]>(`${SLEEPER}/league/${rec.leagueId}/transactions/${week}`);
       analyzed.add(rec.leagueId);
+      const ctx: TxnContext = { leagueId: rec.leagueId, leagueName: rec.leagueName, season: rec.season, week };
       for (const t of txns ?? []) {
-        if (me == null || !(t.roster_ids ?? []).includes(me)) continue;
-        const kind = asTxnKind(t.type);
-        const created = t.created ?? 0;
+        if (me == null) continue;
+        const ev = txnEventFor(t, me, ctx);
+        if (!ev) continue;
+        events.push(ev);
 
-        const adds = Object.entries(t.adds ?? {}).filter(([, rid]) => rid === me).map(([pid]) => pid);
-        const drops = Object.entries(t.drops ?? {}).filter(([, rid]) => rid === me).map(([pid]) => pid);
-
-        events.push({
-          leagueId: rec.leagueId,
-          season: rec.season,
-          week,
-          created,
-          kind,
-          status: t.status,
-          adds,
-          drops,
-          // waiver_bid is the FAAB spent winning a claim. Not to be confused
-          // with waiver_budget[], which is FAAB moved inside a trade.
-          faabBid: kind === 'waiver' ? (t.settings?.waiver_bid ?? 0) : 0,
-          partners: (t.roster_ids ?? []).filter((r) => r !== me),
-        });
-
-        if (kind !== 'trade' || t.status !== 'complete') continue;
+        const trade = tradeRecordFor(t, me, ctx);
+        if (!trade) continue;
         bySeason[rec.season] = (bySeason[rec.season] ?? 0) + 1;
-
-        const received: TradeSide = { players: adds, picks: [], faab: 0 };
-        const gave: TradeSide = { players: drops, picks: [], faab: 0 };
-        for (const pk of t.draft_picks ?? []) {
-          if (pk.owner_id === me) received.picks.push({ season: pk.season, round: pk.round });
-          else if (pk.previous_owner_id === me) gave.picks.push({ season: pk.season, round: pk.round });
-        }
-        for (const wb of t.waiver_budget ?? []) {
-          if (wb.receiver === me) received.faab += wb.amount;
-          else if (wb.sender === me) gave.faab += wb.amount;
-        }
-        trades.push({
-          leagueId: rec.leagueId,
-          leagueName: rec.leagueName,
-          season: rec.season,
-          week,
-          created,
-          rosterId: me,
-          partners: (t.roster_ids ?? []).filter((r) => r !== me),
-          received,
-          gave,
-        });
+        trades.push(trade);
       }
     } catch { /* ignore missing weeks */ }
     onProgress?.(++done, tasks.length);

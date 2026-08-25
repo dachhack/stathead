@@ -74,19 +74,74 @@ so both land in the same component.
 > representative for the same league. Persist the mapping; don't recompute it
 > ad hoc and expect stability across runs.
 
-### Training population: crawl leagues, not users
+### The crawler (implemented)
 
-There is no user-enumeration endpoint, so the population has to be snowballed:
-seed league → `/league/<id>/users` → each user's history → more leagues.
+`npm run crawl:sleeper -- --seed=<leagueId>` walks the league graph and writes a
+population the audit can consume.
+Source: [`scripts/crawl-sleeper-population.ts`](../scripts/crawl-sleeper-population.ts).
 
-Orient that crawl at the **league** level. One league-season costs ~20 requests
-(18 transaction weeks + rosters + users) and yields labeled rows for **all**
-managers in it — under 2 requests per manager-season. A user-first crawl
-re-fetches the same league-weeks once per manager and costs hundreds of
-requests per row: same data, ~100× the budget.
+**League-oriented, not user-oriented.** There is no user-enumeration endpoint,
+so the population has to be snowballed — but the crawl unit is a league-season,
+not a manager. One league-season costs ~21 requests (league + rosters + 18
+transaction weeks + winners bracket) and yields labeled rows for **every**
+manager in it: under 2 requests per manager-season. A user-first crawl
+re-fetches the same league-weeks once per manager and costs hundreds of requests
+per row — identical data, ~100× the budget.
 
-Fetches must run in CI or the browser — these endpoints 403 from the dev
-sandbox (see the header of `scripts/fetch-sleeper-adp.py`).
+**Two expansion mechanisms, priced very differently.**
+
+| | Cost | Notes |
+| --- | --- | --- |
+| **Vertical** — follow `previous_league_id` back through a league's own history | one league-season per hop, no user lookups | Always on. Builds exactly the lineages the retention labels need. |
+| **Horizontal** — sample managers and enumerate their other leagues | one request per (manager, season) | Sampled (`--expandPerLeague`, default 3). Expanding a 12-team league fully would cost 48 requests — more than the league itself. |
+
+**All-or-nothing league-seasons.** A league-season whose transaction weeks are
+only partly fetched looks exactly like a league where managers stopped
+transacting — the precise pattern the abandonment label detects. So budget is
+reserved for a whole league-season before it starts, and one that cannot be
+completed is **dropped, never emitted partially**. When the budget runs out the
+population is smaller, never corrupted.
+
+A dropped league-season still contributes its `previous_league_id`: if the
+league document was readable, the chain keeps walking. Letting one transient
+error sever a lineage would silently cost every retention label behind it.
+
+**Derived season horizon.** Trailing silence is measured against the last week
+a season could plausibly have had activity. Assuming week 17 for an in-progress
+season would credit every manager with weeks of silence and label whole leagues
+abandoned, so the horizon is taken from the data: the latest week anything
+happened anywhere in that season.
+
+**Politeness and reproducibility.** Paced well under Sleeper's ~1000 req/min
+guidance (`--rpm`, default 600), bounded concurrency, `Retry-After`-aware
+backoff on 429, and a read-through disk cache so a re-run costs nothing. The
+walk is deterministic — roster-order sampling, sorted output — so two runs of
+the same crawl diff cleanly. `--plan` prints the cost estimate without making a
+request.
+
+**Portfolio coverage is reported, not assumed.** A league-oriented crawl finds
+managers *inside* leagues it visited, so it sees only the slice of each
+manager's portfolio that overlaps the crawl. Manager-season features are
+unaffected — every emitted league-season is complete. Profile-level features
+(league count, retention rate, historical abandonment rate) are **biased** for
+managers whose portfolio was never enumerated. The crawler records which ones
+those are, and the audit reports the share and warns.
+
+```bash
+npm run crawl:sleeper -- --plan --seed=<leagueId>          # cost estimate only
+npm run crawl:sleeper -- --seed=<id>,<id> --maxRequests=20000
+npm run crawl:sleeper -- --seedUser=<username>             # seed from a user's leagues
+npm run report:engagement-audit -- --input=sleeper-population.json
+```
+
+The crawl takes its fetcher by injection, so
+[`scripts/test-sleeper-crawler.ts`](../scripts/test-sleeper-crawler.ts) drives
+the entire graph walk offline against a fabricated Sleeper — budget exhaustion,
+orphan rosters, a league outside the season window, a failing endpoint — none of
+which can be produced on demand against the live API.
+
+Fetches must run in CI or on a developer machine: these endpoints 403 from the
+dev sandbox (see the header of `scripts/fetch-sleeper-adp.py`).
 
 ### Privacy line
 
@@ -97,6 +152,9 @@ player-data fetchers do not.
 - Commit **model weights, segment centroids, aggregate distributions.**
 - Never commit **per-user behavioral rows or computed profiles.** Profiles are
   computed on demand and cached ephemerally.
+- Manager ids in crawler output are **salted-hashed by default**
+  (`--reveal-ids` opts out for debugging). The models need a stable grouping
+  key, not an identity. Populations and the HTTP cache are gitignored.
 - Present abandonment as **league health** ("this league has 3 at-risk managers
   to replace before next season"), not as a targeting tool for exploiting
   checked-out opponents. Same model, defensible framing.
@@ -320,7 +378,7 @@ runners.
 | Abandonment survival model | not started — features and metrics are in place |
 | League-exit model | not started — needs a crawl for lineage-level labels |
 | Model-eval reporting (calibration curves, skill vs baselines, slices) | not started — blocked on the model |
-| League-oriented crawler | not started — blocks every real number in the audit |
+| League-oriented crawler | **done** — needs seed league ids and a CI run to produce real numbers |
 | Surfaces (Snooper panel, league-health map, MCP tool) | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking

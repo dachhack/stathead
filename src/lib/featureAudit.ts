@@ -115,6 +115,23 @@ const ELIGIBILITY: Record<FeatureKind, { eligibility: Eligibility; reason: strin
 
 // ── input shape ──
 
+// How much of a manager's league portfolio the crawl actually saw.
+//
+// A league-oriented crawl finds managers INSIDE leagues it visited, so by
+// default it sees only the slice of each manager's portfolio that overlaps the
+// crawl. Row-level (manager-season) features are unaffected — each crawled
+// league-season is complete. Profile-level features are not: league count,
+// retention rate and historical abandonment rate are all computed over the
+// portfolio, and a partial portfolio biases every one of them.
+//
+// The crawler resolves the full portfolio only for the managers it expands
+// through, so this records which ones those are.
+export interface ManagerCoverage {
+  portfolioKnown: boolean;       // was the manager's full league list enumerated?
+  knownLeagueSeasons: number;    // league-seasons known to exist for them
+  crawledLeagueSeasons: number;  // league-seasons crawled in full
+}
+
 // One crawled manager. Matches what a league-oriented crawl produces per
 // manager, so the audit can run on a single user or a full population.
 export interface ManagerObservation {
@@ -124,6 +141,7 @@ export interface ManagerObservation {
   events?: TxnEvent[];
   sweep?: { capped: boolean; weeksScanned: number };
   retention?: RetentionEvent[];
+  coverage?: ManagerCoverage;
 }
 
 // ── reports ──
@@ -145,6 +163,8 @@ export interface CompletenessReport {
   missingRosterIdRows: number;
   missingTimestampShare: number;  // events with created === 0
   startersCoverage: number;       // share of non-best-ball rows with an empty-slot value
+  portfolioKnownShare: number;    // share of managers whose full league list was enumerated
+  meanPortfolioCoverage: number | null;  // crawled/known league-seasons, among those
   bestBallShare: number;
   retentionCensoredShare: number | null;
   lineageSeasonGaps: number;
@@ -271,6 +291,25 @@ export function auditEngagement(
     warnings.push(`Empty-slot coverage is ${(startersCoverage * 100).toFixed(0)}% — starters were not supplied for every league-season, so that feature is partly absent (not zero).`);
   }
 
+  // Portfolio coverage. Absent coverage metadata is treated as unknown rather
+  // than complete: assuming completeness is how biased profile features get
+  // shipped as if they were sound.
+  const known = population.filter((m) => m.coverage?.portfolioKnown);
+  const portfolioKnownShare = population.length ? known.length / population.length : 0;
+  const ratios = known
+    .map((m) => (m.coverage!.knownLeagueSeasons > 0
+      ? m.coverage!.crawledLeagueSeasons / m.coverage!.knownLeagueSeasons
+      : null))
+    .filter((v): v is number => v !== null);
+  const meanPortfolioCoverage = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : null;
+
+  if (portfolioKnownShare < 1) {
+    warnings.push(`Portfolio known for ${(portfolioKnownShare * 100).toFixed(0)}% of managers — profile-level features (league count, retention rate, historical abandonment rate) are biased for the rest and should be restricted to managers with a known portfolio. Manager-season features are unaffected.`);
+  }
+  if (meanPortfolioCoverage != null && meanPortfolioCoverage < 0.8) {
+    warnings.push(`Even among managers with a known portfolio, only ${(meanPortfolioCoverage * 100).toFixed(0)}% of their league-seasons were crawled.`);
+  }
+
   const retention = population.flatMap((m) => m.retention ?? []);
   const retentionCensoredShare = retention.length
     ? retention.filter((e) => e.returnedNextSeason === null).length / retention.length
@@ -316,6 +355,8 @@ export function auditEngagement(
     missingRosterIdRows,
     missingTimestampShare,
     startersCoverage,
+    portfolioKnownShare,
+    meanPortfolioCoverage,
     bestBallShare,
     retentionCensoredShare,
     lineageSeasonGaps,

@@ -151,6 +151,8 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push(`| Rows with no roster id | ${c.missingRosterIdRows} | manager absent from the league's rosters |`);
   L.push(`| Transactions with no timestamp | ${pct(c.missingTimestampShare)} | breaks weekday / attention-shape features |`);
   L.push(`| Empty-slot coverage | ${pct(c.startersCoverage, 0)} | share of non-best-ball rows with starters supplied |`);
+  L.push(`| Portfolio known | ${pct(c.portfolioKnownShare, 0)} | profile-level features are biased for the rest |`);
+  L.push(`| Portfolio crawled | ${pct(c.meanPortfolioCoverage, 0)} | of known league-seasons, among managers with a known portfolio |`);
   L.push(`| Best-ball share | ${pct(c.bestBallShare)} | excluded from the abandonment label |`);
   L.push(`| Retention rows censored | ${pct(c.retentionCensoredShare)} | newest season is unlabelable by construction |`);
   L.push(`| Lineage season gaps | ${c.lineageSeasonGaps} | manager sat a year out; not a new league |`);
