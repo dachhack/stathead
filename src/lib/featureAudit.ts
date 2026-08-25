@@ -49,6 +49,17 @@ export interface FeatureSpec {
   expect?: RiskDirection;
   // A null in a required field is a completeness defect, not a valid absence.
   required?: boolean;
+  // Physically possible bounds. A value outside them is a parsing or upstream
+  // fault, not an outlier, and is reported as a validity violation.
+  range?: [number, number];
+  // False when the value's scale depends on a league setting we do not capture,
+  // so the same number means different things in different leagues. Such a
+  // feature is not usable as-is however clean it looks.
+  comparableAcrossLeagues?: boolean;
+  // True when the value is a point-in-time snapshot rather than a season
+  // aggregate — it describes one moment, usually the latest, and reads as a
+  // season-level behavioural measure only by accident.
+  pointInTime?: boolean;
   note?: string;
 }
 
@@ -63,7 +74,7 @@ const share = (n: number, d: number) => (d > 0 ? n / d : 0);
 // rather than remembered.
 export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
   // ── static ──
-  { name: 'totalRosters', kind: 'static', get: (r) => r.totalRosters, expect: 'none', required: true },
+  { name: 'totalRosters', kind: 'static', get: (r) => r.totalRosters, expect: 'none', required: true, range: [2, 64] },
   { name: 'isDynasty', kind: 'static', get: (r) => bool(r.format.type === 'Dynasty'), expect: 'lower-risk',
     note: 'dynasty managers have standing assets, so less reason to walk away mid-season' },
   { name: 'isBestBall', kind: 'static', get: (r) => bool(r.format.bestBall), expect: 'none',
@@ -71,7 +82,7 @@ export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
   { name: 'isSuperflex', kind: 'static', get: (r) => bool(r.format.qb === 'Superflex'), expect: 'none' },
 
   // ── time-varying (safe only as running-to-date values) ──
-  { name: 'txnCount', kind: 'time-varying', get: (r) => r.txnCount, expect: 'lower-risk', required: true },
+  { name: 'txnCount', kind: 'time-varying', get: (r) => r.txnCount, expect: 'lower-risk', required: true, range: [0, 5000] },
   { name: 'waiverCount', kind: 'time-varying', get: (r) => r.waiverCount, expect: 'lower-risk' },
   { name: 'freeAgentCount', kind: 'time-varying', get: (r) => r.freeAgentCount, expect: 'lower-risk' },
   { name: 'tradeCount', kind: 'time-varying', get: (r) => r.tradeCount, expect: 'lower-risk' },
@@ -80,7 +91,13 @@ export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
     note: 'a lost bid is still evidence of attention' },
   { name: 'addCount', kind: 'time-varying', get: (r) => r.addCount, expect: 'lower-risk' },
   { name: 'dropCount', kind: 'time-varying', get: (r) => r.dropCount, expect: 'lower-risk' },
-  { name: 'faabSpent', kind: 'time-varying', get: (r) => r.faabSpent, expect: 'lower-risk' },
+  // Not comparable across leagues: budgets range from $100 to $1000+ and the
+  // crawler does not capture settings.waiver_budget, so "spent 100" is
+  // everything in one league and a tenth of it in another. Observed range in
+  // the real population is 0-4595 in a single column.
+  { name: 'faabSpent', kind: 'time-varying', get: (r) => r.faabSpent, expect: 'lower-risk',
+    comparableAcrossLeagues: false, range: [0, 100000],
+    note: 'needs settings.waiver_budget to become a share of budget' },
   // Hypothesis corrected against real data (AUC 0.424, n=1491): as a SEASON
   // SUMMARY this is confounded by engagement span. It counts gaps BETWEEN the
   // first and last active week, so a manager who quits in week 3 has almost no
@@ -88,15 +105,29 @@ export const ENGAGEMENT_FEATURES: FeatureSpec[] = [
   // opportunity. Longer silent runs therefore mark longer-engaged managers.
   // The actual hazard term is weeks-since-last-transaction as of the scored
   // week, which is a to-date quantity — the 'time-varying' kind, not this.
-  { name: 'longestSilentRun', kind: 'time-varying', get: (r) => r.longestSilentRun, expect: 'lower-risk',
+  { name: 'longestSilentRun', kind: 'time-varying', get: (r) => r.longestSilentRun, expect: 'lower-risk', range: [0, 18],
     note: 'season summary is span-confounded; use the to-date gap as the hazard term' },
+  // A point-in-time snapshot, not a season measure: /league/<id>/rosters returns
+  // the CURRENT starters, so for a completed season this is the final week's
+  // lineup and says nothing about the weeks that mattered. Measured signal on
+  // real data is 0.502 — noise, which is what the snapshot problem predicts.
+  // Per-week lineups need /league/<id>/matchups/<week>.
   { name: 'emptyStarterSlots', kind: 'time-varying', get: (r) => r.emptyStarterSlots, expect: 'higher-risk',
-    note: 'null by design for best ball and when starters were not supplied' },
+    pointInTime: true, range: [0, 40],
+    note: 'snapshot of the latest lineup, not a season aggregate' },
 
   // ── season-final: cannot feed a week-w prediction ──
-  { name: 'wins', kind: 'season-final', get: (r) => r.wins, expect: 'lower-risk' },
-  { name: 'losses', kind: 'season-final', get: (r) => r.losses, expect: 'higher-risk' },
-  { name: 'regSeasonRank', kind: 'season-final', get: (r) => r.regSeasonRank, expect: 'higher-risk' },
+  // Multi-matchup leagues play more than one head-to-head per week, so games
+  // played runs to 36 in a 17-week season and a raw win count is not comparable
+  // between leagues. 19% of rows in the real population exceed 18 games.
+  { name: 'wins', kind: 'season-final', get: (r) => r.wins, expect: 'lower-risk',
+    comparableAcrossLeagues: false, range: [0, 40] },
+  { name: 'losses', kind: 'season-final', get: (r) => r.losses, expect: 'higher-risk',
+    comparableAcrossLeagues: false, range: [0, 40] },
+  // 0 is a "roster not found" sentinel from fetchUserHistory, and 0 sorts as a
+  // better rank than 1. It does not occur in the current population; the range
+  // check keeps it from passing silently if it ever does.
+  { name: 'regSeasonRank', kind: 'season-final', get: (r) => r.regSeasonRank, expect: 'higher-risk', range: [1, 64] },
   { name: 'pointsFor', kind: 'season-final', get: (r) => r.pointsFor, expect: 'lower-risk' },
   { name: 'champion', kind: 'season-final', get: (r) => bool(r.champion), expect: 'lower-risk' },
 
@@ -232,6 +263,13 @@ export interface FeatureAuditRow {
   degenerate: boolean;
   degenerateReason: string | null;
   dominantValueShare: number;
+  // Degeneracy measured on the SCORABLE rows — the population a model actually
+  // trains on. A feature can vary across the dataset and be constant there:
+  // isBestBall is the standard case, since best ball is excluded from the label.
+  degenerateInTraining: boolean;
+  outOfRange: number;                    // values outside the declared bounds
+  comparableAcrossLeagues: boolean;
+  pointInTime: boolean;
   signalAuc: number;                     // vs the wentDark label
   direction: RiskDirection;
   expected: RiskDirection | null;
@@ -253,10 +291,26 @@ export interface CollinearPair {
   r: number;
 }
 
+export interface GroupConcentration {
+  rows: number;
+  groups: number;                  // distinct managers in the scorable set
+  rowsInMultiRowGroups: number;
+  multiRowShare: number;
+  largestGroupRows: number;
+  largestGroupShare: number;
+}
+
 export interface AuditReport {
   completeness: CompletenessReport;
   features: FeatureAuditRow[];
   managerLevel: ManagerAuditReport;
+  // Rows from one manager are correlated, so a random row split puts the same
+  // person in train and test. Reported so the split strategy is a decision
+  // rather than an accident.
+  groupConcentration: GroupConcentration;
+  // Features declared safe that nonetheless separate the label strongly. The
+  // declaration is a claim; this tests it.
+  suspectedLeakage: { name: string; kind: FeatureKind; signalAuc: number }[];
   invariants: InvariantResult[];
   collinearPairs: CollinearPair[];
   label: { name: string; scorableRows: number; positives: number; baseRate: number };
@@ -685,6 +739,19 @@ export function auditEngagement(
     else if (summary.sd === 0) degenerateReason = 'Constant across every row.';
     else if (dominantValueShare > 0.98) degenerateReason = `One value covers ${(dominantValueShare * 100).toFixed(1)}% of rows.`;
 
+    // The same test, restricted to the rows a model would train on. A feature
+    // can vary across the dataset and be constant there — best-ball flags are
+    // the obvious case, since best ball is excluded from the label.
+    const trainingValues = labelRows
+      .map((r) => spec.get(r))
+      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    const degenerateInTraining = trainingValues.length > 0
+      && trainingValues.every((v) => v === trainingValues[0]);
+
+    const outOfRange = spec.range
+      ? present.filter((v) => v < spec.range![0] || v > spec.range![1]).length
+      : 0;
+
     // Stability: each season against every OTHER season, not against the pooled
     // distribution — a pooled reference contains the season being tested, which
     // shrinks the apparent drift of the largest seasons and hides real shifts.
@@ -738,6 +805,10 @@ export function auditEngagement(
       degenerate: degenerateReason !== null,
       degenerateReason,
       dominantValueShare,
+      degenerateInTraining,
+      outOfRange,
+      comparableAcrossLeagues: spec.comparableAcrossLeagues !== false,
+      pointInTime: spec.pointInTime === true,
       signalAuc,
       direction,
       expected,
@@ -754,6 +825,18 @@ export function auditEngagement(
     }
     if (f.degenerate && f.eligibility !== 'ineligible') {
       warnings.push(`Feature "${f.name}" is degenerate: ${f.degenerateReason}`);
+    }
+    if (f.degenerateInTraining && !f.degenerate && f.eligibility !== 'ineligible') {
+      blocking.push(`Feature "${f.name}" varies across the dataset but is CONSTANT on the scorable rows a model would train on — it carries no information for this label.`);
+    }
+    if (f.outOfRange > 0) {
+      blocking.push(`Feature "${f.name}" has ${f.outOfRange} value(s) outside its declared range — a parsing or upstream fault, not an outlier.`);
+    }
+    if (!f.comparableAcrossLeagues && f.eligibility !== 'ineligible') {
+      warnings.push(`Feature "${f.name}" is not comparable across leagues: its scale depends on a league setting the crawl does not capture, so the same number means different things in different leagues.${f.note ? ` ${f.note}.` : ''}`);
+    }
+    if (f.pointInTime && f.eligibility !== 'ineligible') {
+      warnings.push(`Feature "${f.name}" is a point-in-time snapshot being used as a season-level measure.${f.note ? ` ${f.note}.` : ''}`);
     }
     // Drift on a column the model cannot use is not actionable, so it is
     // recorded in the table but does not raise a warning.
@@ -833,10 +916,51 @@ export function auditEngagement(
   }
   collinearPairs.sort((x, y) => Math.abs(y.r) - Math.abs(x.r));
 
+  // Group concentration. Rows from one manager are correlated — same person,
+  // same habits — so a random row split trains and tests on them both.
+  const managerOfRow = new Map<ManagerSeasonEngagement, string>();
+  for (const m of population) for (const r of m.rows) managerOfRow.set(r, m.managerId);
+  const groupCounts = new Map<string, number>();
+  for (const r of labelRows) {
+    const g = managerOfRow.get(r) ?? '';
+    groupCounts.set(g, (groupCounts.get(g) ?? 0) + 1);
+  }
+  const counts = [...groupCounts.values()];
+  const rowsInMultiRowGroups = counts.filter((n) => n > 1).reduce((a, b) => a + b, 0);
+  const largestGroupRows = counts.length ? Math.max(...counts) : 0;
+  const groupConcentration: GroupConcentration = {
+    rows: labelRows.length,
+    groups: groupCounts.size,
+    rowsInMultiRowGroups,
+    multiRowShare: share(rowsInMultiRowGroups, labelRows.length),
+    largestGroupRows,
+    largestGroupShare: share(largestGroupRows, labelRows.length),
+  };
+  if (groupConcentration.multiRowShare > 0.2) {
+    warnings.push(`${(groupConcentration.multiRowShare * 100).toFixed(0)}% of scorable rows come from managers with more than one row. Split by manager (groupKFold), not by row, or the same person appears in train and test.`);
+  }
+  if (groupConcentration.largestGroupShare > 0.02) {
+    warnings.push(`One manager accounts for ${(groupConcentration.largestGroupShare * 100).toFixed(1)}% of scorable rows (${groupConcentration.largestGroupRows}). A single person's habits can move a headline metric on their own.`);
+  }
+
+  // Empirical leakage screen. Eligibility is a declaration; this tests it. A
+  // feature claimed knowable at prediction time that separates the label this
+  // strongly is far more likely to be mislabelled than to be a great feature.
+  const LEAKAGE_AUC = 0.75;
+  const suspectedLeakage = features
+    .filter((f) => f.eligibility === 'eligible'
+      && Number.isFinite(f.signalAuc) && Math.abs(f.signalAuc - 0.5) >= LEAKAGE_AUC - 0.5)
+    .map((f) => ({ name: f.name, kind: f.kind, signalAuc: f.signalAuc }));
+  for (const s of suspectedLeakage) {
+    blocking.push(`Feature "${s.name}" is declared eligible but separates the label at AUC ${s.signalAuc.toFixed(3)}. Verify it is genuinely knowable at prediction time before using it — a declaration is a claim, not evidence.`);
+  }
+
   return {
     completeness: { ...completeness, warnings },
     features,
     managerLevel: auditManagerFeatures(population, MANAGER_FEATURES, auditOpts),
+    groupConcentration,
+    suspectedLeakage,
     invariants,
     collinearPairs,
     label: {

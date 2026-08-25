@@ -195,13 +195,44 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push('predictive power**. A season total of *when* activity happened is entangled');
   L.push('with *when it stopped*, which is what the label reads. Scored as-of week 7');
   L.push('these will be far weaker — and that is the number that matters.', '');
-  L.push('| Feature | Kind | Eligible | Coverage | Signal AUC | Direction | Stability |', '| --- | --- | --- | --- | --- | --- | --- |');
+  L.push('| Feature | Kind | Eligible | Coverage | Signal AUC | Direction | Stability | Validity |', '| --- | --- | --- | --- | --- | --- | --- | --- |');
   const mark = { eligible: '✅', conditional: '⚠️', ineligible: '⛔' } as const;
   for (const f of report.features) {
     const dir = f.directionOk === null ? f.direction : f.directionOk ? `${f.direction} ✓` : `${f.direction} ✗`;
-    L.push(`| \`${f.name}\` | ${f.kind} | ${mark[f.eligibility]} ${f.eligibility} | ${pct(f.summary.coverage, 0)} | ${num(f.signalAuc, 3)} | ${dir} | ${f.stability} |`);
+    const flags: string[] = [];
+    if (f.outOfRange > 0) flags.push(`${f.outOfRange} out of range`);
+    if (f.degenerateInTraining) flags.push('constant in training');
+    if (!f.comparableAcrossLeagues) flags.push('not cross-league');
+    if (f.pointInTime) flags.push('snapshot');
+    if (f.degenerate) flags.push('degenerate');
+    L.push(`| \`${f.name}\` | ${f.kind} | ${mark[f.eligibility]} ${f.eligibility} | ${pct(f.summary.coverage, 0)} | ${num(f.signalAuc, 3)} | ${dir} | ${f.stability} | ${flags.join(', ') || '—'} |`);
   }
   L.push('');
+
+  L.push('### Validity flags', '');
+  L.push('- **out of range** — a value outside what the field can physically hold. A');
+  L.push('  parsing or upstream fault, not an outlier.');
+  L.push('- **constant in training** — varies across the dataset but not on the scorable');
+  L.push('  rows a model trains on, so it carries no information for this label.');
+  L.push('- **not cross-league** — the scale depends on a league setting the crawl does');
+  L.push('  not capture, so the same number means different things in different leagues.');
+  L.push('- **snapshot** — a point-in-time value used as if it were a season aggregate.', '');
+
+  const gc = report.groupConcentration;
+  L.push('### Group structure', '');
+  L.push(`${gc.rows} scorable rows from **${gc.groups} managers**. ` +
+    `${pct(gc.multiRowShare, 0)} of rows come from managers with more than one; ` +
+    `the largest single manager holds ${gc.largestGroupRows} (${pct(gc.largestGroupShare)}).`, '');
+  L.push('Rows from one manager are correlated, so a random row split trains and tests');
+  L.push('on the same person. Split by manager (`groupKFold`), not by row.', '');
+
+  if (report.suspectedLeakage.length) {
+    L.push('### ⛔ Suspected leakage', '');
+    L.push('Declared eligible, yet separating the label strongly. Eligibility is a claim;');
+    L.push('these are the cases where the data disagrees with it.', '');
+    for (const s of report.suspectedLeakage) L.push(`- \`${s.name}\` (${s.kind}) — AUC ${num(s.signalAuc, 3)}`);
+    L.push('');
+  }
 
   const ineligible = report.features.filter((f) => f.eligibility === 'ineligible');
   if (ineligible.length) {

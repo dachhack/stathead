@@ -529,6 +529,103 @@ const healthy: ManagerObservation[] = [
   check('manager audit: carries its own features', report.managerLevel.features.length > 0);
 }
 
+// ── audit: validity — ranges, training degeneracy, comparability, snapshots ──
+{
+  const bb = buildManager('bbx', { bestBall: true });
+  const withBB = [...healthy, bb];
+
+  // A value outside what the field can physically hold is a fault, not an
+  // outlier, so it blocks rather than warns.
+  const ranged = auditEngagement(healthy, [
+    { name: 'impossible', kind: 'static', get: () => 999, range: [0, 10] },
+  ]);
+  check('validity: an out-of-range value blocks',
+    ranged.blocking.some((b) => b.includes('"impossible"') && b.includes('outside its declared range')), ranged.blocking);
+  eq('validity: violations are counted', ranged.features[0].outOfRange, ranged.completeness.managerSeasons);
+
+  const inRange = auditEngagement(healthy, [
+    { name: 'fine', kind: 'static', get: (r) => r.totalRosters, range: [2, 64] },
+  ]);
+  eq('validity: a value inside its range is not flagged', inRange.features[0].outOfRange, 0);
+  eq('validity: and does not block', inRange.blocking, []);
+
+  // A feature can vary across the dataset and be constant on the rows a model
+  // actually trains on. Best-ball flags are the standard case, because best
+  // ball is excluded from the label.
+  const training = auditEngagement(withBB, [
+    { name: 'bbFlag', kind: 'static', get: (r) => (r.format.bestBall ? 1 : 0) },
+  ]);
+  const flag = training.features[0];
+  check('validity: the feature does vary across the dataset', !flag.degenerate, flag);
+  check('validity: but is constant on the training rows', flag.degenerateInTraining, flag);
+  check('validity: which blocks, because it carries no information',
+    training.blocking.some((b) => b.includes('CONSTANT on the scorable rows')), training.blocking);
+
+  // Scale that depends on an uncaptured league setting.
+  const scale = auditEngagement(healthy, [
+    { name: 'faabLike', kind: 'time-varying', get: (r) => r.faabSpent, comparableAcrossLeagues: false },
+  ]);
+  check('validity: an incomparable scale warns',
+    scale.completeness.warnings.some((w) => w.includes('not comparable across leagues')), scale.completeness.warnings);
+  eq('validity: and is marked on the row', scale.features[0].comparableAcrossLeagues, false);
+
+  // A snapshot used as a season aggregate.
+  const snap = auditEngagement(healthy, [
+    { name: 'snapshotLike', kind: 'time-varying', get: (r) => r.emptyStarterSlots, pointInTime: true },
+  ]);
+  check('validity: a snapshot feature warns',
+    snap.completeness.warnings.some((w) => w.includes('point-in-time snapshot')), snap.completeness.warnings);
+  eq('validity: and is marked on the row', snap.features[0].pointInTime, true);
+
+  // Defaults: nothing is flagged unless declared.
+  const plain = auditEngagement(healthy, [{ name: 'plain', kind: 'static', get: (r) => r.totalRosters }]);
+  eq('validity: comparability defaults to true', plain.features[0].comparableAcrossLeagues, true);
+  eq('validity: snapshot defaults to false', plain.features[0].pointInTime, false);
+  eq('validity: no range means no violations', plain.features[0].outOfRange, 0);
+}
+
+// ── audit: the empirical leakage screen tests the declaration ──
+{
+  // Eligibility is a claim. A feature declared knowable at prediction time that
+  // separates the label almost perfectly is far more likely to be mislabelled
+  // than to be a great feature, so the screen blocks on it.
+  const smuggled = auditEngagement(healthy, [
+    { name: 'smuggledLabel', kind: 'static', get: (r) => r.trailingSilentWeeks },
+  ]);
+  check('leakage screen: a mislabelled feature is caught',
+    smuggled.suspectedLeakage.some((s) => s.name === 'smuggledLabel'), smuggled.suspectedLeakage);
+  check('leakage screen: and blocks',
+    smuggled.blocking.some((b) => b.includes('declared eligible but separates the label')), smuggled.blocking);
+  check('leakage screen: reporting the measured AUC',
+    (smuggled.suspectedLeakage[0]?.signalAuc ?? 0) > 0.9, smuggled.suspectedLeakage);
+
+  // A genuinely weak eligible feature is left alone.
+  const honest = auditEngagement(healthy, [
+    { name: 'weak', kind: 'static', get: (r) => r.totalRosters },
+  ]);
+  eq('leakage screen: a weak eligible feature is not flagged', honest.suspectedLeakage, []);
+
+  // The screen only judges features CLAIMED to be safe — an ineligible feature
+  // separating the label is expected, not news.
+  const declared = auditEngagement(healthy, [
+    { name: 'honestlyLabelled', kind: 'label-derived', get: (r) => r.trailingSilentWeeks },
+  ]);
+  eq('leakage screen: an honestly-declared leak is not double-reported', declared.suspectedLeakage, []);
+}
+
+// ── audit: group structure is surfaced, not assumed away ──
+{
+  const gc = auditEngagement(healthy).groupConcentration;
+  // Twelve managers, two scorable seasons each.
+  eq('groups: scorable rows counted', gc.rows, 24);
+  eq('groups: distinct managers counted', gc.groups, 12);
+  eq('groups: every row is in a multi-row group here', gc.multiRowShare, 1);
+  eq('groups: largest manager share', Number(gc.largestGroupShare.toFixed(4)), Number((2 / 24).toFixed(4)));
+  check('groups: correlated rows raise a split warning',
+    auditEngagement(healthy).completeness.warnings.some((w) => w.includes('Split by manager')),
+    auditEngagement(healthy).completeness.warnings);
+}
+
 // ── audit: the report leaks no identifiers ──
 {
   const report = auditEngagement(healthy);
