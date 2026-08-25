@@ -1685,6 +1685,21 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
 
           <LeagueHealthPanel data={data} />
 
+          {isDynasty && onNavigate && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                className="format-tab"
+                onClick={() => onNavigate('dynasty-retention')}
+                style={{ padding: '6px 12px', fontSize: 12, fontWeight: 700 }}
+              >
+                Dynasty retention grades →
+              </button>
+              <span style={{ fontSize: 11, opacity: 0.65, marginLeft: 8 }}>
+                who is most likely to leave before next season
+              </span>
+            </div>
+          )}
+
           <LeagueWaiverSection leagueId={data.league.league_id} />
 
           {dynasty.length > 0 && (

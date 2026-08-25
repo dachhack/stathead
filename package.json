@@ -13,6 +13,7 @@
     "test:engagement": "tsx scripts/test-engagement-features.ts",
     "test:engagement:mlops": "tsx scripts/test-engagement-mlops.ts",
     "test:abandonment": "tsx scripts/test-abandonment-model.ts",
+    "test:dynasty-departure": "tsx scripts/test-dynasty-departure.ts",
     "test:league-health": "tsx scripts/test-league-health.ts",
     "model:dynasty-departure": "tsx scripts/model-dynasty-departure.ts",
     "analyze:dynasty-survival": "tsx scripts/analyze-dynasty-member-survival.ts",

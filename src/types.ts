@@ -227,6 +227,7 @@ export type Tab =
   | 'sleeper-league'
   | 'sleeper-waivers'
   | 'sleeper-snooper'
+  | 'dynasty-retention'
   | 'expert-tracker'
   | 'buzz-tracker'
   | 'consensus-adp'

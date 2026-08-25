@@ -29,6 +29,7 @@ on:
       - 'src/lib/hazardFeatures.ts'
       - 'src/lib/abandonmentModel.ts'
       - 'src/lib/leagueHealth.ts'
+      - 'src/lib/dynastyDeparture.ts'
       - 'src/components/LeagueHealthPanel.tsx'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
@@ -45,6 +46,7 @@ on:
       - 'src/lib/hazardFeatures.ts'
       - 'src/lib/abandonmentModel.ts'
       - 'src/lib/leagueHealth.ts'
+      - 'src/lib/dynastyDeparture.ts'
       - 'src/components/LeagueHealthPanel.tsx'
       - 'src/lib/evalMetrics.ts'
       - 'src/lib/sleeper.ts'
@@ -89,6 +91,8 @@ jobs:
         run: npm run test:abandonment
       - name: Retrospective league health (offline)
         run: npm run test:league-health
+      - name: Dynasty departure scoring (offline)
+        run: npm run test:dynasty-departure
       - name: Typecheck
         run: npx tsc -b
 

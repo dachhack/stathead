@@ -24,6 +24,7 @@ import { ScheduleView } from './components/ScheduleView';
 import { WeeklyProjectionsView } from './components/WeeklyProjectionsView';
 import { SleeperLeagueView } from './components/SleeperLeagueView';
 import { SleeperUserSnooper } from './components/SleeperUserSnooper';
+import { DynastyRetentionView } from './components/DynastyRetentionView';
 import { SleeperWaiverWire } from './components/SleeperWaiverWire';
 import { SFBCheatsheet } from './components/SFBCheatsheet';
 import { ConsensusAdpView } from './components/ConsensusAdpView';
@@ -107,6 +108,7 @@ const TAB_GROUPS: TabGroup[] = [
     tabs: [
       { id: 'sleeper-league', label: 'Sleeper Leagues' },
       { id: 'sleeper-snooper', label: 'Sleeper User Snooper' },
+      { id: 'dynasty-retention', label: 'Dynasty Retention' },
       { id: 'expert-tracker', label: 'Expert Tracker' },
       { id: 'rookie-ramp', label: 'Rookie Snap Tracker' },
       { id: 'buzz-tracker', label: 'Buzz Tracker' },
@@ -356,6 +358,7 @@ function App() {
           <SleeperView season={season} onDataLoaded={onDataLoaded} />
         )}
         {tab === 'sleeper-league' && <SleeperLeagueView onNavigate={(t) => { setTab(t); setExtraData([]); }} />}
+        {tab === 'dynasty-retention' && <DynastyRetentionView />}
         {tab === 'sleeper-waivers' && <SleeperWaiverWire />}
         {tab === 'sleeper-snooper' && <SleeperUserSnooper />}
         {tab === 'expert-tracker' && <ExpertTracker onNavigate={(t) => { setTab(t); setExtraData([]); }} />}

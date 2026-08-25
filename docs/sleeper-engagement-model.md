@@ -834,6 +834,49 @@ four-year veterans). The univariate survival result is the reliable statement
 about newcomers. Predictions are unaffected; the quintile tables are what
 validate the model.
 
+---
+
+## Scoring a live dynasty league (Dynasty Retention view)
+
+`src/lib/dynastyDeparture.ts` scores every current member from a league id, and
+the **Dynasty Retention** view (Research nav, plus a link from any dynasty league
+in Sleeper Leagues) renders a **1–5 grade** each.
+
+**Cost: ~80–90 Sleeper requests** for a 12-team league — ~5 walking
+`previous_league_id` back, ~5 rosters calls for membership history, ~72
+portfolio calls (12 members × 6 seasons). A few seconds.
+
+### The feature that does not survive the trip
+
+`priorLeaveRate` is the strongest input, and computing it properly needs to know
+whether a manager's *other* leagues carried on after they left. Their own
+portfolio cannot say: once they leave, the successor never appears in it.
+Offline this is resolved by pooling 1,723 portfolios; live, from one league, it
+is not. So the shipped model uses an approximation — any disappearance counts as
+a departure, unverified.
+
+Measured cost of that, cross-validated and grouped by manager:
+
+| Feature set | AUC | Q1 actual | Q5 actual | Monotone? |
+| --- | --- | --- | --- | --- |
+| full (offline) | 0.644 | 7.1% | 27.2% | yes |
+| **live-approx (shipped)** | **0.604** | 9.6% | **23.5%** | yes |
+| no prior-leave at all | 0.562 | 10.6% | 17.0% | **no** |
+
+Dropping the feature breaks the ranking at the top — Q5 falls *below* Q4 — which
+is the end that matters, so the approximation is the better trade.
+
+### Grades use fixed cutpoints
+
+10.2% / 12.8% / 15.3% / 19.2%, taken from the cross-validated population and
+shipped in `public/data/dynasty-departure-v1.json`. **Not** computed within a
+league: grading relative to the twelve managers in front of you would guarantee
+a grade 5 in a perfectly stable league and a grade 1 in a collapsing one. Fixed
+cutpoints mean a grade means the same thing everywhere, and a healthy league can
+legitimately come back all 1s and 2s.
+
+Redraft and best-ball leagues are declined with a reason rather than scored.
+
 ## Status
 
 | Step | State |
@@ -849,7 +892,9 @@ validate the model.
 | League-exit model | not started — needs a crawl for lineage-level labels |
 | Model-eval reporting (calibration curves, skill vs baselines, slices) | not started — blocked on the model |
 | League-oriented crawler | **done** — needs seed league ids and a CI run to produce real numbers |
-| Surfaces (Snooper panel, league-health map, MCP tool) | not started |
+| Retrospective league-health panel | **done** |
+| Dynasty Retention view (1-5 grades from a league id) | **done** |
+| MCP tool | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking
 both need the schedule/injury join, and shipping them half-done would put a

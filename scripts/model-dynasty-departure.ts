@@ -29,6 +29,19 @@ const args = new Map(process.argv.slice(2).map((a) => {
 const INPUT = args.get('input') ?? 'sleeper-population.json';
 const OUT = args.get('out') ?? 'reports/dynasty';
 const LAMBDA = Number(args.get('lambda') ?? 1);
+// 'live' drops the features that cannot be computed from a single league id.
+// priorLeaveRate needs to know whether a manager's OTHER leagues survived after
+// they left — and once they leave, the successor league never appears in their
+// portfolio, so "left a surviving league" and "league folded" are
+// indistinguishable. Offline that is resolved by pooling 1,723 portfolios;
+// live, from one league, it is not.
+// 'live-approx' keeps priorLeaveRate but computes it the way a live scorer
+// could: from the manager's OWN portfolio only, counting any disappearance from
+// a lineage as a departure without verifying the league survived. That
+// over-counts, since a folded league looks like a departure — the question is
+// whether the feature still carries its lift once blurred that way.
+const FEATURE_SET = (['live', 'live-approx'].includes(args.get('features') ?? '')
+  ? args.get('features') : 'full') as 'full' | 'live' | 'live-approx';
 
 const pop: ManagerObservation[] = JSON.parse(readFileSync(INPUT, 'utf8'));
 
@@ -92,11 +105,16 @@ const windowStart = allSeasons[0];
 
 // ── build at-risk rows ──
 
-const FEATURES = [
+const ALL_FEATURES = [
   'isNewMember', 'tenureYears', 'tenureCensored', 'leagueSize',
   'portfolioSize', 'logPortfolioSize', 'dynastyLineages', 'dynastyShare',
   'bestBallShare', 'seasonsActive', 'priorLeaveRate', 'priorLeaveObserved',
 ] as const;
+// Everything in the live set is reachable from a league id: the lineage walk
+// gives tenure and league size, and one portfolio lookup per member per season
+// gives the rest.
+const LIVE_FEATURES = ALL_FEATURES.filter((f) => f !== 'priorLeaveRate' && f !== 'priorLeaveObserved');
+const FEATURES: readonly string[] = FEATURE_SET === 'live' ? LIVE_FEATURES : ALL_FEATURES;
 
 interface Row {
   manager: string; lineage: string; season: number;
@@ -129,6 +147,19 @@ for (const [lin, seasons] of lineageSeasons) {
 
 // Prior-leave history, strictly earlier seasons. Label-derived, so the as-of
 // guard is the whole point: using this season's outcome would be circular.
+// Every (manager, lineage, season) the manager was in, regardless of whether
+// the lineage is observed to continue — this is what a live scorer sees.
+const ownLineageSeasons = new Map<string, { lineage: string; season: number }[]>();
+for (const m of pop) {
+  for (const e of m.portfolio ?? []) {
+    if (e.format.bestBall || e.format.type !== 'Dynasty') continue;
+    const lin = index.byLeagueId.get(e.leagueId);
+    if (!lin) continue;
+    if (!ownLineageSeasons.has(m.managerId)) ownLineageSeasons.set(m.managerId, []);
+    ownLineageSeasons.get(m.managerId)!.push({ lineage: lin, season: Number(e.season) });
+  }
+}
+
 const byManager = new Map<string, Transition[]>();
 for (const t of transitions) {
   if (!byManager.has(t.manager)) byManager.set(t.manager, []);
@@ -142,8 +173,21 @@ for (const t of transitions) {
   const bb = bestBallCount.get(pk) ?? 0;
   const tenure = tenureAt(t.manager, t.lineage, t.season);
 
-  const prior = (byManager.get(t.manager) ?? []).filter((o) => o.season < t.season);
-  const priorLeft = prior.filter((o) => o.left === 1).length;
+  let priorCount: number;
+  let priorLeft: number;
+  if (FEATURE_SET === 'live-approx') {
+    // What a single-league scorer can see: the manager's own dynasty lineages,
+    // with any disappearance counted as a departure. No survival check, because
+    // once they leave, the successor league never appears in their portfolio.
+    const own = ownLineageSeasons.get(t.manager) ?? [];
+    const priorOwn = own.filter((o) => o.season < t.season);
+    priorCount = priorOwn.length;
+    priorLeft = priorOwn.filter((o) => !present(t.manager, o.lineage, o.season + 1)).length;
+  } else {
+    const prior = (byManager.get(t.manager) ?? []).filter((o) => o.season < t.season);
+    priorCount = prior.length;
+    priorLeft = prior.filter((o) => o.left === 1).length;
+  }
 
   rows.push({
     manager: t.manager, lineage: t.lineage, season: t.season, left: t.left,
@@ -159,8 +203,8 @@ for (const t of transitions) {
       dynastyShare: dynCount / pSize,
       bestBallShare: bb / pSize,
       seasonsActive: [...(seasonsOf.get(t.manager) ?? [])].filter((s) => s <= t.season).length,
-      priorLeaveRate: prior.length ? priorLeft / prior.length : 0,
-      priorLeaveObserved: prior.length,
+      priorLeaveRate: priorCount ? priorLeft / priorCount : 0,
+      priorLeaveObserved: priorCount,
     },
   });
 }
@@ -193,7 +237,7 @@ const testSeason = Math.max(...rows.map((r) => r.season));
 const train = rows.filter((r) => r.season < testSeason);
 const test = rows.filter((r) => r.season === testSeason);
 
-const { preds, fit } = fitPredict(train, test);
+const { preds, fit, mean: holdoutMean, sd: holdoutSd } = fitPredict(train, test);
 const y = test.map((r) => r.left);
 const base = y.reduce((a, b) => a + b, 0) / y.length;
 const cal = calibrationCurve(preds, y, 10);
@@ -237,7 +281,7 @@ const n3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : 'n/a');
 
 const L: string[] = [];
 const line = (s = '') => L.push(s);
-line('# Dynasty departure — per-member probability of leaving');
+line(`# Dynasty departure — per-member probability of leaving (${FEATURE_SET})`);
 line();
 line(`Generated ${new Date().toISOString()} · source \`${INPUT}\``);
 line();
@@ -286,6 +330,8 @@ for (const b of cvQuintiles) {
 line();
 line('## Coefficients');
 line();
+line(`Feature set: **${FEATURE_SET}** (${FEATURES.length} columns).`);
+line();
 line('Standardized, so magnitudes compare. Not causal — correlated features split their');
 line('weight arbitrarily.');
 line();
@@ -317,16 +363,52 @@ line('- `priorLeaveRate` is label-derived and guarded to strictly earlier season
 line('  that guard it would be circular.');
 line('- Portfolio-only features by design; a behaviour-based set would be ~93% missing.');
 
+// Grade cutpoints, taken from the CROSS-VALIDATED predictions over the whole
+// population and shipped with the weights.
+//
+// They must be fixed, not computed within a league. Grading relative to the
+// twelve managers in front of you guarantees someone is always a 5 even in a
+// perfectly stable league, and guarantees someone is always a 1 in a collapsing
+// one. Fixed cutpoints mean a grade means the same thing everywhere.
+const sortedCv = [...cvPreds].sort((a, b) => a - b);
+const cutAt = (f: number) => sortedCv[Math.min(sortedCv.length - 1, Math.floor(f * sortedCv.length))];
+const gradeCutpoints = [cutAt(0.2), cutAt(0.4), cutAt(0.6), cutAt(0.8)];
+
 mkdirSync(OUT, { recursive: true });
-writeFileSync(`${OUT}/dynasty-departure.md`, `${L.join('\n')}\n`);
-writeFileSync(`${OUT}/dynasty-departure.json`, `${JSON.stringify({
+writeFileSync(`${OUT}/dynasty-departure${FEATURE_SET === 'full' ? '' : `-${FEATURE_SET}`}.md`, `${L.join('\n')}\n`);
+writeFileSync(`${OUT}/dynasty-departure${FEATURE_SET === 'full' ? '' : `-${FEATURE_SET}`}.json`, `${JSON.stringify({
   rows: rows.length, base, testSeason,
   holdout: { auc: auc(preds, y), brier: brier(preds, y), slope: cal.slope, ece: cal.ece, quintiles },
   cv: { auc: auc(cvPreds, cvY), brier: brier(cvPreds, cvY), slope: cvCal.slope, ece: cvCal.ece, quintiles: cvQuintiles },
+  featureSet: FEATURE_SET,
+  featureNames: [...FEATURES],
   coefficients: Object.fromEntries(FEATURES.map((f, i) => [f, fit.coefficients[i]])),
+  // Written so the app can score without refitting. Model output only — no
+  // per-manager data — so it is safe to ship.
+  weights: { featureNames: [...FEATURES], intercept: fit.intercept, coefficients: fit.coefficients, mean: holdoutMean, sd: holdoutSd },
+  gradeCutpoints,
 }, null, 2)}\n`);
 
-console.log(`\nDynasty departure model — ${rows.length.toLocaleString()} at-risk rows, base ${pctOf(cvY.reduce((a, b) => a + b, 0) / cvY.length)}`);
+// The shipped model is fitted on everything. The temporal-holdout fit above
+// exists to be measured; deploying it would throw away the newest season.
+const allRaw = rows.map(vec);
+const allStd = standardize(allRaw);
+const finalFit = fitLogistic(
+  allRaw.map((v) => v.map((x, j) => (x - allStd.mean[j]) / allStd.sd[j])),
+  rows.map((r) => r.left),
+  { lambda: LAMBDA, featureNames: [...FEATURES] },
+);
+writeFileSync(`${OUT}/dynasty-departure-weights${FEATURE_SET === 'full' ? '' : `-${FEATURE_SET}`}.json`, `${JSON.stringify({
+  model: 'sleeper-dynasty-departure', version: 1, featureSet: FEATURE_SET,
+  featureNames: [...FEATURES],
+  intercept: finalFit.intercept, coefficients: finalFit.coefficients,
+  mean: allStd.mean, sd: allStd.sd,
+  gradeCutpoints,
+  trainedOn: { rows: rows.length, managers: new Set(rows.map((r) => r.manager)).size, left: rows.filter((r) => r.left).length },
+  heldOut: { auc: auc(cvPreds, cvY), calibrationSlope: cvCal.slope, ece: cvCal.ece },
+}, null, 2)}\n`);
+
+console.log(`\nDynasty departure model [${FEATURE_SET}] — ${rows.length.toLocaleString()} at-risk rows, base ${pctOf(cvY.reduce((a, b) => a + b, 0) / cvY.length)}`);
 console.log(`\n  temporal holdout (${testSeason} → ${testSeason + 1}):  AUC ${n3(auc(preds, y))}  slope ${n3(cal.slope)}  ECE ${n3(cal.ece)}`);
 console.log('  quintile   n       predicted   actual    lift');
 for (const b of quintiles) {
@@ -336,4 +418,5 @@ console.log(`\n  grouped CV: AUC ${n3(auc(cvPreds, cvY))}  slope ${n3(cvCal.slop
 for (const b of cvQuintiles) {
   console.log(`  ${b.label.padEnd(20)} ${String(b.n).padStart(5)}   ${pctOf(b.predicted).padStart(7)}   ${pctOf(b.actual).padStart(7)}   ${b.lift.toFixed(2)}x`);
 }
-console.log(`\n  → ${OUT}/dynasty-departure.md\n`);
+console.log(`  grade cutpoints: ${gradeCutpoints.map((c) => (100 * c).toFixed(1) + '%').join('  ')}`);
+console.log(`\n  → ${OUT}/dynasty-departure${FEATURE_SET === 'full' ? '' : `-${FEATURE_SET}`}.md\n`);
