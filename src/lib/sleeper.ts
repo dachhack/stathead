@@ -58,17 +58,51 @@ export interface LeagueFormatInfo {
   qb: 'Superflex' | '2QB' | '1QB';
   bestBall: boolean;
   idp: boolean;
+  // Whether the league permits waivers and trades at all.
+  //
+  // Best ball does NOT imply no waivers, and assuming it did cost us real
+  // signal. Measured over 320 crawled league-seasons: best-ball DYNASTY runs
+  // waivers in 93.8% of leagues at a median 157 claims a season, against 97.6%
+  // and 159 for standard dynasty — indistinguishable. It is best-ball REDRAFT
+  // that is locked down (4.8% / median 0). Best ball removes the LINEUP, not
+  // the waiver wire.
+  //
+  // The tournament configuration — rolling waivers off and trades disabled —
+  // is a pure marker for the locked case: 108 crawled leagues carried it and
+  // not one recorded a single waiver claim or trade.
+  //
+  // undefined means settings were not captured (crawl data predating this
+  // field). Consumers treat unknown as enabled, so a silent league is never
+  // excused by accident — the failure this flag exists to prevent.
+  txnEnabled?: boolean;
+}
+
+/**
+ * Can this league transact at all? False only for the locked tournament
+ * configuration; absent settings are treated as "yes, and a quiet league is
+ * therefore meaningful".
+ */
+export function transactionsEnabled(
+  league: { settings?: { waiver_type?: number; disable_trades?: number } } | null | undefined,
+): boolean {
+  const s = league?.settings;
+  if (!s) return true;
+  return !(s.waiver_type === 0 && s.disable_trades === 1);
 }
 
 // One-stop format summary for league-listing rows.
 export function leagueFormatInfo(
-  league: { settings?: { type?: number; best_ball?: number }; roster_positions?: string[] } | null | undefined,
+  league: {
+    settings?: { type?: number; best_ball?: number; waiver_type?: number; disable_trades?: number };
+    roster_positions?: string[];
+  } | null | undefined,
 ): LeagueFormatInfo {
   return {
     type: leagueTypeName(league),
     qb: qbFormatLabel(league?.roster_positions),
     bestBall: isBestBall(league),
     idp: hasIDP(league?.roster_positions),
+    txnEnabled: transactionsEnabled(league),
   };
 }
 

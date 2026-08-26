@@ -152,7 +152,7 @@ function renderMarkdown(report: AuditReport, meta: { generatedAt: string; source
   L.push(`| Distinct lineages | ${c.lineages} | leagues after collapsing per-season ids |`);
   L.push(`| Seasons | ${c.seasons.join(', ') || 'none'} | |`);
   L.push(`| Sweep truncated | ${c.managersWithCappedSweep} (${pct(c.cappedSweepShare)}) | oldest seasons missing transactions — reads as inactive |`);
-  L.push(`| Zero-transaction rows | ${c.zeroTxnRows} | ${c.zeroTxnUnlaunched} unlaunched, ${c.zeroTxnBestBall} best ball, ${c.zeroTxnInProgress} season not started — all expected |`);
+  L.push(`| Zero-transaction rows | ${c.zeroTxnRows} | ${c.zeroTxnUnlaunched} unlaunched, ${c.zeroTxnNoTxns} cannot transact, ${c.zeroTxnInProgress} season not started — all expected |`);
   L.push(`| ↳ unexplained | ${c.zeroTxnUnexplained} | live, managed, completed season, no activity at all |`);
   L.push(`| Rows with no roster id | ${c.missingRosterIdRows} | manager absent from the league's rosters |`);
   L.push(`| Transactions with no timestamp | ${pct(c.missingTimestampShare)} | breaks weekday / attention-shape features |`);

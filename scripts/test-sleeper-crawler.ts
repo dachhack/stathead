@@ -32,6 +32,8 @@ interface FakeLeague {
   owners: (string | null)[];       // by roster; null = orphan team
   lastActiveWeek?: number;         // transactions run weeks 1..lastActiveWeek
   bestBall?: boolean;
+  /** Locked tournament config: rolling waivers off and trades disabled. */
+  locked?: boolean;
 }
 
 interface FakeWorld {
@@ -57,7 +59,10 @@ function makeGetJson(world: FakeWorld) {
         league_id: l.leagueId, season: l.season, previous_league_id: l.previousLeagueId ?? null,
         name: `League ${l.leagueId}`, status: 'complete', total_rosters: l.owners.length,
         roster_positions: ['QB', 'RB', 'WR', 'TE', 'FLEX'],
-        settings: { type: 0, best_ball: l.bestBall ? 1 : 0 },
+        settings: {
+          type: 0, best_ball: l.bestBall ? 1 : 0,
+          waiver_type: l.locked ? 0 : 2, disable_trades: l.locked ? 1 : 0,
+        },
       };
     }
 
@@ -500,6 +505,31 @@ const run = (world: FakeWorld, opts: CrawlOptions): Promise<CrawlResult> =>
 
 // silence the unused-helper warning for `run`, kept for readability above
 void run;
+
+// ── 16. league settings reach the format flags ──
+//
+// The crawler's raw-league type once declared only { type, best_ball } while a
+// cast to leagueFormatInfo's parameter hid the omission, so txnEnabled came
+// back undefined for every crawled league and none was ever recognised as
+// locked. Pin that the settings actually make the trip.
+{
+  const { getJson } = makeGetJson({
+    leagues: [
+      { leagueId: 'OPEN', season: '2024', previousLeagueId: null, owners: ['u1', 'u2'], bestBall: true },
+      { leagueId: 'LOCK', season: '2024', previousLeagueId: null, owners: ['u3', 'u4'], bestBall: true, locked: true },
+    ],
+  });
+  const out = await crawl(OPTS({
+    seedLeagueIds: ['OPEN', 'LOCK'], seasons: ['2024'], pseudonymize: false, weeks: 2,
+  }), { getJson });
+  const rows = out.population.flatMap((m) => m.rows);
+  const open = rows.find((r) => r.leagueId === 'OPEN');
+  const lock = rows.find((r) => r.leagueId === 'LOCK');
+  check('settings: an open best-ball league is txnEnabled', open?.format.txnEnabled === true, open?.format);
+  check('settings: the locked config is not', lock?.format.txnEnabled === false, lock?.format);
+  check('settings: both are still flagged best ball',
+    open?.format.bestBall === true && lock?.format.bestBall === true);
+}
 
 // ── report ──
 

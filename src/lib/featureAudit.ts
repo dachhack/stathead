@@ -224,7 +224,7 @@ export interface CompletenessReport {
   cappedSweepShare: number;
   zeroTxnRows: number;
   zeroTxnUnlaunched: number;      // league never drafted: expected, not a defect
-  zeroTxnBestBall: number;        // best ball has no waivers or lineups: expected
+  zeroTxnNoTxns: number;          // league cannot transact at all: expected
   zeroTxnInProgress: number;      // season has barely started: expected
   zeroTxnUnexplained: number;     // a live, managed league with no activity at all
   missingRosterIdRows: number;
@@ -602,16 +602,21 @@ export function auditEngagement(
   };
 
   // A zero-transaction row is only suspicious once the expected explanations
-  // are stripped out. Best ball has no waivers and no lineups to set, and a
-  // season that has barely started has had no chance yet — lumping either in
-  // with "live league, no activity" produced a four-figure false alarm on the
-  // first real crawl.
+  // are stripped out: a league that cannot transact at all, and a season that
+  // has barely started and has had no chance yet. Lumping either in with "live
+  // league, no activity" produced a four-figure false alarm on the first crawl.
+  //
+  // This used to excuse every best-ball row, which was too broad. Best-ball
+  // DYNASTY leagues transact — all 48 crawled had activity and 93.8% ran
+  // waivers — so a silent one is a genuine finding, not an expected quirk.
+  // Only the locked configuration is excused now.
   const zeroTxn = allRows.filter((r) => r.txnCount === 0);
   const zeroTxnUnlaunched = zeroTxn.filter((r) => unlaunched(r.leagueId)).length;
-  const zeroTxnBestBall = zeroTxn.filter((r) => !unlaunched(r.leagueId) && r.format.bestBall).length;
+  const zeroTxnNoTxns = zeroTxn.filter((r) =>
+    !unlaunched(r.leagueId) && r.format.txnEnabled === false).length;
   const zeroTxnInProgress = zeroTxn.filter((r) =>
-    !unlaunched(r.leagueId) && !r.format.bestBall && inProgress(r.season)).length;
-  const zeroTxnUnexplained = zeroTxn.length - zeroTxnUnlaunched - zeroTxnBestBall - zeroTxnInProgress;
+    !unlaunched(r.leagueId) && r.format.txnEnabled !== false && inProgress(r.season)).length;
+  const zeroTxnUnexplained = zeroTxn.length - zeroTxnUnlaunched - zeroTxnNoTxns - zeroTxnInProgress;
   if (zeroTxnUnexplained > 0) {
     warnings.push(`${zeroTxnUnexplained} row(s) are in a live, managed league in a completed season with no transactions at all — either genuinely dead teams or missing data.`);
   }
@@ -694,7 +699,7 @@ export function auditEngagement(
     cappedSweepShare: population.length ? cappedManagers / population.length : 0,
     zeroTxnRows: zeroTxn.length,
     zeroTxnUnlaunched,
-    zeroTxnBestBall,
+    zeroTxnNoTxns,
     zeroTxnInProgress,
     zeroTxnUnexplained,
     missingRosterIdRows,

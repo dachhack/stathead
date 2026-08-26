@@ -941,6 +941,52 @@ The badge colours live next to the labels in `dynastyDeparture.ts` rather than
 in either component, so the table and the view cannot drift on what a grade
 looks like, and the test suite checks the two maps cover the same grades.
 
+## Best ball has waivers (a correction)
+
+"Best ball has no waivers and no lineups to set" was written into `wentDark()`
+and the completeness audit, and half of it is false. Best ball removes the
+**lineup**, not the waiver wire. Measured across 320 crawled league-seasons:
+
+| | n | any txn | any waiver | any trade | median waivers |
+|---|---|---|---|---|---|
+| **Best ball / Dynasty** | 48 | **100%** | **93.8%** | **91.7%** | **157** |
+| Best ball / Redraft | 126 | 26.2% | 4.8% | 0.8% | 0 |
+| Standard / Dynasty | 124 | 98.4% | 97.6% | 96.0% | 159 |
+| Standard / Redraft | 22 | 72.7% | 68.2% | 31.8% | 72 |
+
+Best-ball dynasty is indistinguishable from standard dynasty. Best-ball
+**redraft** is the locked case, and its marker is in the settings, not the
+format: `waiver_type = 0` **and** `disable_trades = 1` covered 108 crawled
+leagues and not one recorded a single waiver claim or trade. `waiver_type = 0`
+alone is *not* "off" — 18 leagues carried it and 61% ran waivers.
+
+So `LeagueFormatInfo` gains `txnEnabled`, derived from those two settings, and
+the transaction guards key on it. The lineup guards still key on `bestBall`,
+which is correct. Unknown settings count as enabled, so a dead league is never
+excused by a missing field.
+
+### What the old exclusion was costing
+
+Skipping every best-ball row discarded **526 scorable manager-seasons** — 40% on
+top of the 1,328 standard-dynasty rows — and discarded the format where this
+signal is *strongest*, benchmarked within leagues that actually permit waivers:
+
+| least-active quartile vs the rest | Q1 leaves | rest | χ² |
+|---|---|---|---|
+| **Best ball / Dynasty (waivers on)** | **38.3%** [27.1–51.0] | 14.8% [10.3–20.6] | **15.37, p<0.01** |
+| Standard / Dynasty | 17.6% [11.6–25.8] | 17.8% [14.0–22.3] | 0.00, none |
+
+Confidence intervals are Wilson; the best-ball pair does not overlap and the
+standard pair is identical. The mechanism is plain: a standard-dynasty manager
+must set a lineup weekly, so transactions are one channel among several. In best
+ball there is no lineup, so waivers and trades are the *only* way to touch the
+league and their absence says much more.
+
+The effect is a threshold, not a gradient — Q2 (13.3%) sits below Q3 (18.3%), so
+"barely transacted at all" is the signal rather than a smooth ranking. Sample is
+243 labelled best-ball-dynasty manager-seasons from one seed portfolio's
+neighbourhood, not a random sample of Sleeper.
+
 ## Status
 
 | Step | State |
@@ -959,6 +1005,8 @@ looks like, and the test suite checks the two maps cover the same grades.
 | Retrospective league-health panel | **done** |
 | Dynasty Retention view (1-5 grades from a league id) | **done** |
 | Leave-risk column in the standings table | **done** — opt-in, approximate mode |
+| Best-ball waiver correction (`txnEnabled`) | **done** — unlocks 526 manager-seasons |
+| Peer-relative activity feature in the departure model | not started |
 | MCP tool | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking

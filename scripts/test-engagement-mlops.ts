@@ -219,10 +219,11 @@ const txn = (over: Partial<TxnEvent>): TxnEvent => ({
 });
 
 // A manager with a mix of quitters and stayers, so the label is non-degenerate.
-function buildManager(id: string, opts: { quits?: boolean; bestBall?: boolean; capped?: boolean; status?: string } = {}): ManagerObservation {
+function buildManager(id: string, opts: { quits?: boolean; bestBall?: boolean; capped?: boolean; status?: string; txnEnabled?: boolean } = {}): ManagerObservation {
   const history = ['2024', '2025'].map((season, i) => hist({
     season, leagueId: `${id}-${season}`, previousLeagueId: i ? `${id}-2024` : null,
-    format: fmt({ bestBall: opts.bestBall }), status: opts.status ?? 'complete',
+    format: fmt({ bestBall: opts.bestBall, txnEnabled: opts.txnEnabled }),
+    status: opts.status ?? 'complete',
   }));
   const lastWeek = opts.quits ? 3 : 16;
   const events = history.flatMap((h) =>
@@ -321,14 +322,31 @@ const healthy: ManagerObservation[] = [
 // ── audit: zero-transaction rows are only suspicious once the expected
 //    explanations are stripped out ──
 {
-  // Best ball has no waivers and no lineup to set, so zero transactions there
-  // is normal. Counting it as "live league, no activity" produced a
-  // four-figure false alarm on the first real crawl.
-  const bb = buildManager('bb', { bestBall: true });
-  bb.rows = bb.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
-  const withBB = auditEngagement([...healthy, bb]);
-  eq('zero-txn: best ball is an expected explanation', withBB.completeness.zeroTxnBestBall, 2);
+  // A league whose settings forbid waivers AND trades cannot show activity, so
+  // zero transactions there is normal. Counting it as "live league, no
+  // activity" produced a four-figure false alarm on the first real crawl.
+  const locked = buildManager('locked', { bestBall: true, txnEnabled: false });
+  locked.rows = locked.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
+  const withBB = auditEngagement([...healthy, locked]);
+  eq('zero-txn: a league that cannot transact is an expected explanation', withBB.completeness.zeroTxnNoTxns, 2);
   eq('zero-txn: and is not counted as unexplained', withBB.completeness.zeroTxnUnexplained, 0);
+
+  // The regression this replaced. Best ball alone is NOT an excuse: best-ball
+  // dynasty runs waivers as heavily as standard dynasty (93.8% of leagues,
+  // median 157 claims), so a silent one is a real finding. Excusing it hid the
+  // format where the signal is strongest.
+  const bbLive = buildManager('bblive', { bestBall: true, txnEnabled: true });
+  bbLive.rows = bbLive.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
+  const withLive = auditEngagement([...healthy, bbLive]);
+  eq('zero-txn: best ball with waivers on is NOT excused', withLive.completeness.zeroTxnNoTxns, 0);
+  eq('zero-txn: it is reported as unexplained instead', withLive.completeness.zeroTxnUnexplained, 2);
+
+  // And unknown settings must not be excused either — older crawl rows carry
+  // no txnEnabled, and defaulting those to "excused" is how the bug returns.
+  const bbUnknown = buildManager('bbunknown', { bestBall: true });
+  bbUnknown.rows = bbUnknown.rows.map((r) => ({ ...r, txnCount: 0, activeWeeks: [], firstActiveWeek: null, lastActiveWeek: null }));
+  const withUnknown = auditEngagement([...healthy, bbUnknown]);
+  eq('zero-txn: unknown settings are not excused', withUnknown.completeness.zeroTxnNoTxns, 0);
 
   // A season that has barely started has had no chance to show activity.
   const fresh = buildManager('fresh');

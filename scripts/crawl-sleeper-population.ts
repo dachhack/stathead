@@ -67,7 +67,11 @@ interface RawLeague {
   status?: string;
   total_rosters?: number;
   roster_positions?: string[];
-  settings?: { type?: number; best_ball?: number };
+  // waiver_type / disable_trades decide whether a quiet league is meaningful or
+  // simply cannot transact — see LeagueFormatInfo.txnEnabled. They were absent
+  // from this type while the casts below hid it, so the flag silently came back
+  // undefined for every crawled league.
+  settings?: { type?: number; best_ball?: number; waiver_type?: number; disable_trades?: number };
   sport?: string;
 }
 
@@ -156,7 +160,7 @@ interface CrawledLeagueSeason {
   status: string;
   totalRosters: number;
   rosterPositions: string[];
-  settings: { type?: number; best_ball?: number };
+  settings: { type?: number; best_ball?: number; waiver_type?: number; disable_trades?: number };
   rosters: RawRoster[];
   transactions: { week: number; txns: SleeperRawTransaction[] }[];
   champion: number | null;   // winning roster id, when the bracket was fetched
@@ -219,7 +223,7 @@ export async function crawl(opts: CrawlOptions, deps: CrawlDeps): Promise<CrawlR
           season: lg.season ?? season,
           format: leagueFormatInfo({
             settings: lg.settings, roster_positions: lg.roster_positions,
-          } as Parameters<typeof leagueFormatInfo>[0]),
+          }),
           totalRosters: lg.total_rosters ?? 0,
         });
       }
@@ -418,7 +422,7 @@ function assemble(
   for (const ls of crawled) {
     const format = leagueFormatInfo({
       settings: ls.settings, roster_positions: ls.rosterPositions,
-    } as Parameters<typeof leagueFormatInfo>[0]);
+    });
 
     // Standings rank, computed once per league-season rather than per manager.
     const ranked = [...ls.rosters].sort((a, b) =>

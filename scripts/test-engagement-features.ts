@@ -141,7 +141,13 @@ const trade = (over: Partial<TradeRecord>): TradeRecord => ({
   check('wentDark: a never-started season is not a quitter', wentDark(row) === false);
 }
 
-// ── 6. best-ball masking ──
+// ── 6. best-ball masking: lineups only, NOT transactions ──
+//
+// Best ball removes the lineup. It does not remove the waiver wire, and
+// conflating the two was a real bug: best-ball dynasty leagues run waivers in
+// 93.8% of cases at a median 157 claims a season (against 97.6% / 159 for
+// standard dynasty), and best-ball dynasty is the format where going quiet
+// predicts departure most sharply — 38.3% vs 14.8%, chi2 15.4, p<0.01.
 {
   const history = [rec({ leagueId: 'BB', format: FMT({ bestBall: true }) })];
   const starters = new Map([['BB', ['p1', '0', '0']]]);
@@ -150,7 +156,23 @@ const trade = (over: Partial<TradeRecord>): TradeRecord => ({
   });
   check('best ball: lineup signals flagged invalid', row.lineupSignalsValid === false);
   eq('best ball: empty-slot count suppressed', row.emptyStarterSlots, null);
-  check('best ball: never scored as abandoned', wentDark(row) === false);
+  // The corrected expectation. One transaction in week 1 of a 17-week season is
+  // a manager who stopped, and best ball is no reason to look away.
+  check('best ball: still scored for going dark', wentDark(row) === true);
+
+  // Only a league that CANNOT transact is exempt.
+  const lockedHistory = [rec({ leagueId: 'LOCK', format: FMT({ bestBall: true, txnEnabled: false }) })];
+  const [lockedRow] = managerSeasonEngagement(lockedHistory, [ev({ leagueId: 'LOCK', week: 1 })], {
+    horizonWeek: 17,
+  });
+  check('locked league: never scored as abandoned', wentDark(lockedRow) === false);
+
+  // Unknown settings must not exempt anything — old crawl rows carry none.
+  const unknownHistory = [rec({ leagueId: 'UNK', format: FMT({ bestBall: true }) })];
+  const [unknownRow] = managerSeasonEngagement(unknownHistory, [ev({ leagueId: 'UNK', week: 1 })], {
+    horizonWeek: 17,
+  });
+  check('unknown settings: still scored', wentDark(unknownRow) === true);
 }
 
 // ── 7. empty starter slots ──
