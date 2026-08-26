@@ -11,7 +11,7 @@ import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
 import { loadBlendedProjections, computePpr, computeCustomScore, computeOptimalLineup, type ConsensusPlayer, type OptimalLineup } from '../lib/waiverUtils';
 import { generateTradeSuggestions, buildPickOwnership, evaluateTrade, type TradeGoal, type TradeSuggestion, type TradeAsset, type TradeScoreBreakdown, type TradeAssetStats, type DraftPick } from '../lib/tradeEngine';
-import { normalizeForMatch } from '../lib/nameMatch';
+import { normalizeForMatch, fallbackNameKey, buildFallbackIndex } from '../lib/nameMatch';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
 import type { PresetMeta } from '../lib/scenarioPresets';
 
@@ -921,26 +921,53 @@ function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, tren
     fetchLeagueRosteredIds(leagueId).then(setRosteredIds).catch(() => {});
   }, [expanded, loaded, leagueId]);
 
-  const moves = useMemo<WaiverMove[]>(() => {
-    if (!rosteredIds.size) return [];
-    const dynVal = (name: string): number => {
-      const k = blendedByName.get(normalizeForMatch(name));
-      return k ? (isSuperflex ? k.superflexValue : k.value) : 0;
-    };
-    const rosterMetric = (p: RosterPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.id) ?? 0);
-    const availMetric = (p: ConsensusPlayer) => isDynasty ? dynVal(p.name) : (projMap.get(p.sleeperId ?? '') ?? 0);
+  // Nickname axis (Chig/Chigoziem, Kenny/Kenneth): unambiguous last-name +
+  // first-initial fallback for names the exact key can't reach.
+  const dynastyFallback = useMemo(
+    () => buildFallbackIndex(blendedByName.values(), (p) => p.playerName),
+    [blendedByName],
+  );
 
-    // Drop candidates: this team's skill players, worst-first.
-    const roster = [...team.starters, ...team.bench]
+  const { moves, unvalued } = useMemo<{ moves: WaiverMove[]; unvalued: string[] }>(() => {
+    if (!rosteredIds.size) return { moves: [], unvalued: [] };
+    const dynPlayer = (name: string): DynastyPlayer | undefined =>
+      blendedByName.get(normalizeForMatch(name)) ?? dynastyFallback.get(fallbackNameKey(name)) ?? undefined;
+    // null = we have no value for this player, which is NOT the same as a
+    // value of zero. Coercing the two together is what let a name-join miss
+    // (Dynasty's "Kenneth Walker III" vs the roster's "Kenneth Walker") sort
+    // a starting RB to the front of the drop list and advertise the pickup's
+    // full value as the "gain".
+    const dynVal = (name: string): number | null => {
+      const k = dynPlayer(name);
+      if (!k) return null;
+      const v = isSuperflex ? k.superflexValue : k.value;
+      return v > 0 ? v : null;
+    };
+    // Redraft mode carries the same rule: a player absent from the projection
+    // map is unpriced, not a zero-point player, so he is set aside rather
+    // than offered as the drop.
+    const rosterMetric = (p: RosterPlayer): number | null =>
+      isDynasty ? dynVal(p.name) : (projMap.get(p.id) ?? null);
+    const availMetric = (p: ConsensusPlayer): number | null =>
+      isDynasty ? dynVal(p.name) : (projMap.get(p.sleeperId ?? '') ?? null);
+
+    // Drop candidates: this team's skill players, worst-first. A player we
+    // can't price is set aside and named below the table rather than ranked
+    // as worthless — an unpriced player is one we have no opinion on, and
+    // "no opinion" must never render as a confident upgrade.
+    const rosterAll = [...team.starters, ...team.bench]
       .filter((p) => p.name !== 'Empty' && SKILL_POS.includes(p.position || ''))
-      .map((p) => ({ p, m: rosterMetric(p) }))
+      .map((p) => ({ p, m: rosterMetric(p) }));
+    const skipped = rosterAll.filter((x) => x.m == null).map((x) => x.p.name);
+    const roster = rosterAll
+      .filter((x): x is { p: RosterPlayer; m: number } => x.m != null)
       .sort((a, b) => a.m - b.m);
 
     // Add candidates: unrostered projected players, best-first by metric.
     const avail = allProjections
       .filter((p) => p.sleeperId && !rosteredIds.has(p.sleeperId) && SKILL_POS.includes(p.position))
       .map((p) => ({ p, m: availMetric(p) }))
-      .filter((x) => x.m > 0)
+      .filter((x): x is { p: ConsensusPlayer; m: number } => x.m != null && x.m > 0)
       .sort((a, b) => b.m - a.m);
 
     const minGain = isDynasty ? 400 : 12; // Dynasty value vs projected points
@@ -955,17 +982,17 @@ function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, tren
       out.push({
         add: a.p,
         addProj: projMap.get(a.p.sleeperId ?? '') ?? 0,
-        addValue: dynVal(a.p.name),
+        addValue: dynVal(a.p.name) ?? 0,
         addTrend: trendByName.get(normalizeForMatch(a.p.name)) ?? null,
         drop: drop.p,
         dropProj: projMap.get(drop.p.id) ?? 0,
-        dropValue: dynVal(drop.p.name),
+        dropValue: dynVal(drop.p.name) ?? 0,
         gain: a.m - drop.m,
       });
       if (out.length >= 8) break;
     }
-    return out;
-  }, [rosteredIds, team, projMap, blendedByName, trendByName, allProjections, isDynasty, isSuperflex]);
+    return { moves: out, unvalued: skipped };
+  }, [rosteredIds, team, projMap, blendedByName, dynastyFallback, trendByName, allProjections, isDynasty, isSuperflex]);
 
   const fmtVal = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`;
   const fmtGain = (g: number) => isDynasty ? `+${fmtVal(g)}` : `+${g.toFixed(0)} pt`;
@@ -986,6 +1013,12 @@ function WaiverSuggestionsSection({ leagueId, team, projMap, blendedByName, tren
           <p style={{ color: 'var(--text-muted)', fontSize: 11, margin: '2px 0 8px' }}>
             Pick up an available player and drop your weakest at that position, ranked by {isDynasty ? `dynasty value${isSuperflex ? ' (SF)' : ''}` : 'projected season points'}.
           </p>
+          {loaded && unvalued.length > 0 && (
+            <p style={{ color: '#fbbf24', fontSize: 11, margin: '0 0 8px' }}>
+              No {isDynasty ? 'dynasty value' : 'projection'} on file for {unvalued.join(', ')} — left out of
+              the drop candidates rather than ranked as worthless. Decide those yourself.
+            </p>
+          )}
           {!loaded ? (
             <div className="loading" style={{ padding: '8px 0' }}><div className="spinner" /><span className="loading-text">Scanning waivers…</span></div>
           ) : moves.length === 0 ? (
