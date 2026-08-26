@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PlayerName } from './PlayerName';
 import type { Injury } from '../types';
-import { fetchInjuries } from '../data';
+import { fetchInjuries, isNotPublished } from '../data';
+import { SeasonDataPending } from './SeasonDataPending';
 
 const STATUS_COLORS: Record<string, string> = {
   Out: 'stat-negative',
@@ -16,6 +17,8 @@ export function InjuriesView({ season, onDataLoaded }: { season: number; onDataL
   const [data, setData] = useState<Injury[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A 404 preseason means the file is not published yet, not that we failed.
+  const [pending, setPending] = useState(false);
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('ALL');
   const [weekFilter, setWeekFilter] = useState(0);
@@ -24,12 +27,13 @@ export function InjuriesView({ season, onDataLoaded }: { season: number; onDataL
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setPending(false);
     fetchInjuries(season)
       .then((d) => {
         setData(d);
         onDataLoaded?.(d);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => { if (isNotPublished(e)) setPending(true); else setError(e.message); })
       .finally(() => setLoading(false));
   }, [season, onDataLoaded]);
 
@@ -67,6 +71,7 @@ export function InjuriesView({ season, onDataLoaded }: { season: number; onDataL
         <div className="loading-text">Loading injury data...</div>
       </div>
     );
+  if (pending) return <SeasonDataPending season={season} what="injury reports" />;
   if (error)
     return (
       <div className="empty-state">

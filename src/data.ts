@@ -600,6 +600,33 @@ export function filterFantasyRelevant(players: SeasonTotals[]): SeasonTotals[] {
 // --- Generic CSV fetcher with caching ---
 const csvCache = new Map<string, unknown[]>();
 
+/**
+ * A CSV that could not be fetched, carrying the HTTP status so callers can tell
+ * "this file does not exist" from "the request failed".
+ *
+ * The distinction matters preseason. nflverse publishes rosters and depth
+ * charts before Week 1 but only creates snap_counts_<season>.csv, injuries,
+ * weekly player stats, NGS and charting once games have been played, so every
+ * season-partitioned feed 404s for the upcoming season until then. That is
+ * normal, not a fault, and a view should say so rather than show a stack of
+ * fetch failure text.
+ */
+export class DataUnavailableError extends Error {
+  url: string;
+  status: number;
+  constructor(url: string, status: number) {
+    super(`Failed to fetch ${url}: ${status}`);
+    this.name = 'DataUnavailableError';
+    this.url = url;
+    this.status = status;
+  }
+}
+
+/** True when a feed 404d — the file is not published, as opposed to a failure. */
+export function isNotPublished(e: unknown): boolean {
+  return e instanceof DataUnavailableError && e.status === 404;
+}
+
 async function fetchCsv<T>(url: string): Promise<T[]> {
   const cached = csvCache.get(url);
   if (cached) return cached as T[];
@@ -627,7 +654,7 @@ async function fetchCsv<T>(url: string): Promise<T[]> {
     // absent, fall back to the .csv.gz sibling and inflate it here.
     const gz = await fetchWithTimeout(`${url}.gz`, { timeout: LARGE_CSV_TIMEOUT });
     if (!gz.ok || !gz.body || isHtmlFallback(gz)) {
-      throw new Error(`Failed to fetch ${url}: ${response.status}`);
+      throw new DataUnavailableError(url, response.status);
     }
     text = await readMaybeGzText(gz.body);
   }

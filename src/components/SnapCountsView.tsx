@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PlayerName } from './PlayerName';
 import type { SnapCount, SortDirection } from '../types';
-import { fetchSnapCounts } from '../data';
+import { fetchSnapCounts, isNotPublished } from '../data';
+import { SeasonDataPending } from './SeasonDataPending';
 
 const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB', 'K'];
 
@@ -11,6 +12,8 @@ export function SnapCountsView({ season, onDataLoaded }: { season: number; onDat
   const [snaps, setSnaps] = useState<SnapCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A 404 preseason means the file is not published yet, not that we failed.
+  const [pending, setPending] = useState(false);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
   const [teamFilter, setTeamFilter] = useState('ALL');
@@ -21,12 +24,13 @@ export function SnapCountsView({ season, onDataLoaded }: { season: number; onDat
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setPending(false);
     fetchSnapCounts(season)
       .then((data) => {
         setSnaps(data);
         onDataLoaded?.(data);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => { if (isNotPublished(e)) setPending(true); else setError(e.message); })
       .finally(() => setLoading(false));
   }, [season, onDataLoaded]);
 
@@ -88,6 +92,7 @@ export function SnapCountsView({ season, onDataLoaded }: { season: number; onDat
         <div className="loading-text">Loading snap count data...</div>
       </div>
     );
+  if (pending) return <SeasonDataPending season={season} what="snap counts" />;
   if (error)
     return (
       <div className="empty-state">

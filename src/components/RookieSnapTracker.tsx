@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PlayerName } from './PlayerName';
 import type { SnapCount, Roster } from '../types';
-import { fetchSnapCounts, fetchRosters } from '../data';
+import { fetchSnapCounts, fetchRosters, isNotPublished } from '../data';
+import { SeasonDataPending } from './SeasonDataPending';
 
 // Rookie snap-share ramp tracker. Weekly offensive snap % for the season's
 // rookie class, with a ramp signal (last-3-week avg − first-3-week avg) that
@@ -43,6 +44,8 @@ export function RookieSnapTracker({ season, onDataLoaded }: { season: number; on
   const [rosters, setRosters] = useState<Roster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // A 404 preseason means the file is not published yet, not that we failed.
+  const [pending, setPending] = useState(false);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('ramp');
@@ -51,13 +54,14 @@ export function RookieSnapTracker({ season, onDataLoaded }: { season: number; on
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setPending(false);
     Promise.all([fetchSnapCounts(season), fetchRosters(season)])
       .then(([snapData, rosterData]) => {
         setSnaps(snapData);
         setRosters(rosterData);
         onDataLoaded?.(snapData);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => { if (isNotPublished(e)) setPending(true); else setError(e.message); })
       .finally(() => setLoading(false));
   }, [season, onDataLoaded]);
 
@@ -121,6 +125,7 @@ export function RookieSnapTracker({ season, onDataLoaded }: { season: number; on
         <div className="loading-text">Loading rookie snap data...</div>
       </div>
     );
+  if (pending) return <SeasonDataPending season={season} what="snap counts" />;
   if (error)
     return (
       <div className="empty-state">
