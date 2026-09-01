@@ -237,15 +237,6 @@
       ]
     },
     {
-      "gsis_id":"00-0039269",
-      "display_name":"James Ester",
-      "position":"DL",
-      "birth_dates":[
-        "2001-08-30",
-        "2001-08-31"
-      ]
-    },
-    {
       "gsis_id":"00-0039383",
       "display_name":"Jaylin Simpson",
       "position":"DB",
@@ -315,15 +306,6 @@
       "birth_dates":[
         "1996-09-12",
         "1996-11-12"
-      ]
-    },
-    {
-      "gsis_id":"00-0039887",
-      "display_name":"Layden Robinson",
-      "position":"OL",
-      "birth_dates":[
-        "2001-03-03",
-        "2001-05-03"
       ]
     },
     {
