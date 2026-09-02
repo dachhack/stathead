@@ -3,6 +3,8 @@ import { fetchMaybeGz } from '../data';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
+import { FeatureImportancePanel, type ImportanceRow } from './FeatureImportancePanel';
+import { coefficientImportance } from '../lib/coefficientImportance';
 import {
   POSITIONS, POS_COLORS, FEATURES, CATEGORY_COLORS,
 } from '../lib/featureTypes';
@@ -370,6 +372,19 @@ export function ModelDocumentation() {
     cvResidualStd: number | null; inSampleR2: number;
   }> | null>(null);
   const [rookieSimFormat, setRookieSimFormat] = useState<'1qb' | 'superflex'>('1qb');
+  // Per-model feature importance + the measured shape of each relationship.
+  // Lives in model-eval rather than the feature matrix because the shape is
+  // derived by binning the scored cohort, which is a build-time pass.
+  const [importanceByModel, setImportanceByModel] = useState<Record<string, {
+    label: string; blurb?: string;
+    byPosition: Record<string, ImportanceRow[]>;
+    shapeMinCohort?: number; shapesMeasured?: number; shapesTotal?: number;
+  }> | null>(null);
+  const [importanceNotes, setImportanceNotes] = useState<Record<string, string>>({});
+  const [sleeperModels, setSleeperModels] = useState<Array<{
+    id: string; label: string; blurb: string; rows: ImportanceRow[];
+    heldOut?: { auc: number; calibrationSlope: number; ece: number };
+  }>>([]);
 
   useEffect(() => {
     async function load() {
@@ -413,6 +428,52 @@ export function ModelDocumentation() {
       setLoading(false);
     }
     load();
+
+    // Per-model importance and relationship shapes.
+    fetch(`${import.meta.env.BASE_URL}data/model-eval-${new Date().getFullYear()}.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        if (d.featureImportanceByModel) setImportanceByModel(d.featureImportanceByModel);
+        if (d.featureImportanceNotes) setImportanceNotes(d.featureImportanceNotes);
+      })
+      .catch(() => { /* docs degrade to the sections that do not need it */ });
+
+    // The Sleeper behaviour models ship their standardised coefficients, so
+    // their importance needs no cohort pass — |coefficient| is it.
+    void (async () => {
+      const specs = [
+        { id: 'dynasty-departure', file: 'dynasty-departure-v1.json',
+          label: 'Dynasty Departure (live)',
+          blurb: 'Chance a league member leaves before next season, scored from a league id with past exits approximated.',
+          target: 'the chance of leaving' },
+        { id: 'dynasty-departure-full', file: 'dynasty-departure-full-v1.json',
+          label: 'Dynasty Departure (verified)',
+          blurb: 'The same model fitted on properly resolved past exits, used when "Verify past exits" is on.',
+          target: 'the chance of leaving' },
+        { id: 'abandonment', file: 'abandonment-model-v1.json',
+          label: 'In-season Abandonment Hazard',
+          blurb: 'Discrete-time hazard that a manager stops transacting THIS week, conditional '
+            + 'on still being active going into it. Because it is conditional, several signs read '
+            + 'backwards until you hold that in mind: more weeks since a manager\u2019s last '
+            + 'transaction LOWERS this hazard, because someone already quiet for weeks cannot '
+            + 'newly stop \u2014 they already did.',
+          target: 'the chance they stop this week' },
+      ];
+      const out: Array<{ id: string; label: string; blurb: string; rows: ImportanceRow[];
+        heldOut?: { auc: number; calibrationSlope: number; ece: number } }> = [];
+      for (const sp of specs) {
+        try {
+          const r = await fetch(`${import.meta.env.BASE_URL}data/${sp.file}`);
+          if (!r.ok) continue;
+          const m = await r.json();
+          if (!m?.featureNames?.length || !m?.coefficients?.length) continue;
+          out.push({ id: sp.id, label: sp.label, blurb: sp.blurb,
+            rows: coefficientImportance(m, sp.target), heldOut: m.heldOut });
+        } catch { /* a missing model file just omits its card */ }
+      }
+      setSleeperModels(out);
+    })();
 
     // Load Dynasty time-series model cache (lightweight — only metrics, no trees)
     fetch(`${import.meta.env.BASE_URL}data/model-cache-dynasty-v2.json`)
@@ -760,6 +821,41 @@ export function ModelDocumentation() {
         </div>
         </>)}
 
+        {/* ── Sleeper behaviour models ── */}
+        {!!sleeperModels.length && (
+          <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16,
+            marginBottom: 20, border: '1px solid var(--border)' }}>
+            <div className="sched-section-title" style={{ marginTop: 0 }}>Sleeper behaviour models</div>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '2px 0 10px', maxWidth: 760, lineHeight: 1.55 }}>
+              These are logistic fits on standardised inputs, so a coefficient <em>is</em> the
+              importance: the change in log-odds per one standard deviation. They are not
+              per-position and carry no cohort binning, because the relationship is linear in
+              the standardised feature <strong>by construction</strong> — the direction is a
+              property of the fitted form, not something measured off a cohort the way a
+              gradient-boosted model's shape is.
+            </p>
+            {sleeperModels.map((m) => (
+              <div key={m.id} style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{m.label}</div>
+                <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '0 0 4px', maxWidth: 760, lineHeight: 1.5 }}>
+                  {m.blurb}
+                  {m.heldOut && (
+                    <> Held out: AUC {m.heldOut.auc.toFixed(3)}, calibration slope{' '}
+                      {m.heldOut.calibrationSlope.toFixed(3)}, ECE {m.heldOut.ece.toFixed(4)}.</>
+                  )}
+                </p>
+                <FeatureImportancePanel
+                  rows={m.rows}
+                  importanceNote={
+                    'Bars are |standardised coefficient| — comparable across features on '
+                    + 'different scales because every input was standardised before fitting.'
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── Model Evaluation Selector ── */}
         <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '16px', marginBottom: 20, border: '1px solid var(--border)' }}>
           {/* Row 1: Category selector */}
@@ -872,6 +968,66 @@ export function ModelDocumentation() {
         </div>
 
         {/* ── Metric Cards ── */}
+        {/* ── Feature importance + the nature of each relationship ── */}
+        {(() => {
+          // The docs tabs and the artifact's model ids are different
+          // vocabularies; vor and hitbust are two views of one fitted model.
+          const MODEL_FOR_TAB: Record<string, string | null> = {
+            vor: 'hitBust', hitbust: 'hitBust', ppg: 'projection',
+            career: 'rookieCareer', shares: 'share', 'rookie-boombust': null,
+          };
+          const id = MODEL_FOR_TAB[modelCategory] ?? null;
+          const blk = id ? importanceByModel?.[id] : null;
+          const note = id ? importanceNotes[id] : undefined;
+          const rows = blk?.byPosition?.[selectedPos] ?? [];
+
+          if (!id) return null;
+          return (
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 16,
+              marginBottom: 20, border: '1px solid var(--border)' }}>
+              <div className="sched-section-title" style={{ marginTop: 0 }}>
+                Feature importance — {blk?.label ?? id}{rows.length ? ` · ${selectedPos}` : ''}
+              </div>
+              {blk?.blurb && (
+                <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: '2px 0 8px', maxWidth: 760, lineHeight: 1.5 }}>
+                  {blk.blurb}
+                </p>
+              )}
+              {note && (
+                <p style={{ fontSize: 12, margin: '4px 0 0', maxWidth: 760, lineHeight: 1.55 }}>
+                  <strong>No importance chart for this model.</strong> {note}
+                </p>
+              )}
+              {!note && !rows.length && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                  No importance rows for {selectedPos} in this model.
+                </p>
+              )}
+              {!!rows.length && (
+                <FeatureImportancePanel
+                  rows={rows}
+                  importanceNote={
+                    'Bars are the fitted model\u2019s own importance for this position, largest first. '
+                    + '"r / \u03c1" are the linear and rank correlations between the feature and the '
+                    + 'model\u2019s output across the scored cohort; the shape column bins that cohort '
+                    + 'into feature quintiles and reads the pattern, so a driver that peaks in the '
+                    + 'middle is not reported as merely weak.'
+                  }
+                  caveat={
+                    blk && blk.shapesTotal
+                      ? `Shapes measured for ${blk.shapesMeasured} of ${blk.shapesTotal} rows across all positions. `
+                        + `A shape needs at least ${blk.shapeMinCohort ?? 25} players in the cohort to bin; `
+                        + 'importance is the fitted vector either way. Correlations are against the '
+                        + 'model\u2019s own output, so they describe how it behaves \u2014 not proof the '
+                        + 'relationship holds in the world.'
+                      : undefined
+                  }
+                />
+              )}
+            </div>
+          );
+        })()}
+
         {model && modelCategory === 'vor' && (
           <>
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>

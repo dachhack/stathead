@@ -15,6 +15,7 @@
     "test:abandonment": "tsx scripts/test-abandonment-model.ts",
     "test:data-availability": "tsx scripts/test-data-availability.ts",
     "test:txn-enabled": "tsx scripts/test-txn-enabled.ts",
+    "test:shape": "node scripts/test-relationship-shape.mjs",
     "test:draft-grade": "tsx scripts/test-draft-grade.ts",
     "test:dynasty-departure": "tsx scripts/test-dynasty-departure.ts",
     "test:league-health": "tsx scripts/test-league-health.ts",

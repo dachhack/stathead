@@ -85,6 +85,8 @@ function bandFor(pctile) {
   return 'bottom 10%';
 }
 
+import { spearman, shapeOf, shapeText, SHAPE_MIN_COHORT } from './lib/relationship-shape.mjs';
+
 const fm = JSON.parse(fs.readFileSync(path.join(DATA, 'feature-matrix.json'), 'utf8'));
 const importance = fm.featureImportance || {};        // Hit/Bust (VOR) model
 const vetImportance = fm.vetFeatureImportance || {};  // Season projection (PPG) model
@@ -337,7 +339,15 @@ function buildStats(model) {
         if (Number.isFinite(v) && Number.isFinite(t)) { vals.push(v); pv.push(t); }
       }
       if (vals.length < 5) continue;
-      out[fk] = { sorted: [...vals].sort((a, b) => a - b), dir: pearson(vals, pv) };
+      const sh = shapeOf(vals, pv);
+      out[fk] = {
+        sorted: [...vals].sort((a, b) => a - b),
+        dir: pearson(vals, pv),
+        rho: spearman(vals, pv),
+        shape: sh.shape,
+        bins: sh.bins.map((b) => Math.round(b.meanTarget * 1000) / 1000),
+        n: vals.length,
+      };
     }
     byPos[pos] = out;
   }
@@ -388,6 +398,72 @@ for (const [pos, list] of Object.entries(importance)) {
   });
 }
 
+// ── Per-model feature importance for the model docs ─────────────────────────
+//
+// Three of the five registry models carry fitted importance. Only the hit/bust
+// one used to reach the artifact, so the docs page could describe a single
+// model while the other two were computed on every build and thrown away.
+//
+// Each row gets the measured shape, not just a sign: reporting a U-shaped
+// driver as "mixed / weak" is worse than saying nothing.
+const IMPORTANCE_SOURCES = [
+  { id: 'hitBust', imp: importance },
+  { id: 'projection', imp: vetImportance },
+  { id: 'rookieCareer', imp: rookieImportance },
+];
+const importanceByModel = {};
+for (const { id, imp } of IMPORTANCE_SOURCES) {
+  const model = MODELS.find((m) => m.id === id);
+  const byPos = {};
+  for (const [pos, list] of Object.entries(imp)) {
+    const rows = list.slice(0, IMPORTANCE_KEEP).map((f) => {
+      const prop = isProprietary(f.key);
+      const st = statsByModel[id]?.[pos]?.[f.key];
+      const label = prop ? `${f.category || 'Market'} signal` : (f.label || humanize(f.key));
+      return {
+        label,
+        category: f.category || '',
+        importance: Math.round(f.importance * 1000) / 1000,
+        // Kept for readers of the older field name.
+        relationship: dirText(st?.dir ?? 0),
+        direction: st?.dir == null ? null : Math.round(st.dir * 1000) / 1000,
+        rankCorrelation: st?.rho == null ? null : Math.round(st.rho * 1000) / 1000,
+        shape: st?.shape ?? 'not-in-cohort',
+        shapeText: shapeText(st?.shape ?? 'not-in-cohort', prop ? 'this signal' : label.toLowerCase()),
+        quintileMeans: st?.bins ?? [],
+        cohort: st?.n ?? 0,
+      };
+    });
+    if (rows.length) byPos[pos] = rows;
+  }
+  if (Object.keys(byPos).length) {
+    const measurable = Object.values(byPos).flat()
+      .filter((r) => r.shape !== 'not-in-cohort' && r.shape !== 'cohort-too-small').length;
+    const total = Object.values(byPos).flat().length;
+    importanceByModel[id] = {
+      label: model?.label ?? id,
+      blurb: model?.blurb ?? '',
+      byPosition: byPos,
+      shapeMinCohort: SHAPE_MIN_COHORT,
+      // Importance is always the fitted vector; the shape needs a cohort to bin.
+      // Saying which rows have a measured shape stops a reader assuming the
+      // whole table is equally well evidenced.
+      shapesMeasured: measurable,
+      shapesTotal: total,
+    };
+  }
+}
+// The two registry models with no fitted feature importance say so explicitly,
+// with the reason, rather than being silently absent from the docs.
+const importanceNotes = {
+  share: 'The usage-share models are per-target ridge fits whose drivers are '
+    + 'ranked by how far a player deviates from the cohort, not by a stored '
+    + 'importance vector, so there is no importance to chart.',
+  valueTrend: 'Dynasty value is a market-derived composite of KTC and '
+    + 'FantasyCalc, not a first-party feature model, so it has no features to '
+    + 'rank.',
+};
+
 // ── Assemble per-player records (one per scored player) ──────────────────────
 const players = [];
 for (const r of predRows) {
@@ -435,6 +511,8 @@ const out = {
   hitBustCalib,
   shareModelSummary: fm.shareModelSummary || {},
   featureImportance: impOut,
+  featureImportanceByModel: importanceByModel,
+  featureImportanceNotes: importanceNotes,
   catalog,
   players,
 };

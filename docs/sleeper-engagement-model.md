@@ -1056,6 +1056,66 @@ Each was invisible in unit tests and obvious against a live draft:
   points, and K/DEF have no replacement baseline, so their VOR computed as
   exactly 0 — beating every genuinely below-replacement player.
 
+## Feature importance in the model docs
+
+Every model with a fitted feature vector now shows a ranked importance chart and
+a sentence describing **the nature of the relationship**, not just its sign.
+
+Three of the five registry models in `build-model-eval.mjs` carry importance
+(`hitBust`, `projection`, `rookieCareer`). Only the first reached the artifact,
+so the other two were computed on every build and thrown away. All three are
+exported now, and the two models with no fitted vector say so with the reason
+rather than being silently absent:
+
+- **Usage Share** ranks drivers by cohort deviation, not a stored importance vector.
+- **Dynasty Value** is a KTC/FantasyCalc market composite, not a feature model.
+
+The Sleeper behaviour models (`dynasty-departure`, its verified variant, and the
+abandonment hazard) are logistic fits on standardised inputs, so
+|coefficient| **is** the importance — no cohort pass needed.
+
+### Shape, not just sign
+
+The old field reported a Pearson correlation bucketed into three strings, so
+"mixed / weak relationship" covered both *no relationship* and *strong but
+non-monotone* — the single most misleading thing a model doc can say. The
+classifier now bins the cohort into feature quintiles, reads the sequence of
+step directions, and reports one of: rises / falls throughout, mostly rises /
+falls, peaks in the middle, dips in the middle, no clear direction, little
+effect alone. Spearman sits alongside Pearson so a monotone-but-curved driver
+still reads as monotone. The quintile means ship with the verdict as a
+sparkline, so a reader can check the pattern rather than trust the label.
+
+**Structural vs measured monotonicity is kept distinct.** A gradient-boosted
+model's shape is measured by binning. A logistic model is linear in the
+standardised feature *by construction*, so its direction is a property of the
+fitted form, true whatever the data did. Presenting those identically would sell
+a modelling choice as an empirical finding.
+
+### Four things measurement caught
+
+- **"Vegas implied win % → best in the middle."** Any interior extreme was
+  called a hump, so a driver with rank correlation +0.58 was documented as
+  non-monotone on a fractional wobble. A reversal must now be ≥25% of the bin
+  spread. Implausible U-shapes fell from 11 to 6 and from 9 to 2.
+- **A constant target came out "non-monotone."** The flat test was gated on
+  `iqr > 0`, so a target with no variation skipped it and fell through every
+  later rule to the opposite of the truth.
+- **`insufficient-data` hid two different problems.** A feature absent from the
+  cohort and a cohort too small to bin need different sentences; the rookie
+  career model is 0/31 measurable and now says why (9 RB / 17 WR / 5 TE in the
+  2026 class — a shape needs the historical training cohort).
+- **A hazard sign that reads backwards is correct.** The abandonment target is
+  `stops-this-week`, conditional on still being active, so more weeks since the
+  last transaction *lowers* it — someone already quiet cannot newly stop. The
+  phrasing was imprecise enough to look like a bug; the blurb now says so.
+
+Two mutation tests initially passed against reinstated bugs, which was a test
+gap rather than a clean bill: the fixture's peak never left the last bin, and
+the Pearson/Spearman swap never changed a verdict. Fixtures now control the
+quintile means directly, and the returned statistic is pinned to be the rank
+correlation.
+
 ## Status
 
 | Step | State |
@@ -1077,6 +1137,7 @@ Each was invisible in unit tests and obvious against a live draft:
 | Best-ball waiver correction (`txnEnabled`) | **done** — unlocks 526 manager-seasons |
 | Peer-relative activity feature in the departure model | not started |
 | Draft grader (projection-based, league curve) | **done** — declines rookie drafts |
+| Feature importance + relationship shape in model docs | **done** — 5 models charted, 2 explained |
 | MCP tool | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking
