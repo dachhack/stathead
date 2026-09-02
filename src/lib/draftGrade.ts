@@ -55,6 +55,7 @@ export interface GradedPick extends DraftPickInput {
   vor: number;
   /** Best VOR still on the board when this pick was made. */
   bestAvailableVor: number;
+  /** Who the top of the board was at that moment, for "should have taken". */
   bestAvailableName: string;
   /** VOR forgone. Zero when the manager took the top of our board. */
   leftOnBoard: number;
@@ -80,6 +81,11 @@ export type DraftLetter = 'A' | 'B' | 'C' | 'D' | 'F';
 
 export interface DraftGradeReport {
   teams: TeamDraftGrade[];
+  /**
+   * Null when seasonal projections describe this draft. Otherwise the reason
+   * they do not, and the grades should not be shown.
+   */
+  notApplicable: string | null;
   /** Positions whose replacement baseline was derived, for the tooltip. */
   replacementRank: Record<string, number>;
   gradedPicks: number;
@@ -163,7 +169,31 @@ export function gradeDraft(opts: DraftGradeOptions): DraftGradeReport {
   const vorOf = (position: string, points: number) => points - (repl[position] ?? 0);
 
   // Walk the draft in order so "best available" means what was actually there.
-  const available = new Map(opts.pool.map((p) => [p.playerId, p]));
+  //
+  // The board is built from the players THIS DRAFT actually took, not from the
+  // whole projection pool. Seeding it with the pool looks right for a redraft
+  // and is badly wrong for a dynasty rookie draft, where only rookies are
+  // draftable: every "best available" then resolves to a veteran who was never
+  // on the board, and capture rate collapses to ~0% for all twelve teams —
+  // measured on a real league before this was fixed.
+  //
+  // Restricting to drafted players understates the board slightly in a redraft
+  // by ignoring anyone nobody took, but those are below replacement almost by
+  // definition, and it never invents availability. "Of the players that were
+  // there to be had, did you take the best one" is the question a draft grade
+  // should answer.
+  const poolById = new Map(opts.pool.map((p) => [p.playerId, p]));
+  // Picks are the only place a display name exists; the pool carries ids only.
+  const nameById = new Map(opts.picks.map((p) => [p.playerId, p.playerName]));
+  const available = new Map<string, { playerId: string; position: string; points: number }>();
+  for (const pick of opts.picks) {
+    const known = poolById.get(pick.playerId);
+    if (known) available.set(pick.playerId, known);
+    else if (pick.position) {
+      // No projection: still on the board, just worth nothing on our numbers.
+      available.set(pick.playerId, { playerId: pick.playerId, position: pick.position, points: 0 });
+    }
+  }
   const ordered = [...opts.picks].sort((a, b) => a.pickNo - b.pickNo);
 
   const byTeam = new Map<number, GradedPick[]>();
@@ -175,8 +205,14 @@ export function gradeDraft(opts: DraftGradeOptions): DraftGradeReport {
     let bestVor = -Infinity;
     let bestName = '';
     for (const cand of available.values()) {
+      // Only a projected player can be claimed as the better option. An
+      // unprojected one sits at 0 points, and because K and DEF have no
+      // replacement baseline their VOR computes as exactly 0 — which beats
+      // every genuinely below-replacement player and produced "took James
+      // Conner over Tennessee Titans" on a real draft.
+      if (!(cand.points > 0)) continue;
       const v = vorOf(cand.position, cand.points);
-      if (v > bestVor) { bestVor = v; bestName = cand.playerId; }
+      if (v > bestVor) { bestVor = v; bestName = nameById.get(cand.playerId) ?? cand.playerId; }
     }
     if (bestVor === -Infinity) bestVor = 0;
 
@@ -224,8 +260,28 @@ export function gradeDraft(opts: DraftGradeOptions): DraftGradeReport {
   teams.sort((a, b) => b.starterPoints - a.starterPoints);
   teams.forEach((t, i) => { t.rank = i + 1; t.grade = letterFor(i, teams.length); });
 
+  // A dynasty ROOKIE draft cannot be graded this way, and the failure is quiet
+  // rather than loud: replacement level is the 42nd-best RB in the full NFL
+  // pool, so every rookie sits below it, the capture denominator vanishes and
+  // nine of twelve teams read 0% while still receiving confident letters.
+  // Measured on a real rookie draft before this guard existed.
+  //
+  // Rookie pick value is multi-year dynasty value anyway, not 2026 points, so
+  // the right answer is to decline rather than to rescale something that was
+  // never measuring the right quantity.
+  const scoredPicks = ordered.filter((p) => (opts.projByPlayerId.get(p.playerId) ?? 0) > 0);
+  const aboveReplacement = scoredPicks.filter((p) =>
+    vorOf(p.position, opts.projByPlayerId.get(p.playerId) ?? 0) > 0).length;
+  const share = scoredPicks.length ? aboveReplacement / scoredPicks.length : 0;
+  const notApplicable = ordered.length >= 5 && share < 0.25
+    ? 'Almost nothing drafted here projects above replacement level, which is what a '
+      + 'dynasty rookie or devy draft looks like against seasonal projections. Rookie pick '
+      + 'value is multi-year dynasty value, not 2026 points, so these grades would be '
+      + 'measuring the wrong thing. Point this at a startup or redraft draft instead.'
+    : null;
+
   return {
-    teams, replacementRank: ranks,
+    teams, notApplicable, replacementRank: ranks,
     gradedPicks: ordered.length - unmatched,
     unmatchedPicks: unmatched,
   };

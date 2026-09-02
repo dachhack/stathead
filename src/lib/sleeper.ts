@@ -16,6 +16,8 @@ export interface SleeperLeagueInfo {
   total_rosters: number;
   roster_positions: string[];
   scoring_settings: Record<string, number>;
+  /** The league's draft, so a league id is enough to reach its draft. */
+  draft_id?: string | null;
   settings?: { type?: number; best_ball?: number };
 }
 
@@ -695,6 +697,8 @@ export interface SleeperDraftPick {
   pick_no: number;
   player_id: string;
   picked_by: string; // user_id, '' for CPU/autopick
+  /** Roster this pick belongs to. Absent on mock drafts, which have no league. */
+  roster_id?: number | null;
   metadata?: {
     first_name?: string;
     last_name?: string;

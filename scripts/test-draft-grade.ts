@@ -140,6 +140,35 @@ const SF = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'SUPER_FLEX', 'BN'];
     rep.teams.find((t) => t.rosterId === 1)!.starterPoints);
 }
 
+// ── a rookie draft is declined, not graded ──
+{
+  // Everything on this board sits far below the NFL replacement baseline, which
+  // is exactly what a dynasty rookie draft looks like. Grading it produced
+  // confident letters over a capture rate of 0% for nine of twelve teams.
+  const pool = Array.from({ length: 40 }, (_, i) => ({
+    playerId: `vet${i}`, position: 'RB', points: 300 - i * 5,
+  }));
+  const rookies = Array.from({ length: 10 }, (_, i) => ({
+    playerId: `rook${i}`, position: 'RB', points: 20 - i,
+  }));
+  const proj = new Map([...pool, ...rookies].map((p) => [p.playerId, p.points]));
+  const picks: DraftPickInput[] = rookies.map((r, i) => ({
+    pickNo: i + 1, round: 1, rosterId: (i % 2) + 1,
+    playerId: r.playerId, playerName: r.playerId, position: 'RB',
+  }));
+  const rep = gradeDraft({ picks, projByPlayerId: proj, pool: [...pool, ...rookies], rosterPositions: STD, teams: 2 });
+  check('a rookie draft is declined', (rep.notApplicable ?? '').includes('rookie'), rep.notApplicable);
+
+  // And a real redraft is NOT declined — the guard must not swallow the product.
+  const realPicks: DraftPickInput[] = pool.slice(0, 10).map((p, i) => ({
+    pickNo: i + 1, round: 1, rosterId: (i % 2) + 1,
+    playerId: p.playerId, playerName: p.playerId, position: 'RB',
+  }));
+  const ok = gradeDraft({ picks: realPicks, projByPlayerId: proj, pool, rosterPositions: STD, teams: 2 });
+  eq('a startup/redraft draft is graded normally', ok.notApplicable, null);
+  check('and produces real capture rates', ok.teams.some((t) => t.captureRate > 0));
+}
+
 // ── degenerate inputs ──
 {
   const empty = gradeDraft({ picks: [], projByPlayerId: new Map(), pool: [], rosterPositions: STD, teams: 12 });

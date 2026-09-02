@@ -987,6 +987,75 @@ The effect is a threshold, not a gradient — Q2 (13.3%) sits below Q3 (18.3%), 
 243 labelled best-ball-dynasty manager-seasons from one seed portfolio's
 neighbourhood, not a random sample of Sleeper.
 
+## Draft grader
+
+`src/lib/draftGrade.ts` scores every team in a Sleeper draft; the **Draft
+Grader** view takes a draft id, a league id, or a URL.
+
+### The grade is a description, not a forecast
+
+`scripts/backtest-draft-grade.ts` graded 3,310 real team-drafts from 301
+crawled league-seasons (2021–25) against how those seasons actually finished,
+using the FFC ADP for that season only. Everything was measured within
+league-season, since points-for scales differ enormously across leagues.
+
+The first pass looked like a finding: getting players *later* than ADP
+correlated with **fewer** points (r = −0.092) and reaching correlated with
+**more** (r = +0.099), both significant — backwards from every published draft
+grade, which was the tell.
+
+It is lookahead bias. Every historical FFC snapshot is collected in the last
+days before Week 1, and **263 of 301 drafts predate their own ADP file**, so the
+ADP already prices in late-August news the drafter never had. An ACL tear on
+Aug 28 collapses a player's ADP, so whoever drafted him looks like he got
+enormous value, then scores nothing.
+
+| metric | contaminated (2,965) | clean (344) |
+|---|---|---|
+| ADP value per pick | −0.103\* | 0.006 |
+| ADP value total | −0.133\* | −0.001 |
+| reach magnitude | +0.115\* | −0.013 |
+| roster quality | +0.093\* | 0.064 |
+| slot-adjusted | +0.152\* | 0.002 |
+
+Every effect vanishes on clean data, and level metrics fare no better than
+relative ones. Read it as no evidence rather than proof of zero: 344 team-drafts
+from 31 leagues, skewed dynasty, ruling out only |r| > ~0.17.
+
+So the shipped grade claims only what it can: how good a squad looks **on our
+projections**, and how much of the board a manager captured. The panel says so.
+
+### How it grades
+
+Two numbers per team — projected points of the best legal starting lineup, and
+the share of available value taken at their own slots. Replacement baselines
+come from the league's own roster settings: a superflex slot moves the QB
+baseline from 12th to 19th, and flex slots are split across the three eligible
+positions rather than charged in full to each.
+
+Grading is **relative to the league**, deliberately unlike the dynasty departure
+grade's fixed cutpoints. Departure risk is an absolute property of a manager; a
+draft is a competition against the other eleven teams in the room.
+
+### Four bugs the real data found
+
+Each was invisible in unit tests and obvious against a live draft:
+
+- **The board was the whole projection pool.** In a rookie draft every "best
+  available" resolved to a veteran who was never draftable, and capture rate
+  read ~0% for all twelve teams. The board is now built from the players the
+  draft actually took.
+- **Rookie drafts are declined.** Even with the board fixed, replacement level
+  is the 42nd-best RB in the NFL pool, so every rookie sits below it and nine of
+  twelve teams still read 0% while receiving confident letters. Rookie pick
+  value is multi-year dynasty value, not 2026 points.
+- **F was unreachable.** The curve divided by `total`, putting the worst of
+  twelve at 0.917; the bottom grade was decoration. Dividing by `total - 1`
+  gives the promised 2/3/4/2/1.
+- **"Took James Conner over Tennessee Titans."** Unprojected players enter at 0
+  points, and K/DEF have no replacement baseline, so their VOR computed as
+  exactly 0 — beating every genuinely below-replacement player.
+
 ## Status
 
 | Step | State |
@@ -1007,6 +1076,7 @@ neighbourhood, not a random sample of Sleeper.
 | Leave-risk column in the standings table | **done** — opt-in, approximate mode |
 | Best-ball waiver correction (`txnEnabled`) | **done** — unlocks 526 manager-seasons |
 | Peer-relative activity feature in the departure model | not started |
+| Draft grader (projection-based, league curve) | **done** — declines rookie drafts |
 | MCP tool | not started |
 
 Deliberately deferred: the injured-starter-hold feature and bye-week masking

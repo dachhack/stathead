@@ -20,6 +20,8 @@ const LS_USER_KEY = 'sleeper_username';
 // Read by the Dynasty Retention view, so clicking a risk cell lands there with
 // this league already filled in.
 const LS_RETENTION_KEY = 'sleeper_retention_league';
+// Read by the Draft Grader view, so arriving from a league grades that league.
+const LS_DRAFT_GRADER_KEY = 'sleeper_draft_grader_league';
 
 function PlayerLine({ p, proj, value, trend }: { p: RosterPlayer; proj?: number; value?: number; trend?: number | null }) {
   return (
@@ -1826,6 +1828,24 @@ export function SleeperLeagueView({ onNavigate }: SleeperLeagueViewProps) {
           )}
 
           <LeagueHealthPanel data={data} />
+
+          {onNavigate && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                className="format-tab"
+                onClick={() => {
+                  try { localStorage.setItem(LS_DRAFT_GRADER_KEY, data.league.league_id); } catch { /* private mode */ }
+                  onNavigate('draft-grader');
+                }}
+                style={{ padding: '6px 12px', fontSize: 12, fontWeight: 700 }}
+              >
+                Grade this draft →
+              </button>
+              <span style={{ fontSize: 11, opacity: 0.65, marginLeft: 8 }}>
+                a letter per team, on our projections
+              </span>
+            </div>
+          )}
 
           {isDynasty && onNavigate && (
             <div style={{ marginTop: 10 }}>

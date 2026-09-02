@@ -228,6 +228,7 @@ export type Tab =
   | 'sleeper-waivers'
   | 'sleeper-snooper'
   | 'dynasty-retention'
+  | 'draft-grader'
   | 'expert-tracker'
   | 'buzz-tracker'
   | 'consensus-adp'
