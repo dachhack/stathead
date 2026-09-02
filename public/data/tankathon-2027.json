@@ -1,5 +1,5 @@
 {
- "fetchedAt": "2026-08-24T14:18:27+00:00",
+ "fetchedAt": "2026-08-31T14:14:59+00:00",
  "source": "https://www.tankathon.com/nfl/mock_draft",
  "draftYear": 2027,
  "picks": [
@@ -35,15 +35,15 @@
   },
   {
    "pick": 6,
-   "name": "Dylan Stewart",
-   "pos": "EDGE",
-   "school": "South Carolina"
+   "name": "Cam Coleman",
+   "pos": "WR",
+   "school": "Texas"
   },
   {
    "pick": 7,
-   "name": "Jordan Seaton",
-   "pos": "OT",
-   "school": "LSU"
+   "name": "Dylan Stewart",
+   "pos": "EDGE",
+   "school": "South Carolina"
   },
   {
    "pick": 8,
@@ -65,8 +65,8 @@
   },
   {
    "pick": 11,
-   "name": "Cam Coleman",
-   "pos": "WR",
+   "name": "Trevor Goosby",
+   "pos": "OT",
    "school": "Texas"
   },
   {
@@ -77,27 +77,27 @@
   },
   {
    "pick": 13,
+   "name": "Jordan Seaton",
+   "pos": "OT",
+   "school": "LSU"
+  },
+  {
+   "pick": 14,
    "name": "KJ Bolden",
    "pos": "S",
    "school": "Georgia"
   },
   {
-   "pick": 14,
-   "name": "Darian Mensah",
-   "pos": "QB",
-   "school": "Miami"
-  },
-  {
    "pick": 15,
-   "name": "Trevor Goosby",
-   "pos": "OT",
-   "school": "Texas"
+   "name": "A'Mauri Washington",
+   "pos": "DL",
+   "school": "Oregon"
   },
   {
    "pick": 16,
-   "name": "Zabien Brown",
-   "pos": "CB",
-   "school": "Alabama"
+   "name": "Will Echoles",
+   "pos": "DL",
+   "school": "Ole Miss"
   },
   {
    "pick": 17,
@@ -113,81 +113,81 @@
   },
   {
    "pick": 19,
-   "name": "Trey'Dez Green",
-   "pos": "TE",
-   "school": "LSU"
-  },
-  {
-   "pick": 20,
-   "name": "A'Mauri Washington",
-   "pos": "DL",
-   "school": "Oregon"
-  },
-  {
-   "pick": 21,
-   "name": "Cayden Green",
-   "pos": "OT/IOL",
-   "school": "Missouri"
-  },
-  {
-   "pick": 22,
-   "name": "Ahmad Moten Sr.",
-   "pos": "DL",
+   "name": "Darian Mensah",
+   "pos": "QB",
    "school": "Miami"
   },
   {
-   "pick": 23,
-   "name": "Kyngstonn Viliamu-Asa",
-   "pos": "LB",
+   "pick": 20,
+   "name": "Ahmad Hardy",
+   "pos": "RB",
+   "school": "Missouri"
+  },
+  {
+   "pick": 21,
+   "name": "Tae Johnson",
+   "pos": "S",
    "school": "Notre Dame"
   },
   {
-   "pick": 24,
-   "name": "Kelley Jones",
-   "pos": "CB",
-   "school": "Mississippi State"
-  },
-  {
-   "pick": 25,
-   "name": "Will Echoles",
-   "pos": "DL",
-   "school": "Ole Miss"
-  },
-  {
-   "pick": 26,
-   "name": "Matayo Uiagalelei",
-   "pos": "EDGE",
-   "school": "Oregon"
-  },
-  {
-   "pick": 27,
+   "pick": 22,
    "name": "Charlie Becker",
    "pos": "WR",
    "school": "Indiana"
   },
   {
-   "pick": 28,
-   "name": "Quincy Rhodes Jr.",
-   "pos": "EDGE",
-   "school": "Arkansas"
+   "pick": 23,
+   "name": "Justin Scott",
+   "pos": "DL",
+   "school": "Miami"
   },
   {
-   "pick": 29,
+   "pick": 24,
+   "name": "Zabien Brown",
+   "pos": "CB",
+   "school": "Alabama"
+  },
+  {
+   "pick": 25,
+   "name": "Kewan Lacy",
+   "pos": "RB",
+   "school": "Ole Miss"
+  },
+  {
+   "pick": 26,
+   "name": "Kelley Jones",
+   "pos": "CB",
+   "school": "Mississippi State"
+  },
+  {
+   "pick": 27,
+   "name": "Trey'Dez Green",
+   "pos": "TE",
+   "school": "LSU"
+  },
+  {
+   "pick": 28,
    "name": "Nick Marsh",
    "pos": "WR",
    "school": "Indiana"
   },
   {
+   "pick": 29,
+   "name": "Cayden Green",
+   "pos": "OT/IOL",
+   "school": "Missouri"
+  },
+  {
    "pick": 30,
-   "name": "Carter Smith",
-   "pos": "OT",
-   "school": "Indiana"
+   "name": "Ahmad Moten Sr.",
+   "pos": "DL",
+   "school": "Miami"
   },
   {
    "pick": 31,
-   "name": "Justin Scott",
-   "pos": "DL",
-   "school": "Miami"
+   "name": "Sammy Brown",
+   "pos": "LB",
+   "school": "Clemson"
   },
   {
    "pick": 32,
@@ -197,15 +197,15 @@
   },
   {
    "pick": 33,
-   "name": "Damon Wilson II",
-   "pos": "EDGE",
-   "school": "Miami"
+   "name": "Carter Smith",
+   "pos": "OT",
+   "school": "Indiana"
   },
   {
    "pick": 34,
-   "name": "Tae Johnson",
-   "pos": "S",
-   "school": "Notre Dame"
+   "name": "Matayo Uiagalelei",
+   "pos": "EDGE",
+   "school": "Oregon"
   },
   {
    "pick": 35,
@@ -215,177 +215,399 @@
   },
   {
    "pick": 36,
-   "name": "Jordan Ross",
-   "pos": "EDGE",
-   "school": "LSU"
-  },
-  {
-   "pick": 37,
-   "name": "Ahmad Hardy",
-   "pos": "RB",
-   "school": "Missouri"
-  },
-  {
-   "pick": 38,
    "name": "Austin Siereveld",
    "pos": "OT",
    "school": "Ohio State"
   },
   {
-   "pick": 39,
-   "name": "Sammy Brown",
-   "pos": "LB",
-   "school": "Clemson"
-  },
-  {
-   "pick": 40,
-   "name": "Omarion Miller",
-   "pos": "WR",
-   "school": "Arizona State"
-  },
-  {
-   "pick": 41,
-   "name": "Kewan Lacy",
-   "pos": "RB",
-   "school": "Ole Miss"
-  },
-  {
-   "pick": 42,
-   "name": "Koi Perich",
-   "pos": "S",
-   "school": "Oregon"
-  },
-  {
-   "pick": 43,
-   "name": "A.J. Holmes Jr.",
-   "pos": "DL",
-   "school": "Texas Tech"
-  },
-  {
-   "pick": 44,
-   "name": "Mario Craver",
-   "pos": "WR",
-   "school": "Texas A&M"
-  },
-  {
-   "pick": 45,
-   "name": "Ryan Wingo",
-   "pos": "WR",
-   "school": "Texas"
-  },
-  {
-   "pick": 46,
+   "pick": 37,
    "name": "Jadan Baugh",
    "pos": "RB",
    "school": "Florida"
   },
   {
-   "pick": 47,
-   "name": "OJ Frederique Jr.",
-   "pos": "CB",
-   "school": "Miami"
-  },
-  {
-   "pick": 48,
+   "pick": 38,
    "name": "Trevor Lauck",
    "pos": "OT",
    "school": "Iowa"
   },
   {
-   "pick": 49,
-   "name": "Rasheem Biles",
-   "pos": "LB",
-   "school": "Texas"
+   "pick": 39,
+   "name": "LaNorris Sellers",
+   "pos": "QB",
+   "school": "South Carolina"
   },
   {
-   "pick": 50,
-   "name": "Chris Peal",
-   "pos": "CB",
-   "school": "Syracuse"
-  },
-  {
-   "pick": 51,
-   "name": "John Henry Daley",
+   "pick": 40,
+   "name": "Quincy Rhodes Jr.",
    "pos": "EDGE",
-   "school": "Michigan"
+   "school": "Arkansas"
   },
   {
-   "pick": 52,
-   "name": "Yhonzae Pierre",
-   "pos": "EDGE",
-   "school": "Alabama"
-  },
-  {
-   "pick": 53,
-   "name": "KJ Duff",
-   "pos": "WR",
-   "school": "Rutgers"
-  },
-  {
-   "pick": 54,
-   "name": "Anthonie Knapp",
-   "pos": "IOL",
-   "school": "Notre Dame"
-  },
-  {
-   "pick": 55,
-   "name": "Kenyatta Jackson Jr.",
-   "pos": "EDGE",
-   "school": "Ohio State"
-  },
-  {
-   "pick": 56,
-   "name": "Ty Benefield",
-   "pos": "S",
-   "school": "LSU"
-  },
-  {
-   "pick": 57,
-   "name": "Jamari Sharpe",
-   "pos": "CB",
-   "school": "Indiana"
-  },
-  {
-   "pick": 58,
-   "name": "Bryant Wesco Jr.",
-   "pos": "WR",
-   "school": "Clemson"
-  },
-  {
-   "pick": 59,
-   "name": "Jackson Bennee",
-   "pos": "S",
-   "school": "Utah"
-  },
-  {
-   "pick": 60,
-   "name": "Brice Pollock",
-   "pos": "CB",
-   "school": "Texas Tech"
-  },
-  {
-   "pick": 61,
+   "pick": 41,
    "name": "Ashton Hampton",
    "pos": "CB",
    "school": "Clemson"
   },
   {
+   "pick": 42,
+   "name": "Kyngstonn Viliamu-Asa",
+   "pos": "LB",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 43,
+   "name": "Omarion Miller",
+   "pos": "WR",
+   "school": "Arizona State"
+  },
+  {
+   "pick": 44,
+   "name": "Kenyatta Jackson Jr.",
+   "pos": "EDGE",
+   "school": "Ohio State"
+  },
+  {
+   "pick": 45,
+   "name": "OJ Frederique Jr.",
+   "pos": "CB",
+   "school": "Miami"
+  },
+  {
+   "pick": 46,
+   "name": "Greg Johnson",
+   "pos": "IOL",
+   "school": "Minnesota"
+  },
+  {
+   "pick": 47,
+   "name": "Koi Perich",
+   "pos": "S",
+   "school": "Oregon"
+  },
+  {
+   "pick": 48,
+   "name": "Yhonzae Pierre",
+   "pos": "EDGE",
+   "school": "Alabama"
+  },
+  {
+   "pick": 49,
+   "name": "Jacarrius Peak",
+   "pos": "OT",
+   "school": "South Carolina"
+  },
+  {
+   "pick": 50,
+   "name": "Mario Craver",
+   "pos": "WR",
+   "school": "Texas A&M"
+  },
+  {
+   "pick": 51,
+   "name": "Jordan Ross",
+   "pos": "EDGE",
+   "school": "LSU"
+  },
+  {
+   "pick": 52,
+   "name": "Damon Wilson II",
+   "pos": "EDGE",
+   "school": "Miami"
+  },
+  {
+   "pick": 53,
+   "name": "A.J. Holmes Jr.",
+   "pos": "DL",
+   "school": "Texas Tech"
+  },
+  {
+   "pick": 54,
+   "name": "Boubacar Traore",
+   "pos": "EDGE",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 55,
+   "name": "Brice Pollock",
+   "pos": "CB",
+   "school": "Texas Tech"
+  },
+  {
+   "pick": 56,
+   "name": "KJ Duff",
+   "pos": "WR",
+   "school": "Rutgers"
+  },
+  {
+   "pick": 57,
+   "name": "Wyatt Young",
+   "pos": "WR",
+   "school": "Oklahoma State"
+  },
+  {
+   "pick": 58,
+   "name": "Chris Cole",
+   "pos": "LB",
+   "school": "Georgia"
+  },
+  {
+   "pick": 59,
+   "name": "Melvin Siani",
+   "pos": "OT",
+   "school": "Texas"
+  },
+  {
+   "pick": 60,
+   "name": "Clev Lubin",
+   "pos": "EDGE",
+   "school": "Louisville"
+  },
+  {
+   "pick": 61,
+   "name": "Ryan Wingo",
+   "pos": "WR",
+   "school": "Texas"
+  },
+  {
    "pick": 62,
-   "name": "Suntarine Perkins",
-   "pos": "LB/EDGE",
-   "school": "Ole Miss"
+   "name": "Jamari Sharpe",
+   "pos": "CB",
+   "school": "Indiana"
   },
   {
    "pick": 63,
+   "name": "Bryant Wesco Jr.",
+   "pos": "WR",
+   "school": "Clemson"
+  },
+  {
+   "pick": 64,
+   "name": "PJ Williams",
+   "pos": "OT",
+   "school": "SMU"
+  },
+  {
+   "pick": 65,
+   "name": "Rasheem Biles",
+   "pos": "LB",
+   "school": "Texas"
+  },
+  {
+   "pick": 66,
+   "name": "Duce Robinson",
+   "pos": "WR",
+   "school": "Florida State"
+  },
+  {
+   "pick": 67,
+   "name": "Jelani McDonald",
+   "pos": "S",
+   "school": "Texas"
+  },
+  {
+   "pick": 68,
+   "name": "Teitum Tuioti",
+   "pos": "EDGE",
+   "school": "Oregon"
+  },
+  {
+   "pick": 69,
+   "name": "Zach Lutmer",
+   "pos": "S/CB",
+   "school": "Iowa"
+  },
+  {
+   "pick": 70,
+   "name": "Tavion Gadson",
+   "pos": "DL",
+   "school": "Kentucky"
+  },
+  {
+   "pick": 71,
+   "name": "Mateen Ibirogba",
+   "pos": "DL",
+   "school": "Texas Tech"
+  },
+  {
+   "pick": 72,
+   "name": "Iapani Laloulu",
+   "pos": "IOL",
+   "school": "Oregon"
+  },
+  {
+   "pick": 73,
+   "name": "Bray Hubbard",
+   "pos": "S",
+   "school": "Alabama"
+  },
+  {
+   "pick": 74,
+   "name": "Will Heldt",
+   "pos": "EDGE",
+   "school": "Clemson"
+  },
+  {
+   "pick": 75,
+   "name": "Mark Fletcher Jr.",
+   "pos": "RB",
+   "school": "Miami"
+  },
+  {
+   "pick": 76,
    "name": "Evan Tengesdahl",
    "pos": "IOL",
    "school": "Cincinnati"
   },
   {
-   "pick": 64,
+   "pick": 77,
+   "name": "Jayden Maiava",
+   "pos": "QB",
+   "school": "USC"
+  },
+  {
+   "pick": 78,
+   "name": "Isaac Brown",
+   "pos": "RB",
+   "school": "Louisville"
+  },
+  {
+   "pick": 79,
+   "name": "Anthonie Knapp",
+   "pos": "IOL",
+   "school": "Notre Dame"
+  },
+  {
+   "pick": 80,
+   "name": "Bear Alexander",
+   "pos": "DL",
+   "school": "Oregon"
+  },
+  {
+   "pick": 81,
+   "name": "Chris Peal",
+   "pos": "CB",
+   "school": "Syracuse"
+  },
+  {
+   "pick": 82,
+   "name": "A.J. Harris",
+   "pos": "CB",
+   "school": "Indiana"
+  },
+  {
+   "pick": 83,
+   "name": "Terrance Carter Jr.",
+   "pos": "TE",
+   "school": "Texas Tech"
+  },
+  {
+   "pick": 84,
+   "name": "Princewill Umanmielen",
+   "pos": "EDGE",
+   "school": "LSU"
+  },
+  {
+   "pick": 85,
+   "name": "Whit Weeks",
+   "pos": "LB",
+   "school": "LSU"
+  },
+  {
+   "pick": 86,
+   "name": "Jaylen McClain",
+   "pos": "S",
+   "school": "Ohio State"
+  },
+  {
+   "pick": 87,
+   "name": "John Henry Daley",
+   "pos": "EDGE",
+   "school": "Michigan"
+  },
+  {
+   "pick": 88,
+   "name": "Lance Heard",
+   "pos": "OT",
+   "school": "Kentucky"
+  },
+  {
+   "pick": 89,
+   "name": "Niki Prongos",
+   "pos": "OT",
+   "school": "Stanford"
+  },
+  {
+   "pick": 90,
+   "name": "LJ Martin",
+   "pos": "RB",
+   "school": "BYU"
+  },
+  {
+   "pick": 91,
+   "name": "Vicari Swain",
+   "pos": "CB",
+   "school": "South Carolina"
+  },
+  {
+   "pick": 92,
+   "name": "Luke Montgomery",
+   "pos": "IOL",
+   "school": "Ohio State"
+  },
+  {
+   "pick": 93,
+   "name": "Brendan Sorsby",
+   "pos": "QB",
+   "school": "Texas Tech"
+  },
+  {
+   "pick": 94,
+   "name": "Nyck Harbor",
+   "pos": "WR",
+   "school": "South Carolina"
+  },
+  {
+   "pick": 95,
+   "name": "Ty Benefield",
+   "pos": "S",
+   "school": "LSU"
+  },
+  {
+   "pick": 96,
    "name": "T.J. Moore",
    "pos": "WR",
    "school": "Clemson"
+  },
+  {
+   "pick": 97,
+   "name": "Peter Clarke",
+   "pos": "TE",
+   "school": "Temple"
+  },
+  {
+   "pick": 98,
+   "name": "Suntarine Perkins",
+   "pos": "LB/EDGE",
+   "school": "Ole Miss"
+  },
+  {
+   "pick": 99,
+   "name": "Anthony Smith",
+   "pos": "EDGE",
+   "school": "Minnesota"
+  },
+  {
+   "pick": 100,
+   "name": "Xavier Scott",
+   "pos": "CB",
+   "school": "Illinois"
+  },
+  {
+   "pick": 101,
+   "name": "Ben Roberts",
+   "pos": "LB",
+   "school": "Texas Tech"
   }
  ]
 }

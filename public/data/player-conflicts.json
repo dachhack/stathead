@@ -237,15 +237,6 @@
       ]
     },
     {
-      "gsis_id":"00-0039269",
-      "display_name":"James Ester",
-      "position":"DL",
-      "birth_dates":[
-        "2001-08-30",
-        "2001-08-31"
-      ]
-    },
-    {
       "gsis_id":"00-0039383",
       "display_name":"Jaylin Simpson",
       "position":"DB",
@@ -318,15 +309,6 @@
       ]
     },
     {
-      "gsis_id":"00-0039887",
-      "display_name":"Layden Robinson",
-      "position":"OL",
-      "birth_dates":[
-        "2001-03-03",
-        "2001-05-03"
-      ]
-    },
-    {
       "gsis_id":"00-0038426",
       "display_name":"Lorenz Metz",
       "position":"OL",
@@ -365,7 +347,7 @@
     {
       "gsis_id":"00-0036378",
       "display_name":"Michael Danna",
-      "position":"DL",
+      "position":"LB",
       "birth_dates":[
         "1997-12-01",
         "1997-12-04"
