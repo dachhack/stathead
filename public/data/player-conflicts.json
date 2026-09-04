@@ -113,7 +113,7 @@
     {
       "gsis_id":"00-0038535",
       "display_name":"DJ Johnson",
-      "position":"DL",
+      "position":"LB",
       "birth_dates":[
         "1998-10-21",
         "1998-10-29"
@@ -185,7 +185,7 @@
     {
       "gsis_id":"00-0040249",
       "display_name":"Fadil Diggs",
-      "position":"DL",
+      "position":"LB",
       "birth_dates":[
         "2001-10-05",
         "2001-10-15"
@@ -234,15 +234,6 @@
       "birth_dates":[
         "2000-01-11",
         "2001-01-11"
-      ]
-    },
-    {
-      "gsis_id":"00-0039269",
-      "display_name":"James Ester",
-      "position":"OL",
-      "birth_dates":[
-        "2001-08-30",
-        "2001-08-31"
       ]
     },
     {
@@ -315,15 +306,6 @@
       "birth_dates":[
         "1996-09-12",
         "1996-11-12"
-      ]
-    },
-    {
-      "gsis_id":"00-0039887",
-      "display_name":"Layden Robinson",
-      "position":"OL",
-      "birth_dates":[
-        "2001-03-03",
-        "2001-05-03"
       ]
     },
     {
