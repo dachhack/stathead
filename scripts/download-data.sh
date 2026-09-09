@@ -112,7 +112,12 @@ refresh_growing() {  # <url-subpath> <filename>
 }
 refresh_growing "combine/combine.csv" "combine.csv"
 refresh_growing "draft_picks/draft_picks.csv" "draft_picks.csv"
-refresh_growing "contracts/historical_contracts.csv" "historical_contracts.csv"
+# Contracts: nflverse froze historical_contracts.csv(.gz) at May 2022 signings
+# but rebuilds the .parquet daily. scripts/build-contracts-snapshot.py converts
+# the parquet into the tracked public/data/historical_contracts.csv.gz (legacy
+# layout, dollars); a failure keeps the committed snapshot. Needs pyarrow.
+(python3 scripts/build-contracts-snapshot.py \
+  || echo "  WARNING: contracts snapshot not refreshed (keeping committed historical_contracts.csv.gz)") &
 refresh_growing "trades/trades.csv" "trades.csv"
 refresh_growing "espn_data/qbr_season_level.csv" "qbr_season_level.csv"
 refresh_growing "espn_data/qbr_week_level.csv" "qbr_week_level.csv"

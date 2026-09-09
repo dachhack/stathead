@@ -105,6 +105,9 @@ jobs:
           git checkout -- public/ 2>/dev/null || true
 
       - run: npm ci
+      # pyarrow for scripts/build-contracts-snapshot.py (run from download-data.sh):
+      # nflverse only refreshes the contracts table as parquet now.
+      - run: python3 -m pip install --quiet pyarrow || echo "pyarrow install failed — contracts snapshot will not refresh"
       - run: bash scripts/download-data.sh
       - run: bash scripts/download-api-data.sh
 
@@ -359,6 +362,7 @@ jobs:
                    public/data/feature-store/ \
                    public/data/score-store/ \
                    public/data/roster_2026.csv.gz \
+                   public/data/historical_contracts.csv.gz \
                    public/data/depth_charts_2026.csv.gz \
                    public/data/injuries_2026.csv.gz \
                    public/data/snap_counts_2026.csv.gz \

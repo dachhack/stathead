@@ -16,6 +16,8 @@ import { blendPicks, recencyWeight, sampleWeight } from './adpBlend';
 import type { CfbdSpRating, CfbdRecruit, CfbdPlayerUsage } from '../data';
 import type { SeasonTotals, CombineResult, DraftPick, PlayerStats, NextGenStats, PlayByPlay, PbpParticipation, Roster, DepthChart, Contract, CollegeStats, CollegeQBR, DraftProspect, FfcADPPlayer } from '../types';
 import { computePlayerProjectionFeatures } from './playerProjection';
+import { indexContracts, contractForSeason, contractFeatures } from './contracts';
+import { captureRosterBio, resolvePlayerAge, resolveYearsInLeague, type RosterBioMap } from './playerBio';
 // Volume projection module available for future ML team-level models
 // import { trainTeamVolumeModel, buildTeamVolumeTrainingData, projectPlayerPPG } from './volumeProjection';
 import {
@@ -181,14 +183,14 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
         // and silently zeroing out collegeBreakoutAge + collegeTeammateScore.
         for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
 
-        // Contract lookup: player name → latest active contract
-        const contractByName = new Map<string, Contract>();
-        const sortedContracts = [...contractsData].sort((a, b) => b.year_signed - a.year_signed);
-        for (const c of sortedContracts) {
-          if (!['QB', 'RB', 'WR', 'TE'].includes(c.position)) continue;
-          const name = normalizeName(c.player);
-          if (!contractByName.has(name)) contractByName.set(name, c);
-        }
+        // Contract lookup: player name → every deal, newest first. Resolved
+        // per season through contractFor so a training row only sees the deal
+        // in force THAT year — with the live OverTheCap feed (see
+        // scripts/build-contracts-snapshot.py) the old "latest signing for
+        // every season" map would have leaked 2026 extensions into 2023 rows.
+        const contractsByName = indexContracts(contractsData);
+        const contractFor = (normalName: string, forSeason: number) =>
+          contractForSeason(contractsByName, normalName, forSeason);
 
         // College stats lookup: player name → final college season stats
         // CollegeStats has one row per player per statistic per season
@@ -1542,6 +1544,11 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // Team-listed physicals (height in inches, weight in lbs) — used as
           // a fallback when a player has no NFL Combine record.
           const rosterPhysicalsByName = new Map<string, { weight: number; heightIn: number }>();
+          // Roster-listed birth date / entry year / years_exp — the age and
+          // years-in-league source for UNDRAFTED players, who have no draft
+          // row (see src/lib/playerBio.ts). Captured for every roster row,
+          // before the ACT filter: bio doesn't depend on status.
+          const rosterBioByName: RosterBioMap = new Map();
           const parseRosterHeight = (h: unknown): number => {
             if (h == null) return 0;
             const s = String(h).trim();
@@ -1561,6 +1568,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
           };
           for (const r of seasonRosters) {
+            captureRosterBio(rosterBioByName, normalizeName(r.full_name), r as any, season);
             // Filter to ACT-status only. Earlier code used `r.status === 'Inactive'`
             // which doesn't match nflverse status codes (real codes: ACT, INA, RES,
             // CUT, DEV, UFA, RFA, RET, ...) so historical rosters were "deep"
@@ -1580,6 +1588,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
           // the current-season filter so the diff is consistent).
           const priorRosterByTeamPos = new Map<string, Set<string>>();
           for (const r of priorRosters) {
+            captureRosterBio(rosterBioByName, normalizeName(r.full_name), r as any, season - 1);
             if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
             const key = `${r.team}:${r.position}`;
             if (!priorRosterByTeamPos.has(key)) priorRosterByTeamPos.set(key, new Set());
@@ -2069,8 +2078,10 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
             // Estimate age from draft data
             const draftAge = draft?.age || 0;
-            const draftYear = draft?.season || 0;
-            const age = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 0;
+            // Draft-table age when drafted, roster birth date otherwise
+            // (undrafted vets used to read as age 0 / 0 years here).
+            const bio = rosterBioByName.get(normalName);
+            const age = resolvePlayerAge(draft, bio, season, 0);
 
             // Advanced stats from weekly aggregation
             const adv = advByName.get(normalName);
@@ -2100,7 +2111,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               adp: adpPlayer.adp,
               adpRound: Math.ceil(adpPlayer.adp / 12),
               age,
-              yearsInLeague: draft ? season - draft.season : 0,
+              yearsInLeague: resolveYearsInLeague(draft, bio, season),
               nflDraftRound: draft?.round || 8,
               nflDraftPick: draft?.pick || 300,
               // log(pick+1) so pick #1 → 0.693 instead of 0 — avoids the
@@ -2651,21 +2662,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
               // Contract data
               ...(() => {
-                const c = contractByName.get(normalName);
-                const yearsRem = c ? Math.max(0, c.years - (season - c.year_signed)) : 0;
-                return {
-                  contractAPY: c ? Math.round(c.apy / 1_000_000 * 10) / 10 : 0,
-                  contractGuaranteed: c ? Math.round(c.guaranteed / 1_000_000 * 10) / 10 : 0,
-                  contractAPYCapPct: c ? Math.round(c.apy_cap_pct * 100) / 100 : 0,
-                  contractYearsRemaining: yearsRem,
-                };
+                return contractFeatures(contractFor(normalName, season), season);
               })(),
 
               // Aging curves
               ...(() => {
-                const draftAge2 = draft?.age || 0;
-                const draftYear2 = draft?.season || 0;
-                const playerAge = draftAge2 > 0 && draftYear2 > 0 ? draftAge2 + (season - draftYear2) : 0;
+                const playerAge = resolvePlayerAge(draft, rosterBioByName.get(normalName), season, 0);
                 const curve = AGING_CURVES[adpPlayer.position];
                 if (!curve || playerAge === 0) return { ageCurveDelta: 0, isPeakAge: 0, isDeclineAge: 0 };
                 const isPeak = playerAge >= curve.peakStart && playerAge <= curve.peakEnd ? 1 : 0;
@@ -2706,10 +2708,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               // Interaction features
               ...(() => {
                 const a = adpPlayer.adp;
-                const draftAge = draft?.age || 0;
-                const draftYear = draft?.season || 0;
-                const playerAge = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 25;
-                const yil = draft ? season - draft.season : 0;
+                const bioI = rosterBioByName.get(normalName);
+                const playerAge = resolvePlayerAge(draft, bioI, season, 25);
+                const yil = resolveYearsInLeague(draft, bioI, season);
                 const pTeam = playerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
                 const scheme = schemeByTeam.get(pTeam);
                 const passRate = scheme && scheme.plays > 0 ? scheme.passes / scheme.plays : 0.5;
@@ -2717,7 +2718,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 const priorGames = prior?.games || 0;
                 const priorPPGVal = priorGames > 0 ? (prior?.fantasy_points_ppr || 0) / priorGames : 0;
                 const snapPctVal = snapAcc && snapAcc.count > 0 ? snapAcc.total / snapAcc.count : 0;
-                const contract = contractByName.get(normalName);
+                const contract = contractFor(normalName, season);
                 const cAPY = contract ? contract.apy / 1_000_000 : 0;
                 const cYearsRem = contract ? Math.max(0, contract.years - (season - contract.year_signed)) : 0;
                 const depthRank = depthRankByName.get(normalName) || 99;
@@ -3526,6 +3527,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             const predPlayerTeamMap = new Map<string, string>();
             const predHeadshotByName = new Map<string, string>(); // normalised name → headshot URL
             const predRosterPhysicalsByName = new Map<string, { weight: number; heightIn: number }>();
+            const predRosterBioByName: RosterBioMap = new Map();
             const parsePredRosterHeight = (h: unknown): number => {
               if (h == null) return 0;
               const s = String(h).trim();
@@ -3545,6 +3547,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               }
             };
             for (const r of predSeasonRosters) {
+              captureRosterBio(predRosterBioByName, normalizeName(r.full_name), r as any, predSeason);
               // ACT-status filter matches the training-side filter so the feature
               // has consistent semantics across both phases. See the comment at
               // the training-side roster loop for why.
@@ -3571,6 +3574,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
             }
             const predPriorRosterByTeamPos = new Map<string, Set<string>>();
             for (const r of predPriorRosters) {
+              captureRosterBio(predRosterBioByName, normalizeName(r.full_name), r as any, priorSeason);
               // ACT-only — same rationale as the current-season filter above.
               if (!POSITIONS.includes(r.position) || r.status !== 'ACT') continue;
               const key = `${r.team}:${r.position}`;
@@ -3980,12 +3984,16 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
               const priorCarries = prior?.carries || 0;
 
               const draftAge = draft?.age || 0;
-              const draftYear = draft?.season || 0;
-              // Position-median draft age fallback for players missing a
-              // birthdate on the nflverse draft row. 0 otherwise reads as
-              // "implausibly young" through the WR model's negative `age`
-              // coefficient and inflates UDFA / late-transfer predictions.
-              const age = draftAge > 0 && draftYear > 0 ? draftAge + (predSeason - draftYear) : 22;
+              // Draft-table age when drafted, roster birth date otherwise.
+              // Undrafted vets (Dowdle, Jaylen Warren, Meyers, Shaheed — ~200
+              // of the ~460 scored RB/WR/TE) used to land on the 22 fallback
+              // below with 0 years in league, and the share / interaction
+              // models scored them as rookies carrying a veteran's usage.
+              // Position-median draft age fallback for players missing BOTH:
+              // 0 otherwise reads as "implausibly young" through the WR
+              // model's negative `age` coefficient and inflates predictions.
+              const bio = predRosterBioByName.get(normalName);
+              const age = resolvePlayerAge(draft, bio, predSeason, 22);
 
               const adv = predAdvByName.get(normalName);
               const advWeeks = adv?.weeks || 1;
@@ -4011,7 +4019,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 adp: adpPlayer.adp,
                 adpRound: Math.ceil(adpPlayer.adp / 12),
                 age,
-                yearsInLeague: draft ? predSeason - draft.season : 0,
+                yearsInLeague: resolveYearsInLeague(draft, bio, predSeason),
                 nflDraftRound: draft?.round || projDraftByName.get(normalName)?.projRound || 8,
                 nflDraftPick: draft?.pick || projDraftByName.get(normalName)?.projPick || 300,
                 // log(pick+1) so pick #1 → 0.693 instead of 0 — same
@@ -4494,21 +4502,12 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
 
                 // Contract data
                 ...(() => {
-                  const c = contractByName.get(normalName);
-                  const yearsRem = c ? Math.max(0, c.years - (predSeason - c.year_signed)) : 0;
-                  return {
-                    contractAPY: c ? Math.round(c.apy / 1_000_000 * 10) / 10 : 0,
-                    contractGuaranteed: c ? Math.round(c.guaranteed / 1_000_000 * 10) / 10 : 0,
-                    contractAPYCapPct: c ? Math.round(c.apy_cap_pct * 100) / 100 : 0,
-                    contractYearsRemaining: yearsRem,
-                  };
+                  return contractFeatures(contractFor(normalName, predSeason), predSeason);
                 })(),
 
                 // Aging curves
                 ...(() => {
-                  const draftAge2 = draft?.age || 0;
-                  const draftYear2 = draft?.season || 0;
-                  const playerAge = draftAge2 > 0 && draftYear2 > 0 ? draftAge2 + (predSeason - draftYear2) : 0;
+                  const playerAge = resolvePlayerAge(draft, predRosterBioByName.get(normalName), predSeason, 0);
                   const curve = AGING_CURVES[adpPlayer.position];
                   if (!curve || playerAge === 0) return { ageCurveDelta: 0, isPeakAge: 0, isDeclineAge: 0 };
                   const isPeak = playerAge >= curve.peakStart && playerAge <= curve.peakEnd ? 1 : 0;
@@ -4579,10 +4578,9 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                 // Interaction features
                 ...(() => {
                   const a = adpPlayer.adp;
-                  const draftAge3 = draft?.age || 0;
-                  const draftYear3 = draft?.season || 0;
-                  const playerAge2 = draftAge3 > 0 && draftYear3 > 0 ? draftAge3 + (predSeason - draftYear3) : 25;
-                  const yil = draft ? predSeason - draft.season : 0;
+                  const bioI = predRosterBioByName.get(normalName);
+                  const playerAge2 = resolvePlayerAge(draft, bioI, predSeason, 25);
+                  const yil = resolveYearsInLeague(draft, bioI, predSeason);
                   const pTeam = predPlayerTeamMap.get(normalName) || adpPlayer.team || prior?.recent_team || '';
                   const scheme = predSchemeByTeam.get(pTeam);
                   const passRate = scheme && scheme.plays > 0 ? scheme.passes / scheme.plays : 0.5;
@@ -4591,7 +4589,7 @@ export async function buildFeatureMatrix(config: FeatureMatrixConfig): Promise<F
                   const priorPPGVal = priorGames > 0 ? (prior?.fantasy_points_ppr || 0) / priorGames : 0;
                   const snapPctVal = predSnapAccum.get(normalName);
                   const snapVal = snapPctVal && snapPctVal.count > 0 ? snapPctVal.total / snapPctVal.count : 0;
-                  const contract = contractByName.get(normalName);
+                  const contract = contractFor(normalName, predSeason);
                   const cAPY = contract ? contract.apy / 1_000_000 : 0;
                   const cYearsRem = contract ? Math.max(0, contract.years - (predSeason - contract.year_signed)) : 0;
                   const depthRank = predDepthRankByName.get(normalName) || 99;

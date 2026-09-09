@@ -24,7 +24,24 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-08-19 — Season-prep data audit. Refreshed the Sleeper ADP snapshot
+2026-09-09 — Share-model inputs fix, from an MCP report that Rico Dowdle
+(RB18) and Tyler Warren (TE2) projected high. Warren is a model opinion;
+Dowdle exposed two data bugs: (1) age / years-in-league came from the draft
+table only, so ~200 of ~460 scored RB/WR/TE (every undrafted vet) were fed
+to the share, aging and interaction models as 22-year-old rookies — new
+`src/lib/playerBio.ts` falls back to roster birth date / entry year in
+every path; (2) nflverse's contracts CSV has been frozen since May 2022
+(APY was 0 for the whole current pool) — new
+`scripts/build-contracts-snapshot.py` converts their still-daily parquet
+into a tracked `historical_contracts.csv.gz`, resolved per season so a live
+feed can't leak future extensions into training rows. Also cut the hosted
+MCP Worker's per-call load for `get_player_season_stats` (was parsing the
+full weekly table; now nflverse's per-season file) after Cloudflare 1102
+errors. **MCP 1.0.89 bundled, not yet published.** The committed feature
+matrix / score store / pool regenerate on the next refresh run — re-check
+the PIT backfield split then. Details in HANDOFF.md.
+
+Previously (2026-08-19) — Season-prep data audit. Refreshed the Sleeper ADP snapshot
 (the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and
 had already run this morning), then closed the season-rollover gaps the
 daily automation would have hit at kickoff: NGS split per season from

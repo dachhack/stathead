@@ -1,10 +1,13 @@
 /**
  * Profile feature group: ADP, age, years in league, draft capital.
- * These are derived from ADP data and draft records.
+ * Age and years in league come from the draft record when the player was
+ * drafted and from the roster (birth date / entry year) otherwise — see
+ * src/lib/playerBio.ts. Draft capital is draft-table only.
  */
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
+import { resolvePlayerAge, resolveYearsInLeague } from '../../playerBio';
 
 export const profileGroup: FeatureGroup = {
   def: {
@@ -15,16 +18,15 @@ export const profileGroup: FeatureGroup = {
       'nflDraftRound', 'nflDraftPick', 'logDraftPick', 'invDraftPick',
       'draftPickXEarlyDeclare',
     ],
-    dataDeps: ['adp', 'draft', 'college'],
+    dataDeps: ['adp', 'draft', 'college', 'rosters'],
     scope: 'seasonal',
   },
   compute: (ctx, season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
     for (const [pk, player] of ctx.players) {
       const draft = ctx.data.draftByName.get(player.normalName);
-      const draftAge = draft?.age || 0;
-      const draftYear = draft?.season || 0;
-      const age = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 0;
+      const bio = ctx.data.rosterBioByName.get(player.normalName);
+      const age = resolvePlayerAge(draft, bio, season, 0);
       const pick = draft?.pick || 300;
       const zap = ctx.data.collegeZapByName.get(player.normalName);
       const earlyDeclare = zap?.earlyDeclare || 0;
@@ -33,7 +35,7 @@ export const profileGroup: FeatureGroup = {
         adp: player.adp,
         adpRound: Math.ceil(player.adp / 12),
         age,
-        yearsInLeague: draft ? season - draft.season : 0,
+        yearsInLeague: resolveYearsInLeague(draft, bio, season),
         nflDraftRound: draft?.round || 8,
         nflDraftPick: pick,
         logDraftPick: Math.log(pick),

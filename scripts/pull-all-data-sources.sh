@@ -44,7 +44,8 @@ echo "Pulling static cross-season files..."
 fetch "$NFLVERSE/schedules/games.csv"                "$OUT/games.csv" &
 fetch "$NFLVERSE/combine/combine.csv"                "$OUT/combine.csv" &
 fetch "$NFLVERSE/draft_picks/draft_picks.csv"        "$OUT/draft_picks.csv" &
-fetch "$NFLVERSE/contracts/historical_contracts.csv" "$OUT/historical_contracts.csv" &
+# Contracts: tracked public/data/historical_contracts.csv.gz via
+# scripts/build-contracts-snapshot.py (the nflverse CSV stopped at 2022).
 fetch "$DRAFTDATA/college_statistics.csv"            "$OUT/college_statistics.csv" &
 fetch "$DRAFTDATA/college_qbr.csv"                   "$OUT/college_qbr.csv" &
 wait

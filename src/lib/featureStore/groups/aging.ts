@@ -4,6 +4,7 @@
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
+import { resolvePlayerAge } from '../../playerBio';
 
 const AGING_CURVES: Record<string, { peakStart: number; peakEnd: number; declineStart: number }> = {
   QB: { peakStart: 27, peakEnd: 32, declineStart: 35 },
@@ -17,16 +18,15 @@ export const agingGroup: FeatureGroup = {
     id: 'aging',
     label: 'Aging Curves',
     featureKeys: ['ageCurveDelta', 'isPeakAge', 'isDeclineAge'],
-    dataDeps: ['draft'],
+    dataDeps: ['draft', 'rosters'],
     scope: 'seasonal',
   },
   compute: (ctx, season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
     for (const [pk, player] of ctx.players) {
       const draft = ctx.data.draftByName.get(player.normalName);
-      const draftAge = draft?.age || 0;
-      const draftYear = draft?.season || 0;
-      const playerAge = draftAge > 0 && draftYear > 0 ? draftAge + (season - draftYear) : 0;
+      // Draft-table age when drafted, roster birth date otherwise.
+      const playerAge = resolvePlayerAge(draft, ctx.data.rosterBioByName.get(player.normalName), season, 0);
       const curve = AGING_CURVES[player.position];
 
       if (!curve || playerAge === 0) {

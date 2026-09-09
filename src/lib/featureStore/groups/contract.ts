@@ -1,9 +1,12 @@
 /**
  * Contract feature group: APY, guaranteed money, cap percentage.
+ * Uses the deal in force for the season being computed (newest signing on
+ * or before it), never a later extension — see src/lib/contracts.ts.
  */
 
 import { registerGroup } from '../registry';
 import type { FeatureGroup, PlayerKey } from '../types';
+import { contractForSeason, contractFeatures } from '../../contracts';
 
 export const contractGroup: FeatureGroup = {
   def: {
@@ -19,15 +22,8 @@ export const contractGroup: FeatureGroup = {
   compute: (ctx, season) => {
     const results = new Map<PlayerKey, Record<string, number>>();
     for (const [pk, player] of ctx.players) {
-      const c = ctx.data.contractByName.get(player.normalName);
-      const yearsRem = c ? Math.max(0, c.years - (season - c.year_signed)) : 0;
-
-      results.set(pk, {
-        contractAPY: c ? Math.round(c.apy / 1_000_000 * 10) / 10 : 0,
-        contractGuaranteed: c ? Math.round(c.guaranteed / 1_000_000 * 10) / 10 : 0,
-        contractAPYCapPct: c ? Math.round(c.apy_cap_pct * 100) / 100 : 0,
-        contractYearsRemaining: yearsRem,
-      });
+      const c = contractForSeason(ctx.data.contractsByName, player.normalName, season);
+      results.set(pk, contractFeatures(c, season));
     }
     return results;
   },

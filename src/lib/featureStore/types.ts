@@ -6,6 +6,9 @@
  * each group as a separate JSON shard, enabling incremental rebuilds.
  */
 
+import type { RosterBioMap } from '../playerBio';
+import type { ContractsByName } from '../contracts';
+
 /** Unique key for a player-season observation: "normalized_name::season" */
 export type PlayerKey = `${string}::${number}`;
 
@@ -162,8 +165,13 @@ export interface SharedContextData {
   // Roster-listed physicals (height in inches, weight in lbs) by normalized
   // name. Sourced from nflverse rosters when combine data is unavailable.
   rosterPhysicalsByName: Map<string, { weight: number; heightIn: number }>;
+  // Roster-listed birth date / entry year / years_exp by normalized name —
+  // age + years-in-league for players with no draft row (src/lib/playerBio.ts).
+  rosterBioByName: RosterBioMap;
   draftByName: Map<string, any>;
-  contractByName: Map<string, any>;
+  // Every contract per normalized name, newest first. Resolve the one in
+  // force for a season with contractForSeason (src/lib/contracts.ts).
+  contractsByName: ContractsByName;
   collegeByName: Map<string, Map<string, number>>;
   collegeAdvancedByName: Map<string, any>;
   collegeBestSeasonByName: Map<string, any>;

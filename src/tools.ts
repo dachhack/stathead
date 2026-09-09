@@ -5,7 +5,7 @@
 
 import type { Tool, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import {
-  fetchPlayerStats, aggregateToSeasonTotals, fetchGames,
+  fetchPlayerStats, fetchPlayerSeasonTotals, aggregateToSeasonTotals, fetchGames,
   fetchSnapCounts, fetchCombine, fetchDraftPicks, fetchInjuries,
   fetchAdvancedStats, fetchAdvancedStatsSeason, fetchPlayByPlay, fetchFantasyRankings,
   fetchSleeperTrending, fetchSleeperProjections,
@@ -841,8 +841,9 @@ async function executeToolInner(name: string, input: ToolInput): Promise<string>
       const playerName = input.player_name as string | undefined;
       const minGames = (input.min_games as number) || 0;
 
-      const raw = await fetchPlayerStats(season);
-      let totals = aggregateToSeasonTotals(raw.filter((s) => s.season_type === 'REG'));
+      // Season-level nflverse release when no local weekly file exists — the
+      // hosted Worker was parsing the full weekly table (~15 MB) per call.
+      let totals = await fetchPlayerSeasonTotals(season);
       if (position !== 'ALL') totals = totals.filter((p) => p.position === position);
       if (playerName) totals = totals.filter((p) => nameMatch(p.player_display_name, playerName));
       if (minGames) totals = totals.filter((p) => p.games >= minGames);

@@ -21,6 +21,7 @@ import type {
 } from '../types';
 import type { OddsGameLine } from '../data';
 import { aggregateToSeasonTotals, aggregateOddsToTeamImplied } from '../data';
+import { captureRosterBio, resolvePlayerAge, type RosterBioMap } from './playerBio';
 import projectionConfig from '../generated/projection-config.json';
 import {
   PREDICT_SEASON, POSITIONS, type Position, normTeam, TEAM_POS_LIMITS,
@@ -295,6 +296,10 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   // Draft data for age/experience
   const draftByName = new Map<string, DraftPick>();
   for (const d of draftData) draftByName.set(normalizeName(d.pfr_player_name), d);
+  // Roster birth dates back up the draft table for undrafted players, who
+  // otherwise have no age at all here (see src/lib/playerBio.ts).
+  const rosterBioByName: RosterBioMap = new Map();
+  for (const r of rosters) captureRosterBio(rosterBioByName, normalizeName(r.full_name), r, PREDICT_SEASON);
 
   // ── Per-player metadata for Scenario Builder presets ──
   // Combines roster experience/age, draft age/class, and prior-season
@@ -436,9 +441,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
 
   // Age-based regression factor
   function ageFactor(name: string, pos: string): number {
-    const draft = draftByName.get(name);
-    if (!draft) return 1;
-    const age = (draft.age || 0) + (PREDICT_SEASON - draft.season);
+    const age = resolvePlayerAge(draftByName.get(name), rosterBioByName.get(name), PREDICT_SEASON, 0);
+    if (age <= 0) return 1;
     if (pos === 'RB') {
       if (age >= 30) return 0.80;
       if (age >= 28) return 0.90;

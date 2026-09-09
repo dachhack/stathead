@@ -111,6 +111,19 @@ async function readLocalFile(filename: string): Promise<string | null> {
   return null;
 }
 
+/** True when `public/data/<filename>` (or its .gz sibling) exists locally.
+ *  Cheaper than readLocalFile when the caller only needs to choose a path. */
+async function localFileExists(filename: string): Promise<boolean> {
+  if (!IS_NODE) return false;
+  try {
+    const fs = await import('fs');
+    const path = `public/data/${filename}`;
+    return fs.existsSync(path) || fs.existsSync(`${path}.gz`);
+  } catch {
+    return false;
+  }
+}
+
 /** Node-only committed-snapshot JSON reader (always null in the browser).
  *  The training pipeline uses this to read public/data files directly —
  *  the deterministic, immutable inputs the snapshot regime guarantees. */
@@ -487,6 +500,82 @@ export async function fetchPlayerStats(season: number): Promise<PlayerStats[]> {
 
   // Filter to regular season only
   return (result.data as unknown as PlayerStats[]).filter((row) => row.season_type === 'REG');
+}
+
+/**
+ * Season totals for every player in `season`, from the cheapest source that
+ * can supply them. The weekly file is ~15 MB inflated (every player × every
+ * week × ~150 columns) and parsing it is what pushes the hosted MCP Worker
+ * over its CPU / memory limits (Cloudflare error 1102) when a few calls land
+ * together. nflverse also publishes the same table pre-aggregated per
+ * season — `stats_player_reg_<season>.csv.gz`, ~2k rows, ~8% the size — so:
+ *   1. a local weekly file (Node / CI) keeps the exact aggregate, milestone
+ *      counts included;
+ *   2. otherwise the season-level release is read directly;
+ *   3. otherwise the weekly release is aggregated as before.
+ * Rows from (2) carry no `games_300_pass`-style milestone counts (those need
+ * weekly lines); SeasonTotals declares them optional for that reason.
+ */
+export async function fetchPlayerSeasonTotals(season: number): Promise<SeasonTotals[]> {
+  if (await localFileExists(`player_stats_${season}.csv`)) {
+    const weekly = await fetchPlayerStats(season);
+    return aggregateToSeasonTotals(weekly.filter((s) => s.season_type === 'REG'));
+  }
+  try {
+    const rows = await fetchCsv<Record<string, unknown>>(
+      `${NFLVERSE_REMOTE}/stats_player/stats_player_reg_${season}.csv`,
+    );
+    const totals = rows
+      .filter((r) => (r.season_type ?? 'REG') === 'REG' && r.player_id)
+      .map((r) => seasonRowToTotals(normalizePlayerRow(r), season));
+    if (totals.length > 0) return totals;
+  } catch {
+    // fall through to the weekly aggregate
+  }
+  const weekly = await fetchPlayerStats(season);
+  return aggregateToSeasonTotals(weekly.filter((s) => s.season_type === 'REG'));
+}
+
+/** Map one nflverse season-level `stats_player_reg_*` row onto SeasonTotals. */
+function seasonRowToTotals(r: Record<string, unknown>, season: number): SeasonTotals {
+  const n = (k: string) => Number(r[k]) || 0;
+  const str = (k: string) => (r[k] == null ? '' : String(r[k]));
+  const receptions = n('receptions');
+  const fantasyPoints = n('fantasy_points');
+  return {
+    player_id: str('player_id'),
+    player_name: str('player_name'),
+    player_display_name: str('player_display_name') || str('player_name'),
+    position: str('position'),
+    headshot_url: str('headshot_url'),
+    recent_team: str('recent_team') || str('team'),
+    season: Number(r.season) || season,
+    games: n('games'),
+    completions: n('completions'),
+    attempts: n('attempts'),
+    passing_yards: n('passing_yards'),
+    passing_tds: n('passing_tds'),
+    interceptions: n('interceptions'),
+    carries: n('carries'),
+    rushing_yards: n('rushing_yards'),
+    rushing_tds: n('rushing_tds'),
+    receptions,
+    targets: n('targets'),
+    receiving_yards: n('receiving_yards'),
+    receiving_tds: n('receiving_tds'),
+    fantasy_points: fantasyPoints,
+    fantasy_points_ppr: n('fantasy_points_ppr'),
+    fantasy_points_half_ppr: fantasyPoints + receptions * 0.5,
+    rushing_fumbles_lost: n('rushing_fumbles_lost'),
+    receiving_fumbles_lost: n('receiving_fumbles_lost'),
+    sack_fumbles_lost: n('sack_fumbles_lost'),
+    passing_2pt_conversions: n('passing_2pt_conversions'),
+    rushing_2pt_conversions: n('rushing_2pt_conversions'),
+    receiving_2pt_conversions: n('receiving_2pt_conversions'),
+    special_teams_tds: n('special_teams_tds'),
+    rushing_first_downs: n('rushing_first_downs'),
+    receiving_first_downs: n('receiving_first_downs'),
+  };
 }
 
 export function aggregateToSeasonTotals(
@@ -1570,7 +1659,25 @@ export async function fetchRosters(season: number): Promise<Roster[]> {
 }
 
 // --- Contracts ---
+/**
+ * OverTheCap contracts. nflverse still publishes `historical_contracts.csv.gz`
+ * but stopped refreshing it in May 2022 (its `.parquet` / `.rds` siblings are
+ * rebuilt daily), so the CSV knows no signing after 2022 — every 2023+ deal
+ * read as "no contract" and contractAPY was 0 for most of the current pool.
+ * scripts/build-contracts-snapshot.py converts the fresh parquet into a
+ * committed `public/data/historical_contracts.csv.gz` in the legacy layout
+ * (money in dollars), which is read first here: the local file in Node / CI,
+ * the hosted `/data/` copy from the site and the Worker. The nflverse CSV is
+ * kept only as the last-resort fallback.
+ */
 export async function fetchContracts(): Promise<Contract[]> {
+  const snapshotUrl = `${dataBase()}data/historical_contracts.csv`;
+  try {
+    const rows = await fetchCsv<Contract>(snapshotUrl);
+    if (rows.length > 0) return rows;
+  } catch {
+    // fall through to nflverse
+  }
   return fetchCsv<Contract>(nflUrl(`contracts/historical_contracts.csv`));
 }
 

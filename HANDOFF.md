@@ -1,6 +1,102 @@
 # StatHead — session handoff
 
-Last updated 2026-08-19 (season-prep data audit). **Resume section directly below;** older notes follow.
+Last updated 2026-09-09 (share-model inputs: age / years / contracts). **Resume section directly below;** older notes follow.
+
+---
+
+## ⚡ Session wrap (2026-09-09, share-model inputs — `claude/share-model-inputs-g7v9yv`)
+
+Started from a downstream MCP report: Tyler Warren (TE2) and Rico Dowdle
+(RB18) looked high on `get_projections`. Warren is a model opinion (year-two
+volume bump on a real 21.8% rookie target share; the 138-target stat line is
+the documented `ML_ANCHOR` rescale of the volume line to the PPG model, not a
+share prediction). Dowdle was a data bug, and a wide one:
+
+**1. Undrafted players were scored as rookie-shaped.** Every feature path
+derived `age` and `yearsInLeague` from the nflverse DRAFT table only, so the
+~200 of ~460 scored RB/WR/TE with no draft row (Dowdle, Jaylen Warren, Jakobi
+Meyers, Rashid Shaheed, Jordan Mason, Kenny Gainwell…) got age 22 / 0 years at
+prediction time and age 0 / 0 years in training — while carrying a veteran's
+prior usage into the share ridge (`SHARE_FEATURE_KEYS` has `age`,
+`yearsInLeague`, `contractAPY`). Dowdle's card literally read "Age 22, Years
+in League 0". New `src/lib/playerBio.ts` resolves both from the draft row
+first and the roster (`birth_date`, `entry_year`, `years_exp`) second, and
+every site now goes through it: training + prediction rows in
+`buildFeatureMatrix.ts` (profile, aging, interaction blocks), the
+feature-store `profile` / `aging` groups (+ `rosterBioByName` on the shared
+context, `rosters` added to their dataDeps), and `ageFactor` in
+`buildProjectionPool.ts`, which returned 1 (no age haircut) for any undrafted
+back. Roster bios are captured for EVERY roster row before the ACT filter.
+Fallbacks when neither source knows (rare) are unchanged: 0 in training, 22
+at prediction, 25 in the interaction block.
+
+**2. Contract APY was 0 for the whole current pool.** nflverse still serves
+`contracts/historical_contracts.csv.gz` but stopped rebuilding it in **May
+2022** (max `year_signed` 2022; the `.csv` itself now 404s). The `.parquet`
+/ `.rds` siblings ARE rebuilt daily (`nflverse_timestamp 2026-09-09`). New
+`scripts/build-contracts-snapshot.py` converts the parquet into the LEGACY
+CSV layout (money in dollars, `is_active` TRUE/FALSE, nested
+`season_history` / `contract_history` dropped) → tracked
+`public/data/historical_contracts.csv.gz` (52,751 rows, signings through
+2026). `download-data.sh` runs it (non-fatal; needs pyarrow, which
+`refresh-data.yml` now pip-installs), the workflow commits the file, and
+`fetchContracts` reads the snapshot first (local file → hosted `/data/` →
+nflverse as last resort). With a live feed the old "latest signing for every
+season" map would have leaked 2026 extensions into 2023 training rows, so
+`src/lib/contracts.ts` now resolves the deal in force PER SEASON
+(`contractForSeason`) in both pipelines. `loadStaticData` never loaded
+contracts at all before — the feature-store contract group was always 0.
+
+**3. Hosted MCP Worker tipping over (Cloudflare 1102).** Four of nine
+parallel tool calls died with "Worker exceeded resource limits";
+`get_player_season_stats` was parsing the full weekly `stats_player_week`
+table (~15 MB inflated, every player × week × ~150 columns) per call. New
+`fetchPlayerSeasonTotals` reads nflverse's per-season
+`stats_player_reg_<season>.csv.gz` (~2k rows, 161 KB) when no local weekly
+file exists, falling back to the weekly aggregate. Local/CI keeps the exact
+weekly aggregate (milestone counts included). `get_depth_charts` (9.6 MB gz)
+and `get_player_features` (2.7 MB JSON) still parse a lot per call — not
+addressed.
+
+**MCP 1.0.89** — `mcp/dist/server.mjs` patched by hand (its documented
+regime: the bundle carries `SERVER_VERSION`, the Cloudflare-Workers guard,
+IDP buckets in `get_player_season_stats`, and exports
+`buildMetricsArtifacts` / `computeTeamMetricsForSeason` / `fetchPbpSlim`
+that exist nowhere in `src/` — a from-source rebuild would drop them and
+break `scripts/build-metrics-artifacts.mjs`; `src/mcp-server.ts` still says
+1.0.15). Not yet published; dispatch `publish-mcp.yml` after merge.
+
+### What this does NOT do yet
+
+- The committed `feature-matrix.json` / `score-store/*` / projection pool
+  still carry the old inputs. They regenerate on the next `refresh-data.yml`
+  run (precompute retrains the share ridges on the corrected training rows).
+  Re-check Dowdle / Jaylen Warren shares and the PIT backfield split after
+  that run; also spot-check the WR/TE share models, since ~44% of their
+  scored rows changed age / years-in-league.
+- The share model's `isRookie` feature is never set on any row (reads as 0
+  for everyone) — dead feature, left alone.
+- `shares.json` includes ~150 retired / unrostered names (Adam Humphries,
+  Seth Roberts…) at the WR intercept share (~0.167); harmless because the pool
+  keys off rosters, but noisy.
+- The hosted snapshot path only works once this branch is on the data
+  branch that `GITHUB_RAW_DATA_BASE` pins; until then the Worker falls
+  through to the stale nflverse CSV (verified: the fallback chain returns
+  the 2020 row rather than throwing).
+
+### Verified
+
+`tsc -b` and `tsc -p tsconfig.app.json --noEmit` clean; eslint clean on every
+changed/added line (the ~400 pre-existing errors elsewhere are untouched);
+assertion tests on `playerBio` / `contracts` helpers (Dowdle → age 28 / 6
+years / Steelers 2026 deal; 2023 row → the expired 2020 Cowboys deal; a
+kicker filtered out); `bash -n` on the three shell scripts; the snapshot
+script run against the live parquet; the patched bundle: `node --check`,
+tools/list (51 tools), `get_contracts` Dowdle → 2026 Steelers deal from the
+local snapshot, and — from a directory with NO local data —
+`get_player_season_stats` 2025 via the season-level file matching the
+weekly aggregate (Dowdle 216.3 PPR). `build:features` was NOT run (needs
+the full data download + 6 GB); the retrain happens in CI.
 
 ---
 

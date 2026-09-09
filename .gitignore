@@ -24,6 +24,7 @@ public/data/clay-team-projections-*.json
 !public/data/model-cache-*.json
 !public/data/feature-store/
 !public/data/score-store/
+!public/data/historical_contracts.csv.gz
 !public/data/ktc_rankings_*.json
 !public/data/ktc_history.json
 !public/data/nflverse_weekly_2025.json

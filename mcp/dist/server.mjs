@@ -37355,6 +37355,16 @@ var HOSTED_DATA_BASE = (IS_NODE && typeof process !== "undefined" ? process.env.
 function dataBase() {
   return import.meta.env?.BASE_URL ?? HOSTED_DATA_BASE;
 }
+async function localFileExists(filename) {
+  if (!IS_NODE) return false;
+  try {
+    const fs = await import("fs");
+    const path = `public/data/${filename}`;
+    return fs.existsSync(path) || fs.existsSync(`${path}.gz`);
+  } catch {
+    return false;
+  }
+}
 async function readLocalFile(filename) {
   if (!IS_NODE) return null;
   try {
@@ -37500,6 +37510,62 @@ var AGG_MAX_SUFFIX = "_long";
 // came back empty even though the source row had the number. IDP and punter
 // consumers need those columns, and there is no reason for this function to
 // decide which counting stats are interesting.
+async function fetchPlayerSeasonTotals(season) {
+  if (await localFileExists(`player_stats_${season}.csv`)) {
+    const weekly2 = await fetchPlayerStats(season);
+    return aggregateToSeasonTotals(weekly2.filter((s) => s.season_type === "REG"));
+  }
+  try {
+    const rows = await fetchCsv(
+      `${NFLVERSE_REMOTE}/stats_player/stats_player_reg_${season}.csv`
+    );
+    const totals = rows.filter((r) => (r.season_type ?? "REG") === "REG" && r.player_id).map((r) => seasonRowToTotals(normalizePlayerRow(r), season));
+    if (totals.length > 0) return totals;
+  } catch {
+  }
+  const weekly = await fetchPlayerStats(season);
+  return aggregateToSeasonTotals(weekly.filter((s) => s.season_type === "REG"));
+}
+function seasonRowToTotals(r, season) {
+  const n = (k) => Number(r[k]) || 0;
+  const str = (k) => r[k] == null ? "" : String(r[k]);
+  const receptions = n("receptions");
+  const fantasyPoints = n("fantasy_points");
+  return {
+    player_id: str("player_id"),
+    player_name: str("player_name"),
+    player_display_name: str("player_display_name") || str("player_name"),
+    position: str("position"),
+    headshot_url: str("headshot_url"),
+    recent_team: str("recent_team") || str("team"),
+    season: Number(r.season) || season,
+    games: n("games"),
+    completions: n("completions"),
+    attempts: n("attempts"),
+    passing_yards: n("passing_yards"),
+    passing_tds: n("passing_tds"),
+    interceptions: n("interceptions"),
+    carries: n("carries"),
+    rushing_yards: n("rushing_yards"),
+    rushing_tds: n("rushing_tds"),
+    receptions,
+    targets: n("targets"),
+    receiving_yards: n("receiving_yards"),
+    receiving_tds: n("receiving_tds"),
+    fantasy_points: fantasyPoints,
+    fantasy_points_ppr: n("fantasy_points_ppr"),
+    fantasy_points_half_ppr: fantasyPoints + receptions * 0.5,
+    rushing_fumbles_lost: n("rushing_fumbles_lost"),
+    receiving_fumbles_lost: n("receiving_fumbles_lost"),
+    sack_fumbles_lost: n("sack_fumbles_lost"),
+    passing_2pt_conversions: n("passing_2pt_conversions"),
+    rushing_2pt_conversions: n("rushing_2pt_conversions"),
+    receiving_2pt_conversions: n("receiving_2pt_conversions"),
+    special_teams_tds: n("special_teams_tds"),
+    rushing_first_downs: n("rushing_first_downs"),
+    receiving_first_downs: n("receiving_first_downs")
+  };
+}
 function aggregateToSeasonTotals(weeklyStats) {
   const playerMap = /* @__PURE__ */ new Map();
   for (const week of weeklyStats) {
@@ -38348,6 +38414,12 @@ async function fetchRosters(season) {
   return rosters;
 }
 async function fetchContracts() {
+  const snapshotUrl = `${dataBase()}data/historical_contracts.csv`;
+  try {
+    const rows = await fetchCsv(snapshotUrl);
+    if (rows.length > 0) return rows;
+  } catch {
+  }
   return fetchCsv(nflUrl(`contracts/historical_contracts.csv`));
 }
 async function fetchDepthCharts(season) {
@@ -40726,8 +40798,7 @@ async function executeToolInner(name, input) {
       const limit = clamp(input.limit || 30, 1, 100);
       const playerName = input.player_name;
       const minGames = input.min_games || 0;
-      const raw = await fetchPlayerStats(season);
-      let totals = aggregateToSeasonTotals(raw.filter((s) => s.season_type === "REG"));
+      let totals = await fetchPlayerSeasonTotals(season);
       // IDP buckets: leagues roster DL/LB/DB, nflverse labels DE/DT/LB/CB/SAF.
       // LB is both a bucket and a raw code, so it resolves to itself.
       const IDP_BUCKETS = { DL: ["DE", "DT", "NT", "DL"], LB: ["LB", "OLB", "ILB", "MLB"], DB: ["CB", "SAF", "FS", "SS", "DB"] };
@@ -43649,7 +43720,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.88";
+var SERVER_VERSION = "1.0.89";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

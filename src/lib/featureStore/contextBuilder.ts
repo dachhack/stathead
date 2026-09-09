@@ -14,11 +14,13 @@ import {
   fetchPbpParticipation, fetchRosters, fetchDepthCharts,
   fetchGames, fetchDraftProspects,
   aggregateToSeasonTotals,
-  fetchCombine, fetchCollegeStats, fetchDraftPicks,
+  fetchCombine, fetchCollegeStats, fetchDraftPicks, fetchContracts,
 } from '../../data';
 import { normalizeName, POSITIONS } from '../featureTypes';
 import { COMBINE_NAME_ALIASES } from '../combineNameAliases';
 import { buildCollegeAnalytics } from '../collegeAnalytics';
+import { indexContracts } from '../contracts';
+import { captureRosterBio } from '../playerBio';
 
 // ── Types for intermediate aggregations ─────────────────────────────
 
@@ -60,7 +62,7 @@ export async function buildSharedContext(opts: {
     combineByName: opts.staticData?.combineByName || new Map(),
     combineAvg: opts.staticData?.combineAvg || new Map(),
     draftByName: opts.staticData?.draftByName || new Map(),
-    contractByName: opts.staticData?.contractByName || new Map(),
+    contractsByName: opts.staticData?.contractsByName || new Map(),
     collegeByName: opts.staticData?.collegeByName || new Map(),
     collegeAdvancedByName: opts.staticData?.collegeAdvancedByName || new Map(),
     collegeBestSeasonByName: opts.staticData?.collegeBestSeasonByName || new Map(),
@@ -96,6 +98,7 @@ export async function buildSharedContext(opts: {
     gsisToPositionMap: new Map(),
     gsisToNameMap: new Map(),
     rosterPhysicalsByName: new Map(),
+    rosterBioByName: new Map(),
     vorReplacement: {},
     playerHistoryMap: opts.staticData?.playerHistoryMap || new Map(),
   };
@@ -355,6 +358,10 @@ export async function buildSharedContext(opts: {
     return isFinite(n) ? n : 0;
   };
   for (const r of rosters) {
+    // Bio first, before the ACT filter: a player's birth date / entry year
+    // doesn't depend on his status, and IR / practice-squad rows are the
+    // only ones some players have.
+    captureRosterBio(data.rosterBioByName, normalizeName(r.player_name || r.full_name), r, season);
     // ACT-only filter — matches buildFeatureMatrix.ts so the feature-store
     // path computes turnover and competition features on the same player set
     // as the prediction path.
@@ -385,6 +392,7 @@ export async function buildSharedContext(opts: {
     }
   }
   for (const r of priorRosters) {
+    captureRosterBio(data.rosterBioByName, normalizeName(r.player_name || r.full_name), r, season - 1);
     // ACT-only — matches the current-season filter above.
     if (!POSITIONS.includes(r.position) || (r as { status?: string }).status !== 'ACT') continue;
     const name = normalizeName(r.player_name || r.full_name);
@@ -817,11 +825,15 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
   const log = onStatus || (() => {});
   log('  Loading static data sources...');
 
-  const [combineData, collegeStatsData, draftData] = await Promise.all([
+  const [combineData, collegeStatsData, draftData, contractsData] = await Promise.all([
     fetchCombine().catch(() => []),
     fetchCollegeStats().catch(() => []),
     fetchDraftPicks().catch(() => []),
+    fetchContracts().catch(() => []),
   ]);
+  // Was never loaded here before, so the store's contract group always
+  // computed 0 APY for everyone.
+  const contractsByName = indexContracts(contractsData);
 
   // Combine lookups. PFR occasionally carries a legal name with a hyphenated
   // middle (e.g. "De'Zhaun-Ryan Stribling") that won't match the canonical
@@ -901,6 +913,7 @@ export async function loadStaticData(onStatus?: (msg: string) => void): Promise<
     combineByName,
     combineAvg,
     draftByName,
+    contractsByName,
     collegeByName,
     collegeAdvancedByName: college.collegeAdvancedByName,
     collegeBestSeasonByName: college.collegeBestSeasonByName,
