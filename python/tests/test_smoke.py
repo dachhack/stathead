@@ -135,7 +135,20 @@ def test_weekly_projections():
     df = stathead.load_weekly_projections()
     assert not df.empty
     assert {"player_key", "name", "position", "team", "week", "opp", "home",
-            "matchup_mult", "proj_ppr", "ppg", "gp"}.issubset(df.columns)
+            "matchup_mult", "proj_ppr", "ppg", "gp",
+            "depth", "status", "active", "backup", "proj_ppr_if_active"}.issubset(df.columns)
+    # Roster status only applies to skill positions; K/DST/IDP rows are None.
+    assert df.loc[df["position"].isin(["QB", "RB", "WR", "TE"]) & df["status"].notna(), "status"].isin(
+        ["ACT", "RES", "EXE", "DEV", "INA", "FA"]).all()
+    assert df["active"].dtype == bool and df["backup"].dtype == bool
+    # Inactive rows are zeroed from the current week on; the conditional strip
+    # rides along so a consumer can redistribute what was vacated.
+    inactive = df[~df["active"]]
+    if not inactive.empty:
+        assert (inactive["proj_ppr"] == 0).any()
+        assert inactive["proj_ppr_if_active"].notna().all()
+    # Normalization below only holds for rows the builder did not zero.
+    df = df[df["active"]]
     # 17 scheduled games per player (byes omitted), weeks within 1-18.
     assert (df.groupby("name")["week"].count() == 17).all()
     assert df["week"].between(1, 18).all()

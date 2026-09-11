@@ -59,14 +59,28 @@ def load_weekly_projections() -> pd.DataFrame:
     games (health) discount. Half/Std conversion: weekly receptions scale
     with the same multiplier, so ``rec_w = recPG * proj_ppr / ppg``.
 
-    Columns: ``player_key``, ``name``, ``position``, ``team``, ``gsis_id``,
-    ``sleeper_id``, ``week``, ``opp``, ``home``, ``matchup_mult``,
-    ``proj_ppr``, ``ppg``, ``recPG``, ``gp``, ``season``. The gsis/sleeper
-    ids are stamped at build time from the player crosswalk (None for
-    pre-NFL rookies).
+    Roster status (QB/RB/WR/TE, from the nflverse roster at build time):
+    ``status`` is ``ACT`` / ``RES`` (IR, PUP, NFI) / ``EXE`` (commissioner
+    exempt) / ``DEV`` (practice squad) / ``INA`` (game-day inactive) /
+    ``FA`` (unrostered), or None for K/DST/IDP rows. ``active`` is False for
+    RES/EXE/DEV/FA rows, whose ``proj_ppr`` is 0 from the current week on;
+    ``proj_ppr_if_active`` on those rows is the un-zeroed conditional
+    number (NaN elsewhere). Retired and cut players carry no rows.
+    ``backup`` is True for a 1-3 game season line on a depth-2+ player:
+    ``proj_ppr`` is then a per-game rate conditional on playing, not an
+    expectation of starting — rank those below starters. ``depth`` is the
+    position rank on the newest nflverse depth chart (1 = starter).
 
-    Metadata on ``df.attrs``: ``meta`` (generatedAt + method note) and
-    ``def_vs_pos`` (per-team defense-vs-position multiplier table).
+    Columns: ``player_key``, ``name``, ``position``, ``team``, ``gsis_id``,
+    ``sleeper_id``, ``depth``, ``status``, ``active``, ``backup``, ``week``,
+    ``opp``, ``home``, ``matchup_mult``, ``proj_ppr``, ``proj_ppr_if_active``,
+    ``ppg``, ``recPG``, ``gp``, ``season``. The gsis/sleeper ids are stamped
+    at build time from the player crosswalk (None for pre-NFL rookies).
+
+    Metadata on ``df.attrs``: ``meta`` (generatedAt, method note,
+    ``playedThrough`` = last week with every game final, ``currentWeek``,
+    ``statusNote``) and ``def_vs_pos`` (per-team defense-vs-position
+    multiplier table).
     """
     data = fetch_json("public/data/weekly-projections-2026.json")
     team_weeks = {
@@ -77,6 +91,7 @@ def load_weekly_projections() -> pd.DataFrame:
     rows = []
     for p in data.get("players") or []:
         sched = team_weeks.get(p["team"], {})
+        if_active = p.get("wkIfActive")
         for i, pts in enumerate(p["wk"]):
             week = i + 1
             game = sched.get(week)
@@ -88,11 +103,16 @@ def load_weekly_projections() -> pd.DataFrame:
                 "team": p["team"],
                 "gsis_id": p.get("gsis"),
                 "sleeper_id": p.get("sleeper"),
+                "depth": p.get("depth"),
+                "status": p.get("status"),
+                "active": p.get("active", True),
+                "backup": bool(p.get("backup", False)),
                 "week": week,
                 "opp": game["opp"],
                 "home": game["home"],
                 "matchup_mult": def_vs_pos.get(game["opp"], {}).get(p["pos"]),
                 "proj_ppr": pts,
+                "proj_ppr_if_active": if_active[i] if if_active else None,
                 "ppg": p["ppg"],
                 "recPG": p["recPG"],
                 "gp": p["gp"],
@@ -103,6 +123,9 @@ def load_weekly_projections() -> pd.DataFrame:
     df.attrs["meta"] = {
         "generatedAt": data.get("generatedAt"),
         "note": data.get("note"),
+        "playedThrough": data.get("playedThrough"),
+        "currentWeek": data.get("currentWeek"),
+        "statusNote": data.get("statusNote"),
     }
     df.attrs["def_vs_pos"] = def_vs_pos
     return df

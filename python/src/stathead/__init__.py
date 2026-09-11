@@ -42,7 +42,7 @@ from .prospects import load_prospect_grades
 from .sql import list_tables, query, register
 from .stats import load_player_stats
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 __all__ = [
     "__version__",

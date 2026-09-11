@@ -159,14 +159,14 @@ Mike Evans 7.8 → 16.9, Stafford 17.3 → 4.1, Davante Adams 14.6 → 5.6.
 | 1 | Roster status read by the weekly builder: RET/CUT rows dropped, RES/EXE/DEV/FA rows kept with `active=false`, `status`, and every week from `currentWeek` on zeroed | done — `scripts/build-weekly-projections.py` |
 | 2 | `weeks_played()` counts a week only when every scheduled game is final; the def-vs-pos, K/DST and IDP in-season blends use only completed weeks | done |
 | 3 | Pool ranks each team/position group by the newest nflverse depth chart ahead of the depth-order model; RET/CUT/EXE/DEV never enter the pool, RES sorts last | done — `src/lib/buildProjectionPool.ts`, `scripts/build-projection-pool.ts`. Local rebuild: Tua ATL QB1, Watson CLE QB1, Deebo/Diggs/Vele/Boutte/Burden/Allen/Waller/Lock now have rows |
-| 4 | `backup=true` on 1–3 game lines for depth-2+ players; `depth` now comes from the nflverse chart first | done (JSON only — the MCP's week-mode sort is in a bundle whose source is not in the repo, see below) |
+| 4 | `backup=true` on 1–3 game lines for depth-2+ players; `depth` now comes from the nflverse chart first | done — and MCP 1.0.89 week mode sorts backups below every starter (`status=backup`), applies roster status like an injury designation with next-man-up redistribution from `wkIfActive`, and defaults to `currentWeek`; Python 0.3.4 exposes `depth`/`status`/`active`/`backup`/`proj_ppr_if_active` |
 | 5 | `rosterOverrides.ts` entries expire on `ROSTER_OVERRIDES_2026_EXPIRES` (2026-09-01) | done |
 | 6 | Injury report re-pull timing | not changed — `refresh-data.yml` already runs every two hours; Friday designations land in the 20:00/22:00 UTC runs |
 
 Open follow-ups:
 
 - **Pool-level redistribution.** Dropping Josh Jacobs hands GB's backfield to Chris Brooks (334 pts) via prior-usage shares, not to MarShawn Lloyd (31); RB/WR shares come from the ML share model or prior-year usage, so removing a player does not re-split the pie sensibly. The weekly MCP's promotion logic is the right shape; it belongs in the pool.
-- **MCP week mode.** `get_weekly_projections` (and the K/DST/IDP/schedule-strength tools) exist only in the committed bundle `mcp/dist/server.mjs`; no branch has their source in `src/tools.ts`. Until that source is recovered the MCP cannot read the new `active`/`backup` fields or sort backups below starters.
+- **MCP bundle is the source.** `get_weekly_projections` (and the K/DST/IDP/schedule-strength tools) live only in `mcp/dist/server.mjs`, which `src/mcp-server.ts` designates as the hand-maintained source of truth since 1.0.16; `src/tools.ts` is frozen at the 1.0.15 toolset. Edit the bundle directly (as 1.0.89 did) and never run `build:mcp:from-src`, which would overwrite it from the frozen source.
 - Sleeper's projection tool returns 0 for kickers and nothing for DEF, so K/DST still have no external check.
 
 ## Daily audit plan

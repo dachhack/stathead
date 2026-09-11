@@ -10,6 +10,44 @@ Severity legend: 🔴 correctness (wrong numbers reach the user) · 🟠 broken 
 
 ---
 
+## ✅ Session update (2026-09-11, branch `claude/weekly-projections-validation-9krs95`)
+
+Week-1 validation of the weekly feed against rosters, depth charts, the
+injury report, Sleeper and the two games already played
+(`docs/weekly-projections-week1-validation.md`). Shipped:
+
+**Round 24 — roster-aware weekly feed (MCP 1.0.89, Python 0.3.4):**
+- 🔴 **Roster status was never read.** Josh Jacobs projected as GB RB1 from
+  the commissioner exempt list; a dozen IR/PUP/practice-squad players kept
+  full strips; a retired QB projected 18. The weekly builder now stamps
+  `status` (nflverse ACT/RES/EXE/DEV/INA/FA) and `active` on every skill
+  row, drops RET/CUT, zeroes RES/EXE/DEV/FA from `currentWeek` on and keeps
+  the conditional line in `wkIfActive`. `get_weekly_projections` week mode
+  applies it like an injury designation (0 + status column) and hands the
+  vacated line to the position-mates through the existing next-man-up pass.
+- 🔴 **Wrong week-1 QB1s / missing late signings.** The pool's per-team cut
+  followed a hand-retrained depth-order file (Penix over Tua, Sanders over
+  Watson; Deebo Samuel, Diggs, Vele, Boutte, Waller, Keenan Allen had no
+  row). The pool now orders every group by the newest nflverse depth chart,
+  bars RET/CUT/EXE/DEV, sorts RES last; the weekly `depth` column follows.
+- 🟠 **Backups outranking starters.** A 1-3 game line on a depth-2+ player
+  is now `backup=true`; week mode sorts those below every starter and marks
+  `status=backup` (Justin Fields was QB3 on his 2-game rate).
+- 🟠 **`playedThrough` flipped after two games.** `weeks_played()` now needs
+  every scheduled game of the week final; the in-season def-vs-pos / K /
+  DST / IDP blends use only completed weeks. New `currentWeek`; week mode
+  defaults to it instead of week 1.
+- 🟢 Roster overrides expire (`ROSTER_OVERRIDES_2026_EXPIRES`).
+- 🟢 Python `load_weekly_projections()` gains `depth`, `status`, `active`,
+  `backup`, `proj_ppr_if_active`, and `attrs['meta']` carries
+  `playedThrough` / `currentWeek` / `statusNote`.
+- Audit: `scripts/validate-weekly-projections.py` runs every refresh and
+  its counts feed the daily report (blocking buckets go red).
+
+Deferred: pool-level redistribution when a starter is barred (GB's backfield
+went to Chris Brooks via prior-usage shares, not MarShawn Lloyd); Sleeper's
+projection tool returns 0 for K and no DEF, so K/DST have no external check.
+
 ## ✅ Session update (2026-08-23, branch `claude/model-scores-missing-ma2snl`)
 
 Drip Fantasy production-integration feedback on `get_dynasty_values` /

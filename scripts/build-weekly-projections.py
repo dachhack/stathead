@@ -623,8 +623,13 @@ def main():
                     n_dropped += 1
                     continue
             active = status is None or status not in INACTIVE_STATUSES | {'FA'}
+            wk_if_active = None
             if not active:
                 n_inactive += 1
+                # Keep the conditional strip alongside the zeroed one: a
+                # consumer redistributing the absent starter's production
+                # (the MCP's next-man-up pass) needs to know what was vacated.
+                wk_if_active = wk
                 wk = [0.0 if (v is not None and w >= current_week) else v
                       for w, v in enumerate(wk, start=1)]
             depth = depth_rank.get(key)
@@ -645,6 +650,7 @@ def main():
                 'ppg': round(ppg, 2),
                 'recPG': round(rec_pg, 2),
                 'wk': wk,
+                **({'wkIfActive': wk_if_active} if wk_if_active is not None else {}),
             })
     if have_roster:
         print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
@@ -873,7 +879,9 @@ def main():
             'game-day inactive, FA not on any roster; null when no roster file). '
             'active=false rows (RES/EXE/DEV/FA) have every week from currentWeek '
             'on zeroed — they are kept so a consumer can see who is out and '
-            'restore the strip the day the roster flips back to ACT. RET/CUT rows '
+            'restore the strip the day the roster flips back to ACT; wkIfActive '
+            'on those rows is the un-zeroed conditional strip, for consumers that '
+            'redistribute the vacated production. RET/CUT rows '
             'are dropped. backup=true marks a 1-3 game line for a depth-2+ '
             'player: a per-game rate conditional on playing, to be ranked below '
             'starters. playedThrough counts a week only once every scheduled game '

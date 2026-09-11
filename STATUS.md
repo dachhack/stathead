@@ -43,8 +43,11 @@ expire 2026-09-01. Daily audit wired: `refresh-data.yml` writes
 `weekly-projections-audit.{md,json}` every run and the daily report carries
 the card (blocking buckets go red). Open: pool-level redistribution when a
 starter is dropped (GB backfield went to Chris Brooks, not Lloyd), and the
-weekly/K/DST/IDP MCP tools exist only in `mcp/dist/server.mjs` — their source
-was never committed, so the MCP cannot read the new fields yet.
+weekly/K/DST/IDP MCP tools live only in `mcp/dist/server.mjs`, which is the
+hand-maintained source of truth (per `src/mcp-server.ts`); edited directly
+for 1.0.89 so week mode applies roster status like an injury designation,
+sorts backups below starters, and defaults to `currentWeek`. Python 0.3.4
+exposes the same fields.
 
 Previously (2026-08-19) — Season-prep data audit. Refreshed the Sleeper ADP snapshot
 (the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and
@@ -111,9 +114,11 @@ framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (t
 
 ## Next 3 tasks
 
-0. Publish MCP **1.0.70** (adds get_schedule_strength; 1.0.69 (adds DST components; 1.0.68 (1.0.66 is live; 1.0.67 adds the projected stat line, 1.0.68 adds kickers with field-goal components) — until then every
-   npx/connector client still lacks the projected-games fields. And dispatch
-   **Refresh Clay** (new `refresh-clay.yml`) to unfreeze the `consensus`
+0. MCP **1.0.89** + Python **0.3.4** (roster-aware weekly feed: status /
+   active / backup / currentWeek, backups sorted below starters) tagged for
+   publish from `claude/weekly-projections-validation-9krs95`; confirm the
+   publish-mcp / python-publish / MCP-registry runs went green. Dispatch
+   **Refresh Clay** (`refresh-clay.yml`) to unfreeze the `consensus`
    preset, stuck at 2026-06-16; leave `CLAY_PROJECTIONS_B64` unset so that
    workflow stays its only writer.
 1. Fix projection-pool depth-share artifacts: deep TEs inflated (Greg
