@@ -24,7 +24,19 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-08-19 — Season-prep data audit. Refreshed the Sleeper ADP snapshot
+2026-09-11 — Week 1 weekly-projection validation
+(`docs/weekly-projections-week1-validation.md`, rerunnable via
+`scripts/validate-weekly-projections.py`). Matchup layer agrees with Sleeper
+(r 0.72–0.86 for RB/WR/TE starters); the misses are upstream: roster status
+is never read (Josh Jacobs on the exempt list and a dozen IR/PUP/practice-squad
+players carry full strips), the pool's per-team cut uses a hand-retrained
+depth-order file from Sep 7 (Cooper Rush / Deshaun Watson are the real week-1
+QB1s; Deebo Samuel, Diggs, Vele, Boutte, Waller, Keenan Allen have no row),
+1-game backups outrank starters on the raw weekly board, and
+`weeks_played()` marks week 1 played after the first two games. Fix list in
+the doc; nothing changed in the builders yet.
+
+Previously (2026-08-19) — Season-prep data audit. Refreshed the Sleeper ADP snapshot
 (the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and
 had already run this morning), then closed the season-rollover gaps the
 daily automation would have hit at kickoff: NGS split per season from
