@@ -11,6 +11,14 @@ interface WeeklyPlayer {
   ppg: number;
   recPG: number;
   wk: (number | null)[];
+  /** Depth-chart rank (1 = starter); skill positions only. */
+  depth?: number | null;
+  /** nflverse roster status at build time (ACT / RES / EXE / DEV / INA / FA); skill positions only. */
+  status?: string | null;
+  /** false = on reserve / exempt / practice squad / unrostered; the builder zeroes the weeks from currentWeek on. */
+  active?: boolean;
+  /** A 1–3 game season line on a depth-2+ player: each week is a per-game rate conditional on playing, not an expectation of starting. */
+  backup?: boolean;
 }
 
 interface TeamWeek { w: number; opp: string; home: boolean }
@@ -20,10 +28,19 @@ interface WeeklyDoc {
   generatedAt: string;
   note: string;
   weeks: number;
+  /** Last week with every game final (0 preseason). */
+  playedThrough?: number;
+  /** First week whose games are not all final. */
+  currentWeek?: number;
   defVsPos: Record<string, Record<string, number>>;
   teamWeeks: Record<string, TeamWeek[]>;
   players: WeeklyPlayer[];
 }
+
+/** Roster statuses that mean the player is not playing for this team this week. */
+const STATUS_LABEL: Record<string, string> = {
+  RES: 'IR / reserve', EXE: 'exempt list', DEV: 'practice squad', FA: 'unrostered',
+};
 
 type Scoring = 'ppr' | 'half' | 'std';
 const POS_FILTERS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DST'] as const;
@@ -61,12 +78,20 @@ export function WeeklyProjectionsView() {
   const [pos, setPos] = useState<(typeof POS_FILTERS)[number]>('ALL');
   const [scoring, setScoring] = useState<Scoring>('ppr');
   const [search, setSearch] = useState('');
+  // Backups (1–3 game lines) rank on a conditional per-game rate that put a
+  // one-game QB2 fourth on the board; hidden by default, toggle to see them.
+  const [showBackups, setShowBackups] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     fetch(bust(`${import.meta.env.BASE_URL}data/weekly-projections-2026.json`))
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then((d: WeeklyDoc) => { if (!cancelled) setDoc(d); })
+      .then((d: WeeklyDoc) => {
+        if (cancelled) return;
+        setDoc(d);
+        // Open on the week being played, not week 1 all season.
+        if (d.currentWeek && d.currentWeek >= 1 && d.currentWeek <= (d.weeks || 18)) setWeek(d.currentWeek);
+      })
       .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
     return () => { cancelled = true; };
   }, []);
@@ -86,21 +111,36 @@ export function WeeklyProjectionsView() {
     const q = search.trim().toLowerCase();
     return doc.players
       .filter((p) => (pos === 'ALL' || p.pos === pos) && (!q || p.name.toLowerCase().includes(q)))
+      // A searched-for backup still shows; only the unfiltered board hides them.
+      .filter((p) => showBackups || !p.backup || !!q)
       .map((p) => {
         const raw = p.wk[week - 1];
         const game = oppFor.get(`${p.team}:${week}`) ?? null;
         const mult = game ? (doc.defVsPos[game.opp]?.[p.pos] ?? 1) : null;
+        const inactive = p.active === false && (doc.currentWeek == null || week >= doc.currentWeek);
         return {
           p,
           game,
           mult,
+          inactive,
           pts: raw == null ? null : scorePts(p, raw, scoring),
           playoffs: avgOverWeeks(p, PLAYOFF_WEEKS, scoring),
           seasonPpg: scorePts(p, p.ppg, scoring),
         };
       })
-      .sort((a, b) => (b.pts ?? -1) - (a.pts ?? -1));
-  }, [doc, week, pos, scoring, search, oppFor]);
+      // Starters by points, then backups by points; inactive rows are already
+      // zero in the feed and fall to the bottom on their own.
+      .sort((a, b) => {
+        const ta = a.p.backup ? 1 : 0;
+        const tb = b.p.backup ? 1 : 0;
+        return ta !== tb ? ta - tb : (b.pts ?? -1) - (a.pts ?? -1);
+      });
+  }, [doc, week, pos, scoring, search, showBackups, oppFor]);
+
+  const hiddenBackups = useMemo(() => {
+    if (!doc || showBackups || search.trim()) return 0;
+    return doc.players.filter((p) => p.backup && (pos === 'ALL' || p.pos === pos)).length;
+  }, [doc, pos, showBackups, search]);
 
   if (error) return <div className="empty-state"><h3>Weekly projections unavailable</h3><p>{error}</p></div>;
   if (!doc) return <div className="loading"><div className="spinner" /><div className="loading-text">Loading weekly projections…</div></div>;
@@ -112,7 +152,8 @@ export function WeeklyProjectionsView() {
         <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 0', maxWidth: 720 }}>
           Season projection split across the schedule: opponent defense-vs-position strength
           (last season&apos;s points allowed, heavily regressed) plus a home/away nudge, normalized so the
-          17 weeks sum back to the season line. Points assume the player suits up. Kickers (current
+          17 weeks sum back to the season line. Points assume the player suits up; players on IR, the
+          exempt list or a practice squad are zeroed from the current week on. Kickers (current
           depth-chart PK1) and team DST are projected from team context with the same matchup framework.
         </p>
       </div>
@@ -139,6 +180,11 @@ export function WeeklyProjectionsView() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ minWidth: 160 }}
         />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}
+          title="Backups carry a 1–3 game season line, so their weekly number is a per-game rate conditional on playing — not an expectation of starting.">
+          <input type="checkbox" checked={showBackups} onChange={(e) => setShowBackups(e.target.checked)} />
+          Show backups{hiddenBackups ? ` (${hiddenBackups})` : ''}
+        </label>
       </div>
 
       <div className="table-container">
@@ -162,6 +208,18 @@ export function WeeklyProjectionsView() {
                 <td style={{ color: 'var(--text-muted)' }}>{r.pts == null ? '—' : i + 1}</td>
                 <td style={{ textAlign: 'left', fontWeight: 600 }}>
                   <PlayerName name={r.p.name} position={r.p.pos} />
+                  {r.inactive && (
+                    <span title={`Roster status ${r.p.status ?? ''}: not on the active roster; zeroed from the current week on.`}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#ef4444', border: '1px solid #ef4444', borderRadius: 4, padding: '0 4px', verticalAlign: 'middle' }}>
+                      {STATUS_LABEL[r.p.status ?? ''] ?? r.p.status ?? 'inactive'}
+                    </span>
+                  )}
+                  {!r.inactive && r.p.backup && (
+                    <span title={`Backup: a ${r.p.gp}-game season line, so this is a per-game rate conditional on playing.`}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--text-muted)', borderRadius: 4, padding: '0 4px', verticalAlign: 'middle' }}>
+                      backup
+                    </span>
+                  )}
                 </td>
                 <td>{r.p.pos}</td>
                 <td>
@@ -181,7 +239,7 @@ export function WeeklyProjectionsView() {
         </table>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 8 }}>
-        {rows.length} players · generated {doc.generatedAt.slice(0, 10)} · refreshed with the daily data pipeline.
+        {rows.length} players{hiddenBackups ? ` (${hiddenBackups} backups hidden)` : ''} · generated {doc.generatedAt.slice(0, 10)} · refreshed with the daily data pipeline.
       </p>
     </div>
   );
