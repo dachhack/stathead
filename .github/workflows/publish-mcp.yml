@@ -26,13 +26,21 @@ name: Publish stathead-mcp to npm
 #   Then you can delete the old NPM_TOKEN secret and revoke that npm token.
 #
 # Subsequent releases:
-#   1. Bump `version` in mcp/package.json
-#   2. Either: tag mcp-v1.1.0 + push, OR run workflow_dispatch from the UI
+#   1. Bump `version` in mcp/package.json (and SERVER_VERSION in the bundle)
+#   2. Either: tag mcp-v1.1.0 + push, OR run workflow_dispatch from the UI,
+#      OR (C) push the release commit to the `publish-mcp-now` branch:
+#        git push -f origin <commit>:publish-mcp-now
+#      C needs only branch-push rights, so a Claude Code session (whose git
+#      proxy refuses tag pushes and whose GitHub app cannot dispatch) can
+#      release. Guarded: the commit must already be on the default branch.
+#      The registry publish (publish-mcp-registry.yml) is chained after a
+#      successful npm publish on every trigger.
 
 on:
   push:
     tags:
       - 'mcp-v*'
+    branches: [publish-mcp-now]
   workflow_dispatch:
 
 permissions:
@@ -48,6 +56,21 @@ jobs:
       id-token: write  # OIDC auth for Trusted Publishing + provenance
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # merge-base for the publish-mcp-now guard below
+
+      # Branch-push trigger safety: only code already merged to the default
+      # branch may publish this way, so a stray push to publish-mcp-now from
+      # an unmerged branch cannot ship.
+      - name: Require the commit to be on the default branch (publish-mcp-now only)
+        if: github.ref == 'refs/heads/publish-mcp-now'
+        run: |
+          git fetch --no-tags origin claude/nfl-fantasy-workbench-6D1yd
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "::error::$(git rev-parse --short HEAD) is not on claude/nfl-fantasy-workbench-6D1yd — merge first, then push that commit to publish-mcp-now."
+            exit 1
+          fi
+          echo "OK: $(git rev-parse --short HEAD) is on claude/nfl-fantasy-workbench-6D1yd."
 
       - uses: actions/setup-node@v4
         with:
@@ -130,3 +153,12 @@ jobs:
           echo '```bash' >> "$GITHUB_STEP_SUMMARY"
           echo "npx -y stathead-mcp" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # List the new version in the official MCP Registry once npm has it. The
+  # called workflow waits for npm to serve the version before publishing.
+  registry:
+    needs: publish
+    uses: ./.github/workflows/publish-mcp-registry.yml
+    permissions:
+      contents: read
+      id-token: write

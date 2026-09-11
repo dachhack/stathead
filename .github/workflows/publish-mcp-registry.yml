@@ -18,7 +18,8 @@ name: Publish to MCP Registry
 #   2. server.json `version` matches the published npm version — the step below
 #      syncs it from mcp/package.json so it can't drift.
 #
-# Trigger: run manually after an npm publish, or on an mcp-v* tag push.
+# Trigger: chained from publish-mcp.yml after every successful npm publish
+# (workflow_call), run manually after an npm publish, or on an mcp-v* tag push.
 # Verify the mcp-publisher invocation against the current registry docs if it
 # changes: https://github.com/modelcontextprotocol/registry
 
@@ -53,6 +54,21 @@ jobs:
           jq --arg v "$VER" '.version=$v | .packages[0].version=$v' mcp/server.json > "$tmp" && mv "$tmp" mcp/server.json
           echo "server.json synced to $VER"
           cat mcp/server.json
+
+      # When chained straight after `npm publish`, the registry can still see
+      # the previous version for a minute or two; it rejects an entry whose
+      # npm package does not exist yet.
+      - name: Wait for npm to serve this version
+        run: |
+          VER=$(node -p "require('./mcp/package.json').version")
+          for i in $(seq 1 30); do
+            if [ "$(npm view "stathead-mcp@$VER" version 2>/dev/null || true)" = "$VER" ]; then
+              echo "npm serves stathead-mcp@$VER"; exit 0
+            fi
+            echo "waiting for stathead-mcp@$VER on npm ($i/30)"; sleep 10
+          done
+          echo "::error::stathead-mcp@$VER never appeared on npm — publish it first."
+          exit 1
 
       - name: Install mcp-publisher
         run: |

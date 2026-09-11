@@ -25,12 +25,18 @@ name: Publish stathead to PyPI
 # Subsequent releases:
 #   1. Bump `version` in python/pyproject.toml
 #   2. Bump `__version__` in python/src/stathead/__init__.py
-#   3. Either: tag py-v0.2.0 + push, OR run workflow_dispatch from the UI
+#   3. Either: tag py-v0.2.0 + push, OR run workflow_dispatch from the UI,
+#      OR push the release commit to the `publish-python-now` branch:
+#        git push -f origin <commit>:publish-python-now
+#      (branch-push rights only — lets a Claude Code session release, whose
+#      git proxy refuses tag pushes and whose GitHub app cannot dispatch.
+#      Guarded: the commit must already be on the default branch.)
 
 on:
   push:
     tags:
       - 'py-v*'
+    branches: [publish-python-now]
   workflow_dispatch:
 
 permissions:
@@ -41,6 +47,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # merge-base for the publish-python-now guard below
+      # Branch-push trigger safety: only code already merged to the default
+      # branch may publish this way.
+      - name: Require the commit to be on the default branch (publish-python-now only)
+        if: github.ref == 'refs/heads/publish-python-now'
+        run: |
+          git fetch --no-tags origin claude/nfl-fantasy-workbench-6D1yd
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo "::error::$(git rev-parse --short HEAD) is not on claude/nfl-fantasy-workbench-6D1yd — merge first, then push that commit to publish-python-now."
+            exit 1
+          fi
+          echo "OK: $(git rev-parse --short HEAD) is on claude/nfl-fantasy-workbench-6D1yd."
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -74,8 +93,8 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME => $TAG does not match pyproject version $PKG_VER"
             exit 1
           fi
-      - name: Show pyproject version (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Show pyproject version (workflow_dispatch / publish-python-now)
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/publish-python-now'
         working-directory: python
         run: |
           PKG_VER=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")

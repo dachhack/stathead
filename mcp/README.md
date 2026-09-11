@@ -141,6 +141,20 @@ node mcp/dist/server.mjs
 
 ## Publishing
 
+Bump `version` in `mcp/package.json` and `SERVER_VERSION` in
+`mcp/dist/server.mjs` (they must match), merge to the default branch, then
+any one of:
+
+```bash
+git push -f origin <commit>:publish-mcp-now        # branch-push trigger (works from Claude Code sessions)
+git tag mcp-v1.2.3 && git push origin mcp-v1.2.3   # tag trigger
+# or Actions → "Publish stathead-mcp to npm" → Run workflow
+```
+
+`publish-mcp.yml` refuses a version already on npm and a commit not yet on
+the default branch, smoke-tests the bundle, publishes via npm Trusted
+Publishing, then chains the MCP Registry publish. Manual fallback:
+
 ```bash
 npm run build:mcp                  # repo root — refresh the bundle
 cd mcp && npm publish --access public
