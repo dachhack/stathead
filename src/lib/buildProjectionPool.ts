@@ -17,7 +17,7 @@ import {
 } from './projectionsTabEngine';
 import type { PresetMeta, PlayerMeta, ConsensusStats } from './scenarioPresets';
 import type {
-  SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, FreeAgentPlayer, PlayerStats,
+  SeasonTotals, DraftPick, FfcADPPlayer, Roster, Game, FreeAgentPlayer, PlayerStats, DepthChart,
 } from '../types';
 import type { OddsGameLine } from '../data';
 import { aggregateToSeasonTotals, aggregateOddsToTeamImplied } from '../data';
@@ -60,6 +60,14 @@ export interface BuildProjectionPoolInputs {
   currentStats?: PlayerStats[];
   draftData: DraftPick[];
   rosters: Roster[];
+  /**
+   * nflverse depth charts for the season (optional). When present, each
+   * team's NEWEST chart orders the candidates for every position ahead of the
+   * depth-order model, which is retrained by hand and went stale within a
+   * week of the 2026 kickoff (Penix over Tua, Sanders over Watson). Players
+   * the chart does not list keep the model's order, after the listed ones.
+   */
+  depthCharts?: DepthChart[];
   gamesData: Game[];
   oddsLines: OddsGameLine[];
   shareScoresData: Array<{ name: string; predTargetShare: number; predRushShare: number }>;
@@ -139,23 +147,86 @@ const IN_SEASON_FIELDS: Record<string, string[]> = {
   TE: ['tgt', 'rec', 'recYds', 'recTD'],
 };
 
+// Roster statuses that cannot occupy a projection slot for the team on the
+// row. Dropped outright: RET / CUT have no team (nflverse keeps the club that
+// cut them on the row, which is how a waived QB kept a 3-game line), EXE
+// (commissioner exempt, no return date) and DEV (practice squad). Benched:
+// RES (IR / PUP / NFI) may return, so the player keeps a candidate row but
+// sorts after every active player at the position and never takes a starter
+// slot. Shares are still driven by ML / prior usage, so a benched player who
+// survives the per-team cut keeps a season line; the weekly builder zeroes
+// his weeks, and a pool-level redistribution is the open follow-up. The
+// roster `status` column was never read before 2026 week 1, when Josh Jacobs
+// projected as GB RB1 from the exempt list and IR receivers held WR2 slots
+// while active late signings (Deebo Samuel, Stefon Diggs) fell outside the
+// per-team cut.
+export const ROSTER_DROP_STATUSES = new Set(['RET', 'CUT', 'EXE', 'DEV']);
+export const ROSTER_BENCH_STATUSES = new Set(['RES']);
+
 export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildProjectionPoolResult {
   const {
-    adpData, priorStats, currentStats, draftData, rosters, gamesData, oddsLines,
+    adpData, priorStats, currentStats, draftData, rosters: rostersRaw, depthCharts, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
     featureMatrix, consensusDoc, teamProjectionsEnsemble,
   } = inputs;
 
   // ── Projections mode: current/future season ──
 
-  // Per-team / per-position depth chart from our own public-data
-  // depth-order model (scripts/train_depth_order_model.py ->
-  // depth-order-2026.json). Used as the primary sort key so the modeled
-  // starter wins over community ADP — handles rookies without ADP and
-  // offseason role changes ADP lags. Replaces the prior Consensus-derived
-  // depth chart; teams/players the model misses fall back to ADP order.
-  // LOSO top-1 hit rate: QB 69.5% / RB 69.1% / WR 63.4% / TE 69.8%.
+  // Rows for players who no longer have a team are dropped before anything
+  // reads the roster; benched statuses are remembered for the depth sort.
+  const rosters = rostersRaw.filter((r) => !ROSTER_DROP_STATUSES.has(r.status || ''));
+  // Names whose ONLY roster rows carry a dropped status. They are barred from
+  // every candidate pass, not just the roster pass: ADP and prior-season
+  // rows would otherwise re-add them under their old team (Josh Jacobs kept
+  // GB RB1 through the ADP pass after the roster filter above removed him).
+  const droppedNames = new Set<string>();
+  {
+    const kept = new Set(rosters.map((r) => normalizeName(r.full_name)));
+    for (const r of rostersRaw) {
+      const nn = normalizeName(r.full_name);
+      if (ROSTER_DROP_STATUSES.has(r.status || '') && !kept.has(nn)) droppedNames.add(nn);
+    }
+  }
+  const rosterStatus = new Map<string, string>();
+  for (const r of rosters) {
+    if (['QB', 'RB', 'WR', 'TE'].includes(r.position)) rosterStatus.set(normalizeName(r.full_name), r.status || '');
+  }
+  const isBenched = (name: string) => ROSTER_BENCH_STATUSES.has(rosterStatus.get(normalizeName(name)) || '');
+
+  // Per-team / per-position depth chart. The newest nflverse chart per team
+  // is the primary source when supplied (see BuildProjectionPoolInputs); our
+  // own depth-order model (scripts/train_depth_order_model.py ->
+  // depth-order-2026.json) orders whoever the chart does not list, and every
+  // team when no chart is supplied. The modeled starter wins over community
+  // ADP — handles rookies without ADP and offseason role changes ADP lags.
+  // LOSO top-1 hit rate of the model: QB 69.5% / RB 69.1% / WR 63.4% / TE 69.8%.
   const depthChart: Record<string, Record<string, string[]>> = {};
+  const nflDepth: Record<string, Record<string, string[]>> = {};
+  if (depthCharts && depthCharts.length) {
+    const latest: Record<string, string> = {};
+    const rowsByTeam: Record<string, DepthChart[]> = {};
+    for (const d of depthCharts) {
+      if (!['QB', 'RB', 'WR', 'TE'].includes(d.pos_abb)) continue;
+      const t = normTeam(d.team);
+      const dt = String(d.dt || '');
+      if (dt > (latest[t] ?? '')) { latest[t] = dt; rowsByTeam[t] = []; }
+      if (dt === latest[t]) (rowsByTeam[t] ??= []).push(d);
+    }
+    for (const t of Object.keys(rowsByTeam)) {
+      const byPos: Record<string, { name: string; rank: number }[]> = {};
+      for (const d of rowsByTeam[t]) {
+        const rank = Number(d.pos_rank) || 99;
+        (byPos[d.pos_abb] ??= []).push({ name: d.player_name, rank });
+      }
+      for (const pos of Object.keys(byPos)) {
+        const seen = new Set<string>();
+        (nflDepth[t] ??= {})[pos] = byPos[pos]
+          .sort((a, b) => a.rank - b.rank)
+          .map((x) => x.name)
+          .filter((n) => { const k = normalizeName(n); if (seen.has(k)) return false; seen.add(k); return true; });
+      }
+    }
+  }
   {
     const players = (depthOrderData as { players?: Array<{ name: string; team: string; pos: string; teamRank: number }> }).players || [];
     const byTeamPos: Record<string, Record<string, { name: string; teamRank: number }[]>> = {};
@@ -171,10 +242,20 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     }
   }
   function depthRank(team: string, pos: string, name: string): number {
+    const nn = normalizeName(name);
+    // Benched roster statuses sort after every other candidate at the
+    // position, whatever any chart says (an IR player is often still listed).
+    const bench = isBenched(name) ? 100000 : 0;
+    const nfl = nflDepth[team]?.[pos];
+    if (nfl) {
+      const i = nfl.findIndex((n) => normalizeName(n) === nn);
+      if (i >= 0) return bench + i;
+    }
     const list = depthChart?.[team]?.[pos];
-    if (!list) return 9999;
-    const idx = list.findIndex((n) => normalizeName(n) === normalizeName(name));
-    return idx >= 0 ? idx : 9999;
+    if (!list) return bench + 9999;
+    const idx = list.findIndex((n) => normalizeName(n) === nn);
+    // Unlisted-by-nflverse players go behind the whole nflverse list.
+    return bench + (idx >= 0 ? (nfl ? 1000 + idx : idx) : 9999);
   }
   const redraftFallback = (redraftData as { players?: Array<{ name: string; position: string; ppg: number }> }).players ?? [];
 
@@ -730,6 +811,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
     if (!POSITIONS.includes(adp.position as Position)) continue;
     if (adp.adp > 400) continue;
     const nn = normalizeName(adp.name);
+    if (droppedNames.has(nn)) continue;
     const team = normTeam(rosterTeam.get(nn) || adp.team || '');
     if (!team) continue;
     const prior = priorByName.get(nn);
@@ -794,7 +876,7 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
   for (const p of priorTotals) {
     if (!POSITIONS.includes(p.position as Position)) continue;
     const nn = normalizeName(p.player_display_name);
-    if (addedNames.has(nn)) continue;
+    if (addedNames.has(nn) || droppedNames.has(nn)) continue;
     const team = normTeam(rosterTeam.get(nn) || p.recent_team || '');
     if (!team) continue;
     ensureList(tpKey(team, p.position)).push({

@@ -21,6 +21,8 @@ Inputs (all committed):
   public/data/projection-base-<season>.json   season pool (stat lines + pprPts)
   public/data/schedule-<season>.json          nflverse schedule (opp/home/bye)
   public/data/player_stats_<season-1>.csv.gz  weekly actuals for def-vs-pos
+  public/data/roster_<season>.csv(.gz)        roster status (ACT / RES / EXE …)
+  public/data/depth_charts_<season>.csv(.gz)  depth-chart ranks (`depth`)
 
 Output:
   public/data/weekly-projections-<season>.json
@@ -142,13 +144,26 @@ def iter_weekly_rows(season):
     yield from iter_csv_rows(f'player_stats_{season}')
 
 
-def def_ratios(season):
+def week_ok(row, max_week):
+    """True when the row's week is within the completed weeks we may use.
+    max_week=None means every week (prior seasons)."""
+    if max_week is None:
+        return True
+    try:
+        return int(row.get('week') or 0) <= max_week
+    except ValueError:
+        return False
+
+
+def def_ratios(season, max_week=None):
     """(team, pos) -> PPR-allowed-per-game ratio vs league average for a
-    season's REG weeks, plus the number of defense-weeks observed."""
+    season's REG weeks, plus the number of defense-weeks observed. Only
+    weeks <= max_week count, so a half-played week (two games on a Wednesday
+    and Thursday) is not weighed as a full week of evidence."""
     pts = defaultdict(float)            # (def_team, pos) -> total PPR allowed
     games = defaultdict(set)            # def_team -> {game weeks}
     for row in iter_weekly_rows(season):
-        if row.get('season_type') != 'REG':
+        if row.get('season_type') != 'REG' or not week_ok(row, max_week):
             continue
         pos = row.get('position')
         opp = row.get('opponent_team')
@@ -169,14 +184,14 @@ def def_ratios(season):
     return ratios, n_weeks
 
 
-def idp_concede_ratios(season):
+def idp_concede_ratios(season, max_week=None):
     """(offense, bucket) -> IDP points that offense concedes per game, as a
     ratio to the league average, plus the number of weeks observed. The
     defender's `opponent_team` IS the offense being scored against."""
     pts = defaultdict(float)
     games = defaultdict(set)
     for row in iter_weekly_rows(season):
-        if row.get('season_type') != 'REG':
+        if row.get('season_type') != 'REG' or not week_ok(row, max_week):
             continue
         bucket = IDP_POS_BUCKET.get(row.get('position') or '')
         opp = row.get('opponent_team')
@@ -206,12 +221,13 @@ def idp_concede_ratios(season):
     return ratios, max(len(w) for w in games.values())
 
 
-def build_def_vs_pos():
+def build_def_vs_pos(played_through):
     """Defense-vs-position multipliers: prior-season PPR allowed per game vs
     league average, blended with current-season numbers as weeks accumulate,
-    shrunk toward 1.0 (defensive signal is weak) and clamped."""
+    shrunk toward 1.0 (defensive signal is weak) and clamped. Only completed
+    current-season weeks (<= played_through) enter the blend."""
     prior_ratios, _ = def_ratios(PRIOR)
-    cur_ratios, cur_weeks = def_ratios(SEASON)
+    cur_ratios, cur_weeks = def_ratios(SEASON, played_through)
     w_cur = cur_weeks / (cur_weeks + BLEND_K) if cur_weeks else 0.0
 
     mults = {}
@@ -265,9 +281,10 @@ def game_opponents(season):
     return out
 
 
-def unit_week_points(season):
+def unit_week_points(season, max_week=None):
     """Per-(team, week) kicker and DST fantasy points for a season's
     completed REG games (standard scoring), plus per-kicker totals.
+    Current season: only weeks <= max_week (completed weeks).
 
     Kicker: FG 0-39 = 3, 40-49 = 4, 50+ = 5, XP = 1.
     DST: sack 1, INT 2, opponent-fumble recovery 2, def/ST TD 6, safety 2,
@@ -278,7 +295,7 @@ def unit_week_points(season):
     k_player = defaultdict(lambda: [0.0, 0])    # kicker name -> [pts, games]
     dst_raw = defaultdict(float)                # (team, wk) -> DST pts pre-PA
     for row in iter_weekly_rows(season):
-        if row.get('season_type') != 'REG':
+        if row.get('season_type') != 'REG' or not week_ok(row, max_week):
             continue
         team, wk = row.get('team'), row.get('week')
         if not team or (team, wk) not in opp:
@@ -355,19 +372,91 @@ def starting_kickers(season):
 
 
 def weeks_played(season: int) -> int:
-    """Highest REG week with a final score. 0 preseason, which makes every
-    rest-of-season figure below equal the full-season one."""
-    latest = 0
+    """Highest REG week in which EVERY scheduled game has a final score.
+    0 preseason, which makes every rest-of-season figure below equal the
+    full-season one. A week with only its Wednesday/Thursday games final is
+    NOT played: counting it was dropping the other 14 games from every
+    rest-of-season figure and weighing two games as a full week of
+    def-vs-pos evidence (2026 week 1)."""
+    scheduled = defaultdict(int)
+    for g in load_json(f'schedule-{season}.json').get('games', []):
+        if 1 <= g.get('week', 0) <= WEEKS:
+            scheduled[g['week']] += 1
+    finals = defaultdict(int)
     for row in iter_csv_rows('games'):
         if row.get('season') != str(season) or row.get('game_type') != 'REG':
             continue
         if not (row.get('home_score') or '').strip():
             continue
         try:
-            latest = max(latest, int(row['week']))
+            finals[int(row['week'])] += 1
         except (ValueError, TypeError):
             continue
+    latest = 0
+    for w in range(1, WEEKS + 1):
+        if scheduled.get(w) and finals.get(w, 0) >= scheduled[w]:
+            latest = w
+        else:
+            break
     return latest
+
+
+# Roster statuses that mean "not going to play for this team this week". INA
+# (game-day inactive on a team that already played) stays active: he is on the
+# 53. RET / CUT rows are dropped from the feed outright — the player has no
+# team. RES (IR / PUP / NFI), EXE (commissioner exempt) and DEV (practice
+# squad) keep their row, flagged active=false, with every not-yet-played week
+# zeroed: the season pool never reads roster status, so without this Josh
+# Jacobs carried 16.8 for week 1 from the exempt list and a dozen IR / PUP /
+# practice-squad players carried full strips (2026 week 1 validation).
+DROP_STATUSES = {'RET', 'CUT'}
+INACTIVE_STATUSES = {'RES', 'EXE', 'DEV'}
+
+
+def roster_status(season, norm):
+    """gsis -> (status, team) and (norm name, pos) -> (status, team) from the
+    newest roster snapshot. Empty when no roster file exists."""
+    by_gsis, by_name = {}, {}
+    for r in iter_csv_rows(f'roster_{season}'):
+        pos = r.get('position')
+        if pos not in POSITIONS + ('K',):
+            continue
+        rec = (r.get('status') or '', r.get('team') or '')
+        if r.get('gsis_id'):
+            by_gsis[r['gsis_id']] = rec
+        by_name.setdefault((norm(r.get('full_name') or ''), pos), rec)
+    return by_gsis, by_name
+
+
+def depth_chart_ranks(season, norm):
+    """(norm name, pos) -> pos_rank from each team's NEWEST nflverse depth
+    chart. Preferred over the depth-order model file, which is retrained by
+    hand and went stale within a week of kickoff (Penix over Tua, Sanders over
+    Watson in 2026 week 1)."""
+    latest = {}
+    rows = defaultdict(list)
+    for r in iter_csv_rows(f'depth_charts_{season}'):
+        pos = r.get('pos_abb')
+        if pos not in POSITIONS:
+            continue
+        team, dt = r.get('team'), r.get('dt') or ''
+        if dt > latest.get(team, ''):
+            latest[team] = dt
+            rows[team] = []
+        if dt == latest[team]:
+            rows[team].append(r)
+    out = {}
+    for team, lst in rows.items():
+        for r in lst:
+            try:
+                rank = int(r.get('pos_rank') or 0)
+            except ValueError:
+                continue
+            if rank <= 0:
+                continue
+            key = (norm(r.get('player_name') or ''), r['pos_abb'])
+            out[key] = min(out.get(key, 99), rank)
+    return out
 
 
 def market_env(season: int):
@@ -407,13 +496,16 @@ def build_team_weeks(schedule):
 def main():
     pool = load_json(f'projection-base-{SEASON}.json')
     schedule = load_json(f'schedule-{SEASON}.json')
-    def_vs_pos, w_cur, cur_weeks = build_def_vs_pos()
+    played_through = weeks_played(SEASON)
+    current_week = min(played_through + 1, WEEKS)
+    def_vs_pos, w_cur, cur_weeks = build_def_vs_pos(played_through)
     team_weeks = build_team_weeks(schedule)
     market = market_env(SEASON)
     id_map, norm = build_id_map()
     # Depth-chart rank, so a consumer redistributing an injured starter's work
     # knows who is actually next in line. Two backups on identical projections
-    # are indistinguishable without it.
+    # are indistinguishable without it. The newest nflverse depth chart wins;
+    # the depth-order model file fills in players it does not list.
     depth_rank = {}
     try:
         for d in load_json(f'depth-order-{SEASON}.json').get('players', []):
@@ -421,13 +513,16 @@ def main():
                 depth_rank[(norm(d['name']), d['pos'])] = d.get('teamRank')
     except (OSError, ValueError):
         pass   # never fatal: the rows just carry no depth rank
+    depth_rank.update(depth_chart_ranks(SEASON, norm))
+    status_by_gsis, status_by_name = roster_status(SEASON, norm)
+    have_roster = bool(status_by_gsis or status_by_name)
 
     # K + DST: team-week fantasy points (prior + current season), converted to
     # opponent multipliers on the same shrink/clamp scale as the skill spots.
     #  - defVsPos[T]['K']   = kicker points DEFENSE T allows, vs league avg
     #  - defVsPos[T]['DST'] = DST points OFFENSE T concedes, vs league avg
     k_prior, dst_prior, k_player_prior, opp_prior = unit_week_points(PRIOR)
-    k_cur, dst_cur, _kp_cur, opp_cur = unit_week_points(SEASON)
+    k_cur, dst_cur, _kp_cur, opp_cur = unit_week_points(SEASON, played_through)
     _, k_allow_prior, _ = per_game_and_ratio(k_prior, lambda tw: opp_prior[tw][0])
     _, k_allow_cur, _ = per_game_and_ratio(k_cur, lambda tw: opp_cur[tw][0] if tw in opp_cur else None)
     _, dst_conc_prior, _ = per_game_and_ratio(dst_prior, lambda tw: opp_prior[tw][0])
@@ -442,7 +537,7 @@ def main():
     # IDP: how much each OFFENSE concedes to DL / LB / DB, blended prior +
     # current season and shrunk by the bucket's own measured persistence.
     idp_prior, _ = idp_concede_ratios(PRIOR)
-    idp_cur, _ = idp_concede_ratios(SEASON)
+    idp_cur, _ = idp_concede_ratios(SEASON, played_through)
     for team in {t for t, _ in idp_prior} | {t for t, _ in idp_cur}:
         for bucket in IDP_BUCKETS:
             prior = idp_prior.get((team, bucket), 1.0)
@@ -504,6 +599,7 @@ def main():
         return {g['w']: r / mean for g, r in zip(sched, raw)}
 
     players = []
+    n_dropped = n_inactive = 0
     for grp, pos in (('qbs', 'QB'), ('rbs', 'RB'), ('wrs', 'WR'), ('tes', 'TE')):
         for p in pool.get(grp, []):
             g = p.get('games') or 0
@@ -518,11 +614,31 @@ def main():
                 for w in range(1, WEEKS + 1)
             ]
             ids = id_map.get((norm(p['name']), pos), {})
+            key = (norm(p['name']), pos)
+            status = None
+            if have_roster:
+                rec = status_by_gsis.get(ids.get('gsis') or '') or status_by_name.get(key)
+                status = rec[0] if rec else 'FA'
+                if status in DROP_STATUSES:
+                    n_dropped += 1
+                    continue
+            active = status is None or status not in INACTIVE_STATUSES | {'FA'}
+            if not active:
+                n_inactive += 1
+                wk = [0.0 if (v is not None and w >= current_week) else v
+                      for w, v in enumerate(wk, start=1)]
+            depth = depth_rank.get(key)
             players.append({
                 'name': p['name'],
                 'pos': pos,
                 'team': p['team'],
-                'depth': depth_rank.get((norm(p['name']), pos)),
+                'depth': depth,
+                'status': status,
+                'active': active,
+                # A 1-3 game season line is a backup's conditional rate, not an
+                # expectation of starting; rank on it and Justin Fields (44 pts
+                # / 2 games) is QB3. Consumers should sort backups below.
+                'backup': bool(g <= 3 and (depth or 2) >= 2),
                 'gsis': ids.get('gsis'),
                 'sleeper': ids.get('sleeper'),
                 'gp': g,
@@ -530,6 +646,9 @@ def main():
                 'recPG': round(rec_pg, 2),
                 'wk': wk,
             })
+    if have_roster:
+        print(f'Roster status: dropped {n_dropped} RET/CUT rows, zeroed weeks '
+              f'>= {current_week} for {n_inactive} RES/EXE/DEV/FA rows')
 
     # K rows: prefer the component build (scripts/build-kicker-projections.py),
     # which projects FG attempts/makes by distance band plus extra points and
@@ -699,7 +818,6 @@ def main():
     # `wk` values assume the player suits up, so the availability discount is
     # applied here the same way the season line applies it: gp / 17. Preseason
     # (played_through = 0) rosPts equals the full-season projection exactly.
-    played_through = weeks_played(SEASON)
     for r in players:
         remaining = [v for w, v in enumerate(r['wk'], start=1)
                      if w > played_through and v is not None]
@@ -748,6 +866,19 @@ def main():
         ),
         'weeks': WEEKS,
         'playedThrough': played_through,
+        'currentWeek': current_week,
+        'statusNote': (
+            'status = nflverse roster status at build time (ACT active, RES '
+            'reserve/IR/PUP, EXE commissioner exempt, DEV practice squad, INA '
+            'game-day inactive, FA not on any roster; null when no roster file). '
+            'active=false rows (RES/EXE/DEV/FA) have every week from currentWeek '
+            'on zeroed — they are kept so a consumer can see who is out and '
+            'restore the strip the day the roster flips back to ACT. RET/CUT rows '
+            'are dropped. backup=true marks a 1-3 game line for a depth-2+ '
+            'player: a per-game rate conditional on playing, to be ranked below '
+            'starters. playedThrough counts a week only once every scheduled game '
+            'in it is final; currentWeek = playedThrough + 1.'
+        ),
         'marketNote': (
             f'Weeks with a published market line use the implied team total as the '
             f'scoring-environment term, blended {MARKET_WEIGHT:.0%} against def-vs-pos '

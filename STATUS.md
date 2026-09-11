@@ -34,7 +34,17 @@ depth-order file from Sep 7 (Cooper Rush / Deshaun Watson are the real week-1
 QB1s; Deebo Samuel, Diggs, Vele, Boutte, Waller, Keenan Allen have no row),
 1-game backups outrank starters on the raw weekly board, and
 `weeks_played()` marks week 1 played after the first two games. Fix list in
-the doc; nothing changed in the builders yet.
+the doc. Then the fixes: the weekly builder reads roster status (RET/CUT
+dropped, RES/EXE/DEV/FA zeroed from the current week with `active=false`),
+`weeks_played()` needs every game of a week final, the pool ranks each
+team/position group by the newest nflverse depth chart with RET/CUT/EXE/DEV
+barred and RES last, `backup=true` marks 1–3 game lines, roster overrides
+expire 2026-09-01. Daily audit wired: `refresh-data.yml` writes
+`weekly-projections-audit.{md,json}` every run and the daily report carries
+the card (blocking buckets go red). Open: pool-level redistribution when a
+starter is dropped (GB backfield went to Chris Brooks, not Lloyd), and the
+weekly/K/DST/IDP MCP tools exist only in `mcp/dist/server.mjs` — their source
+was never committed, so the MCP cannot read the new fields yet.
 
 Previously (2026-08-19) — Season-prep data audit. Refreshed the Sleeper ADP snapshot
 (the FFC / KTC / FantasyCalc / Sleeper fetch workflows are all green and

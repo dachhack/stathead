@@ -59,3 +59,13 @@ export const ROSTER_OVERRIDES_2026: Record<string, RosterOverride> = {
 
 /** First season to which the 2026 overrides apply */
 export const ROSTER_OVERRIDES_2026_SEASON = 2026;
+
+/**
+ * Date (UTC, YYYY-MM-DD) after which the overrides are no longer applied.
+ * They exist to bridge the gap between an offseason move and nflverse's
+ * roster file catching up; once regular-season rosters are published the
+ * roster is the truth and a stale entry does harm (Greg Dortch was still
+ * forced to DET from BUF's practice squad in 2026 week 1). Bump when the
+ * list is refreshed for a new offseason.
+ */
+export const ROSTER_OVERRIDES_2026_EXPIRES = '2026-09-01';

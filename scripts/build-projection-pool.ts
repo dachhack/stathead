@@ -24,9 +24,9 @@ import path from 'node:path';
 import {
   fetchFfcADP, fetchPlayerStats,
   fetchDraftPicks, fetchRosters, fetchGames,
-  fetchOddsGameLines,
+  fetchOddsGameLines, fetchDepthCharts,
 } from '../src/data';
-import type { DraftPick, FfcADPPlayer, Roster, Game } from '../src/types';
+import type { DraftPick, FfcADPPlayer, Roster, Game, DepthChart } from '../src/types';
 import { buildProjectionPool, type FeatureMatrixDoc, type ConsensusDoc } from '../src/lib/buildProjectionPool';
 import { PREDICT_SEASON } from '../src/lib/projectionPoolConsts';
 
@@ -48,14 +48,18 @@ async function main() {
   // nflverse-style feeds via the shared data.ts fetchers (same calls/fallbacks
   // as the component). These run in Node — they read public/data locally and
   // fall back to GitHub-raw snapshots.
-  const [adpData, priorStats, draftData, rosters, gamesData, oddsLines] = await Promise.all([
+  const [adpData, priorStats, draftData, rosters, gamesData, oddsLines, depthCharts] = await Promise.all([
     fetchFfcADP(PREDICT_SEASON, 'ppr', 12).catch(() => [] as FfcADPPlayer[]),
     fetchPlayerStats(PREDICT_SEASON - 1).catch(() => []),
     fetchDraftPicks().catch(() => [] as DraftPick[]),
     fetchRosters(PREDICT_SEASON).catch(() => [] as Roster[]),
     fetchGames().catch(() => [] as Game[]),
     fetchOddsGameLines().catch(() => []),
+    // Newest nflverse depth chart per team orders each position group ahead
+    // of the depth-order model (see BuildProjectionPoolInputs.depthCharts).
+    fetchDepthCharts(PREDICT_SEASON).catch(() => [] as DepthChart[]),
   ]);
+  console.log(`depth charts: ${depthCharts.length} rows, rosters: ${rosters.length} rows`);
 
   // Committed local JSON read straight from disk (same files the component
   // fetch()es from /data/).
@@ -69,7 +73,7 @@ async function main() {
   const teamProjectionsEnsemble = loadJson(path.join(GEN, 'team-projections.json'), { season: 0, teams: {} } as { season: number; teams: Record<string, Record<string, number>> });
 
   const pool = buildProjectionPool({
-    adpData, priorStats, draftData, rosters, gamesData, oddsLines,
+    adpData, priorStats, draftData, rosters, depthCharts, gamesData, oddsLines,
     shareScoresData, ppgScoresData, adpScoresData, redraftData, depthOrderData,
     featureMatrix, consensusDoc, teamProjectionsEnsemble, season,
   });

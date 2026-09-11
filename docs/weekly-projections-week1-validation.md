@@ -152,6 +152,51 @@ Mike Evans 7.8 → 16.9, Stafford 17.3 → 4.1, Davante Adams 14.6 → 5.6.
    season; the 12:21 UTC Friday snapshot predates Bowers' and Tua's
    designations.
 
+## Fix status (2026-09-11, same day)
+
+| # | fix | status |
+|---|---|---|
+| 1 | Roster status read by the weekly builder: RET/CUT rows dropped, RES/EXE/DEV/FA rows kept with `active=false`, `status`, and every week from `currentWeek` on zeroed | done — `scripts/build-weekly-projections.py` |
+| 2 | `weeks_played()` counts a week only when every scheduled game is final; the def-vs-pos, K/DST and IDP in-season blends use only completed weeks | done |
+| 3 | Pool ranks each team/position group by the newest nflverse depth chart ahead of the depth-order model; RET/CUT/EXE/DEV never enter the pool, RES sorts last | done — `src/lib/buildProjectionPool.ts`, `scripts/build-projection-pool.ts`. Local rebuild: Tua ATL QB1, Watson CLE QB1, Deebo/Diggs/Vele/Boutte/Burden/Allen/Waller/Lock now have rows |
+| 4 | `backup=true` on 1–3 game lines for depth-2+ players; `depth` now comes from the nflverse chart first | done (JSON only — the MCP's week-mode sort is in a bundle whose source is not in the repo, see below) |
+| 5 | `rosterOverrides.ts` entries expire on `ROSTER_OVERRIDES_2026_EXPIRES` (2026-09-01) | done |
+| 6 | Injury report re-pull timing | not changed — `refresh-data.yml` already runs every two hours; Friday designations land in the 20:00/22:00 UTC runs |
+
+Open follow-ups:
+
+- **Pool-level redistribution.** Dropping Josh Jacobs hands GB's backfield to Chris Brooks (334 pts) via prior-usage shares, not to MarShawn Lloyd (31); RB/WR shares come from the ML share model or prior-year usage, so removing a player does not re-split the pie sensibly. The weekly MCP's promotion logic is the right shape; it belongs in the pool.
+- **MCP week mode.** `get_weekly_projections` (and the K/DST/IDP/schedule-strength tools) exist only in the committed bundle `mcp/dist/server.mjs`; no branch has their source in `src/tools.ts`. Until that source is recovered the MCP cannot read the new `active`/`backup` fields or sort backups below starters.
+- Sleeper's projection tool returns 0 for kickers and nothing for DEF, so K/DST still have no external check.
+
+## Daily audit plan
+
+Two layers, both in place after this change:
+
+**1. Automatic, every refresh (every two hours, 12:00–04:00 UTC).**
+`refresh-data.yml` now runs `scripts/validate-weekly-projections.py --week auto`
+right after the weekly build and commits
+`public/data/weekly-projections-audit.md` (the full report) and
+`weekly-projections-audit.json` (counts). The daily report email gets a
+"Weekly projection audit" card; three buckets count as incomplete surfaces
+and turn the subject line red: a team mismatch, a non-active player still
+carrying points, a depth-chart QB1 the pool disagrees with, or a player who
+scored 5+ without a row. Undesignated DNPs and backups inside the top 24 show
+as warnings only.
+
+**2. A daily Claude session for the judgment calls.** A Routine spawns a
+fresh session each morning after the 12:00 UTC refresh. It reads the audit
+JSON, the injury report and the news for anyone flagged, and fixes what the
+automation cannot decide on its own: a starter change the depth chart has not
+caught up with, a stale override, a builder bug the audit exposes. It commits
+to a dated branch and reports in the session; it does not touch the MCP
+bundle. The prompt is in the Routine itself; edit it there.
+
+What "fixed" looks like each day: the audit JSON has empty
+`teamMismatches`, `inactiveWithPoints`, `qb1Disagreements` and
+`scoredWithoutRow`, `playedThroughWrong` is false, and the daily report subject
+is green.
+
 ## Appendix: script output
 
 Run captured 2026-09-11 (headings demoted one level).

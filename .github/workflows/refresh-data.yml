@@ -249,6 +249,19 @@ jobs:
       - name: Build weekly projections
         run: python3 scripts/build-weekly-projections.py || echo "weekly projections build failed (non-fatal)"
 
+      # Audit the current week's strip against the freshly-downloaded roster /
+      # depth-chart / injury snapshots and the games already played: team
+      # mismatches, non-active players still carrying points, undesignated
+      # DNPs, depth-chart QB1 disagreements, 1-game backups inside the top 24.
+      # The markdown is the human report; the JSON feeds the daily report's
+      # "Weekly projection audit" card. Never fatal.
+      - name: Audit weekly projections
+        run: |
+          python3 scripts/validate-weekly-projections.py --week auto \
+            --out public/data/weekly-projections-audit.md \
+            --json public/data/weekly-projections-audit.json \
+            || echo "weekly projection audit failed (non-fatal)"
+
       # Archive what we projected, once a week, so next offseason can score it.
       # Nothing keeps a projection as it stood before the games were played,
       # which is exactly why the skill-position schedule adjustment could not be
@@ -343,6 +356,8 @@ jobs:
                    public/data/projection-base-2026.json \
                    public/data/odds_nfl_lines.json \
                    public/data/weekly-projections-2026.json \
+                   public/data/weekly-projections-audit.md \
+                   public/data/weekly-projections-audit.json \
                    public/data/kicker-projections-2026.json \
                    public/data/dst-projections-2026.json \
                    public/data/idp-projections-2026.json \

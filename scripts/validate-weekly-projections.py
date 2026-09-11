@@ -24,8 +24,11 @@ Checks, in output order:
   8. Projection vs actual PPR for teams that have already played.
 
 Run:
-  python3 scripts/validate-weekly-projections.py [--week 1] [--sleeper file.jsonl]
-Prints markdown to stdout. Exit code is always 0 — this is a report, not a gate.
+  python3 scripts/validate-weekly-projections.py [--week 1|auto] [--sleeper file.jsonl]
+      [--out public/data/weekly-projections-audit.md] [--json public/data/weekly-projections-audit.json]
+Prints markdown to stdout (or --out). --week auto = the first week whose games
+are not all played. --json writes the counts the daily report surfaces.
+Exit code is always 0 — this is a report, not a gate.
 """
 
 import argparse
@@ -33,7 +36,9 @@ import csv
 import gzip
 import json
 import os
+import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'public', 'data')
@@ -78,14 +83,23 @@ def table(headers, rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--week', type=int, default=1)
+    ap.add_argument('--week', default='auto', help='NFL week, or "auto" (first week not fully played)')
     ap.add_argument('--sleeper', help='jsonl of Sleeper week projections (full_name, position, team, pts_ppr)')
     ap.add_argument('--min-pts', type=float, default=4.0, help='ignore rows projected below this')
+    ap.add_argument('--out', help='write the markdown here instead of stdout')
+    ap.add_argument('--json', help='write a JSON summary of the counts here')
     args = ap.parse_args()
-    week = args.week
-    wi = week - 1
 
     doc = load_json(f'weekly-projections-{SEASON}.json')
+    if args.week == 'auto':
+        week = int(doc.get('currentWeek') or (doc.get('playedThrough') or 0) + 1)
+    else:
+        week = int(args.week)
+    wi = week - 1
+    summary = {'season': SEASON, 'week': week, 'generatedAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+               'projectionsBuilt': doc.get('generatedAt'), 'playedThrough': doc.get('playedThrough')}
+    if args.out:
+        sys.stdout = open(args.out, 'w')
     players = [p for p in doc['players'] if p['pos'] in SKILL]
     by_key = {(norm(p['name']), p['pos']): p for p in players}
 
@@ -104,6 +118,9 @@ def main():
         if r.get('week') == str(week) and r.get('season_type') == 'REG':
             played_teams.add(r['team'])
     played = [g for g in sched if g['home'] in played_teams or g['away'] in played_teams]
+    summary['gamesPlayed'] = len(played)
+    summary['gamesScheduled'] = len(sched)
+    summary['playedThroughWrong'] = bool(doc.get('playedThrough', 0) >= week and len(played) < len(sched))
     print(f'## 1. Games played\n\n{len(played)} of {len(sched)} week-{week} games have stat lines: '
           + ', '.join(f"{g['away']}@{g['home']}" for g in played) + '.')
     if doc.get('playedThrough', 0) >= week and len(played) < len(sched):
@@ -131,6 +148,7 @@ def main():
         r = ros(p)
         if r and r['team'] != p['team'] and wk(p) >= 1:
             rows.append((p['name'], p['pos'], p['team'], r['team'], r['status'], wk(p)))
+    summary['teamMismatches'] = [r[0] for r in rows]
     print('## 2. Team mismatches (projection vs nflverse roster)\n')
     print(table(['player', 'pos', 'projected team', 'roster team', 'status', f'wk{week}'], rows))
 
@@ -138,12 +156,15 @@ def main():
     rows = []
     for p in players:
         r = ros(p)
+        if p.get('active') is False and wk(p) == 0:
+            continue   # the builder already zeroed this row from roster status
         if not r:
             rows.append((p['name'], p['pos'], p['team'], 'NOT ON ANY ROSTER', '', wk(p), p['gp']))
-        elif r['status'] != 'ACT':
+        elif r['status'] not in ('ACT', 'INA'):   # INA = on the 53, inactive for a game already played
             rows.append((p['name'], p['pos'], p['team'], r['status'], r.get('status_description_abbr'), wk(p), p['gp']))
     rows = [x for x in rows if x[5] >= args.min_pts]
     rows.sort(key=lambda x: -x[5])
+    summary['inactiveWithPoints'] = [f'{x[0]} ({x[2]} {x[1]}, {x[3]}, {x[5]})' for x in rows]
     print(f'## 3. Projected ≥ {args.min_pts:g} pts but not on the active roster\n')
     print('RES = reserve (IR/PUP/NFI), EXE = commissioner exempt, DEV = practice squad, '
           'CUT = waived, RET = retired, INA = inactive for a game already played.\n')
@@ -162,6 +183,7 @@ def main():
             rows.append((p['name'], p['pos'], p['team'], i['report_status'] or '(no designation yet)',
                          i['practice_status'], i['report_primary_injury'] or i['practice_primary_injury'], wk(p)))
     rows.sort(key=lambda x: -x[6])
+    summary['injuryFlags'] = [f'{x[0]} ({x[2]} {x[1]}, {x[3]}, {x[6]})' for x in rows]
     print(f'## 4. Week {week} injury report (designated, or DNP without a designation yet)\n')
     print(table(['player', 'pos', 'team', 'status', 'practice', 'injury', f'wk{week}'], rows))
 
@@ -189,6 +211,7 @@ def main():
             rows.append((t, ', '.join(names), pq['name'], wk(pq), pq['gp']))
         elif not pq:
             rows.append((t, ', '.join(names), '(no depth-1 QB in pool)', '', ''))
+    summary['qb1Disagreements'] = [f'{x[0]}: chart {x[1]} / pool {x[2]}' for x in rows]
     print(f'## 5. Depth-chart QB1 disagrees with the pool (depth charts as of {max(latest.values()) if latest else "n/a"})\n')
     print(table(['team', 'depth-chart QB1', 'pool QB1', f'wk{week}', 'gp'], rows))
 
@@ -199,6 +222,7 @@ def main():
         for rank, p in enumerate(ranked, start=1):
             if (p['gp'] or 0) <= 3 and rank <= 24:
                 rows.append((pos, rank, p['name'], p['team'], wk(p), p['gp'], p.get('depth')))
+    summary['backupsInTop24'] = [f'{x[2]} ({x[3]} {x[0]}{x[1]})' for x in rows]
     print('## 6. Backups (gp ≤ 3) inside the top 24 at their position\n')
     print('Their weekly points are a per-game rate conditional on playing, computed from a '
           '1–3 game season line; any ranking that ignores gp puts them above starters.\n')
@@ -272,12 +296,19 @@ def main():
     have = [x for x in rows if x[3] is not None]
     if have:
         mae = sum(abs(x[3] - x[4]) for x in have) / len(have)
+        summary['actualsMatched'] = len(have)
+        summary['actualsMAE'] = round(mae, 2)
         print(f'\n{len(have)} matched rows: MAE {mae:.1f}, projected total {sum(x[3] for x in have):.0f} '
               f'vs actual {sum(x[4] for x in have):.0f}.')
     missing = [x for x in rows if x[3] is None and x[4] >= 5]
+    summary['scoredWithoutRow'] = [f'{x[0]} ({x[2]} {x[1]}, {x[4]})' for x in missing]
     if missing:
         print('\nScored ≥ 5 with no projection row: ' + ', '.join(f'{x[0]} ({x[2]} {x[1]}, {x[4]})' for x in missing) + '.')
     print()
+    if args.json:
+        with open(args.json, 'w') as f:
+            json.dump(summary, f, indent=1)
+            f.write('\n')
 
 
 if __name__ == '__main__':
