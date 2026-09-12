@@ -1048,9 +1048,18 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
         const rbRushTDPool = projTeam.rushTD * pools.rbRushTD;
         const rbRecTDPool = projTeam.recTD * pools.rbRecTD;
 
-        // Prior-year within-group sums (for fallback allocation)
-        const priorRushTotal2 = priorRushTotal;
-        const priorTgtTotal2 = priorTgtTotal;
+        // Prior-year within-group sums (for fallback allocation). The
+        // denominator is floored at the team's projected pool: a player's
+        // fallback share is his prior usage over a NORMAL team workload, not
+        // over whatever the remaining group happened to total. With the
+        // group alone as denominator, barring Josh Jacobs left GB's backfield
+        // at 27 + 28 + 0 prior carries, so Chris Brooks' 27 became 49% of the
+        // team's rushing (213 carries, 334 pts) while the ML-share backs
+        // ahead of him on the depth chart kept their modest shares. The
+        // reconciliation below still scales the group up to the pool, in
+        // proportion to those sane shares.
+        const priorRushTotal2 = Math.max(priorRushTotal, rbRushPool);
+        const priorTgtTotal2 = Math.max(priorTgtTotal, rbTgtPool);
 
         const rbStart = rbs.length;
 
@@ -1095,6 +1104,21 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
             rec = Math.round(tgt * catchRate);
             const ypr = shrinkRate(prior.receiving_yards || 0, prior.receptions || 0, 7.5, YPR_K);
             recYds = Math.round(rec * ypr);
+          } else if (ml && ml.predRushShare > 0 && rookieShare(normalizeName(player.name), 'RB') === 0) {
+            // Fewer than 3 prior NFL games, not a 2026 draftee (those keep the
+            // draft-pick share below), but the share model has a call on him:
+            // a second-year back who lost his rookie season to injury, like
+            // MarShawn Lloyd. Use it exactly as the vet branch does. Falling
+            // through to the depth-piece share handed the depth-chart RB1 a
+            // twelfth of the backfield.
+            rushAtt = Math.round(projTeam.rushAtt * ml.predRushShare * gamesScale);
+            rushTD = Math.max(0, Math.round(projTeam.rushTD * ml.predRushShare * gamesScale));
+            rushYds = Math.round(rushAtt * 4.2);
+            const tgtShare = ml.predTargetShare > 0 ? ml.predTargetShare : ml.predRushShare * 0.25;
+            tgt = Math.round(projTeam.targets * tgtShare * gamesScale);
+            rec = Math.round(tgt * 0.72);
+            recYds = Math.round(rec * 7.0);
+            recTD = Math.max(0, Math.round(projTeam.recTD * tgtShare));
           } else {
             // No prior NFL stats: 2026 rookies use draft-pick-based
             // share; everyone else falls back to the depth-piece
@@ -1197,7 +1221,10 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
               recTD = Math.max(0, Math.round(projTeam.recTD * ml.predTargetShare));
             } else {
               const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
-              const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+              // Floored at the team's WR target pool for the same reason as the
+              // RB branch: a thin remaining group (a traded WR1) must not hand
+              // its leftovers' small prior totals a huge share.
+              const tgtShare = priorTgtTotal > 0 ? adjTgt / Math.max(priorTgtTotal, wrTgtPool) : 1 / players.length;
               tgt = Math.round(wrTgtPool * tgtShare * vetShareScaler * af * gamesScale);
               recTD = Math.max(0, Math.round(wrRecTDPool * tgtShare * vetShareScaler));
             }
@@ -1291,7 +1318,8 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
               recTD = Math.max(0, Math.round(projTeam.recTD * ml.predTargetShare));
             } else {
               const adjTgt = isPrimary ? healthAdjust(prior.targets || 0, prior.games) : (prior.targets || 0);
-              const tgtShare = priorTgtTotal > 0 ? adjTgt / priorTgtTotal : 1 / players.length;
+              // Floored at the team's TE target pool (see the RB branch).
+              const tgtShare = priorTgtTotal > 0 ? adjTgt / Math.max(priorTgtTotal, teTgtPool) : 1 / players.length;
               tgt = Math.round(teTgtPool * tgtShare * vetShareScaler * af * gamesScale);
               recTD = Math.max(0, Math.round(teRecTDPool * tgtShare * vetShareScaler));
             }
