@@ -1182,6 +1182,15 @@ export async function fetchSleeperProjections(
 
 // --- KeepTradeCut (scrapes embedded playersArray from HTML) ---
 
+/** The JSON text of KTC's embedded rankings array, from either page layout
+ *  (the `ktc-players` JSON script tag, or the older inline `var playersArray`). */
+function extractKtcPlayersJson(html: string): string | null {
+  const tag = html.match(/<script[^>]*id=["']ktc-players["'][^>]*>([\s\S]*?)<\/script>/);
+  if (tag && tag[1].trim().startsWith('[')) return tag[1].trim();
+  const inline = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
+  return inline ? inline[1] : null;
+}
+
 const dynastyCache = new Map<string, DynastyPlayer[]>();
 
 export async function fetchDynastyRankings(
@@ -1216,15 +1225,18 @@ export async function fetchDynastyRankings(
 
     const html = await response.text();
 
-    // Extract the playersArray variable embedded in the page's script tags
-    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
-    if (!match) {
+    // Extract the rankings embedded in the page. Until 2026-09-07 they were
+    // an inline `var playersArray = [...]`; since 2026-09-08 they sit in
+    // `<script type="application/json" id="ktc-players">` and the inline
+    // script JSON.parses it. Try the tag first, then the old inline form.
+    const embedded = extractKtcPlayersJson(html);
+    if (!embedded) {
       if (page === 0) throw new Error('Could not find player data in Dynasty page');
       break;
     }
 
     try {
-      const players: Array<Record<string, unknown>> = JSON.parse(match[1]);
+      const players: Array<Record<string, unknown>> = JSON.parse(embedded);
       let added = 0;
       for (const p of players) {
         const id = Number(p.playerID) || 0;

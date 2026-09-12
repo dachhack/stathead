@@ -38244,13 +38244,18 @@ async function fetchKTCRankings(format = "1qb") {
       break;
     }
     const html = await response.text();
-    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
-    if (!match) {
+    // KTC layout change 2026-09-08: the rankings moved from an inline
+    // `var playersArray = [...]` into a `<script type="application/json"
+    // id="ktc-players">` tag. Try the tag first, then the old inline form.
+    const tag = html.match(/<script[^>]*id=["']ktc-players["'][^>]*>([\s\S]*?)<\/script>/);
+    const inline = tag && tag[1].trim().startsWith("[") ? null : html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
+    const embedded = tag && tag[1].trim().startsWith("[") ? tag[1].trim() : inline ? inline[1] : null;
+    if (!embedded) {
       if (page === 0) throw new Error("Could not find player data in KTC page");
       break;
     }
     try {
-      const players = JSON.parse(match[1]);
+      const players = JSON.parse(embedded);
       let added = 0;
       for (const p of players) {
         const id = Number(p.playerID) || 0;
@@ -43679,7 +43684,7 @@ Saved to ${saved}. These now auto-apply to ${target} (flagged in its output). Ru
 }
 
 // src/mcp-server.ts
-var SERVER_VERSION = "1.0.89";
+var SERVER_VERSION = "1.0.90";
 var server = new McpServer({
   name: "stathead",
   version: SERVER_VERSION

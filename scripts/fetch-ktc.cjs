@@ -10,6 +10,23 @@ const path = require('path');
 const OUT = process.argv[2] || 'public/data';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+// KTC embeds the rankings in the page. Until 2026-09-07 it was an inline
+// `var playersArray = [...]`; since 2026-09-08 the page carries
+// `<script type="application/json" id="ktc-players">[...]</script>` and the
+// inline script reads it with JSON.parse. Try the JSON tag first, then the
+// old inline form, so either layout works.
+function extractPlayersArray(html) {
+  const tag = html.match(/<script[^>]*id=["']ktc-players["'][^>]*>([\s\S]*?)<\/script>/);
+  if (tag) {
+    try {
+      const arr = JSON.parse(tag[1].trim());
+      if (Array.isArray(arr)) return arr;
+    } catch { /* fall through to the inline form */ }
+  }
+  const inline = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
+  return inline ? JSON.parse(inline[1]) : null;
+}
+
 async function fetchKTCRankings(formatName, formatParam) {
   const outfile = path.join(OUT, `ktc_rankings_${formatName}.json`);
   if (fs.existsSync(outfile)) {
@@ -38,13 +55,12 @@ async function fetchKTCRankings(formatName, formatParam) {
       break;
     }
 
-    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
-    if (!match) {
+    const players = extractPlayersArray(html);
+    if (!players) {
       if (page === 0) throw new Error('Could not find playersArray in KTC page');
       break;
     }
 
-    const players = JSON.parse(match[1]);
     let added = 0;
     for (const p of players) {
       const id = Number(p.playerID) || 0;
@@ -184,12 +200,11 @@ async function fetchKTCDevy() {
       if (page === 0) throw err;
       break;
     }
-    const match = html.match(/var\s+playersArray\s*=\s*(\[[\s\S]*?\]);/);
-    if (!match) {
+    const players = extractPlayersArray(html);
+    if (!players) {
       if (page === 0) throw new Error('Could not find playersArray in KTC devy page');
       break;
     }
-    const players = JSON.parse(match[1]);
     let added = 0;
     for (const p of players) {
       const id = Number(p.playerID) || 0;
