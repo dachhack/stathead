@@ -38,8 +38,9 @@ the editing side's goal), withdraw, close/reopen, and a Deal banner when
 both sides accept the same version. Backend: `workers/swap-meet`
 (Cloudflare Worker + KV, 120-day TTL) running the shared pure model
 `src/lib/swapMeetCore.ts` (`npm run test:swap-meet`); deploy-workers.yml
-creates the KV namespace on first deploy. Needs the CLOUDFLARE secrets
-the other workers use — the first deploy is a workflow run away.
+created the KV namespace on the first deploy (run 34710950316, green);
+the live service at `https://swap-meet.dachhack.workers.dev` passed a
+create → vote → deal → viewer/403/CORS smoke test from the session.
 
 Earlier today — Trade Finisher in the Trade Calculator
 (`src/lib/tradeFinisher.ts` engine, `src/components/TradeFinisher.tsx` UI,
@@ -147,12 +148,6 @@ framework; defVsPos gains K/DST entries). 1.0.63 was published to npm; 1.0.64 (t
 
 ## Next 3 tasks
 
--1. Deploy the `swap-meet` worker: run **Deploy Cloudflare Workers** with
-   `swap-meet` (or push `workers/**` to the base branch). The workflow
-   creates the `swap-meet-SWAP_MEET` KV namespace and deploys to
-   `https://swap-meet.dachhack.workers.dev` (override with
-   `VITE_SWAP_MEET_URL`). Until then "Create Swap Meet" reports the
-   service as unreachable.
 0. MCP **1.0.89** + Python **0.3.4** (roster-aware weekly feed: status /
    active / backup / currentWeek, backups sorted below starters) tagged for
    publish from `claude/weekly-projections-validation-9krs95`; confirm the
