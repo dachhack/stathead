@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { PRE_DRAFT_ROOKIE_FEATURES, FEATURES, POS_COLORS, CATEGORY_COLORS } from '../lib/featureTypes';
 import { ppgToTierScore, tierName, tierColor as tierScoreColor } from '../lib/tierScore';
+import { pctlColor, goodnessPctl, isMissing } from '../lib/prospectScores';
 
 interface PlayerCardProps {
   player: {
@@ -25,74 +26,8 @@ interface PlayerCardProps {
   onClose: () => void;
 }
 
-function pctlColor(pctl: number): string {
-  if (pctl >= 90) return '#22c55e';
-  if (pctl >= 75) return '#4ade80';
-  if (pctl >= 60) return '#a3e635';
-  if (pctl >= 40) return '#facc15';
-  if (pctl >= 20) return '#fb923c';
-  return '#ef4444';
-}
-
-// Features where a HIGH raw value is WORSE for projection (late draft pick,
-// older rookie, slower 40, more red flags). Bars + colors invert for these so
-// "longer green bar = better for the player" reads consistently across the
-// card. The raw feature value is still shown unchanged in the rightmost col.
-const LOWER_IS_BETTER = new Set<string>([
-  'nflDraftPick', 'nflDraftRound', 'logDraftPick',
-  'draftPickPct', 'draftPickPctOverall',
-  'adp', 'adpRound',
-  'age',
-  'forty', 'cone', 'shuttle',
-  'pdfNWeaknesses', 'pdfNRedFlags', 'pdfRankOverallMean',
-  'priorINTs', 'priorBustGameRate', 'teamSackRate', 'injuryRecurrence',
-  'priorGamesMissed', 'priorInjuryWeeks', 'priorGamesOut',
-  'preseasonInjured', 'preseasonInjWeeks',
-  'priorSoftTissue', 'priorKneeInjury',
-]);
-
-// Returns the "goodness" percentile — high = better for the player —
-// regardless of the underlying feature's natural direction.
-function goodnessPctl(key: string, pctl: number): number {
-  return LOWER_IS_BETTER.has(key) ? 100 - pctl : pctl;
-}
-
 const FEATURE_LABELS: Record<string, string> = {};
 for (const f of FEATURES) { FEATURE_LABELS[f.key] = f.label; }
-
-// Features where a value of exactly 0 means "no data captured" rather than
-// a real zero. Combine / college-production / CFBD features all fall here
-// because the upstream pipeline writes 0 when a lookup whiffs. Binary flags
-// (earlyDeclare, hasX), interaction terms (dominatorXLateRound is legitimately
-// 0 for top-55 picks), and derived draft-pick features stay out of this set.
-const ZERO_MEANS_MISSING = new Set<string>([
-  // Athletic / combine
-  'relativeAthleticScore', 'speedScore', 'heightAdjSpeedScore',
-  'forty', 'weight', 'bmi', 'cone', 'shuttle', 'bench', 'vertical', 'broadJump',
-  // College production
-  'collegeDominatorRating', 'collegeBestRecYds', 'collegeBestRushYds',
-  'collegeBreakoutScore', 'collegeBreakoutAge', 'collegeMarketShare',
-  'collegeReceptionShare', 'collegeTotalTDs', 'collegeRushYPC',
-  'collegeYdsPerRec', 'collegeRecPerGame', 'collegeRecTDs',
-  'collegeRecYds', 'collegeRushYds', 'collegePassTDs',
-  'collegeSeasons', 'collegeGames', 'collegeExperiencePerAge',
-  'collegeTeammateScore', 'collegeRushProductionWR',
-  // CFBD-sourced
-  'recruitRating', 'recruitStars',
-  'collegeUsageOverall', 'collegeUsagePass', 'collegeUsageRush',
-  'collegeTeamTalent',
-  'collegeQBR', 'collegeQBR2yr', 'collegeYdsPerPassAtt', 'collegeQbContextScore',
-  // QB career derivations — 0 means the upstream aggregate (rush yards,
-  // passing attempts, or school-season SOS lookup) was unavailable.
-  'collegeRushYpgPerAge', 'collegeSosFinalYr',
-  // Context
-  'age', 'nflDraftPick', 'nflDraftRound',
-]);
-
-function isMissing(key: string, val: number | undefined | null): boolean {
-  if (val == null) return true;
-  return ZERO_MEANS_MISSING.has(key) && val === 0;
-}
 
 // Raw inputs fed into the boom (outperformance) and bust (underperformance)
 // gap-feature models. Shown on the card so users can see what's driving the

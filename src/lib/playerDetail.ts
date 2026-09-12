@@ -1,4 +1,5 @@
 import { normalizeName } from './featureTypes';
+import type { CareerScoreRec, ProspectScores } from './prospectScores';
 import type { CrosswalkRec } from './playerLookup';
 import type { DynastyPlayer, DynastyPlayerHistory, PlayerStats } from '../types';
 import { fetchDynastyRankingsForDisplay, fetchDynastyHistoryForDisplay, fetchPlayerStats, fetchMaybeGz } from '../data';
@@ -61,6 +62,10 @@ export interface PlayerModelDrivers {
 export interface PlayerDetailData {
   crosswalk: CrosswalkRec;
   career: CareerPrediction | null;
+  /** Rookie career model record with inputs + percentiles, and the rest of
+   *  the position's draft class (score-store/career.json); null when the
+   *  player was never scored as a prospect. */
+  prospectScores: ProspectScores | null;
   dynastyCurrent: DynastyPlayer | null;
   dynastyHistory: DynastyPlayerHistory | null;
   adpHistory: AdpSeasonRow[];
@@ -94,6 +99,31 @@ async function loadModelDrivers(rec: CrosswalkRec): Promise<PlayerModelDrivers |
       ?? players.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, '') === rec.display_name.toLowerCase().replace(/[^a-z0-9]/g, ''));
     if (!hit || !hit.models?.length) return null;
     return { models: hit.models, dataGaps: hit.dataGaps };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The prospect's full career-model record (every input feature with its
+ * percentile) plus the rest of his position's draft class, from the score
+ * store. Matched on normalized name + position — the shard carries no
+ * player_key. Null for players never scored as prospects.
+ */
+async function loadProspectScores(rec: CrosswalkRec): Promise<ProspectScores | null> {
+  try {
+    const resp = await fetch(`${import.meta.env.BASE_URL}data/score-store/career.json`);
+    if (!resp.ok) return null;
+    const rows = (await resp.json()) as CareerScoreRec[];
+    const target = normalizeName(rec.display_name);
+    const positions = [rec.position, ...(rec.all_positions || [])].filter(Boolean);
+    const mine = rows.filter((r) => normalizeName(r.name) === target && positions.includes(r.position));
+    if (!mine.length) return null;
+    // Newest draft class wins when a name repeats.
+    const me = mine.sort((a, b) => (b.draftSeason ?? 0) - (a.draftSeason ?? 0))[0];
+    const classmates = rows.filter((r) =>
+      r !== me && r.position === me.position && r.draftSeason === me.draftSeason && Number.isFinite(r.predictedPPG));
+    return { me, classmates };
   } catch {
     return null;
   }
@@ -199,16 +229,18 @@ async function loadGameLog(rec: CrosswalkRec): Promise<{ rows: PlayerStats[]; se
 }
 
 export async function loadPlayerDetail(rec: CrosswalkRec): Promise<PlayerDetailData> {
-  const [career, dynasty, adpHistory, modelDrivers, gameLog] = await Promise.all([
+  const [career, dynasty, adpHistory, modelDrivers, gameLog, prospectScores] = await Promise.all([
     loadCareer(rec),
     loadDynasty(rec),
     loadAdpHistory(rec),
     loadModelDrivers(rec),
     loadGameLog(rec),
+    loadProspectScores(rec),
   ]);
   return {
     crosswalk: rec,
     career,
+    prospectScores,
     dynastyCurrent: dynasty.current,
     dynastyHistory: dynasty.history,
     adpHistory,

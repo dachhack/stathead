@@ -10,6 +10,7 @@ import {
 } from '../data';
 import { teamLogoUrl } from '../lib/teamLogo';
 import { PlayerName } from './PlayerName';
+import { ProspectScoresCard } from './ProspectScoresCard';
 import { loadBlendedProjections, computePpr, type ConsensusPlayer } from '../lib/waiverUtils';
 import { listProjectionScenarios, buildScenarioPprByName, buildPresetMeta } from '../lib/projectionScenario';
 import { normalizeForMatch } from '../lib/nameMatch';
@@ -71,7 +72,7 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
     );
   }
 
-  const { crosswalk: cw, career, dynastyCurrent, dynastyHistory, adpHistory, modelDrivers, gameLog, gameLogSeason } = data;
+  const { crosswalk: cw, career, prospectScores, dynastyCurrent, dynastyHistory, adpHistory, modelDrivers, gameLog, gameLogSeason } = data;
 
   // Best available current NFL team: Dynasty → most recent game → Sleeper (rookies).
   // Normalized to Sleeper codes — Dynasty says GBP/KCC/… and nflverse says LA for
@@ -120,6 +121,7 @@ export function PlayerDetail({ playerKey, onBack }: Props) {
 
       <Cards>
         {career && <CareerCard career={career} />}
+        {prospectScores && <ProspectScoresCard scores={prospectScores} />}
         {dynastyCurrent && <DynastyCard current={dynastyCurrent} history={dynastyHistory} />}
         {adpHistory.length > 0 && <AdpCard rows={adpHistory} />}
         {overview?.fantasy && <FantasyCard fantasy={overview.fantasy} />}
