@@ -6,7 +6,7 @@ import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
 import { SwapMeetView } from './components/SwapMeetView';
 import { ExpertTracker } from './components/ExpertTracker';
-import { parsePlayerHash, setPlayerHash, parseSwapHash, setSwapHash, type SwapRoute } from './lib/hashRoute';
+import { parsePlayerHash, setPlayerHash, parseSwapHash, parseSwapLocation, normalizeSwapUrl, setSwapHash, type SwapRoute } from './lib/hashRoute';
 import { parseSnoopQuery, setSnoopQuery } from './lib/snoopRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -154,8 +154,10 @@ function App() {
   // Swap Meet by StatHead: `#/swap/<id>?k=<key>` renders a shared trade
   // negotiation the same way, in place of the tab layout.
   const [swapRoute, setSwapRoute] = useState<SwapRoute | null>(
-    () => (typeof window !== 'undefined' ? parseSwapHash(window.location.hash) : null),
+    () => (typeof window !== 'undefined' ? parseSwapLocation(window.location.search, window.location.hash) : null),
   );
+  // A `?swap=` share link becomes the hash route in place (no navigation).
+  useEffect(() => { normalizeSwapUrl(); }, []);
   useEffect(() => {
     const handler = () => {
       setPlayerDetailKey(parsePlayerHash(window.location.hash));

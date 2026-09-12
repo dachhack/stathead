@@ -42,6 +42,40 @@ export function swapHash(id: string, key?: string | null): string {
   return `#/swap/${id}${key ? `?k=${encodeURIComponent(key)}` : ''}`;
 }
 
+// Share links use a QUERY form, `?swap=<id>&k=<key>`, because chat apps and
+// in-app browsers are not reliable about keeping a `#fragment` on a tapped
+// link, and a lost fragment lands the partner on the home page. On load the
+// query form is read here and then rewritten to the hash form in place.
+export function parseSwapQuery(search: string): SwapRoute | null {
+  const params = new URLSearchParams(search);
+  const id = params.get('swap')?.trim().toLowerCase();
+  if (!id || !/^[a-z0-9]{6,24}$/.test(id)) return null;
+  const key = params.get('k')?.trim();
+  return { id, key: key || null };
+}
+
+/** The meet route from either form of the URL. */
+export function parseSwapLocation(search: string, hash: string): SwapRoute | null {
+  return parseSwapHash(hash) ?? parseSwapQuery(search);
+}
+
+/** Swap the query form for the hash form without a navigation, so the
+ *  address bar, back button and "copy my link" all agree. */
+export function normalizeSwapUrl(): void {
+  if (typeof window === 'undefined') return;
+  const q = parseSwapQuery(window.location.search);
+  if (!q || parseSwapHash(window.location.hash)) return;
+  const params = new URLSearchParams(window.location.search);
+  params.delete('swap');
+  params.delete('k');
+  const qs = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${swapHash(q.id, q.key)}`);
+}
+
+export function swapQuery(id: string, key?: string | null): string {
+  return `?swap=${id}${key ? `&k=${encodeURIComponent(key)}` : ''}`;
+}
+
 export function setSwapHash(id: string | null, key?: string | null): void {
   if (typeof window === 'undefined') return;
   if (id) window.location.hash = swapHash(id, key);

@@ -20,7 +20,7 @@ import { loadBlendedProjections, computeCustomScore, computePpr, type ConsensusP
 import { normalizeForMatch } from '../lib/nameMatch';
 import type { TepLevel } from '../lib/dynastyForecast';
 import {
-  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, describeEdit, nameTags, isSuperflexLeague, tepLevelFromScoring,
+  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives, isSuperflexLeague, tepLevelFromScoring,
   GOAL_LABEL, DEFAULT_TOLERANCE_PCT,
   type FinisherAsset, type FinisherTeam, type Offer, type OfferEval, type TradeGoal, type Variant,
 } from '../lib/tradeFinisher';
@@ -207,20 +207,20 @@ export function TradeFinisher({ dynasty, leagueFormat, tepLevel, onLeagueDetecte
   // What the Swap Meet composer can put on the table: the offer as built,
   // then the finishes, each with a pitch drafted from its edits and tags.
   const candidates = useMemo<Candidate[]>(() => {
-    if (!me || !partner) return [];
-    // The pitch is read by the partner, so it speaks in team names, not "you".
+    if (!me || !partner || !partnerNeeds) return [];
+    // The pitch is read by the partner: what the version does for THEM, in
+    // their name, and nothing about this side of the table.
     const meS = shortName(me.teamName), themS = shortName(partner.teamName);
-    const pitchTags = (tags: string[]) => nameTags(tags.filter((t) => !/^(Serves|Against)/.test(t)), meS, themS).join(' · ');
+    const pitch = (ev: OfferEval, o: Offer) => nameTags(partnerPositives(ev, partnerNeeds, o), themS, meS).join(' · ');
     const out: Candidate[] = [];
     if (evaluation && offer.give.length && offer.get.length) {
-      out.push({ key: 'offer', label: 'The offer as built', offer, eval: evaluation, pitch: pitchTags(evaluation.tags) });
+      out.push({ key: 'offer', label: 'The offer as built', offer, eval: evaluation, pitch: pitch(evaluation, offer) });
     }
     variants.forEach((v, i) => {
-      const edits = v.edits.map((e) => describeEdit(e, themS, meS)).join('; ');
-      out.push({ key: `v${i}`, label: `Finish #${i + 1}`, offer: v.offer, eval: v.eval, pitch: `${edits}. ${pitchTags(v.eval.tags)}` });
+      out.push({ key: `v${i}`, label: `Finish #${i + 1}`, offer: v.offer, eval: v.eval, pitch: pitch(v.eval, v.offer) });
     });
     return out;
-  }, [me, partner, offer, evaluation, variants]);
+  }, [me, partner, partnerNeeds, offer, evaluation, variants]);
 
   const toggle = (side: 'give' | 'get', id: string) => {
     const [ids, set] = side === 'give' ? [giveIds, setGiveIds] : [getIds, setGetIds];

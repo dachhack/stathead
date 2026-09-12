@@ -476,6 +476,26 @@ export function describeEdit(e: Edit, partnerName: string, youName = 'you'): str
   return `${e.replaced?.name ?? '?'} → ${e.asset.name} ${from}`;
 }
 
+/** What an offer does FOR THE PARTNER, and nothing else — the read that goes
+ *  on the partner's page. Second person ("your"), positives only: the value
+ *  they win, the lineup points they gain, the holes it fills, the youth or
+ *  picks they add, the roster spots it frees, the goal it serves. The
+ *  proposer's side of the ledger stays with the proposer. */
+export function partnerPositives(ev: OfferEval, partnerNeeds: TeamNeeds, offer: Offer): string[] {
+  const out: string[] = [];
+  if (ev.diff < 0) out.push(`You win the value by ${Math.round(-ev.diff).toLocaleString()}`);
+  else if (ev.verdict === 'fair') out.push('About even on value');
+  const fills = [...new Set(offer.give.filter((a) => a.type === 'player' && partnerNeeds.weak.includes(a.position as SkillPos)).map((a) => a.position))];
+  if (fills.length) out.push(`Fills your ${fills.join('/')}`);
+  if (ev.partnerLineupDelta >= 3) out.push(`Your lineup +${ev.partnerLineupDelta.toFixed(0)} pts`);
+  if (ev.ageDelta != null && ev.ageDelta >= 1.5) out.push(`You get younger (−${ev.ageDelta.toFixed(1)} yrs)`);
+  const picks = offer.give.filter((a) => a.type === 'pick').length;
+  if (picks) out.push(`You add ${picks} pick${picks > 1 ? 's' : ''}`);
+  if (ev.netPlayers > 0) out.push(`Frees ${ev.netPlayers} roster spot${ev.netPlayers > 1 ? 's' : ''}`);
+  if (ev.partnerFit >= 0.25) out.push('Serves your goal');
+  return out;
+}
+
 /** Rewrite an evaluation's you/their tags with team names, for a page read by
  *  both sides (or a third party) where "you" is ambiguous. */
 export function nameTags(tags: string[], youName: string, themName: string): string[] {

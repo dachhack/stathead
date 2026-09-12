@@ -1,18 +1,20 @@
 /**
  * Swap Meet by StatHead — the shared negotiation page (`#/swap/<id>?k=…`).
  *
- * Both managers see the same thing: the two rosters' needs, every version of
- * the trade on the table with the finisher's fairness and lineup read, each
- * side's vote, the notes, and an editor to counter with a version of their
- * own (with suggested finishes from their side of the table). The link's key
- * decides who you are; a bare link is read-only.
+ * Two views of one record. The PROPOSER sees the full finisher read: both
+ * rosters' needs, and every version with fairness, both lineups' deltas and
+ * every tag. The PARTNER (and anyone with a bare link) sees a pitch: the
+ * packages, the values, and only what each version does for the partner —
+ * never the proposer's gains or holes, which are the proposer's business.
+ * Both sides vote, note, counter, revise and withdraw the same way. The
+ * link's key decides who you are; a bare link is read-only.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchMeet, sendAction, meetUrl, copyText, rememberMeet, listMeets } from '../lib/swapMeet';
 import { generalNotes, optionNotes, type Meet, type MeetAction, type MeetOption, type Role, type Vote } from '../lib/swapMeetCore';
 import {
-  computeNeeds, evaluateOffer, suggestFinishes, nameTags,
+  computeNeeds, evaluateOffer, suggestFinishes, nameTags, partnerPositives,
   type EvalContext, type FinisherAsset, type Offer, type OfferEval, type Variant,
 } from '../lib/tradeFinisher';
 import { AssetColumn, NeedsCard, OfferVerdict, PackageList, Tag, VariantCard } from './swap/OfferParts';
@@ -122,6 +124,14 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
   const Q = meet?.partner.teamName ?? 'Partner';
   const Ps = shortName(P), Qs = shortName(Q);
   const myName = role === 'proposer' ? P : role === 'partner' ? Q : null;
+  // Only the proposer gets the full read; the partner's page is a pitch.
+  const full = role === 'proposer';
+  // The partner reads their positives as "you"; a third party sees the partner's name.
+  const pitchTags = useCallback((ev: OfferEval, o: Offer): string[] => {
+    if (!partnerNeeds) return [];
+    const tags = partnerPositives(ev, partnerNeeds, o);
+    return role === 'partner' ? tags : nameTags(tags, Qs, Ps);
+  }, [partnerNeeds, role, Qs, Ps]);
 
   // ── Editor (counter / revise) ─────────────────────────────────────────
   const editorOffer = useMemo<Offer>(() => ({
@@ -232,10 +242,12 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
         </div>
       )}
 
-      <div className="tf-needs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 14 }}>
-        <NeedsCard team={proposerTeam} needs={proposerNeeds} goal={meet.proposer.goal} color={GIVE_COLOR} label={role === 'proposer' ? 'You' : 'Proposer'} />
-        <NeedsCard team={partnerTeam} needs={partnerNeeds} goal={meet.partner.goal} color={GET_COLOR} label={role === 'partner' ? 'You' : 'Partner'} />
-      </div>
+      {full && (
+        <div className="tf-needs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 14 }}>
+          <NeedsCard team={proposerTeam} needs={proposerNeeds} goal={meet.proposer.goal} color={GIVE_COLOR} label="You" />
+          <NeedsCard team={partnerTeam} needs={partnerNeeds} goal={meet.partner.goal} color={GET_COLOR} label="Partner" />
+        </div>
+      )}
 
       {notes.length > 0 && (
         <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -245,7 +257,11 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', margin: '6px 0' }}>
         <h4 style={{ margin: 0, fontSize: 14 }}>Versions on the table</h4>
-        <span style={{ fontSize: 11, color: MUTED }}>{Ps} sends · {Qs} sends. Fairness and lineup reads are the finisher's, on the same league snapshot for both of you.</span>
+        <span style={{ fontSize: 11, color: MUTED }}>
+          {full
+            ? `${Ps} sends · ${Qs} sends. Your full read: fairness, both lineups and every tag. ${Qs} sees the packages, the values and what each version does for them.`
+            : `${Ps} sends · ${Qs} sends, with dynasty market values and what each version does for ${role === 'partner' ? 'you' : Qs}.`}
+        </span>
         {withdrawnCount > 0 && <button className="format-tab" onClick={() => setShowWithdrawn(!showWithdrawn)} style={{ padding: '2px 8px', fontSize: 11 }}>{showWithdrawn ? 'Hide' : 'Show'} {withdrawnCount} withdrawn</button>}
       </div>
 
@@ -277,14 +293,19 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
                 <PackageList xs={o.give} color={GIVE_COLOR} head={`${Ps} sends`} />
                 <PackageList xs={o.get} color={GET_COLOR} head={`${Qs} sends`} />
               </div>
-              {ev && (
+              {ev && full && (
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   {Ps} lineup <strong style={{ color: ev.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.myLineupDelta)}</strong>
                   {' · '}{Qs} lineup <strong style={{ color: ev.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(ev.partnerLineupDelta)}</strong>
                   {!ev.legal && <span style={{ color: '#ef4444' }}> · {ev.illegalReason}</span>}
                 </div>
               )}
-              {ev && <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{nameTags(ev.tags.filter((t) => !t.startsWith('Illegal')), Ps, Qs).map((t) => <Tag key={t} text={t} />)}</div>}
+              {ev && !full && !ev.legal && <div style={{ fontSize: 11, color: '#ef4444' }}>{ev.illegalReason}</div>}
+              {ev && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {(full ? nameTags(ev.tags.filter((t) => !t.startsWith('Illegal')), Ps, Qs) : pitchTags(ev, { give: o.give, get: o.get })).map((t) => <Tag key={t} text={t} />)}
+                </div>
+              )}
               {o.rationale && (
                 <div style={{ fontSize: 12, padding: '6px 8px', background: 'var(--bg-secondary)', borderRadius: 6, borderLeft: `3px solid ${o.by === 'proposer' ? GIVE_COLOR : GET_COLOR}` }}>
                   <span style={{ color: MUTED }}>{shortName(author)}: </span>{o.rationale}
@@ -348,7 +369,8 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
           </div>
           <div className="tf-offer" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 12, alignItems: 'start' }}>
             <AssetColumn title={`${Ps} sends`} color={GIVE_COLOR} assets={proposerTeam.assets} selected={editor.giveIds} filter={giveFilter} setFilter={setGiveFilter} onToggle={(x) => toggleEditor('give', x)} />
-            <OfferVerdict evaluation={editorEval} offer={editorOffer} youName={Ps} themName={Qs} heading="This version" />
+            <OfferVerdict evaluation={editorEval} offer={editorOffer} youName={Ps} themName={Qs} heading="This version"
+              showLineups={full} tags={!full && editorEval ? pitchTags(editorEval, editorOffer) : undefined} />
             <AssetColumn title={`${Qs} sends`} color={GET_COLOR} assets={partnerTeam.assets} selected={editor.getIds} filter={getFilter} setFilter={setGetFilter} onToggle={(x) => toggleEditor('get', x)} />
           </div>
           <textarea value={editor.rationale} onChange={(e) => setEditor({ ...editor, rationale: e.target.value })} rows={2}
@@ -366,6 +388,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
               <div className="tf-variants" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
                 {editorVariants.map((v, i) => (
                   <VariantCard key={i} rank={i + 1} variant={v} youName={Ps} themName={Qs} giveHead={`${Ps} sends`} getHead={`${Qs} sends`}
+                    tags={full ? nameTags(v.eval.tags, Ps, Qs) : pitchTags(v.eval, v.offer)}
                     useLabel="Use this" onUse={() => setEditor({ ...editor, giveIds: v.offer.give.map((a) => a.id), getIds: v.offer.get.map((a) => a.id) })} />
                 ))}
               </div>
@@ -387,7 +410,7 @@ export function SwapMeetView({ id, keyParam, onBack }: Props) {
       )}
 
       <div style={{ marginTop: 20, fontSize: 11, color: MUTED }}>
-        Values are dynasty market values in the league's format{meet.league.tep ? ' with TE premium' : ''}; lineup points are projected season points in the league's scoring, from the snapshot taken when this meet was opened ({new Date(meet.createdAt).toLocaleDateString()}). Picks are priced on the board's Early / Mid / Late rows by projected draft slot.
+        Values are dynasty market values in the league's format{meet.league.tep ? ' with TE premium' : ''}{full ? '; lineup points are projected season points in the league\'s scoring' : ''}, from the snapshot taken when this meet was opened ({new Date(meet.createdAt).toLocaleDateString()}). Picks are priced on the board's Early / Mid / Late rows by projected draft slot.
       </div>
     </div>
   );

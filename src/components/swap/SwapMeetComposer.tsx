@@ -92,7 +92,7 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
         <span style={{ fontSize: 10, width: 12, color: MUTED }}>{open ? '▼' : '▶'}</span>
         <h4 style={{ margin: 0, fontSize: 13 }}>Send to {partner.teamName} · <span style={{ color: 'var(--accent)' }}>Swap Meet</span></h4>
         <span style={{ fontSize: 11, color: MUTED }}>
-          Put the versions you'd do on a shared page. They mark the ones they'd accept, counter, and leave notes; you both see the same needs and fairness read.
+          Put the versions you'd do on a shared page. They see the packages, the values and what each version does for them (nothing about your side), mark the ones they'd accept, counter, and leave notes. You keep the full read.
         </span>
       </div>
       {open && (
@@ -120,7 +120,7 @@ export function SwapMeetComposer({ league, me, partner, teams, myGoal, partnerGo
                       </div>
                       {on && (
                         <textarea value={pitchFor(c)} onChange={(e) => setPitches({ ...pitches, [c.key]: e.target.value })}
-                          rows={2} placeholder="Your pitch for this version"
+                          rows={2} placeholder="Your pitch for this version — they read this"
                           style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, fontFamily: 'inherit', resize: 'vertical' }} />
                       )}
                     </div>

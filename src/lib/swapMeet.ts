@@ -5,7 +5,7 @@
  */
 
 import type { Meet, MeetAction, NewMeetInput, Role } from './swapMeetCore';
-import { swapHash } from './hashRoute';
+import { swapQuery } from './hashRoute';
 
 const SWAP_MEET_URL: string = import.meta.env?.VITE_SWAP_MEET_URL ?? 'https://swap-meet.dachhack.workers.dev';
 
@@ -36,10 +36,11 @@ export function sendAction(id: string, key: string, action: MeetAction): Promise
   return call(`/meets/${encodeURIComponent(id)}/actions?k=${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify(action) });
 }
 
-/** Full shareable URL for a meet (the page's own origin + path, hash route). */
+/** Full shareable URL for a meet: the page's own origin + path with the
+ *  `?swap=…&k=…` query form, which survives chat apps that drop `#fragments`. */
 export function meetUrl(id: string, key?: string | null): string {
-  if (typeof window === 'undefined') return swapHash(id, key);
-  return `${window.location.origin}${window.location.pathname}${swapHash(id, key)}`;
+  if (typeof window === 'undefined') return swapQuery(id, key);
+  return `${window.location.origin}${window.location.pathname}${swapQuery(id, key)}`;
 }
 
 // ── Meets this browser knows about ────────────────────────────────────────

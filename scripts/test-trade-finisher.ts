@@ -7,7 +7,7 @@
 import type { LeagueTeam, RosterPlayer, SleeperTradedPick } from '../src/lib/sleeper';
 import type { DynastyPlayer } from '../src/types';
 import {
-  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, optimalLineup,
+  buildFinisherTeams, computeNeeds, evaluateOffer, suggestFinishes, optimalLineup, partnerPositives,
   pickTier, tepLevelFromScoring, tradablePickSeasons, isSuperflexLeague,
   type FinisherAsset, type Offer,
 } from '../src/lib/tradeFinisher';
@@ -156,6 +156,18 @@ check('no duplicate finishes', new Set(variants.map((v) => v.offer.give.map((a) 
 check('at least one finish uses a draft pick', variants.some((v) => [...v.offer.give, ...v.offer.get].some((a) => a.type === 'pick')));
 check('a rebuilding partner is never clearly worse off on their goal', variants.every((v) => v.eval.partnerFit >= -0.5));
 check('every finish serves a win-now goal (lineup or value up)', variants.every((v) => v.eval.myLineupDelta > 0 || v.eval.diff >= 0));
+
+// ── The partner's read: positives for them only ────────────────────────────
+const pp1 = partnerPositives(ev1, theirNeeds, lopsided);
+check('partner read never mentions the proposer', pp1.every((t) => !/Old Guard|their|Their/.test(t)), pp1.join(' | '));
+check('partner read omits their lineup loss on a lopsided offer', !pp1.some((t) => /lineup/.test(t)), pp1.join(' | '));
+check('partner read names the WR hole the offer fills', pp1.includes('Fills your WR'), pp1.join(' | '));
+const sweet: Offer = { give: [byName(F_ME, 'WR Four'), byName(F_ME, '2028 1st')], get: [byName(F_THEM, 'RB Stud')] };
+const evS = evaluateOffer(sweet, F_ME, F_THEM, ctx);
+const ppS = partnerPositives(evS, theirNeeds, sweet);
+check('partner read credits the pick they add', ppS.some((t) => /You add 1 pick/.test(t)), ppS.join(' | '));
+check('partner read credits the value when they win it', evS.diff >= 0 || ppS.some((t) => /You win the value/.test(t)), ppS.join(' | '));
+check('partner read speaks in the second person', ppS.every((t) => /^(You|Your|Fills your|Frees|About even|Serves your)/.test(t)), ppS.join(' | '));
 
 // Empty offer → the search proposes whole trades.
 const fromScratch = suggestFinishes({ give: [], get: [] }, F_ME, F_THEM, ctx, { max: 5 });

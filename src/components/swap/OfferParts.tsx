@@ -128,8 +128,10 @@ export function AssetBadge({ a }: { a: FinisherAsset }) {
 
 // ── Verdict on an offer ─────────────────────────────────────────────────
 
-export function OfferVerdict({ evaluation, offer, youName = 'you', themName, heading = 'Current offer', children }: {
-  evaluation: OfferEval | null; offer: Offer; youName?: string; themName: string; heading?: string; children?: ReactNode;
+export function OfferVerdict({ evaluation, offer, youName = 'you', themName, heading = 'Current offer', showLineups = true, tags, children }: {
+  evaluation: OfferEval | null; offer: Offer; youName?: string; themName: string; heading?: string;
+  /** Off for a page the other side reads: no lineup deltas, and `tags` replaces the evaluation's own. */
+  showLineups?: boolean; tags?: string[]; children?: ReactNode;
 }) {
   const any = offer.give.length + offer.get.length > 0;
   const yourLineup = youName === 'you' ? 'Your lineup' : `${youName} lineup`;
@@ -145,13 +147,15 @@ export function OfferVerdict({ evaluation, offer, youName = 'you', themName, hea
           <div style={{ fontSize: 11, color: MUTED }}>
             {evaluation.fairnessPct.toFixed(0)}% · {evaluation.diff === 0 ? 'even' : <><strong style={{ color: evaluation.diff > 0 ? GIVE_COLOR : GET_COLOR }}>{evaluation.diff > 0 ? youName : themName}</strong> by {fmt(Math.abs(evaluation.diff))}</>}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-            {yourLineup} <strong style={{ color: evaluation.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(evaluation.myLineupDelta)}</strong>
-            {' · '}{theirLineup} <strong style={{ color: evaluation.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(evaluation.partnerLineupDelta)}</strong>
-          </div>
+          {showLineups && (
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              {yourLineup} <strong style={{ color: evaluation.myLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(evaluation.myLineupDelta)}</strong>
+              {' · '}{theirLineup} <strong style={{ color: evaluation.partnerLineupDelta >= 0 ? '#22c55e' : '#ef4444' }}>{signed(evaluation.partnerLineupDelta)}</strong>
+            </div>
+          )}
           {!evaluation.legal && <div style={{ fontSize: 11, color: '#ef4444' }}>{evaluation.illegalReason}</div>}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {evaluation.tags.filter((t) => !t.startsWith('Illegal')).map((t) => <Tag key={t} text={t} />)}
+            {(tags ?? evaluation.tags.filter((t) => !t.startsWith('Illegal'))).map((t) => <Tag key={t} text={t} />)}
           </div>
         </>
       )}
@@ -191,9 +195,11 @@ export function PackageList({ xs, color, head, linkNames = true }: { xs: Finishe
 
 // ── One suggested version of the trade ──────────────────────────────────
 
-export function VariantCard({ rank, variant, youName = 'you', themName, giveHead, getHead, onUse, useLabel = 'Make this the offer', onLoad, extra }: {
+export function VariantCard({ rank, variant, youName = 'you', themName, giveHead, getHead, onUse, useLabel = 'Make this the offer', onLoad, extra, tags }: {
   rank: number; variant: Variant; youName?: string; themName: string; giveHead?: string; getHead?: string;
   onUse: () => void; useLabel?: string; onLoad?: () => void; extra?: ReactNode;
+  /** Replaces the evaluation's tags (the partner's page shows only their positives). */
+  tags?: string[];
 }) {
   const ev = variant.eval;
   return (
@@ -212,7 +218,7 @@ export function VariantCard({ rank, variant, youName = 'you', themName, giveHead
         <PackageList xs={variant.offer.get} color={GET_COLOR} head={getHead ?? (youName === 'you' ? 'You get' : `${themName} sends`)} />
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {ev.tags.map((t) => <Tag key={t} text={t} />)}
+        {(tags ?? ev.tags).map((t) => <Tag key={t} text={t} />)}
       </div>
       <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <button className="format-tab" onClick={onUse} style={btn}>{useLabel}</button>
