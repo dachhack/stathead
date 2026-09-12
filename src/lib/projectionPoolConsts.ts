@@ -24,4 +24,7 @@ export const normTeam = (t: string | undefined | null): string => {
   return TEAM_CANON[u] || u;
 };
 
-export const TEAM_POS_LIMITS: Record<Position, number> = { QB: 2, RB: 4, WR: 5, TE: 3 };
+// QB 3, not 2: with the starter AND the primary backup out (ATL week 1 2026:
+// Tua Out, Penix Out, Cooper Rush QB3 on the chart) a two-QB cap leaves the
+// team with no live passer for the weekly next-man-up pass to promote.
+export const TEAM_POS_LIMITS: Record<Position, number> = { QB: 3, RB: 4, WR: 5, TE: 3 };

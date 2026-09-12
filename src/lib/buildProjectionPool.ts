@@ -925,7 +925,9 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
 
       if (pos === 'QB') {
         // Rush share still uses prior-season tendencies (scrambling style varies by QB).
-        const priorRushAttTotal = players.reduce((s, p, i) => {
+        // Only the starter and primary backup split the team pie; a third QB
+        // (see below) must not dilute the starter's rush share.
+        const priorRushAttTotal = players.slice(0, 2).reduce((s, p, i) => {
           const car = p.prior?.carries || 0;
           const g = p.prior?.games ?? 17;
           return s + (i === 0 ? healthAdjust(car, g) : car);
@@ -948,8 +950,30 @@ export function buildProjectionPool(inputs: BuildProjectionPoolInputs): BuildPro
 
         for (let idx = 0; idx < players.length; idx++) {
           const player = players[idx];
+          if (idx >= 2) {
+            // Third QB: outside the team pie entirely. He carries the primary
+            // backup's per-game line over ONE game — a conditional rate the
+            // weekly feed flags as a backup — so the team's passing budget is
+            // never counted twice and the starter's numbers are untouched. He
+            // exists so the weekly next-man-up pass has someone to promote
+            // when the starter and backup are both out (ATL week 1 2026).
+            const b = qbs[qbs.length - 1];
+            const bg = Math.max(1, b?.games ?? 1);
+            const per = (v: number) => Math.round((v || 0) / bg);
+            const row = {
+              passAtt: per(b?.passAtt ?? 0), passComp: per(b?.passComp ?? 0), passYds: per(b?.passYds ?? 0),
+              passTD: per(b?.passTD ?? 0), int: per(b?.int ?? 0),
+              rushAtt: per(b?.rushAtt ?? 0), rushYds: per(b?.rushYds ?? 0), rushTD: 0,
+            };
+            qbs.push({
+              name: player.name, team, adp: player.adp, games: 1, ...row,
+              pprPts: Math.round(computePPR({ passYds: row.passYds, passTD: row.passTD, int: row.int, rushYds: row.rushYds, rushTD: 0 })),
+            });
+            continue;
+          }
           const isPrimary = idx === 0;
           const prior = player.prior;
+          // Starter, then the primary backup takes the remainder to 17.
           const games = idx === 0 ? starterGames : 17 - starterGames;
           const gamesScale = games / 17;
           const sp = players[0]?.prior; // starter's prior — used for backup rate reference

@@ -2,8 +2,12 @@ name: Refresh Data
 
 on:
   schedule:
-    # Every 2 hours, 7am-11pm EST (12:00-04:00 UTC)
-    - cron: '0 12,14,16,18,20,22,0,2,4 * * *'
+    # Hourly, 6am-midnight ET (10:00-04:00 UTC). In season the injury
+    # designations (Fri), roster moves (Sat) and inactives (Sun/Mon ~90 min
+    # before kickoff) all land between refreshes at the old two-hour cadence,
+    # and GitHub skips busy :00 slots — the 12:00 and 14:00 runs on 2026-09-12
+    # never fired. Minute 17 sits off the crowded top of the hour.
+    - cron: '17 10-23,0-4 * * *'
   workflow_dispatch: # Allow manual trigger
   # On-demand trigger that needs only branch-push rights (a Claude Code
   # session cannot dispatch): push any commit to `refresh-now` and this runs.
