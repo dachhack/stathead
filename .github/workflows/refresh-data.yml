@@ -5,6 +5,12 @@ on:
     # Every 2 hours, 7am-11pm EST (12:00-04:00 UTC)
     - cron: '0 12,14,16,18,20,22,0,2,4 * * *'
   workflow_dispatch: # Allow manual trigger
+  # On-demand trigger that needs only branch-push rights (a Claude Code
+  # session cannot dispatch): push any commit to `refresh-now` and this runs.
+  # The job always checks out the default branch below, so what is on
+  # refresh-now does not matter.
+  push:
+    branches: [refresh-now]
 
 permissions:
   contents: write
