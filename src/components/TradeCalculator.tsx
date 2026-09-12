@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { PlayerName } from './PlayerName';
+import { TradeFinisher } from './TradeFinisher';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
@@ -690,6 +691,17 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           />
         </div>
       </div>
+
+      {/* Sleeper-aware finisher: reads a league, both rosters' needs and the
+          offer on the table, and proposes fair versions (picks included).
+          "Open in calculator" drops an offer into the two sides below. */}
+      <TradeFinisher
+        dynasty={players}
+        leagueFormat={leagueFormat}
+        tepLevel={tepLevel}
+        onLeagueDetected={(f, tep) => { setLeagueFormat(f); setTepLevel(tep); }}
+        onLoadTrade={(a, b) => { setSideA(a); setSideB(b); setSearchA(''); setSearchB(''); }}
+      />
 
       {/* Warning when trade date has no history */}
       {tradeDate && !tradeDateTotals && hasPlayers && !historyLoading && (

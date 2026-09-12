@@ -155,9 +155,12 @@ export async function loadConsensusProjections(): Promise<ConsensusPlayer[]> {
   // missing we fall back to the shippable first-party season-projection base
   // (projection-base-2026.json) so projected points still render everywhere
   // (player-card rosters, waiver wire, league view) — never a blank column.
-  const projData = projRes.ok
-    ? ((await projRes.json()) as { players?: Record<string, unknown>[] })
-    : null;
+  // A dev server (and some hosts) answer a missing file with the SPA's index
+  // page and a 200, so the parse is the real test, not the status.
+  let projData: { players?: Record<string, unknown>[] } | null = null;
+  if (projRes.ok) {
+    try { projData = (await projRes.json()) as { players?: Record<string, unknown>[] }; } catch { projData = null; }
+  }
   if (!projData?.players?.length) {
     consensusCache = await loadBaseProjections(resolveSleeper);
     return consensusCache;

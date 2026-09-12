@@ -2846,6 +2846,18 @@ tr.scenario-custom-row-highlight td {
 }
 
 /* ── Trade calculator ─────────────────────────────────────────────────── */
+/* Trade Finisher: the offer builder is three columns (give · verdict · get)
+   on a wide screen and stacks give / verdict / get on a phone. */
+.tf-asset:hover { filter: brightness(1.15); }
+@media (max-width: 760px) {
+  .tf-panel { margin: 0 10px 12px !important; }
+  .tf-offer { grid-template-columns: 1fr !important; }
+  .tf-verdict { padding: 8px 4px !important; }
+  .tf-col { padding-left: 6px !important; }
+  .tf-list { max-height: 260px !important; }
+  .tf-variants { grid-template-columns: 1fr !important; }
+}
+
 .tc-date {
   background: var(--bg-tertiary);
   color: var(--text-primary);

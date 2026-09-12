@@ -63,7 +63,7 @@ const SECTIONS: Section[] = [
       {
         label: 'Trade Calculator',
         tab: 'trade-calc',
-        blurb: 'Evaluate proposed trades using dynasty market values with projected 30/60/90-day deltas.',
+        blurb: 'Evaluate proposed trades using dynasty market values with projected 30/60/90-day deltas. The Trade Finisher reads your Sleeper league, a partner and the offer on the table, and proposes fair versions that fit both teams\' goals, picks included.',
       },
       {
         label: 'Value Forecast',

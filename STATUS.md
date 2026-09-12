@@ -24,7 +24,23 @@ in the offseason. Automated daily data snapshots commit regardless.
 
 ## Last worked
 
-2026-09-11 — Week 1 weekly-projection validation
+2026-09-12 — Trade Finisher in the Trade Calculator
+(`src/lib/tradeFinisher.ts` engine, `src/components/TradeFinisher.tsx` UI,
+`npm run test:trade-finisher`). Sleeper username → league → your team +
+partner + the offer on the table; both rosters' needs are read in the
+league's own lineup and scoring (best-lineup points per position vs the
+league median, depth, age/value profile → inferred Win now / Balanced /
+Rebuild), and the search walks every offer one or two edits away (add,
+remove, swap on either side; players and owned rookie picks, traded picks
+resolved from `traded_picks`, priced on the board's Early/Mid/Late rows by
+projected draft slot) keeping only versions inside 12% of even and legal
+for both lineups, ranked by your goal, their goal, needs and fairness.
+"Open in calculator" drops an offer (picks as the board's pick rows) into
+the two sides. Also: the prospect scores card on the player page, and
+`loadConsensusProjections` now tolerates a dev server answering the absent
+paid projections file with the SPA index (parse, not status, decides).
+
+Previously (2026-09-11) — Week 1 weekly-projection validation
 (`docs/weekly-projections-week1-validation.md`, rerunnable via
 `scripts/validate-weekly-projections.py`). Matchup layer agrees with Sleeper
 (r 0.72–0.86 for RB/WR/TE starters); the misses are upstream: roster status
