@@ -2871,9 +2871,13 @@ tr.scenario-custom-row-highlight td {
   .tc-verdict .tc-verdict-sec > div { font-size: 11px; }
   .tc-verdict .tc-verdict-sec > div:nth-child(2) { font-size: 17px !important; line-height: 1.15; }
   .tc-row { padding: 6px 8px !important; gap: 2px !important; }
-  .tc-row-main { flex-wrap: wrap; }
-  .tc-row-main > div:first-child { flex: 1 1 100%; }
-  .tc-row-right { width: 100%; justify-content: flex-end; gap: 8px !important; }
+  /* Name and value share the first line; position · team · age drops to its
+     own line under the name instead of pushing the value onto a third row. */
+  .tc-row-main > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .tc-row-main > div:first-child > strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tc-meta { display: block; margin-left: 0 !important; }
+  .tc-row-right { gap: 6px !important; }
+  .tc-row-right > span:first-child { font-size: 15px; }
   .tc-deltas { gap: 8px !important; font-size: 10px !important; }
   .tc-gbm { display: none !important; }
 }
