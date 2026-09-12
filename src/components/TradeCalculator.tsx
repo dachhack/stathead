@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { PlayerName } from './PlayerName';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -75,6 +75,25 @@ function computeHistoricalDeltas(
   return { d30: find(30), d60: find(60), d90: find(90) };
 }
 
+interface SavedPlayer { playerID: number; playerName: string; position: string }
+interface SavedTrade {
+  leagueFormat: '1qb' | 'superflex';
+  tepLevel: number;
+  tradeDate: string;
+  sideA: SavedPlayer[];
+  sideB: SavedPlayer[];
+}
+const SAVED_KEY = 'stathead:trade-calculator';
+function readSaved(): SavedTrade | null {
+  try {
+    const raw = sessionStorage.getItem(SAVED_KEY);
+    return raw ? (JSON.parse(raw) as SavedTrade) : null;
+  } catch { return null; }
+}
+function writeSaved(t: SavedTrade) {
+  try { sessionStorage.setItem(SAVED_KEY, JSON.stringify(t)); } catch { /* storage unavailable */ }
+}
+
 interface Props {
   onDataLoaded?: (data: unknown[]) => void;
 }
@@ -83,17 +102,31 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   const [players, setPlayers] = useState<DynastyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [leagueFormat, setLeagueFormat] = useState<'1qb' | 'superflex'>('1qb');
-  const [tepLevel, setTepLevel] = useState<TepLevel>(0);
+  // The app swaps the whole tab layout for the player-detail page when a
+  // name is tapped, which unmounts this component; without this the trade
+  // being built vanished on the way back. Inputs live in sessionStorage
+  // (per tab, gone when the tab closes): format / TEP / date come back as
+  // initial state, the sides once the value board for that format loads.
+  const [saved] = useState<SavedTrade | null>(() => readSaved());
+  const [leagueFormat, setLeagueFormat] = useState<'1qb' | 'superflex'>(() => saved?.leagueFormat === 'superflex' ? 'superflex' : '1qb');
+  const [tepLevel, setTepLevel] = useState<TepLevel>(() => ([0, 1, 2, 3].includes(saved?.tepLevel ?? -1) ? saved!.tepLevel as TepLevel : 0));
   const [sideA, setSideA] = useState<DynastyPlayer[]>([]);
   const [sideB, setSideB] = useState<DynastyPlayer[]>([]);
   const [searchA, setSearchA] = useState('');
   const [searchB, setSearchB] = useState('');
   const [historyData, setHistoryData] = useState<DynastyPlayerHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [tradeDate, setTradeDate] = useState<string>('');
+  const [tradeDate, setTradeDate] = useState<string>(() => typeof saved?.tradeDate === 'string' ? saved.tradeDate : '');
   const [forecastCache, setForecastCache] = useState<ForecastCache | null>(null);
   const [redraftLookup, setRedraftLookup] = useState<RedraftLookup | null>(null);
+
+  // Saved sides, restored by id once the first value board has loaded.
+  const pendingRestore = useRef<{ a: SavedPlayer[]; b: SavedPlayer[] } | null>(
+    saved && ((saved.sideA?.length ?? 0) + (saved.sideB?.length ?? 0)) > 0
+      ? { a: saved.sideA || [], b: saved.sideB || [] }
+      : null,
+  );
+  const restoredOnce = useRef(false);
 
   // Dynasty only has 1QB and superflex; TEP is an orthogonal overlay
   const dynastyFormat = leagueFormat;
@@ -106,6 +139,19 @@ export function TradeCalculator({ onDataLoaded }: Props) {
       .then((data) => {
         setPlayers(data);
         onDataLoaded?.(data);
+        // First board after mount: put the saved sides back.
+        if (pendingRestore.current && !restoredOnce.current) {
+          restoredOnce.current = true;
+          const { a, b } = pendingRestore.current;
+          pendingRestore.current = null;
+          const find = (sp: SavedPlayer) =>
+            data.find((d) => d.playerID === sp.playerID)
+            ?? data.find((d) => d.playerName === sp.playerName && d.position === sp.position)
+            ?? null;
+          const restore = (list: SavedPlayer[]) => list.map(find).filter((x): x is DynastyPlayer => !!x);
+          if (a.length) setSideA(restore(a));
+          if (b.length) setSideB(restore(b));
+        }
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
@@ -121,6 +167,17 @@ export function TradeCalculator({ onDataLoaded }: Props) {
   useEffect(() => {
     loadRedraftLookup().then(setRedraftLookup);
   }, []);
+
+  // Persist the inputs (not until the initial restore has had its chance,
+  // or an empty first render would overwrite the saved trade).
+  useEffect(() => {
+    if (pendingRestore.current) return;
+    writeSaved({
+      leagueFormat, tepLevel, tradeDate,
+      sideA: sideA.map((p) => ({ playerID: p.playerID, playerName: p.playerName, position: p.position })),
+      sideB: sideB.map((p) => ({ playerID: p.playerID, playerName: p.playerName, position: p.position })),
+    });
+  }, [leagueFormat, tepLevel, tradeDate, sideA, sideB]);
 
   // Fetch history for all players in the trade
   const tradePlayers = useMemo(() => [...sideA, ...sideB], [sideA, sideB]);
@@ -389,19 +446,20 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     return (
       <div
         key={p.playerID}
+        className="tc-row"
         style={{
           padding: '8px 12px', background: 'var(--bg-tertiary)', borderRadius: 6,
           display: 'flex', flexDirection: 'column', gap: 4,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+        <div className="tc-row-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div style={{ minWidth: 0 }}>
             <strong><PlayerName name={p.playerName} position={p.position} /></strong>
-            <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+            <span className="tc-meta" style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-muted)' }}>
               {p.position} · {p.team}{p.age ? ` · ${p.age}` : ''}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="tc-row-right" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <span style={{ color: valueColor(val), fontWeight: 600 }}>
               {val.toLocaleString()}
             </span>
@@ -425,7 +483,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
             </button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 11, flexWrap: 'wrap' }}>
+        <div className="tc-deltas" style={{ display: 'flex', gap: 12, fontSize: 11, flexWrap: 'wrap' }}>
           {deltas.d30 != null && (
             <span style={{ color: deltaColor(deltas.d30) }}>
               30d: {fmtDelta(deltas.d30)}
@@ -449,7 +507,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         </div>
         {/* GBM multi-horizon forecasts */}
         {gbmForecasts.has(p.playerID) && (
-          <div style={{ display: 'flex', gap: 10, fontSize: 10, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+          <div className="tc-gbm" style={{ display: 'flex', gap: 10, fontSize: 10, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600 }}>GBM:</span>
             {gbmForecasts.get(p.playerID)!
               .filter(f => [30, 60, 90, 120].includes(f.horizon))
@@ -480,10 +538,22 @@ export function TradeCalculator({ onDataLoaded }: Props) {
     todayTotal?: number,
     redraftPPG?: number,
   ) => (
-    <div style={{ flex: 1, minWidth: 280 }}>
-      <h3 style={{ margin: '0 0 12px', fontSize: 15, color }}>
-        {label}
-      </h3>
+    <div className="tc-side" style={{ flex: 1, minWidth: 280, borderLeft: `3px solid ${color}`, paddingLeft: 10 }}>
+      <div className="tc-side-head" style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        margin: '0 0 10px', padding: '6px 10px', borderRadius: 6,
+        background: `${color}1f`,
+      }}>
+        <h3 style={{ margin: 0, fontSize: 15, color }}>{label}</h3>
+        {side.length > 0 && (
+          <span style={{ fontSize: 13, fontWeight: 700, color }}>
+            {total.toLocaleString()}
+            {redraftPPG != null && redraftPPG > 0 && (
+              <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#60a5fa' }}>{redraftPPG.toFixed(1)} ppg</span>
+            )}
+          </span>
+        )}
+      </div>
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <input
           type="text"
@@ -612,6 +682,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           <label className="control-label">Trade Date</label>
           <input
             type="date"
+            className="tc-date"
             value={tradeDate}
             onChange={(e) => setTradeDate(e.target.value)}
             max={new Date().toISOString().slice(0, 10)}
@@ -627,15 +698,16 @@ export function TradeCalculator({ onDataLoaded }: Props) {
         </div>
       )}
 
-      <div style={{ padding: '0 16px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div className="tc-layout" style={{ padding: '0 16px', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         {renderSide('Side A', sideA, setSideA, searchA, setSearchA, suggestionsA,
           evalA, projA, SIDE_A_COLOR, tradeDateTotals ? totalA : undefined,
           !tradeDateTotals ? redraftA : undefined)}
 
-        <div style={{
+        <div className="tc-verdict" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           minWidth: 120, padding: '20px 0',
         }}>
+         <div className="tc-verdict-sec">
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
             {tradeDateTotals
               ? new Date(tradeDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -649,15 +721,16 @@ export function TradeCalculator({ onDataLoaded }: Props) {
           </div>
           {Math.abs(evalDiff) >= 200 && (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
-              {evalDiff > 0 ? 'Side A' : 'Side B'} by{' '}
+              <strong style={{ color: evalDiff > 0 ? SIDE_A_COLOR : SIDE_B_COLOR }}>{evalDiff > 0 ? 'Side A' : 'Side B'}</strong> by{' '}
               <strong style={{ color: 'var(--text-primary)' }}>{Math.abs(evalDiff).toLocaleString()}</strong>
             </div>
           )}
+         </div>
 
           {/* "Since Trade" retrospective when trade date is set */}
           {tradeDateTotals && hasPlayers && (
-            <>
-              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
+            <div className="tc-verdict-sec">
+              <div className="tc-verdict-div" style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px auto' }} />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>SINCE TRADE</div>
               {(() => {
                 const aGain = totalA - tradeDateTotals.aTotal;
@@ -679,13 +752,13 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                   </>
                 );
               })()}
-            </>
+            </div>
           )}
 
           {/* Win Now PPG comparison (only for current-date evaluation) */}
           {hasRedraft && hasPlayers && (
-            <>
-              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
+            <div className="tc-verdict-sec">
+              <div className="tc-verdict-div" style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px auto' }} />
               <div style={{ fontSize: 11, color: '#60a5fa', marginBottom: 4 }}>WIN NOW</div>
               <div style={{
                 fontSize: 18, fontWeight: 700, color: '#60a5fa', textAlign: 'center',
@@ -694,7 +767,7 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               </div>
               {Math.abs(redraftDiff) >= 1 && (
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-                  {redraftDiff > 0 ? 'Side A' : 'Side B'} by{' '}
+                  <strong style={{ color: redraftDiff > 0 ? SIDE_A_COLOR : SIDE_B_COLOR }}>{redraftDiff > 0 ? 'Side A' : 'Side B'}</strong> by{' '}
                   <strong style={{ color: '#60a5fa' }}>{Math.abs(redraftDiff).toFixed(1)} ppg</strong>
                 </div>
               )}
@@ -703,13 +776,13 @@ export function TradeCalculator({ onDataLoaded }: Props) {
                   Even for this season
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* Projected section (only when no trade date) */}
           {!tradeDateTotals && hasPlayers && projDiff !== diff && (
-            <>
-              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px 0' }} />
+            <div className="tc-verdict-sec">
+              <div className="tc-verdict-div" style={{ width: 1, height: 16, background: 'var(--border)', margin: '8px auto' }} />
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>PROJECTED</div>
               <div style={{
                 fontSize: 20, fontWeight: 700,
@@ -724,11 +797,11 @@ export function TradeCalculator({ onDataLoaded }: Props) {
               </div>
               {Math.abs(projDiff) >= 200 && (
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-                  {projDiff > 0 ? 'Side A' : 'Side B'} by{' '}
+                  <strong style={{ color: projDiff > 0 ? SIDE_A_COLOR : SIDE_B_COLOR }}>{projDiff > 0 ? 'Side A' : 'Side B'}</strong> by{' '}
                   <strong style={{ color: 'var(--text-primary)' }}>{Math.abs(projDiff).toLocaleString()}</strong>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
 

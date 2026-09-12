@@ -2844,3 +2844,36 @@ tr.scenario-custom-row-highlight td {
     display: none !important;
   }
 }
+
+/* ── Trade calculator ─────────────────────────────────────────────────── */
+.tc-date {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color-scheme: dark;
+}
+.tc-verdict-sec { display: flex; flex-direction: column; align-items: center; }
+@media (max-width: 640px) {
+  /* Sides stack; the verdict becomes one compact card between them instead
+     of a 450px vertical column, and each side keeps a colored header bar with
+     its running total so the reader always knows which side they are in. */
+  .tc-layout { gap: 12px !important; padding: 0 10px !important; }
+  .tc-side { min-width: 0 !important; width: 100%; padding-left: 8px !important; }
+  .tc-side-head { position: sticky; top: 0; z-index: 5; backdrop-filter: blur(6px); }
+  .tc-verdict {
+    width: 100%; min-width: 0 !important; padding: 8px 4px !important;
+    display: grid !important; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 4px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);
+  }
+  .tc-verdict > .tc-verdict-sec { justify-content: flex-start; }
+  .tc-verdict .tc-verdict-div { display: none; }
+  .tc-verdict .tc-verdict-sec > div { font-size: 11px; }
+  .tc-verdict .tc-verdict-sec > div:nth-child(2) { font-size: 17px !important; line-height: 1.15; }
+  .tc-row { padding: 6px 8px !important; gap: 2px !important; }
+  .tc-row-main { flex-wrap: wrap; }
+  .tc-row-main > div:first-child { flex: 1 1 100%; }
+  .tc-row-right { width: 100%; justify-content: flex-end; gap: 8px !important; }
+  .tc-deltas { gap: 8px !important; font-size: 10px !important; }
+  .tc-gbm { display: none !important; }
+}
