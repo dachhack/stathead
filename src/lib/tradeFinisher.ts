@@ -469,11 +469,25 @@ export interface SuggestOptions {
 
 const offerKey = (o: Offer) => [...o.give.map((a) => a.id)].sort().join(',') + '|' + [...o.get.map((a) => a.id)].sort().join(',');
 
-export function describeEdit(e: Edit, partnerName: string): string {
-  const from = e.side === 'get' ? `from ${partnerName}` : 'from you';
+export function describeEdit(e: Edit, partnerName: string, youName = 'you'): string {
+  const from = e.side === 'get' ? `from ${partnerName}` : `from ${youName}`;
   if (e.kind === 'add') return `+ ${e.asset.name} ${from}`;
-  if (e.kind === 'remove') return `− ${e.asset.name} (${e.side === 'get' ? 'they keep' : 'you keep'})`;
+  if (e.kind === 'remove') return `− ${e.asset.name} (${e.side === 'get' ? `${partnerName} keeps` : youName === 'you' ? 'you keep' : `${youName} keeps`})`;
   return `${e.replaced?.name ?? '?'} → ${e.asset.name} ${from}`;
+}
+
+/** Rewrite an evaluation's you/their tags with team names, for a page read by
+ *  both sides (or a third party) where "you" is ambiguous. */
+export function nameTags(tags: string[], youName: string, themName: string): string[] {
+  const yours = `${youName}'s`, theirs = `${themName}'s`;
+  return tags.map((t) => t
+    .replace(/^Fills your /, `Fills ${yours} `).replace(/^Thins your /, `Thins ${yours} `).replace(/^Fills their /, `Fills ${theirs} `)
+    .replace(/^Your lineup /, `${youName} lineup `).replace(/^Their lineup /, `${themName} lineup `)
+    .replace(/^You get younger/, `${youName} gets younger`).replace(/^You get older/, `${youName} gets older`)
+    .replace(/^You add /, `${youName} adds `).replace(/^You send /, `${youName} sends `)
+    .replace(/^Needs /, `${youName} needs `).replace(/^Frees /, `${youName} frees `)
+    .replace(/^Serves your goal/, `Serves ${yours} goal`).replace(/^Against your goal/, `Against ${yours} goal`)
+    .replace(/^Serves their goal/, `Serves ${theirs} goal`).replace(/^Against their goal/, `Against ${theirs} goal`));
 }
 
 /**

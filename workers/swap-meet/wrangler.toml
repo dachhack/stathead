@@ -1,0 +1,13 @@
+name = "swap-meet"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Swap Meet by StatHead — trade negotiations two managers share by link.
+# One KV namespace holds a JSON record per meet (see src/lib/swapMeetCore.ts
+# in the repo for the shape). deploy-workers.yml creates the namespace on
+# first deploy and writes its id here; to deploy by hand:
+#   npx wrangler kv namespace create SWAP_MEET   → paste the id below
+#   npx wrangler deploy
+[[kv_namespaces]]
+binding = "SWAP_MEET"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

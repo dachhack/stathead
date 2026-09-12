@@ -4,8 +4,9 @@ declare const __BUILD_HASH__: string;
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { usePlayerData } from './hooks/usePlayerData';
 import { PlayerDetail } from './components/PlayerDetail';
+import { SwapMeetView } from './components/SwapMeetView';
 import { ExpertTracker } from './components/ExpertTracker';
-import { parsePlayerHash, setPlayerHash } from './lib/hashRoute';
+import { parsePlayerHash, setPlayerHash, parseSwapHash, setSwapHash, type SwapRoute } from './lib/hashRoute';
 import { parseSnoopQuery, setSnoopQuery } from './lib/snoopRoute';
 import { PlayerStatsTable } from './components/PlayerStatsTable';
 import { PlayerCompare } from './components/PlayerCompare';
@@ -150,8 +151,16 @@ function App() {
   const [playerDetailKey, setPlayerDetailKey] = useState<string | null>(
     () => (typeof window !== 'undefined' ? parsePlayerHash(window.location.hash) : null),
   );
+  // Swap Meet by StatHead: `#/swap/<id>?k=<key>` renders a shared trade
+  // negotiation the same way, in place of the tab layout.
+  const [swapRoute, setSwapRoute] = useState<SwapRoute | null>(
+    () => (typeof window !== 'undefined' ? parseSwapHash(window.location.hash) : null),
+  );
   useEffect(() => {
-    const handler = () => setPlayerDetailKey(parsePlayerHash(window.location.hash));
+    const handler = () => {
+      setPlayerDetailKey(parsePlayerHash(window.location.hash));
+      setSwapRoute(parseSwapHash(window.location.hash));
+    };
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
@@ -160,8 +169,8 @@ function App() {
   // workers/visit-tracker). One hit per tab/player-card view; the initial
   // mount counts as the landing view.
   useEffect(() => {
-    trackPageview(playerDetailKey ? 'player-detail' : tab);
-  }, [tab, playerDetailKey]);
+    trackPageview(playerDetailKey ? 'player-detail' : swapRoute ? 'swap-meet' : tab);
+  }, [tab, playerDetailKey, swapRoute]);
 
   // Cross-tab navigation events (e.g. DocsLink deep into a section) —
   // lets nested components switch tabs without prop-drilling onNavigate.
@@ -176,10 +185,15 @@ function App() {
 
   // Switching tabs closes the open player card (it renders in place of the tab
   // content). Skip the initial mount so deep links like #/player/... still load.
-  const tabFirstRender = useRef(true);
+  // Tracks the last tab seen rather than "first render", so StrictMode's
+  // doubled mount effect cannot mistake the initial tab for a change and
+  // wipe a deep link the page was opened on.
+  const lastTab = useRef(tab);
   useEffect(() => {
-    if (tabFirstRender.current) { tabFirstRender.current = false; return; }
+    if (lastTab.current === tab) return;
+    lastTab.current = tab;
     if (parsePlayerHash(window.location.hash)) setPlayerHash(null);
+    else if (parseSwapHash(window.location.hash)) setSwapHash(null);
   }, [tab]);
 
   // Keep the shareable `?snoop=` param scoped to the snooper tab: clear it when
@@ -291,6 +305,8 @@ function App() {
       <main className="main">
         {playerDetailKey ? (
           <PlayerDetail playerKey={playerDetailKey} onBack={() => setPlayerHash(null)} />
+        ) : swapRoute ? (
+          <SwapMeetView id={swapRoute.id} keyParam={swapRoute.key} onBack={() => setSwapHash(null)} />
         ) : (
           <>
         {tab === 'home' && <HomePage onNavigate={(t) => { setTab(t); setExtraData([]); }} />}

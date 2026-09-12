@@ -41,6 +41,7 @@ on:
           - fc-proxy
           - ktc-proxy
           - stathead-mcp
+          - swap-meet
           - visit-tracker
 
 jobs:
@@ -49,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp, visit-tracker]
+        worker: [espn-news-proxy, fc-proxy, ktc-proxy, stathead-mcp, swap-meet, visit-tracker]
     steps:
       - name: Decide whether to deploy this worker
         id: gate
@@ -63,6 +64,27 @@ jobs:
           fi
       - if: steps.gate.outputs.skip == 'false'
         uses: actions/checkout@v5
+      # swap-meet keeps its negotiations in a KV namespace. Create it on the
+      # first deploy and write its id into wrangler.toml (the checked-in file
+      # carries a placeholder so the repo never pins an account-specific id).
+      - if: steps.gate.outputs.skip == 'false' && matrix.worker == 'swap-meet'
+        name: Ensure the SWAP_MEET KV namespace
+        working-directory: workers/swap-meet
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ID=$(npx --yes wrangler@3 kv namespace list 2>/dev/null \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let l=[];try{l=JSON.parse(s.slice(s.indexOf("[")))}catch{}const n=l.find(x=>x.title==="swap-meet-SWAP_MEET");console.log(n?n.id:"")})')
+          if [ -z "$ID" ]; then
+            echo "Creating the swap-meet-SWAP_MEET namespace"
+            OUT=$(npx --yes wrangler@3 kv namespace create SWAP_MEET)
+            echo "$OUT"
+            ID=$(echo "$OUT" | grep -oE 'id = "[^"]+"' | head -1 | sed -E 's/id = "([^"]+)"/\1/')
+          fi
+          if [ -z "$ID" ]; then echo "::error::could not resolve the SWAP_MEET KV namespace id"; exit 1; fi
+          sed -i "s/REPLACE_WITH_KV_NAMESPACE_ID/$ID/" wrangler.toml
+          grep -n 'id = ' wrangler.toml
       - if: steps.gate.outputs.skip == 'false' && matrix.worker != 'visit-tracker'
         uses: cloudflare/wrangler-action@v4
         with:
