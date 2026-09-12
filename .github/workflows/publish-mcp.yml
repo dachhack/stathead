@@ -142,11 +142,16 @@ jobs:
             exit 1
           fi
 
-      - name: Publish to npm (Trusted Publishing / OIDC)
+      - name: Publish to npm (NPM_TOKEN if set, else Trusted Publishing / OIDC)
         working-directory: mcp
-        # No NODE_AUTH_TOKEN: npm authenticates via the id-token below.
-        # Provenance is attached automatically under Trusted Publishing.
-        run: npm publish --access public
+        # With NPM_TOKEN set, npm publishes with the token (provenance still
+        # attached via the id-token). With the secret absent, npm falls back to
+        # Trusted Publishing — which needs the one-time npmjs.com setup in the
+        # header; until that is done every OIDC attempt ends in an E404 on the
+        # PUT (2026-09-12), so the token keeps releases shipping meanwhile.
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: |
