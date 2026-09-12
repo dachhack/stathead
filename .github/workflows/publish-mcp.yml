@@ -74,7 +74,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # npm@12 (needed for Trusted Publishing) refuses to install on Node
+          # 20 (EBADENGINE, requires ^22.22 || ^24.15); the bundle itself runs
+          # on node >= 18, so the runner version is only about npm here.
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
