@@ -1,8 +1,8 @@
 {
  "season": 2026,
  "week": 1,
- "generatedAt": "2026-09-12T15:04:13+00:00",
- "projectionsBuilt": "2026-09-12T15:04:13+00:00",
+ "generatedAt": "2026-09-12T17:50:46+00:00",
+ "projectionsBuilt": "2026-09-12T17:50:46+00:00",
  "playedThrough": 0,
  "gamesPlayed": 2,
  "gamesScheduled": 16,
@@ -13,18 +13,18 @@
   "Ja'Marr Chase (CIN WR, (no designation yet), 18.78)",
   "Tyson Bagent (CHI QB, Questionable, 17.39)",
   "Michael Penix Jr. (ATL QB, Out, 16.04)",
-  "Malik Nabers (NYG WR, Questionable, 15.54)",
+  "Malik Nabers (NYG WR, Questionable, 15.69)",
   "Brock Bowers (LV TE, Out, 15.49)",
   "Jeremiyah Love (ARI RB, Questionable, 13.33)",
   "TreVeyon Henderson (NE RB, Out, 12.82)",
   "Tua Tagovailoa (ATL QB, Out, 12.33)",
   "Rome Odunze (CHI WR, Questionable, 11.49)",
   "Jalen McMillan (TB WR, Doubtful, 8.93)",
-  "Alvin Kamara (NO RB, Questionable, 7.77)",
+  "Alvin Kamara (NO RB, Questionable, 7.74)",
   "Tory Horton (SEA WR, Questionable, 7.56)",
   "Sean Tucker (TB RB, Doubtful, 6.51)",
   "Ty Johnson (BUF RB, Questionable, 4.87)",
-  "Malik Davis (DAL RB, Out, 4.18)"
+  "Malik Davis (DAL RB, Out, 4.2)"
  ],
  "qb1Disagreements": [],
  "backupsInTop24": [
@@ -45,6 +45,6 @@
   "Jameis Winston (NYG QB23)"
  ],
  "actualsMatched": 41,
- "actualsMAE": 6.13,
+ "actualsMAE": 6.14,
  "scoredWithoutRow": []
 }
